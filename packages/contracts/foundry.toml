@@ -1,0 +1,20 @@
+[fmt]
+line_length = 120
+tab_width = 2
+bracket_spacing = false
+int_types = 'long'
+quote_style = 'single'
+number_underscore = 'thousands'
+multiline_func_header = 'params_first'
+sort_imports = true
+
+[profile.default]
+solc_version = '0.8.23'
+libs = ['node_modules', 'lib']
+optimizer=false
+src = "src"
+out = "out"
+# This translates to `solc --allow-paths node_modules`
+allow_paths = ["node_modules"]
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

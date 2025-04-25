@@ -1,0 +1,35 @@
+name: Lint
+
+on:
+    workflow_call:
+
+jobs:
+    commitlint:
+        name: Lint Commit Messages
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - uses: wagoid/commitlint-github-action@v5
+              with:
+                  commitDepth: 1
+
+    lint:
+        name: Run Linters
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup environment
+              uses: ./.github/actions/setup
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Run Prettier
+              run: pnpm format
+
+            - name: Run Linter
+              run: pnpm lint

@@ -1,0 +1,23 @@
+{
+    "name": "@ts-turborepo-boilerplate/sample-app",
+    "version": "0.0.1",
+    "type": "module",
+    "main": "./dist/index.js",
+    "scripts": {
+        "build": "tsc -p tsconfig.build.json",
+        "check-types": "tsc --noEmit -p ./tsconfig.json",
+        "clean": "rm -rf dist",
+        "format": "prettier --check \"{src,test}/**/*.{js,ts,json}\"",
+        "format:fix": "prettier --write \"{src,test}/**/*.{js,ts,json}\"",
+        "lint": "eslint \"{src,test}/**/*.{js,ts,json}\"",
+        "lint:fix": "pnpm lint --fix",
+        "start": "node dist/index.js",
+        "test": "vitest run --config vitest.config.ts --passWithNoTests",
+        "test:cov": "vitest run --config vitest.config.ts --coverage"
+    },
+    "dependencies": {
+        "@ts-turborepo-boilerplate/sample-lib": "workspace:*",
+        "dotenv": "16.4.5",
+        "zod": "3.23.8"
+    }
+}

@@ -1,0 +1,38 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "tasks": {
+        "clean": {
+            "cache": false
+        },
+        "lint": {
+            "dependsOn": ["build"]
+        },
+        "lint:fix": {
+            "dependsOn": ["build"]
+        },
+        "format": {},
+        "format:fix": {},
+        "check-types": {},
+        "test": {
+            "dependsOn": ["build"]
+        },
+        "test:cov": {
+            "dependsOn": ["build"]
+        },
+        "test:integration": {
+            "dependsOn": ["build"]
+        },
+        "build": {
+            "dependsOn": ["^build"],
+            "outputs": ["dist/**", "out/**"],
+            "inputs": ["$TURBO_DEFAULT$", "src/**/*.ts", "src/**/*.json"]
+        },
+        "dev": {
+            "cache": false
+        },
+        "start": {
+            "dependsOn": ["build"]
+        }
+    },
+    "globalDependencies": [".eslintrc.cjs", ".prettierrc", "**/.env", "tsconfig.json"]
+}
