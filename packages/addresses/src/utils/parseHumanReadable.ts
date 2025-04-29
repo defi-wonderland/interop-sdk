@@ -1,5 +1,7 @@
 import bs58 from "bs58";
-import { hexToBytes, keccak256 } from "viem";
+import { createPublicClient, hexToBytes, http, keccak256 } from "viem";
+import * as chains from "viem/chains";
+import { normalize } from "viem/ens";
 
 import { CHAIN_TYPE, InteropAddress } from "../internal.js";
 
@@ -16,34 +18,69 @@ import { CHAIN_TYPE, InteropAddress } from "../internal.js";
 // }
 
 const convertToBytes = (
-    bytes: string | undefined,
-    type: "hex" | "base58" | "base64",
+    input: string | undefined,
+    type: "hex" | "base58" | "base64" | "decimal",
 ): Uint8Array => {
-    if (!bytes) {
+    if (!input) {
         return new Uint8Array();
     }
 
     switch (type) {
         case "hex":
-            if (bytes.startsWith("0x")) {
-                return hexToBytes(bytes as `0x${string}`);
+            if (input.startsWith("0x")) {
+                return hexToBytes(input as `0x${string}`);
             }
-            return hexToBytes(`0x${bytes}`);
+            return hexToBytes(`0x${input}`);
         case "base58":
-            return bs58.decode(bytes);
+            return bs58.decode(input);
         case "base64":
             return new Uint8Array(
-                atob(bytes)
+                atob(input)
                     .split("")
                     .map((c) => c.charCodeAt(0)),
             );
+        case "decimal":
+            return convertToBytes(Number(input).toString(16), "hex");
         default:
             throw new Error("Invalid type");
     }
 };
 
-export const parseHumanReadable = (humanReadableAddress: string): InteropAddress => {
-    const INTEROP_HUMAN_REGEX = /^([a-zA-Z0-9]*)@([a-zA-Z0-9]*:?[a-zA-Z0-9]*)?#([A-F0-9]{8})$/;
+const parseAddress = async (address: string): Promise<Uint8Array> => {
+    if (address.includes(".eth")) {
+        const client = createPublicClient({
+            chain: chains.mainnet,
+            transport: http(),
+        });
+        const ensAddress = await client.getEnsAddress({ name: normalize(address) });
+        if (ensAddress) {
+            return convertToBytes(ensAddress, "hex");
+        } else {
+            throw new Error("ENS name not found");
+        }
+    }
+    return convertToBytes(address, "hex");
+};
+
+const validateChain = (chainPart: string): boolean => {
+    const chainNamespace = chainPart.includes(":") ? chainPart.split(":")[0] : "";
+    const chainReference = chainPart.includes(":") ? chainPart.split(":")[1] : "";
+
+    const chainId = Number(chainReference);
+    if (isNaN(chainId)) {
+        return false;
+    }
+
+    return Object.values(chains)
+        .filter((x) => "id" in x)
+        .find((x) => x.id === chainId)
+        ? true
+        : false;
+};
+
+export const parseHumanReadable = async (humanReadableAddress: string): Promise<InteropAddress> => {
+    const INTEROP_HUMAN_REGEX =
+        /^([.\-:_%a-zA-Z0-9]*)@([a-zA-Z0-9]*:?[a-zA-Z0-9]*)?#([A-F0-9]{8})$/;
     const interopHumanMatch = humanReadableAddress.match(INTEROP_HUMAN_REGEX);
 
     if (!interopHumanMatch) {
@@ -55,20 +92,26 @@ export const parseHumanReadable = (humanReadableAddress: string): InteropAddress
         throw new Error("Invalid human address");
     }
 
-    const chainNamespace = chainPart.includes(":") ? chainPart.split(":")[0] : "";
-    const chainId = chainPart.includes(":") ? chainPart.split(":")[1] : "";
+    if (!validateChain(chainPart)) {
+        throw new Error("Invalid chain");
+    }
 
-    const addressBytes = address ? convertToBytes(address, "hex") : new Uint8Array();
-    const chainReference = chainId ? convertToBytes(chainId, "hex") : new Uint8Array();
-    const chainType = chainNamespace
+    const chainNamespace = chainPart.includes(":") ? chainPart.split(":")[0] : "";
+    const chainReference = chainPart.includes(":") ? chainPart.split(":")[1] : "";
+
+    const addressBytes = address ? await parseAddress(address) : new Uint8Array();
+    const chainReferenceBytes = chainReference
+        ? convertToBytes(chainReference, "decimal")
+        : new Uint8Array();
+    const chainTypeBytes = chainNamespace
         ? convertToBytes(CHAIN_TYPE[chainNamespace], "hex")
         : new Uint8Array();
 
     const interopAddress: InteropAddress = {
         version: 1,
         address: addressBytes,
-        chainType,
-        chainReference,
+        chainType: chainTypeBytes,
+        chainReference: chainReferenceBytes,
     };
 
     // TODO: validate checksum
