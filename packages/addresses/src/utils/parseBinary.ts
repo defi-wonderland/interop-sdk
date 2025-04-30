@@ -1,4 +1,4 @@
-import { fromBytes } from "viem";
+import { fromBytes, fromHex } from "viem";
 
 import type {
     Address,
@@ -70,11 +70,13 @@ const parseAddress = (binaryAddress: Uint8Array): Address => {
     return address;
 };
 
-export const parseBinary = (binaryAddress: Uint8Array): InteropAddress => {
-    const version = parseVersion(binaryAddress);
-    const chainType = parseChainType(binaryAddress);
-    const chainReference = parseChainReference(binaryAddress);
-    const address = parseAddress(binaryAddress);
+export const parseBinary = (binaryAddress: `0x${string}`): InteropAddress => {
+    const byteBinaryAddress = fromHex(binaryAddress, "bytes");
+
+    const version = parseVersion(byteBinaryAddress);
+    const chainType = parseChainType(byteBinaryAddress);
+    const chainReference = parseChainReference(byteBinaryAddress);
+    const address = parseAddress(byteBinaryAddress);
 
     return {
         version,

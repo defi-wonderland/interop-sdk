@@ -16,7 +16,7 @@ describe("erc7930", () => {
                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Address:              20 bytes of ethereum address
             */
 
-            const interopAddress = parseBinary(fromHex(binaryAddress, "bytes"));
+            const interopAddress = parseBinary(binaryAddress);
 
             expect(interopAddress.version).toEqual(1);
             expect(interopAddress.chainType).toEqual(fromHex("0x0000", "bytes"));
@@ -38,7 +38,7 @@ describe("erc7930", () => {
                                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--- Address:              32 bytes of solana address
             */
 
-            const interopAddress = parseBinary(fromHex(binaryAddress, "bytes"));
+            const interopAddress = parseBinary(binaryAddress);
 
             expect(interopAddress.version).toEqual(1);
             expect(interopAddress.chainType).toEqual(fromHex("0x0002", "bytes"));
@@ -66,7 +66,7 @@ describe("erc7930", () => {
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Address:              20 bytes of ethereum address
             */
 
-            const interopAddress = parseBinary(fromHex(binaryAddress, "bytes"));
+            const interopAddress = parseBinary(binaryAddress);
 
             expect(interopAddress.version).toEqual(1);
             expect(interopAddress.chainType).toEqual(fromHex("0x0000", "bytes"));
@@ -87,7 +87,7 @@ describe("erc7930", () => {
                                                                                             ^^ AddressLength:        zero, indicating no address
             */
 
-            const interopAddress = parseBinary(fromHex(binaryAddress, "bytes"));
+            const interopAddress = parseBinary(binaryAddress);
 
             expect(interopAddress.version).toEqual(1);
             expect(interopAddress.chainType).toEqual(fromHex("0x0002", "bytes"));
