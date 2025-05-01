@@ -1,12 +1,11 @@
-export type InteropAddress = {
-    version: number;
-    chainType: ChainType;
-    chainReference: ChainReference;
-    address: Address;
-};
+import { z } from "zod";
 
-export type ChainType = Uint8Array;
+import { interopAddressSchema } from "../schemas/interopAddress.js";
 
-export type ChainReference = Uint8Array;
+export type InteropAddress = z.infer<typeof interopAddressSchema>;
 
-export type Address = Uint8Array;
+export type ChainType = InteropAddress["chainType"];
+
+export type ChainReference = InteropAddress["chainReference"];
+
+export type Address = InteropAddress["address"];
