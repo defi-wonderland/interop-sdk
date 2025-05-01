@@ -2,6 +2,7 @@ import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
 import { toBinary } from "../src/external.js";
+import { InteropAddress, ParseInteropAddressError } from "../src/internal.js";
 
 describe("erc7930", () => {
     describe("toBinary", () => {
@@ -103,6 +104,94 @@ describe("erc7930", () => {
                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-- ChainReference:       32 bytes of solana genesis block
                                                                                             ^^ AddressLength:        zero, indicating no address
             */
+        });
+
+        it("throws if version is not there", () => {
+            const interopAddress = {
+                chainType: fromHex("0x0000", "bytes"),
+                chainReference: fromHex("0x", "bytes"),
+                address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
+            } as unknown as InteropAddress;
+
+            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddressError);
+        });
+
+        it("throws if chain type is not there", () => {
+            const interopAddress = {
+                version: 1,
+                chainReference: fromHex("0x", "bytes"),
+                address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
+            } as unknown as InteropAddress;
+
+            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddressError);
+        });
+
+        it("throws if chain type is not 2 bytes representable", () => {
+            const interopAddress = {
+                version: 1,
+                chainType: fromHex("0x100000", "bytes"),
+                chainReference: fromHex("0x", "bytes"),
+                address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
+            } as unknown as InteropAddress;
+
+            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddressError);
+        });
+
+        it("does not throw if chain type is 2 bytes representable", () => {
+            const interopAddress = {
+                version: 1,
+                chainType: fromHex("0x0000000001", "bytes"),
+                chainReference: fromHex("0x01", "bytes"),
+                address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
+            };
+
+            const binaryAddress = toBinary(interopAddress);
+
+            expect(binaryAddress).toEqual(
+                "0x00010001010114d8da6bf26964af9d7eed9e03e53415d37aa96045",
+            );
+        });
+
+        it("throws if chain reference is not there", () => {
+            const interopAddress = {
+                version: 1,
+                chainType: fromHex("0x0000", "bytes"),
+                address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
+            } as unknown as InteropAddress;
+
+            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddressError);
+        });
+
+        it("throws if address is not there", () => {
+            const interopAddress = {
+                version: 1,
+                chainType: fromHex("0x0000", "bytes"),
+                chainReference: fromHex("0x", "bytes"),
+            } as unknown as InteropAddress;
+
+            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddressError);
+        });
+
+        it("does not throw if chain reference has length 0", () => {
+            const interopAddress = {
+                version: 1,
+                chainType: fromHex("0x0000", "bytes"),
+                chainReference: fromHex("0x", "bytes"),
+                address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
+            };
+
+            expect(() => toBinary(interopAddress)).not.toThrow(ParseInteropAddressError);
+        });
+
+        it("does not throw if address has length 0", () => {
+            const interopAddress = {
+                version: 1,
+                chainType: fromHex("0x0000", "bytes"),
+                chainReference: fromHex("0x", "bytes"),
+                address: fromHex("0x", "bytes"),
+            };
+
+            expect(() => toBinary(interopAddress)).not.toThrow(ParseInteropAddressError);
         });
     });
 });

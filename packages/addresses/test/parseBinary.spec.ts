@@ -2,6 +2,7 @@ import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
 import { parseBinary } from "../src/external.js";
+import { InvalidBinaryInteropAddressError } from "../src/internal.js";
 
 describe("erc7930", () => {
     describe("parseBinary", () => {
@@ -98,6 +99,70 @@ describe("erc7930", () => {
                 ),
             );
             expect(interopAddress.address).toHaveLength(0);
+        });
+
+        it("throws if version is not there", () => {
+            const binaryAddress = "0x";
+
+            expect(() => parseBinary(binaryAddress)).toThrow(
+                new InvalidBinaryInteropAddressError("Invalid version length"),
+            );
+        });
+
+        it("throws if version has length less than 2 bytes", () => {
+            const binaryAddress = "0x01";
+
+            expect(() => parseBinary(binaryAddress)).toThrow(
+                new InvalidBinaryInteropAddressError("Invalid version length"),
+            );
+        });
+
+        it("throws if chain type is not there", () => {
+            const binaryAddress = "0x0001";
+
+            expect(() => parseBinary(binaryAddress)).toThrow(
+                new InvalidBinaryInteropAddressError("Invalid chain type length"),
+            );
+        });
+
+        it("throws if chain type has length less than 1 bytes", () => {
+            const binaryAddress = "0x00011";
+
+            expect(() => parseBinary(binaryAddress)).toThrow(
+                new InvalidBinaryInteropAddressError("Invalid chain type length"),
+            );
+        });
+
+        it("throws if chain reference length is not there", () => {
+            const binaryAddress = "0x00010000";
+
+            expect(() => parseBinary(binaryAddress)).toThrow(
+                new InvalidBinaryInteropAddressError("Invalid chain reference length"),
+            );
+        });
+
+        it("throws if chain reference is not what chain type length indicates", () => {
+            const binaryAddress = "0x000100000201";
+
+            expect(() => parseBinary(binaryAddress)).toThrow(
+                new InvalidBinaryInteropAddressError("Invalid chain reference length"),
+            );
+        });
+
+        it("throws if address length is not there", () => {
+            const binaryAddress = "0x00010000020100";
+
+            expect(() => parseBinary(binaryAddress)).toThrow(
+                new InvalidBinaryInteropAddressError("Invalid address length"),
+            );
+        });
+
+        it("throws if address is not what address length indicates", () => {
+            const binaryAddress = "0x000100000201000200";
+
+            expect(() => parseBinary(binaryAddress)).toThrow(
+                new InvalidBinaryInteropAddressError("Invalid address length"),
+            );
         });
     });
 });
