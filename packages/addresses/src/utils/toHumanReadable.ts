@@ -27,6 +27,7 @@ const calculateChecksum = (addressData: InteropAddress): string => {
  * Formats an address based on the chain type
  * @param address - The address to format
  * @param options - The options to format the address
+ * @param options.chainType - The chain type to format the address for
  * @returns The formatted address
  */
 const formatAddress = (address: Uint8Array, options: { chainType: ChainType }): string => {
@@ -41,6 +42,13 @@ const formatAddress = (address: Uint8Array, options: { chainType: ChainType }): 
     }
 };
 
+/**
+ * Formats a chain reference based on the chain type
+ * @param chainReference - The chain reference to format
+ * @param chainType - The chain type to format the chain reference for
+ * @returns The formatted chain reference
+ * @throws An error if the chain type is not supported
+ */
 const formatChainReference = (chainReference: Uint8Array, chainType: ChainType): string => {
     const chainTypeHex = toHex(chainType);
     switch (chainTypeHex) {
