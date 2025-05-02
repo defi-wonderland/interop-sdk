@@ -1,5 +1,5 @@
 import bs58 from "bs58";
-import { bytesToNumber, getAddress, keccak256, pad, toHex } from "viem";
+import { bytesToNumber, getAddress, toHex } from "viem";
 
 import type { ChainType, InteropAddress } from "../internal.js";
 import { CHAIN_TYPE_VALUE_TO_NAME, ChainTypeValue } from "../constants/index.js";
