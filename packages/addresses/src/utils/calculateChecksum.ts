@@ -1,7 +1,7 @@
 import { keccak256, pad, toHex } from "viem";
 
 import type { Checksum } from "../internal.js";
-import { checksumSchema, InteropAddress } from "../internal.js";
+import { InteropAddress } from "../internal.js";
 import { validateInteropAddress } from "./validateInteropAddress.js";
 
 /**
@@ -21,5 +21,5 @@ export const calculateChecksum = (addressData: InteropAddress): Checksum => {
 
     const binaryAddress = `${chainTypeHex}${chainReferenceLength}${chainReferenceHex}${addressLength}${addressHex}`;
     const hash = keccak256(`0x${binaryAddress}`);
-    return checksumSchema.parse(hash.slice(2, 10).toUpperCase());
+    return hash.slice(2, 10).toUpperCase() as Checksum;
 };
