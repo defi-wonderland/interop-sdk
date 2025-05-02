@@ -1,4 +1,4 @@
-# ts-turborepo-boilerplate: addresses package
+# interop-sdk: addresses package
 
 Description of your package goes here.
 
