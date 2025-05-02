@@ -1,7 +1,7 @@
 import { keccak256, pad, toHex } from "viem";
 
 import type { Checksum } from "../internal.js";
-import { InteropAddress } from "../internal.js";
+import { InteropAddress, toBinary } from "../internal.js";
 import { validateInteropAddress } from "./validateInteropAddress.js";
 
 /**
@@ -10,16 +10,9 @@ import { validateInteropAddress } from "./validateInteropAddress.js";
  * @returns A 8-character uppercase hex string checksum as per ERC-7930
  */
 export const calculateChecksum = (addressData: InteropAddress): Checksum => {
-    const { chainType, chainReference, address } = validateInteropAddress(addressData);
-    const chainTypeHex = toHex(chainType).slice(2);
-    const chainReferenceLength = chainReference
-        ? pad(toHex(chainReference.length), { size: 1 }).slice(2)
-        : "";
-    const chainReferenceHex = chainReference ? toHex(chainReference).slice(2) : "";
-    const addressLength = pad(toHex(address.length), { size: 1 }).slice(2);
-    const addressHex = address ? toHex(address).slice(2) : "";
+    validateInteropAddress(addressData);
+    const binaryAddress = toBinary(addressData);
+    const hash = keccak256(`0x${binaryAddress.slice(6)}`);
 
-    const binaryAddress = `${chainTypeHex}${chainReferenceLength}${chainReferenceHex}${addressLength}${addressHex}`;
-    const hash = keccak256(`0x${binaryAddress}`);
     return hash.slice(2, 10).toUpperCase() as Checksum;
 };
