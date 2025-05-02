@@ -1,4 +1,4 @@
-# ts-turborepo-boilerplate
+# interop-sdk
 
 ## Features
 
