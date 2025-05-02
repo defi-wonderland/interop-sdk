@@ -17,3 +17,9 @@ export class InvalidAddressError extends Error {
         super(message || "Invalid address");
     }
 }
+
+export class InvalidChainReferenceError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid chain reference");
+    }
+}

@@ -7,6 +7,7 @@ import {
     ChainTypeValue,
     InvalidAddressError,
     InvalidBinaryInteropAddressError,
+    InvalidChainReferenceError,
     UnsupportedChainTypeError,
 } from "../internal.js";
 
@@ -182,8 +183,8 @@ export const convertAddress = (
             }
 
             return fromHex(address, "bytes");
-        case ChainTypeValue.SOLANA:
-            const decodedAddress = bs58.decode(address);
+        case ChainTypeName.SOLANA:
+            const decodedAddress = bs58.decodeUnsafe(address);
 
             if (!decodedAddress) {
                 throw new InvalidAddressError("Solana address must be a base58 string");
@@ -202,7 +203,7 @@ export const convertChainReference = (
     switch (options.chainType) {
         case ChainTypeName.EIP155:
             if (!isHex(chainReference)) {
-                throw new InvalidAddressError("EVM chain reference must be a hex string");
+                throw new InvalidChainReferenceError("EVM chain reference must be a hex string");
             }
 
             return fromHex(chainReference, "bytes");
@@ -210,7 +211,9 @@ export const convertChainReference = (
             const decodedChainReference = bs58.decodeUnsafe(chainReference);
 
             if (!decodedChainReference) {
-                throw new InvalidAddressError("Solana chain reference must be a base58 string");
+                throw new InvalidChainReferenceError(
+                    "Solana chain reference must be a base58 string",
+                );
             }
 
             return decodedChainReference;
