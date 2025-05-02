@@ -12,5 +12,7 @@ export const interopAddressSchema = z.object({
     chainReference: z.instanceof(Uint8Array).refine((value) => trim(value).length <= 32, {
         message: "Chain reference must be representable as 32 bytes",
     }),
-    address: z.instanceof(Uint8Array),
+    address: z.instanceof(Uint8Array).refine((value) => trim(value).length <= 255, {
+        message: "Address must be representable as 255 bytes",
+    }),
 });
