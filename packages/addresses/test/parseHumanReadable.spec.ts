@@ -9,7 +9,7 @@ vi.mock("viem", async () => {
     const actual = await vi.importActual("viem");
     return {
         ...actual,
-        createPublicClient: () => ({
+        createPublicClient: (): unknown => ({
             getEnsAddress: mockGetEnsAddress,
         }),
     };
