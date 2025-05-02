@@ -3,7 +3,7 @@ import { hexToBytes } from "viem";
 import { describe, expect, it } from "vitest";
 
 import type { InteropAddress } from "../src/internal.js";
-import { toHumanReadable } from "../src/internal.js";
+import { toHumanReadable, UnsupportedChainTypeError } from "../src/internal.js";
 
 describe("erc7930", () => {
     describe("toHumanReadable", () => {
@@ -88,6 +88,17 @@ describe("erc7930", () => {
 
             const expected = "0xD46acbA18e4f3C8b8b6c501DF1a6B05609a642Bd@eip155:10#CCA85AD3";
             expect(toHumanReadable(interopAddress)).toBe(expected);
+        });
+
+        it("throw an error if the chain type is not supported", () => {
+            const interopAddress: InteropAddress = {
+                version: 1,
+                chainType: hexToBytes("0xffff"), // invalid chain type
+                chainReference: hexToBytes("0x01"),
+                address: hexToBytes("0xD46acbA18e4f3C8b8b6c501DF1a6B05609a642Bd"),
+            };
+
+            expect(() => toHumanReadable(interopAddress)).toThrow(UnsupportedChainTypeError);
         });
     });
 });
