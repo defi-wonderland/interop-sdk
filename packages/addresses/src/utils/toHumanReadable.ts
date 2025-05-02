@@ -3,6 +3,7 @@ import { bytesToNumber, getAddress, toHex } from "viem";
 
 import type { ChainType, InteropAddress } from "../internal.js";
 import { CHAIN_TYPE_VALUE_TO_NAME, ChainTypeValue } from "../constants/index.js";
+import { UnsupportedChainTypeError } from "../internal.js";
 import { calculateChecksum } from "./calculateChecksum.js";
 import { validateInteropAddress } from "./validateInteropAddress.js";
 
@@ -21,7 +22,7 @@ const formatAddress = (address: Uint8Array, options: { chainType: ChainType }): 
         case ChainTypeValue.SOLANA:
             return bs58.encode(address);
         default:
-            throw new Error(`Unsupported chain type: ${chainTypeHex}`);
+            throw new UnsupportedChainTypeError(chainTypeHex);
     }
 };
 
@@ -40,7 +41,7 @@ const formatChainReference = (chainReference: Uint8Array, chainType: ChainType):
         case ChainTypeValue.SOLANA:
             return bs58.encode(chainReference);
         default:
-            throw new Error(`Unsupported chain type: ${chainTypeHex}`);
+            throw new UnsupportedChainTypeError(chainTypeHex);
     }
 };
 
