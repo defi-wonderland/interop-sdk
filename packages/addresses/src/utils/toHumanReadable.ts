@@ -4,6 +4,7 @@ import { bytesToNumber, getAddress, toHex } from "viem";
 import type { ChainType, InteropAddress } from "../internal.js";
 import { CHAIN_TYPE_VALUE_TO_NAME, ChainTypeValue } from "../constants/index.js";
 import { calculateChecksum } from "./calculateChecksum.js";
+import { validateInteropAddress } from "./validateInteropAddress.js";
 
 /**
  * Formats an address based on the chain type
@@ -49,7 +50,7 @@ const formatChainReference = (chainReference: Uint8Array, chainType: ChainType):
  * @returns A human-readable string representation of the address
  */
 export const toHumanReadable = (addressData: InteropAddress): string => {
-    const { chainType, chainReference, address } = addressData;
+    const { chainType, chainReference, address } = validateInteropAddress(addressData);
     const formattedAddress = address.length ? formatAddress(address, { chainType }) : "";
     const chainTypeHex = toHex(chainType);
     const namespace = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex];
