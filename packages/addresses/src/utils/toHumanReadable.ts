@@ -1,5 +1,5 @@
 import bs58 from "bs58";
-import { bytesToNumber, getAddress, keccak256, toHex } from "viem";
+import { bytesToNumber, getAddress, keccak256, pad, toHex } from "viem";
 
 import type { ChainType, InteropAddress } from "../internal.js";
 import { CHAIN_TYPE_MAP, ChainTypeValue } from "../constants/index.js";
@@ -12,10 +12,12 @@ import { CHAIN_TYPE_MAP, ChainTypeValue } from "../constants/index.js";
 const calculateChecksum = (addressData: InteropAddress): string => {
     const { chainType, chainReference, address } = addressData;
     const chainTypeHex = toHex(chainType).slice(2);
+    const chainReferenceLength = chainReference
+        ? pad(toHex(chainReference.length), { size: 1 }).slice(2)
+        : "";
     const chainReferenceHex = chainReference ? toHex(chainReference).slice(2) : "";
-    const chainReferenceLength = (chainReferenceHex.length / 2).toString(16).padStart(2, "0");
+    const addressLength = pad(toHex(address.length), { size: 1 }).slice(2);
     const addressHex = address ? toHex(address).slice(2) : "";
-    const addressLength = (addressHex.length / 2).toString(16).padStart(2, "0");
 
     const binaryAddress =
         `${chainTypeHex}${chainReferenceLength}${chainReferenceHex}${addressLength}${addressHex}` as `0x${string}`;
