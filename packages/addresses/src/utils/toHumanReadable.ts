@@ -37,7 +37,7 @@ const formatAddress = (address: Uint8Array, options: { chainType: ChainType }): 
         case ChainTypeValue.SOLANA:
             return bs58.encode(address);
         default:
-            return toHex(address);
+            throw new Error(`Unsupported chain type: ${chainTypeHex}`);
     }
 };
 
@@ -49,7 +49,7 @@ const formatChainReference = (chainReference: Uint8Array, chainType: ChainType):
         case ChainTypeValue.SOLANA:
             return bs58.encode(chainReference);
         default:
-            return bytesToNumber(chainReference).toString();
+            throw new Error(`Unsupported chain type: ${chainTypeHex}`);
     }
 };
 
