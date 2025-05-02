@@ -1,7 +1,7 @@
 import bs58 from "bs58";
 import { bytesToNumber, getAddress, toHex } from "viem";
 
-import type { ChainType, InteropAddress } from "../internal.js";
+import type { ChainType, HumanReadableAddress, InteropAddress } from "../internal.js";
 import { CHAIN_TYPE_VALUE_TO_NAME, ChainTypeValue } from "../constants/index.js";
 import { UnsupportedChainTypeError } from "../internal.js";
 import { calculateChecksum } from "./calculateChecksum.js";
@@ -50,7 +50,7 @@ const formatChainReference = (chainReference: Uint8Array, chainType: ChainType):
  * @param addressData - The address data to convert
  * @returns A human-readable string representation of the address
  */
-export const toHumanReadable = (addressData: InteropAddress): string => {
+export const toHumanReadable = (addressData: InteropAddress): HumanReadableAddress => {
     const { chainType, chainReference, address } = validateInteropAddress(addressData);
     const formattedAddress = address.length ? formatAddress(address, { chainType }) : "";
     const chainTypeHex = toHex(chainType);
