@@ -2,7 +2,7 @@ import bs58 from "bs58";
 import { bytesToNumber, getAddress, keccak256, pad, toHex } from "viem";
 
 import type { ChainType, InteropAddress } from "../internal.js";
-import { CHAIN_TYPE_MAP, ChainTypeValue } from "../constants/index.js";
+import { CHAIN_TYPE_VALUE_TO_NAME, ChainTypeValue } from "../constants/index.js";
 import { calculateChecksum } from "./calculateChecksum.js";
 
 /**
@@ -52,7 +52,7 @@ export const toHumanReadable = (addressData: InteropAddress): string => {
     const { chainType, chainReference, address } = addressData;
     const formattedAddress = address.length ? formatAddress(address, { chainType }) : "";
     const chainTypeHex = toHex(chainType);
-    const namespace = CHAIN_TYPE_MAP[chainTypeHex];
+    const namespace = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex];
 
     const checksum = calculateChecksum(addressData);
     const chainId = chainReference ? formatChainReference(chainReference, chainType) : "";

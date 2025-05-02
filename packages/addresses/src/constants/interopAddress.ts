@@ -8,7 +8,7 @@ export const CHAIN_TYPE: Record<string, string> = {
     solana: ChainTypeValue.SOLANA,
 } as const;
 
-export const CHAIN_TYPE_MAP: Record<string, string> = {
+export const CHAIN_TYPE_VALUE_TO_NAME: Record<string, string> = {
     [ChainTypeValue.EIP155]: "eip155",
     [ChainTypeValue.SOLANA]: "solana",
 } as const;
