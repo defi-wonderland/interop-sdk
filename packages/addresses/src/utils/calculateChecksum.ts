@@ -18,8 +18,7 @@ export const calculateChecksum = (addressData: InteropAddress): string => {
     const addressLength = pad(toHex(address.length), { size: 1 }).slice(2);
     const addressHex = address ? toHex(address).slice(2) : "";
 
-    const binaryAddress =
-        `${chainTypeHex}${chainReferenceLength}${chainReferenceHex}${addressLength}${addressHex}` as `0x${string}`;
+    const binaryAddress = `${chainTypeHex}${chainReferenceLength}${chainReferenceHex}${addressLength}${addressHex}`;
     const hash = keccak256(`0x${binaryAddress}`);
     return hash.slice(2, 10).toUpperCase();
 };
