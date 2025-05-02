@@ -1,1 +1,3 @@
 export * from "./interopAddress.js";
+export * from "./checksum.js";
+export * from "./humanReadableAddress.js";
