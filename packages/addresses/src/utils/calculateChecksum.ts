@@ -1,4 +1,4 @@
-import { keccak256, pad, toHex } from "viem";
+import { keccak256 } from "viem";
 
 import type { Checksum } from "../internal.js";
 import { InteropAddress, toBinary } from "../internal.js";
