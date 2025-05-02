@@ -11,3 +11,9 @@ export class InvalidBinaryInteropAddressError extends Error {
         super(message || "Invalid binary interop address");
     }
 }
+
+export class InvalidAddressError extends Error {
+    constructor(message?: string) {
+        super(message || "Invalid address");
+    }
+}
