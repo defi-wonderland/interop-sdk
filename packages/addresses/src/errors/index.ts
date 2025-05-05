@@ -5,5 +5,5 @@ export * from "./InvalidDecimalError.js";
 export * from "./InvalidConversionTypeError.js";
 export * from "./InvalidHumanReadableAddressError.js";
 export * from "./InvalidChainIdentifierError.js";
-export * from "./MissingChainNamespaceError.js";
 export * from "./MissingHumanReadableAddressError.js";
+export * from "./InvalidChainNamespaceError.js";
