@@ -186,6 +186,13 @@ export const formatChainReference = (chainReference: Uint8Array, chainType: Chai
     }
 };
 
+/**
+ * Converts an address to a Uint8Array based on the chain type
+ * @param address - The address to convert
+ * @param options - The options to convert the address
+ * @param options.chainType - The chain type to convert the address for
+ * @returns The converted address
+ */
 export const convertAddress = (
     address: string,
     options: { chainType: ChainTypeNames },
@@ -210,6 +217,13 @@ export const convertAddress = (
     }
 };
 
+/**
+ * Converts a chain reference to a Uint8Array based on the chain type
+ * @param chainReference - The chain reference to convert
+ * @param options - The options to convert the chain reference
+ * @param options.chainType - The chain type to convert the chain reference for
+ * @returns The converted chain reference
+ */
 export const convertChainReference = (
     chainReference: string,
     options: { chainType: ChainTypeNames },
