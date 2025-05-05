@@ -1,7 +1,7 @@
 import bs58 from "bs58";
 import { bytesToNumber, fromHex, getAddress, isHex, toHex } from "viem";
 
-import type { Address, ChainReference, ChainType, ChainTypeNames } from "../internal.js";
+import type { Address, CHAIN_TYPE, ChainReference, ChainType } from "../internal.js";
 import {
     BINARY_LENGTHS,
     BINARY_OFFSETS,
@@ -195,7 +195,7 @@ export const formatChainReference = (chainReference: Uint8Array, chainType: Chai
  */
 export const convertAddress = (
     address: string,
-    options: { chainType: ChainTypeNames },
+    options: { chainType: keyof typeof CHAIN_TYPE },
 ): Uint8Array => {
     switch (options.chainType) {
         case ChainTypeName.EIP155:
@@ -226,7 +226,7 @@ export const convertAddress = (
  */
 export const convertChainReference = (
     chainReference: string,
-    options: { chainType: ChainTypeNames },
+    options: { chainType: keyof typeof CHAIN_TYPE },
 ): Uint8Array => {
     switch (options.chainType) {
         case ChainTypeName.EIP155:
