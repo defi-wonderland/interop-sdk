@@ -1,5 +1,5 @@
 import bs58 from "bs58";
-import { bytesToNumber, fromBytes, fromHex, getAddress, isHex, toHex } from "viem";
+import { bytesToNumber, fromHex, getAddress, isHex, toHex } from "viem";
 
 import type { Address, ChainReference, ChainType, ChainTypeNames } from "../internal.js";
 import {
@@ -31,7 +31,7 @@ export const parseVersion = (binaryAddress: Uint8Array): number => {
         );
     }
 
-    return Number.parseInt(fromBytes(version, "hex"), 16);
+    return bytesToNumber(version);
 };
 
 /**
@@ -73,7 +73,7 @@ export const parseChainReferenceLength = (binaryAddress: Uint8Array): number => 
         );
     }
 
-    return Number.parseInt(fromBytes(chainReferenceLength, "hex"), 16);
+    return bytesToNumber(chainReferenceLength);
 };
 
 /**
@@ -120,7 +120,7 @@ export const parseAddressLength = (binaryAddress: Uint8Array): number => {
         );
     }
 
-    return Number.parseInt(fromBytes(addressLength, "hex"), 16);
+    return bytesToNumber(addressLength);
 };
 
 /**
