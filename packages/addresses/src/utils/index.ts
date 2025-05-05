@@ -4,3 +4,6 @@ export * from "./toBinary.js";
 export * from "./toHumanReadable.js";
 export * from "./validateInteropAddress.js";
 export * from "./parseHumanReadable.js";
+export * from "./convertToBytes.js";
+export * from "./validateChecksum.js";
+export * from "./isValidChain.js";
