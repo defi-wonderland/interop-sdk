@@ -1,4 +1,4 @@
-export class UnsupportedChainTypeError extends Error {
+export class UnsupportedChainType extends Error {
     constructor(chainType: string) {
         super(`Unsupported chain type: ${chainType}`);
     }

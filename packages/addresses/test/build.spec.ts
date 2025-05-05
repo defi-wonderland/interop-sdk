@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 import { build } from "../src/external.js";
 import {
     CHAIN_TYPE,
-    InvalidAddressError,
-    InvalidChainReferenceError,
-    UnsupportedChainTypeError,
+    InvalidAddress,
+    InvalidChainReference,
+    UnsupportedChainType,
 } from "../src/internal.js";
 
 describe("build", () => {
@@ -52,7 +52,7 @@ describe("build", () => {
                 chainReference: "0x1",
                 address: "0x1",
             }),
-        ).toThrow(UnsupportedChainTypeError);
+        ).toThrow(UnsupportedChainType);
     });
 
     it("throw error if chain reference is not hex when chain type is eip155", () => {
@@ -63,7 +63,7 @@ describe("build", () => {
                 chainReference: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
                 address: "0x1",
             }),
-        ).toThrow(InvalidChainReferenceError);
+        ).toThrow(InvalidChainReference);
     });
 
     it("throw error if chain reference is not base58 when chain type is solana", () => {
@@ -74,7 +74,7 @@ describe("build", () => {
                 chainReference: "0x1",
                 address: "0x1",
             }),
-        ).toThrow(InvalidChainReferenceError);
+        ).toThrow(InvalidChainReference);
     });
 
     it("throw error if address is not hex when chain type is eip155", () => {
@@ -85,7 +85,7 @@ describe("build", () => {
                 chainReference: "0x1",
                 address: "MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2",
             }),
-        ).toThrow(InvalidAddressError);
+        ).toThrow(InvalidAddress);
     });
 
     it("throw error if address is not base58 when chain type is solana", () => {
@@ -96,6 +96,6 @@ describe("build", () => {
                 chainReference: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
                 address: "0x1",
             }),
-        ).toThrow(InvalidAddressError);
+        ).toThrow(InvalidAddress);
     });
 });

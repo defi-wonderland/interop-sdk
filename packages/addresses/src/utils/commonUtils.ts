@@ -5,10 +5,10 @@ import type { Address, ChainReference, ChainType, ChainTypeNames } from "../inte
 import {
     ChainTypeName,
     ChainTypeValue,
-    InvalidAddressError,
-    InvalidBinaryInteropAddressError,
-    InvalidChainReferenceError,
-    UnsupportedChainTypeError,
+    InvalidAddress,
+    InvalidBinaryInteropAddress,
+    InvalidChainReference,
+    UnsupportedChainType,
 } from "../internal.js";
 
 /**
@@ -24,7 +24,7 @@ export const parseVersion = (binaryAddress: Uint8Array): number => {
     const version = binaryAddress.slice(VERSION_OFFSET, VERSION_OFFSET + VERSION_LENGTH);
 
     if (version.length !== VERSION_LENGTH) {
-        throw new InvalidBinaryInteropAddressError("Invalid version length");
+        throw new InvalidBinaryInteropAddress("Invalid version length");
     }
 
     return Number.parseInt(fromBytes(version, "hex"), 16);
@@ -43,7 +43,7 @@ export const parseChainType = (binaryAddress: Uint8Array): ChainType => {
     const chainType = binaryAddress.slice(CHAIN_TYPE_OFFSET, CHAIN_TYPE_OFFSET + CHAIN_TYPE_LENGTH);
 
     if (chainType.length !== CHAIN_TYPE_LENGTH) {
-        throw new InvalidBinaryInteropAddressError("Invalid chain type length");
+        throw new InvalidBinaryInteropAddress("Invalid chain type length");
     }
 
     return chainType;
@@ -65,7 +65,7 @@ export const parseChainReferenceLength = (binaryAddress: Uint8Array): number => 
     );
 
     if (chainReferenceLength.length !== CHAIN_REFERENCE_LENGTH_LENGTH) {
-        throw new InvalidBinaryInteropAddressError("Invalid chain reference length");
+        throw new InvalidBinaryInteropAddress("Invalid chain reference length");
     }
 
     return Number.parseInt(fromBytes(chainReferenceLength, "hex"), 16);
@@ -87,7 +87,7 @@ export const parseChainReference = (binaryAddress: Uint8Array): ChainReference =
     );
 
     if (chainReference.length !== CHAIN_REFERENCE_LENGTH) {
-        throw new InvalidBinaryInteropAddressError("Invalid chain reference length");
+        throw new InvalidBinaryInteropAddress("Invalid chain reference length");
     }
 
     return chainReference;
@@ -109,7 +109,7 @@ export const parseAddressLength = (binaryAddress: Uint8Array): number => {
     );
 
     if (addressLength.length !== ADDRESS_LENGTH_LENGTH) {
-        throw new InvalidBinaryInteropAddressError("Invalid address length");
+        throw new InvalidBinaryInteropAddress("Invalid address length");
     }
 
     return Number.parseInt(fromBytes(addressLength, "hex"), 16);
@@ -128,7 +128,7 @@ export const parseAddress = (binaryAddress: Uint8Array): Address => {
     const address = binaryAddress.slice(ADDRESS_OFFSET, ADDRESS_OFFSET + ADDRESS_LENGTH);
 
     if (address.length !== ADDRESS_LENGTH) {
-        throw new InvalidBinaryInteropAddressError("Invalid address length");
+        throw new InvalidBinaryInteropAddress("Invalid address length");
     }
 
     return address;
@@ -149,7 +149,7 @@ export const formatAddress = (address: Uint8Array, options: { chainType: ChainTy
         case ChainTypeValue.SOLANA:
             return bs58.encode(address);
         default:
-            throw new UnsupportedChainTypeError(chainTypeHex);
+            throw new UnsupportedChainType(chainTypeHex);
     }
 };
 
@@ -168,7 +168,7 @@ export const formatChainReference = (chainReference: Uint8Array, chainType: Chai
         case ChainTypeValue.SOLANA:
             return bs58.encode(chainReference);
         default:
-            throw new UnsupportedChainTypeError(chainTypeHex);
+            throw new UnsupportedChainType(chainTypeHex);
     }
 };
 
@@ -179,7 +179,7 @@ export const convertAddress = (
     switch (options.chainType) {
         case ChainTypeName.EIP155:
             if (!isHex(address)) {
-                throw new InvalidAddressError("EVM address must be a hex string");
+                throw new InvalidAddress("EVM address must be a hex string");
             }
 
             return fromHex(address, "bytes");
@@ -187,12 +187,12 @@ export const convertAddress = (
             const decodedAddress = bs58.decodeUnsafe(address);
 
             if (!decodedAddress) {
-                throw new InvalidAddressError("Solana address must be a base58 string");
+                throw new InvalidAddress("Solana address must be a base58 string");
             }
 
             return decodedAddress;
         default:
-            throw new UnsupportedChainTypeError(options.chainType);
+            throw new UnsupportedChainType(options.chainType);
     }
 };
 
@@ -203,7 +203,7 @@ export const convertChainReference = (
     switch (options.chainType) {
         case ChainTypeName.EIP155:
             if (!isHex(chainReference)) {
-                throw new InvalidChainReferenceError("EVM chain reference must be a hex string");
+                throw new InvalidChainReference("EVM chain reference must be a hex string");
             }
 
             return fromHex(chainReference, "bytes");
@@ -211,13 +211,11 @@ export const convertChainReference = (
             const decodedChainReference = bs58.decodeUnsafe(chainReference);
 
             if (!decodedChainReference) {
-                throw new InvalidChainReferenceError(
-                    "Solana chain reference must be a base58 string",
-                );
+                throw new InvalidChainReference("Solana chain reference must be a base58 string");
             }
 
             return decodedChainReference;
         default:
-            throw new UnsupportedChainTypeError(options.chainType);
+            throw new UnsupportedChainType(options.chainType);
     }
 };

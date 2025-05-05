@@ -2,7 +2,7 @@ import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
 import { parseBinary } from "../src/external.js";
-import { InvalidBinaryInteropAddressError } from "../src/internal.js";
+import { InvalidBinaryInteropAddress } from "../src/internal.js";
 
 describe("erc7930", () => {
     describe("parseBinary", () => {
@@ -105,7 +105,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddressError("Invalid version length"),
+                new InvalidBinaryInteropAddress("Invalid version length"),
             );
         });
 
@@ -113,7 +113,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x01";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddressError("Invalid version length"),
+                new InvalidBinaryInteropAddress("Invalid version length"),
             );
         });
 
@@ -121,7 +121,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x0001";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddressError("Invalid chain type length"),
+                new InvalidBinaryInteropAddress("Invalid chain type length"),
             );
         });
 
@@ -129,7 +129,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x00011";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddressError("Invalid chain type length"),
+                new InvalidBinaryInteropAddress("Invalid chain type length"),
             );
         });
 
@@ -137,7 +137,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x00010000";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddressError("Invalid chain reference length"),
+                new InvalidBinaryInteropAddress("Invalid chain reference length"),
             );
         });
 
@@ -145,7 +145,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x000100000201";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddressError("Invalid chain reference length"),
+                new InvalidBinaryInteropAddress("Invalid chain reference length"),
             );
         });
 
@@ -153,7 +153,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x00010000020100";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddressError("Invalid address length"),
+                new InvalidBinaryInteropAddress("Invalid address length"),
             );
         });
 
@@ -161,7 +161,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x000100000201000200";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddressError("Invalid address length"),
+                new InvalidBinaryInteropAddress("Invalid address length"),
             );
         });
     });

@@ -7,7 +7,7 @@ import {
     convertChainReference,
     interopAddressFieldsSchema,
     ParseInteropAddressError,
-    UnsupportedChainTypeError,
+    UnsupportedChainType,
 } from "../internal.js";
 
 /**
@@ -30,7 +30,7 @@ export const build = (params: InteropAddressFields): InteropAddress => {
     const { version, chainType, chainReference, address } = result.data;
 
     if (!CHAIN_TYPE[chainType]) {
-        throw new UnsupportedChainTypeError(chainType);
+        throw new UnsupportedChainType(chainType);
     }
 
     return {
