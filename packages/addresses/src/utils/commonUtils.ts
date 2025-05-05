@@ -26,7 +26,9 @@ export const parseVersion = (binaryAddress: Uint8Array): number => {
     );
 
     if (version.length !== BINARY_LENGTHS.VERSION) {
-        throw new InvalidBinaryInteropAddress("Invalid version length");
+        throw new InvalidBinaryInteropAddress(
+            `Invalid version length, expected: ${BINARY_LENGTHS.VERSION}, got: ${version.length}`,
+        );
     }
 
     return Number.parseInt(fromBytes(version, "hex"), 16);
@@ -45,7 +47,9 @@ export const parseChainType = (binaryAddress: Uint8Array): ChainType => {
     );
 
     if (chainType.length !== BINARY_LENGTHS.CHAIN_TYPE) {
-        throw new InvalidBinaryInteropAddress("Invalid chain type length");
+        throw new InvalidBinaryInteropAddress(
+            `Invalid chain type length, expected: ${BINARY_LENGTHS.CHAIN_TYPE}, got: ${chainType.length}`,
+        );
     }
 
     return chainType;
@@ -64,7 +68,9 @@ export const parseChainReferenceLength = (binaryAddress: Uint8Array): number => 
     );
 
     if (chainReferenceLength.length !== BINARY_LENGTHS.CHAIN_REFERENCE_LENGTH) {
-        throw new InvalidBinaryInteropAddress("Invalid chain reference length");
+        throw new InvalidBinaryInteropAddress(
+            `Invalid chain reference length, expected: ${BINARY_LENGTHS.CHAIN_REFERENCE_LENGTH}, got: ${chainReferenceLength.length}`,
+        );
     }
 
     return Number.parseInt(fromBytes(chainReferenceLength, "hex"), 16);
@@ -85,7 +91,9 @@ export const parseChainReference = (binaryAddress: Uint8Array): ChainReference =
     );
 
     if (chainReference.length !== chainReferenceLength) {
-        throw new InvalidBinaryInteropAddress("Invalid chain reference length");
+        throw new InvalidBinaryInteropAddress(
+            `Invalid chain reference length, expected: ${chainReferenceLength}, got: ${chainReference.length}`,
+        );
     }
 
     return chainReference;
@@ -107,7 +115,9 @@ export const parseAddressLength = (binaryAddress: Uint8Array): number => {
     );
 
     if (addressLength.length !== BINARY_LENGTHS.ADDRESS_LENGTH) {
-        throw new InvalidBinaryInteropAddress("Invalid address length");
+        throw new InvalidBinaryInteropAddress(
+            `Invalid address length, expected: ${BINARY_LENGTHS.ADDRESS_LENGTH}, got: ${addressLength.length}`,
+        );
     }
 
     return Number.parseInt(fromBytes(addressLength, "hex"), 16);
@@ -130,7 +140,9 @@ export const parseAddress = (binaryAddress: Uint8Array): Address => {
     const address = binaryAddress.slice(addressOffset, addressOffset + addressLength);
 
     if (address.length !== addressLength) {
-        throw new InvalidBinaryInteropAddress("Invalid address length");
+        throw new InvalidBinaryInteropAddress(
+            `Invalid address length, expected: ${addressLength}, got: ${address.length}`,
+        );
     }
 
     return address;

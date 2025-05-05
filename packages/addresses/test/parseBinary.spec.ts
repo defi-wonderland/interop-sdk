@@ -105,7 +105,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid version length"),
+                new InvalidBinaryInteropAddress("Invalid version length, expected: 2, got: 0"),
             );
         });
 
@@ -113,7 +113,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x01";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid version length"),
+                new InvalidBinaryInteropAddress("Invalid version length, expected: 2, got: 1"),
             );
         });
 
@@ -121,7 +121,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x0001";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid chain type length"),
+                new InvalidBinaryInteropAddress("Invalid chain type length, expected: 2, got: 0"),
             );
         });
 
@@ -129,7 +129,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x00011";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid chain type length"),
+                new InvalidBinaryInteropAddress("Invalid chain type length, expected: 2, got: 1"),
             );
         });
 
@@ -137,7 +137,9 @@ describe("erc7930", () => {
             const binaryAddress = "0x00010000";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid chain reference length"),
+                new InvalidBinaryInteropAddress(
+                    "Invalid chain reference length, expected: 1, got: 0",
+                ),
             );
         });
 
@@ -145,7 +147,9 @@ describe("erc7930", () => {
             const binaryAddress = "0x000100000201";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid chain reference length"),
+                new InvalidBinaryInteropAddress(
+                    "Invalid chain reference length, expected: 2, got: 1",
+                ),
             );
         });
 
@@ -153,7 +157,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x00010000020100";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid address length"),
+                new InvalidBinaryInteropAddress("Invalid address length, expected: 1, got: 0"),
             );
         });
 
@@ -161,7 +165,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x000100000201000200";
 
             expect(() => parseBinary(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid address length"),
+                new InvalidBinaryInteropAddress("Invalid address length, expected: 2, got: 1"),
             );
         });
     });
