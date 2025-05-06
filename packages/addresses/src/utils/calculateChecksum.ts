@@ -1,8 +1,7 @@
 import { keccak256 } from "viem";
 
 import type { Checksum } from "../internal.js";
-import { InteropAddress, toBinary } from "../internal.js";
-import { validateInteropAddress } from "./validateInteropAddress.js";
+import { InteropAddress, toBinary, validateInteropAddress } from "../internal.js";
 
 /**
  * Calculates a checksum for an InteropAddress as per ERC-7930

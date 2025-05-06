@@ -1,4 +1,3 @@
-export * from "./interopAddress.js";
 export * from "./UnsupportedChainTypeError.exception.js";
 export * from "./InvalidChecksumError.exception.js";
 export * from "./InvalidDecimalError.exception.js";
@@ -7,3 +6,8 @@ export * from "./InvalidHumanReadableAddressError.exception.js";
 export * from "./InvalidChainIdentifierError.exception.js";
 export * from "./MissingHumanReadableAddressError.exception.js";
 export * from "./InvalidChainNamespaceError.exception.js";
+export * from "./invalidAddress.exception.js";
+export * from "./invalidChainReference.exception.js";
+export * from "./invalidBinaryInteropAddress.exception.js";
+export * from "./parseInteropAddressError.exception.js";
+export * from "./unsupportedChainType.exception.js";

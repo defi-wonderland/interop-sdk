@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-import { interopAddressSchema } from "../schemas/interopAddress.js";
+import { interopAddressFieldsSchema, interopAddressSchema } from "../internal.js";
+
+export type InteropAddressFields = z.infer<typeof interopAddressFieldsSchema>;
 
 export type InteropAddress = z.infer<typeof interopAddressSchema>;
 
