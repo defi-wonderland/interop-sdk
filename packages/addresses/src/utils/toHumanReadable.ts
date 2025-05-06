@@ -17,7 +17,7 @@ import {
  */
 export const toHumanReadable = (addressData: InteropAddress): HumanReadableAddress => {
     const { chainType, chainReference, address } = validateInteropAddress(addressData);
-    const formattedAddress = address.length ? formatAddress(address, { chainType }) : "";
+    const formattedAddress = address.length ? formatAddress(address, chainType) : "";
     const chainTypeHex = toHex(chainType);
     const namespace = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex as ChainTypeValue];
 
