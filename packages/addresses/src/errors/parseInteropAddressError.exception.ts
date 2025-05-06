@@ -5,9 +5,3 @@ export class ParseInteropAddressError extends Error {
         super(zodError.message || "Error parsing interop address");
     }
 }
-
-export class InvalidBinaryInteropAddressError extends Error {
-    constructor(message?: string) {
-        super(message || "Invalid binary interop address");
-    }
-}
