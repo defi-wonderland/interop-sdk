@@ -10,3 +10,6 @@ export * from "./invalidAddress.exception.js";
 export * from "./invalidChainReference.exception.js";
 export * from "./invalidBinaryInteropAddress.exception.js";
 export * from "./parseInteropAddress.exception.js";
+export * from "./ENSNotFound.exception.js";
+export * from "./ENSLookupFailed.exception.js";
+export * from "./BytesConversionFailed.exception.js";

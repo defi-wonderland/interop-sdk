@@ -1,7 +1,7 @@
 import bs58 from "bs58";
 import { hexToBytes } from "viem";
 
-import { InvalidConversionType, InvalidDecimal } from "../errors/index.js";
+import { BytesConversionFailed, InvalidConversionType, InvalidDecimal } from "../errors/index.js";
 
 /**
  * Converts various input formats to Uint8Array
@@ -41,8 +41,6 @@ export const convertToBytes = (
         if (error instanceof InvalidDecimal || error instanceof InvalidConversionType) {
             throw error;
         }
-        throw new Error(
-            `Failed to convert ${type} input: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        throw new BytesConversionFailed(error instanceof Error ? error.message : String(error));
     }
 };

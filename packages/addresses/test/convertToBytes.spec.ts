@@ -2,7 +2,11 @@ import bs58 from "bs58";
 import { hexToBytes } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { InvalidConversionType, InvalidDecimal } from "../src/errors/index.js";
+import {
+    BytesConversionFailed,
+    InvalidConversionType,
+    InvalidDecimal,
+} from "../src/errors/index.js";
 import { convertToBytes } from "../src/utils/convertToBytes.js";
 
 describe("convertToBytes", () => {
@@ -53,8 +57,6 @@ describe("convertToBytes", () => {
 
     it("throws with descriptive error message on internal failure", () => {
         const badBase64 = "%%%";
-        expect(() => convertToBytes(badBase64, "base64")).toThrow(
-            /Failed to convert base64 input/i,
-        );
+        expect(() => convertToBytes(badBase64, "base64")).toThrow(BytesConversionFailed);
     });
 });

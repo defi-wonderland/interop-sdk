@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { InteropAddress } from "../src/internal.js";
 import {
+    ENSLookupFailed,
+    ENSNotFound,
     InvalidChainIdentifier,
     InvalidChainNamespace,
     InvalidChecksum,
@@ -144,10 +146,14 @@ describe("erc7930", () => {
 
         it("throws error if ENS name not found", async () => {
             const humanReadableAddress = "notfoundensname.eth@eip155:1#4CA88C9C";
-            mockGetEnsAddress.mockRejectedValue(new Error("ENS name not found"));
-            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
-                "ENS name not found",
-            );
+            mockGetEnsAddress.mockRejectedValue(new ENSNotFound(humanReadableAddress));
+            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(ENSNotFound);
+        });
+
+        it("throws error if ENS lookup fails", async () => {
+            const humanReadableAddress = "notfoundensname.eth@eip155:1#4CA88C9C";
+            mockGetEnsAddress.mockRejectedValue(new ENSLookupFailed(humanReadableAddress));
+            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(ENSLookupFailed);
         });
 
         it("throws error if chain is invalid", async () => {

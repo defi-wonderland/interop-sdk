@@ -6,6 +6,8 @@ import {
     CHAIN_TYPE,
     ChainTypeName,
     Checksum,
+    ENSLookupFailed,
+    ENSNotFound,
     HumanReadableAddressSchema,
     InteropAddress,
     InvalidChainNamespace,
@@ -36,12 +38,15 @@ const parseAddress = async (
                     });
                     const ensAddress = await client.getEnsAddress({ name: normalize(address) });
                     if (!ensAddress) {
-                        throw new Error(`ENS name not found: ${address}`);
+                        throw new ENSNotFound(address);
                     }
                     return convertToBytes(ensAddress, "hex");
                 } catch (error) {
-                    throw new Error(
-                        `Failed to resolve ENS name: ${error instanceof Error ? error.message : String(error)}`,
+                    if (error instanceof ENSNotFound) {
+                        throw error;
+                    }
+                    throw new ENSLookupFailed(
+                        error instanceof Error ? error.message : String(error),
                     );
                 }
             }
