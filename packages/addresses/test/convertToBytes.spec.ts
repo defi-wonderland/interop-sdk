@@ -2,7 +2,7 @@ import bs58 from "bs58";
 import { hexToBytes } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { InvalidConversionTypeError, InvalidDecimalError } from "../src/errors/index.js";
+import { InvalidConversionType, InvalidDecimal } from "../src/errors/index.js";
 import { convertToBytes } from "../src/utils/convertToBytes.js";
 
 describe("convertToBytes", () => {
@@ -43,12 +43,12 @@ describe("convertToBytes", () => {
 
     it("throws on invalid decimal input", () => {
         const input = "not-a-number";
-        expect(() => convertToBytes(input, "decimal")).toThrow(InvalidDecimalError);
+        expect(() => convertToBytes(input, "decimal")).toThrow(InvalidDecimal);
     });
 
     it("throws on invalid conversion type", () => {
         // @ts-expect-error intentional bad input
-        expect(() => convertToBytes("test", "badType")).toThrow(InvalidConversionTypeError);
+        expect(() => convertToBytes("test", "badType")).toThrow(InvalidConversionType);
     });
 
     it("throws with descriptive error message on internal failure", () => {

@@ -8,7 +8,7 @@ import {
     Checksum,
     HumanReadableAddressSchema,
     InteropAddress,
-    InvalidChainNamespaceError,
+    InvalidChainNamespace,
     validateChecksum,
     validateInteropAddress,
 } from "../internal.js";
@@ -49,7 +49,7 @@ const parseAddress = async (
         case "solana":
             return convertToBytes(address, "base58");
         default:
-            throw new InvalidChainNamespaceError(chainNamespace);
+            throw new InvalidChainNamespace(chainNamespace);
     }
 };
 
@@ -64,7 +64,7 @@ const parseChainReference = (chainNamespace: ChainTypeName, chainReference: stri
         case "solana":
             return convertToBytes(chainReference, "base58");
         default:
-            throw new InvalidChainNamespaceError(chainNamespace);
+            throw new InvalidChainNamespace(chainNamespace);
     }
 };
 

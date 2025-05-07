@@ -4,11 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { InteropAddress } from "../src/internal.js";
 import {
-    InvalidChainIdentifierError,
-    InvalidChainNamespaceError,
-    InvalidChecksumError,
-    InvalidHumanReadableAddressError,
-    MissingHumanReadableAddressError,
+    InvalidChainIdentifier,
+    InvalidChainNamespace,
+    InvalidChecksum,
+    InvalidHumanReadableAddress,
+    MissingHumanReadableAddress,
     parseHumanReadable,
 } from "../src/internal.js";
 
@@ -158,16 +158,14 @@ describe("erc7930", () => {
         it("throws error if checksum is invalid", async () => {
             const humanReadableAddress =
                 "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#FFFFFFFF";
-            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
-                InvalidChecksumError,
-            );
+            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(InvalidChecksum);
         });
 
         it("throws if chain reference is invalid", async () => {
             const humanReadableAddress =
                 "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1000000#4CA88C9C";
             await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
-                InvalidChainIdentifierError,
+                InvalidChainIdentifier,
             );
         });
 
@@ -175,14 +173,14 @@ describe("erc7930", () => {
             const humanReadableAddress =
                 "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045:eip155:1#4CA88C9C";
             await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
-                InvalidHumanReadableAddressError,
+                InvalidHumanReadableAddress,
             );
         });
 
         it("throws if address is empty", async () => {
             const humanReadableAddress = "";
             await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
-                MissingHumanReadableAddressError,
+                MissingHumanReadableAddress,
             );
         });
 
@@ -203,7 +201,7 @@ describe("erc7930", () => {
             const humanReadableAddress =
                 "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@foo:1#17DE0709";
             await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
-                InvalidChainNamespaceError,
+                InvalidChainNamespace,
             );
         });
     });

@@ -2,7 +2,7 @@ import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
 import { toBinary } from "../src/external.js";
-import { InteropAddress, ParseInteropAddressError } from "../src/internal.js";
+import { InteropAddress, ParseInteropAddress } from "../src/internal.js";
 
 describe("erc7930", () => {
     describe("toBinary", () => {
@@ -113,7 +113,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteropAddress;
 
-            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddressError);
+            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddress);
         });
 
         it("throws if chain type is not there", () => {
@@ -123,7 +123,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteropAddress;
 
-            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddressError);
+            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddress);
         });
 
         it("throws if chain type is not 2 bytes representable", () => {
@@ -134,7 +134,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteropAddress;
 
-            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddressError);
+            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddress);
         });
 
         it("does not throw if chain type is 2 bytes representable", () => {
@@ -159,7 +159,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteropAddress;
 
-            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddressError);
+            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddress);
         });
 
         it("throws if address is not there", () => {
@@ -169,7 +169,7 @@ describe("erc7930", () => {
                 chainReference: fromHex("0x", "bytes"),
             } as unknown as InteropAddress;
 
-            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddressError);
+            expect(() => toBinary(interopAddress)).toThrow(ParseInteropAddress);
         });
 
         it("does not throw if chain reference has length 0", () => {
@@ -180,7 +180,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             };
 
-            expect(() => toBinary(interopAddress)).not.toThrow(ParseInteropAddressError);
+            expect(() => toBinary(interopAddress)).not.toThrow(ParseInteropAddress);
         });
 
         it("does not throw if address has length 0", () => {
@@ -191,7 +191,7 @@ describe("erc7930", () => {
                 address: fromHex("0x", "bytes"),
             };
 
-            expect(() => toBinary(interopAddress)).not.toThrow(ParseInteropAddressError);
+            expect(() => toBinary(interopAddress)).not.toThrow(ParseInteropAddress);
         });
     });
 });

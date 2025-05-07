@@ -1,7 +1,7 @@
 import bs58 from "bs58";
 import { hexToBytes } from "viem";
 
-import { InvalidConversionTypeError, InvalidDecimalError } from "../internal.js";
+import { InvalidConversionType, InvalidDecimal } from "../errors/index.js";
 
 /**
  * Converts various input formats to Uint8Array
@@ -31,14 +31,14 @@ export const convertToBytes = (
             case "decimal":
                 const decimalNumber = Number(input);
                 if (isNaN(decimalNumber)) {
-                    throw new InvalidDecimalError(input);
+                    throw new InvalidDecimal(input);
                 }
                 return convertToBytes(decimalNumber.toString(16), "hex");
             default:
-                throw new InvalidConversionTypeError(type);
+                throw new InvalidConversionType(type);
         }
     } catch (error) {
-        if (error instanceof InvalidDecimalError || error instanceof InvalidConversionTypeError) {
+        if (error instanceof InvalidDecimal || error instanceof InvalidConversionType) {
             throw error;
         }
         throw new Error(

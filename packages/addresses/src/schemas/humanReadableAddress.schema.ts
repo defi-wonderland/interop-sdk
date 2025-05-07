@@ -3,22 +3,22 @@ import { z } from "zod";
 import {
     CHAIN_TYPE,
     ChainTypeName,
-    InvalidChainIdentifierError,
-    InvalidChainNamespaceError,
-    InvalidHumanReadableAddressError,
+    InvalidChainIdentifier,
+    InvalidChainNamespace,
+    InvalidHumanReadableAddress,
     isValidChain,
-    MissingHumanReadableAddressError,
+    MissingHumanReadableAddress,
 } from "../internal.js";
 
 export const HumanReadableAddressSchema = z.string().transform((value) => {
     if (!value || value.trim() === "") {
-        throw new MissingHumanReadableAddressError();
+        throw new MissingHumanReadableAddress();
     }
 
     const match = value.match(
         /^([.\-:_%a-zA-Z0-9]*)@(?:([-a-z0-9]{3,8}):)?([\-_a-zA-Z0-9]*)?#([A-F0-9]{8})$/,
     );
-    if (!match) throw new InvalidHumanReadableAddressError(value);
+    if (!match) throw new InvalidHumanReadableAddress(value);
 
     const [, address, namespace, chainReference, checksum] = match;
     let chainNamespace = namespace;
@@ -28,11 +28,11 @@ export const HumanReadableAddressSchema = z.string().transform((value) => {
     }
 
     if (chainNamespace && !(chainNamespace in CHAIN_TYPE)) {
-        throw new InvalidChainNamespaceError(chainNamespace);
+        throw new InvalidChainNamespace(chainNamespace);
     }
 
     if (chainReference && !isValidChain(chainNamespace as ChainTypeName, chainReference)) {
-        throw new InvalidChainIdentifierError(chainReference);
+        throw new InvalidChainIdentifier(chainReference);
     }
 
     return {

@@ -1,4 +1,4 @@
-export class InvalidChainIdentifierError extends Error {
+export class InvalidChainIdentifier extends Error {
     constructor(chainReference: string) {
         super(`Invalid chain identifier: ${chainReference}`);
     }
