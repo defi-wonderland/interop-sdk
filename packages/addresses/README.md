@@ -1,6 +1,21 @@
-# interop-sdk: addresses package
+# @interop-sdk/addresses
 
-Description of your package goes here.
+A TypeScript library for handling interoperable blockchain addresses across different networks.
+
+This package provides methods to convert between human-readable addresses and their binary string representation, both following the [ERC-7930](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365) standard. For backward compatibility with existing smart contracts, the package includes utilities to extract individual components (chainId and address) from the binary representation, allowing seamless integration with systems that haven't yet adopted the interop address format.
+
+```mermaid
+graph LR
+    A[humanReadable]
+    C[binaryRepresentation]
+    D[chainId]
+    E[address]
+
+    A -->|humanReadableToBinary| C
+    C -->|binaryToHumanReadable| A
+    C -->|getChainId| D
+    C -->|getAddress| E
+```
 
 ## Setup
 
@@ -24,12 +39,23 @@ Available scripts that can be run using `pnpm`:
 
 ## Usage
 
-Describe how to use your package here.
+```typescript
+// Using the Provider
+import { InteropAddressProvider } from '@interop-sdk/addresses';
+
+const humanReadableAddress = "alice.eth@eip155:1#ABCD1234"
+const binaryAddress = InteropAddressProvider.humanReadableToBinary(humanReadableAddress)
+
+// Or just importing the method
+import { humanReadableAddress } from '@interop-sdk/addresses';
+const humanReadableAddress = "alice.eth@eip155:1#ABCD1234"
+const binaryAddress = humanReadableToBinary(humanReadableAddress)
+```
 
 ## API
 
-Describe your package's API here.
+TODO
 
 ## References
 
-Add any relevant references here.
+-   [ERC 7930: Interoperable Addresses - Fellowship of Ethereum Magicians](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365)

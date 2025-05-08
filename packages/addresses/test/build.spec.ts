@@ -1,8 +1,8 @@
 import { fromHex, Hex } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { build } from "../src/external.js";
 import {
+    build,
     CHAIN_TYPE,
     InvalidAddress,
     InvalidChainReference,
