@@ -3,11 +3,11 @@ import {
     EncodedChainReference,
     formatAddress,
     formatChainReference,
-    parseBinary,
     HumanReadableAddress,
+    parseBinary,
     parseHumanReadable,
     toBinary,
-    toHumanReadable
+    toHumanReadable,
 } from "../internal.js";
 
 export class InteropAddressProvider {
