@@ -1,8 +1,7 @@
 import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { parseBinary } from "../src/external.js";
-import { InvalidBinaryInteropAddress } from "../src/internal.js";
+import { InvalidBinaryInteropAddress, parseBinary } from "../src/internal.js";
 
 describe("erc7930", () => {
     describe("parseBinary", () => {
