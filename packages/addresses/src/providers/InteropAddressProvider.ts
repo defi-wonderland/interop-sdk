@@ -1,5 +1,6 @@
 import {
     BinaryAddress,
+    EncodedAddress,
     EncodedChainReference,
     formatAddress,
     formatChainReference,
@@ -58,7 +59,7 @@ export class InteropAddressProvider {
      * @param binaryAddress - The binary address to get the address from
      * @returns The address
      */
-    public static getAddress(binaryAddress: BinaryAddress): string {
+    public static getAddress(binaryAddress: BinaryAddress): EncodedAddress {
         const interopAddress = parseBinary(binaryAddress);
         return formatAddress(interopAddress.address, interopAddress.chainType);
     }
