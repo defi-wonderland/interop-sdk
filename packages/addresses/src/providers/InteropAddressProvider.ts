@@ -1,3 +1,11 @@
+import {
+    BinaryAddress,
+    EncodedChainReference,
+    formatAddress,
+    formatChainReference,
+    parseBinary,
+} from "../internal.js";
+
 export class InteropAddressProvider {
     private constructor() {} // prevent instantiation
 
@@ -7,11 +15,25 @@ export class InteropAddressProvider {
     // TODO: Implement
     public static binaryToHumanReadable(): void {}
 
-    // TODO: Implement
-    public static getChainId(): void {}
+    /**
+     * Get the chain ID from a binary address
+     * @param binaryAddress - The binary address to get the chain ID from
+     * @returns The chain ID
+     */
+    public static getChainId(binaryAddress: BinaryAddress): EncodedChainReference {
+        const interopAddress = parseBinary(binaryAddress);
+        return formatChainReference(interopAddress.chainReference, interopAddress.chainType);
+    }
 
-    // TODO: Implement
-    public static getAddress(): void {}
+    /**
+     * Get the address from a binary address
+     * @param binaryAddress - The binary address to get the address from
+     * @returns The address
+     */
+    public static getAddress(binaryAddress: BinaryAddress): string {
+        const interopAddress = parseBinary(binaryAddress);
+        return formatAddress(interopAddress.address, interopAddress.chainType);
+    }
 }
 
 export const humanReadableToBinary = InteropAddressProvider.humanReadableToBinary;
