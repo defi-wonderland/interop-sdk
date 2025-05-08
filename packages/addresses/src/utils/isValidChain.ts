@@ -4,6 +4,14 @@ import * as chains from "viem/chains";
 import { ChainTypeName } from "../internal.js";
 
 /**
+ * A map of chain IDs to chains
+ */
+const chainIdMap = new Map<number, Chain>();
+(Object.values(chains) as Chain[]).forEach((chain) => {
+    chainIdMap.set(chain.id, chain);
+});
+
+/**
  * Validates a chain identifier
  * @returns true if the chain is valid, false otherwise
  */
@@ -17,8 +25,7 @@ export const isValidChain = (chainType: ChainTypeName, chainReference: string): 
                 return false;
             }
 
-            const chainValues = Object.values(chains) as unknown as Chain[];
-            return chainValues.some((chain) => chain.id === chainId);
+            return chainIdMap.has(chainId);
         case "solana":
             return true;
         default:
