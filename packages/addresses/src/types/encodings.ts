@@ -9,7 +9,7 @@ export type Base64EncodedString = Brand<string, "Base64EncodedString">;
 // ChainType is always encoded as a hex string
 export type EncodedChainType = HexEncodedString;
 
-// ChainReference is encoded as a hex string, base58 string, or base64 string depending on the chain type
+// ChainReference is encoded as a number, base58 string, or base64 string depending on the chain type
 export type EncodedChainReference = number | Base58EncodedString | Base64EncodedString;
 
 // Address is encoded as a hex string, base58 string, or base64 string depending on the chain type
