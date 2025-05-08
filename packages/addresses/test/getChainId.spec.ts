@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { getChainId } from "../src/external.js";
 import { BinaryAddress } from "../src/types/binaryAddress.js";
-import { getChainId } from "../src/utils/getChainId.js";
 
 describe("getChainId", () => {
     it("formats an EVM InteropAddress", () => {

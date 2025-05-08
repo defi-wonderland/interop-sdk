@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { getAddress } from "../src/external.js";
 import { BinaryAddress } from "../src/types/binaryAddress.js";
-import { getAddress } from "../src/utils/getAddress.js";
 
 describe("getAddress", () => {
     it("formats an EVM InteropAddress", () => {
