@@ -1,55 +1,28 @@
-import { hexToBytes } from "viem";
 import { describe, expect, it } from "vitest";
 
-import type { InteropAddress } from "../src/types/interopAddress.js";
+import { BinaryAddress } from "../src/types/binaryAddress.js";
 import { getAddress } from "../src/utils/getAddress.js";
 
 describe("getAddress", () => {
     it("formats an EVM InteropAddress", () => {
-        const interopAddress: InteropAddress = {
-            version: 1,
-            chainType: hexToBytes("0x0000"),
-            chainReference: hexToBytes("0x01"),
-            address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
-        };
+        const binaryAddress =
+            "0x00010000010114d8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as BinaryAddress;
 
-        const result = getAddress(interopAddress);
+        const result = getAddress(binaryAddress as BinaryAddress);
         expect(result).toBe("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
     });
 
     it("should handle different chain types", () => {
-        const testCases: InteropAddress[] = [
-            {
-                // Ethereum mainnet
-                version: 1,
-                chainType: hexToBytes("0x0000"),
-                chainReference: hexToBytes("0x01"),
-                address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
-            },
-            {
-                // EVM rollup - OP
-                version: 1,
-                chainType: hexToBytes("0x0000"),
-                chainReference: hexToBytes("0x0A"),
-                address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
-            },
-            {
-                // Solana
-                version: 1,
-                chainType: hexToBytes("0x0002"),
-                chainReference: hexToBytes(
-                    "0x45296998a6f8e2a784db5d9f95e18fc23f70441a1039446801089879b08c7ef0",
-                ),
-                address: hexToBytes(
-                    "0x05333498d5aea4ae009585c43f7b8c30df8e70187d4a713d134f977fc8dfe0b5",
-                ),
-            },
+        const testCases: BinaryAddress[] = [
+            "0x00010000010114d8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as BinaryAddress, // Ethereum mainnet
+            "0x000100022045296998a6f8e2a784db5d9f95e18fc23f70441a1039446801089879b08c7ef02005333498d5aea4ae009585c43f7b8c30df8e70187d4a713d134f977fc8dfe0b5" as BinaryAddress, // solana
+            "0x00010000010A14DE2b660f31EA7EFE705631710379fE9D2AF02A66" as BinaryAddress, // Ethereum L2
         ];
 
         const expectedResults = [
             "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
             "MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2",
+            "0xDE2b660f31EA7EFE705631710379fE9D2AF02A66",
         ];
 
         testCases.forEach((testCase, index) => {
