@@ -1,10 +1,16 @@
-import { EncodedChainReference, formatChainReference, InteropAddress } from "../internal.js";
+import {
+    BinaryAddress,
+    EncodedChainReference,
+    formatChainReference,
+    parseBinary,
+} from "../internal.js";
 
 /**
  * Get the chain ID from an InteropAddress
- * @param interopAddress - The InteropAddress to get the chain ID from
+ * @param binaryAddress - The binary address to get the chain ID from
  * @returns The chain ID
  */
-export function getChainId(interopAddress: InteropAddress): EncodedChainReference {
+export function getChainId(binaryAddress: BinaryAddress): EncodedChainReference {
+    const interopAddress = parseBinary(binaryAddress);
     return formatChainReference(interopAddress.chainReference, interopAddress.chainType);
 }
