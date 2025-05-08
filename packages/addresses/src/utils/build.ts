@@ -6,7 +6,7 @@ import {
     convertAddress,
     convertChainReference,
     interopAddressFieldsSchema,
-    ParseInteropAddressError,
+    ParseInteropAddress,
     UnsupportedChainType,
 } from "../internal.js";
 
@@ -24,7 +24,7 @@ export const build = (params: InteropAddressFields): InteropAddress => {
     const result = interopAddressFieldsSchema.safeParse(params);
 
     if (!result.success) {
-        throw new ParseInteropAddressError(result.error);
+        throw new ParseInteropAddress(result.error);
     }
 
     const { version, chainType, chainReference, address } = result.data;

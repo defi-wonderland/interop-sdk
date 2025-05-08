@@ -1,6 +1,6 @@
 import { ZodError } from "zod";
 
-export class ParseInteropAddressError extends Error {
+export class ParseInteropAddress extends Error {
     constructor(public readonly zodError: ZodError) {
         super(zodError.message || "Error parsing interop address");
     }
