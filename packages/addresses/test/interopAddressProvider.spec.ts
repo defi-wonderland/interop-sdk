@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
     binaryToHumanReadable,
-    computeChecksum,
     buildFromPayload,
+    computeChecksum,
     humanReadableToBinary,
     InteropAddressProvider,
 } from "../src/providers/InteropAddressProvider.js";
@@ -53,9 +53,9 @@ describe("InteropAddressProvider", () => {
         const checksum = await computeChecksum(
             "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
         );
-        expect(checksum).toBe("4CA88C9C"));
+        expect(checksum).toBe("4CA88C9C");
     });
-       
+
     it("build an InteropAddress from a payload using static method", () => {
         const payload = {
             version: 1,

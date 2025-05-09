@@ -2,8 +2,8 @@ import { Hex } from "viem";
 
 import {
     BinaryAddress,
-    calculateChecksum,
     buildInteropAddress,
+    calculateChecksum,
     ChainType,
     Checksum,
     EncodedAddress,
@@ -70,9 +70,9 @@ export class InteropAddressProvider {
         const interopAddress = parseBinary(binaryAddress);
         return formatAddress(interopAddress.address, interopAddress.chainType);
     }
-  
-  /**
-    * Builds an InteropAddress from a payload
+
+    /**
+     * Builds an InteropAddress from a payload
      * @param payload - The payload to build the InteropAddress from
      * @returns The InteropAddress
      * @example
