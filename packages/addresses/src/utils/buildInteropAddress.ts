@@ -20,7 +20,7 @@ import {
  * @returns The InteropAddress
  * @throws An error if the parameters are invalid
  */
-export const build = (params: InteropAddressFields): InteropAddress => {
+export const buildInteropAddress = (params: InteropAddressFields): InteropAddress => {
     const result = interopAddressFieldsSchema.safeParse(params);
 
     if (!result.success) {

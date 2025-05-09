@@ -1,4 +1,4 @@
-export * from "./build.js";
+export * from "./buildInteropAddress.js";
 export * from "./calculateChecksum.js";
 export * from "./parseBinary.js";
 export * from "./toBinary.js";
