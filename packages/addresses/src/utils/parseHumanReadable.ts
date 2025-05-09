@@ -81,8 +81,9 @@ const parseChainReference = (chainNamespace: ChainTypeName, chainReference: stri
  */
 export const parseHumanReadable = async (
     humanReadableAddress: string,
-    validateChecksumFlag: boolean = true,
+    options: { validateChecksumFlag?: boolean } = {},
 ): Promise<InteropAddress> => {
+    const { validateChecksumFlag = true } = options;
     const parsedHumanReadableAddress = HumanReadableAddressSchema.parse(humanReadableAddress);
 
     const { address, chainNamespace, chainReference, checksum } = parsedHumanReadableAddress;

@@ -102,7 +102,9 @@ export class InteropAddressProvider {
      * ```
      */
     public static async computeChecksum(humanReadableAddress: string): Promise<Checksum> {
-        const interopAddress = await parseHumanReadable(humanReadableAddress, false);
+        const interopAddress = await parseHumanReadable(humanReadableAddress, {
+            validateChecksumFlag: false,
+        });
         return calculateChecksum(interopAddress);
     }
 }
