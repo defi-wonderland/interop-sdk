@@ -3,7 +3,9 @@ import { Hex } from "viem";
 import {
     BinaryAddress,
     buildInteropAddress,
+    calculateChecksum,
     ChainType,
+    Checksum,
     EncodedAddress,
     EncodedChainReference,
     formatAddress,
@@ -88,10 +90,28 @@ export class InteropAddressProvider {
         const interopAddress = buildInteropAddress(payload);
         return toBinary(interopAddress) as BinaryAddress;
     }
+
+    /**
+     * Computes the checksum of a human-readable address
+     * @param humanReadableAddress - The human-readable address to compute the checksum of
+     * @returns Checksum - The checksum
+     * @throws {Error} If the human-readable address is invalid
+     * @example
+     * ```ts
+     * const checksum = await InteropAddressProvider.computeChecksum("alice.eth@eip155:1");
+     * ```
+     */
+    public static async computeChecksum(humanReadableAddress: string): Promise<Checksum> {
+        const interopAddress = await parseHumanReadable(humanReadableAddress, {
+            validateChecksumFlag: false,
+        });
+        return calculateChecksum(interopAddress);
+    }
 }
 
 export const humanReadableToBinary = InteropAddressProvider.humanReadableToBinary;
 export const binaryToHumanReadable = InteropAddressProvider.binaryToHumanReadable;
 export const getChainId = InteropAddressProvider.getChainId;
 export const getAddress = InteropAddressProvider.getAddress;
+export const computeChecksum = InteropAddressProvider.computeChecksum;
 export const buildFromPayload = InteropAddressProvider.buildFromPayload;

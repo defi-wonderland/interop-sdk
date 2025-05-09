@@ -16,7 +16,7 @@ export const HumanReadableAddressSchema = z.string().transform((value) => {
     }
 
     const match = value.match(
-        /^([.\-:_%a-zA-Z0-9]*)@(?:([-a-z0-9]{3,8}):)?([\-_a-zA-Z0-9]*)?#([A-F0-9]{8})$/,
+        /^([.\-:_%a-zA-Z0-9]*)@(?:([-a-z0-9]{3,8}):)?([\-_a-zA-Z0-9]*)?#?([A-F0-9]{8})?$/,
     );
     if (!match) throw new InvalidHumanReadableAddress(value);
 
