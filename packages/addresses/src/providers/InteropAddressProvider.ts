@@ -58,7 +58,7 @@ export class InteropAddressProvider {
         const interopAddress = parseBinary(binaryAddress);
         return formatChainReference(interopAddress.chainReference, interopAddress.chainType);
     }
-  
+
     /**
      * Get the address from a binary address
      * @param binaryAddress - The Hex encoded binary address to get the address from
@@ -68,7 +68,7 @@ export class InteropAddressProvider {
         const interopAddress = parseBinary(binaryAddress);
         return formatAddress(interopAddress.address, interopAddress.chainType);
     }
-  
+
     /**
      * Builds an InteropAddress from a payload
      * @param payload - The payload to build the InteropAddress from
@@ -87,9 +87,8 @@ export class InteropAddressProvider {
     public static buildFromPayload(payload: InteropAddressFields): BinaryAddress {
         const interopAddress = buildInteropAddress(payload);
         return toBinary(interopAddress) as BinaryAddress;
-      }
-  }
-    
+    }
+}
 
 export const humanReadableToBinary = InteropAddressProvider.humanReadableToBinary;
 export const binaryToHumanReadable = InteropAddressProvider.binaryToHumanReadable;
