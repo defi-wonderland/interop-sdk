@@ -1,3 +1,5 @@
+import { Hex } from "viem";
+
 import {
     BinaryAddress,
     ChainType,
@@ -40,28 +42,28 @@ export class InteropAddressProvider {
      * const humanReadableAddress = await InteropAddressProvider.binaryToHumanReadable("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
      * ```
      */
-    public static binaryToHumanReadable(binaryAddress: string): HumanReadableAddress {
-        const interopAddress = parseBinary(binaryAddress as `0x${string}`);
+    public static binaryToHumanReadable(binaryAddress: Hex): HumanReadableAddress {
+        const interopAddress = parseBinary(binaryAddress);
         return toHumanReadable(interopAddress);
     }
 
     /**
      * Get the chain ID from a binary address
-     * @param binaryAddress - The binary address to get the chain ID from
+     * @param binaryAddress - The Hex encoded binary address to get the chain ID from
      * @returns The chain ID
      */
-    public static getChainId(binaryAddress: string): EncodedChainReference<ChainType> {
-        const interopAddress = parseBinary(binaryAddress as `0x${string}`);
+    public static getChainId(binaryAddress: Hex): EncodedChainReference<ChainType> {
+        const interopAddress = parseBinary(binaryAddress);
         return formatChainReference(interopAddress.chainReference, interopAddress.chainType);
     }
 
     /**
      * Get the address from a binary address
-     * @param binaryAddress - The binary address to get the address from
+     * @param binaryAddress - The Hex encoded binary address to get the address from
      * @returns The address
      */
-    public static getAddress(binaryAddress: string): EncodedAddress<ChainType> {
-        const interopAddress = parseBinary(binaryAddress as `0x${string}`);
+    public static getAddress(binaryAddress: Hex): EncodedAddress<ChainType> {
+        const interopAddress = parseBinary(binaryAddress);
         return formatAddress(interopAddress.address, interopAddress.chainType);
     }
 }
