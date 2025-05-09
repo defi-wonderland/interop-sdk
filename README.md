@@ -35,6 +35,16 @@ interop-sdk/
     pnpm build
     ```
 
+## Contributing
+
+Wonderland is a team of top Web3 researchers, developers, and operators who believe that the future needs to be open-source, permissionless, and decentralized.
+
+[DeFi sucks](https://defi.sucks), but Wonderland is here to make it better.
+
+### 💻 Conventional Commits
+
+We follow the Conventional Commits [specification](https://www.conventionalcommits.org/en/v1.0.0/#specification).
+
 ## License
 
 This project is licensed under the MIT License. See the [`LICENSE`](./LICENSE) file for details.
