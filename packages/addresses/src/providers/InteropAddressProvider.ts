@@ -3,6 +3,7 @@ import { Hex } from "viem";
 import {
     BinaryAddress,
     calculateChecksum,
+    buildInteropAddress,
     ChainType,
     Checksum,
     EncodedAddress,
@@ -10,6 +11,7 @@ import {
     formatAddress,
     formatChainReference,
     HumanReadableAddress,
+    InteropAddressFields,
     parseBinary,
     parseHumanReadable,
     toBinary,
@@ -68,6 +70,26 @@ export class InteropAddressProvider {
         const interopAddress = parseBinary(binaryAddress);
         return formatAddress(interopAddress.address, interopAddress.chainType);
     }
+  
+  /**
+    * Builds an InteropAddress from a payload
+     * @param payload - The payload to build the InteropAddress from
+     * @returns The InteropAddress
+     * @example
+     * ```ts
+     * const payload = {
+     *  version: 1,
+     *  chainType: "eip155",
+     *  chainReference: "0x1",
+     *  address: "0x1",
+     * }
+     * const interopAddress = InteropAddressProvider.buildFromPayload(payload);
+     * ```
+     */
+    public static buildFromPayload(payload: InteropAddressFields): BinaryAddress {
+        const interopAddress = buildInteropAddress(payload);
+        return toBinary(interopAddress) as BinaryAddress;
+    }
 
     /**
      * Computes the checksum of a human-readable address
@@ -90,3 +112,4 @@ export const binaryToHumanReadable = InteropAddressProvider.binaryToHumanReadabl
 export const getChainId = InteropAddressProvider.getChainId;
 export const getAddress = InteropAddressProvider.getAddress;
 export const computeChecksum = InteropAddressProvider.computeChecksum;
+export const buildFromPayload = InteropAddressProvider.buildFromPayload;

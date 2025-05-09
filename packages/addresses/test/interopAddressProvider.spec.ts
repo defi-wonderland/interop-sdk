@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
     binaryToHumanReadable,
     computeChecksum,
+    buildFromPayload,
     humanReadableToBinary,
     InteropAddressProvider,
 } from "../src/providers/InteropAddressProvider.js";
@@ -52,6 +53,28 @@ describe("InteropAddressProvider", () => {
         const checksum = await computeChecksum(
             "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
         );
-        expect(checksum).toBe("4CA88C9C");
+        expect(checksum).toBe("4CA88C9C"));
+    });
+       
+    it("build an InteropAddress from a payload using static method", () => {
+        const payload = {
+            version: 1,
+            chainType: "eip155",
+            chainReference: "0x1",
+            address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+        };
+        const interopAddress = InteropAddressProvider.buildFromPayload(payload);
+        expect(interopAddress).toBe("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
+    });
+
+    it("build an InteropAddress from a payload using the buildFromPayload exported function", () => {
+        const payload = {
+            version: 1,
+            chainType: "eip155",
+            chainReference: "0x1",
+            address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+        };
+        const interopAddress = buildFromPayload(payload);
+        expect(interopAddress).toBe("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
     });
 });
