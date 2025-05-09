@@ -162,13 +162,16 @@ export const parseAddress = (binaryAddress: Uint8Array): Address => {
  * @returns The formatted address
  * @throws An error if the chain type is not supported
  */
-export const formatAddress = (address: Uint8Array, chainType: ChainType): EncodedAddress => {
+export const formatAddress = <T extends ChainType>(
+    address: Uint8Array,
+    chainType: T,
+): EncodedAddress<T> => {
     const chainTypeHex = toHex(chainType);
     switch (chainTypeHex) {
         case ChainTypeValue.EIP155:
-            return getAddress(toHex(address)) as EncodedAddress;
+            return getAddress(toHex(address)) as EncodedAddress<T>;
         case ChainTypeValue.SOLANA:
-            return bs58.encode(address) as EncodedAddress;
+            return bs58.encode(address) as EncodedAddress<T>;
         default:
             throw new UnsupportedChainType(chainTypeHex);
     }
@@ -181,16 +184,16 @@ export const formatAddress = (address: Uint8Array, chainType: ChainType): Encode
  * @returns The formatted chain reference
  * @throws An error if the chain type is not supported
  */
-export const formatChainReference = (
+export const formatChainReference = <T extends ChainType>(
     chainReference: Uint8Array,
-    chainType: ChainType,
-): EncodedChainReference => {
+    chainType: T,
+): EncodedChainReference<T> => {
     const chainTypeHex = toHex(chainType);
     switch (chainTypeHex) {
         case ChainTypeValue.EIP155:
-            return bytesToNumber(chainReference);
+            return bytesToNumber(chainReference) as EncodedChainReference<T>;
         case ChainTypeValue.SOLANA:
-            return bs58.encode(chainReference) as EncodedChainReference;
+            return bs58.encode(chainReference) as EncodedChainReference<T>;
         default:
             throw new UnsupportedChainType(chainTypeHex);
     }

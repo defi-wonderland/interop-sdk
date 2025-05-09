@@ -1,5 +1,6 @@
 import {
     BinaryAddress,
+    ChainType,
     EncodedAddress,
     EncodedChainReference,
     formatAddress,
@@ -49,7 +50,7 @@ export class InteropAddressProvider {
      * @param binaryAddress - The binary address to get the chain ID from
      * @returns The chain ID
      */
-    public static getChainId(binaryAddress: string): EncodedChainReference {
+    public static getChainId(binaryAddress: string): EncodedChainReference<ChainType> {
         const interopAddress = parseBinary(binaryAddress as `0x${string}`);
         return formatChainReference(interopAddress.chainReference, interopAddress.chainType);
     }
@@ -59,7 +60,7 @@ export class InteropAddressProvider {
      * @param binaryAddress - The binary address to get the address from
      * @returns The address
      */
-    public static getAddress(binaryAddress: string): EncodedAddress {
+    public static getAddress(binaryAddress: string): EncodedAddress<ChainType> {
         const interopAddress = parseBinary(binaryAddress as `0x${string}`);
         return formatAddress(interopAddress.address, interopAddress.chainType);
     }
