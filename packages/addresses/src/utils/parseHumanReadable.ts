@@ -75,9 +75,15 @@ const parseChainReference = (chainNamespace: ChainTypeName, chainReference: stri
 
 /**
  * Parses a human-readable address into an InteropAddress
+ * @param humanReadableAddress - The human-readable address to parse
+ * @param validateChecksumFlag - Whether to validate the checksum of the address
  * @throws {Error} If the address format is invalid or validation fails
  */
-export const parseHumanReadable = async (humanReadableAddress: string): Promise<InteropAddress> => {
+export const parseHumanReadable = async (
+    humanReadableAddress: string,
+    options: { validateChecksumFlag?: boolean } = {},
+): Promise<InteropAddress> => {
+    const { validateChecksumFlag = true } = options;
     const parsedHumanReadableAddress = HumanReadableAddressSchema.parse(humanReadableAddress);
 
     const { address, chainNamespace, chainReference, checksum } = parsedHumanReadableAddress;
@@ -100,7 +106,9 @@ export const parseHumanReadable = async (humanReadableAddress: string): Promise<
     };
 
     validateInteropAddress(interopAddress);
-    validateChecksum(interopAddress, checksum as Checksum);
+    if (validateChecksumFlag) {
+        validateChecksum(interopAddress, checksum as Checksum);
+    }
 
     return interopAddress;
 };
