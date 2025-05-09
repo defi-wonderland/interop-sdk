@@ -2,16 +2,16 @@ import { fromHex, Hex } from "viem";
 import { describe, expect, it } from "vitest";
 
 import {
-    build,
+    buildInteropAddress,
     CHAIN_TYPE,
     InvalidAddress,
     InvalidChainReference,
     UnsupportedChainType,
 } from "../src/internal.js";
 
-describe("build", () => {
+describe("buildInteropAddress", () => {
     it("build an InteropAddress from a eip155 address", () => {
-        const interopAddress = build({
+        const interopAddress = buildInteropAddress({
             version: 1,
             chainType: "eip155",
             chainReference: "0x1",
@@ -26,7 +26,7 @@ describe("build", () => {
     });
 
     it("build an InteropAddress from a solana address", () => {
-        const interopAddress = build({
+        const interopAddress = buildInteropAddress({
             version: 1,
             chainType: "solana",
             chainReference: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
@@ -46,7 +46,7 @@ describe("build", () => {
 
     it("throws error if chain type is not supported", () => {
         expect(() =>
-            build({
+            buildInteropAddress({
                 version: 1,
                 chainType: "not-supported",
                 chainReference: "0x1",
@@ -57,7 +57,7 @@ describe("build", () => {
 
     it("throw error if chain reference is not hex when chain type is eip155", () => {
         expect(() =>
-            build({
+            buildInteropAddress({
                 version: 1,
                 chainType: "eip155",
                 chainReference: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
@@ -68,7 +68,7 @@ describe("build", () => {
 
     it("throw error if chain reference is not base58 when chain type is solana", () => {
         expect(() =>
-            build({
+            buildInteropAddress({
                 version: 1,
                 chainType: "solana",
                 chainReference: "0x1",
@@ -79,7 +79,7 @@ describe("build", () => {
 
     it("throw error if address is not hex when chain type is eip155", () => {
         expect(() =>
-            build({
+            buildInteropAddress({
                 version: 1,
                 chainType: "eip155",
                 chainReference: "0x1",
@@ -90,7 +90,7 @@ describe("build", () => {
 
     it("throw error if address is not base58 when chain type is solana", () => {
         expect(() =>
-            build({
+            buildInteropAddress({
                 version: 1,
                 chainType: "solana",
                 chainReference: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",

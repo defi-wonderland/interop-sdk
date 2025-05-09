@@ -1,6 +1,6 @@
 import {
     BinaryAddress,
-    build,
+    buildInteropAddress,
     HumanReadableAddress,
     InteropAddressFields,
     parseBinary,
@@ -64,7 +64,7 @@ export class InteropAddressProvider {
      * ```
      */
     public static buildFromPayload(payload: InteropAddressFields): BinaryAddress {
-        const interopAddress = build(payload);
+        const interopAddress = buildInteropAddress(payload);
         return toBinary(interopAddress) as BinaryAddress;
     }
 }
