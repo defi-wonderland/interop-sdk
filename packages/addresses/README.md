@@ -54,7 +54,18 @@ const binaryAddress = humanReadableToBinary(humanReadableAddress)
 
 ## API
 
-TODO
+### [InteropAddressProvider](./src/providers/InteropAddressProvider.ts)
+
+Available methods
+
+-   `humanReadableToBinary(humanReadableAddress: string)`
+-   `binaryToHumanReadable(binaryAddress: Hex)`
+-   `getChainId(binaryAddress: Hex)`
+-   `getAddress(binaryAddress: Hex)`
+-   `buildFromPayload(payload: InteropAddressFields)`
+-   `computeChecksum(humanReadableAddress: string)`
+
+All methods are also exported as individual functions to allow maximum modularity and tree-shaking
 
 ## References
 
