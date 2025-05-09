@@ -167,6 +167,11 @@ describe("erc7930", () => {
             await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(InvalidChecksum);
         });
 
+        it("throws error if checksum is missing", async () => {
+            const humanReadableAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1";
+            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(InvalidChecksum);
+        });
+
         it("throws if chain reference is invalid", async () => {
             const humanReadableAddress =
                 "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1000000#4CA88C9C";
