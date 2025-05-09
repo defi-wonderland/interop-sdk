@@ -1,7 +1,14 @@
 import bs58 from "bs58";
 import { bytesToNumber, fromHex, getAddress, isHex, toHex } from "viem";
 
-import type { Address, CHAIN_TYPE, ChainReference, ChainType } from "../internal.js";
+import type {
+    Address,
+    CHAIN_TYPE,
+    ChainReference,
+    ChainType,
+    EncodedAddress,
+    EncodedChainReference,
+} from "../internal.js";
 import {
     BINARY_LENGTHS,
     BINARY_OFFSETS,
@@ -151,17 +158,20 @@ export const parseAddress = (binaryAddress: Uint8Array): Address => {
 /**
  * Formats an address based on the chain type
  * @param address - The address to format
- * @param options - The options to format the address
- * @param options.chainType - The chain type to format the address for
+ * @param chainType - The chain type to format the address for
  * @returns The formatted address
+ * @throws An error if the chain type is not supported
  */
-export const formatAddress = (address: Uint8Array, options: { chainType: ChainType }): string => {
-    const chainTypeHex = toHex(options.chainType);
+export const formatAddress = <T extends ChainType>(
+    address: Uint8Array,
+    chainType: T,
+): EncodedAddress<T> => {
+    const chainTypeHex = toHex(chainType);
     switch (chainTypeHex) {
         case ChainTypeValue.EIP155:
-            return getAddress(toHex(address));
+            return getAddress(toHex(address)) as EncodedAddress<T>;
         case ChainTypeValue.SOLANA:
-            return bs58.encode(address);
+            return bs58.encode(address) as EncodedAddress<T>;
         default:
             throw new UnsupportedChainType(chainTypeHex);
     }
@@ -174,13 +184,16 @@ export const formatAddress = (address: Uint8Array, options: { chainType: ChainTy
  * @returns The formatted chain reference
  * @throws An error if the chain type is not supported
  */
-export const formatChainReference = (chainReference: Uint8Array, chainType: ChainType): string => {
+export const formatChainReference = <T extends ChainType>(
+    chainReference: Uint8Array,
+    chainType: T,
+): EncodedChainReference<T> => {
     const chainTypeHex = toHex(chainType);
     switch (chainTypeHex) {
         case ChainTypeValue.EIP155:
-            return bytesToNumber(chainReference).toString();
+            return bytesToNumber(chainReference) as EncodedChainReference<T>;
         case ChainTypeValue.SOLANA:
-            return bs58.encode(chainReference);
+            return bs58.encode(chainReference) as EncodedChainReference<T>;
         default:
             throw new UnsupportedChainType(chainTypeHex);
     }

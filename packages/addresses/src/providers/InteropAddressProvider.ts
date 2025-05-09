@@ -1,5 +1,12 @@
+import { Hex } from "viem";
+
 import {
     BinaryAddress,
+    ChainType,
+    EncodedAddress,
+    EncodedChainReference,
+    formatAddress,
+    formatChainReference,
     HumanReadableAddress,
     parseBinary,
     parseHumanReadable,
@@ -20,7 +27,7 @@ export class InteropAddressProvider {
      * ```
      */
     public static async humanReadableToBinary(
-        humanReadableAddress: HumanReadableAddress,
+        humanReadableAddress: string,
     ): Promise<BinaryAddress> {
         const interopAddress = await parseHumanReadable(humanReadableAddress);
         return toBinary(interopAddress) as BinaryAddress;
@@ -35,16 +42,30 @@ export class InteropAddressProvider {
      * const humanReadableAddress = await InteropAddressProvider.binaryToHumanReadable("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
      * ```
      */
-    public static binaryToHumanReadable(binaryAddress: BinaryAddress): HumanReadableAddress {
+    public static binaryToHumanReadable(binaryAddress: Hex): HumanReadableAddress {
         const interopAddress = parseBinary(binaryAddress);
         return toHumanReadable(interopAddress);
     }
 
-    // TODO: Implement
-    public static getChainId(): void {}
+    /**
+     * Get the chain ID from a binary address
+     * @param binaryAddress - The Hex encoded binary address to get the chain ID from
+     * @returns The chain ID
+     */
+    public static getChainId(binaryAddress: Hex): EncodedChainReference<ChainType> {
+        const interopAddress = parseBinary(binaryAddress);
+        return formatChainReference(interopAddress.chainReference, interopAddress.chainType);
+    }
 
-    // TODO: Implement
-    public static getAddress(): void {}
+    /**
+     * Get the address from a binary address
+     * @param binaryAddress - The Hex encoded binary address to get the address from
+     * @returns The address
+     */
+    public static getAddress(binaryAddress: Hex): EncodedAddress<ChainType> {
+        const interopAddress = parseBinary(binaryAddress);
+        return formatAddress(interopAddress.address, interopAddress.chainType);
+    }
 }
 
 export const humanReadableToBinary = InteropAddressProvider.humanReadableToBinary;
