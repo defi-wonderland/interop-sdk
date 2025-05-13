@@ -21,7 +21,7 @@ export type SwapGetQuoteParams = BasicGetQuoteParams<{
  * The response for the swap cross-bridge action.
  */
 export type SwapGetQuoteResponse<OpenParams extends BasicOpenParams> = BasicGetQuoteResponse<
-    "swapCrossBridge",
+    "crossChainSwap",
     {
         inputTokenAddress: string;
         outputTokenAddress: string;

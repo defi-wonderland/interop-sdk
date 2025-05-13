@@ -19,7 +19,7 @@ export type TransferGetQuoteParams = BasicGetQuoteParams<{
  * The response for the transfer cross-bridge action.
  */
 export type TransferGetQuoteResponse<OpenParams extends BasicOpenParams> = BasicGetQuoteResponse<
-    "transferCrossBridge",
+    "crossChainTransfer",
     {
         inputTokenAddress: string;
         outputTokenAddress: string;

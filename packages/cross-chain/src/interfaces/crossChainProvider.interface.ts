@@ -23,7 +23,7 @@ export type Branded<T, B> = T & Brand<B>;
 /**
  * The valid actions for the CrossChainProvider interface.
  */
-type ValidActions = "transferCrossBridge" | "swapCrossBridge";
+type ValidActions = "crossChainTransfer" | "crossChainSwap";
 
 /**
  * The basic parameters for the get quote action.
@@ -34,8 +34,8 @@ export type BasicGetQuoteParams<Params> = Params;
  * The parameters for the get quote action.
  */
 export type GetQuoteParams<Action extends ValidActions> = {
-    transferCrossBridge: TransferGetQuoteParams;
-    swapCrossBridge: SwapGetQuoteParams;
+    crossChainTransfer: TransferGetQuoteParams;
+    crossChainSwap: SwapGetQuoteParams;
 }[Action];
 
 /**
@@ -72,8 +72,8 @@ export type BasicGetQuoteResponse<
  * The response for the get quote action.
  */
 export type GetQuoteResponse<Action extends ValidActions, OpenParams extends BasicOpenParams> = {
-    transferCrossBridge: TransferGetQuoteResponse<OpenParams>;
-    swapCrossBridge: SwapGetQuoteResponse<OpenParams>;
+    crossChainTransfer: TransferGetQuoteResponse<OpenParams>;
+    crossChainSwap: SwapGetQuoteResponse<OpenParams>;
 }[Action];
 
 export interface CrossChainProvider<ProtocolOpenParams extends BasicOpenParams> {

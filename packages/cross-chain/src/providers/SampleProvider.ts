@@ -9,7 +9,7 @@ import {
 } from "../internal.js";
 
 type SampleTransferOpenParams = {
-    action: "transferCrossBridge";
+    action: "crossChainTransfer";
     params: {
         inputTokenAddress: string;
         outputTokenAddress: string;
@@ -20,7 +20,7 @@ type SampleTransferOpenParams = {
 };
 
 type SampleSwapOpenParams = {
-    action: "swapCrossBridge";
+    action: "crossChainSwap";
     params: {
         inputAmount: string;
         outputAmount: string;
@@ -48,7 +48,7 @@ export class SampleProvider implements CrossChainProvider<SampleOpenParams> {
         input: GetQuoteParams<Action>,
     ): Promise<GetQuoteResponse<Action, SampleOpenParams>> {
         switch (action) {
-            case "transferCrossBridge":
+            case "crossChainTransfer":
                 const transferParams = TransferGetQuoteParamsSchema.parse(input);
 
                 return {
@@ -79,7 +79,7 @@ export class SampleProvider implements CrossChainProvider<SampleOpenParams> {
                     },
                 } as GetQuoteResponse<Action, SampleOpenParams>;
 
-            case "swapCrossBridge":
+            case "crossChainSwap":
                 const swapParams = SwapGetQuoteParamsSchema.parse(input);
 
                 return {
@@ -120,9 +120,9 @@ export class SampleProvider implements CrossChainProvider<SampleOpenParams> {
      */
     simulateOpen(params: SampleOpenParams): Promise<TransactionRequest[]> {
         switch (params.action) {
-            case "transferCrossBridge":
+            case "crossChainTransfer":
                 return Promise.resolve([]);
-            case "swapCrossBridge":
+            case "crossChainSwap":
                 return Promise.resolve([]);
         }
     }
