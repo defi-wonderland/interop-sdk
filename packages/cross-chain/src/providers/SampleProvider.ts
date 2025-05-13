@@ -1,3 +1,5 @@
+import { TransactionRequest } from "viem";
+
 import {
     CrossChainProvider,
     GetQuoteParams,
@@ -116,7 +118,12 @@ export class SampleProvider implements CrossChainProvider<SampleOpenParams> {
     /**
      * @inheritdoc
      */
-    open(params: SampleOpenParams): Promise<string> {
-        return Promise.resolve(params.action);
+    simulateOpen(params: SampleOpenParams): Promise<TransactionRequest[]> {
+        switch (params.action) {
+            case "transferCrossBridge":
+                return Promise.resolve([]);
+            case "swapCrossBridge":
+                return Promise.resolve([]);
+        }
     }
 }

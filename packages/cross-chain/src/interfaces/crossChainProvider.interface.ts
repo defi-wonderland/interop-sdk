@@ -1,3 +1,12 @@
+import type { TransactionRequest } from "viem";
+
+import type {
+    SwapGetQuoteParams,
+    SwapGetQuoteResponse,
+    TransferGetQuoteParams,
+    TransferGetQuoteResponse,
+} from "./actions/index.js";
+
 /**
  * A unique symbol used to brand the action type.
  * This is used to prevent type errors when using the action type in a function.
@@ -19,31 +28,7 @@ type ValidActions = "transferCrossBridge" | "swapCrossBridge";
 /**
  * The basic parameters for the get quote action.
  */
-type BasicGetQuoteParams<Params> = Params;
-
-/**
- * The parameters for the transfer cross-bridge action.
- */
-export type TransferGetQuoteParams = BasicGetQuoteParams<{
-    inputTokenAddress: string;
-    outputTokenAddress: string;
-    inputAmount: string;
-    inputChainId: string;
-    outputChainId: string;
-}>;
-
-/**
- * The parameters for the swap cross-bridge action.
- */
-export type SwapGetQuoteParams = BasicGetQuoteParams<{
-    inputAmount: string;
-    outputAmount: string;
-    inputTokenAddress: string;
-    outputTokenAddress: string;
-    inputChainId: string;
-    outputChainId: string;
-    slippage: string;
-}>;
+export type BasicGetQuoteParams<Params> = Params;
 
 /**
  * The parameters for the get quote action.
@@ -64,7 +49,7 @@ export type BasicOpenParams = {
 /**
  * The basic response for the get quote action.
  */
-type BasicGetQuoteResponse<
+export type BasicGetQuoteResponse<
     Action extends ValidActions,
     Output,
     OpenParams extends BasicOpenParams,
@@ -81,38 +66,6 @@ type BasicGetQuoteResponse<
         };
     },
     Action
->;
-
-/**
- * The response for the transfer cross-bridge action.
- */
-export type TransferGetQuoteResponse<OpenParams extends BasicOpenParams> = BasicGetQuoteResponse<
-    "transferCrossBridge",
-    {
-        inputTokenAddress: string;
-        outputTokenAddress: string;
-        inputAmount: string;
-        outputAmount: string;
-        inputChainId: string;
-        outputChainId: string;
-    },
-    OpenParams
->;
-
-/**
- * The response for the swap cross-bridge action.
- */
-export type SwapGetQuoteResponse<OpenParams extends BasicOpenParams> = BasicGetQuoteResponse<
-    "swapCrossBridge",
-    {
-        inputTokenAddress: string;
-        outputTokenAddress: string;
-        inputAmount: string;
-        outputAmount: string;
-        inputChainId: string;
-        outputChainId: string;
-    },
-    OpenParams
 >;
 
 /**
@@ -136,9 +89,9 @@ export interface CrossChainProvider<ProtocolOpenParams extends BasicOpenParams> 
     ): Promise<GetQuoteResponse<Action, ProtocolOpenParams>>;
 
     /**
-     * Open a cross-chain action
+     * Return a transaction object for a cross-chain action
      * @param params - The parameters for the action, returned from the `getQuote` method
-     * @returns A transaction hash for the action
+     * @returns A transaction object for the action
      */
-    open: (params: ProtocolOpenParams) => Promise<string>;
+    simulateOpen: (params: ProtocolOpenParams) => Promise<TransactionRequest[]>;
 }
