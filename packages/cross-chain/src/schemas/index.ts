@@ -1,1 +1,1 @@
-export * from "./crossChainProvider.schemas.js";
+export * from "./actions/index.js";
