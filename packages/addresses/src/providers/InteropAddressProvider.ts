@@ -12,6 +12,7 @@ import {
     formatChainReference,
     HumanReadableAddress,
     InteropAddressFields,
+    isInteropAddress,
     parseBinary,
     parseHumanReadable,
     toBinary,
@@ -107,6 +108,19 @@ export class InteropAddressProvider {
         });
         return calculateChecksum(interopAddress);
     }
+
+    /**
+     * Checks if a human-readable address is a valid interop address
+     * @param humanReadableAddress - The human-readable address to check
+     * @returns boolean - true if the address is a valid interop address, false otherwise
+     * @example
+     * ```ts
+     * const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@eip155:1#ABCD1234");
+     * ```
+     */
+    public static async isValidInteropAddress(humanReadableAddress: string): Promise<boolean> {
+        return isInteropAddress(humanReadableAddress as HumanReadableAddress);
+    }
 }
 
 export const humanReadableToBinary = InteropAddressProvider.humanReadableToBinary;
@@ -115,3 +129,4 @@ export const getChainId = InteropAddressProvider.getChainId;
 export const getAddress = InteropAddressProvider.getAddress;
 export const computeChecksum = InteropAddressProvider.computeChecksum;
 export const buildFromPayload = InteropAddressProvider.buildFromPayload;
+export const isValidInteropAddress = InteropAddressProvider.isValidInteropAddress;
