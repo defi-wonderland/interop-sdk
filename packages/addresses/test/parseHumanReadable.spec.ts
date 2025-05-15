@@ -215,5 +215,40 @@ describe("erc7930", () => {
                 InvalidChainNamespace,
             );
         });
+
+        it("converts address@shortname to interop address", async () => {
+            const humanReadableAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth#4CA88C9C";
+            const expected: InteropAddress = {
+                version: 1,
+                chainType: hexToBytes("0x0000"),
+                chainReference: hexToBytes("0x01"),
+                address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
+            };
+            const interopAddress = await parseHumanReadable(humanReadableAddress);
+
+            expect(interopAddress).toEqual(expected);
+        });
+
+        it("converts eth@shortname to interop address", async () => {
+            const humanReadableAddress = "vitalik.eth@eth#4CA88C9C";
+            const expected: InteropAddress = {
+                version: 1,
+                chainType: hexToBytes("0x0000"),
+                chainReference: hexToBytes("0x01"),
+                address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
+            };
+
+            mockGetEnsAddress.mockResolvedValue("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+            const interopAddress = await parseHumanReadable(humanReadableAddress);
+
+            expect(interopAddress).toEqual(expected);
+        });
+
+        it("throws if shortname is invalid", async () => {
+            const humanReadableAddress = "vitalik.eth@foo#4CA88C9C";
+            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
+                InvalidChainNamespace,
+            );
+        });
     });
 });
