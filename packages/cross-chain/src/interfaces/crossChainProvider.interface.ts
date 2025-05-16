@@ -81,22 +81,41 @@ export type GetQuoteResponse<Action extends ValidActions, OpenParams extends Bas
     crossChainSwap: SwapGetQuoteResponse<OpenParams>;
 }[Action];
 
-export interface CrossChainProvider<ProtocolOpenParams extends BasicOpenParams> {
+export abstract class CrossChainProvider<ProtocolOpenParams extends BasicOpenParams> {
     /**
      * Get a quote for a cross-chain action
      * @param action - The action to get a quote for
      * @param params - The parameters for the action
      * @returns A quote for the action
      */
-    getQuote<Action extends ProtocolOpenParams["action"]>(
+    abstract getQuote<Action extends ProtocolOpenParams["action"]>(
         action: Action,
         params: GetQuoteParams<Action>,
     ): Promise<GetQuoteResponse<Action, ProtocolOpenParams>>;
 
     /**
-     * Return a transaction object for a cross-chain action
-     * @param params - The parameters for the action, returned from the `getQuote` method
+     * Simulate an open for a cross-chain action with validated parameters
+     * @param params - The parameters for the action
      * @returns A transaction object for the action
      */
-    simulateOpen: (params: ProtocolOpenParams) => Promise<TransactionRequest[]>;
+    abstract validatedSimulateOpen(params: ProtocolOpenParams): Promise<TransactionRequest[]>;
+
+    /**
+     * Validate the parameters for an open for a cross-chain action
+     * @param params - The parameters for the action
+     */
+    abstract validateOpenParams(params: ProtocolOpenParams): void;
+
+    /**
+     * Return a transaction object for a cross-chain action
+     * This method is a wrapper around the `validatedSimulateOpen` method
+     * and validates the parameters before simulating the action.
+     * @param params - The parameters for the action, returned from the `getQuote` method
+     * @returns A transaction object for the action
+     * @final Never override this method
+     */
+    async simulateOpen(params: ProtocolOpenParams): Promise<TransactionRequest[]> {
+        this.validateOpenParams(params);
+        return this.validatedSimulateOpen(params);
+    }
 }
