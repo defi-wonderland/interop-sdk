@@ -129,5 +129,20 @@ describe("erc7930", () => {
 
             expect(humanReadableAddress).toEqual("vitalik.eth@eip155:1#4CA88C9C");
         });
+
+        it("returns hex address if ENS name is not found", async () => {
+            const interopAddress: InteropAddress = {
+                version: 1,
+                chainType: hexToBytes("0x0000"),
+                chainReference: hexToBytes("0x01"),
+                address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
+            };
+
+            mockGetEnsName.mockResolvedValue(null);
+
+            expect(await toHumanReadable(interopAddress)).toBe(
+                "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C",
+            );
+        });
     });
 });
