@@ -4,7 +4,7 @@ import {
     BinaryAddress,
     buildInteropAddress,
     calculateChecksum,
-    ChainType,
+    ChainTypeName,
     Checksum,
     EncodedAddress,
     EncodedChainReference,
@@ -46,9 +46,9 @@ export class InteropAddressProvider {
      * const humanReadableAddress = await InteropAddressProvider.binaryToHumanReadable("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
      * ```
      */
-    public static binaryToHumanReadable(binaryAddress: Hex): HumanReadableAddress {
+    public static async binaryToHumanReadable(binaryAddress: Hex): Promise<HumanReadableAddress> {
         const interopAddress = parseBinary(binaryAddress);
-        return toHumanReadable(interopAddress);
+        return await toHumanReadable(interopAddress);
     }
 
     /**
@@ -56,7 +56,7 @@ export class InteropAddressProvider {
      * @param binaryAddress - The Hex encoded binary address to get the chain ID from
      * @returns The chain ID
      */
-    public static getChainId(binaryAddress: Hex): EncodedChainReference<ChainType> {
+    public static getChainId(binaryAddress: Hex): EncodedChainReference<ChainTypeName> {
         const interopAddress = parseBinary(binaryAddress);
         return formatChainReference(interopAddress.chainReference, interopAddress.chainType);
     }
@@ -66,7 +66,7 @@ export class InteropAddressProvider {
      * @param binaryAddress - The Hex encoded binary address to get the address from
      * @returns The address
      */
-    public static getAddress(binaryAddress: Hex): EncodedAddress<ChainType> {
+    public static async getAddress(binaryAddress: Hex): Promise<EncodedAddress<ChainTypeName>> {
         const interopAddress = parseBinary(binaryAddress);
         return formatAddress(interopAddress.address, interopAddress.chainType);
     }
