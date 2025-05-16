@@ -47,6 +47,14 @@ export type BasicOpenParams = {
 };
 
 /**
+ * The fee for the cross-chain action.
+ */
+export type Fee = {
+    total: string;
+    percent: string;
+};
+
+/**
  * The basic response for the get quote action.
  */
 export type BasicGetQuoteResponse<
@@ -60,10 +68,7 @@ export type BasicGetQuoteResponse<
         action: Action;
         output: Output;
         openParams: OpenParams;
-        fee: {
-            total: string;
-            percent: string;
-        };
+        fee: Fee;
     },
     Action
 >;
@@ -83,7 +88,7 @@ export interface CrossChainProvider<ProtocolOpenParams extends BasicOpenParams> 
      * @param params - The parameters for the action
      * @returns A quote for the action
      */
-    getQuote<Action extends BasicOpenParams["action"]>(
+    getQuote<Action extends ProtocolOpenParams["action"]>(
         action: Action,
         params: GetQuoteParams<Action>,
     ): Promise<GetQuoteResponse<Action, ProtocolOpenParams>>;

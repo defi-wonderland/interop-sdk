@@ -14,8 +14,8 @@ type SampleTransferOpenParams = {
         inputTokenAddress: string;
         outputTokenAddress: string;
         inputAmount: string;
-        inputChainId: string;
-        outputChainId: string;
+        inputChainId: number;
+        outputChainId: number;
     };
 };
 
@@ -26,8 +26,9 @@ type SampleSwapOpenParams = {
         outputAmount: string;
         inputTokenAddress: string;
         outputTokenAddress: string;
-        inputChainId: string;
-        outputChainId: string;
+        inputChainId: number;
+        outputChainId: number;
+        slippage: string;
     };
 };
 
