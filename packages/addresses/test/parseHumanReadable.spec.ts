@@ -247,7 +247,7 @@ describe("erc7930", () => {
         it("throws if shortname is invalid", async () => {
             const humanReadableAddress = "vitalik.eth@foo#4CA88C9C";
             await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
-                InvalidChainNamespace,
+                InvalidChainIdentifier,
             );
         });
     });
