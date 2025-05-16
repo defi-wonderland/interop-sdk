@@ -9,14 +9,19 @@ import { DEFAULT_CHAIN_SHORTNAME_MAP } from "./defaultShortnameMap.js";
  */
 const fetchShortnameToChainId = async (): Promise<Record<string, number>> => {
     try {
-        const response = await axios.get("https://chainid.network/chains_mini.json");
+        const response = await axios.get<{ shortName: string; chainId: number }[]>(
+            "https://chainid.network/chains_mini.json",
+        );
         const chains = response.data;
-        const shortNameToChainIdObj = chains.reduce((acc: Record<string, number>, chain: any) => {
-            if (chain.shortName && chain.chainId != null) {
-                acc[chain.shortName] = chain.chainId;
-            }
-            return acc;
-        }, {});
+        const shortNameToChainIdObj = chains.reduce(
+            (acc: Record<string, number>, chain: { shortName: string; chainId: number }) => {
+                if (chain.shortName && chain.chainId != null) {
+                    acc[chain.shortName] = chain.chainId;
+                }
+                return acc;
+            },
+            {},
+        );
 
         return shortNameToChainIdObj;
     } catch (error) {
