@@ -73,6 +73,9 @@ importers:
 
     packages/cross-chain:
         dependencies:
+            "@across-protocol/app-sdk":
+                specifier: 0.2.2
+                version: 0.2.2(viem@2.29.2(typescript@5.5.4)(zod@3.24.3))
             viem:
                 specifier: 2.29.2
                 version: 2.29.2(typescript@5.5.4)(zod@3.24.3)
@@ -81,6 +84,15 @@ importers:
                 version: 3.24.3
 
 packages:
+    "@across-protocol/app-sdk@0.2.2":
+        resolution:
+            {
+                integrity: sha512-jn+tR79L3Ntu7xSsyy3x40k4cTMODMRB+Vu6i04PVhcJFU33JCLNz8w4yttwx0rtOURTXR6xt4KKsndv8SBc1A==,
+            }
+        engines: { node: ">=18.0.0" }
+        peerDependencies:
+            viem: ^2.20.1
+
     "@adraffy/ens-normalize@1.11.0":
         resolution:
             {
@@ -3237,6 +3249,10 @@ packages:
             }
 
 snapshots:
+    "@across-protocol/app-sdk@0.2.2(viem@2.29.2(typescript@5.5.4)(zod@3.24.3))":
+        dependencies:
+            viem: 2.29.2(typescript@5.5.4)(zod@3.24.3)
+
     "@adraffy/ens-normalize@1.11.0": {}
 
     "@ampproject/remapping@2.3.0":
