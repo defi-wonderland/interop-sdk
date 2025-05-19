@@ -1,2 +1,2 @@
 export * from "./interopAddress.js";
-export * from "./chainShortnameMap.js";
+export * from "./defaultShortnameMap.js";

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-import { DEFAULT_CHAIN_SHORTNAME_MAP } from "./defaultShortnameMap.js";
+import { DEFAULT_CHAIN_SHORTNAME_MAP } from "../internal.js";
 
 /**
  * Fetches the shortname to chain id map from the chainid.network API.
@@ -30,10 +30,9 @@ const fetchShortnameToChainId = async (): Promise<Record<string, number>> => {
     }
 };
 
-// Only fetch the shortname to chain id map if we're not running in test mode
-let CHAIN_SHORTNAME_TO_ID_MAP: Record<string, number> = DEFAULT_CHAIN_SHORTNAME_MAP;
-if (process.env.NODE_ENV !== "test") {
-    CHAIN_SHORTNAME_TO_ID_MAP = (await fetchShortnameToChainId()) || DEFAULT_CHAIN_SHORTNAME_MAP;
-}
+const shortnameToChainIdMap: Record<string, number> =
+    process.env.NODE_ENV !== "test" ? await fetchShortnameToChainId() : DEFAULT_CHAIN_SHORTNAME_MAP;
 
-export { CHAIN_SHORTNAME_TO_ID_MAP };
+export const shortnameToChainId = (shortName: string): number | undefined => {
+    return shortnameToChainIdMap[shortName];
+};

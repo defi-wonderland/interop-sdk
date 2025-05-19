@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import {
-    CHAIN_SHORTNAME_TO_ID_MAP,
     CHAIN_TYPE,
     ChainTypeName,
     InvalidChainIdentifier,
@@ -9,6 +8,7 @@ import {
     InvalidHumanReadableAddress,
     isValidChain,
     MissingHumanReadableAddress,
+    shortnameToChainId,
 } from "../internal.js";
 
 export const HumanReadableAddressSchema = z.string().transform((value) => {
@@ -33,8 +33,7 @@ export const HumanReadableAddressSchema = z.string().transform((value) => {
     }
 
     let chainReference = chain || "";
-    const chainId =
-        CHAIN_SHORTNAME_TO_ID_MAP[chainReference as keyof typeof CHAIN_SHORTNAME_TO_ID_MAP];
+    const chainId = shortnameToChainId(chainReference);
     if (chainId) {
         chainReference = chainId.toString();
     }
