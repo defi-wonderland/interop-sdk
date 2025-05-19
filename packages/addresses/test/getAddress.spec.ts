@@ -25,9 +25,9 @@ describe("getAddress", () => {
             "0xDE2b660f31EA7EFE705631710379fE9D2AF02A66",
         ];
 
-        testCases.forEach(async (testCase, index) => {
+        for (const [index, testCase] of testCases.entries()) {
             const result = await getAddress(testCase);
             expect(result).toBe(expectedResults[index]);
-        });
+        }
     });
 });

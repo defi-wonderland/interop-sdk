@@ -111,9 +111,7 @@ describe("erc7930", () => {
                 address: hexToBytes("0xD46acbA18e4f3C8b8b6c501DF1a6B05609a642Bd"),
             };
 
-            expect(async () => await toHumanReadable(interopAddress)).rejects.toThrow(
-                UnsupportedChainType,
-            );
+            await expect(toHumanReadable(interopAddress)).rejects.toThrow(UnsupportedChainType);
         });
 
         it("convert ENS name to human readable", async () => {
