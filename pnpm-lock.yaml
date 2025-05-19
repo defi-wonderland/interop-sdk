@@ -71,6 +71,15 @@ importers:
                 specifier: 3.24.3
                 version: 3.24.3
 
+    packages/cross-chain:
+        dependencies:
+            viem:
+                specifier: 2.29.2
+                version: 2.29.2(typescript@5.5.4)(zod@3.24.3)
+            zod:
+                specifier: 3.24.3
+                version: 3.24.3
+
 packages:
     "@adraffy/ens-normalize@1.11.0":
         resolution:
@@ -1542,6 +1551,7 @@ packages:
                 integrity: sha512-Go19xM6T9puCOWntie1/P997aXxFsOi37JIHRWI514Hc6ZnaHGKY9xFhrU65RT6CcBEzZoGG1e6Nq+DT04ZtZQ==,
             }
         engines: { node: ^12.22.0 || ^14.17.0 || >=16.0.0 }
+        deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
         hasBin: true
 
     espree@9.6.1:
@@ -3018,6 +3028,17 @@ packages:
         resolution:
             {
                 integrity: sha512-Z4W5O1pe+6pirYTFm451FcZmfGAUxUWt2L/eWC+YfTF28j/8rd7q6MBAi05lMN4KhLJjhN0s5YGIPB+kf1L20g==,
+            }
+        peerDependencies:
+            typescript: ">=5.0.4"
+        peerDependenciesMeta:
+            typescript:
+                optional: true
+
+    viem@2.29.2:
+        resolution:
+            {
+                integrity: sha512-cukRxab90jvQ+TDD84sU3qB3UmejYqgCw4cX8SfWzvh7JPfZXI3kAMUaT5OSR2As1Mgvx1EJawccwPjGqkSSwA==,
             }
         peerDependencies:
             typescript: ">=5.0.4"
@@ -4906,6 +4927,23 @@ snapshots:
             punycode: 2.3.1
 
     viem@2.28.0(typescript@5.5.4)(zod@3.24.3):
+        dependencies:
+            "@noble/curves": 1.8.2
+            "@noble/hashes": 1.7.2
+            "@scure/bip32": 1.6.2
+            "@scure/bip39": 1.5.4
+            abitype: 1.0.8(typescript@5.5.4)(zod@3.24.3)
+            isows: 1.0.6(ws@8.18.1)
+            ox: 0.6.9(typescript@5.5.4)(zod@3.24.3)
+            ws: 8.18.1
+        optionalDependencies:
+            typescript: 5.5.4
+        transitivePeerDependencies:
+            - bufferutil
+            - utf-8-validate
+            - zod
+
+    viem@2.29.2(typescript@5.5.4)(zod@3.24.3):
         dependencies:
             "@noble/curves": 1.8.2
             "@noble/hashes": 1.7.2
