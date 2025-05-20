@@ -4,8 +4,9 @@ import {
     encodeAbiParameters,
     encodeFunctionData,
     erc20Abi,
+    Hex,
+    isAddress,
     isHex,
-    parseUnits,
     PublicClient,
     TransactionRequest,
 } from "viem";
@@ -18,9 +19,14 @@ import {
     ACROSS_TESTING_API_URL,
     CrossChainProvider,
     Fee,
+    formatTokenAmount,
     GetQuoteParams,
     GetQuoteResponse,
+    getTokenAllowance,
+    NonSupportedAction,
+    NonSupportedChainId,
     OPEN_ABI,
+    SUPPORTED_CHAINS,
     TransferGetQuoteParams,
     TransferGetQuoteParamsSchema,
     TransferGetQuoteResponse,
@@ -31,9 +37,13 @@ const AcrossTransferOpenParamsSchema = z.object({
     params: z.object({
         inputChainId: z.number(),
         outputChainId: z.number(),
-        inputTokenAddress: z.string(),
-        outputTokenAddress: z.string(),
-        inputAmount: z.string(),
+        inputTokenAddress: z.string().refine((val) => isAddress(val), {
+            message: "Invalid input token address",
+        }),
+        outputTokenAddress: z.string().refine((val) => isAddress(val), {
+            message: "Invalid output token address",
+        }),
+        inputAmount: z.bigint(),
         fillDeadline: z.number(),
         orderDataType: z.string().refine((val) => isHex(val), {
             message: "Invalid order data type",
@@ -56,6 +66,13 @@ type AcrossDependencies = {
     publicClient: PublicClient;
 };
 
+/**
+ * An implementation of the CrossChainProvider interface for the Across protocol
+ * @see https://docs.across.to/
+ * @param config - The configuration for the provider
+ * @param dependencies - The dependencies for the provider
+ * @returns A provider for the Across protocol
+ */
 export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     private readonly protocolName = "across";
     private readonly userAddress: Address;
@@ -76,8 +93,8 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         const route = {
             originChainId: Number(params.inputChainId),
             destinationChainId: Number(params.outputChainId),
-            inputToken: params.inputTokenAddress as `0x${string}`,
-            outputToken: params.outputTokenAddress as `0x${string}`,
+            inputToken: params.inputTokenAddress,
+            outputToken: params.outputTokenAddress,
         };
 
         return await getQuote({
@@ -87,7 +104,11 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         });
     }
 
-    // Function to pad the depositor address
+    /**
+     * Pad the depositor address
+     * @param address - The address to pad
+     * @returns The padded address
+     */
     private padAddress(address: string): string {
         return "0x000000000000000000000000" + address.slice(2);
     }
@@ -98,7 +119,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @returns The open parameters
      */
     private async getAcrossOpenParams(quote: Quote): Promise<AcrossTransferOpenParams> {
-        const orderData = encodeAbiParameters(ACROSS_DEPOSIT_ABI, [
+        const orderData = await encodeAbiParameters(ACROSS_DEPOSIT_ABI, [
             {
                 inputToken: quote.deposit.inputToken,
                 inputAmount: quote.deposit.inputAmount,
@@ -120,7 +141,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                 outputChainId: quote.deposit.destinationChainId,
                 inputTokenAddress: quote.deposit.inputToken,
                 outputTokenAddress: quote.deposit.outputToken,
-                inputAmount: quote.deposit.inputAmount.toString(),
+                inputAmount: quote.deposit.inputAmount,
                 fillDeadline: quote.deposit.fillDeadline,
                 orderDataType: ACROSS_ORDER_DATA_TYPE,
                 orderData,
@@ -170,6 +191,22 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     private async getTransferQuote(
         params: TransferGetQuoteParams,
     ): Promise<TransferGetQuoteResponse<AcrossOpenParams>> {
+        const inputChain = SUPPORTED_CHAINS.find(
+            (chain) => chain.id === Number(params.inputChainId),
+        );
+
+        if (!inputChain) {
+            throw new NonSupportedChainId(params.inputChainId);
+        }
+
+        const outputChain = SUPPORTED_CHAINS.find(
+            (chain) => chain.id === Number(params.outputChainId),
+        );
+
+        if (!outputChain) {
+            throw new NonSupportedChainId(params.outputChainId);
+        }
+
         const quote = await this.getAcrossQuote(params);
         const openParams = await this.getAcrossOpenParams(quote);
         const fee = await this.calculateFee(quote);
@@ -180,8 +217,22 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             output: {
                 inputTokenAddress: quote.deposit.inputToken,
                 outputTokenAddress: quote.deposit.outputToken,
-                inputAmount: quote.deposit.inputAmount.toString(),
-                outputAmount: quote.deposit.outputAmount.toString(),
+                inputAmount: await formatTokenAmount(
+                    {
+                        amount: quote.deposit.inputAmount,
+                        tokenAddress: quote.deposit.inputToken,
+                        chain: inputChain,
+                    },
+                    { publicClient: this.publicClient },
+                ),
+                outputAmount: await formatTokenAmount(
+                    {
+                        amount: quote.deposit.outputAmount,
+                        tokenAddress: quote.deposit.outputToken,
+                        chain: outputChain,
+                    },
+                    { publicClient: this.publicClient },
+                ),
                 inputChainId: quote.deposit.originChainId,
                 outputChainId: quote.deposit.destinationChainId,
             },
@@ -205,66 +256,77 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
 
                 return quoteResponse as GetQuoteResponse<Action, AcrossOpenParams>;
             default:
-                throw new Error(`Unsupported action: ${action}`);
+                throw new NonSupportedAction(action);
         }
     }
 
+    /**
+     * Get the allowance transaction for the Across settler contract
+     * @param params - The parameters for the action
+     * @returns The allowance transaction
+     */
     private async getSettlerAllowanceTransaction(
         params: AcrossTransferOpenParams,
     ): Promise<TransactionRequest[]> {
-        const { inputChainId, inputTokenAddress } = params.params;
+        const { inputChainId, inputTokenAddress, inputAmount } = params.params;
 
         const result: TransactionRequest[] = [];
 
-        const settlerContractAddress = ACROSS_SETTLER_CONTRACT_ADDRESSES[Number(inputChainId)];
+        const inputChain = SUPPORTED_CHAINS.find((chain) => chain.id === Number(inputChainId));
 
-        if (!settlerContractAddress) {
-            throw new Error("Non-supported chain id");
+        if (!inputChain) {
+            throw new NonSupportedChainId(inputChainId);
         }
 
-        const currentAllowance = await this.publicClient.readContract({
-            address: inputTokenAddress as `0x${string}`,
-            abi: erc20Abi,
-            functionName: "allowance",
-            args: [this.userAddress, settlerContractAddress],
-        });
+        const settlerContractAddress = ACROSS_SETTLER_CONTRACT_ADDRESSES[
+            Number(inputChainId)
+        ] as Hex;
 
-        const tokenDecimals = await this.publicClient.readContract({
-            address: inputTokenAddress as `0x${string}`,
-            abi: erc20Abi,
-            functionName: "decimals",
-        });
+        const currentAllowance = await getTokenAllowance(
+            {
+                tokenAddress: inputTokenAddress,
+                chain: inputChain,
+                owner: this.userAddress,
+                spender: settlerContractAddress,
+            },
+            { publicClient: this.publicClient },
+        );
 
-        const parseInputAmount = parseUnits(params.params.inputAmount, tokenDecimals);
-
-        if (currentAllowance >= parseInputAmount) {
+        if (currentAllowance >= inputAmount) {
             return result;
         }
 
         const approvalData = encodeFunctionData({
             abi: erc20Abi,
             functionName: "approve",
-            args: [settlerContractAddress, parseInputAmount],
+            args: [settlerContractAddress, inputAmount],
         });
 
         const allowanceTx = await this.publicClient.prepareTransactionRequest({
-            account: this.userAddress as `0x${string}`,
-            to: inputTokenAddress as `0x${string}`,
+            account: this.userAddress,
+            to: inputTokenAddress,
             data: approvalData,
-            chain: this.publicClient.chain,
+            chain: inputChain,
         });
 
         return [allowanceTx];
     }
 
+    /**
+     * Simulate the open transaction for an Across cross-chain transfer
+     * @param params - The parameters for the action
+     * @returns The open transaction
+     */
     private async simulateTransferOpen(
         params: AcrossTransferOpenParams,
     ): Promise<TransactionRequest[]> {
         const { fillDeadline, orderDataType, orderData, inputChainId } = params.params;
         const result: TransactionRequest[] = [];
 
-        if (!(Number(inputChainId) in ACROSS_SETTLER_CONTRACT_ADDRESSES)) {
-            throw new Error("Non-supported chain id");
+        const inputChain = SUPPORTED_CHAINS.find((chain) => chain.id === Number(inputChainId));
+
+        if (!inputChain) {
+            throw new NonSupportedChainId(inputChainId);
         }
 
         const settlerContractAddress = ACROSS_SETTLER_CONTRACT_ADDRESSES[Number(inputChainId)];
@@ -280,10 +342,10 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         });
 
         const openTx = await this.publicClient.prepareTransactionRequest({
-            account: this.userAddress as `0x${string}`,
-            to: settlerContractAddress as `0x${string}`,
+            account: this.userAddress,
+            to: settlerContractAddress,
             data: openData,
-            chain: this.publicClient.chain,
+            chain: inputChain,
             gas: 21000n,
         });
 
@@ -308,7 +370,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                 const transferParams = AcrossTransferOpenParamsSchema.parse(params);
                 return await this.simulateTransferOpen(transferParams);
             default:
-                throw new Error("Not implemented");
+                throw new NonSupportedAction(action);
         }
     }
 }
