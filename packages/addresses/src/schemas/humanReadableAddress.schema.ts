@@ -32,11 +32,8 @@ export const HumanReadableAddressSchema = z.string().transform((value) => {
         throw new InvalidChainNamespace(chainNamespace);
     }
 
-    let chainReference = chain || "";
-    const chainId = shortnameToChainId(chainReference);
-    if (chainId) {
-        chainReference = chainId.toString();
-    }
+    const chainId = shortnameToChainId(chain || "");
+    const chainReference = chainId ? chainId.toString() : (chain ?? "");
 
     if (chainReference && !isValidChain(chainNamespace as ChainTypeName, chainReference)) {
         throw new InvalidChainIdentifier(chainReference);
