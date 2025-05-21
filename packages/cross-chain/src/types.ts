@@ -20,7 +20,7 @@ export type CrossChainProtocolConfig<Protocol extends SupportedProtocols> = {
     };
     [PROTOCOLS.SAMPLE]: {
         provider: SampleProvider;
-        config: {};
+        config: undefined;
         dependencies: undefined;
     };
 }[Protocol];
