@@ -1,7 +1,12 @@
 import type { PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AcrossProvider, CrossChainProvider, SampleProvider } from "../../src/internal.js";
+import {
+    AcrossProvider,
+    CrossChainProvider,
+    SampleProvider,
+    UnsupportedProtocol,
+} from "../../src/internal.js";
 import {
     createCrossChainProvider,
     CrossChainProviderFactory,
@@ -41,7 +46,7 @@ describe("CrossChainProviderFactory", () => {
     it("builds a CrossChainProvider with the sample provider", () => {
         const provider = CrossChainProviderFactory.build(
             "sample-protocol",
-            {},
+            undefined,
             undefined,
         ) as SampleProvider;
 
@@ -54,5 +59,12 @@ describe("CrossChainProviderFactory", () => {
         expect(provider).toBeInstanceOf(AcrossProvider);
         expect(provider["userAddress"]).toEqual(config.userAddress);
         expect(provider["publicClient"]).toEqual(dependencies.publicClient);
+    });
+
+    it("throws an UnsupportedProtocol error for unsupported protocols", () => {
+        expect(() => {
+            // @ts-expect-error - This is a test
+            CrossChainProviderFactory.build("unsupported-protocol", undefined, undefined);
+        }).toThrow(UnsupportedProtocol);
     });
 });
