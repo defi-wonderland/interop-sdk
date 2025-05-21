@@ -1,7 +1,7 @@
 import { getAddress, Hex } from "viem";
 import { arbitrumSepolia, baseSepolia, sepolia } from "viem/chains";
 
-export const ACROSS_DEPOSIT_ABI = [
+export const ACROSS_ORDER_DATA_ABI = [
     {
         type: "tuple",
         components: [

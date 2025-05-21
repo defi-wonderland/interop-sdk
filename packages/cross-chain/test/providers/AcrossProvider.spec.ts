@@ -6,7 +6,7 @@ import { sepolia } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-    ACROSS_DEPOSIT_ABI,
+    ACROSS_ORDER_DATA_ABI,
     ACROSS_ORDER_DATA_TYPE,
     ACROSS_SETTLER_CONTRACT_ADDRESSES,
 } from "../../src/constants/across.js";
@@ -94,7 +94,7 @@ describe("AcrossProvider", () => {
                 outputChainId: 84532,
             });
 
-            expect(mockEncodeAbiParameters).toHaveBeenCalledWith(ACROSS_DEPOSIT_ABI, [
+            expect(mockEncodeAbiParameters).toHaveBeenCalledWith(ACROSS_ORDER_DATA_ABI, [
                 {
                     inputToken: mockQuote.deposit.inputToken,
                     inputAmount: mockQuote.deposit.inputAmount,

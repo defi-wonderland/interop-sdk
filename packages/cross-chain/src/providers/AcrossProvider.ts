@@ -13,7 +13,7 @@ import {
 import { z } from "zod";
 
 import {
-    ACROSS_DEPOSIT_ABI,
+    ACROSS_ORDER_DATA_ABI,
     ACROSS_ORDER_DATA_TYPE,
     ACROSS_SETTLER_CONTRACT_ADDRESSES,
     ACROSS_TESTING_API_URL,
@@ -119,7 +119,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @returns The open parameters
      */
     private async getAcrossOpenParams(quote: Quote): Promise<AcrossTransferOpenParams> {
-        const orderData = await encodeAbiParameters(ACROSS_DEPOSIT_ABI, [
+        const orderData = await encodeAbiParameters(ACROSS_ORDER_DATA_ABI, [
             {
                 inputToken: quote.deposit.inputToken,
                 inputAmount: quote.deposit.inputAmount,
