@@ -1,7 +1,8 @@
 import { Hex, isAddress } from "viem";
 import { z } from "zod";
 
-import { SUPPORTED_TOKEN_BY_CHAIN_ID, SupportedChainIdSchema } from "../../internal.js";
+import { SUPPORTED_TOKEN_BY_CHAIN_ID } from "../../internal.js";
+import { SupportedChainIdSchema } from "../chain.js";
 
 export const SwapGetQuoteParamsSchema = z
     .object({

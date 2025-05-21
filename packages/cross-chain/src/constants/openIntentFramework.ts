@@ -1,10 +1,20 @@
 export const OPEN_ABI = [
     {
-        type: "tuple",
-        components: [
-            { type: "uint256", name: "fillDeadline" },
-            { type: "bytes32", name: "orderDataType" },
-            { type: "bytes", name: "orderData" },
+        inputs: [
+            {
+                components: [
+                    { internalType: "uint32", name: "fillDeadline", type: "uint32" },
+                    { internalType: "bytes32", name: "orderDataType", type: "bytes32" },
+                    { internalType: "bytes", name: "orderData", type: "bytes" },
+                ],
+                internalType: "struct OnchainCrossChainOrder",
+                name: "order",
+                type: "tuple",
+            },
         ],
+        name: "open",
+        outputs: [],
+        stateMutability: "nonpayable",
+        type: "function",
     },
 ];

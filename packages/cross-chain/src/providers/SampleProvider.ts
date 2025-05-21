@@ -1,4 +1,5 @@
 import { TransactionRequest } from "viem";
+import { z } from "zod";
 
 import {
     CrossChainProvider,
@@ -8,38 +9,45 @@ import {
     TransferGetQuoteParamsSchema,
 } from "../internal.js";
 
-type SampleTransferOpenParams = {
-    action: "crossChainTransfer";
-    params: {
-        inputTokenAddress: string;
-        outputTokenAddress: string;
-        inputAmount: string;
-        inputChainId: number;
-        outputChainId: number;
-    };
-};
+const SampleTransferOpenParamsSchema = z.object({
+    action: z.literal("crossChainTransfer"),
+    params: z.object({
+        inputTokenAddress: z.string(),
+        outputTokenAddress: z.string(),
+        inputAmount: z.string(),
+        inputChainId: z.number(),
+        outputChainId: z.number(),
+    }),
+});
 
-type SampleSwapOpenParams = {
-    action: "crossChainSwap";
-    params: {
-        inputAmount: string;
-        outputAmount: string;
-        inputTokenAddress: string;
-        outputTokenAddress: string;
-        inputChainId: number;
-        outputChainId: number;
-        slippage: string;
-    };
-};
+const SampleSwapOpenParamsSchema = z.object({
+    action: z.literal("crossChainSwap"),
+    params: z.object({
+        inputAmount: z.string(),
+        outputAmount: z.string(),
+        inputTokenAddress: z.string(),
+        outputTokenAddress: z.string(),
+        inputChainId: z.number(),
+        outputChainId: z.number(),
+        slippage: z.string(),
+    }),
+});
 
-type SampleOpenParams = SampleTransferOpenParams | SampleSwapOpenParams;
+const SampleOpenParamsSchema = z.union([
+    SampleTransferOpenParamsSchema,
+    SampleSwapOpenParamsSchema,
+]);
+
+type SampleOpenParams = z.infer<typeof SampleOpenParamsSchema>;
 
 /**
  * A sample implementation of the CrossChainProvider interface.
  * This provider is used to demonstrate the functionality of the CrossChainProvider interface.
  */
-export class SampleProvider implements CrossChainProvider<SampleOpenParams> {
-    constructor() {}
+export class SampleProvider extends CrossChainProvider<SampleOpenParams> {
+    constructor() {
+        super();
+    }
 
     /**
      * @inheritdoc
@@ -119,7 +127,14 @@ export class SampleProvider implements CrossChainProvider<SampleOpenParams> {
     /**
      * @inheritdoc
      */
-    simulateOpen(params: SampleOpenParams): Promise<TransactionRequest[]> {
+    validateOpenParams(params: SampleOpenParams): void {
+        SampleOpenParamsSchema.parse(params);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    validatedSimulateOpen(params: SampleOpenParams): Promise<TransactionRequest[]> {
         switch (params.action) {
             case "crossChainTransfer":
                 return Promise.resolve([]);

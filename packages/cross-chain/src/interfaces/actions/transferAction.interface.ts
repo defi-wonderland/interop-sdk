@@ -1,3 +1,5 @@
+import { Hex } from "viem";
+
 import type {
     BasicGetQuoteParams,
     BasicGetQuoteResponse,
@@ -16,8 +18,8 @@ import { SUPPORTED_TOKEN_BY_CHAIN_ID } from "../../internal.js";
  * @param Input.outputChainId - The output chain id, must be a supported chain id.
  */
 export type TransferGetQuoteParams = BasicGetQuoteParams<{
-    inputTokenAddress: string;
-    outputTokenAddress: string;
+    inputTokenAddress: Hex;
+    outputTokenAddress: Hex;
     inputAmount: string;
     inputChainId: keyof typeof SUPPORTED_TOKEN_BY_CHAIN_ID;
     outputChainId: keyof typeof SUPPORTED_TOKEN_BY_CHAIN_ID;
