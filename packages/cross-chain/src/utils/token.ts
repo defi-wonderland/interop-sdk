@@ -2,6 +2,13 @@ import { Address, Chain, erc20Abi, formatUnits, getContract, parseUnits, PublicC
 
 import { GetTokenAllowanceIssue, GetTokenDecimalsIssue } from "../internal.js";
 
+/**
+ * Obtain token decimals from contract
+ * @param tokenAddress address of the contract
+ * @param chain chain where token is deployed
+ * @param publicClient Viem PublicClient
+ * @returns Token decimals as number
+ */
 export const getTokenDecimals = async (
     { tokenAddress, chain }: { tokenAddress: Address; chain: Chain },
     { publicClient }: { publicClient: PublicClient },
@@ -22,6 +29,15 @@ export const getTokenDecimals = async (
     }
 };
 
+/**
+ * Get token allowance for owner/spender pair
+ * @param tokenAddress Address of the token contract
+ * @param chain Chain where token is deployed
+ * @param owner Address of the owner
+ * @param spender Address of the spender
+ * @param publicClient Viem PublicClient
+ * @returns Token allowance as bigint
+ */
 export const getTokenAllowance = async (
     {
         tokenAddress,
@@ -47,6 +63,14 @@ export const getTokenAllowance = async (
     }
 };
 
+/**
+ * Format token amount to human-readable format, checking the decimals of the token
+ * @param amount Amount to format
+ * @param tokenAddress Address of the token contract
+ * @param chain Chain where token is deployed
+ * @param publicClient Viem PublicClient
+ * @returns Formatted token amount as string
+ */
 export const formatTokenAmount = async (
     { amount, tokenAddress, chain }: { amount: bigint; tokenAddress: Address; chain: Chain },
     { publicClient }: { publicClient: PublicClient },
@@ -56,6 +80,14 @@ export const formatTokenAmount = async (
     return formatUnits(amount, tokenDecimals);
 };
 
+/**
+ * Parse token amount from human-readable format to bigint, checking the decimals of the token
+ * @param amount Amount to parse
+ * @param tokenAddress Address of the token contract
+ * @param chain Chain where token is deployed
+ * @param publicClient Viem PublicClient
+ * @returns Parsed token amount as bigint
+ */
 export const parseTokenAmount = async (
     { amount, tokenAddress, chain }: { amount: string; tokenAddress: Address; chain: Chain },
     { publicClient }: { publicClient: PublicClient },

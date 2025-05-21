@@ -34,7 +34,7 @@ describe("Token", () => {
     });
 
     describe("getTokenDecimals", () => {
-        it("should return the correct number of decimals", async () => {
+        it("return the correct number of decimals", async () => {
             mockDecimals.mockResolvedValue(18);
 
             const decimals = await getTokenDecimals(
@@ -48,7 +48,7 @@ describe("Token", () => {
             expect(decimals).toBe(18);
         });
 
-        it("should call to getContract", async () => {
+        it("call to getContract", async () => {
             await getTokenDecimals(
                 { tokenAddress: "0x0000000000000000000000000000000000000000", chain: sepolia },
                 { publicClient: {} as PublicClient },
@@ -61,7 +61,7 @@ describe("Token", () => {
             });
         });
 
-        it("should call to read.decimals", async () => {
+        it("call to read.decimals", async () => {
             await getTokenDecimals(
                 { tokenAddress: "0x0000000000000000000000000000000000000000", chain: sepolia },
                 { publicClient: {} as PublicClient },
@@ -71,7 +71,7 @@ describe("Token", () => {
         });
     });
     describe("getTokenAllowance", () => {
-        it("should return the correct allowance", async () => {
+        it("return the correct allowance", async () => {
             mockAllowance.mockResolvedValue(1000000000000000000n);
 
             const allowance = await getTokenAllowance(
@@ -87,7 +87,7 @@ describe("Token", () => {
             expect(allowance).toBe(1000000000000000000n);
         });
 
-        it("should call to getContract", async () => {
+        it("call to getContract", async () => {
             await getTokenAllowance(
                 {
                     tokenAddress: "0x0000000000000000000000000000000000000000",
@@ -105,7 +105,7 @@ describe("Token", () => {
             });
         });
 
-        it("should call to read.allowance", async () => {
+        it("call to read.allowance", async () => {
             await getTokenAllowance(
                 {
                     tokenAddress: "0x0000000000000000000000000000000000000000",
@@ -123,7 +123,7 @@ describe("Token", () => {
         });
     });
     describe("formatTokenAmount", () => {
-        it("should return the correct formatted amount", async () => {
+        it("return the correct formatted amount", async () => {
             mockDecimals.mockResolvedValue(18);
 
             const formattedAmount = await formatTokenAmount(
@@ -139,7 +139,7 @@ describe("Token", () => {
         });
     });
     describe("parseTokenAmount", () => {
-        it("should return the correct parsed amount", async () => {
+        it("return the correct parsed amount", async () => {
             mockDecimals.mockResolvedValue(18);
 
             const parsedAmount = await parseTokenAmount(

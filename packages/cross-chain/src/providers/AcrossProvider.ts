@@ -4,18 +4,20 @@ import {
     encodeAbiParameters,
     encodeFunctionData,
     erc20Abi,
+    formatUnits,
     Hex,
     isAddress,
     isHex,
+    pad,
     PublicClient,
     TransactionRequest,
 } from "viem";
 import { z } from "zod";
 
 import {
-    ACROSS_DEPOSIT_ABI,
+    ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES,
+    ACROSS_ORDER_DATA_ABI,
     ACROSS_ORDER_DATA_TYPE,
-    ACROSS_SETTLER_CONTRACT_ADDRESSES,
     ACROSS_TESTING_API_URL,
     CrossChainProvider,
     Fee,
@@ -23,13 +25,13 @@ import {
     GetQuoteParams,
     GetQuoteResponse,
     getTokenAllowance,
-    NonSupportedAction,
-    NonSupportedChainId,
     OPEN_ABI,
     SUPPORTED_CHAINS,
     TransferGetQuoteParams,
     TransferGetQuoteParamsSchema,
     TransferGetQuoteResponse,
+    UnsupportedAction,
+    UnsupportedChainId,
 } from "../internal.js";
 
 const AcrossTransferOpenParamsSchema = z.object({
@@ -45,9 +47,7 @@ const AcrossTransferOpenParamsSchema = z.object({
         }),
         inputAmount: z.bigint(),
         fillDeadline: z.number(),
-        orderDataType: z.string().refine((val) => isHex(val), {
-            message: "Invalid order data type",
-        }),
+        orderDataType: z.literal(ACROSS_ORDER_DATA_TYPE),
         orderData: z.string().refine((val) => isHex(val), {
             message: "Invalid order data",
         }),
@@ -109,8 +109,8 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @param address - The address to pad
      * @returns The padded address
      */
-    private padAddress(address: string): string {
-        return "0x000000000000000000000000" + address.slice(2);
+    private padAddress(address: Hex): string {
+        return pad(address, { size: 32 });
     }
 
     /**
@@ -119,7 +119,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @returns The open parameters
      */
     private async getAcrossOpenParams(quote: Quote): Promise<AcrossTransferOpenParams> {
-        const orderData = await encodeAbiParameters(ACROSS_DEPOSIT_ABI, [
+        const orderData = await encodeAbiParameters(ACROSS_ORDER_DATA_ABI, [
             {
                 inputToken: quote.deposit.inputToken,
                 inputAmount: quote.deposit.inputAmount,
@@ -156,8 +156,8 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @param quote - The quote to calculate the fee for
      * @returns The total fee
      */
-    private async calculateTotalFee(quote: Quote): Promise<number> {
-        return Object.values(quote.fees).reduce((acc, fee) => acc + Number(fee.total), 0);
+    private async calculateTotalFee(quote: Quote): Promise<bigint> {
+        return quote.fees.totalRelayFee.total;
     }
 
     /**
@@ -165,8 +165,8 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @param quote - The quote to calculate the fee for
      * @returns The percent fee
      */
-    private async calculatePercentFee(quote: Quote): Promise<number> {
-        return Object.values(quote.fees).reduce((acc, fee) => acc + Number(fee.pct), 0);
+    private async calculatePercentFee(quote: Quote): Promise<bigint> {
+        return quote.fees.totalRelayFee.pct;
     }
 
     /**
@@ -177,9 +177,25 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     private async calculateFee(quote: Quote): Promise<Fee> {
         const totalFee = await this.calculateTotalFee(quote);
         const percentFee = await this.calculatePercentFee(quote);
+
+        const inputChain = SUPPORTED_CHAINS.find(
+            (chain) => chain.id === Number(quote.deposit.originChainId),
+        );
+
+        if (!inputChain) {
+            throw new UnsupportedChainId(quote.deposit.originChainId);
+        }
+
         return {
-            total: totalFee.toString(),
-            percent: percentFee.toString(),
+            total: await formatTokenAmount(
+                {
+                    amount: totalFee,
+                    tokenAddress: quote.deposit.inputToken,
+                    chain: inputChain,
+                },
+                { publicClient: this.publicClient },
+            ),
+            percent: formatUnits(percentFee, 15),
         };
     }
 
@@ -196,7 +212,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         );
 
         if (!inputChain) {
-            throw new NonSupportedChainId(params.inputChainId);
+            throw new UnsupportedChainId(params.inputChainId);
         }
 
         const outputChain = SUPPORTED_CHAINS.find(
@@ -204,7 +220,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         );
 
         if (!outputChain) {
-            throw new NonSupportedChainId(params.outputChainId);
+            throw new UnsupportedChainId(params.outputChainId);
         }
 
         const quote = await this.getAcrossQuote(params);
@@ -256,7 +272,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
 
                 return quoteResponse as GetQuoteResponse<Action, AcrossOpenParams>;
             default:
-                throw new NonSupportedAction(action);
+                throw new UnsupportedAction(action);
         }
     }
 
@@ -275,10 +291,10 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         const inputChain = SUPPORTED_CHAINS.find((chain) => chain.id === Number(inputChainId));
 
         if (!inputChain) {
-            throw new NonSupportedChainId(inputChainId);
+            throw new UnsupportedChainId(inputChainId);
         }
 
-        const settlerContractAddress = ACROSS_SETTLER_CONTRACT_ADDRESSES[
+        const settlerContractAddress = ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[
             Number(inputChainId)
         ] as Hex;
 
@@ -326,10 +342,10 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         const inputChain = SUPPORTED_CHAINS.find((chain) => chain.id === Number(inputChainId));
 
         if (!inputChain) {
-            throw new NonSupportedChainId(inputChainId);
+            throw new UnsupportedChainId(inputChainId);
         }
 
-        const settlerContractAddress = ACROSS_SETTLER_CONTRACT_ADDRESSES[Number(inputChainId)];
+        const settlerContractAddress = ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[Number(inputChainId)];
 
         const allowanceTx = await this.getSettlerAllowanceTransaction(params);
 
@@ -370,7 +386,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                 const transferParams = AcrossTransferOpenParamsSchema.parse(params);
                 return await this.simulateTransferOpen(transferParams);
             default:
-                throw new NonSupportedAction(action);
+                throw new UnsupportedAction(action);
         }
     }
 }
