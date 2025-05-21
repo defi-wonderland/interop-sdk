@@ -56,13 +56,13 @@ const AcrossTransferOpenParamsSchema = z.object({
 
 type AcrossTransferOpenParams = z.infer<typeof AcrossTransferOpenParamsSchema>;
 
-type AcrossOpenParams = AcrossTransferOpenParams;
+export type AcrossOpenParams = AcrossTransferOpenParams;
 
-type AcrossConfigs = {
+export type AcrossConfigs = {
     userAddress: Address;
 };
 
-type AcrossDependencies = {
+export type AcrossDependencies = {
     publicClient: PublicClient;
 };
 

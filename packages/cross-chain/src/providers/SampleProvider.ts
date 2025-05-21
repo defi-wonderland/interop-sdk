@@ -38,7 +38,7 @@ const SampleOpenParamsSchema = z.union([
     SampleSwapOpenParamsSchema,
 ]);
 
-type SampleOpenParams = z.infer<typeof SampleOpenParamsSchema>;
+export type SampleOpenParams = z.infer<typeof SampleOpenParamsSchema>;
 
 /**
  * A sample implementation of the CrossChainProvider interface.
