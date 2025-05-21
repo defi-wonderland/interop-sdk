@@ -23,7 +23,7 @@ export type Branded<T, B> = T & Brand<B>;
 /**
  * The valid actions for the CrossChainProvider interface.
  */
-type ValidActions = "crossChainTransfer" | "crossChainSwap";
+export type ValidActions = "crossChainTransfer" | "crossChainSwap";
 
 /**
  * The basic parameters for the get quote action.
@@ -82,6 +82,20 @@ export type GetQuoteResponse<Action extends ValidActions, OpenParams extends Bas
 }[Action];
 
 export abstract class CrossChainProvider<ProtocolOpenParams extends BasicOpenParams> {
+    /**
+     * The name of the provider
+     */
+    abstract protocolName: string;
+
+    /**
+     * Get the protocol name for the provider
+     * @returns The protocol name
+     * @final Never override this method
+     */
+    getProtocolName(): string {
+        return this.protocolName;
+    }
+
     /**
      * Get a quote for a cross-chain action
      * @param action - The action to get a quote for
