@@ -125,7 +125,7 @@ describe("AcrossProvider", () => {
                         total: BigInt(3),
                     },
                     totalRelayFee: {
-                        pct: BigInt(4),
+                        pct: BigInt(4000000000000000),
                         total: BigInt(4),
                     },
                 },
@@ -141,9 +141,18 @@ describe("AcrossProvider", () => {
                 outputChainId: 84532,
             });
 
+            expect(formatTokenAmount).toHaveBeenCalledWith(
+                {
+                    amount: BigInt(4),
+                    tokenAddress: "0x0000000000000000000000000000000000000000",
+                    chain: sepolia,
+                },
+                { publicClient: mockPublicClient },
+            );
+
             expect(quote.fee).toEqual({
-                total: "10",
-                percent: "10",
+                total: mockedFormattedAmount,
+                percent: "4",
             });
         });
 
@@ -182,8 +191,8 @@ describe("AcrossProvider", () => {
                     },
                 },
                 fee: {
-                    total: "4",
-                    percent: "4",
+                    total: "1",
+                    percent: "0.000000000000001",
                 },
             });
         });

@@ -4,6 +4,7 @@ import {
     encodeAbiParameters,
     encodeFunctionData,
     erc20Abi,
+    formatUnits,
     Hex,
     isAddress,
     isHex,
@@ -155,8 +156,8 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @param quote - The quote to calculate the fee for
      * @returns The total fee
      */
-    private async calculateTotalFee(quote: Quote): Promise<number> {
-        return Object.values(quote.fees).reduce((acc, fee) => acc + Number(fee.total), 0);
+    private async calculateTotalFee(quote: Quote): Promise<bigint> {
+        return quote.fees.totalRelayFee.total;
     }
 
     /**
@@ -164,8 +165,8 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @param quote - The quote to calculate the fee for
      * @returns The percent fee
      */
-    private async calculatePercentFee(quote: Quote): Promise<number> {
-        return Object.values(quote.fees).reduce((acc, fee) => acc + Number(fee.pct), 0);
+    private async calculatePercentFee(quote: Quote): Promise<bigint> {
+        return quote.fees.totalRelayFee.pct;
     }
 
     /**
@@ -176,9 +177,25 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     private async calculateFee(quote: Quote): Promise<Fee> {
         const totalFee = await this.calculateTotalFee(quote);
         const percentFee = await this.calculatePercentFee(quote);
+
+        const inputChain = SUPPORTED_CHAINS.find(
+            (chain) => chain.id === Number(quote.deposit.originChainId),
+        );
+
+        if (!inputChain) {
+            throw new UnsupportedChainId(quote.deposit.originChainId);
+        }
+
         return {
-            total: totalFee.toString(),
-            percent: percentFee.toString(),
+            total: await formatTokenAmount(
+                {
+                    amount: totalFee,
+                    tokenAddress: quote.deposit.inputToken,
+                    chain: inputChain,
+                },
+                { publicClient: this.publicClient },
+            ),
+            percent: formatUnits(percentFee, 15),
         };
     }
 
