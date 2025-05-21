@@ -23,13 +23,13 @@ import {
     GetQuoteParams,
     GetQuoteResponse,
     getTokenAllowance,
-    NonSupportedAction,
-    NonSupportedChainId,
     OPEN_ABI,
     SUPPORTED_CHAINS,
     TransferGetQuoteParams,
     TransferGetQuoteParamsSchema,
     TransferGetQuoteResponse,
+    UnsupportedAction,
+    UnsupportedChainId,
 } from "../internal.js";
 
 const AcrossTransferOpenParamsSchema = z.object({
@@ -196,7 +196,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         );
 
         if (!inputChain) {
-            throw new NonSupportedChainId(params.inputChainId);
+            throw new UnsupportedChainId(params.inputChainId);
         }
 
         const outputChain = SUPPORTED_CHAINS.find(
@@ -204,7 +204,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         );
 
         if (!outputChain) {
-            throw new NonSupportedChainId(params.outputChainId);
+            throw new UnsupportedChainId(params.outputChainId);
         }
 
         const quote = await this.getAcrossQuote(params);
@@ -256,7 +256,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
 
                 return quoteResponse as GetQuoteResponse<Action, AcrossOpenParams>;
             default:
-                throw new NonSupportedAction(action);
+                throw new UnsupportedAction(action);
         }
     }
 
@@ -275,7 +275,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         const inputChain = SUPPORTED_CHAINS.find((chain) => chain.id === Number(inputChainId));
 
         if (!inputChain) {
-            throw new NonSupportedChainId(inputChainId);
+            throw new UnsupportedChainId(inputChainId);
         }
 
         const settlerContractAddress = ACROSS_SETTLER_CONTRACT_ADDRESSES[
@@ -326,7 +326,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         const inputChain = SUPPORTED_CHAINS.find((chain) => chain.id === Number(inputChainId));
 
         if (!inputChain) {
-            throw new NonSupportedChainId(inputChainId);
+            throw new UnsupportedChainId(inputChainId);
         }
 
         const settlerContractAddress = ACROSS_SETTLER_CONTRACT_ADDRESSES[Number(inputChainId)];
@@ -370,7 +370,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                 const transferParams = AcrossTransferOpenParamsSchema.parse(params);
                 return await this.simulateTransferOpen(transferParams);
             default:
-                throw new NonSupportedAction(action);
+                throw new UnsupportedAction(action);
         }
     }
 }
