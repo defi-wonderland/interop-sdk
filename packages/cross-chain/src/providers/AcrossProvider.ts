@@ -7,6 +7,7 @@ import {
     Hex,
     isAddress,
     isHex,
+    pad,
     PublicClient,
     TransactionRequest,
 } from "viem";
@@ -45,9 +46,7 @@ const AcrossTransferOpenParamsSchema = z.object({
         }),
         inputAmount: z.bigint(),
         fillDeadline: z.number(),
-        orderDataType: z.string().refine((val) => isHex(val), {
-            message: "Invalid order data type",
-        }),
+        orderDataType: z.literal(ACROSS_ORDER_DATA_TYPE),
         orderData: z.string().refine((val) => isHex(val), {
             message: "Invalid order data",
         }),
@@ -109,8 +108,8 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @param address - The address to pad
      * @returns The padded address
      */
-    private padAddress(address: string): string {
-        return "0x000000000000000000000000" + address.slice(2);
+    private padAddress(address: Hex): string {
+        return pad(address, { size: 32 });
     }
 
     /**
