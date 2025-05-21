@@ -14,9 +14,9 @@ import {
 import { z } from "zod";
 
 import {
+    ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES,
     ACROSS_ORDER_DATA_ABI,
     ACROSS_ORDER_DATA_TYPE,
-    ACROSS_SETTLER_CONTRACT_ADDRESSES,
     ACROSS_TESTING_API_URL,
     CrossChainProvider,
     Fee,
@@ -277,7 +277,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             throw new UnsupportedChainId(inputChainId);
         }
 
-        const settlerContractAddress = ACROSS_SETTLER_CONTRACT_ADDRESSES[
+        const settlerContractAddress = ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[
             Number(inputChainId)
         ] as Hex;
 
@@ -328,7 +328,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             throw new UnsupportedChainId(inputChainId);
         }
 
-        const settlerContractAddress = ACROSS_SETTLER_CONTRACT_ADDRESSES[Number(inputChainId)];
+        const settlerContractAddress = ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[Number(inputChainId)];
 
         const allowanceTx = await this.getSettlerAllowanceTransaction(params);
 

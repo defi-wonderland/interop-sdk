@@ -6,9 +6,9 @@ import { sepolia } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+    ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES,
     ACROSS_ORDER_DATA_ABI,
     ACROSS_ORDER_DATA_TYPE,
-    ACROSS_SETTLER_CONTRACT_ADDRESSES,
 } from "../../src/constants/across.js";
 import { AcrossProvider } from "../../src/external.js";
 import { OPEN_ABI } from "../../src/internal.js";
@@ -225,7 +225,7 @@ describe("AcrossProvider", () => {
             });
             expect(mockPublicClient.prepareTransactionRequest).toHaveBeenCalledWith({
                 account: "0x0000000000000000000000000000000000000000",
-                to: ACROSS_SETTLER_CONTRACT_ADDRESSES[11155111],
+                to: ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[11155111],
                 data: "0x0000000000000000000000000000000000000000",
                 chain: sepolia,
                 gas: 21000n,
@@ -239,7 +239,7 @@ describe("AcrossProvider", () => {
                 {
                     tokenAddress: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
                     chain: sepolia,
-                    spender: ACROSS_SETTLER_CONTRACT_ADDRESSES[11155111],
+                    spender: ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[11155111],
                     owner: "0x0000000000000000000000000000000000000000",
                 },
                 { publicClient: mockPublicClient },
@@ -257,7 +257,7 @@ describe("AcrossProvider", () => {
             expect(encodeFunctionData).toHaveBeenCalledWith({
                 abi: erc20Abi,
                 functionName: "approve",
-                args: [ACROSS_SETTLER_CONTRACT_ADDRESSES[11155111]!, BigInt(1)],
+                args: [ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[11155111]!, BigInt(1)],
             });
 
             expect(mockPublicClient.prepareTransactionRequest).toHaveBeenCalledWith({
