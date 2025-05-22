@@ -1,5 +1,5 @@
 import bs58 from "bs58";
-import { hexToBytes } from "viem";
+import { Hex, hexToBytes } from "viem";
 
 import { BytesConversionFailed, InvalidConversionType, InvalidDecimal } from "../errors/index.js";
 
@@ -19,7 +19,7 @@ export const convertToBytes = (
         switch (type) {
             case "hex":
                 const hexInput = input.startsWith("0x") ? input : `0x${input}`;
-                return hexToBytes(hexInput as `0x${string}`);
+                return hexToBytes(hexInput as Hex);
             case "base58":
                 return bs58.decode(input);
             case "base64":

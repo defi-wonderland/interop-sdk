@@ -1,4 +1,4 @@
-import type { PublicClient } from "viem";
+import type { Address, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -13,7 +13,7 @@ import {
 } from "../../src/services/crossChainProviderFactory.js";
 
 const config = {
-    userAddress: "0x123" as `0x${string}`,
+    userAddress: "0x123" as Address,
 } as const;
 
 const dependencies = {
