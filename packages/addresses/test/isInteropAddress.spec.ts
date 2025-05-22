@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { isInteropAddress } from "../src/internal.js";
 
-const testAddress = (address: string, expected: boolean) => {
+const testAddress = (address: string, expected: boolean): void => {
     it(`${expected ? "true" : "false"} for ${address}`, async () => {
         expect(await isInteropAddress(address)).toBe(expected);
     });
