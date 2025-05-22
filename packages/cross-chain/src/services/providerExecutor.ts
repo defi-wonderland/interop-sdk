@@ -16,9 +16,16 @@ type GetQuotesError = {
 
 type GetQuotesResponse = (GetQuoteResponse<ValidActions, BasicOpenParams> | GetQuotesError)[];
 
+/**
+ * A service that get quotes in batches and executes cross-chain actions
+ */
 class ProviderExecutor {
     private readonly providers: Record<string, CrossChainProvider<BasicOpenParams>>;
 
+    /**
+     * Constructor
+     * @param providers - The providers to use
+     */
     constructor(providers: CrossChainProvider<BasicOpenParams>[]) {
         this.providers = providers.reduce(
             (acc, provider) => {
@@ -29,6 +36,12 @@ class ProviderExecutor {
         );
     }
 
+    /**
+     * Get quotes for a cross-chain action from all providers
+     * @param action - The action to get quotes for
+     * @param params - The parameters for the action
+     * @returns The quotes for the action
+     */
     async getQuotes<Action extends ValidActions>(
         action: Action,
         params: GetQuoteParams<Action>,
@@ -55,6 +68,11 @@ class ProviderExecutor {
         return quotes;
     }
 
+    /**
+     * Execute a cross-chain action
+     * @param quote - The quote to execute
+     * @returns The transaction requests for the action
+     */
     async execute(
         quote: GetQuoteResponse<ValidActions, BasicOpenParams>,
     ): Promise<TransactionRequest[]> {
@@ -66,6 +84,11 @@ class ProviderExecutor {
     }
 }
 
+/**
+ * Create a provider executor
+ * @param providers - The providers to use
+ * @returns The provider executor
+ */
 const createProviderExecutor = (
     providers: CrossChainProvider<BasicOpenParams>[],
 ): ProviderExecutor => {
