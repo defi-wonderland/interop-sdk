@@ -2,9 +2,10 @@ import type {
     AcrossConfigs,
     AcrossDependencies,
     BasicOpenParams,
-    CrossChainProtocolConfig,
     CrossChainProvider,
     SupportedProtocols,
+    SupportedProtocolsConfigs,
+    SupportedProtocolsDependencies,
 } from "../internal.js";
 import { AcrossProvider, PROTOCOLS, SampleProvider, UnsupportedProtocol } from "../internal.js";
 
@@ -22,8 +23,8 @@ export class CrossChainProviderFactory {
      */
     public static build<Protocol extends SupportedProtocols>(
         protocolName: Protocol,
-        config: CrossChainProtocolConfig<Protocol>["config"],
-        dependencies: CrossChainProtocolConfig<Protocol>["dependencies"],
+        config: SupportedProtocolsConfigs[Protocol],
+        dependencies: SupportedProtocolsDependencies[Protocol],
     ): CrossChainProvider<BasicOpenParams> {
         switch (protocolName) {
             case PROTOCOLS.ACROSS:
@@ -48,8 +49,8 @@ export class CrossChainProviderFactory {
  */
 export const createCrossChainProvider = <Protocol extends SupportedProtocols>(
     protocolName: Protocol,
-    config: CrossChainProtocolConfig<Protocol>["config"],
-    dependencies: CrossChainProtocolConfig<Protocol>["dependencies"],
+    config: SupportedProtocolsConfigs[Protocol],
+    dependencies: SupportedProtocolsDependencies[Protocol],
 ): CrossChainProvider<BasicOpenParams> => {
     return CrossChainProviderFactory.build(protocolName, config, dependencies);
 };
