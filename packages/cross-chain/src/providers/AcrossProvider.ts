@@ -44,7 +44,7 @@ import {
  * @returns A provider for the Across protocol
  */
 export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
-    private readonly protocolName = "across";
+    readonly protocolName = "across";
     private readonly userAddress: Address;
     private readonly publicClient: PublicClient;
 

@@ -1,7 +1,10 @@
 // Add your external exports here
-export { AcrossProvider } from "./providers/AcrossProvider.js";
+export * from "./errors/index.js";
+export * from "./interfaces/index.js";
 
+export { AcrossProvider } from "./providers/AcrossProvider.js";
 export {
     createCrossChainProvider,
     CrossChainProviderFactory,
 } from "./services/crossChainProviderFactory.js";
+export { createProviderExecutor, ProviderExecutor } from "./services/providerExecutor.js";

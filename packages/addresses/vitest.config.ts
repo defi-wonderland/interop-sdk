@@ -12,6 +12,9 @@ export default defineConfig({
             reporter: ["text", "json", "html"],
             exclude: ["node_modules", "dist", "src/index.ts", ...configDefaults.exclude],
         },
+        env: {
+            NODE_ENV: "test",
+        },
     },
     resolve: {
         alias: {

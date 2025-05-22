@@ -15,6 +15,8 @@ import {
  * This provider is used to demonstrate the functionality of the CrossChainProvider interface.
  */
 export class SampleProvider extends CrossChainProvider<SampleOpenParams> {
+    readonly protocolName = "sample";
+
     constructor() {
         super();
     }
