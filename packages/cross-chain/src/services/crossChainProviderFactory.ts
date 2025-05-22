@@ -6,7 +6,7 @@ import type {
     CrossChainProvider,
     SupportedProtocols,
 } from "../internal.js";
-import { AcrossProvider, SampleProvider, UnsupportedProtocol } from "../internal.js";
+import { AcrossProvider, PROTOCOLS, SampleProvider, UnsupportedProtocol } from "../internal.js";
 
 /**
  * A factory for creating CrossChainProviders based on the protocol name
@@ -26,12 +26,12 @@ export class CrossChainProviderFactory {
         dependencies: CrossChainProtocolConfig<Protocol>["dependencies"],
     ): CrossChainProvider<BasicOpenParams> {
         switch (protocolName) {
-            case "across":
+            case PROTOCOLS.ACROSS:
                 return new AcrossProvider(
                     config as AcrossConfigs,
                     dependencies as AcrossDependencies,
                 ) as CrossChainProvider<BasicOpenParams>;
-            case "sample-protocol":
+            case PROTOCOLS.SAMPLE:
                 return new SampleProvider();
             default:
                 throw new UnsupportedProtocol(protocolName);
