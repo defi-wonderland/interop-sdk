@@ -1,19 +1,18 @@
-import { Hex, isAddress } from "viem";
+import { Hex } from "viem";
 import { z } from "zod";
 
 import { SUPPORTED_TOKEN_BY_CHAIN_ID } from "../../internal.js";
 import { SupportedChainIdSchema } from "../chain.js";
+import { HexSchema } from "../hex.js";
 
 export const SwapGetQuoteParamsSchema = z
     .object({
+        sender: HexSchema,
+        recipient: HexSchema,
         inputAmount: z.string(),
         outputAmount: z.string(),
-        inputTokenAddress: z.string().refine((val) => isAddress(val), {
-            message: "Invalid input token address",
-        }),
-        outputTokenAddress: z.string().refine((val) => isAddress(val), {
-            message: "Invalid output token address",
-        }),
+        inputTokenAddress: HexSchema,
+        outputTokenAddress: HexSchema,
         inputChainId: SupportedChainIdSchema,
         outputChainId: SupportedChainIdSchema,
         slippage: z.string(),

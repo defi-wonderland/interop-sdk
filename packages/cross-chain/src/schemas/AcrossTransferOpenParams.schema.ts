@@ -14,6 +14,12 @@ export const AcrossTransferOpenParamsSchema = z.object({
         outputTokenAddress: z.string().refine((val) => isAddress(val), {
             message: "Invalid output token address",
         }),
+        sender: z.string().refine((val) => isAddress(val), {
+            message: "Invalid sender address",
+        }),
+        recipient: z.string().refine((val) => isAddress(val), {
+            message: "Invalid recipient address",
+        }),
         inputAmount: z.bigint(),
         fillDeadline: z.number(),
         orderDataType: z.literal(ACROSS_ORDER_DATA_TYPE),
