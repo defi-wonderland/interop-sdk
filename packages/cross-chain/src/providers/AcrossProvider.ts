@@ -6,19 +6,21 @@ import {
     erc20Abi,
     formatUnits,
     Hex,
-    isAddress,
-    isHex,
     pad,
     PublicClient,
     TransactionRequest,
 } from "viem";
-import { z } from "zod";
 
 import {
     ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES,
     ACROSS_ORDER_DATA_ABI,
     ACROSS_ORDER_DATA_TYPE,
     ACROSS_TESTING_API_URL,
+    AcrossConfigs,
+    AcrossDependencies,
+    AcrossOpenParams,
+    AcrossTransferOpenParams,
+    AcrossTransferOpenParamsSchema,
     CrossChainProvider,
     Fee,
     formatTokenAmount,
@@ -33,38 +35,6 @@ import {
     UnsupportedAction,
     UnsupportedChainId,
 } from "../internal.js";
-
-const AcrossTransferOpenParamsSchema = z.object({
-    action: z.literal("crossChainTransfer"),
-    params: z.object({
-        inputChainId: z.number(),
-        outputChainId: z.number(),
-        inputTokenAddress: z.string().refine((val) => isAddress(val), {
-            message: "Invalid input token address",
-        }),
-        outputTokenAddress: z.string().refine((val) => isAddress(val), {
-            message: "Invalid output token address",
-        }),
-        inputAmount: z.bigint(),
-        fillDeadline: z.number(),
-        orderDataType: z.literal(ACROSS_ORDER_DATA_TYPE),
-        orderData: z.string().refine((val) => isHex(val), {
-            message: "Invalid order data",
-        }),
-    }),
-});
-
-type AcrossTransferOpenParams = z.infer<typeof AcrossTransferOpenParamsSchema>;
-
-type AcrossOpenParams = AcrossTransferOpenParams;
-
-type AcrossConfigs = {
-    userAddress: Address;
-};
-
-type AcrossDependencies = {
-    publicClient: PublicClient;
-};
 
 /**
  * An implementation of the CrossChainProvider interface for the Across protocol
