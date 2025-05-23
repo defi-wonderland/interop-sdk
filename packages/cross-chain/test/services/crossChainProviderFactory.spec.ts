@@ -39,7 +39,6 @@ describe("CrossChainProviderFactory", () => {
         ) as AcrossProvider;
 
         expect(provider).toBeInstanceOf(AcrossProvider);
-        expect(provider["userAddress"]).toEqual(config.userAddress);
         expect(provider["publicClient"]).toEqual(dependencies.publicClient);
     });
 
@@ -57,7 +56,6 @@ describe("CrossChainProviderFactory", () => {
         const provider = createCrossChainProvider("across", config, dependencies) as AcrossProvider;
 
         expect(provider).toBeInstanceOf(AcrossProvider);
-        expect(provider["userAddress"]).toEqual(config.userAddress);
         expect(provider["publicClient"]).toEqual(dependencies.publicClient);
     });
 
