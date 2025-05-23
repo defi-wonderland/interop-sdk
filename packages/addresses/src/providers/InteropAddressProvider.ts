@@ -11,6 +11,7 @@ import {
     formatAddress,
     formatChainReference,
     HumanReadableAddress,
+    InteropAddress,
     InteropAddressFields,
     isBinaryInteropAddress,
     isHumanReadableInteropAddress,
@@ -52,6 +53,19 @@ export class InteropAddressProvider {
     public static binaryToHumanReadable(binaryAddress: Hex): HumanReadableAddress {
         const interopAddress = parseBinary(binaryAddress);
         return toHumanReadable(interopAddress);
+    }
+
+    /**
+     * Converts an interop address to a binary address
+     * @param interopAddress - The interop address to convert
+     * @returns BinaryAddress - The binary address
+     * @example
+     * ```ts
+     * const binaryAddress = InteropAddressProvider.interopAddressToBinary("alice.eth@eip155:1#ABCD1234");
+     * ```
+     */
+    public static interopAddressToBinary(interopAddress: InteropAddress): BinaryAddress {
+        return toBinary(interopAddress) as BinaryAddress;
     }
 
     /**
@@ -151,6 +165,7 @@ export class InteropAddressProvider {
 
 export const humanReadableToBinary = InteropAddressProvider.humanReadableToBinary;
 export const binaryToHumanReadable = InteropAddressProvider.binaryToHumanReadable;
+export const interopAddressToBinary = InteropAddressProvider.interopAddressToBinary;
 export const getChainId = InteropAddressProvider.getChainId;
 export const getAddress = InteropAddressProvider.getAddress;
 export const computeChecksum = InteropAddressProvider.computeChecksum;
