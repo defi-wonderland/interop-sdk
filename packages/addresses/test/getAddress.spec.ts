@@ -25,10 +25,10 @@ describe("getAddress", () => {
             "0xDE2b660f31EA7EFE705631710379fE9D2AF02A66",
         ];
 
-        testCases.forEach(async (testCase, index) => {
-            const result = await getAddress(testCase);
-            expect(result).toBe(expectedResults[index]);
-        });
+        for (let i = 0; i < testCases.length; i++) {
+            const result = await getAddress(testCases[i] || "");
+            expect(result).toBe(expectedResults[i]);
+        }
     });
 
     it("gets the address from a human readable address", async () => {

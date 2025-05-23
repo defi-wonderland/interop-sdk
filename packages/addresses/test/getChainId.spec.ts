@@ -21,10 +21,10 @@ describe("getChainId", () => {
 
         const expectedResults = [1, "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d", 10];
 
-        testCases.forEach(async (testCase, index) => {
-            const result = await getChainId(testCase);
-            expect(result).toBe(expectedResults[index]);
-        });
+        for (let i = 0; i < testCases.length; i++) {
+            const result = await getChainId(testCases[i] || "");
+            expect(result).toBe(expectedResults[i]);
+        }
     });
 
     it("gets the chain id from a human readable address: mainnet", async () => {
