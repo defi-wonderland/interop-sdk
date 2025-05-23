@@ -1,44 +1,14 @@
 import { TransactionRequest } from "viem";
-import { z } from "zod";
 
 import {
     CrossChainProvider,
     GetQuoteParams,
     GetQuoteResponse,
+    SampleOpenParams,
+    SampleOpenParamsSchema,
     SwapGetQuoteParamsSchema,
     TransferGetQuoteParamsSchema,
 } from "../internal.js";
-
-const SampleTransferOpenParamsSchema = z.object({
-    action: z.literal("crossChainTransfer"),
-    params: z.object({
-        inputTokenAddress: z.string(),
-        outputTokenAddress: z.string(),
-        inputAmount: z.string(),
-        inputChainId: z.number(),
-        outputChainId: z.number(),
-    }),
-});
-
-const SampleSwapOpenParamsSchema = z.object({
-    action: z.literal("crossChainSwap"),
-    params: z.object({
-        inputAmount: z.string(),
-        outputAmount: z.string(),
-        inputTokenAddress: z.string(),
-        outputTokenAddress: z.string(),
-        inputChainId: z.number(),
-        outputChainId: z.number(),
-        slippage: z.string(),
-    }),
-});
-
-const SampleOpenParamsSchema = z.union([
-    SampleTransferOpenParamsSchema,
-    SampleSwapOpenParamsSchema,
-]);
-
-type SampleOpenParams = z.infer<typeof SampleOpenParamsSchema>;
 
 /**
  * A sample implementation of the CrossChainProvider interface.
