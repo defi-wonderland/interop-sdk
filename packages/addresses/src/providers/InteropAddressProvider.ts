@@ -11,6 +11,7 @@ import {
     formatAddress,
     formatChainReference,
     HumanReadableAddress,
+    InteropAddress,
     InteropAddressFields,
     isBinaryInteropAddress,
     isHumanReadableInteropAddress,
@@ -59,18 +60,32 @@ export class InteropAddressProvider {
      * @param binaryAddress - The Hex encoded binary address to get the chain ID from
      * @returns The chain ID
      */
-    public static getChainId(binaryAddress: Hex): EncodedChainReference<ChainType> {
-        const interopAddress = parseBinary(binaryAddress);
+    public static async getChainId(
+        binaryAddress: string,
+    ): Promise<EncodedChainReference<ChainType>> {
+        let interopAddress: InteropAddress;
+        if (isBinaryInteropAddress(binaryAddress as BinaryAddress)) {
+            interopAddress = parseBinary(binaryAddress as BinaryAddress);
+        } else {
+            interopAddress = await parseHumanReadable(binaryAddress as HumanReadableAddress);
+        }
+
         return formatChainReference(interopAddress.chainReference, interopAddress.chainType);
     }
 
     /**
-     * Get the address from a binary address
-     * @param binaryAddress - The Hex encoded binary address to get the address from
+     * Get the address from a binary address or human readable address
+     * @param binaryAddress - The Hex encoded binary address or human readable address to get the address from
      * @returns The address
      */
-    public static getAddress(binaryAddress: Hex): EncodedAddress<ChainType> {
-        const interopAddress = parseBinary(binaryAddress);
+    public static async getAddress(binaryAddress: string): Promise<EncodedAddress<ChainType>> {
+        let interopAddress: InteropAddress;
+        if (isBinaryInteropAddress(binaryAddress as BinaryAddress)) {
+            interopAddress = parseBinary(binaryAddress as BinaryAddress);
+        } else {
+            interopAddress = await parseHumanReadable(binaryAddress as HumanReadableAddress);
+        }
+
         return formatAddress(interopAddress.address, interopAddress.chainType);
     }
 
