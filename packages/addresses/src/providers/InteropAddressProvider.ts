@@ -12,6 +12,8 @@ import {
     formatChainReference,
     HumanReadableAddress,
     InteropAddressFields,
+    isBinaryInteropAddress,
+    isHumanReadableInteropAddress,
     isInteropAddress,
     parseBinary,
     parseHumanReadable,
@@ -110,16 +112,40 @@ export class InteropAddressProvider {
     }
 
     /**
-     * Checks if a human-readable address is a valid interop address
-     * @param humanReadableAddress - The human-readable address to check
+     * Checks if an address is a valid interop address
+     * @param address - The address to check, can be a human-readable address or a binary address
      * @returns boolean - true if the address is a valid interop address, false otherwise
      * @example
      * ```ts
      * const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@eip155:1#ABCD1234");
      * ```
      */
-    public static async isValidInteropAddress(humanReadableAddress: string): Promise<boolean> {
-        return isInteropAddress(humanReadableAddress as HumanReadableAddress);
+    public static async isValidInteropAddress(address: string): Promise<boolean> {
+        return isInteropAddress(address);
+    }
+
+    /**
+     * Checks if a human-readable address is a valid interop address
+     * @param humanReadableAddress - The human-readable address to check
+     * @returns boolean - true if the address is a valid interop address, false otherwise
+     * @example
+     * ```ts
+     * const isValid = await InteropAddressProvider.isValidHumanReadableAddress("alice.eth@eip155:1#ABCD1234");
+     * ```
+     */
+    public static async isValidHumanReadableAddress(
+        humanReadableAddress: string,
+    ): Promise<boolean> {
+        return await isHumanReadableInteropAddress(humanReadableAddress as HumanReadableAddress);
+    }
+
+    /**
+     * Checks if a binary address is a valid interop address
+     * @param binaryAddress - The binary address to check
+     * @returns boolean - true if the address is a valid interop address, false otherwise
+     */
+    public static isValidBinaryAddress(binaryAddress: Hex): boolean {
+        return isBinaryInteropAddress(binaryAddress);
     }
 }
 
@@ -130,3 +156,5 @@ export const getAddress = InteropAddressProvider.getAddress;
 export const computeChecksum = InteropAddressProvider.computeChecksum;
 export const buildFromPayload = InteropAddressProvider.buildFromPayload;
 export const isValidInteropAddress = InteropAddressProvider.isValidInteropAddress;
+export const isValidHumanReadableAddress = InteropAddressProvider.isValidHumanReadableAddress;
+export const isValidBinaryAddress = InteropAddressProvider.isValidBinaryAddress;
