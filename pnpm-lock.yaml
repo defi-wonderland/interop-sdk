@@ -79,6 +79,9 @@ importers:
             "@across-protocol/app-sdk":
                 specifier: 0.2.2
                 version: 0.2.2(viem@2.29.2(typescript@5.5.4)(zod@3.24.3))
+            "@interop-sdk/addresses":
+                specifier: workspace:*
+                version: link:../addresses
             viem:
                 specifier: 2.29.2
                 version: 2.29.2(typescript@5.5.4)(zod@3.24.3)

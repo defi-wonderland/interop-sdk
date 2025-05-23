@@ -29,6 +29,7 @@
     },
     "dependencies": {
         "@across-protocol/app-sdk": "0.2.2",
+        "@interop-sdk/addresses": "workspace:*",
         "viem": "2.29.2",
         "zod": "3.24.3"
     }
