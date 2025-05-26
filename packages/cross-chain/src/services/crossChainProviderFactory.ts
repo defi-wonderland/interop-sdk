@@ -9,6 +9,7 @@ import { AcrossProvider, PROTOCOLS, SampleProvider, UnsupportedProtocol } from "
 
 /**
  * A factory for creating CrossChainProviders based on the protocol name
+ * TODO: Check if we can improve typing here https://github.com/defi-wonderland/interop-sdk/pull/23#discussion_r2107826666
  */
 export class CrossChainProviderFactory {
     /**
