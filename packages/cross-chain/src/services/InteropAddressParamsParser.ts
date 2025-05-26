@@ -42,7 +42,15 @@ type InteropParams<Action extends ValidActions> = {
     crossChainSwap: SwapInteropAddressParams;
 }[Action];
 
+/**
+ * A parser for interop address params
+ */
 export class InteropAddressParamsParser implements ParamsParser<InteropParams<ValidActions>> {
+    /**
+     * Get the chain id from the interop address
+     * @param address - The address to get the chain id from
+     * @returns The chain id
+     */
     private async getChainIdFromInteropAddress(
         address: ValidInteropAddress,
     ): Promise<z.infer<typeof SupportedChainIdSchema>> {
@@ -57,6 +65,11 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
         return SupportedChainIdSchema.parse(InteropAddressProvider.getChainId(binaryAddress));
     }
 
+    /**
+     * Get the address from the interop address
+     * @param address - The address to get the address from
+     * @returns The address
+     */
     private async getAddressFromInteropAddress(
         address: ValidInteropAddress,
     ): Promise<z.infer<typeof HexAddressSchema>> {
@@ -69,6 +82,11 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
         return InteropAddressProvider.getAddress(binaryAddress);
     }
 
+    /**
+     * Get the chain id from ValidAddress
+     * @param address - The address to get the chain id from
+     * @returns The chain id
+     */
     private async getChainId(
         address: ValidAddress,
     ): Promise<z.infer<typeof SupportedChainIdSchema>> {
@@ -79,6 +97,11 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
         return await this.getChainIdFromInteropAddress(address as ValidInteropAddress);
     }
 
+    /**
+     * Get the address from ValidAddress
+     * @param address - The address to get the address from
+     * @returns The address
+     */
     private async getAddress(address: ValidAddress): Promise<z.infer<typeof HexAddressSchema>> {
         if (typeof address === "object" && "address" in address && "chainId" in address) {
             return address.address;
@@ -86,6 +109,11 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
         return await this.getAddressFromInteropAddress(address as ValidInteropAddress);
     }
 
+    /**
+     * Parse the params for a cross chain transfer action
+     * @param params - The params to parse
+     * @returns The parsed params
+     */
     async parseTransferParams(
         params: TransferInteropAddressParams,
     ): Promise<GetQuoteParams<"crossChainTransfer">> {
@@ -102,6 +130,11 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
         };
     }
 
+    /**
+     * Parse the params for a cross chain swap action
+     * @param params - The params to parse
+     * @returns The parsed params
+     */
     async parseSwapParams(
         params: SwapInteropAddressParams,
     ): Promise<GetQuoteParams<"crossChainSwap">> {
@@ -111,6 +144,9 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
         };
     }
 
+    /**
+     * @inheritdoc
+     */
     async parseGetQuoteParams<Action extends ValidActions>(
         action: Action,
         params: InteropParams<Action>,
