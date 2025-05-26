@@ -2,15 +2,15 @@ import { Hex } from "viem";
 import { z } from "zod";
 
 import { SUPPORTED_TOKEN_BY_CHAIN_ID } from "../../internal.js";
+import { HexAddressSchema } from "../address.js";
 import { SupportedChainIdSchema } from "../chain.js";
-import { HexSchema } from "../hex.js";
 
 export const TransferGetQuoteParamsSchema = z
     .object({
-        recipient: HexSchema,
-        sender: HexSchema,
-        inputTokenAddress: HexSchema,
-        outputTokenAddress: HexSchema,
+        recipient: HexAddressSchema,
+        sender: HexAddressSchema,
+        inputTokenAddress: HexAddressSchema,
+        outputTokenAddress: HexAddressSchema,
         inputAmount: z.string(),
         inputChainId: SupportedChainIdSchema,
         outputChainId: SupportedChainIdSchema,

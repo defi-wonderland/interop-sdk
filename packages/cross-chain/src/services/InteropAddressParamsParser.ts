@@ -11,7 +11,7 @@ import { z } from "zod";
 
 import {
     GetQuoteParams,
-    HexSchema,
+    HexAddressSchema,
     ParamsParser,
     SupportedChainIdSchema,
     UnsupportedAction,
@@ -68,7 +68,7 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
 
     private async getAddressFromInteropAddress(
         address: ValidInteropAddress,
-    ): Promise<z.infer<typeof HexSchema>> {
+    ): Promise<z.infer<typeof HexAddressSchema>> {
         if (isValidBinaryAddress(address as BinaryAddress)) {
             return InteropAddressProvider.getAddress(address as BinaryAddress);
         }
@@ -94,7 +94,7 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
         return await this.getChainIdFromInteropAddress(address as ValidInteropAddress);
     }
 
-    private async getAddress(address: ValidAddress): Promise<z.infer<typeof HexSchema>> {
+    private async getAddress(address: ValidAddress): Promise<z.infer<typeof HexAddressSchema>> {
         if (typeof address === "object" && "address" in address && "chainId" in address) {
             return address.address;
         }

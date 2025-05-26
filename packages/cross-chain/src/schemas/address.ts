@@ -1,9 +1,13 @@
+import { isAddress } from "viem";
 import { z } from "zod";
 
 import { SupportedChainIdSchema } from "./chain.js";
-import { HexSchema } from "./hex.js";
+
+export const HexAddressSchema = z.string().refine((val) => isAddress(val), {
+    message: "Invalid hex address",
+});
 
 export const AddressWithChainRawSchema = z.object({
-    address: HexSchema,
+    address: HexAddressSchema,
     chainId: SupportedChainIdSchema,
 });
