@@ -189,4 +189,20 @@ describe("InteropAddressProvider", () => {
         );
         expect(isValid).toBe(false);
     });
+
+    it("checks if a human-readable address is valid using the isValidHumanReadableAddress exported function with validateChecksumFlag set to false", async () => {
+        const isValid = await isValidHumanReadableAddress(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
+            { validateChecksumFlag: false },
+        );
+        expect(isValid).toBe(true);
+    });
+
+    it("checks if a human-readable address is not valid using the isValidHumanReadableAddress exported function with validateChecksumFlag set to true", async () => {
+        const isValid = await isValidHumanReadableAddress(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
+            { validateChecksumFlag: true },
+        );
+        expect(isValid).toBe(false);
+    });
 });
