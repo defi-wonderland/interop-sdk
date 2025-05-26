@@ -1,6 +1,13 @@
 import type viem from "viem";
 import { getQuote } from "@across-protocol/app-sdk";
-import { encodeAbiParameters, encodeFunctionData, erc20Abi, Hex, PublicClient } from "viem";
+import {
+    createPublicClient,
+    encodeAbiParameters,
+    encodeFunctionData,
+    erc20Abi,
+    Hex,
+    PublicClient,
+} from "viem";
 import { sepolia } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -21,6 +28,7 @@ vi.mock("viem", async () => {
         ...(await vi.importActual<typeof viem>("viem")),
         encodeAbiParameters: vi.fn(),
         encodeFunctionData: vi.fn(),
+        createPublicClient: vi.fn(),
     };
 });
 
@@ -39,14 +47,7 @@ describe("AcrossProvider", () => {
         readContract: vi.fn(),
     } as unknown as PublicClient;
 
-    const provider = new AcrossProvider(
-        {
-            userAddress: "0x0000000000000000000000000000000000000000",
-        },
-        {
-            publicClient: mockPublicClient,
-        },
-    );
+    const provider = new AcrossProvider();
 
     const mockedFormattedAmount = "1";
     const mockedParsedAmount = BigInt(1);
@@ -58,7 +59,7 @@ describe("AcrossProvider", () => {
         vi.clearAllMocks();
         vi.mocked(formatTokenAmount).mockResolvedValue(mockedFormattedAmount);
         vi.mocked(parseTokenAmount).mockResolvedValue(mockedParsedAmount);
-
+        vi.mocked(createPublicClient).mockReturnValue(mockPublicClient);
         mockEncodeAbiParameters.mockResolvedValue("0x0000000000000000000000000000000000000000");
         mockGetQuote.mockResolvedValue(mockQuote);
     });
@@ -76,7 +77,7 @@ describe("AcrossProvider", () => {
             });
 
             expect(mockGetQuote).toHaveBeenCalledWith({
-                inputAmount: "1",
+                inputAmount: 1n,
                 route: {
                     originChainId: 11155111,
                     destinationChainId: 84532,

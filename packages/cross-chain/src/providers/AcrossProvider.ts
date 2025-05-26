@@ -1,11 +1,14 @@
 import { getQuote, Quote } from "@across-protocol/app-sdk";
 import {
     Address,
+    Chain,
+    createPublicClient,
     encodeAbiParameters,
     encodeFunctionData,
     erc20Abi,
     formatUnits,
     Hex,
+    http,
     pad,
     PublicClient,
     TransactionRequest,
@@ -17,8 +20,6 @@ import {
     ACROSS_ORDER_DATA_ABI,
     ACROSS_ORDER_DATA_TYPE,
     ACROSS_TESTING_API_URL,
-    AcrossConfigs,
-    AcrossDependencies,
     AcrossOpenParams,
     AcrossTransferOpenParams,
     AcrossTransferOpenParamsSchema,
@@ -29,6 +30,7 @@ import {
     GetQuoteResponse,
     getTokenAllowance,
     OPEN_ABI,
+    parseTokenAmount,
     SUPPORTED_CHAINS,
     TransferGetQuoteParams,
     TransferGetQuoteParamsSchema,
@@ -46,11 +48,16 @@ import {
  */
 export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     readonly protocolName = "across";
-    private readonly publicClient: PublicClient;
 
-    constructor(config: AcrossConfigs, dependencies: AcrossDependencies) {
+    constructor() {
         super();
-        this.publicClient = dependencies.publicClient;
+    }
+
+    private getPublicClient({ chain }: { chain: Chain }): PublicClient {
+        return createPublicClient({
+            chain,
+            transport: http(),
+        });
     }
 
     /**
@@ -66,9 +73,28 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             outputToken: params.outputTokenAddress,
         };
 
+        const inputChain = SUPPORTED_CHAINS.find(
+            (chain) => chain.id === Number(params.inputChainId),
+        );
+
+        if (!inputChain) {
+            throw new UnsupportedChainId(params.inputChainId);
+        }
+
+        const inputAmount = await parseTokenAmount(
+            {
+                amount: params.inputAmount,
+                tokenAddress: params.inputTokenAddress,
+                chain: inputChain,
+            },
+            { publicClient: this.getPublicClient({ chain: inputChain }) },
+        );
+
+        console.log(inputAmount, route);
+
         return await getQuote({
             route,
-            inputAmount: params.inputAmount,
+            inputAmount,
             apiUrl: ACROSS_TESTING_API_URL,
             recipient: params.recipient,
         });
@@ -168,7 +194,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                     tokenAddress: quote.deposit.inputToken,
                     chain: inputChain,
                 },
-                { publicClient: this.publicClient },
+                { publicClient: this.getPublicClient({ chain: inputChain }) },
             ),
             percent: formatUnits(percentFee, 15),
         };
@@ -214,7 +240,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                         tokenAddress: quote.deposit.inputToken,
                         chain: inputChain,
                     },
-                    { publicClient: this.publicClient },
+                    { publicClient: this.getPublicClient({ chain: inputChain }) },
                 ),
                 outputAmount: await formatTokenAmount(
                     {
@@ -222,7 +248,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                         tokenAddress: quote.deposit.outputToken,
                         chain: outputChain,
                     },
-                    { publicClient: this.publicClient },
+                    { publicClient: this.getPublicClient({ chain: outputChain }) },
                 ),
                 inputChainId: quote.deposit.originChainId,
                 outputChainId: quote.deposit.destinationChainId,
@@ -280,7 +306,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                 owner: params.params.sender,
                 spender: settlerContractAddress,
             },
-            { publicClient: this.publicClient },
+            { publicClient: this.getPublicClient({ chain: inputChain }) },
         );
 
         if (currentAllowance >= inputAmount) {
@@ -293,7 +319,9 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             args: [settlerContractAddress, inputAmount],
         });
 
-        const allowanceTx = await this.publicClient.prepareTransactionRequest({
+        const allowanceTx = await this.getPublicClient({
+            chain: inputChain,
+        }).prepareTransactionRequest({
             account: params.params.sender,
             to: inputTokenAddress,
             data: approvalData,
@@ -332,7 +360,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             args: [{ fillDeadline, orderDataType, orderData }],
         });
 
-        const openTx = await this.publicClient.prepareTransactionRequest({
+        const openTx = await this.getPublicClient({ chain: inputChain }).prepareTransactionRequest({
             account: sender,
             to: settlerContractAddress,
             data: openData,

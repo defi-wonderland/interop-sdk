@@ -12,9 +12,7 @@ import {
     CrossChainProviderFactory,
 } from "../../src/services/crossChainProviderFactory.js";
 
-const config = {
-    userAddress: "0x123" as Address,
-} as const;
+const config = {} as const;
 
 const dependencies = {
     publicClient: {} as PublicClient,
@@ -26,7 +24,7 @@ describe("CrossChainProviderFactory", () => {
     });
 
     it("builds a CrossChainProvider", () => {
-        const provider = CrossChainProviderFactory.build("across", config, dependencies);
+        const provider = CrossChainProviderFactory.build("across");
 
         expect(provider).toBeInstanceOf(CrossChainProvider);
     });
@@ -39,7 +37,6 @@ describe("CrossChainProviderFactory", () => {
         ) as AcrossProvider;
 
         expect(provider).toBeInstanceOf(AcrossProvider);
-        expect(provider["publicClient"]).toEqual(dependencies.publicClient);
     });
 
     it("builds a CrossChainProvider with the sample provider", () => {
@@ -56,7 +53,6 @@ describe("CrossChainProviderFactory", () => {
         const provider = createCrossChainProvider("across", config, dependencies) as AcrossProvider;
 
         expect(provider).toBeInstanceOf(AcrossProvider);
-        expect(provider["publicClient"]).toEqual(dependencies.publicClient);
     });
 
     it("throws an UnsupportedProtocol error for unsupported protocols", () => {

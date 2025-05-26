@@ -1,6 +1,4 @@
 import type {
-    AcrossConfigs,
-    AcrossDependencies,
     BasicOpenParams,
     CrossChainProvider,
     SupportedProtocols,
@@ -23,15 +21,12 @@ export class CrossChainProviderFactory {
      */
     public static build<Protocol extends SupportedProtocols>(
         protocolName: Protocol,
-        config: SupportedProtocolsConfigs[Protocol],
-        dependencies: SupportedProtocolsDependencies[Protocol],
+        _config: SupportedProtocolsConfigs[Protocol] = undefined,
+        _dependencies: SupportedProtocolsDependencies[Protocol] = undefined,
     ): CrossChainProvider<BasicOpenParams> {
         switch (protocolName) {
             case PROTOCOLS.ACROSS:
-                return new AcrossProvider(
-                    config as AcrossConfigs,
-                    dependencies as AcrossDependencies,
-                ) as CrossChainProvider<BasicOpenParams>;
+                return new AcrossProvider() as CrossChainProvider<BasicOpenParams>;
             case PROTOCOLS.SAMPLE:
                 return new SampleProvider();
             default:
@@ -49,8 +44,8 @@ export class CrossChainProviderFactory {
  */
 export const createCrossChainProvider = <Protocol extends SupportedProtocols>(
     protocolName: Protocol,
-    config: SupportedProtocolsConfigs[Protocol],
-    dependencies: SupportedProtocolsDependencies[Protocol],
+    config: SupportedProtocolsConfigs[Protocol] = undefined,
+    dependencies: SupportedProtocolsDependencies[Protocol] = undefined,
 ): CrossChainProvider<BasicOpenParams> => {
     return CrossChainProviderFactory.build(protocolName, config, dependencies);
 };
