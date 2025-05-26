@@ -96,8 +96,6 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             { publicClient: this.getPublicClient({ chain: inputChain }) },
         );
 
-        console.log(inputAmount, route);
-
         return await getQuote({
             route,
             inputAmount,
