@@ -50,10 +50,6 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     readonly protocolName = "across";
     private readonly clientCache: Map<number, PublicClient> = new Map();
 
-    constructor() {
-        super();
-    }
-
     private getPublicClient({ chain }: { chain: Chain }): PublicClient {
         if (this.clientCache.has(chain.id)) {
             return this.clientCache.get(chain.id)!;
