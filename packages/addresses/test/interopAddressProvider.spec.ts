@@ -6,6 +6,9 @@ import {
     computeChecksum,
     humanReadableToBinary,
     InteropAddressProvider,
+    isValidBinaryAddress,
+    isValidHumanReadableAddress,
+    isValidInteropAddress,
 } from "../src/providers/InteropAddressProvider.js";
 import { BinaryAddress, HumanReadableAddress } from "../src/types/index.js";
 
@@ -87,5 +90,103 @@ describe("InteropAddressProvider", () => {
         };
         const interopAddress = buildFromPayload(payload);
         expect(interopAddress).toBe("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
+    });
+
+    it("checks if a human-readable address is a valid interop address", async () => {
+        const isValid = await InteropAddressProvider.isValidInteropAddress(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C",
+        );
+        expect(isValid).toBe(true);
+    });
+
+    it("checks if a human-readable address is not a valid interop address", async () => {
+        const isValid = await InteropAddressProvider.isValidInteropAddress(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
+        );
+        expect(isValid).toBe(false);
+    });
+
+    it("checks if a human-readable address is not a valid interop address using the isValidInteropAddress exported function", async () => {
+        const isValid = await isValidInteropAddress(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
+        );
+        expect(isValid).toBe(false);
+    });
+
+    it("checks if a human-readable address is a valid interop address using the isValidInteropAddress exported function", async () => {
+        const isValid = await isValidInteropAddress(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C",
+        );
+        expect(isValid).toBe(true);
+    });
+
+    it("checks if a binary address is a valid interop address", async () => {
+        const isValid = await InteropAddressProvider.isValidInteropAddress(
+            "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045" as BinaryAddress,
+        );
+        expect(isValid).toBe(true);
+    });
+
+    it("checks if a binary address is not a valid interop address", async () => {
+        const isValid = await InteropAddressProvider.isValidInteropAddress(
+            "0x0000010114d8da6bf26964af9d7eed9e03e53415d37aa96045" as BinaryAddress,
+        );
+        expect(isValid).toBe(false);
+    });
+
+    it("checks if a binary address is a valid interop address", async () => {
+        const isValid = InteropAddressProvider.isValidBinaryAddress(
+            "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045" as BinaryAddress,
+        );
+        expect(isValid).toBe(true);
+    });
+
+    it("checks if a binary address is not a valid interop address", async () => {
+        const isValid = InteropAddressProvider.isValidBinaryAddress(
+            "0x0000010114d8da6bf26964af9d7eed9e53415da96045" as BinaryAddress,
+        );
+        expect(isValid).toBe(false);
+    });
+
+    it("checks if a binary address is not a valid interop address using the isValidBinaryAddress exported function", async () => {
+        const isValid = isValidBinaryAddress(
+            "0x0000010114d8da6bf26964af9d7eed9e53415da96045" as BinaryAddress,
+        );
+        expect(isValid).toBe(false);
+    });
+
+    it("checks if a binary address is a valid interop address using the isValidBinaryAddress exported function", async () => {
+        const isValid = isValidBinaryAddress(
+            "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045" as BinaryAddress,
+        );
+        expect(isValid).toBe(true);
+    });
+
+    it("checks if a human-readable address is a valid", async () => {
+        const isValid = await InteropAddressProvider.isValidHumanReadableAddress(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C",
+        );
+        expect(isValid).toBe(true);
+    });
+
+    it("checks if a human-readable address is not valid", async () => {
+        const isValid = await InteropAddressProvider.isValidHumanReadableAddress(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
+        );
+        expect(isValid).toBe(false);
+    });
+
+    it("checks if a human-readable address is valid using the isValidHumanReadableAddress exported function", async () => {
+        const isValid = await isValidHumanReadableAddress(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C",
+        );
+        expect(isValid).toBe(true);
+    });
+
+    it("checks if a human-readable address is not valid using the isValidHumanReadableAddress exported function", async () => {
+        const isValid = await isValidHumanReadableAddress(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
+        );
+        expect(isValid).toBe(false);
     });
 });
