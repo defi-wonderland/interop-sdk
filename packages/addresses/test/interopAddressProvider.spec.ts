@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
     binaryToHumanReadable,
@@ -12,6 +12,19 @@ import {
 } from "../src/providers/InteropAddressProvider.js";
 import { BinaryAddress, HumanReadableAddress } from "../src/types/index.js";
 
+const mockGetEnsAddress = vi.fn();
+const mockGetEnsName = vi.fn();
+vi.mock("viem", async () => {
+    const actual = await vi.importActual("viem");
+    return {
+        ...actual,
+        createPublicClient: (): unknown => ({
+            getEnsAddress: mockGetEnsAddress,
+            getEnsName: mockGetEnsName,
+        }),
+    };
+});
+
 describe("InteropAddressProvider", () => {
     it("convert a human-readable address to a binary address", async () => {
         const binaryAddress = await InteropAddressProvider.humanReadableToBinary(
@@ -21,12 +34,11 @@ describe("InteropAddressProvider", () => {
     });
 
     it("convert a binary address to a human-readable address", async () => {
-        const humanReadableAddress = InteropAddressProvider.binaryToHumanReadable(
+        mockGetEnsName.mockResolvedValue("vitalik.eth");
+        const humanReadableAddress = await InteropAddressProvider.binaryToHumanReadable(
             "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045" as BinaryAddress,
         );
-        expect(humanReadableAddress).toBe(
-            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C",
-        );
+        expect(humanReadableAddress).toBe("vitalik.eth@eip155:1#4CA88C9C");
     });
 
     it("computes the checksum of a human-readable address", async () => {
@@ -44,12 +56,11 @@ describe("InteropAddressProvider", () => {
     });
 
     it("works using the binaryToHumanReadable exported function", async () => {
-        const humanReadableAddress = binaryToHumanReadable(
+        mockGetEnsName.mockResolvedValue("vitalik.eth");
+        const humanReadableAddress = await binaryToHumanReadable(
             "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045" as BinaryAddress,
         );
-        expect(humanReadableAddress).toBe(
-            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C",
-        );
+        expect(humanReadableAddress).toBe("vitalik.eth@eip155:1#4CA88C9C");
     });
 
     it("works using the computeChecksum exported function", async () => {

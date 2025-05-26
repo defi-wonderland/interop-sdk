@@ -15,9 +15,13 @@ import {
  * @param addressData - The address data to convert
  * @returns A human-readable string representation of the address
  */
-export const toHumanReadable = (addressData: InteropAddress): HumanReadableAddress => {
+export const toHumanReadable = async (
+    addressData: InteropAddress,
+): Promise<HumanReadableAddress> => {
     const { chainType, chainReference, address } = validateInteropAddress(addressData);
-    const formattedAddress = address.length ? formatAddress(address, chainType) : "";
+    const formattedAddress = address.length
+        ? await formatAddress(address, chainType, { acceptENS: true })
+        : "";
     const chainTypeHex = toHex(chainType);
     const namespace = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex as ChainTypeValue];
 
