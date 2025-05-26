@@ -44,6 +44,7 @@ type InteropParams<Action extends ValidActions> = {
 
 /**
  * A parser for interop address params
+ * TODO: Try to improve typing here https://github.com/defi-wonderland/interop-sdk/pull/23#discussion_r2107826673
  */
 export class InteropAddressParamsParser implements ParamsParser<InteropParams<ValidActions>> {
     /**
