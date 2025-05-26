@@ -48,16 +48,22 @@ import {
  */
 export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     readonly protocolName = "across";
+    private readonly clientCache: Map<number, PublicClient> = new Map();
 
     constructor() {
         super();
     }
 
     private getPublicClient({ chain }: { chain: Chain }): PublicClient {
-        return createPublicClient({
+        if (this.clientCache.has(chain.id)) {
+            return this.clientCache.get(chain.id)!;
+        }
+        const client = createPublicClient({
             chain,
             transport: http(),
         });
+        this.clientCache.set(chain.id, client);
+        return client;
     }
 
     /**
