@@ -1,10 +1,8 @@
 import {
     BinaryAddress,
     HumanReadableAddress,
-    InteropAddress,
     InteropAddressProvider,
     isValidBinaryAddress,
-    isValidHumanReadableAddress,
 } from "@interop-sdk/addresses";
 import { Address } from "viem";
 import { z } from "zod";
@@ -18,7 +16,7 @@ import {
     ValidActions,
 } from "../internal.js";
 
-type ValidInteropAddress = InteropAddress | HumanReadableAddress | BinaryAddress;
+type ValidInteropAddress = HumanReadableAddress | BinaryAddress;
 
 type ValidAddress = ValidInteropAddress | { address: Address; chainId: number };
 
@@ -53,15 +51,8 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
                 InteropAddressProvider.getChainId(address as BinaryAddress),
             );
         }
-        if (await isValidHumanReadableAddress(address as HumanReadableAddress)) {
-            const binaryAddress = await InteropAddressProvider.humanReadableToBinary(
-                address as HumanReadableAddress,
-            );
-            return SupportedChainIdSchema.parse(InteropAddressProvider.getChainId(binaryAddress));
-        }
-
-        const binaryAddress = InteropAddressProvider.interopAddressToBinary(
-            address as InteropAddress,
+        const binaryAddress = await InteropAddressProvider.humanReadableToBinary(
+            address as HumanReadableAddress,
         );
         return SupportedChainIdSchema.parse(InteropAddressProvider.getChainId(binaryAddress));
     }
@@ -72,14 +63,8 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
         if (isValidBinaryAddress(address as BinaryAddress)) {
             return InteropAddressProvider.getAddress(address as BinaryAddress);
         }
-        if (await isValidHumanReadableAddress(address as HumanReadableAddress)) {
-            const binaryAddress = await InteropAddressProvider.humanReadableToBinary(
-                address as HumanReadableAddress,
-            );
-            return InteropAddressProvider.getAddress(binaryAddress);
-        }
-        const binaryAddress = InteropAddressProvider.interopAddressToBinary(
-            address as InteropAddress,
+        const binaryAddress = await InteropAddressProvider.humanReadableToBinary(
+            address as HumanReadableAddress,
         );
         return InteropAddressProvider.getAddress(binaryAddress);
     }

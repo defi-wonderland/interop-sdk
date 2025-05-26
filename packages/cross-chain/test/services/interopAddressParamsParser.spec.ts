@@ -50,37 +50,6 @@ describe("InteropAddressParamsParser", () => {
             });
         });
 
-        it("parse interop address transfer params", async () => {
-            const paramsParser = new InteropAddressParamsParser();
-            const params = await paramsParser.parseGetQuoteParams("crossChainTransfer", {
-                sender: {
-                    version: 1,
-                    chainType: hexToBytes("0x0000"),
-                    chainReference: hexToBytes("0xaa36a7"),
-                    address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
-                } as InteropAddress,
-                recipient: {
-                    version: 1,
-                    chainType: hexToBytes("0x0000"),
-                    chainReference: hexToBytes("0xaa36a7"),
-                    address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
-                } as InteropAddress,
-                amount: "1000000000000000000",
-                inputTokenAddress: "0x0000000000000000000000000000000000000000",
-                outputTokenAddress: "0x0000000000000000000000000000000000000000",
-            });
-
-            expect(params).toEqual({
-                inputTokenAddress: "0x0000000000000000000000000000000000000000",
-                outputTokenAddress: "0x0000000000000000000000000000000000000000",
-                inputAmount: "1000000000000000000",
-                inputChainId: 11155111,
-                outputChainId: 11155111,
-                sender: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-                recipient: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-            });
-        });
-
         it("parse raw address transfer params", async () => {
             const paramsParser = new InteropAddressParamsParser();
             const params = await paramsParser.parseGetQuoteParams("crossChainTransfer", {
