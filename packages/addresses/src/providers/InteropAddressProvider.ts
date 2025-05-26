@@ -11,6 +11,7 @@ import {
     formatAddress,
     formatChainReference,
     HumanReadableAddress,
+    InteropAddress,
     InteropAddressFields,
     isBinaryInteropAddress,
     isHumanReadableInteropAddress,
@@ -55,22 +56,34 @@ export class InteropAddressProvider {
     }
 
     /**
-     * Get the chain ID from a binary address
-     * @param binaryAddress - The Hex encoded binary address to get the chain ID from
-     * @returns The chain ID
+     * Get the chain ID from a binary or human readable address
+     * @param address - The binary or human readable address to get the chain ID from
+     * @returns The chain ID in the format of the chain type
      */
-    public static getChainId(binaryAddress: Hex): EncodedChainReference<ChainTypeName> {
-        const interopAddress = parseBinary(binaryAddress);
+    public static async getChainId(address: string): Promise<EncodedChainReference<ChainType>> {
+        let interopAddress: InteropAddress;
+        if (isBinaryInteropAddress(address as BinaryAddress)) {
+            interopAddress = parseBinary(address as BinaryAddress);
+        } else {
+            interopAddress = await parseHumanReadable(address as HumanReadableAddress);
+        }
+
         return formatChainReference(interopAddress.chainReference, interopAddress.chainType);
     }
 
     /**
-     * Get the address from a binary address
-     * @param binaryAddress - The Hex encoded binary address to get the address from
-     * @returns The address
+     * Get the address from a binary or human readable address
+     * @param address - The binary or human readable address to get the address from
+     * @returns The address in the format of the chain type
      */
-    public static async getAddress(binaryAddress: Hex): Promise<EncodedAddress<ChainTypeName>> {
-        const interopAddress = parseBinary(binaryAddress);
+    public static async getAddress(address: string): Promise<EncodedAddress<ChainType>> {
+        let interopAddress: InteropAddress;
+        if (isBinaryInteropAddress(address as BinaryAddress)) {
+            interopAddress = parseBinary(address as BinaryAddress);
+        } else {
+            interopAddress = await parseHumanReadable(address as HumanReadableAddress);
+        }
+
         return formatAddress(interopAddress.address, interopAddress.chainType);
     }
 

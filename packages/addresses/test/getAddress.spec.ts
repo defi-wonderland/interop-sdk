@@ -25,9 +25,15 @@ describe("getAddress", () => {
             "0xDE2b660f31EA7EFE705631710379fE9D2AF02A66",
         ];
 
-        for (const [index, testCase] of testCases.entries()) {
-            const result = await getAddress(testCase);
-            expect(result).toBe(expectedResults[index]);
+        for (let i = 0; i < testCases.length; i++) {
+            const result = await getAddress(testCases[i] || "");
+            expect(result).toBe(expectedResults[i]);
         }
+    });
+
+    it("gets the address from a human readable address", async () => {
+        const humanReadableAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C";
+        const expected = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+        expect(await getAddress(humanReadableAddress)).toBe(expected);
     });
 });
