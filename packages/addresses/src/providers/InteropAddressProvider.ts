@@ -60,7 +60,7 @@ export class InteropAddressProvider {
      * @param address - The binary or human readable address to get the chain ID from
      * @returns The chain ID in the format of the chain type
      */
-    public static async getChainId(address: string): Promise<EncodedChainReference<ChainType>> {
+    public static async getChainId(address: string): Promise<EncodedChainReference<ChainTypeName>> {
         let interopAddress: InteropAddress;
         if (isBinaryInteropAddress(address as BinaryAddress)) {
             interopAddress = parseBinary(address as BinaryAddress);
@@ -76,7 +76,7 @@ export class InteropAddressProvider {
      * @param address - The binary or human readable address to get the address from
      * @returns The address in the format of the chain type
      */
-    public static async getAddress(address: string): Promise<EncodedAddress<ChainType>> {
+    public static async getAddress(address: string): Promise<EncodedAddress<ChainTypeName>> {
         let interopAddress: InteropAddress;
         if (isBinaryInteropAddress(address as BinaryAddress)) {
             interopAddress = parseBinary(address as BinaryAddress);
