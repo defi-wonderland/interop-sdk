@@ -1,4 +1,3 @@
-import type { Address, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -12,12 +11,6 @@ import {
     CrossChainProviderFactory,
 } from "../../src/services/crossChainProviderFactory.js";
 
-const config = {} as const;
-
-const dependencies = {
-    publicClient: {} as PublicClient,
-} as const;
-
 describe("CrossChainProviderFactory", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -30,27 +23,19 @@ describe("CrossChainProviderFactory", () => {
     });
 
     it("builds a CrossChainProvider with the across provider", () => {
-        const provider = CrossChainProviderFactory.build(
-            "across",
-            config,
-            dependencies,
-        ) as AcrossProvider;
+        const provider = CrossChainProviderFactory.build("across") as AcrossProvider;
 
         expect(provider).toBeInstanceOf(AcrossProvider);
     });
 
     it("builds a CrossChainProvider with the sample provider", () => {
-        const provider = CrossChainProviderFactory.build(
-            "sample-protocol",
-            undefined,
-            undefined,
-        ) as SampleProvider;
+        const provider = CrossChainProviderFactory.build("sample-protocol") as SampleProvider;
 
         expect(provider).toBeInstanceOf(SampleProvider);
     });
 
     it("creates a cross chain provider using the createCrossChainProvider function", () => {
-        const provider = createCrossChainProvider("across", config, dependencies) as AcrossProvider;
+        const provider = createCrossChainProvider("across") as AcrossProvider;
 
         expect(provider).toBeInstanceOf(AcrossProvider);
     });
@@ -58,7 +43,7 @@ describe("CrossChainProviderFactory", () => {
     it("throws an UnsupportedProtocol error for unsupported protocols", () => {
         expect(() => {
             // @ts-expect-error - This is a test
-            CrossChainProviderFactory.build("unsupported-protocol", undefined, undefined);
+            CrossChainProviderFactory.build("unsupported-protocol");
         }).toThrow(UnsupportedProtocol);
     });
 });
