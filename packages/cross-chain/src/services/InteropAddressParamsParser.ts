@@ -120,14 +120,21 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
     ): Promise<GetQuoteParams<"crossChainTransfer">> {
         const { sender, recipient, amount, inputTokenAddress, outputTokenAddress } = params;
 
+        const [inputChainId, outputChainId, senderAddress, recipientAddress] = await Promise.all([
+            this.getChainId(sender),
+            this.getChainId(recipient),
+            this.getAddress(sender),
+            this.getAddress(recipient),
+        ]);
+
         return {
             inputTokenAddress: inputTokenAddress,
             outputTokenAddress: outputTokenAddress,
             inputAmount: amount,
-            inputChainId: await this.getChainId(sender),
-            outputChainId: await this.getChainId(recipient),
-            sender: await this.getAddress(sender),
-            recipient: await this.getAddress(recipient),
+            inputChainId,
+            outputChainId,
+            sender: senderAddress,
+            recipient: recipientAddress,
         };
     }
 
