@@ -75,8 +75,6 @@ export class InteropAddressProvider {
     /**
      * Get the address from a binary or human readable address
      * @param address - The binary or human readable address to get the address from
-     * @param options - The options to pass to the formatAddress function
-     *        - acceptENS: Whether to accept ENS names
      * @returns The address in the format of the chain type
      */
     public static async getAddress(address: string): Promise<EncodedAddress<ChainTypeName>> {
