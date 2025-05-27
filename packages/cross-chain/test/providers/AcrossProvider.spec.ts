@@ -107,7 +107,7 @@ describe("AcrossProvider", () => {
                     outputToken: mockQuote.deposit.outputToken,
                     destinationChainId: mockQuote.deposit.destinationChainId,
                     outputAmount: mockQuote.deposit.outputAmount,
-                    recipient: "0x0000000000000000000000000000000000000000",
+                    recipient: "0x0000000000000000000000000000000000000000000000000000000000000000",
                     exclusiveRelayer: mockQuote.deposit.exclusiveRelayer,
                     exclusivityPeriod: mockQuote.deposit.exclusivityDeadline,
                     depositNonce: 0,

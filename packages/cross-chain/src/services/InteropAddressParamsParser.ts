@@ -4,7 +4,7 @@ import {
     InteropAddressProvider,
     isValidBinaryAddress,
 } from "@interop-sdk/addresses";
-import { Address } from "viem";
+import { Address, isAddress } from "viem";
 import { z } from "zod";
 
 import {
@@ -13,6 +13,7 @@ import {
     ParamsParser,
     SupportedChainIdSchema,
     UnsupportedAction,
+    UnsupportedAddress,
     ValidActions,
 } from "../internal.js";
 
@@ -55,15 +56,11 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
     private async getChainIdFromInteropAddress(
         address: ValidInteropAddress,
     ): Promise<z.infer<typeof SupportedChainIdSchema>> {
-        if (isValidBinaryAddress(address as BinaryAddress)) {
-            return SupportedChainIdSchema.parse(
-                InteropAddressProvider.getChainId(address as BinaryAddress),
-            );
-        }
-        const binaryAddress = await InteropAddressProvider.humanReadableToBinary(
-            address as HumanReadableAddress,
-        );
-        return SupportedChainIdSchema.parse(InteropAddressProvider.getChainId(binaryAddress));
+        const binaryAddress = isValidBinaryAddress(address as BinaryAddress)
+            ? (address as BinaryAddress)
+            : await InteropAddressProvider.humanReadableToBinary(address as HumanReadableAddress);
+
+        return SupportedChainIdSchema.parse(await InteropAddressProvider.getChainId(binaryAddress));
     }
 
     /**
@@ -74,13 +71,17 @@ export class InteropAddressParamsParser implements ParamsParser<InteropParams<Va
     private async getAddressFromInteropAddress(
         address: ValidInteropAddress,
     ): Promise<z.infer<typeof HexAddressSchema>> {
-        if (isValidBinaryAddress(address as BinaryAddress)) {
-            return InteropAddressProvider.getAddress(address as BinaryAddress);
+        const binaryAddress = isValidBinaryAddress(address as BinaryAddress)
+            ? (address as BinaryAddress)
+            : await InteropAddressProvider.humanReadableToBinary(address as HumanReadableAddress);
+
+        const parsedAddress = await InteropAddressProvider.getAddress(binaryAddress);
+
+        if (isAddress(parsedAddress)) {
+            return parsedAddress;
         }
-        const binaryAddress = await InteropAddressProvider.humanReadableToBinary(
-            address as HumanReadableAddress,
-        );
-        return InteropAddressProvider.getAddress(binaryAddress);
+
+        throw new UnsupportedAddress(address);
     }
 
     /**
