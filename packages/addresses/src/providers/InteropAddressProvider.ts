@@ -18,6 +18,7 @@ import {
     isInteropAddress,
     parseBinary,
     parseHumanReadable,
+    ParseHumanReadableOptions,
     toBinary,
     toHumanReadable,
 } from "../internal.js";
@@ -127,29 +128,40 @@ export class InteropAddressProvider {
     /**
      * Checks if an address is a valid interop address
      * @param address - The address to check, can be a human-readable address or a binary address
+     * @param options - The options to pass to the parseHumanReadable function
+     *        - validateChecksumFlag: Whether to validate the checksum of the address
      * @returns boolean - true if the address is a valid interop address, false otherwise
      * @example
      * ```ts
-     * const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@eip155:1#ABCD1234");
+     * const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@eip155:1#ABCD1234", { validateChecksumFlag: true });
      * ```
      */
-    public static async isValidInteropAddress(address: string): Promise<boolean> {
-        return isInteropAddress(address);
+    public static async isValidInteropAddress(
+        address: string,
+        options: ParseHumanReadableOptions = {},
+    ): Promise<boolean> {
+        return isInteropAddress(address, options);
     }
 
     /**
      * Checks if a human-readable address is a valid interop address
      * @param humanReadableAddress - The human-readable address to check
+     * @param options - The options to pass to the parseHumanReadable function
+     *        - validateChecksumFlag: Whether to validate the checksum of the address
      * @returns boolean - true if the address is a valid interop address, false otherwise
      * @example
      * ```ts
-     * const isValid = await InteropAddressProvider.isValidHumanReadableAddress("alice.eth@eip155:1#ABCD1234");
+     * const isValid = await InteropAddressProvider.isValidHumanReadableAddress("alice.eth@eip155:1#ABCD1234", { validateChecksumFlag: true });
      * ```
      */
     public static async isValidHumanReadableAddress(
         humanReadableAddress: string,
+        options: ParseHumanReadableOptions = {},
     ): Promise<boolean> {
-        return await isHumanReadableInteropAddress(humanReadableAddress as HumanReadableAddress);
+        return await isHumanReadableInteropAddress(
+            humanReadableAddress as HumanReadableAddress,
+            options,
+        );
     }
 
     /**
