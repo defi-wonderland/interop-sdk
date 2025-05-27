@@ -1,5 +1,4 @@
-import { BinaryAddress, HumanReadableAddress, InteropAddress } from "@interop-sdk/addresses";
-import { hexToBytes } from "viem";
+import { BinaryAddress, HumanReadableAddress } from "@interop-sdk/addresses";
 import { describe, expect, it } from "vitest";
 
 import { InteropAddressParamsParser } from "../../src/services/InteropAddressParamsParser.js";
