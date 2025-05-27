@@ -4,7 +4,7 @@ import {
     BinaryAddress,
     buildInteropAddress,
     calculateChecksum,
-    ChainType,
+    ChainTypeName,
     Checksum,
     EncodedAddress,
     EncodedChainReference,
@@ -18,6 +18,7 @@ import {
     isInteropAddress,
     parseBinary,
     parseHumanReadable,
+    ParseHumanReadableOptions,
     toBinary,
     toHumanReadable,
 } from "../internal.js";
@@ -50,41 +51,40 @@ export class InteropAddressProvider {
      * const humanReadableAddress = await InteropAddressProvider.binaryToHumanReadable("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
      * ```
      */
-    public static binaryToHumanReadable(binaryAddress: Hex): HumanReadableAddress {
+    public static async binaryToHumanReadable(binaryAddress: Hex): Promise<HumanReadableAddress> {
         const interopAddress = parseBinary(binaryAddress);
-        return toHumanReadable(interopAddress);
+        return await toHumanReadable(interopAddress);
     }
 
     /**
-     * Converts an interop address to a binary address
-     * @param interopAddress - The interop address to convert
-     * @returns BinaryAddress - The binary address
-     * @example
-     * ```ts
-     * const binaryAddress = InteropAddressProvider.interopAddressToBinary("alice.eth@eip155:1#ABCD1234");
-     * ```
+     * Get the chain ID from a binary or human readable address
+     * @param address - The binary or human readable address to get the chain ID from
+     * @returns The chain ID in the format of the chain type
      */
-    public static interopAddressToBinary(interopAddress: InteropAddress): BinaryAddress {
-        return toBinary(interopAddress) as BinaryAddress;
-    }
+    public static async getChainId(address: string): Promise<EncodedChainReference<ChainTypeName>> {
+        let interopAddress: InteropAddress;
+        if (isBinaryInteropAddress(address as BinaryAddress)) {
+            interopAddress = parseBinary(address as BinaryAddress);
+        } else {
+            interopAddress = await parseHumanReadable(address as HumanReadableAddress);
+        }
 
-    /**
-     * Get the chain ID from a binary address
-     * @param binaryAddress - The Hex encoded binary address to get the chain ID from
-     * @returns The chain ID
-     */
-    public static getChainId(binaryAddress: Hex): EncodedChainReference<ChainType> {
-        const interopAddress = parseBinary(binaryAddress);
         return formatChainReference(interopAddress.chainReference, interopAddress.chainType);
     }
 
     /**
-     * Get the address from a binary address
-     * @param binaryAddress - The Hex encoded binary address to get the address from
-     * @returns The address
+     * Get the address from a binary or human readable address
+     * @param address - The binary or human readable address to get the address from
+     * @returns The address in the format of the chain type
      */
-    public static getAddress(binaryAddress: Hex): EncodedAddress<ChainType> {
-        const interopAddress = parseBinary(binaryAddress);
+    public static async getAddress(address: string): Promise<EncodedAddress<ChainTypeName>> {
+        let interopAddress: InteropAddress;
+        if (isBinaryInteropAddress(address as BinaryAddress)) {
+            interopAddress = parseBinary(address as BinaryAddress);
+        } else {
+            interopAddress = await parseHumanReadable(address as HumanReadableAddress);
+        }
+
         return formatAddress(interopAddress.address, interopAddress.chainType);
     }
 
@@ -128,29 +128,40 @@ export class InteropAddressProvider {
     /**
      * Checks if an address is a valid interop address
      * @param address - The address to check, can be a human-readable address or a binary address
+     * @param options - The options to pass to the parseHumanReadable function
+     *        - validateChecksumFlag: Whether to validate the checksum of the address
      * @returns boolean - true if the address is a valid interop address, false otherwise
      * @example
      * ```ts
-     * const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@eip155:1#ABCD1234");
+     * const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@eip155:1#ABCD1234", { validateChecksumFlag: true });
      * ```
      */
-    public static async isValidInteropAddress(address: string): Promise<boolean> {
-        return isInteropAddress(address);
+    public static async isValidInteropAddress(
+        address: string,
+        options: ParseHumanReadableOptions = {},
+    ): Promise<boolean> {
+        return isInteropAddress(address, options);
     }
 
     /**
      * Checks if a human-readable address is a valid interop address
      * @param humanReadableAddress - The human-readable address to check
+     * @param options - The options to pass to the parseHumanReadable function
+     *        - validateChecksumFlag: Whether to validate the checksum of the address
      * @returns boolean - true if the address is a valid interop address, false otherwise
      * @example
      * ```ts
-     * const isValid = await InteropAddressProvider.isValidHumanReadableAddress("alice.eth@eip155:1#ABCD1234");
+     * const isValid = await InteropAddressProvider.isValidHumanReadableAddress("alice.eth@eip155:1#ABCD1234", { validateChecksumFlag: true });
      * ```
      */
     public static async isValidHumanReadableAddress(
         humanReadableAddress: string,
+        options: ParseHumanReadableOptions = {},
     ): Promise<boolean> {
-        return await isHumanReadableInteropAddress(humanReadableAddress as HumanReadableAddress);
+        return await isHumanReadableInteropAddress(
+            humanReadableAddress as HumanReadableAddress,
+            options,
+        );
     }
 
     /**

@@ -1,5 +1,6 @@
 import bs58 from "bs58";
-import { bytesToNumber, fromHex, getAddress, isHex, toHex } from "viem";
+import { bytesToNumber, createPublicClient, fromHex, getAddress, http, isHex, toHex } from "viem";
+import { mainnet } from "viem/chains";
 
 import type {
     Address,
@@ -159,16 +160,33 @@ export const parseAddress = (binaryAddress: Uint8Array): Address => {
  * Formats an address based on the chain type
  * @param address - The address to format
  * @param chainType - The chain type to format the address for
+ * @param options - The options to format the address
+ * @param options.acceptENS - Whether to accept ENS names
  * @returns The formatted address
  * @throws An error if the chain type is not supported
  */
-export const formatAddress = <T extends ChainType>(
+export const formatAddress = async <T extends ChainTypeName>(
     address: Uint8Array,
-    chainType: T,
-): EncodedAddress<T> => {
+    chainType: ChainType,
+    options: { acceptENS?: boolean } = {},
+): Promise<EncodedAddress<T>> => {
+    const { acceptENS = false } = options;
     const chainTypeHex = toHex(chainType);
     switch (chainTypeHex) {
         case ChainTypeValue.EIP155:
+            const hexAddress = toHex(address);
+            if (acceptENS) {
+                const client = createPublicClient({
+                    chain: mainnet,
+                    transport: http(),
+                });
+                const ensName = await client.getEnsName({
+                    address: hexAddress,
+                });
+                if (ensName) {
+                    return ensName as EncodedAddress<T>;
+                }
+            }
             return getAddress(toHex(address)) as EncodedAddress<T>;
         case ChainTypeValue.SOLANA:
             return bs58.encode(address) as EncodedAddress<T>;
@@ -184,9 +202,9 @@ export const formatAddress = <T extends ChainType>(
  * @returns The formatted chain reference
  * @throws An error if the chain type is not supported
  */
-export const formatChainReference = <T extends ChainType>(
+export const formatChainReference = <T extends ChainTypeName>(
     chainReference: Uint8Array,
-    chainType: T,
+    chainType: ChainType,
 ): EncodedChainReference<T> => {
     const chainTypeHex = toHex(chainType);
     switch (chainTypeHex) {
