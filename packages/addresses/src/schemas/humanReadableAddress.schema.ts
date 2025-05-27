@@ -8,6 +8,7 @@ import {
     InvalidHumanReadableAddress,
     isValidChain,
     MissingHumanReadableAddress,
+    shortnameToChainId,
 } from "../internal.js";
 
 export const HumanReadableAddressSchema = z.string().transform((value) => {
@@ -20,7 +21,7 @@ export const HumanReadableAddressSchema = z.string().transform((value) => {
     );
     if (!match) throw new InvalidHumanReadableAddress(value);
 
-    const [, address, namespace, chainReference, checksum] = match;
+    const [, address, namespace, chain, checksum] = match;
     let chainNamespace = namespace;
 
     if (!chainNamespace) {
@@ -30,6 +31,9 @@ export const HumanReadableAddressSchema = z.string().transform((value) => {
     if (chainNamespace && !(chainNamespace in CHAIN_TYPE)) {
         throw new InvalidChainNamespace(chainNamespace);
     }
+
+    const chainId = shortnameToChainId(chain || "");
+    const chainReference = chainId ? chainId.toString() : (chain ?? "");
 
     if (chainReference && !isValidChain(chainNamespace as ChainTypeName, chainReference)) {
         throw new InvalidChainIdentifier(chainReference);
