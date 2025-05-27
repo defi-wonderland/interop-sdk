@@ -30,3 +30,7 @@ export const ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES: Record<number, Hex> = {
 } as const;
 
 export const ACROSS_TESTING_API_URL = "https://testnet.across.to/api";
+
+// Gas limit for the open transaction
+// Obtained from previous transactions
+export const ACROSS_OPEN_GAS_LIMIT = 2600_00n;

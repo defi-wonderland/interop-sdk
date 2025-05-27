@@ -5,6 +5,7 @@ import {
     CrossChainProvider,
     GetQuoteParams,
     GetQuoteResponse,
+    ParamsParser,
     ProviderNotFound,
     ValidActions,
 } from "../internal.js";
@@ -16,17 +17,30 @@ type GetQuotesError = {
 
 type GetQuotesResponse = (GetQuoteResponse<ValidActions, BasicOpenParams> | GetQuotesError)[];
 
+type ExecutorDependencies<SelectedParamParser> = {
+    paramParser?: SelectedParamParser;
+};
+
 /**
  * A service that get quotes in batches and executes cross-chain actions
+ * TODO: Improve types declaration to define getQuotesParams interface depending on the selected param parser
  */
-class ProviderExecutor {
+class ProviderExecutor<
+    GetQuotesExecutorParams,
+    SelectedParamParser extends ParamsParser<GetQuotesExecutorParams>,
+> {
     private readonly providers: Record<string, CrossChainProvider<BasicOpenParams>>;
+    private readonly paramParser?: SelectedParamParser;
 
     /**
      * Constructor
      * @param providers - The providers to use
      */
-    constructor(providers: CrossChainProvider<BasicOpenParams>[]) {
+    constructor(
+        providers: CrossChainProvider<BasicOpenParams>[],
+        dependencies: ExecutorDependencies<SelectedParamParser>,
+    ) {
+        this.paramParser = dependencies.paramParser;
         this.providers = providers.reduce(
             (acc, provider) => {
                 acc[provider.getProtocolName()] = provider;
@@ -44,12 +58,18 @@ class ProviderExecutor {
      */
     async getQuotes<Action extends ValidActions>(
         action: Action,
-        params: GetQuoteParams<Action>,
+        params: SelectedParamParser extends undefined
+            ? GetQuoteParams<Action>
+            : GetQuotesExecutorParams,
     ): Promise<GetQuotesResponse> {
+        const parsedParams = this.paramParser
+            ? await this.paramParser.parseGetQuoteParams(action, params)
+            : (params as GetQuoteParams<Action>);
+
         const quotes = await Promise.all(
             Object.values(this.providers).map(async (provider) => {
                 try {
-                    return await provider.getQuote(action, params);
+                    return await provider.getQuote(action, parsedParams);
                 } catch (error) {
                     if (error instanceof Error) {
                         return {
@@ -89,10 +109,14 @@ class ProviderExecutor {
  * @param providers - The providers to use
  * @returns The provider executor
  */
-const createProviderExecutor = (
+const createProviderExecutor = <
+    GetQuotesExecutorParams,
+    SelectedParamParser extends ParamsParser<GetQuotesExecutorParams>,
+>(
     providers: CrossChainProvider<BasicOpenParams>[],
-): ProviderExecutor => {
-    return new ProviderExecutor(providers);
+    dependencies: ExecutorDependencies<SelectedParamParser> = {},
+): ProviderExecutor<GetQuotesExecutorParams, SelectedParamParser> => {
+    return new ProviderExecutor(providers, dependencies);
 };
 
 export { ProviderExecutor, createProviderExecutor };

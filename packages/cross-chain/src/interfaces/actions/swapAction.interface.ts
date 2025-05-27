@@ -1,3 +1,5 @@
+import { Hex } from "viem";
+
 import type {
     BasicGetQuoteParams,
     BasicGetQuoteResponse,
@@ -17,9 +19,11 @@ import { SUPPORTED_TOKEN_BY_CHAIN_ID } from "../../internal.js";
  * @param Input.slippage - The slippage, string decimal representation of the slippage.
  */
 export type SwapGetQuoteParams = BasicGetQuoteParams<{
+    sender: Hex;
+    recipient: Hex;
     inputAmount: string;
-    inputTokenAddress: string;
-    outputTokenAddress: string;
+    inputTokenAddress: Hex;
+    outputTokenAddress: Hex;
     inputChainId: keyof typeof SUPPORTED_TOKEN_BY_CHAIN_ID;
     outputChainId: keyof typeof SUPPORTED_TOKEN_BY_CHAIN_ID;
     slippage: string;
@@ -41,8 +45,10 @@ export type SwapGetQuoteParams = BasicGetQuoteParams<{
 export type SwapGetQuoteResponse<OpenParams extends BasicOpenParams> = BasicGetQuoteResponse<
     "crossChainSwap",
     {
-        inputTokenAddress: string;
-        outputTokenAddress: string;
+        sender: Hex;
+        recipient: Hex;
+        inputTokenAddress: Hex;
+        outputTokenAddress: Hex;
         inputAmount: string;
         outputAmount: string;
         inputChainId: keyof typeof SUPPORTED_TOKEN_BY_CHAIN_ID;
