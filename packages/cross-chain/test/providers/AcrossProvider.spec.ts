@@ -1,11 +1,19 @@
 import type viem from "viem";
 import { getQuote } from "@across-protocol/app-sdk";
-import { encodeAbiParameters, encodeFunctionData, erc20Abi, Hex, PublicClient } from "viem";
+import {
+    createPublicClient,
+    encodeAbiParameters,
+    encodeFunctionData,
+    erc20Abi,
+    Hex,
+    PublicClient,
+} from "viem";
 import { sepolia } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES,
+    ACROSS_OPEN_GAS_LIMIT,
     ACROSS_ORDER_DATA_ABI,
     ACROSS_ORDER_DATA_TYPE,
 } from "../../src/constants/across.js";
@@ -20,6 +28,7 @@ vi.mock("viem", async () => {
         ...(await vi.importActual<typeof viem>("viem")),
         encodeAbiParameters: vi.fn(),
         encodeFunctionData: vi.fn(),
+        createPublicClient: vi.fn(),
     };
 });
 
@@ -38,14 +47,7 @@ describe("AcrossProvider", () => {
         readContract: vi.fn(),
     } as unknown as PublicClient;
 
-    const provider = new AcrossProvider(
-        {
-            userAddress: "0x0000000000000000000000000000000000000000",
-        },
-        {
-            publicClient: mockPublicClient,
-        },
-    );
+    const provider = new AcrossProvider();
 
     const mockedFormattedAmount = "1";
     const mockedParsedAmount = BigInt(1);
@@ -57,7 +59,7 @@ describe("AcrossProvider", () => {
         vi.clearAllMocks();
         vi.mocked(formatTokenAmount).mockResolvedValue(mockedFormattedAmount);
         vi.mocked(parseTokenAmount).mockResolvedValue(mockedParsedAmount);
-
+        vi.mocked(createPublicClient).mockReturnValue(mockPublicClient);
         mockEncodeAbiParameters.mockResolvedValue("0x0000000000000000000000000000000000000000");
         mockGetQuote.mockResolvedValue(mockQuote);
     });
@@ -70,10 +72,12 @@ describe("AcrossProvider", () => {
                 outputTokenAddress: "0x4200000000000000000000000000000000000006",
                 inputChainId: 11155111,
                 outputChainId: 84532,
+                sender: "0x0000000000000000000000000000000000000000",
+                recipient: "0x0000000000000000000000000000000000000000",
             });
 
             expect(mockGetQuote).toHaveBeenCalledWith({
-                inputAmount: "1",
+                inputAmount: 1n,
                 route: {
                     originChainId: 11155111,
                     destinationChainId: 84532,
@@ -81,6 +85,7 @@ describe("AcrossProvider", () => {
                     outputToken: "0x4200000000000000000000000000000000000006",
                 },
                 apiUrl: expect.any(String) as string,
+                recipient: "0x0000000000000000000000000000000000000000",
             });
         });
 
@@ -91,6 +96,8 @@ describe("AcrossProvider", () => {
                 outputTokenAddress: "0x4200000000000000000000000000000000000006",
                 inputChainId: 11155111,
                 outputChainId: 84532,
+                sender: "0x0000000000000000000000000000000000000000",
+                recipient: "0x0000000000000000000000000000000000000000",
             });
 
             expect(mockEncodeAbiParameters).toHaveBeenCalledWith(ACROSS_ORDER_DATA_ABI, [
@@ -100,7 +107,7 @@ describe("AcrossProvider", () => {
                     outputToken: mockQuote.deposit.outputToken,
                     destinationChainId: mockQuote.deposit.destinationChainId,
                     outputAmount: mockQuote.deposit.outputAmount,
-                    recipient: "0x0000000000000000000000000000000000000000",
+                    recipient: "0x0000000000000000000000000000000000000000000000000000000000000000",
                     exclusiveRelayer: mockQuote.deposit.exclusiveRelayer,
                     exclusivityPeriod: mockQuote.deposit.exclusivityDeadline,
                     depositNonce: 0,
@@ -139,6 +146,8 @@ describe("AcrossProvider", () => {
                 outputTokenAddress: "0x4200000000000000000000000000000000000006",
                 inputChainId: 11155111,
                 outputChainId: 84532,
+                sender: "0x0000000000000000000000000000000000000000",
+                recipient: "0x0000000000000000000000000000000000000000",
             });
 
             expect(formatTokenAmount).toHaveBeenCalledWith(
@@ -163,6 +172,8 @@ describe("AcrossProvider", () => {
                 outputTokenAddress: "0x4200000000000000000000000000000000000006",
                 inputChainId: 11155111,
                 outputChainId: 84532,
+                sender: "0x0000000000000000000000000000000000000000",
+                recipient: "0x0000000000000000000000000000000000000000",
             });
 
             expect(quote).toEqual({
@@ -188,6 +199,8 @@ describe("AcrossProvider", () => {
                         fillDeadline: mockQuote.deposit.fillDeadline,
                         orderDataType: ACROSS_ORDER_DATA_TYPE,
                         orderData: expect.any(String) as string,
+                        sender: "0x0000000000000000000000000000000000000000",
+                        recipient: "0x0000000000000000000000000000000000000000",
                     },
                 },
                 fee: {
@@ -208,10 +221,12 @@ describe("AcrossProvider", () => {
                 outputTokenAddress: "0x4200000000000000000000000000000000000006" as Hex,
                 inputAmount: BigInt(1),
                 fillDeadline: 1,
-                orderDataType: ACROSS_ORDER_DATA_TYPE as Hex,
+                orderDataType: ACROSS_ORDER_DATA_TYPE,
                 orderData: "0x" as Hex,
+                sender: "0x0000000000000000000000000000000000000000",
+                recipient: "0x0000000000000000000000000000000000000000",
             },
-        };
+        } as const;
 
         it("prepare transaction request with the correct parameters", async () => {
             vi.mocked(encodeFunctionData).mockReturnValue(
@@ -236,7 +251,7 @@ describe("AcrossProvider", () => {
                 to: ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[11155111],
                 data: "0x0000000000000000000000000000000000000000",
                 chain: sepolia,
-                gas: 21000n,
+                gas: ACROSS_OPEN_GAS_LIMIT,
             });
         });
 

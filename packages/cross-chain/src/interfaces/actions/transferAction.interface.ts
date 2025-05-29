@@ -18,6 +18,8 @@ import { SUPPORTED_TOKEN_BY_CHAIN_ID } from "../../internal.js";
  * @param Input.outputChainId - The output chain id, must be a supported chain id.
  */
 export type TransferGetQuoteParams = BasicGetQuoteParams<{
+    sender: Hex;
+    recipient: Hex;
     inputTokenAddress: Hex;
     outputTokenAddress: Hex;
     inputAmount: string;
@@ -40,8 +42,10 @@ export type TransferGetQuoteParams = BasicGetQuoteParams<{
 export type TransferGetQuoteResponse<OpenParams extends BasicOpenParams> = BasicGetQuoteResponse<
     "crossChainTransfer",
     {
-        inputTokenAddress: string;
-        outputTokenAddress: string;
+        sender: Hex;
+        recipient: Hex;
+        inputTokenAddress: Hex;
+        outputTokenAddress: Hex;
         inputAmount: string;
         outputAmount: string;
         inputChainId: keyof typeof SUPPORTED_TOKEN_BY_CHAIN_ID;

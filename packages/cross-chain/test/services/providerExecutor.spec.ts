@@ -4,7 +4,9 @@ import { createProviderExecutor, ProviderExecutor } from "../../src/external.js"
 import {
     BasicOpenParams,
     CrossChainProvider,
+    GetQuoteParams,
     GetQuoteResponse,
+    ParamsParser,
     ValidActions,
 } from "../../src/internal.js";
 
@@ -19,6 +21,26 @@ const mockProviderB = {
     getQuote: vi.fn(() => Promise.resolve({} as GetQuoteResponse<ValidActions, BasicOpenParams>)),
     simulateOpen: vi.fn(() => Promise.resolve([])),
 } as unknown as CrossChainProvider<BasicOpenParams>;
+
+const mockParamParser = {
+    parseGetQuoteParams: vi.fn(() =>
+        Promise.resolve({
+            inputTokenAddress: "0x123",
+            outputTokenAddress: "0x456",
+            inputAmount: "100",
+            inputChainId: 11155111,
+            outputChainId: 84532,
+            sender: "0x123",
+            recipient: "0x456",
+        } as GetQuoteParams<ValidActions>),
+    ),
+} as unknown as ParamsParser<{
+    inputTokenAddress: string;
+    outputTokenAddress: string;
+    inputAmount: string;
+    inputChainId: number;
+    outputChainId: number;
+}>;
 
 describe("ProviderExecutor", () => {
     beforeEach(() => {
@@ -106,6 +128,65 @@ describe("ProviderExecutor", () => {
                 inputAmount: "100",
                 inputChainId: 11155111,
                 outputChainId: 84532,
+            });
+        });
+
+        describe("with a param parser", () => {
+            it("call to parser with origin params", async () => {
+                const providerExecutor = createProviderExecutor([mockProviderA, mockProviderB], {
+                    paramParser: mockParamParser,
+                });
+                await providerExecutor.getQuotes("crossChainTransfer", {
+                    inputTokenAddress: "0x123",
+                    outputTokenAddress: "0x456",
+                    inputAmount: "100",
+                    inputChainId: 11155111,
+                    outputChainId: 84532,
+                });
+
+                expect(mockParamParser.parseGetQuoteParams).toHaveBeenCalledWith(
+                    "crossChainTransfer",
+                    {
+                        inputTokenAddress: "0x123",
+                        outputTokenAddress: "0x456",
+                        inputAmount: "100",
+                        inputChainId: 11155111,
+                        outputChainId: 84532,
+                    },
+                );
+            });
+
+            it("call to providers with parsed params", async () => {
+                const providerExecutor = createProviderExecutor([mockProviderA, mockProviderB], {
+                    paramParser: mockParamParser,
+                });
+                await providerExecutor.getQuotes("crossChainTransfer", {
+                    inputTokenAddress: "0x123",
+                    outputTokenAddress: "0x456",
+                    inputAmount: "100",
+                    inputChainId: 11155111,
+                    outputChainId: 84532,
+                });
+
+                expect(mockProviderA.getQuote).toHaveBeenCalledWith("crossChainTransfer", {
+                    inputTokenAddress: "0x123",
+                    outputTokenAddress: "0x456",
+                    inputAmount: "100",
+                    inputChainId: 11155111,
+                    outputChainId: 84532,
+                    sender: "0x123",
+                    recipient: "0x456",
+                });
+
+                expect(mockProviderB.getQuote).toHaveBeenCalledWith("crossChainTransfer", {
+                    inputTokenAddress: "0x123",
+                    outputTokenAddress: "0x456",
+                    inputAmount: "100",
+                    inputChainId: 11155111,
+                    outputChainId: 84532,
+                    sender: "0x123",
+                    recipient: "0x456",
+                });
             });
         });
     });
