@@ -59,12 +59,3 @@ The Interop SDK is designed to be embedded into:
 -   Any app that wants to offer seamless value movement
 
 Developers remain in control of what chains, protocols, and assets to support through configuration and whitelisting.
-
-## No Assumptions, Just Abstractions
-
-Interop SDK does not dictate UX or execution models—it provides the **tools** to:
-
--   Parse interoperable addresses
--   Build intent resolution pipelines
--   Aggregate routes across protocols
--   Simulate, quote, and resolve transfers
