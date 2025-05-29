@@ -15,17 +15,29 @@ import type { SidebarsConfig } from "@docusaurus/plugin-content-docs";
 const sidebars: SidebarsConfig = {
     docs: [
         "about",
+        "installation",
         {
             type: "category",
-            label: "@interop-sdk/addresses",
+            label: "Addresses",
             collapsible: false,
-            items: ["addresses/getting-started", "addresses/example"],
+            items: [
+                "addresses/getting-started",
+                "addresses/advanced-usage",
+                "addresses/example",
+                "addresses/api",
+            ],
         },
         {
             type: "category",
-            label: "@interop-sdk/cross-chain",
+            label: "Cross-Chain",
             collapsible: false,
-            items: ["cross-chain/getting-started"],
+            items: [
+                "cross-chain/getting-started",
+                "cross-chain/advanced-usage",
+                "cross-chain/example",
+                "cross-chain/flow",
+                "cross-chain/api",
+            ],
         },
     ],
 };
