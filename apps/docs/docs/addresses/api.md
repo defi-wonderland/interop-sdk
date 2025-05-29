@@ -87,7 +87,7 @@ A static class with utility methods for converting and validating interoperable 
     Checks if a string is a valid binary interop address.
 
     ```typescript
-    const isValid = await InteropAddressProvider.isValidBinaryAddress(
+    const isValid = InteropAddressProvider.isValidBinaryAddress(
         "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045",
     );
     ```

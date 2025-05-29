@@ -11,15 +11,14 @@ This guide demonstrates how to execute a cross-chain intent using the SDK. The p
 First, import the required libraries and set up your environment variables, such as your private key and a generic RPC URL.
 
 ```js
-import { createPublicClient, createWalletClient, http } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { sepolia } from "viem/chains";
-
 import {
     createCrossChainProvider,
     createProviderExecutor,
     InteropAddressParamsParser,
-} from "./external.js";
+} from "@defi-wonderland/interop";
+import { createPublicClient, createWalletClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { sepolia } from "viem/chains";
 
 // Private key for the account to send the transactions
 const PRIVATE_KEY = "";

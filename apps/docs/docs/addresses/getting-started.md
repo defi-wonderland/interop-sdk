@@ -73,4 +73,3 @@ graph TD
 ## References
 
 -   [ERC-7930: Interoperable Addresses](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365)
--   [Package Documentation](./api/addresses)

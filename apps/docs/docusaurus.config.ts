@@ -22,7 +22,7 @@ const config: Config = {
 
     // GitHub pages deployment config.
     // If you aren't using GitHub pages, you don't need these.
-    organizationName: "Ethereum Foundation", // Usually your GitHub org/user name.
+    organizationName: "ethereum", // Usually your GitHub org/user name.
     projectName: "interop-sdk", // Usually your repo name.
 
     onBrokenLinks: "throw",
