@@ -21,7 +21,7 @@ import { convertToBytes } from "./convertToBytes.js";
  * @param chainId - The EVM chain ID
  * @returns The coin type
  */
-const convertEVMChainIdToCoinType = (chainId: number) => {
+const convertEVMChainIdToCoinType = (chainId: number): number => {
     return (0x80000000 | chainId) >>> 0;
 };
 
