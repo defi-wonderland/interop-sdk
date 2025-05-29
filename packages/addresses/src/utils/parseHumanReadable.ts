@@ -88,7 +88,8 @@ export const parseHumanReadable = async (
     options: ParseHumanReadableOptions = {},
 ): Promise<InteropAddress> => {
     const { validateChecksumFlag = true } = options;
-    const parsedHumanReadableAddress = HumanReadableAddressSchema.parse(humanReadableAddress);
+    const parsedHumanReadableAddress =
+        await HumanReadableAddressSchema.parseAsync(humanReadableAddress);
 
     const { address, chainNamespace, chainReference, checksum } = parsedHumanReadableAddress;
 
