@@ -25,7 +25,7 @@ const sidebars: SidebarsConfig = {
             type: "category",
             label: "@interop-sdk/cross-chain",
             collapsible: false,
-            items: ["cross-chain/about"],
+            items: ["cross-chain/getting-started"],
         },
     ],
 };
