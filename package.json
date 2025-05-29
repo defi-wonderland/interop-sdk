@@ -2,11 +2,11 @@
     "name": "interop-sdk",
     "version": "0.0.1",
     "private": true,
-    "description": "Start your next offchain project in seconds",
-    "homepage": "https://github.com/defi-wonderland/ts-turborepo-boilerplate#readme",
+    "description": "Interop SDK",
+    "homepage": "https://github.com/defi-wonderland/interop-sdk#readme",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/defi-wonderland/ts-turborepo-boilerplate.git"
+        "url": "git+https://github.com/defi-wonderland/interop-sdk.git"
     },
     "license": "MIT",
     "author": "Wonderland",
