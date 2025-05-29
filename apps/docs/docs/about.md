@@ -9,7 +9,7 @@ Interop introduces a clean separation of concerns between **intent resolution** 
 
 ## Core Modules
 
-### `@interop-sdk/addresses`
+### `addresses`
 
 The `addresses` module provides tools to work with **interoperable addresses**—a format designed to encode a recipient, a chain, and optionally a domain name (e.g., `alice.eth@arbitrum`).
 
@@ -22,7 +22,7 @@ It includes utilities to:
 
 This module standardizes how applications handle multi-chain addressing and ensures compatibility across chains and identity systems.
 
-### `@interop-sdk/cross-chain`
+### `cross-chain`
 
 The `cross-chain` module is responsible for managing the **intent workflow**: from user input to executable transfer strategies.
 
@@ -33,6 +33,57 @@ It includes logic to:
 -   Expose a programmable interface to override routing preferences (e.g., token/chain constraints, protocol filters)
 
 This module acts as a routing engine and aggregator, designed to support declarative preferences while keeping users in control of execution.
+
+```mermaid
+---
+config:
+  class:
+    hideEmptyMembersBox: true
+  layout: dagre
+---
+classDiagram
+    SDK ..> InteropAddressModule
+    SDK ..> CrossChainModule
+    CrossChainModule o-- CrossChainProviderFactory
+    CrossChainProviderFactory o-- CrossChainProvider
+    CrossChainModule o-- CrossChainProviderExecutor
+    CrossChainModule o-- ParamsParser
+    SDK : + InteropAddressModule interopAddressUtils
+    SDK : + CrossChainModule crossChainUtils
+    CrossChainProvider <|-- Across
+    CrossChainProvider <|-- OIF1.0
+    CrossChainProvider <|-- SuperChainTokenBridge
+    ParamsParser <|-- InteropParamsParser
+    class InteropAddressModule {
+      + parseHumanReadable(humanReadableAddress: Hex) InteropAddress
+      + toHumanReadable(interopAddress: InteropAddress) Hex
+      + parseBinary(binaryAddress: Hex) InteropAddress
+      + toBinary(interopAddress: InteropAddress) Hex
+    }
+    class CrossChainModule {
+      + createCrossChainProvider(protocol, config, dependencies) CrossChainProvider
+      + createExecuter(providers: IntentProviders[]) CrossChainProviderExecutor
+    }
+    class CrossChainProviderFactory {
+      + build(protocolName: string) CrossChainProvider
+    }
+    class CrossChainProviderExecutor {
+      - providers: Map~protocolName, CrossChainProvider~
+      + new(providers:CrossChainProvider[], paramsParser: ParamsParser)
+      + getQuotes(params: GetQuoteParams) Quote[]
+      + execute(quote: Quote) Tx
+    }
+    class CrossChainProvider {
+      + getQuote(params: GetQuoteParams) Quote
+      + simulateOpen(quote: Quote) Tx
+    }
+    class ParamsParser {
+	    + parseGetQuoteParams<GetQuoteInputParams>(params: GetQuoteInputParams): GetQuoteParams
+	  }
+	  class InteropParamsParser {
+		  + parseGetQuoteParams(params: InteropInputParams): GetQuoteParams
+	  }
+```
 
 ## Intent-Centric Architecture
 
