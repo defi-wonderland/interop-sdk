@@ -3,7 +3,11 @@ slug: "/"
 title: Interop SDK
 ---
 
-The **Interop SDK** is a developer-first toolkit for building intent-based, cross-chain transfer experiences. It abstracts away the complexity of bridging, swapping, and routing across chains by letting users express what they want to do—and resolving how to do it under the hood.
+The _Interop SDK_ is a TypeScript library for building cross-chain transactions using interoperable address formats defined in ERC-7828 and ERC-7930. Is designed to power wallets and applications that want to offer seamless, single-click multichain experiences without exposing users to bridges, swap, token selections, or routing complexity.
+
+Natively supports the interoperable address format: <address> @ <chain> # <checksum>
+
+Its provider-based architecture makes it easy to integrate new protocols and chains. By default, the SDK includes support for ERC-7828/7930 address resolution and cross-chain transfers via Across, with more integrations (swaps, privacy, token aggregation) coming soon.
 
 Interop introduces a clean separation of concerns between **intent resolution** and **protocol execution**, making it easy to build wallets or apps that support seamless, programmable value transfer across multiple networks.
 
