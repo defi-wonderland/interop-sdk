@@ -57,3 +57,5 @@ All methods are also exported as individual functions to allow maximum modularit
 ## References
 
 -   [ERC 7930: Interoperable Addresses - Fellowship of Ethereum Magicians](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365)
+
+The current SDK uses Across on testnet for demo purposes only. Performance may not reflect mainnet behavior and is not representative of the final production experience

@@ -125,3 +125,5 @@ const quotesWithInterop = await executorWithParser.getQuotes("crossChainTransfer
 -   [Viem Documentation](https://viem.sh/) - Low-level Ethereum interface used for transaction handling
 -   [Zod Documentation](https://zod.dev/) - TypeScript-first schema validation used for input validation
 -   [Cross-Chain Interoperability Standards](https://ethereum.org/en/developers/docs/bridges/) - Overview of cross-chain bridge concepts
+
+The current SDK uses Across on testnet for demo purposes only. Performance may not reflect mainnet behavior and is not representative of the final production experience
