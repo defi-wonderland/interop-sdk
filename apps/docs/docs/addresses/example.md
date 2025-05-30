@@ -14,6 +14,8 @@ While interop addresses provide a convenient, human-readable way to represent ac
 
 Suppose you're a wallet developer. You want your users to be able to input an interop address (e.g., `alice.eth@op`) and seamlessly interact with contracts that only accept canonical addresses. The SDK makes this process straightforward.
 
+Since you're building a wallet and want your product to be as fast and lightweight as possible, it's best to import only the individual functions you need. This approach maximizes tree shaking and minimizes your bundle size.
+
 ### Example Workflow
 
 ```mermaid
