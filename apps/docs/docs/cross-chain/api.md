@@ -8,7 +8,7 @@ A set of classes and utilities for handling cross-chain operations through vario
 
 #### Methods
 
--   **createCrossChainProvider(protocolName: string, config?: ProviderConfig, dependencies?: Dependencies): CrossChainProvider**
+-   **createCrossChainProvider**(protocolName: string, config?: ProviderConfig, dependencies?: Dependencies): [CrossChainProvider](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/interfaces/crossChainProvider.interface.ts#L84)
 
     Creates a provider instance for a supported cross-chain protocol.
 
@@ -16,11 +16,11 @@ A set of classes and utilities for handling cross-chain operations through vario
     const provider = createCrossChainProvider("across");
     ```
 
-#### CrossChainProvider Class
+#### [CrossChainProvider Class](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/interfaces/crossChainProvider.interface.ts#L84)
 
 An abstract class that defines the interface for cross-chain protocol providers.
 
--   **getProtocolName(): string**
+-   **getProtocolName**(): string
 
     Returns the name of the protocol this provider implements.
 
@@ -28,7 +28,7 @@ An abstract class that defines the interface for cross-chain protocol providers.
     const protocolName = provider.getProtocolName(); // e.g., "across"
     ```
 
--   **getQuote(action: CrossChainAction, params: QuoteParams): Promise\<Quote\>**
+-   **getQuote**(action: CrossChainAction, params: QuoteParams): Promise\<[Quote](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/interfaces/crossChainProvider.interface.ts#L79)\>
 
     Fetches a quote for a cross-chain operation.
 
@@ -41,7 +41,7 @@ An abstract class that defines the interface for cross-chain protocol providers.
     });
     ```
 
--   **simulateOpen(openParams: OpenParams): Promise\<TransactionRequest[]\>**
+-   **simulateOpen**(openParams: OpenParams): Promise\<TransactionRequest[]\>
 
     Simulates the open transaction for a given quote.
 
@@ -49,7 +49,7 @@ An abstract class that defines the interface for cross-chain protocol providers.
     const txs = await provider.simulateOpen(quote);
     ```
 
--   **validateOpenParams(openParams: OpenParams): Promise\<boolean\>**
+-   **validateOpenParams**(openParams: OpenParams): Promise\<boolean\>
 
     Validates the parameters for opening a cross-chain transaction.
 
@@ -63,7 +63,7 @@ A utility for managing multiple cross-chain providers and executing operations a
 
 #### Methods
 
--   **createProviderExecutor(providers: CrossChainProvider[], dependencies?: Dependencies): ProviderExecutor**
+-   **createProviderExecutor**(providers: CrossChainProvider[], dependencies?: Dependencies): [ProviderExecutor](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/providerExecutor.ts#L28)
 
     Creates an executor instance for managing multiple providers.
 
@@ -75,11 +75,11 @@ A utility for managing multiple cross-chain providers and executing operations a
     ]);
     ```
 
-#### ProviderExecutor Class
+#### [ProviderExecutor Class](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/providerExecutor.ts#L28)
 
 A class that manages multiple cross-chain providers and coordinates their operations.
 
--   **getQuotes(action: CrossChainAction, params: QuoteParams): Promise\<Quote\[\]\>**
+-   **getQuotes**(action: CrossChainAction, params: QuoteParams): Promise\<[Quote\[\]](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/interfaces/crossChainProvider.interface.ts#L79)\>
 
     Retrieves quotes from all available providers for a given operation.
 
@@ -92,7 +92,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     });
     ```
 
--   **execute(quote: Quote): Promise\<TransactionResult\>**
+-   **execute**(quote: Quote): Promise\<TransactionRequest[]\>
 
     Executes a cross-chain operation using the specified quote.
 
@@ -104,7 +104,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
 
 Utilities for parsing and validating parameters used in cross-chain operations.
 
-#### InteropAddressParamsParser
+#### [InteropAddressParamsParser](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/InteropAddressParamsParser.ts#L50)
 
 A utility class for parsing interoperable addresses used in cross-chain operations.
 

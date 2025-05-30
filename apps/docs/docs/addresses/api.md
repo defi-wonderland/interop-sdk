@@ -8,7 +8,7 @@ A static class with utility methods for converting and validating interoperable 
 
 #### Methods
 
--   **humanReadableToBinary(humanReadableAddress: string): Promise\<BinaryAddress\>**
+-   **humanReadableToBinary**(humanReadableAddress: string): Promise\<[BinaryAddress](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/types/binaryAddress.ts#L3)\>
 
     Converts a human-readable address to its binary representation.
 
@@ -18,7 +18,7 @@ A static class with utility methods for converting and validating interoperable 
     );
     ```
 
--   **binaryToHumanReadable(binaryAddress: Hex): Promise\<HumanReadableAddress\>**
+-   **binaryToHumanReadable**(binaryAddress: Hex): Promise\<[HumanReadableAddress](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/types/humanReadableAddress.ts#L7)\>
 
     Converts a binary address to its human-readable representation.
 
@@ -28,7 +28,7 @@ A static class with utility methods for converting and validating interoperable 
     );
     ```
 
--   **getChainId(address: string): Promise\<EncodedChainReference\<ChainTypeName\>\>**
+-   **getChainId**(address: string): Promise\<[EncodedChainReference\<ChainTypeName\>](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/types/encodings.ts#L15)\>
 
     Extracts the chain ID from a human-readable or binary address.
 
@@ -36,7 +36,7 @@ A static class with utility methods for converting and validating interoperable 
     const chainId = await InteropAddressProvider.getChainId("alice.eth@op#ABCD1234");
     ```
 
--   **getAddress(address: string): Promise\<EncodedAddress\<ChainTypeName\>\>**
+-   **getAddress**(address: string): Promise\<[EncodedAddress\<ChainTypeName\>](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/types/encodings.ts#L24)\>
 
     Extracts the address component from a human-readable or binary address.
 
@@ -44,7 +44,7 @@ A static class with utility methods for converting and validating interoperable 
     const address = await InteropAddressProvider.getAddress("alice.eth@op#ABCD1234");
     ```
 
--   **buildFromPayload(payload: InteropAddressFields): BinaryAddress**
+-   **buildFromPayload**(payload: InteropAddressFields): [BinaryAddress](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/types/binaryAddress.ts#L3)
 
     Builds a binary interop address from a payload object.
 
@@ -58,7 +58,7 @@ A static class with utility methods for converting and validating interoperable 
     const binary = InteropAddressProvider.buildFromPayload(payload);
     ```
 
--   **computeChecksum(humanReadableAddress: string): Promise\<Checksum\>**
+-   **computeChecksum**(humanReadableAddress: string): Promise\<[Checksum](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/types/checksum.ts#L8)\>
 
     Computes the checksum for a human-readable address.
 
@@ -66,7 +66,7 @@ A static class with utility methods for converting and validating interoperable 
     const checksum = await InteropAddressProvider.computeChecksum("alice.eth@op");
     ```
 
--   **isValidInteropAddress(address: string, options?: ParseHumanReadableOptions): Promise\<boolean\>**
+-   **isValidInteropAddress**(address: string, options?: [ParseHumanReadableOptions](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/utils/parseHumanReadable.ts#L76)): Promise\<boolean\>
 
     Checks if a string is a valid interop address (human-readable or binary).
 
@@ -74,7 +74,7 @@ A static class with utility methods for converting and validating interoperable 
     const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@op");
     ```
 
--   **isValidHumanReadableAddress(humanReadableAddress: string, options?: ParseHumanReadableOptions): Promise\<boolean\>**
+-   **isValidHumanReadableAddress**(humanReadableAddress: string, options?: [ParseHumanReadableOptions](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/utils/parseHumanReadable.ts#L76)): Promise\<boolean\>
 
     Checks if a string is a valid human-readable interop address.
 
@@ -82,7 +82,7 @@ A static class with utility methods for converting and validating interoperable 
     const isValid = await InteropAddressProvider.isValidHumanReadableAddress("alice.eth@op");
     ```
 
--   **isValidBinaryAddress(binaryAddress: Hex): boolean**
+-   **isValidBinaryAddress**(binaryAddress: Hex): boolean
 
     Checks if a string is a valid binary interop address.
 
