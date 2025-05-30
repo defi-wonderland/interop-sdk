@@ -39,7 +39,7 @@ The `getChainId` method allows you to extract the chain ID from a human-readable
 import { getChainId } from "@defi-wonderland/interop";
 
 const humanReadableAddress = "alice.eth@op";
-const chainId = getChainId(humanReadableAddress);
+const chainId = await getChainId(humanReadableAddress);
 
 console.log(chainId); // 10
 ```
@@ -56,7 +56,7 @@ The `getAddress` method returns the canonical address corresponding to the inter
 import { getAddress } from "@defi-wonderland/interop";
 
 const humanReadableAddress = "alice.eth@op";
-const address = getAddress(humanReadableAddress);
+const address = await getAddress(humanReadableAddress);
 
 console.log(address); // 0x123...789
 ```

@@ -18,16 +18,16 @@ import { InteropAddressProvider } from "@defi-wonderland/interop";
 
 // Convert a human-readable address to binary format
 const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
-const binaryAddress = InteropAddressProvider.humanReadableToBinary(humanReadableAddress);
+const binaryAddress = await InteropAddressProvider.humanReadableToBinary(humanReadableAddress);
 
 // Convert a binary address back to human-readable format
-const humanReadable = InteropAddressProvider.binaryToHumanReadable(binaryAddress);
+const humanReadable = await InteropAddressProvider.binaryToHumanReadable(binaryAddress);
 
 // Extract chain ID from a binary address
-const chainId = InteropAddressProvider.getChainId(binaryAddress);
+const chainId = await InteropAddressProvider.getChainId(binaryAddress);
 
 // Extract the address component from a binary address
-const address = InteropAddressProvider.getAddress(binaryAddress);
+const address = await InteropAddressProvider.getAddress(binaryAddress);
 ```
 
 ### Using Individual Functions
@@ -43,7 +43,7 @@ import {
 } from "@defi-wonderland/interop";
 
 const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
-const binaryAddress = humanReadableToBinary(humanReadableAddress);
+const binaryAddress = await humanReadableToBinary(humanReadableAddress);
 ```
 
 ## Address Format
