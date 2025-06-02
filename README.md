@@ -24,11 +24,20 @@ interop-sdk/
 -   Node.js 20.x
 -   pnpm 9.7.1 or later
 
-## Getting started
+## Getting Started
 
-```bash
-pnpm add @defi-wonderland/interop
-```
+1. **Install dependencies**
+
+    ```bash
+    pnpm install
+    ```
+
+2. **Build all packages**
+    ```bash
+    pnpm build
+    ```
+
+## Docs
 
 Checkout the [documentation](https://interop-sdk.vercel.app) for guides and examples on how to get started and use the libraries effectively
 
