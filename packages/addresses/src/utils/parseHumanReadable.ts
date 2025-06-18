@@ -17,7 +17,7 @@ import {
 import { convertToBytes } from "./convertToBytes.js";
 
 /**
- * Converts an EVM chain ID to a coin type
+ * Converts an EVM chain ID to a coin type, see https://docs.ens.domains/ensip/11/#specification
  * @param chainId - The EVM chain ID
  * @returns The coin type
  */
