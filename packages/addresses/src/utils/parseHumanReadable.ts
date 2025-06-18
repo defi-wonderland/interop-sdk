@@ -8,6 +8,7 @@ import {
     Checksum,
     ENSLookupFailed,
     ENSNotFound,
+    ETHEREUM_COIN_TYPE,
     HumanReadableAddressSchema,
     InteropAddress,
     InvalidChainNamespace,
@@ -48,7 +49,7 @@ const parseAddress = async (
                     });
                     const coinType =
                         chainReference === "1"
-                            ? 60 // ETH mainnet coin type
+                            ? ETHEREUM_COIN_TYPE
                             : convertEVMChainIdToCoinType(Number(chainReference));
                     const ensAddress = await client.getEnsAddress({
                         name: normalize(address),
