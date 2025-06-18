@@ -7,15 +7,15 @@ on:
 jobs:
     publish:
         runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/addresses
         steps:
             - name: Check out github repository
               uses: actions/checkout@v4
 
             - name: Setup environment
               uses: ./.github/actions/setup
-
-            - name: Move to addresses package
-              run: cd packages/addresses
 
             - name: Install dependencies
               run: pnpm install --frozen-lockfile

@@ -7,15 +7,15 @@ on:
 jobs:
     publish:
         runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/cross-chain
         steps:
             - name: Check out github repository
               uses: actions/checkout@v4
 
             - name: Setup environment
               uses: ./.github/actions/setup
-
-            - name: Move to cross-chain package
-              run: cd packages/cross-chain
 
             - name: Remove internal dependencies
               run: pnpm remove @defi-wonderland/interop-addresses
