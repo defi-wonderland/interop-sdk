@@ -1,0 +1,19 @@
+name: Publish
+
+on:
+    workflow_call:
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Publish Addresses Package
+              uses: ./.github/workflows/publish-addresses-package.yml
+
+            - name: Publish Cross-Chain Package
+              uses: ./.github/workflows/publish-cross-chain-package.yml
+
+            - name: Publish SDK
+              uses: ./.github/workflows/publish-sdk.yml
+
+            - name:
