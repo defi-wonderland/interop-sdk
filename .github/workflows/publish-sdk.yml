@@ -1,4 +1,4 @@
-name: Publish Cross-Chain Package
+name: Publish SDK
 
 on:
     workflow_call:
