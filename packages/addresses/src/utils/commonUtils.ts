@@ -175,6 +175,7 @@ export const formatAddress = async <T extends ChainTypeName>(
     switch (chainTypeHex) {
         case ChainTypeValue.EIP155:
             const hexAddress = toHex(address);
+            // FIXME: use ERC-7828 to reverse resolution of ENS addresses
             if (acceptENS) {
                 const client = createPublicClient({
                     chain: mainnet,
