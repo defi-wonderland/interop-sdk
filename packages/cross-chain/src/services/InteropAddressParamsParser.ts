@@ -3,7 +3,7 @@ import {
     HumanReadableAddress,
     InteropAddressProvider,
     isValidBinaryAddress,
-} from "@interop-sdk/addresses";
+} from "@defi-wonderland/interop-addresses";
 import { Address, isAddress } from "viem";
 import { z } from "zod";
 

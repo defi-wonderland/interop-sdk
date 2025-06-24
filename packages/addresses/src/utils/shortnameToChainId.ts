@@ -30,9 +30,12 @@ const fetchShortnameToChainId = async (): Promise<Record<string, number>> => {
     }
 };
 
-const shortnameToChainIdMap: Record<string, number> =
-    process.env.NODE_ENV !== "test" ? await fetchShortnameToChainId() : DEFAULT_CHAIN_SHORTNAME_MAP;
+const shortnameToChainIdMap: Promise<Record<string, number>> =
+    process.env.NODE_ENV !== "test"
+        ? fetchShortnameToChainId()
+        : Promise.resolve(DEFAULT_CHAIN_SHORTNAME_MAP);
 
-export const shortnameToChainId = (shortName: string): number | undefined => {
-    return shortnameToChainIdMap[shortName];
+// TODO: try to remove await for this function
+export const shortnameToChainId = async (shortName: string): Promise<number | undefined> => {
+    return (await shortnameToChainIdMap)[shortName];
 };
