@@ -4,14 +4,15 @@ on:
     workflow_dispatch:
 
 jobs:
-    publish:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Publish Addresses Package
-              uses: ./.github/workflows/publish-addresses-package.yml
+    publish-addresses-package:
+        uses: ./.github/workflows/publish-addresses-package.yml
 
-            - name: Publish Cross-Chain Package
-              uses: ./.github/workflows/publish-cross-chain-package.yml
+    publish-cross-chain-package:
+        needs: publish-addresses-package
+        uses: ./.github/workflows/publish-cross-chain-package.yml
 
-            - name: Publish SDK
-              uses: ./.github/workflows/publish-sdk.yml
+    publish-sdk:
+        needs:
+            - publish-addresses-package
+            - publish-cross-chain-package
+        uses: ./.github/workflows/publish-sdk.yml
