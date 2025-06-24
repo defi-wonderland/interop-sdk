@@ -8,6 +8,7 @@ import {
     Checksum,
     ENSLookupFailed,
     ENSNotFound,
+    ETHEREUM_COIN_TYPE,
     HumanReadableAddressSchema,
     InteropAddress,
     InvalidChainNamespace,
@@ -17,11 +18,21 @@ import {
 import { convertToBytes } from "./convertToBytes.js";
 
 /**
+ * Converts an EVM chain ID to a coin type, see https://docs.ens.domains/ensip/11/#specification
+ * @param chainId - The EVM chain ID
+ * @returns The coin type
+ */
+const convertEVMChainIdToCoinType = (chainId: number): number => {
+    return (0x80000000 | chainId) >>> 0;
+};
+
+/**
  * Parses an address string, handling both regular addresses and ENS names
  * @throws {Error} If the address is invalid or ENS lookup fails
  */
 const parseAddress = async (
     chainNamespace: ChainTypeName,
+    chainReference: string,
     address: string,
 ): Promise<Uint8Array> => {
     if (!address) {
@@ -36,7 +47,14 @@ const parseAddress = async (
                         chain: chains.mainnet,
                         transport: http(),
                     });
-                    const ensAddress = await client.getEnsAddress({ name: normalize(address) });
+                    const coinType =
+                        chainReference === "1"
+                            ? ETHEREUM_COIN_TYPE
+                            : convertEVMChainIdToCoinType(Number(chainReference));
+                    const ensAddress = await client.getEnsAddress({
+                        name: normalize(address),
+                        coinType,
+                    });
                     if (!ensAddress) {
                         throw new ENSNotFound(address);
                     }
@@ -94,7 +112,7 @@ export const parseHumanReadable = async (
     const { address, chainNamespace, chainReference, checksum } = parsedHumanReadableAddress;
 
     const addressBytes = address
-        ? await parseAddress(chainNamespace as ChainTypeName, address)
+        ? await parseAddress(chainNamespace as ChainTypeName, chainReference, address)
         : new Uint8Array();
     const chainReferenceBytes = chainReference
         ? parseChainReference(chainNamespace as ChainTypeName, chainReference)

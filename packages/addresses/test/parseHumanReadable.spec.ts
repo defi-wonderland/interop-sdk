@@ -129,6 +129,13 @@ describe("erc7930", () => {
             expect(interopAddress).toEqual(expected);
         });
 
+        it("throws if ENS lookup fails for EVM chain", async () => {
+            const humanReadableAddress = "vitalik.eth@eip155:10#4CA88C9C";
+
+            mockGetEnsAddress.mockRejectedValue(new ENSNotFound(humanReadableAddress));
+            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(ENSNotFound);
+        });
+
         it("allows hyphens in ENS name", async () => {
             const humanReadableAddress = "ens-with-hyphens.eth@eip155:1#4CA88C9C";
             const expected: InteropAddress = {

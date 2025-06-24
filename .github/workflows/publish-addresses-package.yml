@@ -1,0 +1,29 @@
+name: Publish Addresses Package
+
+on:
+    workflow_call:
+    workflow_dispatch:
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/addresses
+        steps:
+            - name: Check out github repository
+              uses: actions/checkout@v4
+
+            - name: Setup environment
+              uses: ./.github/actions/setup
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Run Build
+              run: pnpm build
+
+            - name: Publish
+              run: npm publish
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,7 +2,7 @@
     "name": "interop-sdk",
     "version": "0.0.1",
     "private": true,
-    "description": "Interop SDK",
+    "description": "A TypeScript SDK for blockchain interoperability, featuring ERC-7930 compliant addresses and cross-chain operations. Enables seamless interaction between different blockchain networks with a unified API.",
     "homepage": "https://github.com/defi-wonderland/interop-sdk#readme",
     "repository": {
         "type": "git",

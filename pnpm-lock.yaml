@@ -24,7 +24,7 @@ importers:
                 version: 7.18.0(eslint@8.56.0)(typescript@5.5.4)
             "@vitest/coverage-v8":
                 specifier: 2.0.5
-                version: 2.0.5(vitest@2.0.5(@types/node@20.3.1))
+                version: 2.0.5(vitest@2.0.5(@types/node@20.3.1)(terser@5.40.0))
             commitlint:
                 specifier: 19.4.1
                 version: 19.4.1(@types/node@20.3.1)(typescript@5.5.4)
@@ -36,7 +36,7 @@ importers:
                 version: 9.1.0(eslint@8.56.0)
             eslint-plugin-prettier:
                 specifier: 5.2.1
-                version: 5.2.1(eslint-config-prettier@9.1.0(eslint@8.56.0))(eslint@8.56.0)(prettier@3.3.3)
+                version: 5.2.1(@types/eslint@9.6.1)(eslint-config-prettier@9.1.0(eslint@8.56.0))(eslint@8.56.0)(prettier@3.3.3)
             husky:
                 specifier: 9.1.5
                 version: 9.1.5
@@ -57,16 +57,7 @@ importers:
                 version: 5.5.4
             vitest:
                 specifier: 2.0.5
-                version: 2.0.5(@types/node@20.3.1)
-
-    apps/sdk:
-        dependencies:
-            "@defi-wonderland/interop-addresses":
-                specifier: 0.0.1
-                version: 0.0.1(typescript@5.5.4)
-            "@defi-wonderland/interop-cross-chain":
-                specifier: 0.0.1
-                version: 0.0.1(typescript@5.5.4)
+                version: 2.0.5(@types/node@20.3.1)(terser@5.40.0)
 
     packages/addresses:
         dependencies:
@@ -78,7 +69,7 @@ importers:
                 version: 6.0.0
             viem:
                 specifier: 2.28.0
-                version: 2.28.0(typescript@5.5.4)(zod@3.24.3)
+                version: 2.28.0(typescript@5.6.3)(zod@3.24.3)
             zod:
                 specifier: 3.24.3
                 version: 3.24.3
@@ -87,13 +78,13 @@ importers:
         dependencies:
             "@across-protocol/app-sdk":
                 specifier: 0.2.2
-                version: 0.2.2(viem@2.29.2(typescript@5.5.4)(zod@3.24.3))
+                version: 0.2.2(viem@2.29.2(typescript@5.6.3)(zod@3.24.3))
             "@defi-wonderland/interop-addresses":
-                specifier: 0.0.1
-                version: 0.0.1(typescript@5.5.4)
+                specifier: workspace:*
+                version: link:../addresses
             viem:
                 specifier: 2.29.2
-                version: 2.29.2(typescript@5.5.4)(zod@3.24.3)
+                version: 2.29.2(typescript@5.6.3)(zod@3.24.3)
             zod:
                 specifier: 3.24.3
                 version: 3.24.3
@@ -368,20 +359,6 @@ packages:
                 integrity: sha512-tpyc+7i6bPG9mvaBbtKUeghfyZSDgWquIDfMgqYtTbmZ9Y9VzEm2je9EYcQ0aoz5o7NvGS+rcDec93yO08MHYA==,
             }
         engines: { node: ">=v18" }
-
-    "@defi-wonderland/interop-addresses@0.0.1":
-        resolution:
-            {
-                integrity: sha512-xTFSTytVzGjRNr1ZOFhhA3uuaG6ZKqSmJXy5pNyq+jPrH5YvlgmrDdmgMhfDFSCGdnfbM020Xx0OObYl23BylQ==,
-                tarball: https://npm.pkg.github.com/download/@defi-wonderland/interop-addresses/0.0.1/25b368a9024e2ca8878c5a2a7fcb910b1809d0df,
-            }
-
-    "@defi-wonderland/interop-cross-chain@0.0.1":
-        resolution:
-            {
-                integrity: sha512-BxQoGm2uAfhGMhZ7oR+HLPIVcY4fWJ+Fw+e06pbhvFolDmYcIXi/Dn7WlVKEgeOUP5AwCTFkhp31IKI4FXJm7w==,
-                tarball: https://npm.pkg.github.com/download/@defi-wonderland/interop-cross-chain/0.0.1/58daa9fad5db7fd2c4ed8cfb6947f40779654493,
-            }
 
     "@esbuild/aix-ppc64@0.21.5":
         resolution:
@@ -689,6 +666,12 @@ packages:
             }
         engines: { node: ">=6.0.0" }
 
+    "@jridgewell/source-map@0.3.6":
+        resolution:
+            {
+                integrity: sha512-1ZJTZebgqllO79ue2bm3rIGud/bOe0pP5BjSRCRxxYkEZS8STV7zN84UBbiYu7jy+eCKSnVIUgoWWE/tt+shMQ==,
+            }
+
     "@jridgewell/sourcemap-codec@1.5.0":
         resolution:
             {
@@ -934,10 +917,22 @@ packages:
                 integrity: sha512-loB369iXNmAZglwWATL+WRe+CRMmmBPtpolYzIebFaX4YA3x+BEfLqhUAV9WanycKI3TG1IMr5bMJDajDKLlUQ==,
             }
 
+    "@types/eslint@9.6.1":
+        resolution:
+            {
+                integrity: sha512-FXx2pKgId/WyYo2jXw63kk7/+TY7u7AziEJxJAnSFzHlqTAS3Ync6SvgYAN/k4/PQpnnVuzoMuVnByKK2qp0ag==,
+            }
+
     "@types/estree@1.0.7":
         resolution:
             {
                 integrity: sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ==,
+            }
+
+    "@types/json-schema@7.0.15":
+        resolution:
+            {
+                integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==,
             }
 
     "@types/node@20.3.1":
@@ -1115,6 +1110,14 @@ packages:
         engines: { node: ">=0.4.0" }
         hasBin: true
 
+    acorn@8.14.1:
+        resolution:
+            {
+                integrity: sha512-OvQ/2pUDKmgfCg++xsTX1wGxfTaszcHVcTctW4UJB4hibJx2HXxxO5UmVgyjMa+ZDsiaf5wWLXYpRWMmBI0QHg==,
+            }
+        engines: { node: ">=0.4.0" }
+        hasBin: true
+
     ajv@6.12.6:
         resolution:
             {
@@ -1252,6 +1255,12 @@ packages:
                 integrity: sha512-PD0wEnEYg6ijszw/u8s+iI3H17cTymlrwkKhDhPZq+Sokl3AU4htyBFTjAeNAlCCmg0f53g6ih3jATyCKftTfw==,
             }
 
+    buffer-from@1.1.2:
+        resolution:
+            {
+                integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==,
+            }
+
     cac@6.7.14:
         resolution:
             {
@@ -1379,6 +1388,12 @@ packages:
                 integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==,
             }
         engines: { node: ">=18" }
+
+    commander@2.20.3:
+        resolution:
+            {
+                integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==,
+            }
 
     commitlint@19.4.1:
         resolution:
@@ -2982,6 +2997,19 @@ packages:
             }
         engines: { node: ">=0.10.0" }
 
+    source-map-support@0.5.21:
+        resolution:
+            {
+                integrity: sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==,
+            }
+
+    source-map@0.6.1:
+        resolution:
+            {
+                integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==,
+            }
+        engines: { node: ">=0.10.0" }
+
     split2@4.2.0:
         resolution:
             {
@@ -3077,6 +3105,14 @@ packages:
                 integrity: sha512-7gr8p9TQP6RAHusBOSLs46F4564ZrjV8xFmw5zCmgmhGUcw2hxsShhJ6CEiHQMgPDwAQ1fWHPM0ypc4RMAig4A==,
             }
         engines: { node: ^14.18.0 || >=16.0.0 }
+
+    terser@5.40.0:
+        resolution:
+            {
+                integrity: sha512-cfeKl/jjwSR5ar7d0FGmave9hFGJT8obyo0z+CrQOylLDbk7X81nPU6vq9VORa5jU30SkDnT2FXjLbR8HLP+xA==,
+            }
+        engines: { node: ">=10" }
+        hasBin: true
 
     test-exclude@7.0.1:
         resolution:
@@ -3233,6 +3269,14 @@ packages:
         resolution:
             {
                 integrity: sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q==,
+            }
+        engines: { node: ">=14.17" }
+        hasBin: true
+
+    typescript@5.6.3:
+        resolution:
+            {
+                integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==,
             }
         engines: { node: ">=14.17" }
         hasBin: true
@@ -3472,9 +3516,9 @@ packages:
             }
 
 snapshots:
-    "@across-protocol/app-sdk@0.2.2(viem@2.29.2(typescript@5.5.4)(zod@3.24.3))":
+    "@across-protocol/app-sdk@0.2.2(viem@2.29.2(typescript@5.6.3)(zod@3.24.3))":
         dependencies:
-            viem: 2.29.2(typescript@5.5.4)(zod@3.24.3)
+            viem: 2.29.2(typescript@5.6.3)(zod@3.24.3)
 
     "@adraffy/ens-normalize@1.11.0": {}
 
@@ -3708,30 +3752,6 @@ snapshots:
             "@types/conventional-commits-parser": 5.0.0
             chalk: 5.3.0
 
-    "@defi-wonderland/interop-addresses@0.0.1(typescript@5.5.4)":
-        dependencies:
-            axios: 1.9.0
-            bs58: 6.0.0
-            viem: 2.28.0(typescript@5.5.4)(zod@3.24.3)
-            zod: 3.24.3
-        transitivePeerDependencies:
-            - bufferutil
-            - debug
-            - typescript
-            - utf-8-validate
-
-    "@defi-wonderland/interop-cross-chain@0.0.1(typescript@5.5.4)":
-        dependencies:
-            "@across-protocol/app-sdk": 0.2.2(viem@2.29.2(typescript@5.5.4)(zod@3.24.3))
-            "@defi-wonderland/interop-addresses": 0.0.1(typescript@5.5.4)
-            viem: 2.29.2(typescript@5.5.4)(zod@3.24.3)
-            zod: 3.24.3
-        transitivePeerDependencies:
-            - bufferutil
-            - debug
-            - typescript
-            - utf-8-validate
-
     "@esbuild/aix-ppc64@0.21.5":
         optional: true
 
@@ -3869,6 +3889,12 @@ snapshots:
 
     "@jridgewell/set-array@1.2.1": {}
 
+    "@jridgewell/source-map@0.3.6":
+        dependencies:
+            "@jridgewell/gen-mapping": 0.3.5
+            "@jridgewell/trace-mapping": 0.3.25
+        optional: true
+
     "@jridgewell/sourcemap-codec@1.5.0": {}
 
     "@jridgewell/trace-mapping@0.3.25":
@@ -3976,7 +4002,16 @@ snapshots:
         dependencies:
             "@types/node": 20.3.1
 
+    "@types/eslint@9.6.1":
+        dependencies:
+            "@types/estree": 1.0.7
+            "@types/json-schema": 7.0.15
+        optional: true
+
     "@types/estree@1.0.7": {}
+
+    "@types/json-schema@7.0.15":
+        optional: true
 
     "@types/node@20.3.1": {}
 
@@ -4063,7 +4098,7 @@ snapshots:
 
     "@ungap/structured-clone@1.2.0": {}
 
-    "@vitest/coverage-v8@2.0.5(vitest@2.0.5(@types/node@20.3.1))":
+    "@vitest/coverage-v8@2.0.5(vitest@2.0.5(@types/node@20.3.1)(terser@5.40.0))":
         dependencies:
             "@ampproject/remapping": 2.3.0
             "@bcoe/v8-coverage": 0.2.3
@@ -4077,7 +4112,7 @@ snapshots:
             std-env: 3.7.0
             test-exclude: 7.0.1
             tinyrainbow: 1.2.0
-            vitest: 2.0.5(@types/node@20.3.1)
+            vitest: 2.0.5(@types/node@20.3.1)(terser@5.40.0)
         transitivePeerDependencies:
             - supports-color
 
@@ -4119,9 +4154,9 @@ snapshots:
             jsonparse: 1.3.1
             through: 2.3.8
 
-    abitype@1.0.8(typescript@5.5.4)(zod@3.24.3):
+    abitype@1.0.8(typescript@5.6.3)(zod@3.24.3):
         optionalDependencies:
-            typescript: 5.5.4
+            typescript: 5.6.3
             zod: 3.24.3
 
     acorn-jsx@5.3.2(acorn@8.12.1):
@@ -4129,6 +4164,9 @@ snapshots:
             acorn: 8.12.1
 
     acorn@8.12.1: {}
+
+    acorn@8.14.1:
+        optional: true
 
     ajv@6.12.6:
         dependencies:
@@ -4208,6 +4246,9 @@ snapshots:
         dependencies:
             base-x: 5.0.1
 
+    buffer-from@1.1.2:
+        optional: true
+
     cac@6.7.14: {}
 
     call-bind-apply-helpers@1.0.2:
@@ -4276,6 +4317,9 @@ snapshots:
             delayed-stream: 1.0.0
 
     commander@12.1.0: {}
+
+    commander@2.20.3:
+        optional: true
 
     commitlint@19.4.1(@types/node@20.3.1)(typescript@5.5.4):
         dependencies:
@@ -4434,13 +4478,14 @@ snapshots:
         dependencies:
             eslint: 8.56.0
 
-    eslint-plugin-prettier@5.2.1(eslint-config-prettier@9.1.0(eslint@8.56.0))(eslint@8.56.0)(prettier@3.3.3):
+    eslint-plugin-prettier@5.2.1(@types/eslint@9.6.1)(eslint-config-prettier@9.1.0(eslint@8.56.0))(eslint@8.56.0)(prettier@3.3.3):
         dependencies:
             eslint: 8.56.0
             prettier: 3.3.3
             prettier-linter-helpers: 1.0.0
             synckit: 0.9.1
         optionalDependencies:
+            "@types/eslint": 9.6.1
             eslint-config-prettier: 9.1.0(eslint@8.56.0)
 
     eslint-scope@7.2.2:
@@ -4984,17 +5029,17 @@ snapshots:
             type-check: 0.4.0
             word-wrap: 1.2.5
 
-    ox@0.6.9(typescript@5.5.4)(zod@3.24.3):
+    ox@0.6.9(typescript@5.6.3)(zod@3.24.3):
         dependencies:
             "@adraffy/ens-normalize": 1.11.0
             "@noble/curves": 1.8.2
             "@noble/hashes": 1.7.2
             "@scure/bip32": 1.6.2
             "@scure/bip39": 1.5.4
-            abitype: 1.0.8(typescript@5.5.4)(zod@3.24.3)
+            abitype: 1.0.8(typescript@5.6.3)(zod@3.24.3)
             eventemitter3: 5.0.1
         optionalDependencies:
-            typescript: 5.5.4
+            typescript: 5.6.3
         transitivePeerDependencies:
             - zod
 
@@ -5168,6 +5213,15 @@ snapshots:
 
     source-map-js@1.2.1: {}
 
+    source-map-support@0.5.21:
+        dependencies:
+            buffer-from: 1.1.2
+            source-map: 0.6.1
+        optional: true
+
+    source-map@0.6.1:
+        optional: true
+
     split2@4.2.0: {}
 
     stackback@0.0.2: {}
@@ -5218,6 +5272,14 @@ snapshots:
         dependencies:
             "@pkgr/core": 0.1.1
             tslib: 2.7.0
+
+    terser@5.40.0:
+        dependencies:
+            "@jridgewell/source-map": 0.3.6
+            acorn: 8.14.1
+            commander: 2.20.3
+            source-map-support: 0.5.21
+        optional: true
 
     test-exclude@7.0.1:
         dependencies:
@@ -5286,6 +5348,9 @@ snapshots:
 
     typescript@5.5.4: {}
 
+    typescript@5.6.3:
+        optional: true
+
     unicorn-magic@0.1.0: {}
 
     update-browserslist-db@1.1.0(browserslist@4.23.3):
@@ -5298,47 +5363,47 @@ snapshots:
         dependencies:
             punycode: 2.3.1
 
-    viem@2.28.0(typescript@5.5.4)(zod@3.24.3):
+    viem@2.28.0(typescript@5.6.3)(zod@3.24.3):
         dependencies:
             "@noble/curves": 1.8.2
             "@noble/hashes": 1.7.2
             "@scure/bip32": 1.6.2
             "@scure/bip39": 1.5.4
-            abitype: 1.0.8(typescript@5.5.4)(zod@3.24.3)
+            abitype: 1.0.8(typescript@5.6.3)(zod@3.24.3)
             isows: 1.0.6(ws@8.18.1)
-            ox: 0.6.9(typescript@5.5.4)(zod@3.24.3)
+            ox: 0.6.9(typescript@5.6.3)(zod@3.24.3)
             ws: 8.18.1
         optionalDependencies:
-            typescript: 5.5.4
+            typescript: 5.6.3
         transitivePeerDependencies:
             - bufferutil
             - utf-8-validate
             - zod
 
-    viem@2.29.2(typescript@5.5.4)(zod@3.24.3):
+    viem@2.29.2(typescript@5.6.3)(zod@3.24.3):
         dependencies:
             "@noble/curves": 1.8.2
             "@noble/hashes": 1.7.2
             "@scure/bip32": 1.6.2
             "@scure/bip39": 1.5.4
-            abitype: 1.0.8(typescript@5.5.4)(zod@3.24.3)
+            abitype: 1.0.8(typescript@5.6.3)(zod@3.24.3)
             isows: 1.0.6(ws@8.18.1)
-            ox: 0.6.9(typescript@5.5.4)(zod@3.24.3)
+            ox: 0.6.9(typescript@5.6.3)(zod@3.24.3)
             ws: 8.18.1
         optionalDependencies:
-            typescript: 5.5.4
+            typescript: 5.6.3
         transitivePeerDependencies:
             - bufferutil
             - utf-8-validate
             - zod
 
-    vite-node@2.0.5(@types/node@20.3.1):
+    vite-node@2.0.5(@types/node@20.3.1)(terser@5.40.0):
         dependencies:
             cac: 6.7.14
             debug: 4.3.7
             pathe: 1.1.2
             tinyrainbow: 1.2.0
-            vite: 5.4.3(@types/node@20.3.1)
+            vite: 5.4.3(@types/node@20.3.1)(terser@5.40.0)
         transitivePeerDependencies:
             - "@types/node"
             - less
@@ -5350,7 +5415,7 @@ snapshots:
             - supports-color
             - terser
 
-    vite@5.4.3(@types/node@20.3.1):
+    vite@5.4.3(@types/node@20.3.1)(terser@5.40.0):
         dependencies:
             esbuild: 0.21.5
             postcss: 8.4.45
@@ -5358,8 +5423,9 @@ snapshots:
         optionalDependencies:
             "@types/node": 20.3.1
             fsevents: 2.3.3
+            terser: 5.40.0
 
-    vitest@2.0.5(@types/node@20.3.1):
+    vitest@2.0.5(@types/node@20.3.1)(terser@5.40.0):
         dependencies:
             "@ampproject/remapping": 2.3.0
             "@vitest/expect": 2.0.5
@@ -5377,8 +5443,8 @@ snapshots:
             tinybench: 2.9.0
             tinypool: 1.0.1
             tinyrainbow: 1.2.0
-            vite: 5.4.3(@types/node@20.3.1)
-            vite-node: 2.0.5(@types/node@20.3.1)
+            vite: 5.4.3(@types/node@20.3.1)(terser@5.40.0)
+            vite-node: 2.0.5(@types/node@20.3.1)(terser@5.40.0)
             why-is-node-running: 2.3.0
         optionalDependencies:
             "@types/node": 20.3.1

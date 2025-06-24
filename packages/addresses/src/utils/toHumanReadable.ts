@@ -19,9 +19,7 @@ export const toHumanReadable = async (
     addressData: InteropAddress,
 ): Promise<HumanReadableAddress> => {
     const { chainType, chainReference, address } = validateInteropAddress(addressData);
-    const formattedAddress = address.length
-        ? await formatAddress(address, chainType, { acceptENS: true })
-        : "";
+    const formattedAddress = address.length ? await formatAddress(address, chainType) : "";
     const chainTypeHex = toHex(chainType);
     const namespace = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex as ChainTypeValue];
 
