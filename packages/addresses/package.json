@@ -1,8 +1,12 @@
 {
-    "name": "@interop-sdk/addresses",
+    "name": "@defi-wonderland/interop-addresses",
     "version": "0.0.1",
-    "private": true,
     "description": "",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/defi-wonderland/interop-sdk.git",
+        "directory": "packages/addresses"
+    },
     "license": "MIT",
     "author": "Wonderland",
     "type": "module",

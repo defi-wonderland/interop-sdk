@@ -1,11 +1,11 @@
 {
-    "name": "@defi-wonderland/interop-cross-chain",
+    "name": "@defi-wonderland/interop",
     "version": "0.0.1",
     "description": "",
     "repository": {
         "type": "git",
         "url": "https://github.com/defi-wonderland/interop-sdk.git",
-        "directory": "packages/cross-chain"
+        "directory": "apps/sdk"
     },
     "license": "MIT",
     "author": "Wonderland",
@@ -32,9 +32,7 @@
         "test:cov": "vitest run --config vitest.config.ts --coverage"
     },
     "dependencies": {
-        "@across-protocol/app-sdk": "0.2.2",
         "@defi-wonderland/interop-addresses": "workspace:*",
-        "viem": "2.29.2",
-        "zod": "3.24.3"
+        "@defi-wonderland/interop-cross-chain": "workspace:*"
     }
 }

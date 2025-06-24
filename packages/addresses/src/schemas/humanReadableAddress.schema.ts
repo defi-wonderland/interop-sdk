@@ -11,7 +11,7 @@ import {
     shortnameToChainId,
 } from "../internal.js";
 
-export const HumanReadableAddressSchema = z.string().transform((value) => {
+export const HumanReadableAddressSchema = z.string().transform(async (value) => {
     if (!value || value.trim() === "") {
         throw new MissingHumanReadableAddress();
     }
@@ -32,7 +32,7 @@ export const HumanReadableAddressSchema = z.string().transform((value) => {
         throw new InvalidChainNamespace(chainNamespace);
     }
 
-    const chainId = shortnameToChainId(chain || "");
+    const chainId = await shortnameToChainId(chain || "");
     const chainReference = chainId ? chainId.toString() : (chain ?? "");
 
     if (chainReference && !isValidChain(chainNamespace as ChainTypeName, chainReference)) {
