@@ -1,5 +1,12 @@
 import { z } from "zod";
 
-import { SampleOpenParamsSchema } from "../internal.js";
+import {
+    SampleSwapOpenParamsSchema,
+    SampleTransferOpenParamsSchema,
+} from "../schemas/SampleOpenParams.schema.js";
 
-export type SampleOpenParams = z.infer<typeof SampleOpenParamsSchema>;
+export type SampleTransferOpenParams = z.infer<typeof SampleTransferOpenParamsSchema>;
+
+export type SampleSwapOpenParams = z.infer<typeof SampleSwapOpenParamsSchema>;
+
+export type SampleOpenParams = SampleTransferOpenParams | SampleSwapOpenParams;

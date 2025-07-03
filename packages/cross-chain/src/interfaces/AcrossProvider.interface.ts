@@ -1,11 +1,20 @@
 import { z } from "zod";
 
-import { AcrossTransferOpenParamsSchema } from "../schemas/AcrossTransferOpenParams.schema.js";
+import {
+    AcrossSwapOpenParamsSchema,
+    AcrossTransferOpenParamsSchema,
+} from "../schemas/AcrossOpenParams.schema.js";
+
+export type SupportedSwapProtocols = "uniswap";
 
 export type AcrossTransferOpenParams = z.infer<typeof AcrossTransferOpenParamsSchema>;
 
-export type AcrossOpenParams = AcrossTransferOpenParams;
+export type AcrossSwapOpenParams = z.infer<typeof AcrossSwapOpenParamsSchema>;
 
-export type AcrossConfigs = undefined;
+export type AcrossOpenParams = AcrossTransferOpenParams | AcrossSwapOpenParams;
+
+export type AcrossConfigs = {
+    swapProtocol?: SupportedSwapProtocols;
+};
 
 export type AcrossDependencies = undefined;

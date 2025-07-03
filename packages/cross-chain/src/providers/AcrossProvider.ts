@@ -20,7 +20,10 @@ import {
     ACROSS_ORDER_DATA_ABI,
     ACROSS_ORDER_DATA_TYPE,
     ACROSS_TESTING_API_URL,
+    AcrossConfigs,
     AcrossOpenParams,
+    AcrossSwapOpenParams,
+    AcrossSwapOpenParamsSchema,
     AcrossTransferOpenParams,
     AcrossTransferOpenParamsSchema,
     CrossChainProvider,
@@ -32,11 +35,13 @@ import {
     OPEN_ABI,
     parseTokenAmount,
     SUPPORTED_CHAINS,
+    SupportedSwapProtocols,
     TransferGetQuoteParams,
     TransferGetQuoteParamsSchema,
     TransferGetQuoteResponse,
     UnsupportedAction,
     UnsupportedChainId,
+    ValidActions,
 } from "../internal.js";
 
 /**
@@ -47,8 +52,15 @@ import {
  * @returns A provider for the Across protocol
  */
 export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
-    readonly protocolName = "across";
+    readonly protocolName: string;
+    private readonly swapProtocol?: SupportedSwapProtocols;
     private readonly clientCache: Map<number, PublicClient> = new Map();
+
+    constructor(config?: AcrossConfigs) {
+        super();
+        this.swapProtocol = config?.swapProtocol;
+        this.protocolName = "across" + (this.swapProtocol ? `_${this.swapProtocol}` : "");
+    }
 
     private getPublicClient({ chain }: { chain: Chain }): PublicClient {
         if (this.clientCache.has(chain.id)) {
@@ -67,7 +79,10 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @param params - The parameters for the action
      * @returns A quote for the action
      */
-    private async getAcrossQuote(params: TransferGetQuoteParams): Promise<Quote> {
+    private async getAcrossQuote(
+        _action: ValidActions,
+        params: TransferGetQuoteParams,
+    ): Promise<Quote> {
         const route = {
             originChainId: Number(params.inputChainId),
             destinationChainId: Number(params.outputChainId),
@@ -92,11 +107,14 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             { publicClient: this.getPublicClient({ chain: inputChain }) },
         );
 
+        const message = "0x";
+
         return await getQuote({
             route,
             inputAmount,
             apiUrl: ACROSS_TESTING_API_URL,
             recipient: params.recipient,
+            crossChainMessage: message === "0x" ? undefined : message,
         });
     }
 
@@ -206,6 +224,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @returns A quote for the action
      */
     private async getTransferQuote(
+        action: ValidActions,
         params: TransferGetQuoteParams,
     ): Promise<TransferGetQuoteResponse<AcrossOpenParams>> {
         const inputChain = SUPPORTED_CHAINS.find(
@@ -224,7 +243,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             throw new UnsupportedChainId(params.outputChainId);
         }
 
-        const quote = await this.getAcrossQuote(params);
+        const quote = await this.getAcrossQuote(action, params);
         const openParams = await this.getAcrossOpenParams(params.sender, quote);
         const fee = await this.calculateFee(quote);
         return {
@@ -269,7 +288,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             case "crossChainTransfer":
                 const transferParams = TransferGetQuoteParamsSchema.parse(input);
 
-                const quoteResponse = await this.getTransferQuote(transferParams);
+                const quoteResponse = await this.getTransferQuote(action, transferParams);
 
                 return quoteResponse as GetQuoteResponse<Action, AcrossOpenParams>;
             default:
@@ -371,6 +390,12 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         return [...result, openTx];
     }
 
+    private async simulateSwapOpen(_params: AcrossSwapOpenParams): Promise<TransactionRequest[]> {
+        // const { fillDeadline, orderDataType, orderData, inputChainId, sender } = params.params;
+        const result: TransactionRequest[] = [];
+        return result;
+    }
+
     /**
      * @inheritdoc
      */
@@ -388,6 +413,9 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             case "crossChainTransfer":
                 const transferParams = AcrossTransferOpenParamsSchema.parse(params);
                 return await this.simulateTransferOpen(transferParams);
+            case "crossChainSwap":
+                const swapParams = AcrossSwapOpenParamsSchema.parse(params);
+                return await this.simulateSwapOpen(swapParams);
             default:
                 throw new UnsupportedAction(action);
         }
