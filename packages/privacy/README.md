@@ -1,6 +1,7 @@
 # interop-sdk: privacy package
 
-The idea of privacy framework is make more accessible the integration with privacy providers as for example Privacy Pools. For this we want to implement some interfaces to facilitate wallets a way to withdraw and deposit user tokens.
+The privacy framework aims to make integration with privacy providers—​for example, Privacy Pools—​straight-forward.  
+It will expose interfaces that let wallets withdraw and deposit user tokens with minimal effort.
 
 ## Setup
 
