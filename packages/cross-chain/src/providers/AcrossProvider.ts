@@ -22,6 +22,7 @@ import {
     ACROSS_TESTING_API_URL,
     AcrossConfigs,
     AcrossOpenParams,
+    AcrossSwapMessageBuilder,
     AcrossSwapOpenParams,
     AcrossSwapOpenParamsSchema,
     AcrossTransferOpenParams,
@@ -35,7 +36,9 @@ import {
     OPEN_ABI,
     parseTokenAmount,
     SUPPORTED_CHAINS,
-    SupportedSwapProtocols,
+    SwapGetQuoteParams,
+    SwapGetQuoteParamsSchema,
+    SwapGetQuoteResponse,
     TransferGetQuoteParams,
     TransferGetQuoteParamsSchema,
     TransferGetQuoteResponse,
@@ -53,7 +56,7 @@ import {
  */
 export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     readonly protocolName: string;
-    private readonly swapProtocol?: SupportedSwapProtocols;
+    private readonly swapProtocol?: AcrossSwapMessageBuilder;
     private readonly clientCache: Map<number, PublicClient> = new Map();
 
     constructor(config?: AcrossConfigs) {
@@ -80,8 +83,8 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @returns A quote for the action
      */
     private async getAcrossQuote(
-        _action: ValidActions,
-        params: TransferGetQuoteParams,
+        action: ValidActions,
+        params: TransferGetQuoteParams | SwapGetQuoteParams,
     ): Promise<Quote> {
         const route = {
             originChainId: Number(params.inputChainId),
@@ -107,7 +110,10 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             { publicClient: this.getPublicClient({ chain: inputChain }) },
         );
 
-        const message = "0x";
+        let message: Hex = "0x";
+        if (action === "crossChainSwap") {
+            message = this.swapProtocol!.buildAcrossMessage(params as SwapGetQuoteParams);
+        }
 
         return await getQuote({
             route,
@@ -277,6 +283,13 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         } as TransferGetQuoteResponse<AcrossOpenParams>;
     }
 
+    private async getSwapQuote(
+        _action: ValidActions,
+        _params: SwapGetQuoteParams,
+    ): Promise<SwapGetQuoteResponse<AcrossOpenParams>> {
+        return {} as SwapGetQuoteResponse<AcrossOpenParams>;
+    }
+
     /**
      * @inheritdoc
      */
@@ -291,6 +304,11 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                 const quoteResponse = await this.getTransferQuote(action, transferParams);
 
                 return quoteResponse as GetQuoteResponse<Action, AcrossOpenParams>;
+
+            case "crossChainSwap":
+                const swapParams = SwapGetQuoteParamsSchema.parse(input);
+                const swapQuote = await this.getSwapQuote(action, swapParams);
+                return swapQuote as GetQuoteResponse<Action, AcrossSwapOpenParams>;
             default:
                 throw new UnsupportedAction(action);
         }

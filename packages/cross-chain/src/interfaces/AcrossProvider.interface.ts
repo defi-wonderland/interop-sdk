@@ -1,5 +1,7 @@
+import { Hex } from "viem";
 import { z } from "zod";
 
+import { SwapGetQuoteParams } from "../internal.js";
 import {
     AcrossSwapOpenParamsSchema,
     AcrossTransferOpenParamsSchema,
@@ -14,7 +16,11 @@ export type AcrossSwapOpenParams = z.infer<typeof AcrossSwapOpenParamsSchema>;
 export type AcrossOpenParams = AcrossTransferOpenParams | AcrossSwapOpenParams;
 
 export type AcrossConfigs = {
-    swapProtocol?: SupportedSwapProtocols;
+    swapProtocol?: AcrossSwapMessageBuilder;
 };
 
 export type AcrossDependencies = undefined;
+
+export interface AcrossSwapMessageBuilder {
+    buildAcrossMessage(params: SwapGetQuoteParams): Hex;
+}
