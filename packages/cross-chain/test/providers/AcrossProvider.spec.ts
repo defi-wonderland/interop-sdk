@@ -18,8 +18,12 @@ import {
     ACROSS_ORDER_DATA_TYPE,
 } from "../../src/constants/across.js";
 import { AcrossProvider } from "../../src/external.js";
-import { OPEN_ABI } from "../../src/internal.js";
-import { formatTokenAmount, getTokenAllowance, parseTokenAmount } from "../../src/utils/token.js";
+import {
+    formatTokenAmount,
+    getTokenAllowance,
+    OPEN_ABI,
+    parseTokenAmount,
+} from "../../src/internal.js";
 import { getMockedQuote } from "../mocks/across.js";
 
 vi.mock("@across-protocol/app-sdk");

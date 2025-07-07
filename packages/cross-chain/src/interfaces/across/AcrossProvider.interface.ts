@@ -1,11 +1,12 @@
 import { Hex } from "viem";
 import { z } from "zod";
 
-import { SwapGetQuoteParams } from "../internal.js";
 import {
     AcrossSwapOpenParamsSchema,
     AcrossTransferOpenParamsSchema,
-} from "../schemas/AcrossOpenParams.schema.js";
+    SwapGetQuoteParams,
+    ValidActions,
+} from "../../internal.js";
 
 export type SupportedSwapProtocols = "uniswap";
 
@@ -13,7 +14,11 @@ export type AcrossTransferOpenParams = z.infer<typeof AcrossTransferOpenParamsSc
 
 export type AcrossSwapOpenParams = z.infer<typeof AcrossSwapOpenParamsSchema>;
 
-export type AcrossOpenParams = AcrossTransferOpenParams | AcrossSwapOpenParams;
+export type AcrossOpenParams<TAction extends ValidActions> = TAction extends "crossChainTransfer"
+    ? AcrossTransferOpenParams
+    : TAction extends "crossChainSwap"
+      ? AcrossSwapOpenParams
+      : never;
 
 export type AcrossConfigs = {
     swapProtocol?: AcrossSwapMessageBuilder;

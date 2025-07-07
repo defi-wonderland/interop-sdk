@@ -1,7 +1,7 @@
 import { Hex } from "viem";
 import { z } from "zod";
 
-import { SUPPORTED_TOKEN_BY_CHAIN_ID } from "../../internal.js";
+import { SUPPORTED_TOKEN_BY_CHAIN_ID } from "../../constants/tokens.js";
 import { HexAddressSchema } from "../address.js";
 import { SupportedChainIdSchema } from "../chain.js";
 

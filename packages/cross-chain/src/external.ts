@@ -4,7 +4,7 @@ export * from "./interfaces/index.js";
 
 export type { ParamsParser } from "./interfaces/paramsParser.interface.js";
 
-export { AcrossProvider } from "./providers/AcrossProvider.js";
+export { AcrossProvider } from "./providers/across/AcrossProvider.js";
 export {
     createCrossChainProvider,
     CrossChainProviderFactory,

@@ -16,36 +16,29 @@ import {
 
 import {
     ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES,
-    ACROSS_OPEN_GAS_LIMIT,
     ACROSS_ORDER_DATA_ABI,
     ACROSS_ORDER_DATA_TYPE,
     ACROSS_TESTING_API_URL,
     AcrossConfigs,
     AcrossOpenParams,
+    AcrossOpenParamsSchema,
+    AcrossStrategyMap,
     AcrossSwapMessageBuilder,
-    AcrossSwapOpenParams,
-    AcrossSwapOpenParamsSchema,
     AcrossTransferOpenParams,
-    AcrossTransferOpenParamsSchema,
     CrossChainProvider,
     Fee,
     formatTokenAmount,
+    getAcrossStrategy,
     GetQuoteParams,
     GetQuoteResponse,
     getTokenAllowance,
-    OPEN_ABI,
     parseTokenAmount,
     SUPPORTED_CHAINS,
     SwapGetQuoteParams,
-    SwapGetQuoteParamsSchema,
-    SwapGetQuoteResponse,
     TransferGetQuoteParams,
-    TransferGetQuoteParamsSchema,
-    TransferGetQuoteResponse,
-    UnsupportedAction,
     UnsupportedChainId,
     ValidActions,
-} from "../internal.js";
+} from "../../internal.js";
 
 /**
  * An implementation of the CrossChainProvider interface for the Across protocol
@@ -54,9 +47,9 @@ import {
  * @param dependencies - The dependencies for the provider
  * @returns A provider for the Across protocol
  */
-export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
+export class AcrossProvider extends CrossChainProvider<AcrossOpenParams<ValidActions>> {
     readonly protocolName: string;
-    private readonly swapProtocol?: AcrossSwapMessageBuilder;
+    readonly swapProtocol?: AcrossSwapMessageBuilder;
     private readonly clientCache: Map<number, PublicClient> = new Map();
 
     constructor(config?: AcrossConfigs) {
@@ -225,93 +218,44 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     }
 
     /**
-     * Get a quote for an Across cross-chain transfer
-     * @param params - The parameters for the action
-     * @returns A quote for the action
+     * Get a chain from the supported chains
+     * @param chainId - The chain id
+     * @returns The chain
+     * @throws UnsupportedChainId if the chain is not supported
      */
-    private async getTransferQuote(
-        action: ValidActions,
-        params: TransferGetQuoteParams,
-    ): Promise<TransferGetQuoteResponse<AcrossOpenParams>> {
-        const inputChain = SUPPORTED_CHAINS.find(
-            (chain) => chain.id === Number(params.inputChainId),
-        );
-
-        if (!inputChain) {
-            throw new UnsupportedChainId(params.inputChainId);
+    private getChain(chainId: number): Chain {
+        const chain = SUPPORTED_CHAINS.find((chain) => chain.id === chainId);
+        if (!chain) {
+            throw new UnsupportedChainId(chainId);
         }
-
-        const outputChain = SUPPORTED_CHAINS.find(
-            (chain) => chain.id === Number(params.outputChainId),
-        );
-
-        if (!outputChain) {
-            throw new UnsupportedChainId(params.outputChainId);
-        }
-
-        const quote = await this.getAcrossQuote(action, params);
-        const openParams = await this.getAcrossOpenParams(params.sender, quote);
-        const fee = await this.calculateFee(quote);
-        return {
-            protocol: this.protocolName,
-            action: "crossChainTransfer",
-            isAmountTooLow: quote.isAmountTooLow,
-            output: {
-                inputTokenAddress: quote.deposit.inputToken,
-                outputTokenAddress: quote.deposit.outputToken,
-                inputAmount: await formatTokenAmount(
-                    {
-                        amount: quote.deposit.inputAmount,
-                        tokenAddress: quote.deposit.inputToken,
-                        chain: inputChain,
-                    },
-                    { publicClient: this.getPublicClient({ chain: inputChain }) },
-                ),
-                outputAmount: await formatTokenAmount(
-                    {
-                        amount: quote.deposit.outputAmount,
-                        tokenAddress: quote.deposit.outputToken,
-                        chain: outputChain,
-                    },
-                    { publicClient: this.getPublicClient({ chain: outputChain }) },
-                ),
-                inputChainId: quote.deposit.originChainId,
-                outputChainId: quote.deposit.destinationChainId,
-            },
-            openParams,
-            fee,
-        } as TransferGetQuoteResponse<AcrossOpenParams>;
-    }
-
-    private async getSwapQuote(
-        _action: ValidActions,
-        _params: SwapGetQuoteParams,
-    ): Promise<SwapGetQuoteResponse<AcrossOpenParams>> {
-        return {} as SwapGetQuoteResponse<AcrossOpenParams>;
+        return chain;
     }
 
     /**
      * @inheritdoc
      */
-    async getQuote<Action extends AcrossOpenParams["action"]>(
+    async getQuote<Action extends keyof AcrossStrategyMap>(
         action: Action,
         input: GetQuoteParams<Action>,
-    ): Promise<GetQuoteResponse<Action, AcrossOpenParams>> {
-        switch (action) {
-            case "crossChainTransfer":
-                const transferParams = TransferGetQuoteParamsSchema.parse(input);
+    ): Promise<GetQuoteResponse<Action, AcrossOpenParams<Action>>> {
+        const strategy = getAcrossStrategy(action);
+        const params = strategy.parseGetQuoteParams(input);
 
-                const quoteResponse = await this.getTransferQuote(action, transferParams);
+        const acrossQuote = await this.getAcrossQuote(action, params);
 
-                return quoteResponse as GetQuoteResponse<Action, AcrossOpenParams>;
+        const inputChain = this.getChain(Number(params.inputChainId));
 
-            case "crossChainSwap":
-                const swapParams = SwapGetQuoteParamsSchema.parse(input);
-                const swapQuote = await this.getSwapQuote(action, swapParams);
-                return swapQuote as GetQuoteResponse<Action, AcrossSwapOpenParams>;
-            default:
-                throw new UnsupportedAction(action);
-        }
+        const context = {
+            publicClient: this.getPublicClient({ chain: inputChain }),
+            acrossQuote,
+            acrossOpenParams: await this.getAcrossOpenParams(params.sender, acrossQuote),
+            protocolName: this.protocolName,
+            fee: await this.calculateFee(acrossQuote),
+            swapProtocol: this.swapProtocol,
+        };
+
+        const quote = await strategy.quote(context, params);
+        return quote as GetQuoteResponse<Action, AcrossOpenParams<Action>>;
     }
 
     /**
@@ -369,73 +313,42 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     }
 
     /**
-     * Simulate the open transaction for an Across cross-chain transfer
-     * @param params - The parameters for the action
-     * @returns The open transaction
+     * @inheritdoc
      */
-    private async simulateTransferOpen(
-        params: AcrossTransferOpenParams,
+    validateOpenParams(params: AcrossOpenParams<ValidActions>): void {
+        AcrossOpenParamsSchema.parse(params);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    async validatedSimulateOpen(
+        params: AcrossOpenParams<ValidActions>,
     ): Promise<TransactionRequest[]> {
-        const { fillDeadline, orderDataType, orderData, inputChainId, sender } = params.params;
-        const result: TransactionRequest[] = [];
+        const strategy = getAcrossStrategy(params.action);
 
-        const inputChain = SUPPORTED_CHAINS.find((chain) => chain.id === Number(inputChainId));
+        const inputChain = this.getChain(Number(params.params.inputChainId));
+        const allowanceTx = await this.getAllowanceTransaction(params);
 
-        if (!inputChain) {
-            throw new UnsupportedChainId(inputChainId);
-        }
+        const context = {
+            publicClient: this.getPublicClient({ chain: inputChain }),
+            allowanceTx,
+            swapProtocol: this.swapProtocol,
+        };
 
-        const settlerContractAddress = ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[Number(inputChainId)];
-
-        const allowanceTx = await this.getSettlerAllowanceTransaction(params);
-
-        result.push(...allowanceTx);
-
-        const openData = encodeFunctionData({
-            abi: OPEN_ABI,
-            functionName: "open",
-            args: [{ fillDeadline, orderDataType, orderData }],
-        });
-
-        const openTx = await this.getPublicClient({ chain: inputChain }).prepareTransactionRequest({
-            account: sender,
-            to: settlerContractAddress,
-            data: openData,
-            chain: inputChain,
-            gas: ACROSS_OPEN_GAS_LIMIT,
-        });
-
-        return [...result, openTx];
-    }
-
-    private async simulateSwapOpen(_params: AcrossSwapOpenParams): Promise<TransactionRequest[]> {
-        // const { fillDeadline, orderDataType, orderData, inputChainId, sender } = params.params;
-        const result: TransactionRequest[] = [];
-        return result;
+        return await strategy.simulate(context, params);
     }
 
     /**
-     * @inheritdoc
+     * Get the allowance transaction based on the action type
+     * @param params - The parameters for the action
+     * @returns The allowance transaction
      */
-    validateOpenParams(params: AcrossOpenParams): void {
-        AcrossTransferOpenParamsSchema.parse(params);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    async validatedSimulateOpen(params: AcrossOpenParams): Promise<TransactionRequest[]> {
-        const { action } = params;
-
-        switch (action) {
-            case "crossChainTransfer":
-                const transferParams = AcrossTransferOpenParamsSchema.parse(params);
-                return await this.simulateTransferOpen(transferParams);
-            case "crossChainSwap":
-                const swapParams = AcrossSwapOpenParamsSchema.parse(params);
-                return await this.simulateSwapOpen(swapParams);
-            default:
-                throw new UnsupportedAction(action);
-        }
+    private async getAllowanceTransaction(
+        params: AcrossOpenParams<ValidActions>,
+    ): Promise<TransactionRequest[]> {
+        return params.action === "crossChainTransfer"
+            ? await this.getSettlerAllowanceTransaction(params)
+            : [];
     }
 }
