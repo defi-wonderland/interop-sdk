@@ -89,6 +89,8 @@ importers:
                 specifier: 3.24.3
                 version: 3.24.3
 
+    packages/privacy: {}
+
 packages:
     "@across-protocol/app-sdk@0.2.2":
         resolution:
