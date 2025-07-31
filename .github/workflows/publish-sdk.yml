@@ -7,15 +7,17 @@ on:
 jobs:
     publish:
         runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: packages/sdk
         steps:
             - name: Check out github repository
               uses: actions/checkout@v4
 
             - name: Setup environment
               uses: ./.github/actions/setup
-
-            - name: Move to cross-chain package
-              run: cd packages/cross-chain
+              with:
+                  working-directory: ../..
 
             - name: Remove internal dependencies
               run: pnpm remove @defi-wonderland/interop-addresses && pnpm remove @defi-wonderland/interop-cross-chain
@@ -34,4 +36,4 @@ jobs:
             - name: Publish
               run: npm publish
               env:
-                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
