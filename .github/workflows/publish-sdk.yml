@@ -26,7 +26,7 @@ jobs:
             - name: Install cross-chain dependencies from repository
               run: pnpm i @defi-wonderland/interop-addresses && pnpm i @defi-wonderland/interop-cross-chain
               env:
-                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
@@ -37,4 +37,4 @@ jobs:
             - name: Publish
               run: npm publish --access public --tag canary
               env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
