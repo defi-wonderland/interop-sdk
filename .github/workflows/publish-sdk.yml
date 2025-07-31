@@ -10,7 +10,7 @@ jobs:
         runs-on: ubuntu-latest
         defaults:
             run:
-                working-directory: packages/sdk
+                working-directory: apps/sdk
         steps:
             - name: Check out github repository
               uses: actions/checkout@v4
