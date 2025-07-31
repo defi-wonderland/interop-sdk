@@ -67,15 +67,16 @@ importers:
             bs58:
                 specifier: 6.0.0
                 version: 6.0.0
-            typescript:
-                specifier: 5.5.4
-                version: 5.5.4
             viem:
                 specifier: 2.28.0
                 version: 2.28.0(typescript@5.5.4)(zod@3.24.3)
             zod:
                 specifier: 3.24.3
                 version: 3.24.3
+        devDependencies:
+            typescript:
+                specifier: 5.5.4
+                version: 5.5.4
 
     packages/cross-chain:
         dependencies:
