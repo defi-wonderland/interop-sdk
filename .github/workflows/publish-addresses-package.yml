@@ -14,10 +14,21 @@ jobs:
             - name: Check out github repository
               uses: actions/checkout@v4
 
-            - name: Setup environment
-              uses: ./.github/actions/setup
+            - name: Use pnpm
+              uses: pnpm/action-setup@v4
               with:
-                  working-directory: ../..
+                  run_install: false
+
+            - name: Use Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: "pnpm"
+
+            - name: Use foundry
+              uses: foundry-rs/foundry-toolchain@v1
+              with:
+                  version: nightly
 
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
@@ -28,4 +39,4 @@ jobs:
             - name: Publish
               run: npm publish
               env:
-                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
