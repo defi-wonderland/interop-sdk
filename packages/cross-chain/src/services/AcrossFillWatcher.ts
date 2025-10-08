@@ -1,5 +1,6 @@
 import { Address, Chain, createPublicClient, decodeEventLog, Hex, http, PublicClient } from "viem";
 
+import { DEFAULT_PUBLIC_RPC_URLS } from "../constants/chains.js";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
@@ -25,10 +26,15 @@ export class FillNotFoundError extends Error {
     }
 }
 
+export interface AcrossFillWatcherDependencies {
+    publicClient?: PublicClient;
+    rpcUrls?: Record<number, string>;
+}
+
 export class AcrossFillWatcher implements FillWatcher {
     private readonly clientCache: Map<number, PublicClient> = new Map();
 
-    constructor(private readonly dependencies?: { publicClient?: PublicClient }) {}
+    constructor(private readonly dependencies?: AcrossFillWatcherDependencies) {}
 
     private getPublicClient({ chain }: { chain: Chain }): PublicClient {
         if (this.dependencies?.publicClient) {
@@ -39,11 +45,9 @@ export class AcrossFillWatcher implements FillWatcher {
             return this.clientCache.get(chain.id)!;
         }
 
-        // TODO: Make RPC URLs configurable
-        const rpcUrl =
-            chain.id === 84532
-                ? "https://base-sepolia-rpc.publicnode.com" // More reliable public RPC
-                : undefined; // Use default for other chains
+        const customRpcUrl = this.dependencies?.rpcUrls?.[chain.id];
+        const defaultRpcUrl = DEFAULT_PUBLIC_RPC_URLS[chain.id] as string | undefined;
+        const rpcUrl: string | undefined = customRpcUrl || defaultRpcUrl;
 
         const client = createPublicClient({
             chain,

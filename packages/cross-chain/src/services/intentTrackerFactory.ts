@@ -36,9 +36,12 @@ export function createIntentTracker(
     protocol: "across",
     config?: IntentTrackerConfig,
 ): IntentTracker {
-    const { publicClient, fillWatcher: customFillWatcher } = config || {};
+    const { publicClient, fillWatcher: customFillWatcher, rpcUrls } = config || {};
 
-    const openWatcher = new OpenEventWatcher(publicClient ? { publicClient } : undefined);
+    const openWatcher = new OpenEventWatcher({
+        publicClient,
+        rpcUrls,
+    });
 
     let fillWatcher: FillWatcher;
 
@@ -47,14 +50,15 @@ export function createIntentTracker(
     } else {
         switch (protocol) {
             case "across":
-                // TODO: Actually pass rpcUrls to AcrossFillWatcher constructor
-                fillWatcher = new AcrossFillWatcher(publicClient ? { publicClient } : undefined);
+                fillWatcher = new AcrossFillWatcher({
+                    publicClient,
+                    rpcUrls,
+                });
                 break;
             default:
                 throw new Error(`Unsupported protocol: ${protocol}`);
         }
     }
 
-    // Create and return the unified tracker
     return new IntentTracker(openWatcher, fillWatcher);
 }

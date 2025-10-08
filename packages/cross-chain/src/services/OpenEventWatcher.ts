@@ -1,6 +1,7 @@
 import { Chain, createPublicClient, decodeEventLog, Hex, http, PublicClient } from "viem";
 
 import {
+    DEFAULT_PUBLIC_RPC_URLS,
     DepositInfo,
     OPEN_EVENT_ABI,
     OPEN_EVENT_SIGNATURE,
@@ -8,9 +9,6 @@ import {
     SUPPORTED_CHAINS,
 } from "../internal.js";
 
-/**
- * Error thrown when Open event is not found in transaction
- */
 export class OpenEventNotFoundError extends Error {
     constructor(txHash: Hex) {
         super(`Open event not found in transaction ${txHash}`);
@@ -18,9 +16,6 @@ export class OpenEventNotFoundError extends Error {
     }
 }
 
-/**
- * Error thrown when Open event data is malformed
- */
 export class InvalidOpenEventError extends Error {
     constructor(message: string) {
         super(`Invalid Open event: ${message}`);
@@ -28,14 +23,16 @@ export class InvalidOpenEventError extends Error {
     }
 }
 
-/**
- * Error thrown when protocol-specific deposit event is not found
- */
 export class DepositEventNotFoundError extends Error {
     constructor(txHash: Hex, protocol: string) {
         super(`${protocol} deposit event not found in transaction ${txHash}`);
         this.name = "DepositEventNotFoundError";
     }
+}
+
+export interface OpenEventWatcherDependencies {
+    publicClient?: PublicClient;
+    rpcUrls?: Record<number, string>;
 }
 
 /**
@@ -45,27 +42,22 @@ export class DepositEventNotFoundError extends Error {
 export class OpenEventWatcher {
     private readonly clientCache: Map<number, PublicClient> = new Map();
 
-    constructor(private readonly dependencies?: { publicClient?: PublicClient }) {}
+    constructor(private readonly dependencies?: OpenEventWatcherDependencies) {}
 
-    /**
-     * Get or create a public client for a specific chain
-     * Follows the same pattern as existing providers (e.g., AcrossProvider)
-     */
     private getPublicClient({ chain }: { chain: Chain }): PublicClient {
-        // Use provided client if available
         if (this.dependencies?.publicClient) {
             return this.dependencies.publicClient;
         }
 
-        // Check cache
         if (this.clientCache.has(chain.id)) {
             return this.clientCache.get(chain.id)!;
         }
 
-        // Create new client
+        const rpcUrl = this.dependencies?.rpcUrls?.[chain.id] || DEFAULT_PUBLIC_RPC_URLS[chain.id];
+
         const client = createPublicClient({
             chain,
-            transport: http(),
+            transport: http(rpcUrl),
         });
 
         this.clientCache.set(chain.id, client);
@@ -90,10 +82,8 @@ export class OpenEventWatcher {
 
         const publicClient = this.getPublicClient({ chain });
 
-        // Get transaction receipt
         const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
 
-        // Find Open event by signature
         const openLog = receipt.logs.find((log) => log.topics[0] === OPEN_EVENT_SIGNATURE);
 
         if (!openLog) {
@@ -101,14 +91,12 @@ export class OpenEventWatcher {
         }
 
         try {
-            // Decode Open event using EIP-7683 standard ABI
             const decoded = decodeEventLog({
                 abi: OPEN_EVENT_ABI,
                 data: openLog.data,
                 topics: openLog.topics,
             });
 
-            // Extract and validate data
             const { orderId, resolvedOrder } = decoded.args;
 
             if (!orderId || !resolvedOrder) {
