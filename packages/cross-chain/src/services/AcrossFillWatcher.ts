@@ -9,9 +9,6 @@ import {
     WatchFillParams,
 } from "../internal.js";
 
-/**
- * Error thrown when fill times out
- */
 export class FillTimeoutError extends Error {
     constructor(depositId: bigint, timeout: number) {
         super(
@@ -21,9 +18,6 @@ export class FillTimeoutError extends Error {
     }
 }
 
-/**
- * Error thrown when fill event is not found
- */
 export class FillNotFoundError extends Error {
     constructor(depositId: bigint, originChainId: number) {
         super(`Fill not found for depositId ${depositId} from chain ${originChainId}`);
@@ -31,33 +25,21 @@ export class FillNotFoundError extends Error {
     }
 }
 
-/**
- * Across-specific fill watcher
- * Watches for FilledRelay events on Across SpokePool contracts
- */
 export class AcrossFillWatcher implements FillWatcher {
     private readonly clientCache: Map<number, PublicClient> = new Map();
 
     constructor(private readonly dependencies?: { publicClient?: PublicClient }) {}
 
-    /**
-     * Get or create a public client for a specific chain
-     * Follows the same pattern as existing providers
-     */
     private getPublicClient({ chain }: { chain: Chain }): PublicClient {
-        // Use provided client if available
         if (this.dependencies?.publicClient) {
             return this.dependencies.publicClient;
         }
 
-        // Check cache
         if (this.clientCache.has(chain.id)) {
             return this.clientCache.get(chain.id)!;
         }
 
-        // Create new client
         // TODO: Make RPC URLs configurable
-        // Using public nodes for testnet - may be rate-limited or unreliable
         const rpcUrl =
             chain.id === 84532
                 ? "https://base-sepolia-rpc.publicnode.com" // More reliable public RPC
@@ -81,13 +63,11 @@ export class AcrossFillWatcher implements FillWatcher {
     async watchFill(params: WatchFillParams): Promise<FillEvent | null> {
         const { destinationChainId, originChainId, depositId } = params;
 
-        // Get destination chain
         const destinationChain = SUPPORTED_CHAINS.find((c) => c.id === destinationChainId);
         if (!destinationChain) {
             throw new Error(`Unsupported destination chain ID: ${destinationChainId}`);
         }
 
-        // Get SpokePool address for destination chain
         const spokePoolAddress = ACROSS_SPOKE_POOL_ADDRESSES[destinationChainId];
         if (!spokePoolAddress) {
             throw new Error(`SpokePool address not configured for chain ${destinationChainId}`);
@@ -95,18 +75,12 @@ export class AcrossFillWatcher implements FillWatcher {
 
         const publicClient = this.getPublicClient({ chain: destinationChain });
 
-        // Get current block to search from
         const currentBlock = await publicClient.getBlockNumber();
 
-        // Search back a reasonable number of blocks
-        // Public RPCs limit to 50,000 blocks max
-        // Fills typically happen within minutes (a few hundred blocks)
-        // We search back 40,000 blocks to stay under the limit and catch recent fills
-        const maxBlockRange = 40000n;
+        const maxBlockRange = 40000n; // Public RPCs limit to 50,000 blocks max
         const fromBlock = currentBlock > maxBlockRange ? currentBlock - maxBlockRange : 0n;
 
         try {
-            // Query for FilledRelay events matching our (originChainId, depositId)
             const logs = await publicClient.getLogs({
                 address: spokePoolAddress,
                 event: ACROSS_FILLED_RELAY_EVENT_ABI[0],
@@ -119,27 +93,22 @@ export class AcrossFillWatcher implements FillWatcher {
             });
 
             if (logs.length === 0) {
-                // Not filled yet
                 return null;
             }
 
-            // Take the first matching log (should only be one)
             const log = logs[0];
             if (!log) {
                 return null;
             }
 
-            // Get block details for timestamp
             const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
 
-            // Decode the event to extract relayer and recipient
             const decoded = decodeEventLog({
                 abi: ACROSS_FILLED_RELAY_EVENT_ABI,
                 data: log.data,
                 topics: log.topics,
             });
 
-            // Extract relayer and recipient from bytes32
             // Bytes32 addresses are right-aligned, so we take the last 20 bytes
             const relayerBytes32 = decoded.args.relayer as Hex;
             const recipientBytes32 = decoded.args.recipient as Hex;
@@ -162,7 +131,6 @@ export class AcrossFillWatcher implements FillWatcher {
             };
         } catch (error) {
             // Log error but don't throw - treat as not filled yet
-            // This allows polling to continue on transient RPC errors
             console.error(
                 `Error querying fill events: ${error instanceof Error ? error.message : "Unknown error"}`,
             );
@@ -192,11 +160,9 @@ export class AcrossFillWatcher implements FillWatcher {
                 return fillEvent;
             }
 
-            // Wait before next poll
             await new Promise((resolve) => setTimeout(resolve, pollingInterval));
         }
 
-        // Timeout reached
         throw new FillTimeoutError(params.depositId, timeout);
     }
 }

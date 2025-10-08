@@ -28,13 +28,10 @@ export class IntentTracker {
      * @returns Current intent status
      */
     async getIntentStatus(txHash: Hex, originChainId: number): Promise<IntentStatusInfo> {
-        // Parse Open event
         const openEvent = await this.openWatcher.getOpenEvent(txHash, originChainId);
 
-        // Parse protocol-specific deposit info (for Across, this is the depositId)
         const depositInfo = await this.openWatcher.getAcrossDepositInfo(txHash, originChainId);
 
-        // Check for fill
         const fillEvent = await this.fillWatcher.watchFill({
             originChainId,
             destinationChainId: Number(depositInfo.destinationChainId),
@@ -43,12 +40,10 @@ export class IntentTracker {
             fillDeadline: openEvent.resolvedOrder.fillDeadline,
         });
 
-        // Determine status
         let status: IntentStatusInfo["status"];
         if (fillEvent) {
             status = "filled";
         } else {
-            // Check if expired
             const now = Math.floor(Date.now() / 1000);
             if (now > openEvent.resolvedOrder.fillDeadline) {
                 status = "expired";
@@ -73,9 +68,6 @@ export class IntentTracker {
     /**
      * Watch an intent with real-time updates
      * Uses async generator to stream status changes
-     *
-     * This is the recommended way to track intents as it provides
-     * real-time feedback to users
      *
      * @param params - Watch parameters
      * @yields Intent updates as they occur

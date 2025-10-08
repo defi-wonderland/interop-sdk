@@ -51,12 +51,6 @@ export const ACROSS_SPOKE_POOL_ADDRESSES: Record<number, Hex> = {
 
 /**
  * FilledRelay event ABI for Across V3
- * Emitted when a relayer fills an order on the destination chain
- *
- * Event signature: 0x44b559f101f8fbcc8a0ea43fa91a05a729a5ea6e14a7c75aa750374690137208
- * Copied from actual Across SpokePool contract ABI
- *
- * NOTE: This is the interop-compatible FilledRelay event (uses bytes32 for addresses)
  */
 export const ACROSS_FILLED_RELAY_EVENT_ABI = [
     {
