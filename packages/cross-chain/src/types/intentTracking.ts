@@ -74,8 +74,13 @@ export interface FillEvent {
 
 /**
  * Intent lifecycle status
+ * - opening: Parsing the transaction and Open event
+ * - opened: Intent successfully opened and parsed
+ * - filling: Waiting for relayer to fill on destination chain
+ * - filled: Successfully filled on destination chain
+ * - expired: Fill deadline passed without being filled
  */
-export type IntentStatus = "opened" | "filling" | "filled" | "expired";
+export type IntentStatus = "opening" | "opened" | "filling" | "filled" | "expired";
 
 /**
  * Complete intent status information

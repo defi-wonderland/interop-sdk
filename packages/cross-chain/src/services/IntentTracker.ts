@@ -85,87 +85,117 @@ export class IntentTracker {
 
         const startTime = Date.now();
 
-        // Step 1: Parse Open event
         yield {
-            status: "opened",
+            status: "opening",
             openTxHash: txHash,
             timestamp: Date.now(),
             message: "Parsing intent from transaction...",
         };
 
-        try {
-            const openEvent = await this.openWatcher.getOpenEvent(txHash, originChainId);
+        const openEvent = await this.openWatcher.getOpenEvent(txHash, originChainId);
 
+        yield {
+            status: "opened",
+            orderId: openEvent.orderId,
+            openTxHash: txHash,
+            timestamp: Date.now(),
+            message: `Intent opened with orderId ${openEvent.orderId.slice(0, 10)}...`,
+        };
+
+        const depositInfo = await this.openWatcher.getAcrossDepositInfo(txHash, originChainId);
+
+        const nowSeconds = Math.floor(Date.now() / 1000);
+        const fillDeadline = openEvent.resolvedOrder.fillDeadline;
+        const GRACE_PERIOD_SECONDS = 60;
+
+        if (nowSeconds > fillDeadline + GRACE_PERIOD_SECONDS) {
             yield {
-                status: "opened",
+                status: "expired",
                 orderId: openEvent.orderId,
                 openTxHash: txHash,
                 timestamp: Date.now(),
-                message: `Intent opened with orderId ${openEvent.orderId.slice(0, 10)}...`,
+                message: "Intent expired before watching started",
             };
+            return;
+        }
 
-            // Step 2: Get deposit info
-            const depositInfo = await this.openWatcher.getAcrossDepositInfo(txHash, originChainId);
+        yield {
+            status: "filling",
+            orderId: openEvent.orderId,
+            openTxHash: txHash,
+            timestamp: Date.now(),
+            message: "Waiting for relayer to fill intent...",
+        };
 
+        const remainingTimeout = timeout - (Date.now() - startTime);
+        const fillResult = await this.waitForFillWithTimeout(
+            {
+                originChainId,
+                destinationChainId,
+                depositId: depositInfo.depositId,
+                user: openEvent.resolvedOrder.user,
+                fillDeadline: openEvent.resolvedOrder.fillDeadline,
+            },
+            remainingTimeout,
+        );
+
+        if (fillResult.status === "filled") {
+            yield {
+                status: "filled",
+                orderId: openEvent.orderId,
+                openTxHash: txHash,
+                fillTxHash: fillResult.fillTxHash,
+                timestamp: Date.now(),
+                message: `Intent filled in block ${fillResult.blockNumber}`,
+            };
+        } else if (fillResult.status === "expired") {
+            yield {
+                status: "expired",
+                orderId: openEvent.orderId,
+                openTxHash: txHash,
+                timestamp: Date.now(),
+                message: "Intent expired before fill",
+            };
+        } else {
+            const deadlineDate = new Date(fillDeadline * 1000).toISOString();
             yield {
                 status: "filling",
                 orderId: openEvent.orderId,
                 openTxHash: txHash,
                 timestamp: Date.now(),
-                message: "Waiting for relayer to fill intent...",
+                message: `Stopped watching after timeout, but intent may still be filled before deadline at ${deadlineDate}`,
             };
+        }
+    }
 
-            // Step 3: Wait for fill with timeout
-            try {
-                const fillEvent = await this.fillWatcher.waitForFill(
-                    {
-                        originChainId,
-                        destinationChainId,
-                        depositId: depositInfo.depositId,
-                        user: openEvent.resolvedOrder.user,
-                        fillDeadline: openEvent.resolvedOrder.fillDeadline,
-                    },
-                    timeout - (Date.now() - startTime), // Adjust timeout for time already spent
-                );
-
-                yield {
-                    status: "filled",
-                    orderId: openEvent.orderId,
-                    openTxHash: txHash,
-                    fillTxHash: fillEvent.fillTxHash,
-                    timestamp: Date.now(),
-                    message: `Intent filled in block ${fillEvent.blockNumber}`,
-                };
-            } catch (error) {
-                // Timeout or other error
-                if (error instanceof Error && error.name === "FillTimeoutError") {
-                    // Check if expired
-                    const now = Math.floor(Date.now() / 1000);
-                    if (now > openEvent.resolvedOrder.fillDeadline) {
-                        yield {
-                            status: "expired",
-                            orderId: openEvent.orderId,
-                            openTxHash: txHash,
-                            timestamp: Date.now(),
-                            message: "Intent expired before fill",
-                        };
-                    } else {
-                        // Timeout but not expired - still might be filled
-                        yield {
-                            status: "filling",
-                            orderId: openEvent.orderId,
-                            openTxHash: txHash,
-                            timestamp: Date.now(),
-                            message: `Timeout reached but intent may still be filled (deadline: ${new Date(openEvent.resolvedOrder.fillDeadline * 1000).toISOString()})`,
-                        };
-                    }
-                } else {
-                    // Re-throw unexpected errors
-                    throw error;
-                }
-            }
+    private async waitForFillWithTimeout(
+        fillParams: {
+            originChainId: number;
+            destinationChainId: number;
+            depositId: bigint;
+            user: Hex;
+            fillDeadline: number;
+        },
+        timeout: number,
+    ): Promise<
+        | { status: "filled"; fillTxHash: Hex; blockNumber: bigint }
+        | { status: "expired" }
+        | { status: "timeout" }
+    > {
+        try {
+            const fillEvent = await this.fillWatcher.waitForFill(fillParams, timeout);
+            return {
+                status: "filled",
+                fillTxHash: fillEvent.fillTxHash,
+                blockNumber: fillEvent.blockNumber,
+            };
         } catch (error) {
-            // Error parsing events - throw to be handled by caller
+            if (error instanceof Error && error.name === "FillTimeoutError") {
+                const nowSeconds = Math.floor(Date.now() / 1000);
+                const isExpired = nowSeconds > fillParams.fillDeadline;
+
+                return isExpired ? { status: "expired" } : { status: "timeout" };
+            }
             throw error;
         }
     }
