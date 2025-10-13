@@ -6,6 +6,7 @@ import {
     OPEN_EVENT_ABI,
     OPEN_EVENT_SIGNATURE,
     OpenEvent,
+    parseAbiEncodedFields,
     SUPPORTED_CHAINS,
 } from "../internal.js";
 
@@ -147,7 +148,6 @@ export class OpenEventWatcher {
         const publicClient = this.getPublicClient({ chain });
         const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
 
-        // FundsDeposited event signature (Across-specific)
         const FUNDS_DEPOSITED_SIGNATURE =
             "0x32ed1a409ef04c7b0227189c3a103dc5ac10e775a15b785dcc510201f7c25ad3";
 
@@ -157,23 +157,13 @@ export class OpenEventWatcher {
             throw new DepositEventNotFoundError(txHash, "Across");
         }
 
-        // Extract key fields from FundsDeposited event
-        // topics[1] = destinationChainId (indexed)
-        // topics[2] = depositId (indexed)
         const destinationChainId = BigInt(depositLog.topics[1] || "0");
         const depositId = BigInt(depositLog.topics[2] || "0");
 
-        // Decode data field to get amounts
-        // Data contains: inputToken, outputToken, inputAmount, outputAmount, etc.
-        // For simplicity, we'll extract just what we need
-        const dataHex = depositLog.data;
-
-        // inputToken (bytes32, 32 bytes)
-        // outputToken (bytes32, 32 bytes)
-        // inputAmount (uint256, 32 bytes) - starts at offset 64
-        // outputAmount (uint256, 32 bytes) - starts at offset 96
-        const inputAmount = BigInt(`0x${dataHex.slice(2 + 64 * 2, 2 + 65 * 2)}`);
-        const outputAmount = BigInt(`0x${dataHex.slice(2 + 96 * 2, 2 + 97 * 2)}`);
+        const [inputAmount, outputAmount] = parseAbiEncodedFields(depositLog.data, [2, 3]) as [
+            bigint,
+            bigint,
+        ];
 
         return {
             depositId,

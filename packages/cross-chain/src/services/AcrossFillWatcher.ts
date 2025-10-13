@@ -1,4 +1,4 @@
-import { Address, Chain, createPublicClient, decodeEventLog, Hex, http, PublicClient } from "viem";
+import { Address, Chain, createPublicClient, Hex, http, PublicClient } from "viem";
 
 import { DEFAULT_PUBLIC_RPC_URLS } from "../constants/chains.js";
 import {
@@ -105,24 +105,24 @@ export class AcrossFillWatcher implements FillWatcher {
                 return null;
             }
 
-            const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
-
-            const decoded = decodeEventLog({
-                abi: ACROSS_FILLED_RELAY_EVENT_ABI,
-                data: log.data,
-                topics: log.topics,
-            });
-
-            // Bytes32 addresses are right-aligned, so we take the last 20 bytes
-            const relayerBytes32 = decoded.args.relayer as Hex;
-            const recipientBytes32 = decoded.args.recipient as Hex;
-
-            const relayer = `0x${relayerBytes32.slice(-40)}` as Address;
-            const recipient = `0x${recipientBytes32.slice(-40)}` as Address;
-
             if (!log.transactionHash) {
                 return null;
             }
+
+            const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
+
+            // getLogs with event ABI already decodes the logs, so we can use args directly
+            const args = log.args;
+            if (!args) {
+                return null;
+            }
+
+            // Bytes32 addresses are right-aligned, so we take the last 20 bytes
+            const relayerBytes32 = args.relayer as Hex;
+            const recipientBytes32 = args.recipient as Hex;
+
+            const relayer = `0x${relayerBytes32.slice(-40)}` as Address;
+            const recipient = `0x${recipientBytes32.slice(-40)}` as Address;
 
             return {
                 fillTxHash: log.transactionHash,
