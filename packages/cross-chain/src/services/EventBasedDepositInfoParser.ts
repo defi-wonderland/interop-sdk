@@ -1,6 +1,6 @@
-import { Chain, createPublicClient, Hex, http, Log, PublicClient } from "viem";
+import { Chain, Hex, Log, PublicClient } from "viem";
 
-import { DepositInfo, DepositInfoParser, getChainById } from "../internal.js";
+import { DepositInfo, DepositInfoParser, getChainById, PublicClientManager } from "../internal.js";
 
 export class DepositEventNotFoundError extends Error {
     constructor(txHash: Hex, protocol: string) {
@@ -19,8 +19,7 @@ export interface DepositInfoParserConfig {
 }
 
 export interface EventBasedDepositInfoParserDependencies {
-    publicClient?: PublicClient;
-    rpcUrls?: Record<number, string>;
+    clientManager: PublicClientManager;
 }
 
 /**
@@ -28,29 +27,13 @@ export interface EventBasedDepositInfoParserDependencies {
  * Can be configured for any protocol that emits deposit events
  */
 export class EventBasedDepositInfoParser implements DepositInfoParser {
-    private readonly clientCache: Map<number, PublicClient> = new Map();
-
     constructor(
         private readonly config: DepositInfoParserConfig,
-        private readonly dependencies?: EventBasedDepositInfoParserDependencies,
+        private readonly dependencies: EventBasedDepositInfoParserDependencies,
     ) {}
 
     private getPublicClient({ chain }: { chain: Chain }): PublicClient {
-        if (this.dependencies?.publicClient) {
-            return this.dependencies.publicClient;
-        }
-
-        if (this.clientCache.has(chain.id)) {
-            return this.clientCache.get(chain.id)!;
-        }
-
-        const client = createPublicClient({
-            chain,
-            transport: http(this.dependencies?.rpcUrls?.[chain.id]),
-        });
-
-        this.clientCache.set(chain.id, client);
-        return client;
+        return this.dependencies.clientManager.getClient(chain);
     }
 
     /**

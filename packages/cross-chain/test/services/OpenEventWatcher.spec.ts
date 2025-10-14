@@ -4,6 +4,7 @@ import { sepolia } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OpenEventNotFoundError, OpenEventWatcher } from "../../src/services/OpenEventWatcher.js";
+import { PublicClientManager } from "../../src/utils/publicClientManager.js";
 
 vi.mock("viem", async () => {
     return {
@@ -28,7 +29,8 @@ describe("OpenEventWatcher", () => {
 
         vi.mocked(createPublicClient).mockReturnValue(mockPublicClient);
 
-        watcher = new OpenEventWatcher();
+        const clientManager = new PublicClientManager(mockPublicClient);
+        watcher = new OpenEventWatcher({ clientManager });
     });
 
     describe("getOpenEvent", () => {

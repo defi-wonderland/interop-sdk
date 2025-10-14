@@ -1,6 +1,12 @@
-import { Abi, Address, Chain, createPublicClient, http, Log, PublicClient } from "viem";
+import { Abi, AbiEvent, Address, Chain, Log, PublicClient } from "viem";
 
-import { FillEvent, FillWatcher, getChainById, WatchFillParams } from "../internal.js";
+import {
+    FillEvent,
+    FillWatcher,
+    getChainById,
+    PublicClientManager,
+    WatchFillParams,
+} from "../internal.js";
 
 export class FillTimeoutError extends Error {
     constructor(depositId: bigint, timeout: number) {
@@ -22,18 +28,15 @@ export interface FillWatcherConfig {
         contractAddress: Address,
     ) => {
         address: Address;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        event: any;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        args?: any;
+        event: AbiEvent;
+        args?: Record<string, unknown>;
     };
     /** Function to extract FillEvent from the matched log */
     extractFillEvent: (log: Log, params: WatchFillParams) => FillEvent | null;
 }
 
 export interface EventBasedFillWatcherDependencies {
-    publicClient?: PublicClient;
-    rpcUrls?: Record<number, string>;
+    clientManager: PublicClientManager;
 }
 
 /**
@@ -41,29 +44,13 @@ export interface EventBasedFillWatcherDependencies {
  * Can be configured for any protocol that emits fill events
  */
 export class EventBasedFillWatcher implements FillWatcher {
-    private readonly clientCache: Map<number, PublicClient> = new Map();
-
     constructor(
         private readonly config: FillWatcherConfig,
-        private readonly dependencies?: EventBasedFillWatcherDependencies,
+        private readonly dependencies: EventBasedFillWatcherDependencies,
     ) {}
 
     private getPublicClient({ chain }: { chain: Chain }): PublicClient {
-        if (this.dependencies?.publicClient) {
-            return this.dependencies.publicClient;
-        }
-
-        if (this.clientCache.has(chain.id)) {
-            return this.clientCache.get(chain.id)!;
-        }
-
-        const client = createPublicClient({
-            chain,
-            transport: http(this.dependencies?.rpcUrls?.[chain.id]),
-        });
-
-        this.clientCache.set(chain.id, client);
-        return client;
+        return this.dependencies.clientManager.getClient(chain);
     }
 
     /**

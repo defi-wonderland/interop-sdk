@@ -1,5 +1,6 @@
 import { getQuote, Quote } from "@across-protocol/app-sdk";
 import {
+    AbiEvent,
     Address,
     Chain,
     createPublicClient,
@@ -415,8 +416,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             buildLogsArgs: (
                 params: WatchFillParams,
                 contractAddress: Address,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ): { address: Address; event: any; args?: any } => {
+            ): { address: Address; event: AbiEvent; args?: Record<string, unknown> } => {
                 return {
                     address: contractAddress,
                     event: ACROSS_FILLED_RELAY_EVENT_ABI[0]!,

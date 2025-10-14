@@ -8,6 +8,7 @@ import {
     FillWatcher,
     IntentTracker,
     OpenEventWatcher,
+    PublicClientManager,
 } from "../internal.js";
 
 export interface IntentTrackerConfig {
@@ -52,10 +53,11 @@ export function createIntentTracker(
         rpcUrls,
     } = config || {};
 
-    const openWatcher = new OpenEventWatcher({
-        publicClient,
-        rpcUrls,
-    });
+    // Create shared PublicClient manager - single instance shared across all services
+    const clientManager = new PublicClientManager(publicClient, rpcUrls);
+
+    // All services use the same client manager
+    const openWatcher = new OpenEventWatcher({ clientManager });
 
     let depositInfoParser: DepositInfoParser;
     let fillWatcher: FillWatcher;
@@ -68,8 +70,7 @@ export function createIntentTracker(
             case "across": {
                 const depositParserConfig = AcrossProvider.getDepositInfoParserConfig();
                 depositInfoParser = new EventBasedDepositInfoParser(depositParserConfig, {
-                    publicClient,
-                    rpcUrls,
+                    clientManager,
                 });
                 break;
             }
@@ -86,8 +87,7 @@ export function createIntentTracker(
             case "across": {
                 const fillWatcherConfig = AcrossProvider.getFillWatcherConfig();
                 fillWatcher = new EventBasedFillWatcher(fillWatcherConfig, {
-                    publicClient,
-                    rpcUrls,
+                    clientManager,
                 });
                 break;
             }

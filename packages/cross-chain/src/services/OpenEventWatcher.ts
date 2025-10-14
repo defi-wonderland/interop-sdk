@@ -1,6 +1,12 @@
-import { Chain, createPublicClient, decodeEventLog, Hex, http, PublicClient } from "viem";
+import { Chain, decodeEventLog, Hex, PublicClient } from "viem";
 
-import { getChainById, OPEN_EVENT_ABI, OPEN_EVENT_SIGNATURE, OpenEvent } from "../internal.js";
+import {
+    getChainById,
+    OPEN_EVENT_ABI,
+    OPEN_EVENT_SIGNATURE,
+    OpenEvent,
+    PublicClientManager,
+} from "../internal.js";
 
 export class OpenEventNotFoundError extends Error {
     constructor(txHash: Hex) {
@@ -17,8 +23,7 @@ export class InvalidOpenEventError extends Error {
 }
 
 export interface OpenEventWatcherDependencies {
-    publicClient?: PublicClient;
-    rpcUrls?: Record<number, string>;
+    clientManager: PublicClientManager;
 }
 
 /**
@@ -26,26 +31,10 @@ export interface OpenEventWatcherDependencies {
  * Protocol-agnostic - works with any EIP-7683 compliant settlement contract
  */
 export class OpenEventWatcher {
-    private readonly clientCache: Map<number, PublicClient> = new Map();
-
-    constructor(private readonly dependencies?: OpenEventWatcherDependencies) {}
+    constructor(private readonly dependencies: OpenEventWatcherDependencies) {}
 
     private getPublicClient({ chain }: { chain: Chain }): PublicClient {
-        if (this.dependencies?.publicClient) {
-            return this.dependencies.publicClient;
-        }
-
-        if (this.clientCache.has(chain.id)) {
-            return this.clientCache.get(chain.id)!;
-        }
-
-        const client = createPublicClient({
-            chain,
-            transport: http(this.dependencies?.rpcUrls?.[chain.id]),
-        });
-
-        this.clientCache.set(chain.id, client);
-        return client;
+        return this.dependencies.clientManager.getClient(chain);
     }
 
     /**
