@@ -1,6 +1,7 @@
 import { Hex } from "viem";
 
 import {
+    DepositInfoParser,
     FillWatcher,
     IntentStatusInfo,
     IntentUpdate,
@@ -10,12 +11,15 @@ import {
 
 /**
  * Unified intent tracker
- * Combines Open event watching with protocol-specific fill watching
- * to provide complete intent lifecycle tracking
+ * Protocol-agnostic orchestrator that combines:
+ * - Open event watching (EIP-7683 standard)
+ * - Protocol-specific deposit info parsing
+ * - Protocol-specific fill watching
  */
 export class IntentTracker {
     constructor(
         private readonly openWatcher: OpenEventWatcher,
+        private readonly depositInfoParser: DepositInfoParser,
         private readonly fillWatcher: FillWatcher,
     ) {}
 
@@ -30,7 +34,7 @@ export class IntentTracker {
     async getIntentStatus(txHash: Hex, originChainId: number): Promise<IntentStatusInfo> {
         const openEvent = await this.openWatcher.getOpenEvent(txHash, originChainId);
 
-        const depositInfo = await this.openWatcher.getAcrossDepositInfo(txHash, originChainId);
+        const depositInfo = await this.depositInfoParser.getDepositInfo(txHash, originChainId);
 
         const fillEvent = await this.fillWatcher.watchFill({
             originChainId,
@@ -102,7 +106,7 @@ export class IntentTracker {
             message: `Intent opened with orderId ${openEvent.orderId.slice(0, 10)}...`,
         };
 
-        const depositInfo = await this.openWatcher.getAcrossDepositInfo(txHash, originChainId);
+        const depositInfo = await this.depositInfoParser.getDepositInfo(txHash, originChainId);
 
         const nowSeconds = Math.floor(Date.now() / 1000);
         const fillDeadline = openEvent.resolvedOrder.fillDeadline;

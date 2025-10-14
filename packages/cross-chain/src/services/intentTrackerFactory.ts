@@ -1,9 +1,18 @@
 import { PublicClient } from "viem";
 
-import { AcrossFillWatcher, FillWatcher, IntentTracker, OpenEventWatcher } from "../internal.js";
+import {
+    AcrossProvider,
+    DepositInfoParser,
+    EventBasedDepositInfoParser,
+    EventBasedFillWatcher,
+    FillWatcher,
+    IntentTracker,
+    OpenEventWatcher,
+} from "../internal.js";
 
 export interface IntentTrackerConfig {
     publicClient?: PublicClient;
+    depositInfoParser?: DepositInfoParser;
     fillWatcher?: FillWatcher;
     rpcUrls?: {
         [chainId: number]: string;
@@ -36,29 +45,56 @@ export function createIntentTracker(
     protocol: "across",
     config?: IntentTrackerConfig,
 ): IntentTracker {
-    const { publicClient, fillWatcher: customFillWatcher, rpcUrls } = config || {};
+    const {
+        publicClient,
+        depositInfoParser: customDepositInfoParser,
+        fillWatcher: customFillWatcher,
+        rpcUrls,
+    } = config || {};
 
     const openWatcher = new OpenEventWatcher({
         publicClient,
         rpcUrls,
     });
 
+    let depositInfoParser: DepositInfoParser;
     let fillWatcher: FillWatcher;
 
-    if (customFillWatcher) {
-        fillWatcher = customFillWatcher;
+    if (customDepositInfoParser) {
+        depositInfoParser = customDepositInfoParser;
     } else {
+        // Protocol-specific deposit info parser configuration
         switch (protocol) {
-            case "across":
-                fillWatcher = new AcrossFillWatcher({
+            case "across": {
+                const depositParserConfig = AcrossProvider.getDepositInfoParserConfig();
+                depositInfoParser = new EventBasedDepositInfoParser(depositParserConfig, {
                     publicClient,
                     rpcUrls,
                 });
                 break;
+            }
             default:
                 throw new Error(`Unsupported protocol: ${protocol}`);
         }
     }
 
-    return new IntentTracker(openWatcher, fillWatcher);
+    if (customFillWatcher) {
+        fillWatcher = customFillWatcher;
+    } else {
+        // Protocol-specific fill watcher configuration
+        switch (protocol) {
+            case "across": {
+                const fillWatcherConfig = AcrossProvider.getFillWatcherConfig();
+                fillWatcher = new EventBasedFillWatcher(fillWatcherConfig, {
+                    publicClient,
+                    rpcUrls,
+                });
+                break;
+            }
+            default:
+                throw new Error(`Unsupported protocol: ${protocol}`);
+        }
+    }
+
+    return new IntentTracker(openWatcher, depositInfoParser, fillWatcher);
 }

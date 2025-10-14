@@ -1,14 +1,7 @@
-import { Address, Chain, createPublicClient, Hex, http, PublicClient } from "viem";
+import { Abi, Address, Chain, createPublicClient, http, Log, PublicClient } from "viem";
 
 import { DEFAULT_PUBLIC_RPC_URLS } from "../constants/chains.js";
-import {
-    ACROSS_FILLED_RELAY_EVENT_ABI,
-    ACROSS_SPOKE_POOL_ADDRESSES,
-    FillEvent,
-    FillWatcher,
-    SUPPORTED_CHAINS,
-    WatchFillParams,
-} from "../internal.js";
+import { FillEvent, FillWatcher, getChainById, WatchFillParams } from "../internal.js";
 
 export class FillTimeoutError extends Error {
     constructor(depositId: bigint, timeout: number) {
@@ -19,22 +12,42 @@ export class FillTimeoutError extends Error {
     }
 }
 
-export class FillNotFoundError extends Error {
-    constructor(depositId: bigint, originChainId: number) {
-        super(`Fill not found for depositId ${depositId} from chain ${originChainId}`);
-        this.name = "FillNotFoundError";
-    }
+export interface FillWatcherConfig {
+    /** Contract addresses per chain ID where fill events are emitted */
+    contractAddresses: Record<number, Address>;
+    /** Event ABI for the fill event */
+    eventAbi: Abi;
+    /** Function to build getLogs parameters from watch params */
+    buildLogsArgs: (
+        params: WatchFillParams,
+        contractAddress: Address,
+    ) => {
+        address: Address;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        event: any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        args?: any;
+    };
+    /** Function to extract FillEvent from the matched log */
+    extractFillEvent: (log: Log, params: WatchFillParams) => FillEvent | null;
 }
 
-export interface AcrossFillWatcherDependencies {
+export interface EventBasedFillWatcherDependencies {
     publicClient?: PublicClient;
     rpcUrls?: Record<number, string>;
 }
 
-export class AcrossFillWatcher implements FillWatcher {
+/**
+ * Generic event-based fill watcher
+ * Can be configured for any protocol that emits fill events
+ */
+export class EventBasedFillWatcher implements FillWatcher {
     private readonly clientCache: Map<number, PublicClient> = new Map();
 
-    constructor(private readonly dependencies?: AcrossFillWatcherDependencies) {}
+    constructor(
+        private readonly config: FillWatcherConfig,
+        private readonly dependencies?: EventBasedFillWatcherDependencies,
+    ) {}
 
     private getPublicClient({ chain }: { chain: Chain }): PublicClient {
         if (this.dependencies?.publicClient) {
@@ -65,16 +78,12 @@ export class AcrossFillWatcher implements FillWatcher {
      * @returns Fill event data if found, null if not yet filled
      */
     async watchFill(params: WatchFillParams): Promise<FillEvent | null> {
-        const { destinationChainId, originChainId, depositId } = params;
+        const { destinationChainId } = params;
 
-        const destinationChain = SUPPORTED_CHAINS.find((c) => c.id === destinationChainId);
-        if (!destinationChain) {
-            throw new Error(`Unsupported destination chain ID: ${destinationChainId}`);
-        }
-
-        const spokePoolAddress = ACROSS_SPOKE_POOL_ADDRESSES[destinationChainId];
-        if (!spokePoolAddress) {
-            throw new Error(`SpokePool address not configured for chain ${destinationChainId}`);
+        const destinationChain = getChainById(destinationChainId);
+        const contractAddress = this.config.contractAddresses[destinationChainId];
+        if (!contractAddress) {
+            throw new Error(`Contract address not configured for chain ${destinationChainId}`);
         }
 
         const publicClient = this.getPublicClient({ chain: destinationChain });
@@ -85,13 +94,10 @@ export class AcrossFillWatcher implements FillWatcher {
         const fromBlock = currentBlock > maxBlockRange ? currentBlock - maxBlockRange : 0n;
 
         try {
+            const logsArgs = this.config.buildLogsArgs(params, contractAddress);
+
             const logs = await publicClient.getLogs({
-                address: spokePoolAddress,
-                event: ACROSS_FILLED_RELAY_EVENT_ABI[0],
-                args: {
-                    originChainId: BigInt(originChainId),
-                    depositId: depositId,
-                },
+                ...logsArgs,
                 fromBlock,
                 toBlock: "latest",
             });
@@ -101,38 +107,22 @@ export class AcrossFillWatcher implements FillWatcher {
             }
 
             const log = logs[0];
-            if (!log) {
+            if (!log || !log.transactionHash) {
                 return null;
             }
 
-            if (!log.transactionHash) {
+            const fillEvent = this.config.extractFillEvent(log, params);
+            if (!fillEvent) {
                 return null;
             }
 
-            const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
-
-            // getLogs with event ABI already decodes the logs, so we can use args directly
-            const args = log.args;
-            if (!args) {
-                return null;
+            // Get block timestamp if not already set
+            if (fillEvent.timestamp === 0 && log.blockNumber) {
+                const block = await publicClient.getBlock({ blockNumber: log.blockNumber });
+                fillEvent.timestamp = Number(block.timestamp);
             }
 
-            // Bytes32 addresses are right-aligned, so we take the last 20 bytes
-            const relayerBytes32 = args.relayer as Hex;
-            const recipientBytes32 = args.recipient as Hex;
-
-            const relayer = `0x${relayerBytes32.slice(-40)}` as Address;
-            const recipient = `0x${recipientBytes32.slice(-40)}` as Address;
-
-            return {
-                fillTxHash: log.transactionHash,
-                blockNumber: log.blockNumber,
-                timestamp: Number(block.timestamp),
-                originChainId,
-                depositId,
-                relayer,
-                recipient,
-            };
+            return fillEvent;
         } catch (error) {
             // Log error but don't throw - treat as not filled yet
             console.error(
@@ -146,7 +136,7 @@ export class AcrossFillWatcher implements FillWatcher {
      * Wait for a fill with polling and timeout
      *
      * @param params - Parameters for watching the fill
-     * @param timeout - Timeout in milliseconds (default: 5 minutes)
+     * @param timeout - Timeout in milliseconds (default: 3 minutes)
      * @returns Fill event data
      * @throws {FillTimeoutError} If timeout is reached before fill
      */

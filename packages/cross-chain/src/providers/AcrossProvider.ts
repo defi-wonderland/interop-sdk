@@ -9,34 +9,43 @@ import {
     formatUnits,
     Hex,
     http,
+    Log,
     pad,
     PublicClient,
     TransactionRequest,
 } from "viem";
 
 import {
+    ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES,
     ACROSS_OPEN_GAS_LIMIT,
     ACROSS_ORDER_DATA_ABI,
     ACROSS_ORDER_DATA_TYPE,
+    ACROSS_SPOKE_POOL_ADDRESSES,
     ACROSS_TESTING_API_URL,
     AcrossOpenParams,
     AcrossTransferOpenParams,
     AcrossTransferOpenParamsSchema,
+    bytes32ToAddress,
     CrossChainProvider,
+    DepositInfo,
+    DepositInfoParserConfig,
     Fee,
+    FillEvent,
+    FillWatcherConfig,
     formatTokenAmount,
+    getChainById,
     GetQuoteParams,
     GetQuoteResponse,
     getTokenAllowance,
     OPEN_ABI,
+    parseAbiEncodedFields,
     parseTokenAmount,
-    SUPPORTED_CHAINS,
     TransferGetQuoteParams,
     TransferGetQuoteParamsSchema,
     TransferGetQuoteResponse,
     UnsupportedAction,
-    UnsupportedChainId,
+    WatchFillParams,
 } from "../internal.js";
 
 /**
@@ -75,13 +84,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             outputToken: params.outputTokenAddress,
         };
 
-        const inputChain = SUPPORTED_CHAINS.find(
-            (chain) => chain.id === Number(params.inputChainId),
-        );
-
-        if (!inputChain) {
-            throw new UnsupportedChainId(params.inputChainId);
-        }
+        const inputChain = getChainById(Number(params.inputChainId));
 
         const inputAmount = await parseTokenAmount(
             {
@@ -179,13 +182,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         const totalFee = await this.calculateTotalFee(quote);
         const percentFee = await this.calculatePercentFee(quote);
 
-        const inputChain = SUPPORTED_CHAINS.find(
-            (chain) => chain.id === Number(quote.deposit.originChainId),
-        );
-
-        if (!inputChain) {
-            throw new UnsupportedChainId(quote.deposit.originChainId);
-        }
+        const inputChain = getChainById(Number(quote.deposit.originChainId));
 
         return {
             total: await formatTokenAmount(
@@ -208,21 +205,8 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     private async getTransferQuote(
         params: TransferGetQuoteParams,
     ): Promise<TransferGetQuoteResponse<AcrossOpenParams>> {
-        const inputChain = SUPPORTED_CHAINS.find(
-            (chain) => chain.id === Number(params.inputChainId),
-        );
-
-        if (!inputChain) {
-            throw new UnsupportedChainId(params.inputChainId);
-        }
-
-        const outputChain = SUPPORTED_CHAINS.find(
-            (chain) => chain.id === Number(params.outputChainId),
-        );
-
-        if (!outputChain) {
-            throw new UnsupportedChainId(params.outputChainId);
-        }
+        const inputChain = getChainById(Number(params.inputChainId));
+        const outputChain = getChainById(Number(params.outputChainId));
 
         const quote = await this.getAcrossQuote(params);
         const openParams = await this.getAcrossOpenParams(params.sender, quote);
@@ -289,11 +273,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
 
         const result: TransactionRequest[] = [];
 
-        const inputChain = SUPPORTED_CHAINS.find((chain) => chain.id === Number(inputChainId));
-
-        if (!inputChain) {
-            throw new UnsupportedChainId(inputChainId);
-        }
+        const inputChain = getChainById(Number(inputChainId));
 
         const settlerContractAddress = ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[
             Number(inputChainId)
@@ -342,11 +322,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
         const { fillDeadline, orderDataType, orderData, inputChainId, sender } = params.params;
         const result: TransactionRequest[] = [];
 
-        const inputChain = SUPPORTED_CHAINS.find((chain) => chain.id === Number(inputChainId));
-
-        if (!inputChain) {
-            throw new UnsupportedChainId(inputChainId);
-        }
+        const inputChain = getChainById(Number(inputChainId));
 
         const settlerContractAddress = ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[Number(inputChainId)];
 
@@ -391,5 +367,87 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             default:
                 throw new UnsupportedAction(action);
         }
+    }
+
+    /**
+     * Get the deposit info parser configuration for Across
+     * Used to configure a generic EventBasedDepositInfoParser
+     */
+    static getDepositInfoParserConfig(): DepositInfoParserConfig {
+        const FUNDS_DEPOSITED_SIGNATURE =
+            "0x32ed1a409ef04c7b0227189c3a103dc5ac10e775a15b785dcc510201f7c25ad3" as Hex;
+
+        return {
+            protocolName: AcrossProvider.prototype.protocolName,
+            eventSignature: FUNDS_DEPOSITED_SIGNATURE,
+            extractDepositInfo: (log: Log): DepositInfo => {
+                // Extract key fields from FundsDeposited event
+                // topics[1] = destinationChainId (indexed)
+                // topics[2] = depositId (indexed)
+                const destinationChainId = BigInt(log.topics[1] || "0");
+                const depositId = BigInt(log.topics[2] || "0");
+
+                // Parse amounts from event data
+                // Data structure: inputToken, outputToken, inputAmount, outputAmount
+                const [inputAmount, outputAmount] = parseAbiEncodedFields(log.data, [2, 3]) as [
+                    bigint,
+                    bigint,
+                ];
+
+                return {
+                    depositId,
+                    inputAmount,
+                    outputAmount,
+                    destinationChainId,
+                };
+            },
+        };
+    }
+
+    /**
+     * Get the fill watcher configuration for Across
+     * Used to configure a generic EventBasedFillWatcher
+     */
+    static getFillWatcherConfig(): FillWatcherConfig {
+        return {
+            contractAddresses: ACROSS_SPOKE_POOL_ADDRESSES,
+            eventAbi: ACROSS_FILLED_RELAY_EVENT_ABI,
+            buildLogsArgs: (
+                params: WatchFillParams,
+                contractAddress: Address,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ): { address: Address; event: any; args?: any } => {
+                return {
+                    address: contractAddress,
+                    event: ACROSS_FILLED_RELAY_EVENT_ABI[0]!,
+                    args: {
+                        originChainId: BigInt(params.originChainId),
+                        depositId: params.depositId,
+                    },
+                };
+            },
+            extractFillEvent: (log: Log, params: WatchFillParams): FillEvent | null => {
+                if (!log.transactionHash) {
+                    return null;
+                }
+
+                // getLogs with event ABI decodes the logs, args should be available
+                const args = (log as unknown as { args?: { relayer: Hex; recipient: Hex } }).args;
+
+                if (!args) {
+                    return null;
+                }
+
+                return {
+                    fillTxHash: log.transactionHash,
+                    blockNumber: log.blockNumber || 0n,
+                    timestamp: 0, // Will be populated by the watcher
+                    originChainId: params.originChainId,
+                    depositId: params.depositId,
+                    relayer: bytes32ToAddress(args.relayer),
+                    recipient: bytes32ToAddress(args.recipient),
+                };
+            },
+        };
     }
 }

@@ -150,7 +150,7 @@ describe("eventDataParser", () => {
         it("should parse multiple fields with custom field size (16 bytes)", () => {
             // Three 16-byte fields: 111, 222, 333
             const data =
-                "0x0000000000000000000000000000006f00000000000000000000000000de000000000000000000000000000000014d" as Hex;
+                "0x0000000000000000000000000000006f000000000000000000000000000000de0000000000000000000000000000014d" as Hex;
 
             const result = parseAbiEncodedFields(data, [0, 1, 2], 16);
 
