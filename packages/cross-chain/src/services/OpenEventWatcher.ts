@@ -1,12 +1,6 @@
 import { Chain, createPublicClient, decodeEventLog, Hex, http, PublicClient } from "viem";
 
-import {
-    DEFAULT_PUBLIC_RPC_URLS,
-    getChainById,
-    OPEN_EVENT_ABI,
-    OPEN_EVENT_SIGNATURE,
-    OpenEvent,
-} from "../internal.js";
+import { getChainById, OPEN_EVENT_ABI, OPEN_EVENT_SIGNATURE, OpenEvent } from "../internal.js";
 
 export class OpenEventNotFoundError extends Error {
     constructor(txHash: Hex) {
@@ -45,11 +39,9 @@ export class OpenEventWatcher {
             return this.clientCache.get(chain.id)!;
         }
 
-        const rpcUrl = this.dependencies?.rpcUrls?.[chain.id] || DEFAULT_PUBLIC_RPC_URLS[chain.id];
-
         const client = createPublicClient({
             chain,
-            transport: http(rpcUrl),
+            transport: http(this.dependencies?.rpcUrls?.[chain.id]),
         });
 
         this.clientCache.set(chain.id, client);

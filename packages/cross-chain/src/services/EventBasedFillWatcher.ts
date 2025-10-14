@@ -1,6 +1,5 @@
 import { Abi, Address, Chain, createPublicClient, http, Log, PublicClient } from "viem";
 
-import { DEFAULT_PUBLIC_RPC_URLS } from "../constants/chains.js";
 import { FillEvent, FillWatcher, getChainById, WatchFillParams } from "../internal.js";
 
 export class FillTimeoutError extends Error {
@@ -58,13 +57,9 @@ export class EventBasedFillWatcher implements FillWatcher {
             return this.clientCache.get(chain.id)!;
         }
 
-        const customRpcUrl = this.dependencies?.rpcUrls?.[chain.id];
-        const defaultRpcUrl = DEFAULT_PUBLIC_RPC_URLS[chain.id] as string | undefined;
-        const rpcUrl: string | undefined = customRpcUrl || defaultRpcUrl;
-
         const client = createPublicClient({
             chain,
-            transport: http(rpcUrl),
+            transport: http(this.dependencies?.rpcUrls?.[chain.id]),
         });
 
         this.clientCache.set(chain.id, client);

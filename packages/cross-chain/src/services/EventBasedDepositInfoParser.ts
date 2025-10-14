@@ -1,11 +1,6 @@
 import { Chain, createPublicClient, Hex, http, Log, PublicClient } from "viem";
 
-import {
-    DEFAULT_PUBLIC_RPC_URLS,
-    DepositInfo,
-    DepositInfoParser,
-    getChainById,
-} from "../internal.js";
+import { DepositInfo, DepositInfoParser, getChainById } from "../internal.js";
 
 export class DepositEventNotFoundError extends Error {
     constructor(txHash: Hex, protocol: string) {
@@ -49,11 +44,9 @@ export class EventBasedDepositInfoParser implements DepositInfoParser {
             return this.clientCache.get(chain.id)!;
         }
 
-        const rpcUrl = this.dependencies?.rpcUrls?.[chain.id] || DEFAULT_PUBLIC_RPC_URLS[chain.id];
-
         const client = createPublicClient({
             chain,
-            transport: http(rpcUrl),
+            transport: http(this.dependencies?.rpcUrls?.[chain.id]),
         });
 
         this.clientCache.set(chain.id, client);
