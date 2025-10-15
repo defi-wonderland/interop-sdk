@@ -36,6 +36,8 @@ export class QuoteAggregator {
     async getQuotes<Action extends ValidActions, OpenParams extends BasicOpenParams>(
         params: GetQuotesParams<Action>,
     ): Promise<GetQuoteResponse<Action, OpenParams>[]> {
+        const sortingStrategy = params.sorting || SortingStrategy.BEST_OUTPUT;
+
         const quotePromises = Array.from(this.providers.entries()).map(
             async ([providerName, provider]) => {
                 try {
@@ -56,7 +58,6 @@ export class QuoteAggregator {
             }
         }
 
-        const sortingStrategy = params.sorting || SortingStrategy.BEST_OUTPUT;
         return this.sortQuotes(validQuotes, sortingStrategy);
     }
 
