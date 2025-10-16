@@ -36,7 +36,7 @@ export class IntentTracker {
 
         const depositInfo = await this.depositInfoParser.getDepositInfo(txHash, originChainId);
 
-        const fillEvent = await this.fillWatcher.watchFill({
+        const fillEvent = await this.fillWatcher.getFill({
             originChainId,
             destinationChainId: Number(depositInfo.destinationChainId),
             depositId: depositInfo.depositId,

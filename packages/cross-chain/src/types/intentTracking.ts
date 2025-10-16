@@ -142,9 +142,9 @@ export interface WatchIntentParams {
 }
 
 /**
- * Parameters for watching fills on destination chain
+ * Parameters for getting fill status on destination chain
  */
-export interface WatchFillParams {
+export interface GetFillParams {
     /** Origin chain ID */
     originChainId: number;
     /** Destination chain ID */

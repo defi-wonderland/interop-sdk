@@ -36,6 +36,7 @@ import {
     FillWatcherConfig,
     formatTokenAmount,
     getChainById,
+    GetFillParams,
     GetQuoteParams,
     GetQuoteResponse,
     getTokenAllowance,
@@ -46,7 +47,6 @@ import {
     TransferGetQuoteParamsSchema,
     TransferGetQuoteResponse,
     UnsupportedAction,
-    WatchFillParams,
 } from "../internal.js";
 
 /**
@@ -409,7 +409,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             contractAddresses: ACROSS_SPOKE_POOL_ADDRESSES,
             eventAbi: ACROSS_FILLED_RELAY_EVENT_ABI,
             buildLogsArgs: (
-                params: WatchFillParams,
+                params: GetFillParams,
                 contractAddress: Address,
             ): { address: Address; event: AbiEvent; args?: Record<string, unknown> } => {
                 return {
@@ -421,7 +421,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                     },
                 };
             },
-            extractFillEvent: (log: Log, params: WatchFillParams): FillEvent | null => {
+            extractFillEvent: (log: Log, params: GetFillParams): FillEvent | null => {
                 if (!log.transactionHash) {
                     return null;
                 }
