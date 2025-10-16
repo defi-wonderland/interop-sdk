@@ -53,10 +53,8 @@ export function createIntentTracker(
         rpcUrls,
     } = config || {};
 
-    // Create shared PublicClient manager - single instance shared across all services
     const clientManager = new PublicClientManager(publicClient, rpcUrls);
 
-    // All services use the same client manager
     const openWatcher = new OpenEventWatcher({ clientManager });
 
     let depositInfoParser: DepositInfoParser;
@@ -65,7 +63,6 @@ export function createIntentTracker(
     if (customDepositInfoParser) {
         depositInfoParser = customDepositInfoParser;
     } else {
-        // Protocol-specific deposit info parser configuration
         switch (protocol) {
             case "across": {
                 const depositParserConfig = AcrossProvider.getDepositInfoParserConfig();
@@ -82,7 +79,6 @@ export function createIntentTracker(
     if (customFillWatcher) {
         fillWatcher = customFillWatcher;
     } else {
-        // Protocol-specific fill watcher configuration
         switch (protocol) {
             case "across": {
                 const fillWatcherConfig = AcrossProvider.getFillWatcherConfig();

@@ -382,14 +382,9 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             protocolName: AcrossProvider.prototype.protocolName,
             eventSignature: FUNDS_DEPOSITED_SIGNATURE,
             extractDepositInfo: (log: Log): DepositInfo => {
-                // Extract key fields from FundsDeposited event
-                // topics[1] = destinationChainId (indexed)
-                // topics[2] = depositId (indexed)
                 const destinationChainId = BigInt(log.topics[1] || "0");
                 const depositId = BigInt(log.topics[2] || "0");
 
-                // Parse amounts from event data
-                // Data structure: inputToken, outputToken, inputAmount, outputAmount
                 const [inputAmount, outputAmount] = parseAbiEncodedFields(log.data, [2, 3]) as [
                     bigint,
                     bigint,
@@ -431,7 +426,6 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                     return null;
                 }
 
-                // getLogs with event ABI decodes the logs, args should be available
                 const args = (log as unknown as { args?: { relayer: Hex; recipient: Hex } }).args;
 
                 if (!args) {

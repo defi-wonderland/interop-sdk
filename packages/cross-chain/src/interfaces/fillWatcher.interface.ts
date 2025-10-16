@@ -1,16 +1,5 @@
 import { FillEvent, WatchFillParams } from "../internal.js";
 
-/**
- * Interface for protocol-specific fill watchers
- * Each protocol implements this to watch for fills on destination chains
- *
- * Different protocols may:
- * - Use different contract addresses
- * - Emit different fill events
- * - Have different fill mechanisms
- *
- * This interface abstracts those differences
- */
 export interface FillWatcher {
     /**
      * Watch for a fill on the destination chain
