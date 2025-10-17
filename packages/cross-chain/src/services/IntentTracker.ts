@@ -87,6 +87,10 @@ export class IntentTracker {
     async *watchIntent(params: WatchIntentParams): AsyncGenerator<IntentUpdate> {
         const { txHash, originChainId, destinationChainId, timeout = 5 * 60 * 1000 } = params;
 
+        if (timeout <= 0) {
+            throw new Error(`Timeout must be positive, got ${timeout}ms`);
+        }
+
         const startTime = Date.now();
 
         yield {
@@ -123,6 +127,22 @@ export class IntentTracker {
             return;
         }
 
+        const elapsedTime = Date.now() - startTime;
+        const remainingTimeout = Math.max(0, timeout - elapsedTime);
+
+        // If no time remaining, exit early with timeout message
+        if (remainingTimeout === 0) {
+            const deadlineDate = new Date(fillDeadline * 1000).toISOString();
+            yield {
+                status: "filling",
+                orderId: openEvent.orderId,
+                openTxHash: txHash,
+                timestamp: Date.now(),
+                message: `Timeout expired during intent setup. Intent may still be filled before deadline at ${deadlineDate}`,
+            };
+            return;
+        }
+
         yield {
             status: "filling",
             orderId: openEvent.orderId,
@@ -131,7 +151,6 @@ export class IntentTracker {
             message: "Waiting for relayer to fill intent...",
         };
 
-        const remainingTimeout = timeout - (Date.now() - startTime);
         const fillResult = await this.waitForFillWithTimeout(
             {
                 originChainId,

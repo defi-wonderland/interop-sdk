@@ -58,6 +58,7 @@ export class EventBasedFillWatcher implements FillWatcher {
      *
      * @param params - Parameters for getting the fill
      * @returns Fill event data if found, null if not yet filled
+     * @note Only searches the last 40,000 blocks. Older fills will not be detected.
      */
     async getFill(params: GetFillParams): Promise<FillEvent | null> {
         const { destinationChainId } = params;
@@ -70,12 +71,12 @@ export class EventBasedFillWatcher implements FillWatcher {
 
         const publicClient = this.getPublicClient({ chain: destinationChain });
 
-        const currentBlock = await publicClient.getBlockNumber();
-
-        const maxBlockRange = 40000n; // Public RPCs limit to 50,000 blocks max
-        const fromBlock = currentBlock > maxBlockRange ? currentBlock - maxBlockRange : 0n;
-
         try {
+            const currentBlock = await publicClient.getBlockNumber();
+
+            const maxBlockRange = 40000n; // Public RPCs limit to 50,000 blocks max
+            const fromBlock = currentBlock > maxBlockRange ? currentBlock - maxBlockRange : 0n;
+
             const logsArgs = this.config.buildLogsArgs(params, contractAddress);
 
             const logs = await publicClient.getLogs({
@@ -121,8 +122,13 @@ export class EventBasedFillWatcher implements FillWatcher {
      * @param timeout - Timeout in milliseconds (default: 3 minutes)
      * @returns Fill event data
      * @throws {FillTimeoutError} If timeout is reached before fill
+     * @throws {Error} If timeout is not positive
      */
     async waitForFill(params: GetFillParams, timeout: number = 3 * 60 * 1000): Promise<FillEvent> {
+        if (timeout <= 0) {
+            throw new Error(`Timeout must be positive, got ${timeout}ms`);
+        }
+
         const pollingInterval = 5000; // 5 seconds
         const startTime = Date.now();
 
