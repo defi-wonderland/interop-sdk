@@ -25,13 +25,53 @@ export interface GetQuotesParams<Action extends ValidActions> {
      * @default SortingStrategy.BEST_OUTPUT
      */
     sorting?: SortingStrategy;
+
+    /**
+     * Timeout in milliseconds for each provider
+     * @default 10000 (10 seconds)
+     */
+    timeout?: number;
 }
 
 /**
- * Response from getQuotes - array of quotes sorted by the specified strategy
- * The first element is always the best quote based on the sorting criteria
+ * Result status for a quote request
+ */
+export enum QuoteResultStatus {
+    SUCCESS = "success",
+    ERROR = "error",
+    TIMEOUT = "timeout",
+}
+
+/**
+ * A quote result with status and optional error
+ */
+export type QuoteResult<Action extends ValidActions, OpenParams extends BasicOpenParams> = {
+    /**
+     * The provider name
+     */
+    provider: string;
+
+    /**
+     * The status of the quote request
+     */
+    status: QuoteResultStatus;
+
+    /**
+     * The quote response (only present if status is "success")
+     */
+    quote?: GetQuoteResponse<Action, OpenParams>;
+
+    /**
+     * The error message (only present if status is "error" or "timeout")
+     */
+    error?: string;
+};
+
+/**
+ * Response from getQuotes - array of quote results sorted by the specified strategy
+ * Successful quotes are sorted first, followed by failed quotes
  */
 export type GetQuotesResponse<
     Action extends ValidActions,
     OpenParams extends BasicOpenParams,
-> = GetQuoteResponse<Action, OpenParams>[];
+> = QuoteResult<Action, OpenParams>[];

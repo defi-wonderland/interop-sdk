@@ -1,4 +1,4 @@
-import type { GetQuotesParams } from "../interfaces/quoteAggregator.interface.js";
+import type { GetQuotesParams, QuoteResult } from "../interfaces/quoteAggregator.interface.js";
 import type {
     BasicOpenParams,
     CrossChainProvider,
@@ -6,9 +6,15 @@ import type {
     SupportedProtocols,
     ValidActions,
 } from "../internal.js";
+import { QuoteResultStatus } from "../interfaces/quoteAggregator.interface.js";
 import { PROTOCOLS } from "../types.js";
 import { SortingStrategy } from "../types/sorting.js";
 import { CrossChainProviderFactory } from "./crossChainProviderFactory.js";
+
+/**
+ * Default timeout for provider quote requests in milliseconds
+ */
+const DEFAULT_QUOTE_TIMEOUT_MS = 10000;
 
 /**
  * Quote aggregator for fetching and comparing quotes from multiple providers
@@ -31,69 +37,128 @@ export class QuoteAggregator {
     /**
      * Get quotes from multiple providers, sorted by the specified strategy
      * @param params - Parameters for fetching quotes
-     * @returns Array of quotes sorted by strategy (first element is best)
+     * @returns Array of quote results sorted by strategy (successful quotes first, then failed)
      */
     async getQuotes<Action extends ValidActions, OpenParams extends BasicOpenParams>(
         params: GetQuotesParams<Action>,
-    ): Promise<GetQuoteResponse<Action, OpenParams>[]> {
+    ): Promise<QuoteResult<Action, OpenParams>[]> {
         const sortingStrategy = params.sorting || SortingStrategy.BEST_OUTPUT;
+        const timeoutMs = params.timeout || DEFAULT_QUOTE_TIMEOUT_MS;
 
         const quotePromises = Array.from(this.providers.entries()).map(
-            async ([providerName, provider]) => {
+            async ([providerName, provider]): Promise<QuoteResult<Action, OpenParams>> => {
                 try {
-                    return await provider.getQuote(params.action, params.params);
+                    const quotePromise = provider.getQuote(params.action, params.params);
+                    const timeoutPromise = new Promise<never>((_, reject) => {
+                        setTimeout(() => {
+                            reject(new Error(`Timeout after ${timeoutMs}ms`));
+                        }, timeoutMs);
+                    });
+
+                    const quote = await Promise.race([quotePromise, timeoutPromise]);
+
+                    return {
+                        provider: providerName,
+                        status: QuoteResultStatus.SUCCESS,
+                        quote: quote as GetQuoteResponse<Action, OpenParams>,
+                    };
                 } catch (error) {
-                    console.error(`Provider ${providerName} failed:`, error);
-                    return null;
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    const isTimeout = errorMessage.includes("Timeout");
+
+                    console.error(
+                        `Provider ${providerName} ${isTimeout ? "timed out" : "failed"}:`,
+                        error,
+                    );
+
+                    return {
+                        provider: providerName,
+                        status: isTimeout ? QuoteResultStatus.TIMEOUT : QuoteResultStatus.ERROR,
+                        error: errorMessage,
+                    };
                 }
             },
         );
 
         const results = await Promise.allSettled(quotePromises);
 
-        const validQuotes: GetQuoteResponse<Action, OpenParams>[] = [];
+        const allResults: QuoteResult<Action, OpenParams>[] = [];
         for (const result of results) {
-            if (result.status === "fulfilled" && result.value !== null) {
-                validQuotes.push(result.value as GetQuoteResponse<Action, OpenParams>);
+            if (result.status === "fulfilled") {
+                allResults.push(result.value);
+            } else {
+                // This should rarely happen since we catch errors inside the promise
+                const error =
+                    result.reason instanceof Error ? result.reason.message : String(result.reason);
+                allResults.push({
+                    provider: "unknown",
+                    status: QuoteResultStatus.ERROR,
+                    error,
+                });
             }
         }
 
-        return this.sortQuotes(validQuotes, sortingStrategy);
+        return this.sortQuoteResults(allResults, sortingStrategy);
     }
 
     /**
-     * Sort quotes by the specified strategy
+     * Sort quote results by the specified strategy
+     * Successful quotes are sorted first, followed by failed quotes
      */
-    private sortQuotes<Action extends ValidActions, OpenParams extends BasicOpenParams>(
-        quotes: GetQuoteResponse<Action, OpenParams>[],
+    private sortQuoteResults<Action extends ValidActions, OpenParams extends BasicOpenParams>(
+        results: QuoteResult<Action, OpenParams>[],
         strategy: SortingStrategy,
-    ): GetQuoteResponse<Action, OpenParams>[] {
-        const sorted = [...quotes];
+    ): QuoteResult<Action, OpenParams>[] {
+        // Separate successful and failed results
+        const successResults: QuoteResult<Action, OpenParams>[] = [];
+        const failedResults: QuoteResult<Action, OpenParams>[] = [];
 
-        switch (strategy) {
-            case SortingStrategy.BEST_OUTPUT: {
-                return sorted.sort((a, b) => {
-                    const aOut = BigInt(a.output.outputAmount);
-                    const bOut = BigInt(b.output.outputAmount);
-                    return bOut > aOut ? 1 : bOut < aOut ? -1 : 0;
-                });
+        for (const result of results) {
+            if (result.status === QuoteResultStatus.SUCCESS && result.quote) {
+                successResults.push(result);
+            } else {
+                failedResults.push(result);
             }
-
-            case SortingStrategy.LOWEST_FEE_AMOUNT: {
-                return sorted.sort((a, b) => {
-                    const aFee = BigInt(a.fee.total);
-                    const bFee = BigInt(b.fee.total);
-                    return aFee > bFee ? 1 : aFee < bFee ? -1 : 0;
-                });
-            }
-
-            case SortingStrategy.LOWEST_FEE_PERCENT: {
-                return sorted.sort((a, b) => parseFloat(a.fee.percent) - parseFloat(b.fee.percent));
-            }
-
-            default:
-                return sorted;
         }
+
+        // Sort successful results by strategy
+        this.sortByStrategy(successResults, strategy);
+
+        // Return successful results first, then failed
+        return [...successResults, ...failedResults];
+    }
+
+    /**
+     * Sort quotes in place by the specified strategy
+     */
+    private sortByStrategy<Action extends ValidActions, OpenParams extends BasicOpenParams>(
+        results: QuoteResult<Action, OpenParams>[],
+        strategy: SortingStrategy,
+    ): void {
+        results.sort((a, b) => {
+            if (!a.quote || !b.quote) return 0;
+
+            switch (strategy) {
+                case SortingStrategy.BEST_OUTPUT: {
+                    const aOut = BigInt(a.quote.output.outputAmount);
+                    const bOut = BigInt(b.quote.output.outputAmount);
+                    return bOut > aOut ? 1 : bOut < aOut ? -1 : 0;
+                }
+
+                case SortingStrategy.LOWEST_FEE_AMOUNT: {
+                    const aFee = BigInt(a.quote.fee.total);
+                    const bFee = BigInt(b.quote.fee.total);
+                    return aFee > bFee ? 1 : aFee < bFee ? -1 : 0;
+                }
+
+                case SortingStrategy.LOWEST_FEE_PERCENT: {
+                    return parseFloat(a.quote.fee.percent) - parseFloat(b.quote.fee.percent);
+                }
+
+                default:
+                    return 0;
+            }
+        });
     }
 }
 
