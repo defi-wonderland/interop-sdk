@@ -6,9 +6,10 @@ import type {
     SupportedProtocols,
     ValidActions,
 } from "../internal.js";
+import type { SortingStrategy } from "../types/sorting.js";
 import { QuoteResultStatus } from "../interfaces/quoteAggregator.interface.js";
 import { PROTOCOLS } from "../types.js";
-import { SortingStrategy } from "../types/sorting.js";
+import { SortingCriteria } from "../types/sorting.js";
 import { CrossChainProviderFactory } from "./crossChainProviderFactory.js";
 
 /**
@@ -42,7 +43,7 @@ export class QuoteAggregator {
     async getQuotes<Action extends ValidActions, OpenParams extends BasicOpenParams>(
         params: GetQuotesParams<Action>,
     ): Promise<QuoteResult<Action, OpenParams>[]> {
-        const sortingStrategy = params.sorting || SortingStrategy.BEST_OUTPUT;
+        const sortingStrategy = params.sorting || SortingCriteria.BEST_OUTPUT;
         const timeoutMs = params.timeout || DEFAULT_QUOTE_TIMEOUT_MS;
 
         const quotePromises = Array.from(this.providers.entries()).map(
@@ -109,7 +110,6 @@ export class QuoteAggregator {
         results: QuoteResult<Action, OpenParams>[],
         strategy: SortingStrategy,
     ): QuoteResult<Action, OpenParams>[] {
-        // Separate successful and failed results
         const successResults: QuoteResult<Action, OpenParams>[] = [];
         const failedResults: QuoteResult<Action, OpenParams>[] = [];
 
@@ -121,10 +121,8 @@ export class QuoteAggregator {
             }
         }
 
-        // Sort successful results by strategy
         this.sortByStrategy(successResults, strategy);
 
-        // Return successful results first, then failed
         return [...successResults, ...failedResults];
     }
 
@@ -135,23 +133,28 @@ export class QuoteAggregator {
         results: QuoteResult<Action, OpenParams>[],
         strategy: SortingStrategy,
     ): void {
+        if (typeof strategy === "function") {
+            results.sort(strategy);
+            return;
+        }
+
         results.sort((a, b) => {
             if (!a.quote || !b.quote) return 0;
 
             switch (strategy) {
-                case SortingStrategy.BEST_OUTPUT: {
+                case SortingCriteria.BEST_OUTPUT: {
                     const aOut = BigInt(a.quote.output.outputAmount);
                     const bOut = BigInt(b.quote.output.outputAmount);
                     return bOut > aOut ? 1 : bOut < aOut ? -1 : 0;
                 }
 
-                case SortingStrategy.LOWEST_FEE_AMOUNT: {
+                case SortingCriteria.LOWEST_FEE_AMOUNT: {
                     const aFee = BigInt(a.quote.fee.total);
                     const bFee = BigInt(b.quote.fee.total);
                     return aFee > bFee ? 1 : aFee < bFee ? -1 : 0;
                 }
 
-                case SortingStrategy.LOWEST_FEE_PERCENT: {
+                case SortingCriteria.LOWEST_FEE_PERCENT: {
                     return parseFloat(a.quote.fee.percent) - parseFloat(b.quote.fee.percent);
                 }
 

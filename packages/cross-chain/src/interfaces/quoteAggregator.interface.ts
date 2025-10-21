@@ -22,7 +22,8 @@ export interface GetQuotesParams<Action extends ValidActions> {
 
     /**
      * Sorting strategy for the returned quotes
-     * @default SortingStrategy.BEST_OUTPUT
+     * Can be either a predefined criteria or a custom sorting function
+     * @default SortingCriteria.BEST_OUTPUT
      */
     sorting?: SortingStrategy;
 

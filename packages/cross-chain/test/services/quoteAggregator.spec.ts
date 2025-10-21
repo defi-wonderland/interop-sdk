@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import type { AcrossOpenParams } from "../../src/interfaces/AcrossProvider.interface.js";
 import type { GetQuoteResponse, QuoteResult } from "../../src/internal.js";
+import type { CustomSortingStrategy } from "../../src/types/sorting.js";
 import { QuoteResultStatus } from "../../src/interfaces/quoteAggregator.interface.js";
 import { createQuoteAggregator, QuoteAggregator } from "../../src/services/quoteAggregator.js";
-import { SortingStrategy } from "../../src/types/sorting.js";
+import { SortingCriteria } from "../../src/types/sorting.js";
 
 function createMockQuote(
     protocol: string,
@@ -53,7 +54,7 @@ function createMockQuoteResult(
 type AggregatorWithSortQuoteResults = {
     sortQuoteResults: (
         results: QuoteResult<"crossChainTransfer", AcrossOpenParams>[],
-        strategy: SortingStrategy,
+        strategy: SortingCriteria | CustomSortingStrategy,
     ) => QuoteResult<"crossChainTransfer", AcrossOpenParams>[];
 };
 
@@ -96,7 +97,7 @@ describe("QuoteAggregator", () => {
                 const sorted = sortQuoteResults.call(
                     aggregator,
                     threeQuoteResults,
-                    SortingStrategy.BEST_OUTPUT,
+                    SortingCriteria.BEST_OUTPUT,
                 );
 
                 expect(sorted[0]?.quote?.output.outputAmount).toBe("995000000");
@@ -110,7 +111,7 @@ describe("QuoteAggregator", () => {
                 const sorted = sortQuoteResults.call(
                     aggregator,
                     threeQuoteResults,
-                    SortingStrategy.LOWEST_FEE_AMOUNT,
+                    SortingCriteria.LOWEST_FEE_AMOUNT,
                 );
 
                 expect(sorted[0]?.quote?.fee.total).toBe("5000000");
@@ -124,7 +125,7 @@ describe("QuoteAggregator", () => {
                 const sorted = sortQuoteResults.call(
                     aggregator,
                     threeQuoteResults,
-                    SortingStrategy.LOWEST_FEE_PERCENT,
+                    SortingCriteria.LOWEST_FEE_PERCENT,
                 );
 
                 expect(sorted[0]?.quote?.fee.percent).toBe("0.5");
@@ -148,7 +149,7 @@ describe("QuoteAggregator", () => {
             const sorted = sortQuoteResults.call(
                 aggregator,
                 mockQuoteResults,
-                SortingStrategy.BEST_OUTPUT,
+                SortingCriteria.BEST_OUTPUT,
             );
 
             expect(sorted).toEqual([]);
@@ -161,7 +162,7 @@ describe("QuoteAggregator", () => {
             const sorted = sortQuoteResults.call(
                 aggregator,
                 mockQuoteResults,
-                SortingStrategy.BEST_OUTPUT,
+                SortingCriteria.BEST_OUTPUT,
             );
 
             expect(sorted).toHaveLength(1);
@@ -178,7 +179,7 @@ describe("QuoteAggregator", () => {
             const sorted = sortQuoteResults.call(
                 aggregator,
                 mockQuoteResults,
-                SortingStrategy.BEST_OUTPUT,
+                SortingCriteria.BEST_OUTPUT,
             );
 
             expect(sorted[0]?.status).toBe(QuoteResultStatus.SUCCESS);
@@ -200,11 +201,76 @@ describe("QuoteAggregator", () => {
             const sorted = sortQuoteResults.call(
                 aggregator,
                 mockQuoteResults,
-                SortingStrategy.BEST_OUTPUT,
+                SortingCriteria.BEST_OUTPUT,
             );
 
             expect(sorted[0]?.quote?.output.outputAmount).toBe("995000000");
             expect(sorted[1]?.quote?.output.outputAmount).toBe("990000000");
+        });
+    });
+
+    describe("Custom Sorting Strategies", () => {
+        let aggregator: QuoteAggregator;
+        let sortQuoteResults: AggregatorWithSortQuoteResults["sortQuoteResults"];
+
+        beforeEach(() => {
+            aggregator = createQuoteAggregator(["across"]);
+            sortQuoteResults = getSortQuoteResults(aggregator);
+        });
+
+        it("should accept custom sorting function", async () => {
+            const mockQuoteResults = [
+                createMockQuoteResult("provider1", "990000000", "10000000", "1.0"),
+                createMockQuoteResult("provider2", "995000000", "5000000", "0.5"),
+                createMockQuoteResult("provider3", "985000000", "15000000", "1.5"),
+            ];
+
+            const customStrategy: CustomSortingStrategy = (a, b) => {
+                return a.provider.localeCompare(b.provider);
+            };
+
+            const sorted = sortQuoteResults.call(aggregator, mockQuoteResults, customStrategy);
+
+            expect(sorted[0]?.provider).toBe("provider1");
+            expect(sorted[1]?.provider).toBe("provider2");
+            expect(sorted[2]?.provider).toBe("provider3");
+        });
+
+        it("should handle custom strategy with failed quotes", async () => {
+            const mockQuoteResults: QuoteResult<"crossChainTransfer", AcrossOpenParams>[] = [
+                createMockQuoteResult("provider1", "990000000", "10000000", "1.0"),
+                { provider: "provider2", status: QuoteResultStatus.ERROR, error: "Failed" },
+                createMockQuoteResult("provider3", "995000000", "5000000", "0.5"),
+            ];
+
+            const customStrategy: CustomSortingStrategy = (a, b) => {
+                if (
+                    a.status === QuoteResultStatus.SUCCESS &&
+                    b.status !== QuoteResultStatus.SUCCESS
+                )
+                    return -1;
+                if (
+                    a.status !== QuoteResultStatus.SUCCESS &&
+                    b.status === QuoteResultStatus.SUCCESS
+                )
+                    return 1;
+
+                if (a.quote && b.quote) {
+                    const aOut = BigInt(a.quote.output.outputAmount);
+                    const bOut = BigInt(b.quote.output.outputAmount);
+                    return bOut > aOut ? 1 : bOut < aOut ? -1 : 0;
+                }
+
+                return 0;
+            };
+
+            const sorted = sortQuoteResults.call(aggregator, mockQuoteResults, customStrategy);
+
+            expect(sorted[0]?.status).toBe(QuoteResultStatus.SUCCESS);
+            expect(sorted[0]?.provider).toBe("provider3");
+            expect(sorted[1]?.status).toBe(QuoteResultStatus.SUCCESS);
+            expect(sorted[1]?.provider).toBe("provider1");
+            expect(sorted[2]?.status).toBe(QuoteResultStatus.ERROR);
         });
     });
 });
