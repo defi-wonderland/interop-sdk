@@ -7,10 +7,6 @@ import {
 } from "../internal.js";
 
 export interface ValidateChecksumOptions {
-    /**
-     * Whether the address is an ENS name (or other naming service)
-     * If true, uses ChecksumMismatchWarning instead of InvalidChecksum on mismatch
-     */
     isENSName?: boolean;
 }
 

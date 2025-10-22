@@ -92,10 +92,6 @@ const parseChainReference = (chainNamespace: ChainTypeName, chainReference: stri
 };
 
 export type ParseHumanReadableOptions = {
-    /**
-     * Whether to validate the checksum if provided (default: true)
-     * Per ERC-7930/7828: checksums are optional in input but MUST be validated if present
-     */
     validateChecksumFlag?: boolean;
 };
 
@@ -136,7 +132,6 @@ export const parseHumanReadable = async (
 
     validateInteropAddress(interopAddress);
 
-    // Per ERC-7930/7828: Checksums are optional but MUST be validated if provided
     if (validateChecksumFlag && checksum) {
         validateChecksum(interopAddress, checksum as Checksum, {
             isENSName: Boolean(isENSName),
