@@ -101,18 +101,18 @@ describe("InteropAddressProvider", () => {
         expect(isValid).toBe(true);
     });
 
-    it("checks if a human-readable address is not a valid interop address", async () => {
+    it("checks if a human-readable address without checksum is valid (ERC-7930/7828)", async () => {
         const isValid = await InteropAddressProvider.isValidInteropAddress(
             "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
         );
-        expect(isValid).toBe(false);
+        expect(isValid).toBe(true);
     });
 
-    it("checks if a human-readable address is not a valid interop address using the isValidInteropAddress exported function", async () => {
+    it("checks if a human-readable address without checksum is valid using the isValidInteropAddress exported function (ERC-7930/7828)", async () => {
         const isValid = await isValidInteropAddress(
             "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
         );
-        expect(isValid).toBe(false);
+        expect(isValid).toBe(true);
     });
 
     it("checks if a human-readable address is a valid interop address using the isValidInteropAddress exported function", async () => {
@@ -171,11 +171,11 @@ describe("InteropAddressProvider", () => {
         expect(isValid).toBe(true);
     });
 
-    it("checks if a human-readable address is not valid", async () => {
+    it("checks if a human-readable address without checksum is valid (ERC-7930/7828)", async () => {
         const isValid = await InteropAddressProvider.isValidHumanReadableAddress(
             "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
         );
-        expect(isValid).toBe(false);
+        expect(isValid).toBe(true);
     });
 
     it("checks if a human-readable address is valid using the isValidHumanReadableAddress exported function", async () => {
@@ -185,14 +185,14 @@ describe("InteropAddressProvider", () => {
         expect(isValid).toBe(true);
     });
 
-    it("checks if a human-readable address is not valid using the isValidHumanReadableAddress exported function", async () => {
+    it("checks if a human-readable address without checksum is valid using the isValidHumanReadableAddress exported function (ERC-7930/7828)", async () => {
         const isValid = await isValidHumanReadableAddress(
             "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
         );
-        expect(isValid).toBe(false);
+        expect(isValid).toBe(true);
     });
 
-    it("checks if a human-readable address is valid using the isValidHumanReadableAddress exported function with validateChecksumFlag set to false", async () => {
+    it("checks if a human-readable address without checksum is valid with validateChecksumFlag set to false", async () => {
         const isValid = await isValidHumanReadableAddress(
             "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
             { validateChecksumFlag: false },
@@ -200,11 +200,11 @@ describe("InteropAddressProvider", () => {
         expect(isValid).toBe(true);
     });
 
-    it("checks if a human-readable address is not valid using the isValidHumanReadableAddress exported function with validateChecksumFlag set to true", async () => {
+    it("checks if a human-readable address without checksum is valid with validateChecksumFlag set to true (ERC-7930/7828)", async () => {
         const isValid = await isValidHumanReadableAddress(
             "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1",
             { validateChecksumFlag: true },
         );
-        expect(isValid).toBe(false);
+        expect(isValid).toBe(true);
     });
 });

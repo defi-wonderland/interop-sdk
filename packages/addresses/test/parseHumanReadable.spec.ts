@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { InteropAddress } from "../src/internal.js";
 import {
+    ChecksumMismatchWarning,
     ENSLookupFailed,
     ENSNotFound,
     InvalidChainIdentifier,
@@ -174,9 +175,15 @@ describe("erc7930", () => {
             await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(InvalidChecksum);
         });
 
-        it("throws error if checksum is missing", async () => {
+        it("allows missing checksum per ERC-7930/7828", async () => {
             const humanReadableAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1";
-            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(InvalidChecksum);
+            const expected: InteropAddress = {
+                version: 1,
+                chainType: hexToBytes("0x0000"),
+                chainReference: hexToBytes("0x01"),
+                address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
+            };
+            await expect(parseHumanReadable(humanReadableAddress)).resolves.toEqual(expected);
         });
 
         it("throws if chain reference is invalid", async () => {
@@ -256,6 +263,57 @@ describe("erc7930", () => {
             await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
                 InvalidChainIdentifier,
             );
+        });
+
+        // ERC-7828 validation tests
+        it("throws if ENS name is used without chain reference (ERC-7828)", async () => {
+            const humanReadableAddress = "vitalik.eth@eip155#4CA88C9C";
+            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
+                InvalidHumanReadableAddress,
+            );
+        });
+
+        it("allows ENS name with chain reference (ERC-7828)", async () => {
+            const humanReadableAddress = "vitalik.eth@eip155:1#4CA88C9C";
+            mockGetEnsAddress.mockResolvedValue("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+
+            const expected: InteropAddress = {
+                version: 1,
+                chainType: hexToBytes("0x0000"),
+                chainReference: hexToBytes("0x01"),
+                address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
+            };
+
+            await expect(parseHumanReadable(humanReadableAddress)).resolves.toEqual(expected);
+        });
+
+        it("throws ChecksumMismatchWarning for ENS name with wrong checksum", async () => {
+            const humanReadableAddress = "vitalik.eth@eip155:1#FFFFFFFF";
+            mockGetEnsAddress.mockResolvedValue("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+
+            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
+                ChecksumMismatchWarning,
+            );
+        });
+
+        it("throws InvalidChecksum for raw address with wrong checksum", async () => {
+            const humanReadableAddress =
+                "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#FFFFFFFF";
+            await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(InvalidChecksum);
+        });
+
+        it("ChecksumMismatchWarning contains helpful message for ENS", async () => {
+            const humanReadableAddress = "vitalik.eth@eip155:1#FFFFFFFF";
+            mockGetEnsAddress.mockResolvedValue("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+
+            try {
+                await parseHumanReadable(humanReadableAddress);
+                expect.fail("Should have thrown ChecksumMismatchWarning");
+            } catch (error) {
+                expect(error).toBeInstanceOf(ChecksumMismatchWarning);
+                expect((error as Error).message).toContain("ENS");
+                expect((error as Error).message).toContain("resolve to different values over time");
+            }
         });
     });
 });
