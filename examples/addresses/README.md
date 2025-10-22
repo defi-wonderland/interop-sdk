@@ -1,6 +1,6 @@
 # Interopable Addresses Examples
 
-Examples demonstrating `@interop-sdk/addresses` - convert and validate ERC-7930 interopable addresses.
+Examples demonstrating `@defi-wonderland/interop-addresses` - convert and validate ERC-7930 interopable addresses.
 
 ## Examples
 

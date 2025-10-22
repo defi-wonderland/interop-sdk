@@ -29,8 +29,9 @@
         "test:integration": "turbo run test:integration"
     },
     "lint-staged": {
-        "*": "prettier --write --ignore-unknown",
-        "*.js,*.ts,*.json": "eslint --fix",
+        "*.{js,ts,json,md,yml,yaml}": "prettier --write --ignore-unknown",
+        "packages/**/*.{js,ts,json}": "eslint --fix",
+        "apps/**/*.{js,ts,json}": "eslint --fix",
         "package.json": "sort-package-json"
     },
     "devDependencies": {
