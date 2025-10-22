@@ -1,23 +1,22 @@
 # Examples
 
-Working examples demonstrating Interop SDK functionality.
+Interactive web application demonstrating Interop SDK functionality.
 
-## Available Examples
+## [UI Demo](./ui/)
 
-### [addresses/](./addresses/)
+Next.js web application showcasing all SDK features:
 
-Convert and validate ERC-7930 interopable addresses.
-
--   `next/` - Next.js web application
--   `cli/` - Command-line tool (coming soon)
+-   ERC-7930 interopable addresses
 
 ## Quick Start
 
 ```bash
-cd examples/addresses/next
+cd examples/ui
 pnpm install
 pnpm dev
 ```
+
+Open [http://localhost:3000](http://localhost:3000)
 
 ## Requirements
 
