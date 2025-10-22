@@ -11,8 +11,7 @@ export const interopAddressFieldsSchema = z.object({
 export const interopAddressSchema = z.object({
     version: z.number().positive().int(),
     chainType: z
-        .any()
-        .refine((value) => value instanceof Uint8Array, {
+        .custom<Uint8Array>((value) => value instanceof Uint8Array, {
             message: "Chain type must be a Uint8Array",
         })
         .refine((value) => trim(value).length <= 2, {
@@ -20,16 +19,14 @@ export const interopAddressSchema = z.object({
         })
         .transform((value) => pad(trim(value), { size: 2 })),
     chainReference: z
-        .any()
-        .refine((value) => value instanceof Uint8Array, {
+        .custom<Uint8Array>((value) => value instanceof Uint8Array, {
             message: "Chain reference must be a Uint8Array",
         })
         .refine((value) => trim(value).length <= 32, {
             message: "Chain reference must be representable as 32 bytes",
         }),
     address: z
-        .any()
-        .refine((value) => value instanceof Uint8Array, {
+        .custom<Uint8Array>((value) => value instanceof Uint8Array, {
             message: "Address must be a Uint8Array",
         })
         .refine((value) => trim(value).length <= 255, {
