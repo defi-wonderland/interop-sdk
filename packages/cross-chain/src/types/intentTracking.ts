@@ -119,7 +119,7 @@ export interface IntentUpdate {
     openTxHash: Hex;
     /** Fill transaction hash (available when filled) */
     fillTxHash?: Hex;
-    /** Timestamp of the update */
+    /** Timestamp of the update (Unix timestamp in seconds) */
     timestamp: number;
     /** Human-readable message */
     message: string;

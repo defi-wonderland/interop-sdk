@@ -96,7 +96,7 @@ export class IntentTracker {
         yield {
             status: "opening",
             openTxHash: txHash,
-            timestamp: Date.now(),
+            timestamp: Math.floor(Date.now() / 1000),
             message: "Parsing intent from transaction...",
         };
 
@@ -106,7 +106,7 @@ export class IntentTracker {
             status: "opened",
             orderId: openEvent.orderId,
             openTxHash: txHash,
-            timestamp: Date.now(),
+            timestamp: Math.floor(Date.now() / 1000),
             message: `Intent opened with orderId ${openEvent.orderId.slice(0, 10)}...`,
         };
 
@@ -121,7 +121,7 @@ export class IntentTracker {
                 status: "expired",
                 orderId: openEvent.orderId,
                 openTxHash: txHash,
-                timestamp: Date.now(),
+                timestamp: Math.floor(Date.now() / 1000),
                 message: "Intent expired before watching started",
             };
             return;
@@ -137,7 +137,7 @@ export class IntentTracker {
                 status: "filling",
                 orderId: openEvent.orderId,
                 openTxHash: txHash,
-                timestamp: Date.now(),
+                timestamp: Math.floor(Date.now() / 1000),
                 message: `Timeout expired during intent setup. Intent may still be filled before deadline at ${deadlineDate}`,
             };
             return;
@@ -147,7 +147,7 @@ export class IntentTracker {
             status: "filling",
             orderId: openEvent.orderId,
             openTxHash: txHash,
-            timestamp: Date.now(),
+            timestamp: Math.floor(Date.now() / 1000),
             message: "Waiting for relayer to fill intent...",
         };
 
@@ -168,7 +168,7 @@ export class IntentTracker {
                 orderId: openEvent.orderId,
                 openTxHash: txHash,
                 fillTxHash: fillResult.fillTxHash,
-                timestamp: Date.now(),
+                timestamp: Math.floor(Date.now() / 1000),
                 message: `Intent filled in block ${fillResult.blockNumber}`,
             };
         } else if (fillResult.status === "expired") {
@@ -176,7 +176,7 @@ export class IntentTracker {
                 status: "expired",
                 orderId: openEvent.orderId,
                 openTxHash: txHash,
-                timestamp: Date.now(),
+                timestamp: Math.floor(Date.now() / 1000),
                 message: "Intent expired before fill",
             };
         } else {
@@ -185,7 +185,7 @@ export class IntentTracker {
                 status: "filling",
                 orderId: openEvent.orderId,
                 openTxHash: txHash,
-                timestamp: Date.now(),
+                timestamp: Math.floor(Date.now() / 1000),
                 message: `Stopped watching after timeout, but intent may still be filled before deadline at ${deadlineDate}`,
             };
         }
