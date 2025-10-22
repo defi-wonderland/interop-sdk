@@ -13,7 +13,7 @@ export const ACROSS_ORDER_DATA_ABI = [
             { type: "bytes32", name: "recipient" },
             { type: "address", name: "exclusiveRelayer" },
             { type: "uint256", name: "depositNonce" },
-            { type: "uint32", name: "exclusivityPeriod" },
+            { type: "uint32", name: "exclusivityParameter" },
             { type: "bytes", name: "message" },
         ],
     },

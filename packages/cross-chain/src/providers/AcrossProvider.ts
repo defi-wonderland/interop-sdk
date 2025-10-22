@@ -103,7 +103,7 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
     /**
      * Pad the depositor address
      * @param address - The address to pad
-     * @returns The padded address
+     * @returns The padded address as bytes32
      */
     private padAddress(address: Hex): Hex {
         return pad(address, { size: 32 });
@@ -127,8 +127,8 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                 destinationChainId: quote.deposit.destinationChainId,
                 recipient: this.padAddress(quote.deposit.recipient),
                 exclusiveRelayer: quote.deposit.exclusiveRelayer,
-                exclusivityPeriod: quote.deposit.exclusivityDeadline,
-                depositNonce: 0,
+                exclusivityParameter: quote.deposit.exclusivityDeadline,
+                depositNonce: quote.deposit.quoteTimestamp,
                 message: "0x",
             },
         ]);
