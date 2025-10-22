@@ -1,0 +1,31 @@
+{
+  "name": "@examples/addresses-next",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "format": "prettier app --write",
+    "format:check": "prettier app --check",
+    "lint": "eslint app",
+    "lint:fix": "eslint app --fix",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "16.0.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.1.15",
+    "@types/node": "20.17.15",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "eslint": "9.11.1",
+    "eslint-config-next": "16.0.0",
+    "eslint-config-prettier": "9.1.0",
+    "prettier": "3.3.3",
+    "tailwindcss": "4.1.15",
+    "typescript": "5.6.2"
+  }
+}
