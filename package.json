@@ -29,10 +29,11 @@
         "test:integration": "turbo run test:integration"
     },
     "lint-staged": {
-        "*.{js,ts,json,md,yml,yaml}": "prettier --write --ignore-unknown",
+        "*": "prettier --write --ignore-unknown",
         "packages/**/*.{js,ts,json}": "eslint --fix",
         "apps/**/*.{js,ts,json}": "eslint --fix",
-        "package.json": "sort-package-json"
+        "package.json": "sort-package-json",
+        "examples/**": []
     },
     "devDependencies": {
         "@commitlint/config-conventional": "19.4.1",
