@@ -11,8 +11,12 @@ Next.js web application showcasing all SDK features:
 ## Quick Start
 
 ```bash
-cd examples/ui
+# From repository root (recommended)
 pnpm install
+pnpm --filter @examples/ui dev
+
+# Or navigate to example
+cd examples/ui
 pnpm dev
 ```
 

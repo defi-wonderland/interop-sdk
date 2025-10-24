@@ -5,10 +5,12 @@ Interactive Next.js application demonstrating all Interop SDK features.
 ## Getting Started
 
 ```bash
-# Install dependencies
+# From root (recommended)
 pnpm install
+pnpm --filter @examples/ui dev
 
-# Run development server
+# Or from this directory
+cd examples/ui
 pnpm dev
 ```
 
