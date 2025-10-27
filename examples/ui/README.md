@@ -1,6 +1,6 @@
-# Interop SDK - UI Demo
+# Interop Addresses - UI Demo
 
-Interactive Next.js application demonstrating all Interop SDK features.
+Interactive Next.js application demonstrating Interop Addresses (ERC-7930).
 
 ## Getting Started
 
@@ -28,14 +28,14 @@ pnpm lint:fix
 
 ## Features
 
-This demo will showcase:
+This demo showcases:
 
 - **Interopable Addresses**: ERC-7930 address conversion and validation
-- **Cross-Chain Operations**: Multi-chain transfers and swaps
-- **Privacy Features**: Private transactions (coming soon)
+- **Human-Readable Format**: `alice.eth@eip155:1#ABCD1234`
+- **Binary Format**: Encoded byte representation
+- **Address Validation**: Check validity of interop addresses
 
 ## Documentation
 
 - [SDK Documentation](../../apps/docs/)
 - [Addresses Package](../../packages/addresses/)
-- [Cross-Chain Package](../../packages/cross-chain/)
