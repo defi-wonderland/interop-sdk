@@ -1,0 +1,166 @@
+import { InputMode, ChainType } from '../types';
+import { VALID_EXAMPLES, EXAMPLE_DESCRIPTIONS } from '../utils/examples';
+
+const CHAIN_TYPE_OPTIONS = [{ value: ChainType.EIP155, label: 'eip155' }] as const;
+
+interface InputSectionProps {
+  mode: InputMode;
+  setMode: (mode: InputMode) => void;
+  readableName: string;
+  setReadableName: (value: string) => void;
+  address: string;
+  setAddress: (value: string) => void;
+  chainType: ChainType;
+  setChainType: (value: ChainType) => void;
+  chainReference: string;
+  setChainReference: (value: string) => void;
+  onConvert: () => void;
+  onExampleClick: (example: string) => void;
+}
+
+export function InputSection({
+  mode,
+  setMode,
+  readableName,
+  setReadableName,
+  address,
+  setAddress,
+  chainType,
+  setChainType,
+  chainReference,
+  setChainReference,
+  onConvert,
+  onExampleClick,
+}: InputSectionProps) {
+  const isReadableMode = mode === InputMode.READABLE;
+  const isBuildMode = mode === InputMode.BUILD;
+
+  return (
+    <div className='relative backdrop-blur-xl bg-surface/80 rounded-3xl border border-border/50 p-6 shadow-2xl'>
+      <div className='absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent rounded-3xl pointer-events-none' />
+
+      <div className='relative flex flex-col gap-6'>
+        <div className='flex gap-2'>
+          <button
+            onClick={() => setMode(InputMode.READABLE)}
+            className={`flex-1 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              isReadableMode
+                ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-lg shadow-accent/30 scale-[1.02]'
+                : 'bg-surface/50 text-text-secondary hover:bg-surface'
+            }`}
+          >
+            Enter Human-Readable
+          </button>
+          <button
+            onClick={() => setMode(InputMode.BUILD)}
+            className={`flex-1 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              isBuildMode
+                ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-lg shadow-accent/30 scale-[1.02]'
+                : 'bg-surface/50 text-text-secondary hover:bg-surface'
+            }`}
+          >
+            Build from Address
+          </button>
+        </div>
+
+        {isReadableMode && (
+          <div className='flex flex-col gap-4'>
+            <div className='flex flex-col gap-2'>
+              <label htmlFor='readable-address-input' className='text-sm font-medium text-text-secondary'>
+                Human-Readable Address
+              </label>
+              <div className='flex flex-col sm:flex-row gap-2'>
+                <input
+                  id='readable-address-input'
+                  type='text'
+                  value={readableName}
+                  onChange={(e) => setReadableName(e.target.value)}
+                  placeholder='0xAddress@eip155:1#CHECKSUM'
+                  className='flex-1 px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
+                />
+                <button
+                  onClick={onConvert}
+                  className='w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all shadow-lg shadow-accent/30'
+                >
+                  Convert
+                </button>
+              </div>
+            </div>
+            <div className='flex flex-col gap-2'>
+              <div className='text-sm font-medium text-text-secondary'>Examples</div>
+              <div className='flex flex-wrap gap-2'>
+                {VALID_EXAMPLES.map((ex, idx) => (
+                  <button
+                    key={ex}
+                    onClick={() => onExampleClick(ex)}
+                    className='px-3 py-1.5 bg-accent-light/50 hover:bg-accent-light text-accent rounded-lg text-xs font-medium transition-colors'
+                  >
+                    {EXAMPLE_DESCRIPTIONS[ex] || `Example ${idx + 1}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isBuildMode && (
+          <div className='flex flex-col gap-4'>
+            <div className='flex flex-col gap-2'>
+              <label htmlFor='address-input' className='text-sm font-medium text-text-secondary'>
+                Address
+              </label>
+              <input
+                id='address-input'
+                type='text'
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder='0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
+                className='w-full px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
+              />
+            </div>
+            <div className='grid grid-cols-2 gap-3'>
+              <div className='flex flex-col gap-2'>
+                <label htmlFor='chain-type-select' className='text-sm font-medium text-text-secondary'>
+                  Chain Type
+                </label>
+                <select
+                  id='chain-type-select'
+                  value={chainType}
+                  onChange={(e) => setChainType(e.target.value as ChainType)}
+                  className='px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
+                >
+                  {CHAIN_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className='flex flex-col gap-2'>
+                <label htmlFor='chain-reference-input' className='text-sm font-medium text-text-secondary'>
+                  Chain ID
+                </label>
+                <input
+                  id='chain-reference-input'
+                  type='text'
+                  value={chainReference}
+                  onChange={(e) => setChainReference(e.target.value)}
+                  placeholder='1'
+                  className='px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
+                />
+              </div>
+            </div>
+            <div className='flex justify-end'>
+              <button
+                onClick={onConvert}
+                className='w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all shadow-lg shadow-accent/30'
+              >
+                Convert
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
