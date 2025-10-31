@@ -61,6 +61,9 @@ importers:
 
     examples/ui:
         dependencies:
+            "@defi-wonderland/interop-addresses":
+                specifier: workspace:*
+                version: link:../../packages/addresses
             next:
                 specifier: 15.3.3
                 version: 15.3.3(@babel/core@7.25.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
