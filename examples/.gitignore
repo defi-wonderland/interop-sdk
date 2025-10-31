@@ -18,6 +18,7 @@ dist/
 # Misc
 .DS_Store
 *.pem
+.eslintcache
 
 # Debug
 npm-debug.log*
