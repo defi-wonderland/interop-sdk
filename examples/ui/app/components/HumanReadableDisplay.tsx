@@ -23,7 +23,7 @@ const fields: FieldConfig<HumanReadablePartKey, AddressResult>[] = [
     label: 'Chain Type',
     getValue: (r) => r.chainType,
     getDisplayValue: (r) => r.chainType,
-    description: 'Namespace (eip155, solana, etc)',
+    description: 'Namespace identifier (eip155 for EVM chains)',
   },
   {
     key: HumanReadablePartKey.CHAIN_REF,

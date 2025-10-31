@@ -34,10 +34,7 @@ Open [http://localhost:3000](http://localhost:3000)
 ### Format Support
 - **Human-Readable (ERC-7930)**: `0xAddress@namespace:chainRef#checksum`
 - **Binary (ERC-7828)**: Compact byte representation for on-chain efficiency
-- **Multi-Chain**: Supports multiple CAIP-2 namespaces:
-  - **eip155**: Ethereum and EVM-compatible chains ([CAIP-2 spec](https://chainagnostic.org/CAIPs/caip-2))
-  - **solana**: Solana blockchain ([Solana namespace](https://namespaces.chainagnostic.org/solana/caip2))
-  - **bip122**: Bitcoin and UTXO-based chains ([EIP155 namespace](https://namespaces.chainagnostic.org/eip155/caip2))
+- **EVM Chains**: Supports eip155 namespace for Ethereum and EVM-compatible chains ([CAIP-2 spec](https://chainagnostic.org/CAIPs/caip-2))
 
 ## Tech Stack
 
