@@ -16,7 +16,7 @@ const fields: FieldConfig<HumanReadablePartKey, AddressResult>[] = [
     label: 'Address',
     getValue: (r) => r.name,
     getDisplayValue: (r) => r.name,
-    description: 'Blockchain address or ENS name',
+    description: 'Hex address (0x...) or ENS name (e.g., vitalik.eth)',
   },
   {
     key: HumanReadablePartKey.CHAIN_TYPE,
@@ -30,7 +30,7 @@ const fields: FieldConfig<HumanReadablePartKey, AddressResult>[] = [
     label: 'Chain Reference',
     getValue: (r) => r.chainReference,
     getDisplayValue: (r) => r.chainReference,
-    description: 'Specific chain ID',
+    description: 'Chain identifier',
   },
   {
     key: HumanReadablePartKey.CHECKSUM,

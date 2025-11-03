@@ -35,6 +35,7 @@ Open [http://localhost:3000](http://localhost:3000)
 - **Human-Readable (ERC-7930)**: `0xAddress@namespace:chainRef#checksum`
 - **Binary (ERC-7828)**: Compact byte representation for on-chain efficiency
 - **EVM Chains**: Supports eip155 namespace for Ethereum and EVM-compatible chains ([CAIP-2 spec](https://chainagnostic.org/CAIPs/caip-2))
+- **ENS Names**: Full support for ENS resolution (e.g., `vitalik.eth@eip155:1#checksum`)
 
 ## Tech Stack
 
