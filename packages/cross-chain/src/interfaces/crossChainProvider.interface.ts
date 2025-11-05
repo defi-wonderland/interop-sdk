@@ -1,5 +1,7 @@
 import type { TransactionRequest } from "viem";
 
+import type { DepositInfoParserConfig } from "../services/EventBasedDepositInfoParser.js";
+import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
 import type {
     SwapGetQuoteParams,
     SwapGetQuoteResponse,
@@ -132,4 +134,16 @@ export abstract class CrossChainProvider<ProtocolOpenParams extends BasicOpenPar
         this.validateOpenParams(params);
         return this.validatedSimulateOpen(params);
     }
+
+    /**
+     * Get the configuration for intent tracking
+     * This method provides the protocol-specific configuration needed to create
+     * an IntentTracker for monitoring cross-chain transaction status.
+     *
+     * @returns Configuration object containing deposit info parser and fill watcher configs
+     */
+    abstract getTrackingConfig(): {
+        depositInfoParser: DepositInfoParserConfig;
+        fillWatcher: FillWatcherConfig;
+    };
 }

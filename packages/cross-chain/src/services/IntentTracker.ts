@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import { Hex } from "viem";
 
 import {
@@ -10,18 +11,35 @@ import {
 } from "../internal.js";
 
 /**
- * Unified intent tracker
+ * Event map for IntentTracker events
+ */
+export interface IntentTrackerEvents {
+    update: (update: IntentUpdate) => void;
+    opening: (update: IntentUpdate) => void;
+    opened: (update: IntentUpdate) => void;
+    filling: (update: IntentUpdate) => void;
+    filled: (update: IntentUpdate) => void;
+    expired: (update: IntentUpdate) => void;
+    error: (error: Error) => void;
+}
+
+/**
+ * Unified intent tracker with event-based updates
  * Protocol-agnostic orchestrator that combines:
  * - Open event watching (EIP-7683 standard)
  * - Protocol-specific deposit info parsing
  * - Protocol-specific fill watching
+ *
+ * Supports both event-based updates (via EventEmitter) and async generator patterns
  */
-export class IntentTracker {
+export class IntentTracker extends EventEmitter {
     constructor(
         private readonly openWatcher: OpenEventWatcher,
         private readonly depositInfoParser: DepositInfoParser,
         private readonly fillWatcher: FillWatcher,
-    ) {}
+    ) {
+        super();
+    }
 
     /**
      * Get the current status of an intent
@@ -188,6 +206,53 @@ export class IntentTracker {
                 timestamp: Math.floor(Date.now() / 1000),
                 message: `Stopped watching after timeout, but intent may still be filled before deadline at ${deadlineDate}`,
             };
+        }
+    }
+
+    /**
+     * Start tracking an intent with event-based updates
+     * Uses watchIntent() internally and emits events for each status change
+     * Returns a promise that resolves when the intent is filled or expired
+     *
+     * @param params - Watch parameters
+     * @returns Promise that resolves with final intent status
+     *
+     * @example
+     * ```typescript
+     * const tracker = new IntentTracker(...);
+     *
+     * tracker.on('update', (update) => console.log(update.status));
+     * tracker.on('filled', (update) => console.log('Filled!', update.fillTxHash));
+     *
+     * const finalStatus = await tracker.startTracking({
+     *   txHash,
+     *   originChainId,
+     *   destinationChainId
+     * });
+     * ```
+     */
+    async startTracking(params: WatchIntentParams): Promise<IntentStatusInfo> {
+        try {
+            for await (const update of this.watchIntent(params)) {
+                // Emit generic update event
+                this.emit("update", update);
+
+                // Emit status-specific event
+                this.emit(update.status, update);
+
+                // Stop if we reached a final state
+                if (update.status === "filled" || update.status === "expired") {
+                    break;
+                }
+            }
+
+            // Get final status details
+            const finalStatus = await this.getIntentStatus(params.txHash, params.originChainId);
+            return finalStatus;
+        } catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.emit("error", err);
+            throw error;
         }
     }
 

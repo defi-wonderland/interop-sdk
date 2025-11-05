@@ -1,5 +1,8 @@
+import type { Address, Hex } from "viem";
 import { TransactionRequest } from "viem";
 
+import type { DepositInfoParserConfig } from "../services/EventBasedDepositInfoParser.js";
+import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
 import {
     CrossChainProvider,
     GetQuoteParams,
@@ -113,5 +116,38 @@ export class SampleProvider extends CrossChainProvider<SampleOpenParams> {
             case "crossChainSwap":
                 return Promise.resolve([]);
         }
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * This is a stub implementation for demonstration purposes.
+     * Real providers should implement their protocol-specific tracking configuration.
+     */
+    getTrackingConfig(): {
+        depositInfoParser: DepositInfoParserConfig;
+        fillWatcher: FillWatcherConfig;
+    } {
+        // Stub implementation - replace with actual protocol-specific configuration
+        return {
+            depositInfoParser: {
+                protocolName: "sample",
+                eventSignature:
+                    "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                extractDepositInfo: (): never => {
+                    throw new Error("SampleProvider: tracking not implemented");
+                },
+            },
+            fillWatcher: {
+                contractAddresses: {} as Record<number, Address>,
+                eventAbi: [],
+                buildLogsArgs: (): never => {
+                    throw new Error("SampleProvider: tracking not implemented");
+                },
+                extractFillEvent: (): never => {
+                    throw new Error("SampleProvider: tracking not implemented");
+                },
+            },
+        };
     }
 }

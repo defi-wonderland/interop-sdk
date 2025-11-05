@@ -10,12 +10,18 @@ export {
     createCrossChainProvider,
     CrossChainProviderFactory,
 } from "./services/crossChainProviderFactory.js";
-export { createProviderExecutor, ProviderExecutor } from "./services/providerExecutor.js";
+export {
+    createProviderExecutor,
+    ProviderExecutor,
+    type ExecuteResult,
+} from "./services/providerExecutor.js";
 export { InteropAddressParamsParser } from "./services/InteropAddressParamsParser.js";
 export { createQuoteAggregator, QuoteAggregator } from "./services/quoteAggregator.js";
 export { createIntentTracker } from "./services/intentTrackerFactory.js";
-export { IntentTracker } from "./services/IntentTracker.js";
+export { IntentTracker, type IntentTrackerEvents } from "./services/IntentTracker.js";
 export { OpenEventWatcher } from "./services/OpenEventWatcher.js";
+export type { DepositInfoParserConfig } from "./services/EventBasedDepositInfoParser.js";
+export type { FillWatcherConfig } from "./services/EventBasedFillWatcher.js";
 export type {
     OpenEvent,
     FillEvent,
@@ -23,4 +29,5 @@ export type {
     IntentStatusInfo,
     IntentUpdate,
     WatchIntentParams,
+    TrackingParams,
 } from "./types/intentTracking.js";
