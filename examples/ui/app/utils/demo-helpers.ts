@@ -51,12 +51,18 @@ export function parseHumanReadableForDisplay(humanReadable: string): ParsedHuman
   const name = parts[0] || '';
   const afterAt = parts[1] || '';
   const [chainPart, checksumPart] = afterAt.split('#');
-  const [namespace, chain] = chainPart.split(':');
+
+  // Handle both "namespace:reference" and just "reference" (e.g., "eth")
+  const colonParts = chainPart.split(':').filter(Boolean);
+  const hasNamespace = colonParts.length > 1;
+
+  const namespace = hasNamespace ? colonParts[0] : 'eip155';
+  const chain = hasNamespace ? colonParts[1] : colonParts[0] || '';
 
   return {
     name,
-    chainType: namespace || 'eip155',
-    chainReference: chain || '',
+    chainType: namespace,
+    chainReference: chain,
     checksum: checksumPart || '',
   };
 }
