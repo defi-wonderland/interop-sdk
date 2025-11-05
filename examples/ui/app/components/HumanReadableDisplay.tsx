@@ -1,4 +1,5 @@
 import { HumanReadablePartKey, type AddressResult, type HumanReadablePart } from '../types';
+import { formatChainReference } from '../utils/chain-names';
 import { FormatDisplay, type FieldConfig } from './FormatDisplay';
 import { HoverableFields } from './HoverableField';
 
@@ -29,8 +30,8 @@ const fields: FieldConfig<HumanReadablePartKey, AddressResult>[] = [
     key: HumanReadablePartKey.CHAIN_REF,
     label: 'Chain Reference',
     getValue: (r) => r.chainReference,
-    getDisplayValue: (r) => r.chainReference,
-    description: 'Chain identifier',
+    getDisplayValue: (r) => formatChainReference(r.chainReference),
+    description: 'Chain identifier (numeric ID or shortname)',
   },
   {
     key: HumanReadablePartKey.CHECKSUM,
