@@ -32,8 +32,10 @@
     },
     "lint-staged": {
         "*": "prettier --write --ignore-unknown",
-        "*.js,*.ts,*.json": "eslint --fix",
-        "package.json": "sort-package-json"
+        "packages/**/*.{js,ts,json}": "eslint --fix",
+        "apps/**/*.{js,ts,json}": "eslint --fix",
+        "package.json": "sort-package-json",
+        "examples/**": []
     },
     "devDependencies": {
         "@changesets/cli": "2.29.7",
@@ -55,8 +57,5 @@
         "typescript": "5.5.4",
         "vitest": "2.0.5"
     },
-    "packageManager": "pnpm@9.7.1+sha256.46f1bbc8f8020aa9869568c387198f1a813f21fb44c82f400e7d1dbde6c70b40",
-    "engines": {
-        "node": "20"
-    }
+    "packageManager": "pnpm@9.7.1+sha256.46f1bbc8f8020aa9869568c387198f1a813f21fb44c82f400e7d1dbde6c70b40"
 }
