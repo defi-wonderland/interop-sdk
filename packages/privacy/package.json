@@ -5,7 +5,7 @@
     "description": "",
     "repository": {
         "type": "git",
-        "url": "https://github.com/defi-wonderland/interop-sdk.git",
+        "url": "git+https://github.com/defi-wonderland/interop-sdk.git",
         "directory": "packages/privacy"
     },
     "license": "MIT",

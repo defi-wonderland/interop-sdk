@@ -1,7 +1,7 @@
 {
     "name": "@defi-wonderland/interop",
-    "version": "0.0.1",
-    "description": "",
+    "version": "0.0.2",
+    "description": "Complete SDK for blockchain interoperability with cross-chain operations and address utilities",
     "repository": {
         "type": "git",
         "url": "https://github.com/defi-wonderland/interop-sdk.git",

@@ -109,8 +109,8 @@ describe("AcrossProvider", () => {
                     outputAmount: mockQuote.deposit.outputAmount,
                     recipient: "0x0000000000000000000000000000000000000000000000000000000000000000",
                     exclusiveRelayer: mockQuote.deposit.exclusiveRelayer,
-                    exclusivityPeriod: mockQuote.deposit.exclusivityDeadline,
-                    depositNonce: 0,
+                    exclusivityParameter: mockQuote.deposit.exclusivityDeadline,
+                    depositNonce: mockQuote.deposit.quoteTimestamp,
                     message: "0x",
                 },
             ]);
