@@ -13,7 +13,7 @@ module.exports = {
         node: true,
         jest: true,
     },
-    ignorePatterns: [".eslintrc.cjs"],
+    ignorePatterns: [".eslintrc.cjs", "*.json"],
     rules: {
         "@typescript-eslint/explicit-function-return-type": "error",
         "@typescript-eslint/explicit-module-boundary-types": "error",
