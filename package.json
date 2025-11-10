@@ -13,6 +13,7 @@
     "type": "module",
     "scripts": {
         "build": "turbo run build",
+        "changeset": "changeset",
         "check-types": "turbo run check-types",
         "clean": "turbo run clean",
         "create-package": "./create-package.sh",
@@ -26,7 +27,8 @@
         "start": "turbo run start",
         "test": "turbo run test",
         "test:cov": "turbo run test:cov",
-        "test:integration": "turbo run test:integration"
+        "test:integration": "turbo run test:integration",
+        "version-packages": "changeset version"
     },
     "lint-staged": {
         "*": "prettier --write --ignore-unknown",
@@ -54,6 +56,6 @@
     },
     "packageManager": "pnpm@9.7.1+sha256.46f1bbc8f8020aa9869568c387198f1a813f21fb44c82f400e7d1dbde6c70b40",
     "engines": {
-        "node": "20"
+        "node": "22.18"
     }
 }
