@@ -1,6 +1,5 @@
-/**
- * Common chain ID to name mappings for display purposes
- */
+import { getChainId } from '@defi-wonderland/interop-addresses';
+
 const COMMON_CHAIN_NAMES: Record<string, string> = {
   '1': 'Ethereum',
   '10': 'Optimism',
@@ -14,11 +13,14 @@ const COMMON_CHAIN_NAMES: Record<string, string> = {
   '7777777': 'Zora',
 };
 
-function getChainName(chainReference: string): string | null {
-  return COMMON_CHAIN_NAMES[chainReference] || null;
-}
+export async function formatChainReference(chainReference: string, fullAddress: string): Promise<string> {
+  const existingChainName = COMMON_CHAIN_NAMES[chainReference];
 
-export function formatChainReference(chainReference: string): string {
-  const chainName = getChainName(chainReference);
-  return chainName ? `${chainReference} (${chainName})` : chainReference;
+  if (existingChainName) {
+    return `${chainReference} (${existingChainName})`;
+  }
+
+  const chainId = await getChainId(fullAddress);
+  const newChainName = COMMON_CHAIN_NAMES[chainId.toString()];
+  return `${chainId.toString()} (${newChainName})`;
 }

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { HumanReadablePartKey, type AddressResult, type HumanReadablePart } from '../types';
 import { formatChainReference } from '../utils/chain-names';
 import { FormatDisplay, type FieldConfig } from './FormatDisplay';
@@ -9,6 +10,16 @@ interface HumanReadableDisplayProps {
   setHoveredPart: (part: HumanReadablePart) => void;
   copied: boolean;
   onCopy: () => void;
+}
+
+function ChainReferenceDisplay({ chainReference, fullAddress }: { chainReference: string; fullAddress: string }) {
+  const [formatted, setFormatted] = useState(chainReference);
+
+  useEffect(() => {
+    formatChainReference(chainReference, fullAddress).then(setFormatted);
+  }, [chainReference, fullAddress]);
+
+  return <>{formatted}</>;
 }
 
 const fields: FieldConfig<HumanReadablePartKey, AddressResult>[] = [
@@ -30,7 +41,7 @@ const fields: FieldConfig<HumanReadablePartKey, AddressResult>[] = [
     key: HumanReadablePartKey.CHAIN_REF,
     label: 'Chain Reference',
     getValue: (r) => r.chainReference,
-    getDisplayValue: (r) => formatChainReference(r.chainReference),
+    getDisplayValue: (r) => <ChainReferenceDisplay chainReference={r.chainReference} fullAddress={r.humanReadable} />,
     description: 'Chain identifier (numeric ID or shortname)',
   },
   {
