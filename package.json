@@ -36,6 +36,7 @@
         "package.json": "sort-package-json"
     },
     "devDependencies": {
+        "@changesets/cli": "2.29.7",
         "@commitlint/config-conventional": "19.4.1",
         "@ianvs/prettier-plugin-sort-imports": "4.3.1",
         "@types/node": "20.3.1",
@@ -56,6 +57,6 @@
     },
     "packageManager": "pnpm@9.7.1+sha256.46f1bbc8f8020aa9869568c387198f1a813f21fb44c82f400e7d1dbde6c70b40",
     "engines": {
-        "node": "22.18"
+        "node": "20"
     }
 }

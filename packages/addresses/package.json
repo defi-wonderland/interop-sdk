@@ -1,6 +1,6 @@
 {
     "name": "@defi-wonderland/interop-addresses",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Interoperable address utilities for cross-chain operations",
     "repository": {
         "type": "git",
