@@ -4,6 +4,16 @@ title: Getting Started
 
 The `addresses` package provides a robust solution for handling interoperable blockchain addresses across different networks, following the [ERC-7930](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365) standard. This guide will help you get started with using the package in your projects.
 
+## Installing the Package
+
+```bash
+npm install @defi-wonderland/interop-addresses
+# or
+yarn add @defi-wonderland/interop-addresses
+# or
+pnpm add @defi-wonderland/interop-addresses
+```
+
 ## Basic Usage
 
 The package provides two main ways to work with addresses:
@@ -40,7 +50,7 @@ import {
     getAddress,
     getChainId,
     humanReadableToBinary,
-} from "@defi-wonderland/interop";
+} from "@defi-wonderland/interop-addresses";
 
 const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
 const binaryAddress = await humanReadableToBinary(humanReadableAddress);
@@ -69,6 +79,17 @@ graph TD
     A -->|getChainId| D
     A -->|getAddress| E
 ```
+## Chain Resolution
+
+The package resolves chain identifiers using off-chain registries:
+
+- **Primary**: Uses `shortnameToChainId` with built-in chain shortname mappings
+- **Fallback**: Uses viem's chain definitions and chainid.network
+
+
+>We’re currently working on the ENS on-chain chain registry, though it hasn’t been deployed yet.
+For now, the SDK uses off-chain registries (such as chainid.network and viem) as the main resolution mechanism.
+
 
 ## References
 

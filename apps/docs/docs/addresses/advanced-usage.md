@@ -43,6 +43,11 @@ const isValidHumanReadable = await InteropAddressProvider.isValidHumanReadableAd
     "alice.eth@eip155:1#ABCD1234",
     { validateChecksumFlag: true },
 );
+
+// Validate binary addresses
+const isValidBinary = InteropAddressProvider.isValidBinaryAddress(
+    "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045"
+);
 ```
 
 ## Error Handling
@@ -52,6 +57,13 @@ The package includes specific error types for better error handling:
 ```typescript
 import { InvalidAddress, UnsupportedChainType } from "@defi-wonderland/interop";
 
+import { 
+    InvalidAddress, 
+    UnsupportedChainType,
+    ENSNotFound,
+    ENSLookupFailed 
+} from "@defi-wonderland/interop-addresses";
+
 try {
     // Your address operations here
 } catch (error) {
@@ -59,6 +71,10 @@ try {
         // Handle invalid address error
     } else if (error instanceof UnsupportedChainType) {
         // Handle unsupported chain type error
+    } else if (error instanceof ENSNotFound) {
+        // Handle ENS name not found
+    } else if (error instanceof ENSLookupFailed) {
+        // Handle ENS lookup failure
     }
 }
 ```
@@ -69,3 +85,4 @@ try {
 2. Use the checksum validation when working with human-readable addresses
 3. Consider using the individual functions for better tree-shaking
 4. Handle errors appropriately using the provided error types
+5. Use ENS names for better user experience when available
