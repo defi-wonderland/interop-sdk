@@ -98,7 +98,8 @@ export type ParseHumanReadableOptions = {
 /**
  * Parses a human-readable address into an InteropAddress
  * @param humanReadableAddress - The human-readable address to parse
- * @param validateChecksumFlag - Whether to validate the checksum of the address
+ * @param options - Parsing options
+ * @param options.validateChecksumFlag - Whether to validate the checksum if provided
  * @throws {Error} If the address format is invalid or validation fails
  */
 export const parseHumanReadable = async (
@@ -109,7 +110,8 @@ export const parseHumanReadable = async (
     const parsedHumanReadableAddress =
         await HumanReadableAddressSchema.parseAsync(humanReadableAddress);
 
-    const { address, chainNamespace, chainReference, checksum } = parsedHumanReadableAddress;
+    const { address, chainNamespace, chainReference, checksum, isENSName } =
+        parsedHumanReadableAddress;
 
     const addressBytes = address
         ? await parseAddress(chainNamespace as ChainTypeName, chainReference, address)
@@ -118,7 +120,7 @@ export const parseHumanReadable = async (
         ? parseChainReference(chainNamespace as ChainTypeName, chainReference)
         : new Uint8Array();
     const chainTypeBytes = chainNamespace
-        ? convertToBytes(CHAIN_TYPE[chainNamespace], "hex")
+        ? new Uint8Array(convertToBytes(CHAIN_TYPE[chainNamespace], "hex"))
         : new Uint8Array();
 
     const interopAddress: InteropAddress = {
@@ -129,8 +131,11 @@ export const parseHumanReadable = async (
     };
 
     validateInteropAddress(interopAddress);
-    if (validateChecksumFlag) {
-        validateChecksum(interopAddress, checksum as Checksum);
+
+    if (validateChecksumFlag && checksum) {
+        validateChecksum(interopAddress, checksum as Checksum, {
+            isENSName: Boolean(isENSName),
+        });
     }
 
     return interopAddress;
