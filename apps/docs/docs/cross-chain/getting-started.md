@@ -63,19 +63,9 @@ const transferQuote = await acrossProvider.getQuote("crossChainTransfer", {
     inputChainId: 11155111, // source chain ID (number)
     outputChainId: 84532, // destination chain ID (number)
 });
-
-// Get a quote for a cross-chain swap
-const swapQuote = await acrossProvider.getQuote("crossChainSwap", {
-    sender: "0x...",
-    recipient: "0x...",
-    inputTokenAddress: "0x...",
-    outputTokenAddress: "0x...",
-    inputAmount: "1000000000000000000",
-    inputChainId: 11155111,
-    outputChainId: 84532,
-    slippage: "0.01", // 1% slippage tolerance
-});
 ```
+
+>Currently, Across Protocol only supports `crossChainTransfer`. Cross-chain swaps are planned for future releases.
 
 ### Executing Cross-Chain Operations
 

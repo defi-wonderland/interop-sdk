@@ -45,7 +45,8 @@ Get quotes from all configured providers:
 ```typescript
 import { 
     createQuoteAggregator,
-    SortingCriteria 
+    SortingCriteria,
+    QuoteResultStatus
 } from "@defi-wonderland/interop-cross-chain";
 
 const aggregator = createQuoteAggregator(["across"]);
@@ -67,7 +68,7 @@ const results = await aggregator.getQuotes({
 
 // Check results
 results.forEach(result => {
-    if (result.status === "success") {
+    if (result.status === QuoteResultStatus.SUCCESS) {
         console.log(`${result.provider}: ${result.quote.output.outputAmount}`);
         console.log(`Fee: ${result.quote.fee.percent}%`);
     } else {
@@ -142,13 +143,15 @@ const results = await aggregator.getQuotes({
 ### Successful Quotes
 
 ```typescript
+import { QuoteResultStatus } from "@defi-wonderland/interop-cross-chain";
+
 const results = await aggregator.getQuotes({
     action: "crossChainTransfer",
     params: { /* ... */ },
 });
 
 // Find successful quotes
-const successfulQuotes = results.filter(r => r.status === "success");
+const successfulQuotes = results.filter(r => r.status === QuoteResultStatus.SUCCESS);
 
 if (successfulQuotes.length > 0) {
     const bestQuote = successfulQuotes[0]; // Already sorted
@@ -161,17 +164,19 @@ if (successfulQuotes.length > 0) {
 ### Errors and Timeouts
 
 ```typescript
+import { QuoteResultStatus } from "@defi-wonderland/interop-cross-chain";
+
 const results = await aggregator.getQuotes({
     action: "crossChainTransfer",
     params: { /* ... */ },
 });
 
 results.forEach(result => {
-    if (result.status === "success") {
+    if (result.status === QuoteResultStatus.SUCCESS) {
         // Handle successful quote
-    } else if (result.status === "error") {
+    } else if (result.status === QuoteResultStatus.ERROR) {
         console.error(`${result.provider} error: ${result.error}`);
-    } else if (result.status === "timeout") {
+    } else if (result.status === QuoteResultStatus.TIMEOUT) {
         console.warn(`${result.provider} timed out`);
     }
 });

@@ -34,7 +34,8 @@ The Quote Aggregator allows you to fetch quotes from multiple providers in paral
 ```typescript
 import { 
     createQuoteAggregator,
-    SortingCriteria 
+    SortingCriteria,
+    QuoteResultStatus
 } from "@defi-wonderland/interop-cross-chain";
 
 // Create aggregator with specific providers
@@ -58,7 +59,7 @@ const results = await aggregator.getQuotes({
 
 // Check results
 results.forEach(result => {
-    if (result.status === "success") {
+    if (result.status === QuoteResultStatus.SUCCESS) {
         console.log(`${result.provider}: ${result.quote.output.outputAmount}`);
         console.log(`Fee: ${result.quote.fee.percent}%`);
     } else {
@@ -67,10 +68,10 @@ results.forEach(result => {
 });
 
 // Use the best quote (first successful result)
-const bestQuote = results.find(r => r.status === "success");
+const bestQuote = results.find(r => r.status === QuoteResultStatus.SUCCESS);
 if (bestQuote?.quote) {
-    // Execute the best quote
-    const txs = await executor.execute(bestQuote.quote);
+    console.log(`Best quote from ${bestQuote.provider}`);
+    // Use bestQuote.quote to execute the transaction (see Complete Workflow Example below)
 }
 ```
 
@@ -135,7 +136,7 @@ import {
     UnsupportedAction,
     UnsupportedChainId,
     UnsupportedProtocol,
-} from "@defi-wonderland/interop";
+} from "@defi-wonderland/interop-cross-chain";
 
 try {
     // Your cross-chain operations here
