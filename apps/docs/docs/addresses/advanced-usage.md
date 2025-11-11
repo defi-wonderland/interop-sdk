@@ -55,14 +55,12 @@ const isValidBinary = InteropAddressProvider.isValidBinaryAddress(
 The package includes specific error types for better error handling:
 
 ```typescript
-import { InvalidAddress, UnsupportedChainType } from "@defi-wonderland/interop";
-
 import { 
     InvalidAddress, 
     UnsupportedChainType,
     ENSNotFound,
     ENSLookupFailed 
-} from "@defi-wonderland/interop-addresses";
+} from "@defi-wonderland/interop";
 
 try {
     // Your address operations here
