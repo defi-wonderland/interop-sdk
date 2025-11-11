@@ -92,7 +92,21 @@ A static class with utility methods for converting and validating interoperable 
     );
     ```
 
-All methods are also exported as individual functions for modular usage and tree-shaking.
+All methods are also exported as individual functions for modular usage and tree-shaking:
+
+```typescript
+import { 
+    humanReadableToBinary,
+    binaryToHumanReadable,
+    getChainId,
+    getAddress,
+    buildFromPayload,
+    computeChecksum,
+    isValidInteropAddress,
+    isValidHumanReadableAddress,
+    isValidBinaryAddress
+} from "@defi-wonderland/interop-addresses";
+```
 
 ## References
 
