@@ -60,8 +60,10 @@ export function HumanReadableDisplay({
   copied,
   onCopy,
 }: HumanReadableDisplayProps) {
+  const visibleFields = fields.filter((f) => !!f.getValue(result));
+
   const renderInline = () => {
-    const inlineFields = fields.map((f) => ({
+    const inlineFields = visibleFields.map((f) => ({
       label: f.label,
       value: f.getValue(result) || '',
       key: f.key,
@@ -74,7 +76,7 @@ export function HumanReadableDisplay({
       title='Human-Readable Format'
       description='A human-friendly format for cross-chain addresses with checksum validation'
       result={result}
-      fields={fields}
+      fields={visibleFields}
       hoveredPart={hoveredPart}
       setHoveredPart={setHoveredPart}
       color='accent'

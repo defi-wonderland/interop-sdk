@@ -6,12 +6,12 @@
  * - Hex addresses and ENS name resolution
  * - Numeric chain IDs and chain shortnames
  * - Explicit namespace or implicit (defaults to eip155)
- * The checksum is mandatory for a valid ERC-7930 interopable address.
+ * - Checksum is optional but recommended for validation
  */
 
 export const VALID_EXAMPLES = [
-  // Vitalik's address on Ethereum Mainnet (hex address + numeric chain ID)
-  '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C',
+  // Vitalik's address on Ethereum Mainnet (without checksum)
+  '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1',
 
   // Vitalik's address using ENS name with chain label (simpler format)
   'vitalik.eth@eth#4CA88C9C',

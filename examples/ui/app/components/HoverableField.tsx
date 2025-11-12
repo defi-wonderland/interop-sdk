@@ -34,9 +34,11 @@ interface HoverableFieldsProps<T extends string> {
 const SEPARATORS = ['@', ':', '#'];
 
 export function HoverableFields<T extends string>({ fields, hoveredPart, onPartHover }: HoverableFieldsProps<T>) {
+  const nonEmptyFields = fields.filter((field) => !!field.value);
+
   return (
     <>
-      {fields.map((field, index) => (
+      {nonEmptyFields.map((field, index) => (
         <span key={field.key}>
           <HoverableField
             label={field.label}
@@ -45,7 +47,7 @@ export function HoverableFields<T extends string>({ fields, hoveredPart, onPartH
             onMouseEnter={() => onPartHover(field.key)}
             onMouseLeave={() => onPartHover(null)}
           />
-          {index < fields.length - 1 && <span className='text-text-secondary mx-1'>{SEPARATORS[index]}</span>}
+          {index < nonEmptyFields.length - 1 && <span className='text-text-secondary mx-1'>{SEPARATORS[index]}</span>}
         </span>
       ))}
     </>
