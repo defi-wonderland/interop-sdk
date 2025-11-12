@@ -1,6 +1,13 @@
+import type { Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createProviderExecutor, ProviderExecutor } from "../../src/external.js";
+import {
+    AcrossProvider,
+    createProviderExecutor,
+    ExecuteResult,
+    IntentTracker,
+    ProviderExecutor,
+} from "../../src/external.js";
 import {
     BasicOpenParams,
     CrossChainProvider,
@@ -232,6 +239,124 @@ describe("ProviderExecutor", () => {
             expect(mockProviderB.simulateOpen).toHaveBeenCalledWith({
                 action: "crossChainTransfer",
                 params: { test: "test" },
+            });
+        });
+
+        it("returns ExecuteResult with chain IDs", async () => {
+            const providerExecutor = createProviderExecutor([mockProviderA]);
+            const result = await providerExecutor.execute({
+                protocol: "mockProviderA",
+                action: "crossChainTransfer",
+                output: {},
+                openParams: {
+                    action: "crossChainTransfer",
+                    params: {
+                        inputChainId: 11155111,
+                        outputChainId: 84532,
+                    },
+                },
+                fee: { total: "100", percent: "100" },
+            } as unknown as GetQuoteResponse<ValidActions, BasicOpenParams>);
+
+            expect(result).toHaveProperty("transactions");
+            expect(result).toHaveProperty("protocol", "mockProviderA");
+            expect(result).toHaveProperty("originChainId", 11155111);
+            expect(result).toHaveProperty("destinationChainId", 84532);
+        });
+    });
+
+    describe("tracking", () => {
+        describe("prepareTracking", () => {
+            it("returns an IntentTracker instance", () => {
+                const providerExecutor = createProviderExecutor([new AcrossProvider()]);
+                const executeResult: ExecuteResult = {
+                    transactions: [],
+                    protocol: "across",
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                };
+
+                const tracker = providerExecutor.prepareTracking(executeResult);
+
+                expect(tracker).toBeInstanceOf(IntentTracker);
+            });
+
+            it("caches tracker instances per protocol", () => {
+                const providerExecutor = createProviderExecutor([new AcrossProvider()]);
+                const executeResult: ExecuteResult = {
+                    transactions: [],
+                    protocol: "across",
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                };
+
+                const tracker1 = providerExecutor.prepareTracking(executeResult);
+                const tracker2 = providerExecutor.prepareTracking(executeResult);
+
+                expect(tracker1).toBe(tracker2);
+            });
+        });
+
+        describe("track", () => {
+            it("returns an IntentTracker instance", () => {
+                const providerExecutor = createProviderExecutor([new AcrossProvider()]);
+
+                const tracker = providerExecutor.track({
+                    txHash: "0xabc123" as Hex,
+                    protocol: "across",
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                });
+
+                expect(tracker).toBeInstanceOf(IntentTracker);
+            });
+
+            it("uses cached tracker for same protocol", () => {
+                const providerExecutor = createProviderExecutor([new AcrossProvider()]);
+
+                const tracker1 = providerExecutor.track({
+                    txHash: "0xabc123" as Hex,
+                    protocol: "across",
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                });
+
+                const tracker2 = providerExecutor.track({
+                    txHash: "0xdef456" as Hex,
+                    protocol: "across",
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                });
+
+                expect(tracker1).toBe(tracker2);
+            });
+
+            it("throws error for unsupported protocol", () => {
+                const providerExecutor = createProviderExecutor([new AcrossProvider()]);
+
+                expect(() => {
+                    providerExecutor.track({
+                        txHash: "0xabc123" as Hex,
+                        protocol: "unsupported",
+                        originChainId: 11155111,
+                        destinationChainId: 84532,
+                    });
+                }).toThrow();
+            });
+        });
+
+        describe("with custom RPC URLs", () => {
+            it("creates executor with custom RPC URLs", () => {
+                const customRpcUrls = {
+                    11155111: "https://custom-sepolia.com",
+                    84532: "https://custom-base.com",
+                };
+
+                const providerExecutor = createProviderExecutor([new AcrossProvider()], {
+                    rpcUrls: customRpcUrls,
+                });
+
+                expect(providerExecutor).toBeDefined();
             });
         });
     });

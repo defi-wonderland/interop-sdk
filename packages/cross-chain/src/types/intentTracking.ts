@@ -156,3 +156,19 @@ export interface GetFillParams {
     /** Fill deadline timestamp */
     fillDeadline: number;
 }
+
+/**
+ * Parameters for tracking an existing transaction (power user method)
+ */
+export interface TrackingParams {
+    /** Transaction hash to track */
+    txHash: Hex;
+    /** Protocol name (e.g., 'across') */
+    protocol: string;
+    /** Origin chain ID */
+    originChainId: number;
+    /** Destination chain ID */
+    destinationChainId: number;
+    /** Optional timeout in milliseconds */
+    timeout?: number;
+}
