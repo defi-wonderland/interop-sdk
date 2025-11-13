@@ -1,0 +1,58 @@
+name: Publish SDK
+
+on:
+    workflow_call:
+    workflow_dispatch:
+
+jobs:
+    publish:
+        if: github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || (github.event_name == 'release' && github.event.release.draft == false)
+        environment: Publisher
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: apps/sdk
+        steps:
+            - name: Check out github repository
+              uses: actions/checkout@v4
+
+            - name: Use pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  run_install: false
+
+            - name: Use Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: "pnpm"
+
+            - name: Use foundry
+              uses: foundry-rs/foundry-toolchain@v1
+              with:
+                  version: nightly
+
+            - name: Remove internal dependencies
+              run: pnpm remove @defi-wonderland/interop-addresses && pnpm remove @defi-wonderland/interop-cross-chain
+
+            - name: Install cross-chain dependencies from repository
+              run: pnpm i @defi-wonderland/interop-addresses && pnpm i @defi-wonderland/interop-cross-chain
+              env:
+                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Run Build
+              run: pnpm build
+
+            - name: Update npm (for OIDC support)
+              run: npm install -g npm@11.5.2
+
+            - name: Publish snapshot (dev branch)
+              if: github.ref == 'refs/heads/dev'
+              run: npm publish --access public --tag snapshot
+
+            - name: Publish stable (main branch)
+              if: github.ref == 'refs/heads/main'
+              run: npm publish --access public

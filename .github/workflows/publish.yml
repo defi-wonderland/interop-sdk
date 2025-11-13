@@ -1,0 +1,24 @@
+name: Publish Release
+
+on:
+    release:
+        types: [published]
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    id-token: write
+
+jobs:
+    publish-addresses-package:
+        uses: ./.github/workflows/publish-addresses-package.yml
+
+    publish-cross-chain-package:
+        needs: publish-addresses-package
+        uses: ./.github/workflows/publish-cross-chain-package.yml
+
+    publish-sdk:
+        needs:
+            - publish-addresses-package
+            - publish-cross-chain-package
+        uses: ./.github/workflows/publish-sdk.yml

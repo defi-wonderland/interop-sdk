@@ -1,0 +1,43 @@
+{
+    "name": "@defi-wonderland/interop-cross-chain",
+    "version": "0.1.0",
+    "description": "Cross-chain interoperability library with standardized provider interface",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/defi-wonderland/interop-sdk.git",
+        "directory": "packages/cross-chain"
+    },
+    "license": "MIT",
+    "author": "Wonderland",
+    "type": "module",
+    "main": "./dist/src/index.js",
+    "types": "./dist/src/index.d.ts",
+    "directories": {
+        "src": "src"
+    },
+    "files": [
+        "dist/*",
+        "package.json",
+        "!**/*.tsbuildinfo"
+    ],
+    "scripts": {
+        "build": "tsc -p tsconfig.build.json",
+        "check-types": "tsc --noEmit -p ./tsconfig.json",
+        "clean": "rm -rf dist/",
+        "format": "prettier --check \"{src,test}/**/*.{js,ts,json}\"",
+        "format:fix": "prettier --write \"{src,test}/**/*.{js,ts,json}\"",
+        "lint": "eslint \"{src,test}/**/*.{js,ts,json}\"",
+        "lint:fix": "pnpm lint --fix",
+        "test": "vitest run --config vitest.config.ts --passWithNoTests",
+        "test:cov": "vitest run --config vitest.config.ts --coverage"
+    },
+    "dependencies": {
+        "@across-protocol/app-sdk": "0.2.2",
+        "@defi-wonderland/interop-addresses": "workspace:*",
+        "viem": "2.29.2",
+        "zod": "3.24.3"
+    },
+    "devDependencies": {
+        "typescript": "5.5.4"
+    }
+}

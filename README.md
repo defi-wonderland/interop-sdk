@@ -1,105 +1,143 @@
-# ts-turborepo-boilerplate
+# interop-sdk
 
-## Features
+This repository is a monorepo consisting of the following packages:
 
-### Boilerplate monorepo setup
+-   [`@interop-sdk/addresses`](./packages/addresses/): A utility library for interoperable addresses based on ERC-7930.
+-   [`@interop-sdk/cross-chain`](./packages/cross-chain/): A library for cross-chain interoperability.
 
-Quickly start developing your offchain monorepo project with
-minimal configuration overhead using Turborepo
+## Project Structure
 
-### Sample library with Viem
-
-Simple provider that uses Viem client to query account balances
-
-### Sample contracts with Foundry
-
-Basic Greeter contract with an external interface
-
-Foundry configuration out-of-the-box
-
-### Sample app that consumes the library
-
-How much ETH do Vitalik and the Zero address hold together?
-
-### Testing
-
-Unit test setup with Vitest framework
-
-### Lint and format
-
-Use ESLint and Prettier to easily find issues as you code
-
-### Github workflows CI
-
-Lint code and check commit messages format on every push.
-
-Run all tests and see the coverage before merging changes.
-
-## Overview
-
-This repository is a monorepo consisting of 2 packages and 1 app:
-
--   [`@ts-turborepo-boilerplate/contracts`](./packages/contracts): A library for writing all required smart contracts
--   [`@ts-turborepo-boilerplate/sample-lib`](./packages/sample-lib): A sample library for querying account balances
--   [`@ts-turborepo-boilerplate/sample-app`](./apps/sample-app): A demo sample app that uses the sample-lib
-
-## 📋 Prerequisites
-
--   Ensure you have `node 20` and `pnpm 9.7.1` installed.
-
-## Tech stack
-
--   [pnpm](https://pnpm.io/): package and workspace manager
--   [turborepo](https://turbo.build/repo/docs): for managing the monorepo and the build system
--   [foundry](https://book.getfoundry.sh/forge/): for writing Solidity smart contracts
--   [husky](https://typicode.github.io/husky/): tool for managing git hooks
--   tsc: for transpiling TS and building source code
--   [prettier](https://prettier.io/): code formatter
--   [eslint](https://typescript-eslint.io/): code linter
--   [vitest](https://vitest.dev/): modern testing framework
--   [Viem](https://viem.sh/): lightweight library to interface with EVM based blockchains
-
-### Configuring Prettier sort import plugin
-
-You can further add sorting rules for your monorepo, for example in `.prettierrc` you can add:
-
-```json
-    ...
-    "importOrder": [
-        "<TYPES>",
-        ...
-        "",
-        "<TYPES>^@myproject", //added
-        "^@myproject/(.*)$", //added
-        "",
-        ...
-    ],
-    ...
+```
+interop-sdk/
+├── apps/              # Application packages
+│   ├── docs/         # Documentation website
+│   └── sdk/          # SDK application
+├── packages/          # Shared packages
+│   ├── addresses/    # Address-related utilities
+│   └── cross-chain/  # Cross-chain interoperability
+├── .github/          # GitHub configuration
+├── .husky/           # Git hooks
+└── ...config files
 ```
 
-We use [IanVs prettier-plugin-sort-imports](https://github.com/IanVS/prettier-plugin-sort-imports)
+## Prerequisites
 
-## Available Scripts
+-   Node.js 20.x
+-   pnpm 9.7.1 or later
 
-### `create-package`
+## Getting Started
 
-The `create-package` script allows you to create a new package within the `packages` directory. It automates the setup of a new package with the necessary directory structure and initial files scaffolded.
+1. **Install dependencies**
 
-#### Usage
+    ```bash
+    pnpm install
+    ```
 
-To create a new package, run the following command:
+2. **Build all packages**
+    ```bash
+    pnpm build
+    ```
 
-```bash
-pnpm run create-package <package-name>
+## Development
+
+-   **Format code**
+
+    ```bash
+    pnpm format
+    ```
+
+-   **Run tests**
+    ```bash
+    pnpm test
+    ```
+
+## Examples
+
+### Addresses Package
+
+The addresses package provides utilities for handling interoperable blockchain addresses across different networks.
+
+```typescript
+import { InteropAddressProvider } from "@interop-sdk/addresses";
+
+// Convert between human-readable and binary addresses
+const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
+const binaryAddress = await InteropAddressProvider.humanReadableToBinary(humanReadableAddress);
+const backToHumanReadable = await InteropAddressProvider.binaryToHumanReadable(binaryAddress);
+
+// Get the underlying address for a chain
+const address = await InteropAddressProvider.getAddress(humanReadableAddress);
+// Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+
+// Validate addresses
+const isValid = await InteropAddressProvider.isValidInteropAddress(humanReadableAddress);
 ```
 
-Replace `<package-name>` with your desired package name. This command will generate the package directory with predefined templates and configuration files.
+### Cross-Chain Package
+
+The cross-chain package provides a standardized interface for cross-chain operations.
+
+```typescript
+import {
+    createCrossChainProvider,
+    createProviderExecutor,
+    InteropAddressParamsParser,
+} from "@interop-sdk/cross-chain";
+
+// Create a provider for a specific protocol (e.g., Across)
+const provider = createCrossChainProvider("across");
+
+// Get a quote for a cross-chain transfer
+const quote = await provider.getQuote("crossChainTransfer", {
+    sender: "0x...", // sender address
+    recipient: "0x...", // recipient address
+    inputTokenAddress: "0x...", // input token address
+    outputTokenAddress: "0x...", // output token address
+    inputAmount: "1000000000000000000", // amount in wei
+    inputChainId: 11155111, // source chain ID
+    outputChainId: 84532, // destination chain ID
+});
+```
+
+## Release Workflow
+
+This project uses [changesets](https://github.com/changesets/changesets) for version management.
+
+### During Development (Per PR)
+
+When you make changes to any package:
+
+1. **Make changes** to one or more packages
+2. **Create changeset**: `pnpm changeset`
+    - Select which packages changed
+    - Choose change type (patch/minor/major)
+    - Write a description of the change
+3. **Commit only the changeset file** (`.changeset/random-name.md`)
+4. **Open PR** and merge to dev
+
+**Important:** Do NOT run `pnpm version-packages` during development. Changesets accumulate in `.changeset/` directory.
+
+### At Release Time (Once, by Maintainer)
+
+When ready to publish a new version:
+
+1. **Apply all accumulated changesets**: `pnpm version-packages`
+    - Reads all pending changesets
+    - Calculates new versions
+    - Updates package.json files
+    - Generates/updates CHANGELOGs
+    - Deletes applied changesets
+2. **Commit** version bumps and CHANGELOGs
+3. **Push** to GitHub
+4. **Publish** via GitHub Actions (manual workflow dispatch in Actions tab)
+
+See [.changeset/README.md](./.changeset/README.md) for more details.
 
 ## Contributing
 
 Wonderland is a team of top Web3 researchers, developers, and operators who believe that the future needs to be open-source, permissionless, and decentralized.
 
-[DeFi sucks](https://defi.sucks), but Wonderland is here to make it better.
+[Wonderland](https://wonderland.xyz), but Wonderland is here to make it better.
 
 ### 💻 Conventional Commits
 
@@ -107,4 +145,4 @@ We follow the Conventional Commits [specification](https://www.conventionalcommi
 
 ## License
 
-The primary license for the boilerplate is MIT. See the [`LICENSE`](./LICENSE) file for details.
+This project is licensed under the MIT License. See the [`LICENSE`](./LICENSE) file for details.
