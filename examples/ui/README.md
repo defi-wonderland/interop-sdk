@@ -1,6 +1,6 @@
-# Interop Addresses - UI Demo
+# Interopable Addresses - Interactive Demo
 
-Interactive Next.js application demonstrating Interop Addresses (ERC-7930).
+Educational demo showcasing ERC-7930 (Human-Readable) and ERC-7828 (Binary) interopable address formats.
 
 ## Getting Started
 
@@ -16,26 +16,37 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
-## Development
-
-```bash
-# Format code
-pnpm format
-
-# Lint code
-pnpm lint:fix
-```
-
 ## Features
 
-This demo showcases:
+### Interactive Playground
+- **Dual Input Modes**: Enter a complete human-readable address OR build from address + chain
+- **Live Conversion**: Real-time conversion between ERC-7930 and ERC-7828 formats
+- **Component Breakdown**: Visual breakdown of address parts with hover interactions
+- **Copy to Clipboard**: One-click copy of generated addresses
+- **Example Addresses**: Pre-filled valid examples for quick testing
 
-- **Interopable Addresses**: ERC-7930 address conversion and validation
-- **Human-Readable Format**: `alice.eth@eip155:1#ABCD1234`
-- **Binary Format**: Encoded byte representation
-- **Address Validation**: Check validity of interop addresses
+### Educational Focus
+- **Format Explanations**: Clear descriptions of what each format represents
+- **Binary Structure**: Detailed view of binary encoding with all fields
+- **Interactive Hovers**: Hover over any component to highlight related parts
+- **Theme Support**: Light and dark themes for comfortable viewing
+
+### Format Support
+- **Human-Readable (ERC-7930)**: `0xAddress@namespace:chainRef#checksum`
+- **Binary (ERC-7828)**: Compact byte representation for on-chain efficiency
+- **EVM Chains**: Supports eip155 namespace for Ethereum and EVM-compatible chains ([CAIP-2 spec](https://chainagnostic.org/CAIPs/caip-2))
+- **ENS Names**: Full support for ENS resolution (e.g., `vitalik.eth@eip155:1#checksum`)
+
+## Tech Stack
+
+- Next.js 15 with Turbopack
+- TypeScript
+- Tailwind CSS
+- @defi-wonderland/interop-addresses
 
 ## Documentation
 
 - [SDK Documentation](../../apps/docs/)
 - [Addresses Package](../../packages/addresses/)
+- [ERC-7930 Specification](https://eips.ethereum.org/EIPS/eip-7930)
+- [ERC-7828 Specification](https://eips.ethereum.org/EIPS/eip-7828)

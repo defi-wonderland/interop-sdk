@@ -1,26 +1,91 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-:root {
+[data-theme='light'] {
+  /* Base colors - Clean whites and blacks */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f172a;
+
+  /* Surface colors */
+  --surface: #ffffff;
+  --surface-secondary: #f8fafc;
+
+  /* Accent color - Beautiful indigo */
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-light: #eef2ff;
+
+  /* Status colors */
+  --success: #22c55e;
+  --success-light: #f0fdf4;
+  --error: #ef4444;
+  --error-light: #fef2f2;
+
+  /* Text colors */
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+
+  /* Border colors */
+  --border: #e2e8f0;
+  --border-focus: #cbd5e1;
+}
+
+[data-theme='dark'] {
+  /* Base colors */
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+
+  /* Surface colors */
+  --surface: #1e293b;
+  --surface-secondary: #334155;
+
+  /* Accent color */
+  --accent: #818cf8;
+  --accent-hover: #a5b4fc;
+  --accent-light: #312e81;
+
+  /* Status colors */
+  --success: #4ade80;
+  --success-light: #14532d;
+  --error: #f87171;
+  --error-light: #7f1d1d;
+
+  /* Text colors */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #64748b;
+
+  /* Border colors */
+  --border: #334155;
+  --border-focus: #475569;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-light: var(--accent-light);
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-error: var(--error);
+  --color-error-light: var(--error-light);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-border: var(--border);
+  --color-border-focus: var(--border-focus);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
