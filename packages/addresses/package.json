@@ -1,5 +1,5 @@
 {
-    "name": "@defi-wonderland/interop-addresses",
+    "name": "@wonderland/interop-addresses",
     "version": "0.1.0",
     "description": "Interoperable address utilities for cross-chain operations",
     "repository": {

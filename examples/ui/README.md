@@ -42,7 +42,7 @@ Open [http://localhost:3000](http://localhost:3000)
 - Next.js 15 with Turbopack
 - TypeScript
 - Tailwind CSS
-- @defi-wonderland/interop-addresses
+- @wonderland/interop-addresses
 
 ## Documentation
 

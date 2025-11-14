@@ -14,7 +14,7 @@ The package provides two main ways to work with addresses:
 ### Using InteropAddressProvider
 
 ```typescript
-import { InteropAddressProvider } from "@defi-wonderland/interop";
+import { InteropAddressProvider } from "@wonderland/interop";
 
 // Convert a human-readable address to binary format
 const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
@@ -40,7 +40,7 @@ import {
     getAddress,
     getChainId,
     humanReadableToBinary,
-} from "@defi-wonderland/interop";
+} from "@wonderland/interop";
 
 const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
 const binaryAddress = await humanReadableToBinary(humanReadableAddress);

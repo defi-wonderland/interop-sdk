@@ -33,10 +33,10 @@ jobs:
                   version: nightly
 
             - name: Remove internal dependencies
-              run: pnpm remove @defi-wonderland/interop-addresses && pnpm remove @defi-wonderland/interop-cross-chain
+              run: pnpm remove @wonderland/interop-addresses && pnpm remove @wonderland/interop-cross-chain
 
             - name: Install cross-chain dependencies from repository
-              run: pnpm i @defi-wonderland/interop-addresses && pnpm i @defi-wonderland/interop-cross-chain
+              run: pnpm i @wonderland/interop-addresses && pnpm i @wonderland/interop-cross-chain
               env:
                   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 

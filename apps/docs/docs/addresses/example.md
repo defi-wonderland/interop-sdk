@@ -38,7 +38,7 @@ sequenceDiagram
 The `getChainId` method allows you to extract the chain ID from a human-readable interop address. This is useful for routing transactions to the correct network.
 
 ```js
-import { getChainId } from "@defi-wonderland/interop";
+import { getChainId } from "@wonderland/interop";
 
 const humanReadableAddress = "alice.eth@op";
 const chainId = await getChainId(humanReadableAddress);
@@ -55,7 +55,7 @@ console.log(chainId); // 10
 The `getAddress` method returns the canonical address corresponding to the interop address. This is the address you would use in contract calls.
 
 ```js
-import { getAddress } from "@defi-wonderland/interop";
+import { getAddress } from "@wonderland/interop";
 
 const humanReadableAddress = "alice.eth@op";
 const address = await getAddress(humanReadableAddress);
