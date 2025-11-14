@@ -64,16 +64,16 @@ importers:
 
     apps/sdk:
         dependencies:
-            "@defi-wonderland/interop-addresses":
+            "@wonderland/interop-addresses":
                 specifier: workspace:*
                 version: link:../../packages/addresses
-            "@defi-wonderland/interop-cross-chain":
+            "@wonderland/interop-cross-chain":
                 specifier: workspace:*
                 version: link:../../packages/cross-chain
 
     examples/ui:
         dependencies:
-            "@defi-wonderland/interop-addresses":
+            "@wonderland/interop-addresses":
                 specifier: workspace:*
                 version: link:../../packages/addresses
             next:
@@ -171,7 +171,7 @@ importers:
             "@across-protocol/app-sdk":
                 specifier: 0.2.2
                 version: 0.2.2(viem@2.29.2(typescript@5.5.4)(zod@3.24.3))
-            "@defi-wonderland/interop-addresses":
+            "@wonderland/interop-addresses":
                 specifier: workspace:*
                 version: link:../addresses
             viem:
