@@ -11,6 +11,19 @@ Its provider-based architecture makes it easy to integrate new protocols and cha
 
 Interop introduces a clean separation of concerns between **intent resolution** and **protocol execution**, making it easy to build wallets or apps that support seamless, programmable value transfer across multiple networks.
 
+## Currently Available
+
+Implemented:
+- ERC-7828/7930 address handling and conversion
+- Cross-chain transfers via Across Protocol
+- Intent tracking (EIP-7683 integration)
+- Multi-provider quote aggregation
+- ENS name resolution for addresses
+
+In Development:
+- ENS on-chain chain registry (currently using off-chain registries)
+- Additional protocols
+
 ## Core Modules
 
 ### `addresses`
@@ -33,8 +46,10 @@ The `cross-chain` module is responsible for managing the **intent workflow**: fr
 It includes logic to:
 
 -   Parse and validate user-defined transfer intents (e.g., "Send 100 USDC to `bob.eth@optimism`")
+-   Fetch quotes from cross-chain providers
 -   Simulate gas, slippage, execution costs, and fallback routes
--   Expose a programmable interface to override routing preferences (e.g., token/chain constraints, protocol filters)
+-   Track intent status from initiation to completion
+-   Aggregate and compare quotes from multiple providers
 
 This module acts as a routing engine and aggregator, designed to support declarative preferences while keeping users in control of execution.
 
@@ -51,12 +66,13 @@ classDiagram
     CrossChainModule o-- CrossChainProviderFactory
     CrossChainProviderFactory o-- CrossChainProvider
     CrossChainModule o-- CrossChainProviderExecutor
+    CrossChainModule o-- QuoteAggregator
+    CrossChainModule o-- IntentTracker
     CrossChainModule o-- ParamsParser
     SDK : + InteropAddressModule interopAddressUtils
     SDK : + CrossChainModule crossChainUtils
     CrossChainProvider <|-- Across
-    CrossChainProvider <|-- OIF1.0
-    CrossChainProvider <|-- SuperChainTokenBridge
+    CrossChainProvider <|-- SampleProvider
     ParamsParser <|-- InteropParamsParser
     class InteropAddressModule {
       + parseHumanReadable(humanReadableAddress: Hex) InteropAddress
@@ -66,7 +82,9 @@ classDiagram
     }
     class CrossChainModule {
       + createCrossChainProvider(protocol, config, dependencies) CrossChainProvider
-      + createExecuter(providers: IntentProviders[]) CrossChainProviderExecutor
+      + createProviderExecutor(providers: IntentProviders[]) CrossChainProviderExecutor
+      + createQuoteAggregator(providers?) QuoteAggregator
+      + createIntentTracker(protocol) IntentTracker
     }
     class CrossChainProviderFactory {
       + build(protocolName: string) CrossChainProvider
@@ -76,6 +94,13 @@ classDiagram
       + new(providers:CrossChainProvider[], paramsParser: ParamsParser)
       + getQuotes(params: GetQuoteParams) Quote[]
       + execute(quote: Quote) Tx
+    }
+    class QuoteAggregator {
+      + getQuotes(params: GetQuotesParams) QuoteResult[]
+    }
+    class IntentTracker {
+      + watchIntent(params: WatchIntentParams) AsyncGenerator~IntentUpdate~
+      + getIntentStatus(txHash, chainId) IntentStatusInfo
     }
     class CrossChainProvider {
       + getQuote(params: GetQuoteParams) Quote
@@ -95,12 +120,12 @@ Interop moves away from protocol-first flows and embraces an **intent-first mode
 
 > _“Send 100 USDC to `alice.eth@arbitrum`”_
 
-The SDK takes care of:
-
--   Identifying available balances across chains
--   Evaluating route feasibility (including gas and liquidity constraints)
--   Selecting the best strategy
--   Returning a signed, executable plan
+The SDK provides building blocks for:
+-   Fetching quotes from cross-chain providers
+-   Comparing quotes across multiple protocols
+-   Executing cross-chain transfers
+-   Tracking intent status from initiation to completion
+-   Handling errors and timeouts gracefully
 
 This reduces surface area for user error, increases composability, and makes the experience smoother for both devs and users.
 
