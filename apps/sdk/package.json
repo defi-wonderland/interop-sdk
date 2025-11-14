@@ -1,5 +1,5 @@
 {
-    "name": "@defi-wonderland/interop",
+    "name": "@wonderland/interop",
     "version": "0.1.0",
     "description": "Complete SDK for blockchain interoperability with cross-chain operations and address utilities",
     "repository": {
@@ -32,7 +32,7 @@
         "test:cov": "vitest run --config vitest.config.ts --coverage"
     },
     "dependencies": {
-        "@defi-wonderland/interop-addresses": "workspace:*",
-        "@defi-wonderland/interop-cross-chain": "workspace:*"
+        "@wonderland/interop-addresses": "workspace:*",
+        "@wonderland/interop-cross-chain": "workspace:*"
     }
 }

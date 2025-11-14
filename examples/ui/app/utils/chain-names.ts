@@ -1,4 +1,4 @@
-import { getChainId } from '@defi-wonderland/interop-addresses';
+import { getChainId } from '@wonderland/interop-addresses';
 
 const COMMON_CHAIN_NAMES: Record<string, string> = {
   '1': 'Ethereum',

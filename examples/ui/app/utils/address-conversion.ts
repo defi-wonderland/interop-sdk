@@ -1,4 +1,4 @@
-import { InteropAddressProvider } from '@defi-wonderland/interop-addresses';
+import { InteropAddressProvider } from '@wonderland/interop-addresses';
 import { parseBinaryForDisplay, parseHumanReadableForDisplay } from './demo-helpers';
 import type { ChainType } from '../types';
 import type { ParsedBinary, ParsedHumanReadable } from './demo-helpers';

@@ -15,7 +15,7 @@ runs:
               node-version: 20
               cache: "pnpm"
               registry-url: "https://npm.pkg.github.com"
-              scope: "@defi-wonderland"
+              scope: "@wonderland"
 
         - name: Use foundry
           uses: foundry-rs/foundry-toolchain@v1

@@ -7,7 +7,7 @@ title: Advanced Usage
 You can build an interop address from individual components:
 
 ```typescript
-import { InteropAddressProvider } from "@defi-wonderland/interop";
+import { InteropAddressProvider } from "@wonderland/interop";
 
 const payload = {
     version: 1,
@@ -21,7 +21,7 @@ const interopAddress = InteropAddressProvider.buildFromPayload(payload);
 ## Computing Checksums
 
 ```typescript
-import { InteropAddressProvider } from "@defi-wonderland/interop";
+import { InteropAddressProvider } from "@wonderland/interop";
 
 const checksum = await InteropAddressProvider.computeChecksum("alice.eth@eip155:1");
 ```
@@ -31,7 +31,7 @@ const checksum = await InteropAddressProvider.computeChecksum("alice.eth@eip155:
 The package provides methods to validate addresses:
 
 ```typescript
-import { InteropAddressProvider } from "@defi-wonderland/interop";
+import { InteropAddressProvider } from "@wonderland/interop";
 
 // Validate any interop address
 const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@eip155:1#ABCD1234", {
@@ -50,7 +50,7 @@ const isValidHumanReadable = await InteropAddressProvider.isValidHumanReadableAd
 The package includes specific error types for better error handling:
 
 ```typescript
-import { InvalidAddress, UnsupportedChainType } from "@defi-wonderland/interop";
+import { InvalidAddress, UnsupportedChainType } from "@wonderland/interop";
 
 try {
     // Your address operations here
