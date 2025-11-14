@@ -4,6 +4,10 @@ on:
     workflow_call:
     workflow_dispatch:
 
+permissions:
+    contents: read
+    id-token: write
+
 jobs:
     publish:
         if: github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || (github.event_name == 'release' && github.event.release.draft == false)
