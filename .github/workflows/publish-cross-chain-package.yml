@@ -35,10 +35,11 @@ jobs:
             - name: Remove internal dependencies
               run: pnpm remove @wonderland/interop-addresses
 
-            - name: Install cross-chain dependencies from repository
-              run: pnpm i @wonderland/interop-addresses
-              env:
-                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+            - name: Install published dependencies
+              run: |
+                  TAG=${{ github.ref == 'refs/heads/dev' && '@snapshot' || '@latest' }}
+                  echo "Installing @wonderland/interop-addresses${TAG}"
+                  pnpm i @wonderland/interop-addresses${TAG}
 
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
