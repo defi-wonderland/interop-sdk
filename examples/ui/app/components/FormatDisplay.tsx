@@ -102,7 +102,7 @@ export function FormatDisplay<T extends string, R = unknown>({
           {showCopyButton && copied !== undefined && onCopy && (
             <button
               onClick={onCopy}
-              className={`absolute top-1/2 -translate-y-1/2 right-3 p-2 rounded-lg bg-${color}/10 hover:bg-${color}/20 border border-${color}/30 hover:border-${color} transition-all hover:scale-110`}
+              className={`absolute top-1/2 -translate-y-1/2 right-3 p-2 rounded-lg bg-${color}/10 hover:bg-${color}/20 border border-${color}/30 hover:border-${color} transition-all hover:scale-110 cursor-pointer`}
               title='Copy to clipboard'
             >
               {copied ? <CheckmarkIcon /> : <CopyIcon />}

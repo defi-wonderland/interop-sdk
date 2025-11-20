@@ -43,7 +43,7 @@ export async function convertFromAddress(
     ? chainReference
     : `0x${Number(chainReference).toString(16)}`;
 
-  const binary = InteropAddressProvider.buildFromPayload({
+  const binary = await InteropAddressProvider.buildFromPayload({
     version: 1,
     chainType,
     chainReference: normalizedChainReference,
