@@ -25,3 +25,22 @@ export const EXAMPLE_DESCRIPTIONS: Record<string, string> = {
   [VALID_EXAMPLES[1]]: 'vitalik.eth@eth',
   [VALID_EXAMPLES[2]]: '0x1234...7890@eip155:arb1',
 };
+
+// Examples for "Build from Address" mode
+export const BUILD_MODE_EXAMPLES = [
+  {
+    address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+    chainReference: '1',
+    description: '0xd8dA...6045 (Ethereum Mainnet)',
+  },
+  {
+    address: '0x1234567890123456789012345678901234567890',
+    chainReference: '42161',
+    description: '0x1234...7890 (Arbitrum One)',
+  },
+  {
+    address: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+    chainReference: '10',
+    description: '0xabcdef...abcd (Optimism)',
+  },
+];
