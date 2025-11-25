@@ -16,7 +16,7 @@ export function ThemeSwitcher() {
   return (
     <button
       onClick={toggleTheme}
-      className='fixed top-4 right-4 z-50 p-3 rounded-full bg-surface/80 backdrop-blur border border-border/50 shadow-lg hover:scale-110 transition-transform'
+      className='fixed top-4 right-4 z-50 p-3 rounded-full bg-surface/80 backdrop-blur border border-border/50 shadow-lg hover:scale-110 transition-transform cursor-pointer'
       aria-label='Toggle theme'
     >
       {isDark ? <SunIcon /> : <MoonIcon />}

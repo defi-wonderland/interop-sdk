@@ -1,5 +1,7 @@
+import React from 'react';
 import { InputMode, ChainType } from '../types';
-import { VALID_EXAMPLES, EXAMPLE_DESCRIPTIONS } from '../utils/examples';
+import { VALID_EXAMPLES, EXAMPLE_DESCRIPTIONS, BUILD_MODE_EXAMPLES } from '../utils/examples';
+import { ExampleButtons, TabButton } from './index';
 
 const CHAIN_TYPE_OPTIONS = [{ value: ChainType.EIP155, label: 'eip155' }] as const;
 
@@ -35,32 +37,41 @@ export function InputSection({
   const isReadableMode = mode === InputMode.READABLE;
   const isBuildMode = mode === InputMode.BUILD;
 
+  const readableModeExamples = React.useMemo(
+    () =>
+      VALID_EXAMPLES.map((ex, idx) => ({
+        key: ex,
+        description: EXAMPLE_DESCRIPTIONS[ex] || `Example ${idx + 1}`,
+        onClick: () => onExampleClick(ex),
+      })),
+    [onExampleClick],
+  );
+
+  const buildModeExamples = React.useMemo(
+    () =>
+      BUILD_MODE_EXAMPLES.map((example) => ({
+        key: example.address,
+        description: example.description,
+        onClick: () => {
+          setAddress(example.address);
+          setChainReference(example.chainReference);
+        },
+      })),
+    [setAddress, setChainReference],
+  );
+
   return (
     <div className='relative backdrop-blur-xl bg-surface/80 rounded-3xl border border-border/50 p-6 shadow-2xl'>
       <div className='absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent rounded-3xl pointer-events-none' />
 
       <div className='relative flex flex-col gap-6'>
         <div className='flex gap-2'>
-          <button
-            onClick={() => setMode(InputMode.READABLE)}
-            className={`flex-1 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-              isReadableMode
-                ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-lg shadow-accent/30 scale-[1.02]'
-                : 'bg-surface/50 text-text-secondary hover:bg-surface'
-            }`}
-          >
+          <TabButton isActive={isReadableMode} onClick={() => setMode(InputMode.READABLE)}>
             Enter Human-Readable
-          </button>
-          <button
-            onClick={() => setMode(InputMode.BUILD)}
-            className={`flex-1 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-              isBuildMode
-                ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-lg shadow-accent/30 scale-[1.02]'
-                : 'bg-surface/50 text-text-secondary hover:bg-surface'
-            }`}
-          >
+          </TabButton>
+          <TabButton isActive={isBuildMode} onClick={() => setMode(InputMode.BUILD)}>
             Build from Address
-          </button>
+          </TabButton>
         </div>
 
         {isReadableMode && (
@@ -80,26 +91,13 @@ export function InputSection({
                 />
                 <button
                   onClick={onConvert}
-                  className='w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all shadow-lg shadow-accent/30'
+                  className='w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all shadow-lg shadow-accent/30 cursor-pointer'
                 >
                   Convert
                 </button>
               </div>
             </div>
-            <div className='flex flex-col gap-2'>
-              <div className='text-sm font-medium text-text-secondary'>Examples</div>
-              <div className='flex flex-wrap gap-2'>
-                {VALID_EXAMPLES.map((ex, idx) => (
-                  <button
-                    key={ex}
-                    onClick={() => onExampleClick(ex)}
-                    className='px-3 py-1.5 bg-accent-light/50 hover:bg-accent-light text-accent rounded-lg text-xs font-medium transition-colors'
-                  >
-                    {EXAMPLE_DESCRIPTIONS[ex] || `Example ${idx + 1}`}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <ExampleButtons examples={readableModeExamples} />
           </div>
         )}
 
@@ -150,10 +148,11 @@ export function InputSection({
                 />
               </div>
             </div>
-            <div className='flex justify-end'>
+            <div className='flex flex-col-reverse sm:flex-row gap-3 sm:items-center sm:justify-between'>
+              <ExampleButtons examples={buildModeExamples} />
               <button
                 onClick={onConvert}
-                className='w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all shadow-lg shadow-accent/30'
+                className='w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all shadow-lg shadow-accent/30 cursor-pointer sm:self-end'
               >
                 Convert
               </button>
