@@ -1,6 +1,6 @@
 import bs58 from "bs58";
 import { hexToBytes } from "viem";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { InteropAddress } from "../src/internal.js";
 import {
@@ -28,6 +28,10 @@ vi.mock("viem", async () => {
 
 describe("erc7930", () => {
     describe("parseHumanReadable", () => {
+        beforeEach(() => {
+            mockGetEnsAddress.mockClear();
+        });
+
         describe("address conversion", () => {
             it("converts EVM mainnet address to interop address", async () => {
                 const humanReadableAddress =
@@ -169,6 +173,60 @@ describe("erc7930", () => {
                 await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
                     InvalidHumanReadableAddress,
                 );
+            });
+
+            it("falls back to mainnet ENS when chain-specific address not found", async () => {
+                const humanReadableAddress = "josh.eth@eip155:8453";
+                const expectedAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1";
+                const expected: InteropAddress = {
+                    version: 1,
+                    chainType: hexToBytes("0x0000"),
+                    chainReference: hexToBytes("0x2105"), // Base chain ID (8453)
+                    address: hexToBytes(expectedAddress),
+                };
+
+                // First call returns null (no Base-specific ENS record)
+                // Second call returns the mainnet address (fallback)
+                mockGetEnsAddress
+                    .mockResolvedValueOnce(null)
+                    .mockResolvedValueOnce(expectedAddress);
+
+                const interopAddress = await parseHumanReadable(humanReadableAddress);
+
+                expect(interopAddress).toEqual(expected);
+                expect(mockGetEnsAddress).toHaveBeenCalledTimes(2);
+
+                // Verify first call used Base-specific coin type (0x80002105 for chain ID 8453)
+                expect(mockGetEnsAddress).toHaveBeenNthCalledWith(1, {
+                    name: "josh.eth",
+                    coinType: 0x80002105, // (0x80000000 | 8453) >>> 0
+                });
+
+                // Verify second call used Ethereum mainnet coin type
+                expect(mockGetEnsAddress).toHaveBeenNthCalledWith(2, {
+                    name: "josh.eth",
+                    coinType: 60, // ETHEREUM_COIN_TYPE
+                });
+            });
+
+            it("throws ENSNotFound when neither chain-specific nor mainnet address exists", async () => {
+                const humanReadableAddress = "nonexistent.eth@eip155:8453";
+
+                // Both calls return null
+                mockGetEnsAddress.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+
+                await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(ENSNotFound);
+                expect(mockGetEnsAddress).toHaveBeenCalledTimes(2);
+
+                // Verify both coin types were tried
+                expect(mockGetEnsAddress).toHaveBeenNthCalledWith(1, {
+                    name: "nonexistent.eth",
+                    coinType: 0x80002105, // Base-specific
+                });
+                expect(mockGetEnsAddress).toHaveBeenNthCalledWith(2, {
+                    name: "nonexistent.eth",
+                    coinType: 60, // Mainnet fallback
+                });
             });
         });
 

@@ -51,10 +51,18 @@ const parseAddress = async (
                         chainReference === "1"
                             ? ETHEREUM_COIN_TYPE
                             : convertEVMChainIdToCoinType(Number(chainReference));
-                    const ensAddress = await client.getEnsAddress({
+                    let ensAddress = await client.getEnsAddress({
                         name: normalize(address),
                         coinType,
                     });
+
+                    if (!ensAddress && coinType !== ETHEREUM_COIN_TYPE) {
+                        ensAddress = await client.getEnsAddress({
+                            name: normalize(address),
+                            coinType: ETHEREUM_COIN_TYPE,
+                        });
+                    }
+
                     if (!ensAddress) {
                         throw new ENSNotFound(address);
                     }
