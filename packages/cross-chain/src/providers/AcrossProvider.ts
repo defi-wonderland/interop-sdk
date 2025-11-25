@@ -444,4 +444,17 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
             },
         };
     }
+
+    /**
+     * @inheritdoc
+     */
+    getTrackingConfig(): {
+        depositInfoParser: DepositInfoParserConfig;
+        fillWatcher: FillWatcherConfig;
+    } {
+        return {
+            depositInfoParser: AcrossProvider.getDepositInfoParserConfig(),
+            fillWatcher: AcrossProvider.getFillWatcherConfig(),
+        };
+    }
 }
