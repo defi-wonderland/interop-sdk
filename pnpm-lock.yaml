@@ -225,8 +225,6 @@ importers:
                 specifier: 5.5.4
                 version: 5.5.4
 
-    packages/privacy: {}
-
 packages:
     "@across-protocol/app-sdk@0.2.2":
         resolution:
