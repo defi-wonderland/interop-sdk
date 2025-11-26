@@ -1,5 +1,11 @@
 # @defi-wonderland/interop-addresses
 
+## 0.1.1
+
+### Patch Changes
+
+-   52861e5: ENS resolution now falls back to mainnet address when chain-specific ENS records are not found
+
 ## 0.1.0
 
 ### Minor Changes
