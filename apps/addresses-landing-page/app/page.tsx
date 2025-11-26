@@ -21,7 +21,7 @@ export default function Home() {
                     </h1>
                     <div className="flex justify-center gap-3 font-mono text-xs text-[oklch(0.22_0.11_269.06)]">
                         <a
-                            href="https://interop-sdk.vercel.app/"
+                            href="https://interop.wonderland.xyz /"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-[#3441C0] transition-colors font-semibold"

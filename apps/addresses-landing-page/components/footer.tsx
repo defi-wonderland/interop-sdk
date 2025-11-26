@@ -7,7 +7,7 @@ export function Footer() {
                         <h3 className="font-semibold mb-4 text-foreground">Specifications</h3>
                         <div className="space-y-2 text-muted-foreground">
                             <a
-                                href="https://github.com/ethereum/ERCs/blob/7dde1ba4c67f5892ddb8f9c32d1c0351a3ab0a7e/ERCS/erc-7930.md"
+                                href="https://eips.ethereum.org/EIPS/eip-7930"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="block hover:text-foreground transition-colors"
@@ -15,7 +15,7 @@ export function Footer() {
                                 ERC-7930
                             </a>
                             <a
-                                href="https://github.com/ethereum/ERCs/blob/bd717b6ecb991c3fbf4b213e2ad9d98c6c49d1f5/ERCS/erc-7828.md"
+                                href="https://eips.ethereum.org/EIPS/eip-7828"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="block hover:text-foreground transition-colors"
@@ -29,7 +29,7 @@ export function Footer() {
                         <h3 className="font-semibold mb-4 text-foreground">Resources</h3>
                         <div className="space-y-2 text-muted-foreground">
                             <a
-                                href="https://interop-sdk.vercel.app/"
+                                href="https://interop.wonderland.xyz /"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="block hover:text-foreground transition-colors"
@@ -84,7 +84,7 @@ export function Footer() {
                     <p className="flex items-center justify-start gap-x-1.5 gap-y-2 flex-wrap font-mono text-xs text-muted-foreground">
                         <span>Built by</span>
                         <a
-                            href="https://defi.sucks/"
+                            href="https://wonderland.xyz/"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:opacity-70 transition-opacity"

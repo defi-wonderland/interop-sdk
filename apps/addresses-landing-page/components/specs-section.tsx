@@ -17,7 +17,7 @@ export function SpecsSection() {
                             networks.
                         </p>
                         <a
-                            href="https://github.com/ethereum/ERCs/blob/7dde1ba4c67f5892ddb8f9c32d1c0351a3ab0a7e/ERCS/erc-7930.md"
+                            href="https://eips.ethereum.org/EIPS/eip-7930"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-mono text-sm underline hover:no-underline"
@@ -38,7 +38,7 @@ export function SpecsSection() {
                             centralized chain lists with a decentralized on-chain registry.
                         </p>
                         <a
-                            href="https://github.com/ethereum/ERCs/blob/bd717b6ecb991c3fbf4b213e2ad9d98c6c49d1f5/ERCS/erc-7828.md"
+                            href="https://eips.ethereum.org/EIPS/eip-7828"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-mono text-sm underline hover:no-underline"
