@@ -14,20 +14,26 @@ This landing page showcases the Interoperable Addresses standard, which solves c
 
 ## Standards
 
--   **ERC-7930**: Establishes the base binary format for interoperable addresses
--   **ERC-7828**: Extends with human-readable names using ENS and an on-chain chain registry
+-   **[ERC-7930](https://eips.ethereum.org/EIPS/eip-7930)**: Establishes the base binary format for interoperable addresses
+-   **[ERC-7828](https://eips.ethereum.org/EIPS/eip-7828)**: Extends with human-readable names using ENS and an on-chain chain registry
 
 ## Getting Started
 
-Install dependencies from the repository root:
+This Next.js app is part of the pnpm workspace. Install dependencies from the **monorepo root**:
 
 ```bash
+# From the repository root
 pnpm install
 ```
 
 Run the development server:
 
 ```bash
+# From the repository root
+pnpm --filter addresses-landing-page dev
+
+# Or navigate to the app directory
+cd apps/addresses-landing-page
 pnpm dev
 ```
 
@@ -68,7 +74,7 @@ addresses-landing-page/
 -   [ERC-7930 Specification](https://eips.ethereum.org/EIPS/eip-7930)
 -   [ERC-7828 Specification](https://eips.ethereum.org/EIPS/eip-7828)
 -   [Interop SDK Documentation](https://github.com/defi-wonderland/interop-sdk)
--   [Live Demo](https://interop-sdk.vercel.app/)
+-   [Live Demo](https://interop.wonderland.xyz /)
 
 ## License
 
