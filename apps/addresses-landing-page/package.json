@@ -1,7 +1,8 @@
 {
-    "name": "my-v0-project",
+    "name": "addresses-landing-page",
     "version": "0.1.0",
     "private": true,
+    "description": "Landing page for Interoperable Addresses - Chain-aware addressing for the Ethereum ecosystem (ERC-7930 & ERC-7828)",
     "scripts": {
         "build": "next build",
         "dev": "next dev",
