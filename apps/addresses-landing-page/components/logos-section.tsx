@@ -61,10 +61,10 @@ const logosWithScale = LOGOS.map((logo) => ({
 
 export function LogosSection() {
     return (
-        <section className="px-6 lg:px-16 py-16">
+        <section className="px-6 lg:px-16 py-12 md:py-14 lg:py-16">
             <div className="max-w-6xl mx-auto">
-                <div className="text-left mb-16 pl-8">
-                    <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground/60">
+                <div className="text-left mb-12 md:mb-14 lg:mb-16 pl-8">
+                    <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-muted-foreground/60">
                         Backed by the Ethereum community
                     </p>
                 </div>
