@@ -12,7 +12,7 @@ export function DemoSection() {
                 </p>
 
                 <a
-                    href="https://interop.wonderland.xyz /"
+                    href="https://interop.wonderland.xyz"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block mb-12 group"
@@ -39,7 +39,7 @@ export function DemoSection() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                     <Button size="lg" className="font-mono" asChild>
                         <a
-                            href="https://interop.wonderland.xyz /"
+                            href="https://interop.wonderland.xyz"
                             target="_blank"
                             rel="noopener noreferrer"
                         >

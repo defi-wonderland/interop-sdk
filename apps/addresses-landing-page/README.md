@@ -74,7 +74,7 @@ addresses-landing-page/
 -   [ERC-7930 Specification](https://eips.ethereum.org/EIPS/eip-7930)
 -   [ERC-7828 Specification](https://eips.ethereum.org/EIPS/eip-7828)
 -   [Interop SDK Documentation](https://github.com/defi-wonderland/interop-sdk)
--   [Live Demo](https://interop.wonderland.xyz /)
+-   [Live Demo](https://interop.wonderland.xyz)
 
 ## License
 

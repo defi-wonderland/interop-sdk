@@ -59,8 +59,8 @@ export function FaqSection() {
                             How do I get started as a developer?
                         </h3>
                         <p className="font-mono text-sm text-muted-foreground leading-relaxed">
-                            Install our SDK: npm install @interop-sdk/addresses. See docs for
-                            implementation examples.
+                            Install our SDK: npm install @defi-wonderland/interop-addresses. See
+                            docs for implementation examples.
                         </p>
                     </div>
 

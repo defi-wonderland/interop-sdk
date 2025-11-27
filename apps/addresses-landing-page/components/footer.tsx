@@ -29,7 +29,7 @@ export function Footer() {
                         <h3 className="font-semibold mb-4 text-foreground">Resources</h3>
                         <div className="space-y-2 text-muted-foreground">
                             <a
-                                href="https://interop.wonderland.xyz /"
+                                href="https://interop.wonderland.xyz"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="block hover:text-foreground transition-colors"

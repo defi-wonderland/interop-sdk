@@ -28,7 +28,7 @@ export function HeroSection() {
                 </div>
                 <div className="flex items-center gap-6 font-mono text-sm">
                     <a
-                        href="https://interop.wonderland.xyz /"
+                        href="https://interop.wonderland.xyz"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:text-[#3441C0] transition-colors font-semibold"
@@ -59,7 +59,7 @@ export function HeroSection() {
                 </h1>
                 <div className="flex items-center gap-6 font-mono text-sm text-[oklch(0.22_0.11_269.06)]">
                     <a
-                        href="https://interop.wonderland.xyz /"
+                        href="https://interop.wonderland.xyz"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:text-[#3441C0] transition-colors font-semibold"
