@@ -1,6 +1,6 @@
 {
     "name": "@wonderland/interop-cross-chain",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Cross-chain interoperability library with standardized provider interface",
     "repository": {
         "type": "git",

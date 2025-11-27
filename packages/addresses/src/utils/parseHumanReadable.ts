@@ -27,50 +27,75 @@ const convertEVMChainIdToCoinType = (chainId: number): number => {
 };
 
 /**
+ * Resolves an ENS name to an Ethereum address
+ * @param ensName - The ENS name to resolve (e.g., "vitalik.eth")
+ * @param chainReference - The chain reference (chain ID as string)
+ * @returns The resolved Ethereum address or null if not found
+ * @throws {ENSNotFound} If the ENS name cannot be found
+ * @throws {ENSLookupFailed} If the ENS lookup fails due to network or other errors
+ */
+const resolveENSName = async (ensName: string, chainReference: string): Promise<string | null> => {
+    try {
+        const client = createPublicClient({
+            chain: chains.mainnet,
+            transport: http(),
+        });
+
+        const isMainnet = chainReference === "1";
+        const chainSpecificCoinType = isMainnet
+            ? ETHEREUM_COIN_TYPE
+            : convertEVMChainIdToCoinType(Number(chainReference));
+
+        const resolvedAddress = await client.getEnsAddress({
+            name: normalize(ensName),
+            coinType: chainSpecificCoinType,
+        });
+
+        if (!resolvedAddress && !isMainnet) {
+            return await client.getEnsAddress({
+                name: normalize(ensName),
+                coinType: ETHEREUM_COIN_TYPE,
+            });
+        }
+
+        return resolvedAddress;
+    } catch (error) {
+        if (error instanceof ENSNotFound) {
+            throw error;
+        }
+        throw new ENSLookupFailed(error instanceof Error ? error.message : String(error));
+    }
+};
+
+/**
  * Parses an address string, handling both regular addresses and ENS names
+ * @param chainNamespace - The chain namespace (e.g., "eip155", "solana")
+ * @param chainReference - The chain reference (chain ID as string)
+ * @param addressOrENSName - Either a regular address or an ENS name
+ * @returns The address as a Uint8Array
  * @throws {Error} If the address is invalid or ENS lookup fails
  */
 const parseAddress = async (
     chainNamespace: ChainTypeName,
     chainReference: string,
-    address: string,
+    addressOrENSName: string,
 ): Promise<Uint8Array> => {
-    if (!address) {
+    if (!addressOrENSName) {
         return new Uint8Array();
     }
 
     switch (chainNamespace) {
         case "eip155":
-            if (address.includes(".eth")) {
-                try {
-                    const client = createPublicClient({
-                        chain: chains.mainnet,
-                        transport: http(),
-                    });
-                    const coinType =
-                        chainReference === "1"
-                            ? ETHEREUM_COIN_TYPE
-                            : convertEVMChainIdToCoinType(Number(chainReference));
-                    const ensAddress = await client.getEnsAddress({
-                        name: normalize(address),
-                        coinType,
-                    });
-                    if (!ensAddress) {
-                        throw new ENSNotFound(address);
-                    }
-                    return convertToBytes(ensAddress, "hex");
-                } catch (error) {
-                    if (error instanceof ENSNotFound) {
-                        throw error;
-                    }
-                    throw new ENSLookupFailed(
-                        error instanceof Error ? error.message : String(error),
-                    );
+            if (addressOrENSName.includes(".eth")) {
+                const resolvedAddress = await resolveENSName(addressOrENSName, chainReference);
+                if (!resolvedAddress) {
+                    throw new ENSNotFound(addressOrENSName);
                 }
+                return convertToBytes(resolvedAddress, "hex");
             }
-            return convertToBytes(address, "hex");
+            return convertToBytes(addressOrENSName, "hex");
         case "solana":
-            return convertToBytes(address, "base58");
+            return convertToBytes(addressOrENSName, "base58");
         default:
             throw new InvalidChainNamespace(chainNamespace);
     }
