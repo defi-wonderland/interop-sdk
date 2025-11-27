@@ -1,51 +1,51 @@
-name: Deploy Docs to Vercel
+# name: Deploy Docs to Vercel
 
-on:
-    push:
-        branches:
-            - main
-            - dev
-    pull_request:
-        branches:
-            - dev
+# on:
+#     push:
+#         branches:
+#             - main
+#             - dev
+#     pull_request:
+#         branches:
+#             - dev
 
-jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            pull-requests: write
-        environment:
-            name: ${{ github.ref_name == 'main' && 'Production' || 'Preview' }}
+# jobs:
+#     deploy:
+#         runs-on: ubuntu-latest
+#         permissions:
+#             contents: read
+#             pull-requests: write
+#         environment:
+#             name: ${{ github.ref_name == 'main' && 'Production' || 'Preview' }}
 
-        steps:
-            - name: Validate required secrets
-              run: |
-                  if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
-                    echo "Error: VERCEL_TOKEN is not set. Please add this secret to your repository or environment."
-                    exit 1
-                  fi
+#         steps:
+#             - name: Validate required secrets
+#               run: |
+#                   if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+#                     echo "Error: VERCEL_TOKEN is not set. Please add this secret to your repository or environment."
+#                     exit 1
+#                   fi
 
-                  if [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
-                    echo "Error: VERCEL_ORG_ID is not set. Please add this secret to your repository or environment."
-                    exit 1
-                  fi
+#                   if [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
+#                     echo "Error: VERCEL_ORG_ID is not set. Please add this secret to your repository or environment."
+#                     exit 1
+#                   fi
 
-                  if [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
-                    echo "Error: VERCEL_PROJECT_ID is not set. Please add this secret to your repository or environment."
-                    exit 1
-                  fi
+#                   if [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+#                     echo "Error: VERCEL_PROJECT_ID is not set. Please add this secret to your repository or environment."
+#                     exit 1
+#                   fi
 
-            - uses: actions/checkout@v4
+#             - uses: actions/checkout@v4
 
-            - name: Deploy to Vercel
-              id: vercel-deployment
-              uses: amondnet/vercel-action@v25.2.0
-              with:
-                  github-token: ${{ github.event_name == 'pull_request' && secrets.GITHUB_TOKEN || '' }}
-                  vercel-token: ${{ secrets.VERCEL_TOKEN }}
-                  vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-                  scope: ${{ secrets.VERCEL_ORG_ID}}
-                  vercel-args: ${{ github.ref_name == 'main' && '--prod' || '' }}
-                  vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-                  working-directory: ./apps/docs
+#             - name: Deploy to Vercel
+#               id: vercel-deployment
+#               uses: amondnet/vercel-action@v25.2.0
+#               with:
+#                   github-token: ${{ github.event_name == 'pull_request' && secrets.GITHUB_TOKEN || '' }}
+#                   vercel-token: ${{ secrets.VERCEL_TOKEN }}
+#                   vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+#                   scope: ${{ secrets.VERCEL_ORG_ID}}
+#                   vercel-args: ${{ github.ref_name == 'main' && '--prod' || '' }}
+#                   vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+#                   working-directory: ./apps/docs
