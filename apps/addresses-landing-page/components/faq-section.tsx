@@ -2,9 +2,11 @@ export function FaqSection() {
     return (
         <section id="faq" className="px-6 lg:px-16 py-24">
             <div className="max-w-3xl">
-                <h2 className="font-mono text-4xl font-light mb-20">Frequently Asked Questions</h2>
+                <h2 className="font-mono text-2xl lg:text-4xl font-light mb-12 lg:mb-20">
+                    Frequently Asked Questions
+                </h2>
 
-                <div className="space-y-10">
+                <div className="space-y-8 lg:space-y-10">
                     <div>
                         <h3 className="font-mono text-lg mb-4">Why two separate ERCs?</h3>
                         <p className="font-mono text-sm text-muted-foreground leading-relaxed">

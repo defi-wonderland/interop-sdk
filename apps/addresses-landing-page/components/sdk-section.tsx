@@ -8,7 +8,9 @@ export function SdkSection() {
     return (
         <section id="sdk" className="px-6 lg:px-16 py-24">
             <div className="max-w-3xl">
-                <h2 className="font-mono text-4xl font-light mb-20">SDK & Implementation</h2>
+                <h2 className="font-mono text-2xl lg:text-4xl font-light mb-12 lg:mb-20">
+                    SDK & Implementation
+                </h2>
                 <div>
                     <p className="font-mono text-sm text-muted-foreground mb-8 leading-relaxed">
                         Install our SDK to implement Interoperable Addresses in your application.

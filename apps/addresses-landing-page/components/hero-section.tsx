@@ -16,7 +16,7 @@ export function HeroSection() {
     }, []);
 
     return (
-        <section className="xl:min-h-screen flex flex-col justify-center px-6 py-24 lg:px-16">
+        <section className="xl:min-h-screen flex flex-col justify-center px-6 py-12 lg:py-24 lg:px-16">
             {/* Sticky navbar that appears on scroll */}
             <nav
                 className={`hidden lg:flex fixed top-0 left-[40%] right-0 bg-[#fcfcfc]/95 backdrop-blur-sm px-16 py-4 border-b border-gray-200 z-20 items-center justify-between transition-transform duration-300 ${
@@ -51,13 +51,13 @@ export function HeroSection() {
             </nav>
 
             {/* Static hero header */}
-            <div className="mb-16">
-                <h1 className="font-mono text-4xl lg:text-6xl font-light text-[oklch(0.22_0.11_269.06)] leading-tight mb-4">
+            <div className="mb-8 lg:mb-16">
+                <h1 className="font-mono text-3xl lg:text-6xl font-light text-[oklch(0.22_0.11_269.06)] leading-tight mb-4">
                     Interoperable
                     <br />
                     Addresses
                 </h1>
-                <div className="flex items-center gap-6 font-mono text-sm text-[oklch(0.22_0.11_269.06)]">
+                <div className="flex items-center gap-3 lg:gap-6 font-mono text-xs lg:text-sm text-[oklch(0.22_0.11_269.06)]">
                     <a
                         href="https://interop.wonderland.xyz"
                         target="_blank"
@@ -82,17 +82,17 @@ export function HeroSection() {
             </div>
 
             <div>
-                <div className="font-mono text-md mb-4">
+                <div className="font-mono text-xs lg:text-md mb-3 lg:mb-4">
                     <span className="text-muted-foreground">ERC-7930</span>
                     <span className="text-muted-foreground"> / </span>
                     <span className="text-muted-foreground">ERC-7828</span>
                 </div>
 
-                <h2 className="font-mono text-3xl lg:text-4xl font-light mb-4 leading-relaxed max-w-xl">
+                <h2 className="font-mono text-xl lg:text-4xl font-light mb-3 lg:mb-4 leading-relaxed max-w-xl">
                     Chain-aware addressing for the Ethereum ecosystem
                 </h2>
 
-                <p className="font-mono text-base lg:text-lg text-muted-foreground mb-16 leading-relaxed max-w-xl">
+                <p className="font-mono text-sm lg:text-lg text-muted-foreground mb-6 lg:mb-16 leading-relaxed max-w-xl">
                     Simplify interoperability and eliminate cross-chain mistakes with human-readable
                     addresses that include chain information.
                 </p>

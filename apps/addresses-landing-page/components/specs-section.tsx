@@ -2,9 +2,11 @@ export function SpecsSection() {
     return (
         <section id="specs" className="px-6 lg:px-16 py-24">
             <div className="max-w-3xl">
-                <h2 className="font-mono text-4xl font-light mb-20">The Specifications</h2>
+                <h2 className="font-mono text-2xl lg:text-4xl font-light mb-12 lg:mb-20">
+                    The Specifications
+                </h2>
 
-                <div className="space-y-20">
+                <div className="space-y-12 lg:space-y-20">
                     <div>
                         <h3 className="font-mono text-3xl mb-4">ERC-7930</h3>
                         <h4 className="font-mono text-xl mb-6 text-muted-foreground">

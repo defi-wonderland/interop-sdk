@@ -2,7 +2,7 @@ export function ProblemsSection() {
     return (
         <section id="about" className="px-6 lg:px-16 py-24">
             <div className="max-w-3xl">
-                <h2 className="font-mono text-4xl font-light mb-16">
+                <h2 className="font-mono text-2xl lg:text-4xl font-light mb-12 lg:mb-16">
                     Why do we need{" "}
                     <span className="md:whitespace-nowrap">interoperable addresses?</span>
                 </h2>
@@ -34,7 +34,7 @@ export function ProblemsSection() {
                     </div>
                 </div>
 
-                <h2 className="font-mono text-4xl font-light mb-16">
+                <h2 className="font-mono text-2xl lg:text-4xl font-light mb-12 lg:mb-16">
                     With Interoperable Addresses
                 </h2>
 
