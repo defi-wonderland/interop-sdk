@@ -16,11 +16,11 @@ The Interop SDK consists of two separate packages. Install the ones you need:
 For interoperable address handling:
 
 ```bash
-npm install @defi-wonderland/interop-addresses
+npm install @wonderland/interop-addresses
 # or
-yarn add @defi-wonderland/interop-addresses
+yarn add @wonderland/interop-addresses
 # or
-pnpm add @defi-wonderland/interop-addresses
+pnpm add @wonderland/interop-addresses
 ```
 
 ### Cross-Chain Package
@@ -28,11 +28,11 @@ pnpm add @defi-wonderland/interop-addresses
 For cross-chain operations:
 
 ```bash
-npm install @defi-wonderland/interop-cross-chain
+npm install @wonderland/interop-cross-chain
 # or
-yarn add @defi-wonderland/interop-cross-chain
+yarn add @wonderland/interop-cross-chain
 # or
-pnpm add @defi-wonderland/interop-cross-chain
+pnpm add @wonderland/interop-cross-chain
 ```
 
 ### Install Both
@@ -40,11 +40,11 @@ pnpm add @defi-wonderland/interop-cross-chain
 If you need both packages:
 
 ```bash
-npm install @defi-wonderland/interop-addresses @defi-wonderland/interop-cross-chain
+npm install @defi-wonderland/interop-addresses @wonderland/interop-cross-chain
 # or
-yarn add @defi-wonderland/interop-addresses @defi-wonderland/interop-cross-chain
+yarn add @defi-wonderland/interop-addresses @wonderland/interop-cross-chain
 # or
-pnpm add @defi-wonderland/interop-addresses @defi-wonderland/interop-cross-chain
+pnpm add @defi-wonderland/interop-addresses @wonderland/interop-cross-chain
 ```
 
 >Package names will be updated after EF release. Currently using `@defi-wonderland` organization.
