@@ -11,7 +11,9 @@ export function MobileNavbar() {
         };
 
         window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+        };
     }, []);
 
     return (
