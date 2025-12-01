@@ -5,6 +5,14 @@ import { useState } from "react";
 export function SdkSection() {
     const [copied, setCopied] = useState(false);
 
+    const handleCopy = () => {
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+            void navigator.clipboard.writeText("npm install @wonderland/interop-addresses");
+        }
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     return (
         <section id="sdk" className="px-6 lg:px-16 py-20 lg:py-24">
             <div className="max-w-3xl">
@@ -22,13 +30,7 @@ export function SdkSection() {
                         </pre>
                         <button
                             className="absolute top-2.5 right-2 px-2 py-1 border bg-white border-gray-800 hover:bg-muted text-xs text-gray-900 hover:text-foreground rounded focus:outline-none active:bg-muted cursor-pointer transition"
-                            onClick={() => {
-                                navigator.clipboard.writeText(
-                                    "npm install @wonderland/interop-addresses",
-                                );
-                                setCopied(true);
-                                setTimeout(() => setCopied(false), 2000);
-                            }}
+                            onClick={handleCopy}
                             aria-label="Copy to clipboard"
                         >
                             {copied ? "Copied!" : "Copy"}

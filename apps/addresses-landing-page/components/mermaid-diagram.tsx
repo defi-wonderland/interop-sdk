@@ -47,7 +47,7 @@ export function MermaidDiagram({ chart, className = "" }: MermaidDiagramProps) {
                 }
             };
 
-            renderDiagram();
+            void renderDiagram();
         }
     }, [chart]);
 
