@@ -15,7 +15,7 @@ import {
     createCrossChainProvider,
     createProviderExecutor,
     InteropAddressParamsParser,
-} from "@defi-wonderland/interop-cross-chain";
+} from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
@@ -156,7 +156,7 @@ main().catch(console.error);
 After executing the transaction, you can track its status using the Intent Tracker:
 
 ```js
-import { createIntentTracker } from "@defi-wonderland/interop-cross-chain";
+import { createIntentTracker } from "@wonderland/interop-cross-chain";
 
 const tracker = createIntentTracker("across");
 
