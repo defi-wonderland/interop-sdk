@@ -17,11 +17,11 @@ The Intent Tracker monitors cross-chain transfers through their complete lifecyc
 ## Installation
 
 ```bash
-npm install @defi-wonderland/interop-cross-chain
+npm install @wonderland/interop-cross-chain
 # or
-yarn add @defi-wonderland/interop-cross-chain
+yarn add @wonderland/interop-cross-chain
 # or
-pnpm add @defi-wonderland/interop-cross-chain
+pnpm add @wonderland/interop-cross-chain
 ```
 
 ## Basic Usage
@@ -29,7 +29,7 @@ pnpm add @defi-wonderland/interop-cross-chain
 ### Creating an Intent Tracker
 
 ```typescript
-import { createIntentTracker } from "@defi-wonderland/interop-cross-chain";
+import { createIntentTracker } from "@wonderland/interop-cross-chain";
 
 // Create a tracker for Across protocol
 const tracker = createIntentTracker("across");
@@ -40,7 +40,7 @@ const tracker = createIntentTracker("across");
 Watch an intent with real-time updates using an async generator:
 
 ```typescript
-import { createIntentTracker } from "@defi-wonderland/interop-cross-chain";
+import { createIntentTracker } from "@wonderland/interop-cross-chain";
 
 const tracker = createIntentTracker("across");
 
@@ -69,7 +69,7 @@ for await (const update of tracker.watchIntent({
 Check the current status of an intent without watching:
 
 ```typescript
-import { createIntentTracker } from "@defi-wonderland/interop-cross-chain";
+import { createIntentTracker } from "@wonderland/interop-cross-chain";
 
 const tracker = createIntentTracker("across");
 
