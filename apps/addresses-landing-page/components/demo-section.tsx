@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 
 export function DemoSection() {
     return (
-        <section className="px-6 lg:px-16 py-20 lg:py-24 bg-gray-50">
+        <section className="px-6 lg:px-16 py-20 lg:py-24">
             <div className="max-w-5xl">
                 <h2 className="font-mono text-[1.75rem] leading-[1.2] md:text-3xl md:leading-tight lg:text-4xl lg:leading-tight font-light mb-5 md:mb-7 lg:mb-8">
                     Interactive Playground

@@ -48,7 +48,7 @@ const LOGOS = [
         name: "Wonderland",
         src: "/logos/wonderland.svg",
         alt: "Wonderland",
-        url: "https://defi.sucks",
+        url: "https://wonderland.xyz",
         width: 220,
     },
 ] as const;
