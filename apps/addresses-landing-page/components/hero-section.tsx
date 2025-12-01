@@ -16,10 +16,10 @@ export function HeroSection() {
     }, []);
 
     return (
-        <section className="xl:min-h-screen flex flex-col justify-center px-6 py-16 lg:py-24 lg:px-16">
+        <section className="flex flex-col justify-center px-6 py-16 lg:py-24 lg:px-16">
             {/* Sticky navbar that appears on scroll */}
             <nav
-                className={`hidden lg:flex fixed top-0 left-[40%] right-0 bg-[#fcfcfc]/95 backdrop-blur-sm px-16 py-4 border-b border-gray-200 z-20 items-center justify-between transition-transform duration-300 ${
+                className={`hidden lg:flex fixed top-0 left-[40%] right-0 max-w-[calc(1400px+40%)] bg-[#fcfcfc]/95 backdrop-blur-sm px-16 py-4 border-b border-gray-200 z-20 items-center justify-between transition-transform duration-300 ${
                     showNavbar ? "translate-y-0" : "-translate-y-full"
                 }`}
             >
