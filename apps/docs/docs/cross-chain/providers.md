@@ -6,11 +6,9 @@ This document lists all cross-chain providers supported by the Interop SDK, thei
 
 ## Provider Status
 
-### Production Ready
-
 #### Across Protocol
 
-**Status**: Fully implemented and production-ready
+**Status**: Testnet
 
 **Protocol Name**: `"across"`
 
@@ -24,7 +22,7 @@ This document lists all cross-chain providers supported by the Interop SDK, thei
 **Usage**:
 
 ```typescript
-import { createCrossChainProvider } from "@defi-wonderland/interop-cross-chain";
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 const provider = createCrossChainProvider("across");
 
@@ -47,8 +45,6 @@ const quote = await provider.getQuote("crossChainTransfer", {
 
 ---
 
-### Testing
-
 #### Sample Provider
 
 **Status**: Implemented for testing and development
@@ -63,7 +59,7 @@ const quote = await provider.getQuote("crossChainTransfer", {
 **Usage**:
 
 ```typescript
-import { createCrossChainProvider } from "@defi-wonderland/interop-cross-chain";
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 const provider = createCrossChainProvider("sample-protocol");
 
@@ -92,7 +88,7 @@ const quote = await provider.getQuote("crossChainTransfer", {
 You can create custom providers by implementing the `CrossChainProvider` interface:
 
 ```typescript
-import { CrossChainProvider, GetQuoteParams, GetQuoteResponse } from "@defi-wonderland/interop-cross-chain";
+import { CrossChainProvider, GetQuoteParams, GetQuoteResponse } from "@wonderland/interop-cross-chain";
 
 class MyCustomProvider extends CrossChainProvider<MyOpenParams> {
     readonly protocolName = "my-protocol";
@@ -121,7 +117,7 @@ See the [API Reference](./api.md) for more details on implementing custom provid
 You can get information about a provider:
 
 ```typescript
-import { createCrossChainProvider } from "@defi-wonderland/interop-cross-chain";
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 const provider = createCrossChainProvider("across");
 
