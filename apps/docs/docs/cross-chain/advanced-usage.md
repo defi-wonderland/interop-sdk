@@ -10,7 +10,7 @@ For more complex scenarios, you can use the ProviderExecutor to manage multiple 
 import { 
     createProviderExecutor,
     createCrossChainProvider 
-} from "@defi-wonderland/interop-cross-chain";
+} from "@wonderland/interop-cross-chain";
 
 const acrossProvider = createCrossChainProvider("across");
 const executor = createProviderExecutor([acrossProvider]);
@@ -36,7 +36,7 @@ import {
     createQuoteAggregator,
     SortingCriteria,
     QuoteResultStatus
-} from "@defi-wonderland/interop-cross-chain";
+} from "@wonderland/interop-cross-chain";
 
 // Create aggregator with specific providers
 const aggregator = createQuoteAggregator(["across"]);
@@ -98,8 +98,10 @@ const results = await aggregator.getQuotes({
 Track cross-chain transfers from initiation to completion:
 
 ```typescript
-import { createIntentTracker } from "@defi-wonderland/interop-cross-chain";
+import { createIntentTracker } from "@wonderland/interop-cross-chain";
 
+// NOTE: This example relies on ERC-7683 events, which are currently only
+// emitted by Across on testnet. The watched contract is therefore hardcoded here.
 const tracker = createIntentTracker("across");
 
 // Watch an intent with real-time updates
@@ -136,7 +138,7 @@ import {
     UnsupportedAction,
     UnsupportedChainId,
     UnsupportedProtocol,
-} from "@defi-wonderland/interop-cross-chain";
+} from "@wonderland/interop-cross-chain";
 
 try {
     // Your cross-chain operations here
