@@ -15,20 +15,20 @@ The `cross-chain` package provides a standardized interface for interacting with
 -   Type-safe interactions with comprehensive TypeScript support
 
 Currently Supported Providers
-- Production Ready: Across Protocol - Full support for cross-chain transfers
+- Testnet: Across Protocol - Full support for cross-chain transfers
 - Testing Only: Sample Provider - For testing and development purposes
 
->Currently, only Across Protocol is production-ready. Additional protocols are planned for future releases.
+>Currently, only Across Protocol is testnet. Additional protocols are planned for future releases.
 
 ## Basic Usage
 ### Installing the Package
 
 ```bash
-npm install @defi-wonderland/interop-cross-chain
+npm install @wonderland/interop-cross-chain
 # or
-yarn add @defi-wonderland/interop-cross-chain
+yarn add @wonderland/interop-cross-chain
 # or
-pnpm add @defi-wonderland/interop-cross-chain
+pnpm add @wonderland/interop-cross-chain
 ```
 
 ### Creating a Provider
@@ -39,7 +39,7 @@ The package uses a factory pattern to create providers for different protocols. 
 -   Sample Provider (for testing)
 
 ```typescript
-import { createCrossChainProvider } from "@defi-wonderland/interop-cross-chain";
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 // Create an Across provider (no config or dependencies needed)
 const acrossProvider = createCrossChainProvider("across");
