@@ -11,9 +11,9 @@ Its provider-based architecture makes it easy to integrate new protocols and cha
 
 Interop introduces a clean separation of concerns between **intent resolution** and **protocol execution**, making it easy to build wallets or apps that support seamless, programmable value transfer across multiple networks.
 
-## Currently Available
+## Currently Status
 
-Implemented:
+Testnet:
 - ERC-7828/7930 address handling and conversion
 - Cross-chain transfers via Across Protocol
 - Intent tracking (EIP-7683 integration)
@@ -21,6 +21,7 @@ Implemented:
 - ENS name resolution for addresses
 
 In Development:
+- Full [OIF](https://efdn.notion.site/The-Open-Intents-Framework-permissionless-cross-chain-interop-to-all-chains-29cd9895554181e2966fe6585980ca9b) integration
 - ENS on-chain chain registry (currently using off-chain registries)
 - Additional protocols
 
@@ -28,7 +29,7 @@ In Development:
 
 ### `addresses`
 
-The `addresses` module provides tools to work with **interoperable addresses**—a format designed to encode a recipient, a chain, and optionally a domain name (e.g., `alice.eth@arbitrum`).
+The `addresses` module provides tools to work with **interoperable addresses**—a format designed to encode a recipient, a chain, and optionally a domain name (e.g., `alice.eth@arb1`).
 
 It includes utilities to:
 
@@ -45,7 +46,7 @@ The `cross-chain` module is responsible for managing the **intent workflow**: fr
 
 It includes logic to:
 
--   Parse and validate user-defined transfer intents (e.g., "Send 100 USDC to `bob.eth@optimism`")
+-   Parse and validate user-defined transfer intents (e.g., "Send 100 USDC to `bob.eth@oeth`")
 -   Fetch quotes from cross-chain providers
 -   Simulate gas, slippage, execution costs, and fallback routes
 -   Track intent status from initiation to completion
@@ -118,7 +119,7 @@ classDiagram
 
 Interop moves away from protocol-first flows and embraces an **intent-first model**. Instead of exposing low-level swap/bridge UIs, apps powered by the SDK can surface high-level actions like:
 
-> _“Send 100 USDC to `alice.eth@arbitrum`”_
+> _“Send 100 USDC to `alice.eth@arb1`”_
 
 The SDK provides building blocks for:
 -   Fetching quotes from cross-chain providers
