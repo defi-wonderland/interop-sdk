@@ -14,6 +14,12 @@ const eslintConfig = [
     {
         ignores: ["**/.next/**"], // Exclude the .next app directory from linting
     },
+    {
+        rules: {
+            "@typescript-eslint/explicit-function-return-type": "off",
+            "@typescript-eslint/explicit-module-boundary-types": "off",
+        },
+    },
 ];
 
 export default eslintConfig;
