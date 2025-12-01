@@ -105,7 +105,7 @@ import {
     isValidInteropAddress,
     isValidHumanReadableAddress,
     isValidBinaryAddress
-} from "@defi-wonderland/interop-addresses";
+} from "@wonderland/interop-addresses";
 ```
 
 ## References
