@@ -17,11 +17,11 @@ The Quote Aggregator:
 ## Installation
 
 ```bash
-npm install @defi-wonderland/interop-cross-chain
+npm install @wonderland/interop-cross-chain
 # or
-yarn add @defi-wonderland/interop-cross-chain
+yarn add @wonderland/interop-cross-chain
 # or
-pnpm add @defi-wonderland/interop-cross-chain
+pnpm add @wonderland/interop-cross-chain
 ```
 
 ## Basic Usage
@@ -29,7 +29,7 @@ pnpm add @defi-wonderland/interop-cross-chain
 ### Creating a Quote Aggregator
 
 ```typescript
-import { createQuoteAggregator } from "@defi-wonderland/interop-cross-chain";
+import { createQuoteAggregator } from "@wonderland/interop-cross-chain";
 
 // Create aggregator with default provider (Across)
 const aggregator = createQuoteAggregator();
@@ -47,7 +47,7 @@ import {
     createQuoteAggregator,
     SortingCriteria,
     QuoteResultStatus
-} from "@defi-wonderland/interop-cross-chain";
+} from "@wonderland/interop-cross-chain";
 
 const aggregator = createQuoteAggregator(["across"]);
 
@@ -143,7 +143,7 @@ const results = await aggregator.getQuotes({
 ### Successful Quotes
 
 ```typescript
-import { QuoteResultStatus } from "@defi-wonderland/interop-cross-chain";
+import { QuoteResultStatus } from "@wonderland/interop-cross-chain";
 
 const results = await aggregator.getQuotes({
     action: "crossChainTransfer",
@@ -164,7 +164,7 @@ if (successfulQuotes.length > 0) {
 ### Errors and Timeouts
 
 ```typescript
-import { QuoteResultStatus } from "@defi-wonderland/interop-cross-chain";
+import { QuoteResultStatus } from "@wonderland/interop-cross-chain";
 
 const results = await aggregator.getQuotes({
     action: "crossChainTransfer",
