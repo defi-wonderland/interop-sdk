@@ -1,4 +1,6 @@
 packages:
     - "packages/*"
     - "apps/sdk"
+    - "apps/docs"
+    - "apps/addresses-landing-page"
     - "examples/*"

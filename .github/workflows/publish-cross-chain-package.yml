@@ -4,6 +4,10 @@ on:
     workflow_call:
     workflow_dispatch:
 
+permissions:
+    contents: read
+    id-token: write
+
 jobs:
     publish:
         if: github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || (github.event_name == 'release' && github.event.release.draft == false)
@@ -33,12 +37,13 @@ jobs:
                   version: nightly
 
             - name: Remove internal dependencies
-              run: pnpm remove @defi-wonderland/interop-addresses
+              run: pnpm remove @wonderland/interop-addresses
 
-            - name: Install cross-chain dependencies from repository
-              run: pnpm i @defi-wonderland/interop-addresses
-              env:
-                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+            - name: Install published dependencies
+              run: |
+                  TAG=${{ github.ref == 'refs/heads/dev' && '@snapshot' || '@latest' }}
+                  echo "Installing @wonderland/interop-addresses${TAG}"
+                  pnpm i @wonderland/interop-addresses${TAG}
 
             - name: Install dependencies
               run: pnpm install --frozen-lockfile

@@ -1,5 +1,12 @@
 # @defi-wonderland/interop-cross-chain
 
+## 0.1.1
+
+### Patch Changes
+
+-   Updated dependencies [52861e5]
+    -   @wonderland/interop-addresses@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

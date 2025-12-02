@@ -1,4 +1,4 @@
-import { InteropAddressProvider } from '@defi-wonderland/interop-addresses';
+import { InteropAddressProvider } from '@wonderland/interop-addresses';
 import { parseBinaryForDisplay, parseHumanReadableForDisplay } from './demo-helpers';
 import type { ChainType } from '../types';
 import type { ParsedBinary, ParsedHumanReadable } from './demo-helpers';
@@ -43,7 +43,7 @@ export async function convertFromAddress(
     ? chainReference
     : `0x${Number(chainReference).toString(16)}`;
 
-  const binary = InteropAddressProvider.buildFromPayload({
+  const binary = await InteropAddressProvider.buildFromPayload({
     version: 1,
     chainType,
     chainReference: normalizedChainReference,

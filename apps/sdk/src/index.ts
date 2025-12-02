@@ -1,2 +1,2 @@
-export * from "@defi-wonderland/interop-addresses";
-export * from "@defi-wonderland/interop-cross-chain";
+export * from "@wonderland/interop-addresses";
+export * from "@wonderland/interop-cross-chain";

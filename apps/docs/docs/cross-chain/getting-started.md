@@ -22,7 +22,7 @@ The package uses a factory pattern to create providers for different protocols. 
 -   Sample Provider (for testing)
 
 ```typescript
-import { createCrossChainProvider } from "@defi-wonderland/interop";
+import { createCrossChainProvider } from "@wonderland/interop";
 
 // Create an Across provider (no config or dependencies needed)
 const acrossProvider = createCrossChainProvider("across");

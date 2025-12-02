@@ -1,4 +1,4 @@
-# @defi-wonderland/interop
+# @wonderland/interop
 
 A TypeScript library for handling interoperable blockchain addresses and cross-chain operations across different networks.
 
@@ -50,20 +50,20 @@ Available scripts that can be run using `pnpm`:
 
 ```typescript
 // Using the Provider
-import { InteropAddressProvider } from '@defi-wonderland/interop';
+import { InteropAddressProvider } from '@wonderland/interop';
 
 const humanReadableAddress = "alice.eth@eip155:1#ABCD1234"
 const binaryAddress = InteropAddressProvider.humanReadableToBinary(humanReadableAddress)
 
 // Or just importing the method
-import { humanReadableToBinary } from '@defi-wonderland/interop';
+import { humanReadableToBinary } from '@wonderland/interop';
 const binaryAddress = humanReadableToBinary(humanReadableAddress)
 ```
 
 ### Cross-Chain Operations
 
 ```typescript
-import { createCrossChainProvider } from "@defi-wonderland/interop";
+import { createCrossChainProvider } from "@wonderland/interop";
 
 // Create a provider for a specific protocol (e.g., Across)
 const provider = createCrossChainProvider("across");

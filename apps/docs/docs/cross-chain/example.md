@@ -15,7 +15,7 @@ import {
     createCrossChainProvider,
     createProviderExecutor,
     InteropAddressParamsParser,
-} from "@defi-wonderland/interop";
+} from "@wonderland/interop";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";

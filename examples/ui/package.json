@@ -1,6 +1,6 @@
 {
   "name": "@examples/ui",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Interactive Next.js application demonstrating Interop Addresses (ERC-7930)",
   "license": "MIT",
@@ -20,7 +20,7 @@
     "app/**/*.{js,jsx,ts,tsx,css,scss,md,html}": "prettier --write --ignore-unknown"
   },
   "dependencies": {
-    "@defi-wonderland/interop-addresses": "workspace:*",
+    "@wonderland/interop-addresses": "workspace:*",
     "next": "15.3.3",
     "react": "19.1.0",
     "react-dom": "19.1.0"

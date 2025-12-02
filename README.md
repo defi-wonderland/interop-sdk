@@ -9,14 +9,17 @@ This repository is a monorepo consisting of the following packages:
 
 ```
 interop-sdk/
-├── apps/              # Application packages
-│   ├── docs/         # Documentation website
-│   └── sdk/          # SDK application
-├── packages/          # Shared packages
-│   ├── addresses/    # Address-related utilities
-│   └── cross-chain/  # Cross-chain interoperability
-├── .github/          # GitHub configuration
-├── .husky/           # Git hooks
+├── apps/                           # Application packages
+│   ├── addresses-landing-page/    # Interoperable Addresses landing page
+│   ├── docs/                      # Documentation website
+│   └── sdk/                       # SDK application
+├── packages/                       # Shared packages
+│   ├── addresses/                 # Address-related utilities (ERC-7930/ERC-7828)
+│   ├── cross-chain/               # Cross-chain interoperability
+├── examples/                       # Example implementations
+│   └── ui/                        # UI examples
+├── .github/                       # GitHub configuration
+├── .husky/                        # Git hooks
 └── ...config files
 ```
 
