@@ -29,7 +29,9 @@ export default function Home() {
 
         // Update on resize
         window.addEventListener("resize", updateCanvasSize);
-        return () => window.removeEventListener("resize", updateCanvasSize);
+        return () => {
+            window.removeEventListener("resize", updateCanvasSize);
+        };
     }, []);
 
     return (
