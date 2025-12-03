@@ -10,6 +10,7 @@ import {
     Hex,
     http,
     Log,
+    PrepareTransactionRequestReturnType,
     PublicClient,
     toHex,
 } from "viem";
@@ -203,6 +204,24 @@ export class AcrossProvider extends CrossChainProvider {
         };
     }
 
+    private async prepareTransaction(
+        quote: AcrossGetQuoteResponse,
+    ): Promise<PrepareTransactionRequestReturnType | undefined> {
+        try {
+            const chain = getChainById(quote.swapTx.chainId);
+            const publicClient = await this.getPublicClient(chain);
+            const preparedTransaction = await publicClient.prepareTransactionRequest({
+                to: quote.swapTx.to,
+                data: quote.swapTx.data,
+                chain,
+            });
+
+            return preparedTransaction;
+        } catch (error) {
+            return undefined;
+        }
+    }
+
     /**
      * @inheritdoc
      */
@@ -213,13 +232,7 @@ export class AcrossProvider extends CrossChainProvider {
         const acrossQuote = await this.getAcrossQuote(acrossGetQuote);
         const oifQuote = this.convertAcrossSwapToOifQuote(parsedParams, acrossQuote);
 
-        const chain = getChainById(acrossQuote.swapTx.chainId);
-        const publicClient = await this.getPublicClient(chain);
-        const preparedTransaction = await publicClient.prepareTransactionRequest({
-            to: acrossQuote.swapTx.to,
-            data: acrossQuote.swapTx.data,
-            chain,
-        });
+        const preparedTransaction = await this.prepareTransaction(acrossQuote);
 
         const executableQuote: ExecutableQuote = {
             ...oifQuote,

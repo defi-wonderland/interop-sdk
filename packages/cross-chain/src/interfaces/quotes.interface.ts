@@ -4,6 +4,6 @@ import type { EIP1193Provider, PrepareTransactionRequestReturnType } from "viem"
 export type QuoteExecution = (signer: EIP1193Provider) => Promise<PostOrderResponse>;
 
 export interface ExecutableQuote extends Quote {
-    preparedTransaction: PrepareTransactionRequestReturnType;
+    preparedTransaction?: PrepareTransactionRequestReturnType;
     execute: QuoteExecution;
 }
