@@ -53,14 +53,14 @@ class ProviderExecutor {
      * @returns The quotes for the action
      */
     async getQuotes(params: GetQuoteRequest): Promise<GetQuotesResponse> {
-        const quotes: GetQuotesResponse = [];
+        const resultQuotes: GetQuotesResponse = [];
 
         for (const provider of Object.values(this.providers)) {
             try {
                 const quotes = await provider.getQuotes(params);
-                quotes.push(...quotes);
+                resultQuotes.push(...quotes);
             } catch (error) {
-                quotes.push({
+                resultQuotes.push({
                     errorMsg: "Unknown error",
                     error: new Error(String(error)),
                 });
@@ -68,13 +68,12 @@ class ProviderExecutor {
         }
 
         if (this.sortingStrategy) {
-            const nonErrors = this.filterNonErrors(quotes);
-            const errors = this.filterErrors(quotes);
+            const nonErrors = this.filterNonErrors(resultQuotes);
+            const errors = this.filterErrors(resultQuotes);
 
             return [...this.sortingStrategy.sort(nonErrors), ...errors];
         }
-
-        return quotes;
+        return resultQuotes;
     }
 
     /**
