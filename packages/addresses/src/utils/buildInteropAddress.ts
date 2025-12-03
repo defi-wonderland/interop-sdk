@@ -9,6 +9,7 @@ import {
     ParseInteropAddress,
     UnsupportedChainType,
 } from "../internal.js";
+import { resolveAddress } from "./resolveENS.js";
 
 /**
  * Builds an InteropAddress from a set of parameters
@@ -16,11 +17,13 @@ import {
  * @param params.version - The version of the InteropAddress
  * @param params.chainType - The type of the chain eg: "eip155" or "solana"
  * @param params.chainReference - The reference of the chain, hex string for EIP-155 and base58 for Solana
- * @param params.address - The address of the InteropAddress, hex string for EIP-155 and base58 for Solana
+ * @param params.address - The address of the InteropAddress, hex string for EIP-155 and base58 for Solana (also supports ENS names for eip155)
  * @returns The InteropAddress
  * @throws An error if the parameters are invalid
  */
-export const buildInteropAddress = (params: InteropAddressFields): InteropAddress => {
+export const buildInteropAddress = async (
+    params: InteropAddressFields,
+): Promise<InteropAddress> => {
     const result = interopAddressFieldsSchema.safeParse(params);
 
     if (!result.success) {
@@ -33,10 +36,13 @@ export const buildInteropAddress = (params: InteropAddressFields): InteropAddres
         throw new UnsupportedChainType(chainType);
     }
 
+    // Resolve address (handles ENS if applicable)
+    const resolvedAddress = await resolveAddress(address, chainType, chainReference);
+
     return {
         version,
         chainType: fromHex(CHAIN_TYPE[chainType], "bytes"),
         chainReference: convertChainReference(chainReference, { chainType }),
-        address: convertAddress(address, { chainType }),
+        address: convertAddress(resolvedAddress, { chainType }),
     };
 };
