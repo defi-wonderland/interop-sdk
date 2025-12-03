@@ -1,11 +1,16 @@
 import type {
-    BasicOpenParams,
     CrossChainProvider,
     SupportedProtocols,
     SupportedProtocolsConfigs,
     SupportedProtocolsDependencies,
 } from "../internal.js";
-import { AcrossProvider, PROTOCOLS, SampleProvider, UnsupportedProtocol } from "../internal.js";
+import {
+    AcrossConfigSchema,
+    AcrossProvider,
+    PROTOCOLS,
+    SampleProvider,
+    UnsupportedProtocol,
+} from "../internal.js";
 
 /**
  * A factory for creating CrossChainProviders based on the protocol name
@@ -22,12 +27,13 @@ export class CrossChainProviderFactory {
      */
     public static build<Protocol extends SupportedProtocols>(
         protocolName: Protocol,
-        _config: SupportedProtocolsConfigs[Protocol] = undefined,
-        _dependencies: SupportedProtocolsDependencies[Protocol] = undefined,
-    ): CrossChainProvider<BasicOpenParams> {
+        config: SupportedProtocolsConfigs<Protocol>,
+        _dependencies: SupportedProtocolsDependencies<Protocol>,
+    ): CrossChainProvider {
         switch (protocolName) {
             case PROTOCOLS.ACROSS:
-                return new AcrossProvider() as CrossChainProvider<BasicOpenParams>;
+                const configParsed = AcrossConfigSchema.parse(config);
+                return new AcrossProvider(configParsed);
             case PROTOCOLS.SAMPLE:
                 return new SampleProvider();
             default:
@@ -45,8 +51,8 @@ export class CrossChainProviderFactory {
  */
 export const createCrossChainProvider = <Protocol extends SupportedProtocols>(
     protocolName: Protocol,
-    config: SupportedProtocolsConfigs[Protocol] = undefined,
-    dependencies: SupportedProtocolsDependencies[Protocol] = undefined,
-): CrossChainProvider<BasicOpenParams> => {
+    config: SupportedProtocolsConfigs<Protocol>,
+    dependencies: SupportedProtocolsDependencies<Protocol>,
+): CrossChainProvider => {
     return CrossChainProviderFactory.build(protocolName, config, dependencies);
 };

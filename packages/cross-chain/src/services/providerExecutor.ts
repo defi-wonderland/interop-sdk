@@ -1,53 +1,49 @@
-import { TransactionRequest } from "viem";
+import { GetQuoteRequest, PostOrderResponse } from "@wonderland/interop-oif-specs";
+import { EIP1193Provider } from "viem";
 
-import {
-    BasicOpenParams,
-    CrossChainProvider,
-    GetQuoteParams,
-    GetQuoteResponse,
-    ParamsParser,
-    ProviderNotFound,
-    ValidActions,
-} from "../internal.js";
+import { CrossChainProvider, ExecutableQuote, SortingStrategy } from "../internal.js";
 
 type GetQuotesError = {
     errorMsg: string;
     error: Error;
 };
 
-type GetQuotesResponse = (GetQuoteResponse<ValidActions, BasicOpenParams> | GetQuotesError)[];
+type GetQuotesResponse = (ExecutableQuote | GetQuotesError)[];
 
-type ExecutorDependencies<SelectedParamParser> = {
-    paramParser?: SelectedParamParser;
-};
+interface ProviderExecutorConfig {
+    providers: CrossChainProvider[];
+    sortingStrategy?: SortingStrategy;
+}
 
 /**
  * A service that get quotes in batches and executes cross-chain actions
  * TODO: Improve types declaration to define getQuotesParams interface depending on the selected param parser
  */
-class ProviderExecutor<
-    GetQuotesExecutorParams,
-    SelectedParamParser extends ParamsParser<GetQuotesExecutorParams>,
-> {
-    private readonly providers: Record<string, CrossChainProvider<BasicOpenParams>>;
-    private readonly paramParser?: SelectedParamParser;
-
+class ProviderExecutor {
+    private readonly providers: Record<string, CrossChainProvider>;
+    private readonly sortingStrategy?: SortingStrategy;
     /**
      * Constructor
      * @param providers - The providers to use
      */
-    constructor(
-        providers: CrossChainProvider<BasicOpenParams>[],
-        dependencies: ExecutorDependencies<SelectedParamParser>,
-    ) {
-        this.paramParser = dependencies.paramParser;
+    constructor(config: ProviderExecutorConfig) {
+        const { providers, sortingStrategy } = config;
         this.providers = providers.reduce(
             (acc, provider) => {
-                acc[provider.getProtocolName()] = provider;
+                acc[provider.getProviderId()] = provider;
                 return acc;
             },
-            {} as Record<string, CrossChainProvider<BasicOpenParams>>,
+            {} as Record<string, CrossChainProvider>,
         );
+        this.sortingStrategy = sortingStrategy;
+    }
+
+    private filterNonErrors(quotes: GetQuotesResponse): ExecutableQuote[] {
+        return quotes.filter((quote) => "order" in quote);
+    }
+
+    private filterErrors(quotes: GetQuotesResponse): GetQuotesError[] {
+        return quotes.filter((quote) => "error" in quote);
     }
 
     /**
@@ -56,34 +52,27 @@ class ProviderExecutor<
      * @param params - The parameters for the action
      * @returns The quotes for the action
      */
-    async getQuotes<Action extends ValidActions>(
-        action: Action,
-        params: SelectedParamParser extends undefined
-            ? GetQuoteParams<Action>
-            : GetQuotesExecutorParams,
-    ): Promise<GetQuotesResponse> {
-        const parsedParams = this.paramParser
-            ? await this.paramParser.parseGetQuoteParams(action, params)
-            : (params as GetQuoteParams<Action>);
+    async getQuotes(params: GetQuoteRequest): Promise<GetQuotesResponse> {
+        const quotes: GetQuotesResponse = [];
 
-        const quotes = await Promise.all(
-            Object.values(this.providers).map(async (provider) => {
-                try {
-                    return await provider.getQuote(action, parsedParams);
-                } catch (error) {
-                    if (error instanceof Error) {
-                        return {
-                            errorMsg: error.message,
-                            error,
-                        };
-                    }
-                    return {
-                        errorMsg: "Unknown error",
-                        error: new Error(String(error)),
-                    };
-                }
-            }),
-        );
+        for (const provider of Object.values(this.providers)) {
+            try {
+                const quotes = await provider.getQuotes(params);
+                quotes.push(...quotes);
+            } catch (error) {
+                quotes.push({
+                    errorMsg: "Unknown error",
+                    error: new Error(String(error)),
+                });
+            }
+        }
+
+        if (this.sortingStrategy) {
+            const nonErrors = this.filterNonErrors(quotes);
+            const errors = this.filterErrors(quotes);
+
+            return [...this.sortingStrategy.sort(nonErrors), ...errors];
+        }
 
         return quotes;
     }
@@ -93,14 +82,8 @@ class ProviderExecutor<
      * @param quote - The quote to execute
      * @returns The transaction requests for the action
      */
-    async execute(
-        quote: GetQuoteResponse<ValidActions, BasicOpenParams>,
-    ): Promise<TransactionRequest[]> {
-        const provider = this.providers[quote.protocol];
-        if (!provider) {
-            throw new ProviderNotFound(quote.protocol);
-        }
-        return provider.simulateOpen(quote.openParams);
+    async execute(quote: ExecutableQuote, signer: EIP1193Provider): Promise<PostOrderResponse> {
+        return quote.execute(signer);
     }
 }
 
@@ -109,14 +92,8 @@ class ProviderExecutor<
  * @param providers - The providers to use
  * @returns The provider executor
  */
-const createProviderExecutor = <
-    GetQuotesExecutorParams,
-    SelectedParamParser extends ParamsParser<GetQuotesExecutorParams>,
->(
-    providers: CrossChainProvider<BasicOpenParams>[],
-    dependencies: ExecutorDependencies<SelectedParamParser> = {},
-): ProviderExecutor<GetQuotesExecutorParams, SelectedParamParser> => {
-    return new ProviderExecutor(providers, dependencies);
+const createProviderExecutor = (config: ProviderExecutorConfig): ProviderExecutor => {
+    return new ProviderExecutor(config);
 };
 
 export { ProviderExecutor, createProviderExecutor };
