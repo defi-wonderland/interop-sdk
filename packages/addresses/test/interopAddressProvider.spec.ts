@@ -12,12 +12,14 @@ import {
 import { BinaryAddress, HumanReadableAddress } from "../src/types/index.js";
 
 const mockGetEnsName = vi.fn();
+const mockGetEnsAddress = vi.fn();
 vi.mock("viem", async () => {
     const actual = await vi.importActual("viem");
     return {
         ...actual,
         createPublicClient: (): unknown => ({
             getEnsName: mockGetEnsName,
+            getEnsAddress: mockGetEnsAddress,
         }),
     };
 });
@@ -51,14 +53,26 @@ describe("InteropAddressProvider", () => {
     });
 
     describe("buildFromPayload", () => {
-        it("builds a binary InteropAddress from a payload", () => {
+        it("builds a binary InteropAddress from a payload", async () => {
             const payload = {
                 version: 1,
                 chainType: "eip155",
                 chainReference: "0x1",
                 address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
             };
-            const interopAddress = buildFromPayload(payload);
+            const interopAddress = await buildFromPayload(payload);
+            expect(interopAddress).toBe("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
+        });
+
+        it("builds a binary InteropAddress from a payload with ENS name", async () => {
+            const payload = {
+                version: 1,
+                chainType: "eip155",
+                chainReference: "0x1",
+                address: "vitalik.eth",
+            };
+            mockGetEnsAddress.mockResolvedValue("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
+            const interopAddress = await buildFromPayload(payload);
             expect(interopAddress).toBe("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
         });
     });

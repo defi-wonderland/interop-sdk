@@ -13,3 +13,4 @@ export * from "./isInteropAddress.js";
 export * from "./shortnameToChainId.js";
 export * from "./parseInteropAddressString.js";
 export * from "./interpretInteropNameComponents.js";
+export * from "./resolveENS.js";
