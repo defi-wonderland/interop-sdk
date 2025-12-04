@@ -7,3 +7,4 @@ export * from "./ProviderNotFound.exception.js";
 export * from "./UnsupportedAddress.exception.js";
 export * from "./ProviderGetQuoteFailure.exception.js";
 export * from "./ProviderExecuteNotImplemented.exception.js";
+export * from "./ProviderTimeout.exception.js";

@@ -5,6 +5,7 @@ import {
     CrossChainProvider,
     ExecutableQuote,
     ProviderNotFound,
+    ProviderTimeout,
     SortingStrategy,
 } from "../internal.js";
 
@@ -63,36 +64,35 @@ class ProviderExecutor {
      * @returns The quotes for the action
      */
     async getQuotes(params: GetQuoteRequest): Promise<GetQuotesResponse> {
-        // for (const provider of Object.values(this.providers)) {
-        //     try {
-        //         const quotes = await provider.getQuotes(params);
-        //         resultQuotes.push(...quotes);
-        //     } catch (error) {
-        //         resultQuotes.push({
-        //             errorMsg: "Unknown error",
-        //             error: new Error(String(error)),
-        //         });
-        //     }
-
         const resultQuotes = await Promise.all(
             Object.values(this.providers).map(async (provider) => {
                 try {
-                    const quotes = await provider.getQuotes(params).then((quotes) =>
+                    const quotesPromise = provider.getQuotes(params).then((quotes) =>
                         quotes.map((quote) => ({
                             ...quote,
                             provider: provider.getProviderId(),
                         })),
                     );
 
+                    let timeout: NodeJS.Timeout;
+
                     const timeoutPromise = new Promise<never>((_, reject) => {
-                        setTimeout(() => {
-                            reject(new Error(`Timeout after ${this.timeoutMs}ms`));
+                        timeout = setTimeout(() => {
+                            reject(new ProviderTimeout(`Timeout after ${this.timeoutMs}ms`));
                         }, this.timeoutMs);
                     });
 
-                    return Promise.race([quotes, timeoutPromise]);
+                    return Promise.race([quotesPromise, timeoutPromise]).finally(() => {
+                        clearTimeout(timeout);
+                    });
                 } catch (error) {
-                    return { error: new Error(String(error)), errorMsg: "Unknown error" };
+                    if (error instanceof ProviderTimeout) {
+                        return { error: error, errorMsg: error.message };
+                    }
+                    return {
+                        error: new Error(String(error)),
+                        errorMsg: (error as Error).message ?? "Unknown error",
+                    };
                 }
             }),
         ).then((results) => results.flat());
