@@ -14,6 +14,7 @@ import {
     PublicClient,
     toHex,
 } from "viem";
+import { ZodError } from "zod";
 
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
@@ -36,6 +37,7 @@ import {
     getChainById,
     GetFillParams,
     parseAbiEncodedFields,
+    ProviderConfigFailure,
     ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
 } from "../internal.js";
@@ -56,9 +58,24 @@ export class AcrossProvider extends CrossChainProvider {
     constructor(config: AcrossConfigs) {
         super();
 
-        const configParsed = AcrossConfigSchema.parse(config);
-        this.apiUrl = configParsed.apiUrl;
-        this.providerId = configParsed.providerId;
+        try {
+            const configParsed = AcrossConfigSchema.parse(config);
+            this.apiUrl = configParsed.apiUrl;
+            this.providerId = configParsed.providerId;
+        } catch (error) {
+            if (error instanceof ZodError) {
+                throw new ProviderConfigFailure(
+                    "Failed to parse Across config",
+                    error.message,
+                    error.stack,
+                );
+            }
+            throw new ProviderConfigFailure(
+                "Failed to configure Across provider",
+                String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
+        }
     }
 
     private async getPublicClient(chain: Chain): Promise<PublicClient> {
@@ -133,32 +150,62 @@ export class AcrossProvider extends CrossChainProvider {
                     error.cause?.message ||
                     error.message ||
                     "Failed to get Across quote";
-                throw new ProviderGetQuoteFailure(message);
+
+                throw new ProviderGetQuoteFailure(
+                    "Failed to get Across quote",
+                    message,
+                    error.stack,
+                );
+            } else if (error instanceof ZodError) {
+                throw new ProviderGetQuoteFailure(
+                    "Failed to parse Across quote",
+                    error.message,
+                    error.stack,
+                );
             }
-            throw error;
+            throw new ProviderGetQuoteFailure(
+                "Failed to get Across quote",
+                String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
         }
     }
 
     private async convertOifParamsToAcrossParams(
         params: AcrossOIFGetQuoteParams,
     ): Promise<AcrossGetQuoteParams> {
-        const userParsed = await this.parseInteropAddress(params.user);
+        try {
+            const userParsed = await this.parseInteropAddress(params.user);
 
-        const { inputs, outputs } = params.intent;
-        const inputParsed = await this.parseInteropAddress(inputs[0].asset);
-        const outputParsed = await this.parseInteropAddress(outputs[0].asset);
-        const swapType = params.intent.swapType || "exact-input";
-        const amount = swapType === "exact-input" ? inputs[0].amount : outputs[0].amount;
+            const { inputs, outputs } = params.intent;
+            const inputParsed = await this.parseInteropAddress(inputs[0].asset);
+            const outputParsed = await this.parseInteropAddress(outputs[0].asset);
+            const swapType = params.intent.swapType || "exact-input";
+            const amount = swapType === "exact-input" ? inputs[0].amount : outputs[0].amount;
 
-        return AcrossGetQuoteParamsSchema.parse({
-            tradeType: params.intent.swapType || "exact-input",
-            inputToken: inputParsed.address,
-            amount,
-            outputToken: outputParsed.address,
-            originChainId: inputParsed.chain,
-            destinationChainId: outputParsed.chain,
-            depositor: userParsed.address,
-        });
+            return AcrossGetQuoteParamsSchema.parse({
+                tradeType: params.intent.swapType || "exact-input",
+                inputToken: inputParsed.address,
+                amount,
+                outputToken: outputParsed.address,
+                originChainId: inputParsed.chain,
+                destinationChainId: outputParsed.chain,
+                depositor: userParsed.address,
+            });
+        } catch (error) {
+            if (error instanceof ZodError) {
+                throw new ProviderGetQuoteFailure(
+                    "Failed to parse Across OIF quote request",
+                    error.message,
+                    error.stack,
+                );
+            }
+            throw new ProviderGetQuoteFailure(
+                "Failed to convert Across OIF quote request to Across params",
+                String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
+        }
     }
 
     private convertAcrossSwapToOifQuote(
@@ -226,20 +273,35 @@ export class AcrossProvider extends CrossChainProvider {
      * @inheritdoc
      */
     async getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]> {
-        const parsedParams = AcrossOIFGetQuoteParamsSchema.parse(params);
+        try {
+            const parsedParams = AcrossOIFGetQuoteParamsSchema.parse(params);
 
-        const acrossGetQuote = await this.convertOifParamsToAcrossParams(parsedParams);
-        const acrossQuote = await this.getAcrossQuote(acrossGetQuote);
-        const oifQuote = this.convertAcrossSwapToOifQuote(parsedParams, acrossQuote);
+            const acrossGetQuote = await this.convertOifParamsToAcrossParams(parsedParams);
+            const acrossQuote = await this.getAcrossQuote(acrossGetQuote);
+            const oifQuote = this.convertAcrossSwapToOifQuote(parsedParams, acrossQuote);
 
-        const preparedTransaction = await this.prepareTransaction(acrossQuote);
+            const preparedTransaction = await this.prepareTransaction(acrossQuote);
 
-        const executableQuote: ExecutableQuote = {
-            ...oifQuote,
-            preparedTransaction,
-        };
+            const executableQuote: ExecutableQuote = {
+                ...oifQuote,
+                preparedTransaction,
+            };
 
-        return [executableQuote];
+            return [executableQuote];
+        } catch (error) {
+            if (error instanceof ZodError) {
+                throw new ProviderGetQuoteFailure(
+                    "Failed to parse Across OIF quote request",
+                    error.message,
+                    error.stack,
+                );
+            }
+            throw new ProviderGetQuoteFailure(
+                "Failed to get Across quotes",
+                String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
+        }
     }
 
     /**
