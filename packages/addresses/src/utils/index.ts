@@ -15,3 +15,4 @@ export * from "./parseInteropAddressString.js";
 export * from "./interpretInteropNameComponents.js";
 export * from "./resolveENS.js";
 export * from "./parseChainReference.js";
+export * from "./resolveChainReference.js";

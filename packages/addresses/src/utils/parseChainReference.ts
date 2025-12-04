@@ -5,7 +5,7 @@ import {
     InvalidChainNamespace,
     InvalidChainReference,
     InvalidDecimal,
-    shortnameToChainId,
+    resolveChainReference,
 } from "../internal.js";
 
 /**
@@ -21,14 +21,14 @@ export const parseChainReferenceString = async (
     chainReference: string,
 ): Promise<Uint8Array> => {
     try {
+        // Resolve shortnames first
+        const resolvedReference = await resolveChainReference(chainNamespace, chainReference);
+
         switch (chainNamespace) {
-            case "eip155": {
-                const resolvedChainId = await shortnameToChainId(chainReference);
-                const finalChainReference = resolvedChainId?.toString() ?? chainReference;
-                return convertToBytes(finalChainReference, "decimal");
-            }
+            case "eip155":
+                return convertToBytes(resolvedReference, "decimal");
             case "solana":
-                return convertToBytes(chainReference, "base58");
+                return convertToBytes(resolvedReference, "base58");
             default:
                 throw new InvalidChainNamespace(chainNamespace);
         }
