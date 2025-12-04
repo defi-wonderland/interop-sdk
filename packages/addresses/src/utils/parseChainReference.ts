@@ -24,8 +24,7 @@ export const parseChainReferenceString = async (
         switch (chainNamespace) {
             case "eip155": {
                 const resolvedChainId = await shortnameToChainId(chainReference);
-                const finalChainReference =
-                    resolvedChainId !== undefined ? resolvedChainId.toString() : chainReference;
+                const finalChainReference = resolvedChainId?.toString() ?? chainReference;
                 return convertToBytes(finalChainReference, "decimal");
             }
             case "solana":
