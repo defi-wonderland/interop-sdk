@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-    AcrossProvider,
-    CrossChainProvider,
-    SampleProvider,
-    UnsupportedProtocol,
-} from "../../src/internal.js";
+import { AcrossProvider, CrossChainProvider, UnsupportedProtocol } from "../../src/internal.js";
 import {
     createCrossChainProvider,
     CrossChainProviderFactory,
@@ -28,23 +23,9 @@ describe("CrossChainProviderFactory", () => {
     });
 
     it("builds a CrossChainProvider with the across provider", () => {
-        const provider = CrossChainProviderFactory.build(
-            "across",
-            MOCK_ACROSS_CONFIG,
-            {},
-        ) as AcrossProvider;
+        const provider = CrossChainProviderFactory.build("across", MOCK_ACROSS_CONFIG, {});
 
         expect(provider).toBeInstanceOf(AcrossProvider);
-    });
-
-    it("builds a CrossChainProvider with the sample provider", () => {
-        const provider = CrossChainProviderFactory.build(
-            "sample-protocol",
-            {},
-            {},
-        ) as SampleProvider;
-
-        expect(provider).toBeInstanceOf(SampleProvider);
     });
 
     it("creates a cross chain provider using the createCrossChainProvider function", () => {
