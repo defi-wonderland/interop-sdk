@@ -3,12 +3,13 @@ import { fromHex } from "viem";
 import type { InteropAddress, InteropAddressFields } from "../internal.js";
 import {
     CHAIN_TYPE,
+    ChainTypeName,
     convertAddress,
-    convertChainReference,
     interopAddressFieldsSchema,
     ParseInteropAddress,
     UnsupportedChainType,
 } from "../internal.js";
+import { parseChainReferenceString } from "./parseChainReference.js";
 import { resolveAddress } from "./resolveENS.js";
 
 /**
@@ -16,7 +17,7 @@ import { resolveAddress } from "./resolveENS.js";
  * @param params - The parameters to build the InteropAddress from
  * @param params.version - The version of the InteropAddress
  * @param params.chainType - The type of the chain eg: "eip155" or "solana"
- * @param params.chainReference - The reference of the chain, hex string for EIP-155 and base58 for Solana
+ * @param params.chainReference - The reference of the chain, supports hex/decimal/chain labels for EIP-155 (e.g., "0x1", "1", "eth"), base58 for Solana
  * @param params.address - The address of the InteropAddress, hex string for EIP-155 and base58 for Solana (also supports ENS names for eip155)
  * @returns The InteropAddress
  * @throws An error if the parameters are invalid
@@ -36,13 +37,19 @@ export const buildInteropAddress = async (
         throw new UnsupportedChainType(chainType);
     }
 
+    // Resolve chain reference (handles shortnames like "eth", "base")
+    const chainReferenceBytes = await parseChainReferenceString(
+        chainType as ChainTypeName,
+        chainReference,
+    );
+
     // Resolve address (handles ENS if applicable)
     const resolvedAddress = await resolveAddress(address, chainType, chainReference);
 
     return {
         version,
         chainType: fromHex(CHAIN_TYPE[chainType], "bytes"),
-        chainReference: convertChainReference(chainReference, { chainType }),
+        chainReference: chainReferenceBytes,
         address: convertAddress(resolvedAddress, { chainType }),
     };
 };

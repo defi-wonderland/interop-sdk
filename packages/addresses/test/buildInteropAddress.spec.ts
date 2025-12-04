@@ -70,7 +70,7 @@ describe("buildInteropAddress", () => {
         ).rejects.toThrow(UnsupportedChainType);
     });
 
-    it("throw error if chain reference is not hex when chain type is eip155", async () => {
+    it("throw error if chain reference is not a valid number, hex, or chain label when chain type is eip155", async () => {
         await expect(
             buildInteropAddress({
                 version: 1,
@@ -112,6 +112,29 @@ describe("buildInteropAddress", () => {
                 address: "0x1",
             }),
         ).rejects.toThrow(InvalidAddress);
+    });
+
+    it("accepts decimal chain reference for eip155", async () => {
+        const interopAddress = await buildInteropAddress({
+            version: 1,
+            chainType: "eip155",
+            chainReference: "1",
+            address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+        });
+
+        expect(interopAddress.chainReference).toEqual(fromHex("0x1", "bytes"));
+    });
+
+    it("resolves chain shortname 'base' to chain ID 8453", async () => {
+        const interopAddress = await buildInteropAddress({
+            version: 1,
+            chainType: "eip155",
+            chainReference: "base",
+            address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+        });
+
+        // Base chain ID 8453 is 0x2105 in hex
+        expect(interopAddress.chainReference).toEqual(fromHex("0x2105", "bytes"));
     });
 
     it("resolves ENS name and builds InteropAddress", async () => {
