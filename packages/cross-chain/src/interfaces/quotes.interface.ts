@@ -1,9 +1,15 @@
-import type { PostOrderResponse, Quote } from "@wonderland/interop-oif-specs";
-import type { EIP1193Provider, PrepareTransactionRequestReturnType } from "viem";
+import type { Quote } from "@wonderland/interop-oif-specs";
+import type { PrepareTransactionRequestReturnType } from "viem";
 
-export type QuoteExecution = (signer: EIP1193Provider) => Promise<PostOrderResponse>;
-
+/**
+ * An executable quote is a quote that has been prepared for execution
+ * @description An executable quote is a quote that has been prepared for execution
+ * @example
+ * {
+ *   ...quote,
+ *   preparedTransaction: PrepareTransactionRequestReturnType,
+ * }
+ */
 export interface ExecutableQuote extends Quote {
     preparedTransaction?: PrepareTransactionRequestReturnType;
-    execute: QuoteExecution;
 }

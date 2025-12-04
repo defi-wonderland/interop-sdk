@@ -237,7 +237,6 @@ export class AcrossProvider extends CrossChainProvider {
         const executableQuote: ExecutableQuote = {
             ...oifQuote,
             preparedTransaction,
-            execute: (signer: EIP1193Provider) => this.execute(oifQuote, signer),
         };
 
         return [executableQuote];

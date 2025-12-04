@@ -59,7 +59,6 @@ export class SampleProvider extends CrossChainProvider {
         const executableQuote: ExecutableQuote = {
             ...oifQuote,
             preparedTransaction: "0x" as unknown as PrepareTransactionRequestReturnType,
-            execute: (_signer: EIP1193Provider) => this.execute(oifQuote, _signer),
         };
 
         return [executableQuote];
