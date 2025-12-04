@@ -64,7 +64,7 @@ export class SampleProvider extends CrossChainProvider {
         return [executableQuote];
     }
 
-    async execute(_quote: Quote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
+    async execute(_quote: ExecutableQuote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
         throw new Error("Not implemented");
     }
 }

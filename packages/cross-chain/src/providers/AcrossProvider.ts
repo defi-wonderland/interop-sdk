@@ -245,7 +245,8 @@ export class AcrossProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      */
-    async execute(_quote: Quote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
+    async execute(_quote: ExecutableQuote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
+        // TODO: Implement the execute method
         throw new ProviderExecuteNotImplemented("Not implemented");
     }
 

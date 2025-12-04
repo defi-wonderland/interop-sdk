@@ -1,4 +1,4 @@
-import type { GetQuoteRequest, PostOrderResponse, Quote } from "@wonderland/interop-oif-specs";
+import type { GetQuoteRequest, PostOrderResponse } from "@wonderland/interop-oif-specs";
 import type { EIP1193Provider } from "viem";
 
 import type { ExecutableQuote } from "./quotes.interface.js";
@@ -45,5 +45,5 @@ export abstract class CrossChainProvider {
      * @param signer - The signer to use to sign the order
      * @returns The response from the provider
      */
-    abstract execute(quote: Quote, signer: EIP1193Provider): Promise<PostOrderResponse>;
+    abstract execute(quote: ExecutableQuote, signer: EIP1193Provider): Promise<PostOrderResponse>;
 }
