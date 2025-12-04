@@ -32,7 +32,11 @@ export class LowerEtaStrategy extends SortingStrategy {
         return quotes.sort((a, b): number => {
             if (!a.eta || !b.eta) return 0;
 
-            return Number(BigInt(a.eta) - BigInt(b.eta));
+            const aEta = BigInt(a.eta);
+            const bEta = BigInt(b.eta);
+
+            if (aEta === bEta) return 0;
+            return aEta < bEta ? -1 : 1;
         }) as ExecutableQuote[];
     }
 }
