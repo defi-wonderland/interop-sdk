@@ -1,5 +1,5 @@
 /**
- * Unified Interopable Address Examples
+ * Unified Interoperable Address Examples
  * Format: address@chainNamespace:chainReference#CHECKSUM
  *
  * Note: These examples showcase different capabilities:
