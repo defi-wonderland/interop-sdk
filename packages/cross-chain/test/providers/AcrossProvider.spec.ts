@@ -18,28 +18,28 @@ const INPUT_CHAIN_ID = 11155111; // Sepolia
 const OUTPUT_CHAIN_ID = 84532; // Base Sepolia
 
 // Convert to interop addresses
-const USER_INTEROP_ADDRESS = buildFromPayload({
+const USER_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
     chainReference: `0x${INPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
     address: COMMON_USER_ADDRESS,
 });
 
-const RECEIVER_INTEROP_ADDRESS = buildFromPayload({
+const RECEIVER_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
     chainReference: `0x${OUTPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
     address: COMMON_RECEIVER_ADDRESS,
 });
 
-const INPUT_TOKEN_INTEROP_ADDRESS = buildFromPayload({
+const INPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
     chainReference: `0x${INPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
     address: INPUT_TOKEN_ADDRESS,
 });
 
-const OUTPUT_TOKEN_INTEROP_ADDRESS = buildFromPayload({
+const OUTPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
     chainReference: `0x${OUTPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
