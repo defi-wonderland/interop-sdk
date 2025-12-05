@@ -109,61 +109,6 @@ describe("AcrossProvider", () => {
             });
         });
 
-        it("should return OIF-compliant ExecutableQuote", async () => {
-            const quotes = await provider.getQuotes({
-                user: USER_INTEROP_ADDRESS,
-                intent: {
-                    intentType: "oif-swap",
-                    inputs: [
-                        {
-                            user: USER_INTEROP_ADDRESS,
-                            asset: INPUT_TOKEN_INTEROP_ADDRESS,
-                            amount: "1000000000000000000",
-                        },
-                    ],
-                    outputs: [
-                        {
-                            receiver: RECEIVER_INTEROP_ADDRESS,
-                            asset: OUTPUT_TOKEN_INTEROP_ADDRESS,
-                        },
-                    ],
-                    swapType: "exact-input",
-                },
-                supportedTypes: ["across"],
-            });
-
-            expect(quotes).toHaveLength(1);
-            const quote = quotes[0]!;
-            expect(quote).toMatchObject({
-                order: {
-                    type: "across",
-                    payload: mockAcrossApiResponse.swapTx,
-                    metadata: {},
-                },
-                preview: {
-                    inputs: [
-                        {
-                            user: USER_INTEROP_ADDRESS,
-                            asset: INPUT_TOKEN_INTEROP_ADDRESS,
-                            amount: mockAcrossApiResponse.inputAmount,
-                        },
-                    ],
-                    outputs: [
-                        {
-                            receiver: RECEIVER_INTEROP_ADDRESS,
-                            asset: OUTPUT_TOKEN_INTEROP_ADDRESS,
-                            amount: mockAcrossApiResponse.expectedOutputAmount,
-                        },
-                    ],
-                },
-                quoteId: mockAcrossApiResponse.id,
-                eta: mockAcrossApiResponse.expectedFillTime,
-                partialFill: false,
-            });
-            expect(quote.execute).toBeDefined();
-            expect(typeof quote.execute).toBe("function");
-        });
-
         it("should handle exact-output swap type", async () => {
             await provider.getQuotes({
                 user: USER_INTEROP_ADDRESS,

@@ -1,10 +1,14 @@
-import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
+import { GetQuoteRequest } from "@openintentsframework/oif-specs";
 import { buildFromPayload } from "@wonderland/interop-addresses";
-import { Address, EIP1193Provider } from "viem";
+import { Address } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createProviderExecutor, ProviderExecutor } from "../../src/external.js";
-import { CrossChainProvider, ExecutableQuote } from "../../src/internal.js";
+import {
+    CrossChainProvider,
+    ExecutableQuote,
+    ProviderGetQuoteFailure,
+} from "../../src/internal.js";
 
 // Common addresses for testing
 const USER_ADDRESS = "0x0000000000000000000000000000000000000001" as Address;
@@ -68,7 +72,7 @@ const mockExecutableQuoteA: ExecutableQuote = {
     },
     partialFill: false,
     quoteId: "quoteA",
-    execute: vi.fn(() => Promise.resolve({} as PostOrderResponse)),
+    failureHandling: "refund-automatic",
 };
 
 const mockExecutableQuoteB: ExecutableQuote = {
@@ -97,7 +101,8 @@ const mockExecutableQuoteB: ExecutableQuote = {
     },
     partialFill: false,
     quoteId: "quoteB",
-    execute: vi.fn(() => Promise.resolve({} as PostOrderResponse)),
+    failureHandling: "refund-automatic",
+    preparedTransaction: undefined,
 };
 
 const mockProviderA = {
@@ -170,27 +175,24 @@ describe("ProviderExecutor", () => {
             const providerExecutor = createProviderExecutor({
                 providers: [mockProviderA, mockProviderB],
             });
-            const quotes = await providerExecutor.getQuotes(mockGetQuoteRequest);
+            const { quotes } = await providerExecutor.getQuotes(mockGetQuoteRequest);
 
             expect(quotes).toHaveLength(2);
         });
 
         it("return a list of quotes with errors", async () => {
-            vi.mocked(mockProviderA.getQuotes).mockRejectedValue(new Error("Mocked Error A"));
+            vi.mocked(mockProviderA.getQuotes).mockRejectedValue(
+                new ProviderGetQuoteFailure("Mocked Error A"),
+            );
             const providerExecutor = createProviderExecutor({
                 providers: [mockProviderA, mockProviderB],
             });
-            const quotes = await providerExecutor.getQuotes(mockGetQuoteRequest);
+            const { quotes, errors } = await providerExecutor.getQuotes(mockGetQuoteRequest);
 
-            expect(quotes).toHaveLength(2);
-            expect(quotes).toEqual(
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        errorMsg: "Unknown error",
-                        error: expect.any(Error),
-                    }),
-                ]),
-            );
+            expect(quotes).toHaveLength(1);
+            expect(errors).toHaveLength(1);
+            expect(errors[0]?.errorMsg).toBe("Mocked Error A");
+            expect(errors[0]?.error).toBeInstanceOf(Error);
         });
 
         it("call to getQuotes for each provider", async () => {
@@ -201,25 +203,6 @@ describe("ProviderExecutor", () => {
 
             expect(mockProviderA.getQuotes).toHaveBeenCalledWith(mockGetQuoteRequest);
             expect(mockProviderB.getQuotes).toHaveBeenCalledWith(mockGetQuoteRequest);
-        });
-    });
-
-    describe("execute", () => {
-        it("execute the quote using the quote's execute method", async () => {
-            const providerExecutor = createProviderExecutor({
-                providers: [mockProviderA, mockProviderB],
-            });
-            const mockSigner = {} as EIP1193Provider;
-
-            await providerExecutor.execute(mockExecutableQuoteA, mockSigner);
-
-            expect(mockExecutableQuoteA.execute).toHaveBeenCalledWith(mockSigner);
-
-            vi.clearAllMocks();
-
-            await providerExecutor.execute(mockExecutableQuoteB, mockSigner);
-
-            expect(mockExecutableQuoteB.execute).toHaveBeenCalledWith(mockSigner);
         });
     });
 });

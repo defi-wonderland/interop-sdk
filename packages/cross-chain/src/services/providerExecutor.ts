@@ -14,7 +14,10 @@ type GetQuotesError = {
     error: Error;
 };
 
-type GetQuotesResponse = (ExecutableQuote | GetQuotesError)[];
+interface GetQuotesResponse {
+    quotes: ExecutableQuote[];
+    errors: GetQuotesError[];
+}
 
 interface ProviderExecutorConfig {
     providers: CrossChainProvider[];
@@ -49,12 +52,11 @@ class ProviderExecutor {
         this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
     }
 
-    private filterNonErrors(quotes: GetQuotesResponse): ExecutableQuote[] {
-        return quotes.filter((quote) => "order" in quote);
-    }
-
-    private filterErrors(quotes: GetQuotesResponse): GetQuotesError[] {
-        return quotes.filter((quote) => "error" in quote);
+    private splitQuotesAndErrors(quotes: (ExecutableQuote | GetQuotesError)[]): GetQuotesResponse {
+        return {
+            quotes: quotes.filter((quote) => "order" in quote) as ExecutableQuote[],
+            errors: quotes.filter((quote) => "error" in quote) as GetQuotesError[],
+        };
     }
 
     /**
@@ -82,7 +84,7 @@ class ProviderExecutor {
                         }, this.timeoutMs);
                     });
 
-                    return Promise.race([quotesPromise, timeoutPromise]).finally(() => {
+                    return await Promise.race([quotesPromise, timeoutPromise]).finally(() => {
                         clearTimeout(timeout);
                     });
                 } catch (error) {
@@ -97,13 +99,16 @@ class ProviderExecutor {
             }),
         ).then((results) => results.flat());
 
-        if (this.sortingStrategy) {
-            const nonErrors = this.filterNonErrors(resultQuotes);
-            const errors = this.filterErrors(resultQuotes);
+        const response = this.splitQuotesAndErrors(resultQuotes);
 
-            return [...this.sortingStrategy.sort(nonErrors), ...errors];
+        if (this.sortingStrategy) {
+            return {
+                quotes: this.sortingStrategy.sort(response.quotes),
+                errors: response.errors,
+            };
         }
-        return resultQuotes;
+
+        return response;
     }
 
     /**
