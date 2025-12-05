@@ -75,6 +75,17 @@ describe("InteropAddressProvider", () => {
             const interopAddress = await buildFromPayload(payload);
             expect(interopAddress).toBe("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
         });
+
+        it("builds a binary InteropAddress with chain shortname", async () => {
+            const payload = {
+                version: 1,
+                chainType: "eip155",
+                chainReference: "eth",
+                address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+            };
+            const interopAddress = await buildFromPayload(payload);
+            expect(interopAddress).toBe("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
+        });
     });
 
     describe("isValidInteropAddress", () => {

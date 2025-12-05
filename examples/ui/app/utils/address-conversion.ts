@@ -38,15 +38,10 @@ export async function convertFromAddress(
 ): Promise<ConversionResult> {
   const normalizedAddress = address.startsWith('0x') ? address : `0x${address}`;
 
-  // TODO: SDK should accept decimal chain IDs instead of requiring hex
-  const normalizedChainReference = chainReference.startsWith('0x')
-    ? chainReference
-    : `0x${Number(chainReference).toString(16)}`;
-
   const binary = await InteropAddressProvider.buildFromPayload({
     version: 1,
     chainType,
-    chainReference: normalizedChainReference,
+    chainReference,
     address: normalizedAddress,
   });
 

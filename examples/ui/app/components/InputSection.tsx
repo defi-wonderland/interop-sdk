@@ -136,14 +136,14 @@ export function InputSection({
               </div>
               <div className='flex flex-col gap-2'>
                 <label htmlFor='chain-reference-input' className='text-sm font-medium text-text-secondary'>
-                  Chain ID
+                  Chain Reference
                 </label>
                 <input
                   id='chain-reference-input'
                   type='text'
                   value={chainReference}
                   onChange={(e) => setChainReference(e.target.value)}
-                  placeholder='1'
+                  placeholder='1, 0x1, eth, base'
                   className='px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
                 />
               </div>
