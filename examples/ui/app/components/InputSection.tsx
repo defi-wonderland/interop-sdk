@@ -1,6 +1,6 @@
 import React from 'react';
 import { InputMode, ChainType } from '../types';
-import { VALID_EXAMPLES, EXAMPLE_DESCRIPTIONS, BUILD_MODE_EXAMPLES } from '../utils/examples';
+import { EXAMPLES } from '../utils/examples';
 import { ExampleButtons, TabButton } from './index';
 
 const CHAIN_TYPE_OPTIONS = [{ value: ChainType.EIP155, label: 'eip155' }] as const;
@@ -39,17 +39,17 @@ export function InputSection({
 
   const readableModeExamples = React.useMemo(
     () =>
-      VALID_EXAMPLES.map((ex, idx) => ({
-        key: ex,
-        description: EXAMPLE_DESCRIPTIONS[ex] || `Example ${idx + 1}`,
-        onClick: () => onExampleClick(ex),
+      EXAMPLES.map(({ humanReadable, description }) => ({
+        key: humanReadable,
+        description,
+        onClick: () => onExampleClick(humanReadable),
       })),
     [onExampleClick],
   );
 
   const buildModeExamples = React.useMemo(
     () =>
-      BUILD_MODE_EXAMPLES.map((example) => ({
+      EXAMPLES.map((example) => ({
         key: example.address,
         description: example.description,
         onClick: () => {
@@ -86,7 +86,8 @@ export function InputSection({
                   type='text'
                   value={readableName}
                   onChange={(e) => setReadableName(e.target.value)}
-                  placeholder='0xAddress@eip155:1#CHECKSUM'
+                  placeholder='alice.eth@rollup-name'
+                  autoComplete='off'
                   className='flex-1 px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
                 />
                 <button
@@ -113,6 +114,7 @@ export function InputSection({
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder='0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
+                autoComplete='off'
                 className='w-full px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
               />
             </div>

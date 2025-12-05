@@ -1,6 +1,6 @@
-# Interopable Addresses - Interactive Demo
+# Interoperable Addresses - Interactive Demo
 
-Educational demo showcasing ERC-7930 (Human-Readable) and ERC-7828 (Binary) interopable address formats.
+Educational demo showcasing ERC-7930 (Human-Readable) and ERC-7828 (Binary) interoperable address formats.
 
 ## Getting Started
 
