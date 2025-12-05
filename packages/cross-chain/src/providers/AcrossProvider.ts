@@ -114,7 +114,7 @@ export class AcrossProvider extends CrossChainProvider {
      * @param chain - The chain id
      * @returns The interop address
      */
-    private generateInteropAddress(address: Address, chain: number): string {
+    private generateInteropAddress(address: Address, chain: number): Promise<string> {
         return buildFromPayload({
             version: 1,
             chainType: "eip155",
@@ -209,10 +209,10 @@ export class AcrossProvider extends CrossChainProvider {
         }
     }
 
-    private convertAcrossSwapToOifQuote(
+    private async convertAcrossSwapToOifQuote(
         request: AcrossOIFGetQuoteParams,
         response: AcrossGetQuoteResponse,
-    ): QuoteWithAcross {
+    ): Promise<QuoteWithAcross> {
         const { inputs, outputs } = request.intent;
 
         return {
@@ -225,7 +225,7 @@ export class AcrossProvider extends CrossChainProvider {
                 inputs: [
                     {
                         user: inputs[0].user,
-                        asset: this.generateInteropAddress(
+                        asset: await this.generateInteropAddress(
                             response.inputToken.address,
                             response.inputToken.chainId,
                         ),
@@ -235,7 +235,7 @@ export class AcrossProvider extends CrossChainProvider {
                 outputs: [
                     {
                         receiver: outputs[0].receiver,
-                        asset: this.generateInteropAddress(
+                        asset: await this.generateInteropAddress(
                             response.outputToken.address,
                             response.outputToken.chainId,
                         ),
@@ -280,7 +280,7 @@ export class AcrossProvider extends CrossChainProvider {
 
             const acrossGetQuote = await this.convertOifParamsToAcrossParams(parsedParams);
             const acrossQuote = await this.getAcrossQuote(acrossGetQuote);
-            const oifQuote = this.convertAcrossSwapToOifQuote(parsedParams, acrossQuote);
+            const oifQuote = await this.convertAcrossSwapToOifQuote(parsedParams, acrossQuote);
 
             const preparedTransaction = await this.prepareTransaction(acrossQuote);
 
