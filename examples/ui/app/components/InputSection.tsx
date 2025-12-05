@@ -86,7 +86,7 @@ export function InputSection({
                   type='text'
                   value={readableName}
                   onChange={(e) => setReadableName(e.target.value)}
-                  placeholder='0xAddress@eip155:1#CHECKSUM'
+                  placeholder='alice.eth@rollup-name'
                   className='flex-1 px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
                 />
                 <button
