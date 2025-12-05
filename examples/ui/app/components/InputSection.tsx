@@ -1,6 +1,6 @@
 import React from 'react';
 import { InputMode, ChainType } from '../types';
-import { VALID_EXAMPLES, EXAMPLE_DESCRIPTIONS, BUILD_MODE_EXAMPLES } from '../utils/examples';
+import { EXAMPLES } from '../utils/examples';
 import { ExampleButtons, TabButton } from './index';
 
 const CHAIN_TYPE_OPTIONS = [{ value: ChainType.EIP155, label: 'eip155' }] as const;
@@ -39,17 +39,17 @@ export function InputSection({
 
   const readableModeExamples = React.useMemo(
     () =>
-      VALID_EXAMPLES.map((ex, idx) => ({
-        key: ex,
-        description: EXAMPLE_DESCRIPTIONS[ex] || `Example ${idx + 1}`,
-        onClick: () => onExampleClick(ex),
+      EXAMPLES.map(({ humanReadable, description }) => ({
+        key: humanReadable,
+        description,
+        onClick: () => onExampleClick(humanReadable),
       })),
     [onExampleClick],
   );
 
   const buildModeExamples = React.useMemo(
     () =>
-      BUILD_MODE_EXAMPLES.map((example) => ({
+      EXAMPLES.map((example) => ({
         key: example.address,
         description: example.description,
         onClick: () => {
