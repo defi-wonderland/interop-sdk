@@ -1,13 +1,12 @@
-import { TransactionRequest } from "viem";
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
+import { EIP1193Provider } from "viem";
 
 import {
-    BasicOpenParams,
     CrossChainProvider,
-    GetQuoteParams,
-    GetQuoteResponse,
-    ParamsParser,
+    ExecutableQuote,
     ProviderNotFound,
-    ValidActions,
+    ProviderTimeout,
+    SortingStrategy,
 } from "../internal.js";
 
 type GetQuotesError = {
@@ -15,39 +14,49 @@ type GetQuotesError = {
     error: Error;
 };
 
-type GetQuotesResponse = (GetQuoteResponse<ValidActions, BasicOpenParams> | GetQuotesError)[];
+interface GetQuotesResponse {
+    quotes: ExecutableQuote[];
+    errors: GetQuotesError[];
+}
 
-type ExecutorDependencies<SelectedParamParser> = {
-    paramParser?: SelectedParamParser;
-};
+interface ProviderExecutorConfig {
+    providers: CrossChainProvider[];
+    sortingStrategy?: SortingStrategy;
+    timeoutMs?: number;
+}
+
+const DEFAULT_TIMEOUT_MS = 15_000;
 
 /**
  * A service that get quotes in batches and executes cross-chain actions
  * TODO: Improve types declaration to define getQuotesParams interface depending on the selected param parser
  */
-class ProviderExecutor<
-    GetQuotesExecutorParams,
-    SelectedParamParser extends ParamsParser<GetQuotesExecutorParams>,
-> {
-    private readonly providers: Record<string, CrossChainProvider<BasicOpenParams>>;
-    private readonly paramParser?: SelectedParamParser;
-
+class ProviderExecutor {
+    private readonly providers: Record<string, CrossChainProvider>;
+    private readonly sortingStrategy?: SortingStrategy;
+    private readonly timeoutMs: number;
     /**
      * Constructor
      * @param providers - The providers to use
      */
-    constructor(
-        providers: CrossChainProvider<BasicOpenParams>[],
-        dependencies: ExecutorDependencies<SelectedParamParser>,
-    ) {
-        this.paramParser = dependencies.paramParser;
+    constructor(config: ProviderExecutorConfig) {
+        const { providers, sortingStrategy, timeoutMs } = config;
         this.providers = providers.reduce(
             (acc, provider) => {
-                acc[provider.getProtocolName()] = provider;
+                acc[provider.getProviderId()] = provider;
                 return acc;
             },
-            {} as Record<string, CrossChainProvider<BasicOpenParams>>,
+            {} as Record<string, CrossChainProvider>,
         );
+        this.sortingStrategy = sortingStrategy;
+        this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    }
+
+    private splitQuotesAndErrors(quotes: (ExecutableQuote | GetQuotesError)[]): GetQuotesResponse {
+        return {
+            quotes: quotes.filter((quote) => "order" in quote) as ExecutableQuote[],
+            errors: quotes.filter((quote) => "error" in quote) as GetQuotesError[],
+        };
     }
 
     /**
@@ -56,36 +65,50 @@ class ProviderExecutor<
      * @param params - The parameters for the action
      * @returns The quotes for the action
      */
-    async getQuotes<Action extends ValidActions>(
-        action: Action,
-        params: SelectedParamParser extends undefined
-            ? GetQuoteParams<Action>
-            : GetQuotesExecutorParams,
-    ): Promise<GetQuotesResponse> {
-        const parsedParams = this.paramParser
-            ? await this.paramParser.parseGetQuoteParams(action, params)
-            : (params as GetQuoteParams<Action>);
-
-        const quotes = await Promise.all(
+    async getQuotes(params: GetQuoteRequest): Promise<GetQuotesResponse> {
+        const resultQuotes = await Promise.all(
             Object.values(this.providers).map(async (provider) => {
                 try {
-                    return await provider.getQuote(action, parsedParams);
+                    const quotesPromise = provider.getQuotes(params).then((quotes) =>
+                        quotes.map((quote) => ({
+                            ...quote,
+                            provider: provider.getProviderId(),
+                        })),
+                    );
+
+                    let timeout: NodeJS.Timeout;
+
+                    const timeoutPromise = new Promise<never>((_, reject) => {
+                        timeout = setTimeout(() => {
+                            reject(new ProviderTimeout(`Timeout after ${this.timeoutMs}ms`));
+                        }, this.timeoutMs);
+                    });
+
+                    return await Promise.race([quotesPromise, timeoutPromise]).finally(() => {
+                        clearTimeout(timeout);
+                    });
                 } catch (error) {
-                    if (error instanceof Error) {
-                        return {
-                            errorMsg: error.message,
-                            error,
-                        };
+                    if (error instanceof ProviderTimeout) {
+                        return { error: error, errorMsg: error.message };
                     }
                     return {
-                        errorMsg: "Unknown error",
                         error: new Error(String(error)),
+                        errorMsg: (error as Error).message ?? "Unknown error",
                     };
                 }
             }),
-        );
+        ).then((results) => results.flat());
 
-        return quotes;
+        const response = this.splitQuotesAndErrors(resultQuotes);
+
+        if (this.sortingStrategy) {
+            return {
+                quotes: this.sortingStrategy.sort(response.quotes),
+                errors: response.errors,
+            };
+        }
+
+        return response;
     }
 
     /**
@@ -93,30 +116,24 @@ class ProviderExecutor<
      * @param quote - The quote to execute
      * @returns The transaction requests for the action
      */
-    async execute(
-        quote: GetQuoteResponse<ValidActions, BasicOpenParams>,
-    ): Promise<TransactionRequest[]> {
-        const provider = this.providers[quote.protocol];
+    async execute(quote: ExecutableQuote, signer: EIP1193Provider): Promise<PostOrderResponse> {
+        const provider = this.providers[quote.provider ?? ""];
         if (!provider) {
-            throw new ProviderNotFound(quote.protocol);
+            throw new ProviderNotFound(quote.provider ?? "No provider id in quote");
         }
-        return provider.simulateOpen(quote.openParams);
+        return provider.execute(quote, signer);
     }
 }
 
 /**
  * Create a provider executor
  * @param providers - The providers to use
+ * @param sortingStrategy - The sorting strategy to use
+ * @param timeoutMs - The timeout in milliseconds
  * @returns The provider executor
  */
-const createProviderExecutor = <
-    GetQuotesExecutorParams,
-    SelectedParamParser extends ParamsParser<GetQuotesExecutorParams>,
->(
-    providers: CrossChainProvider<BasicOpenParams>[],
-    dependencies: ExecutorDependencies<SelectedParamParser> = {},
-): ProviderExecutor<GetQuotesExecutorParams, SelectedParamParser> => {
-    return new ProviderExecutor(providers, dependencies);
+const createProviderExecutor = (config: ProviderExecutorConfig): ProviderExecutor => {
+    return new ProviderExecutor(config);
 };
 
 export { ProviderExecutor, createProviderExecutor };

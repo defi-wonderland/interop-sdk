@@ -1,117 +1,67 @@
-import { TransactionRequest } from "viem";
+import { GetQuoteRequest, PostOrderResponse, Quote } from "@openintentsframework/oif-specs";
+import { EIP1193Provider, PrepareTransactionRequestReturnType } from "viem";
 
-import {
-    CrossChainProvider,
-    GetQuoteParams,
-    GetQuoteResponse,
-    SampleOpenParams,
-    SampleOpenParamsSchema,
-    SwapGetQuoteParamsSchema,
-    TransferGetQuoteParamsSchema,
-} from "../internal.js";
+import { CrossChainProvider, ExecutableQuote } from "../internal.js";
+// TODO: REMOVE THIS IMPORT WHEN OIF-SPECS IS UPDATED WITH SCHEMAS
+import { getQuoteRequestSchema } from "../schemas/oif.js";
+
+interface SampleGetQuoteParams {
+    input: {
+        asset: string;
+        amount: bigint;
+    };
+    output: string;
+}
+
+interface SampleGetQuoteResponse {
+    input: {
+        asset: string;
+        amount: bigint;
+    };
+    output: string;
+}
 
 /**
  * A sample implementation of the CrossChainProvider interface.
  * This provider is used to demonstrate the functionality of the CrossChainProvider interface.
  */
-export class SampleProvider extends CrossChainProvider<SampleOpenParams> {
+export class SampleProvider extends CrossChainProvider {
     readonly protocolName = "sample";
+    readonly providerId: string = "sample_id";
 
     constructor() {
         super();
     }
 
-    /**
-     * @inheritdoc
-     */
-    async getQuote<Action extends SampleOpenParams["action"]>(
-        action: Action,
-        input: GetQuoteParams<Action>,
-    ): Promise<GetQuoteResponse<Action, SampleOpenParams>> {
-        switch (action) {
-            case "crossChainTransfer":
-                const transferParams = TransferGetQuoteParamsSchema.parse(input);
+    async convertOifParamsToSampleParams(_params: GetQuoteRequest): Promise<SampleGetQuoteParams> {
+        throw new Error("Not implemented");
+    }
 
-                return {
-                    isAmountTooLow: false,
-                    protocol: "sample",
-                    action,
-                    output: {
-                        inputTokenAddress: transferParams.inputTokenAddress,
-                        outputTokenAddress: transferParams.outputTokenAddress,
-                        inputAmount: transferParams.inputAmount,
-                        outputAmount: transferParams.inputAmount,
-                        inputChainId: transferParams.inputChainId,
-                        outputChainId: transferParams.outputChainId,
-                    },
-                    openParams: {
-                        action,
-                        params: {
-                            inputTokenAddress: transferParams.inputTokenAddress,
-                            outputTokenAddress: transferParams.outputTokenAddress,
-                            inputAmount: transferParams.inputAmount,
-                            inputChainId: transferParams.inputChainId,
-                            outputChainId: transferParams.outputChainId,
-                        },
-                    },
-                    fee: {
-                        total: "0",
-                        percent: "0",
-                    },
-                } as GetQuoteResponse<Action, SampleOpenParams>;
+    async convertSampleResponseToOifResponse(_response: SampleGetQuoteResponse): Promise<Quote> {
+        throw new Error("Not implemented");
+    }
 
-            case "crossChainSwap":
-                const swapParams = SwapGetQuoteParamsSchema.parse(input);
-
-                return {
-                    isAmountTooLow: false,
-                    protocol: "sample",
-                    action,
-                    output: {
-                        inputTokenAddress: swapParams.inputTokenAddress,
-                        outputTokenAddress: swapParams.outputTokenAddress,
-                        inputAmount: swapParams.inputAmount,
-                        outputAmount: swapParams.outputAmount,
-                        inputChainId: swapParams.inputChainId,
-                        outputChainId: swapParams.outputChainId,
-                    },
-                    openParams: {
-                        action,
-                        params: {
-                            inputTokenAddress: swapParams.inputTokenAddress,
-                            outputTokenAddress: swapParams.outputTokenAddress,
-                            inputAmount: swapParams.inputAmount,
-                            outputAmount: swapParams.outputAmount,
-                            inputChainId: swapParams.inputChainId,
-                            outputChainId: swapParams.outputChainId,
-                        },
-                    },
-                    fee: {
-                        total: "0",
-                        percent: "0",
-                    },
-                } as GetQuoteResponse<Action, SampleOpenParams>;
-            default:
-                throw new Error("Invalid action");
-        }
+    async getSampleQuote(_params: SampleGetQuoteParams): Promise<SampleGetQuoteResponse> {
+        throw new Error("Not implemented");
     }
 
     /**
      * @inheritdoc
      */
-    validateOpenParams(params: SampleOpenParams): void {
-        SampleOpenParamsSchema.parse(params);
+    async getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]> {
+        const parsedParams = getQuoteRequestSchema.parse(params);
+        const sampleParams = await this.convertOifParamsToSampleParams(parsedParams);
+        const sampleQuote = await this.getSampleQuote(sampleParams);
+        const oifQuote = await this.convertSampleResponseToOifResponse(sampleQuote);
+        const executableQuote: ExecutableQuote = {
+            ...oifQuote,
+            preparedTransaction: "0x" as unknown as PrepareTransactionRequestReturnType,
+        };
+
+        return [executableQuote];
     }
 
-    /**
-     * @inheritdoc
-     */
-    validatedSimulateOpen(params: SampleOpenParams): Promise<TransactionRequest[]> {
-        switch (params.action) {
-            case "crossChainTransfer":
-                return Promise.resolve([]);
-            case "crossChainSwap":
-                return Promise.resolve([]);
-        }
+    async execute(_quote: ExecutableQuote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
+        throw new Error("Not implemented");
     }
 }

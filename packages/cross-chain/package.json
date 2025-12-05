@@ -33,11 +33,15 @@
     },
     "dependencies": {
         "@across-protocol/app-sdk": "0.2.2",
+        "@openintentsframework/oif-specs": "1.0.0",
         "@wonderland/interop-addresses": "workspace:*",
+        "axios": "1.9.0",
+        "uuid": "13.0.0",
         "viem": "2.29.2",
         "zod": "3.24.3"
     },
     "devDependencies": {
+        "ts-to-zod": "3.1.0",
         "typescript": "5.5.4"
     }
 }
