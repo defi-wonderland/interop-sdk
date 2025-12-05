@@ -98,13 +98,13 @@ export class InteropAddressProvider {
      *  version: 1,
      *  chainType: "eip155",
      *  chainReference: "0x1",
-     *  address: "0x1",
+     *  address: "0x1", // Can also be an ENS name like "vitalik.eth"
      * }
-     * const interopAddress = InteropAddressProvider.buildFromPayload(payload);
+     * const interopAddress = await InteropAddressProvider.buildFromPayload(payload);
      * ```
      */
-    public static buildFromPayload(payload: InteropAddressFields): BinaryAddress {
-        const interopAddress = buildInteropAddress(payload);
+    public static async buildFromPayload(payload: InteropAddressFields): Promise<BinaryAddress> {
+        const interopAddress = await buildInteropAddress(payload);
         return toBinary(interopAddress) as BinaryAddress;
     }
 

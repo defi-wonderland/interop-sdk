@@ -15,6 +15,6 @@
         "^[../]",
         "^[./]"
     ],
-    "importOrderParserPlugins": ["typescript", "decorators-legacy"],
+    "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"],
     "importOrderTypeScriptVersion": "5.4.5"
 }

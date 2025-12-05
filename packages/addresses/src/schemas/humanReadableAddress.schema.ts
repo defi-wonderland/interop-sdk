@@ -7,7 +7,7 @@ import {
     InvalidChainNamespace,
     isValidChain,
     MissingHumanReadableAddress,
-    shortnameToChainId,
+    resolveChainReference,
 } from "../internal.js";
 import { interpretInteropNameComponents } from "../utils/interpretInteropNameComponents.js";
 import { parseInteropAddressString } from "../utils/parseInteropAddressString.js";
@@ -28,8 +28,10 @@ export const HumanReadableAddressSchema = z.string().transform(async (value) => 
         throw new InvalidChainNamespace(chainNamespace);
     }
 
-    const resolvedChainId = await shortnameToChainId(chainReference);
-    const finalChainReference = resolvedChainId ? resolvedChainId.toString() : chainReference;
+    const finalChainReference = await resolveChainReference(
+        chainNamespace as ChainTypeName,
+        chainReference,
+    );
 
     if (
         finalChainReference &&

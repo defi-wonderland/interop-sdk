@@ -35,12 +35,12 @@ export const BUILD_MODE_EXAMPLES = [
   },
   {
     address: '0x1234567890123456789012345678901234567890',
-    chainReference: '42161',
+    chainReference: 'arb1',
     description: '0x1234...7890 (Arbitrum One)',
   },
   {
     address: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-    chainReference: '10',
-    description: '0xabcdef...abcd (Optimism)',
+    chainReference: 'base',
+    description: '0xabcdef...abcd (Base)',
   },
 ];
