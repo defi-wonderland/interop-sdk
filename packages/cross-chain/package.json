@@ -41,7 +41,7 @@
         "zod": "3.24.3"
     },
     "devDependencies": {
-        "ts-to-zod": "^3.1.0",
+        "ts-to-zod": "3.1.0",
         "typescript": "5.5.4"
     }
 }
