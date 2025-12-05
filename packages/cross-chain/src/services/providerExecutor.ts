@@ -1,4 +1,4 @@
-import { GetQuoteRequest, PostOrderResponse } from "@wonderland/interop-oif-specs";
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import { EIP1193Provider } from "viem";
 
 import {

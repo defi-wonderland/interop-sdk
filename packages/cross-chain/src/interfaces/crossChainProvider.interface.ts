@@ -1,4 +1,4 @@
-import type { GetQuoteRequest, PostOrderResponse } from "@wonderland/interop-oif-specs";
+import type { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import type { EIP1193Provider } from "viem";
 
 import type { ExecutableQuote } from "./quotes.interface.js";

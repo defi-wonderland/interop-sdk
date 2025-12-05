@@ -1,5 +1,5 @@
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import { buildFromPayload, getAddress, getChainId } from "@wonderland/interop-addresses";
-import { GetQuoteRequest, PostOrderResponse, Quote } from "@wonderland/interop-oif-specs";
 import axios, { AxiosError } from "axios";
 import {
     AbiEvent,
@@ -40,6 +40,7 @@ import {
     ProviderConfigFailure,
     ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
+    QuoteWithAcross,
 } from "../internal.js";
 
 /**
@@ -211,7 +212,7 @@ export class AcrossProvider extends CrossChainProvider {
     private convertAcrossSwapToOifQuote(
         request: AcrossOIFGetQuoteParams,
         response: AcrossGetQuoteResponse,
-    ): Quote {
+    ): QuoteWithAcross {
         const { inputs, outputs } = request.intent;
 
         return {
@@ -245,6 +246,7 @@ export class AcrossProvider extends CrossChainProvider {
             quoteId: response.id,
             eta: response.expectedFillTime,
             partialFill: false,
+            failureHandling: "refund-automatic",
             metadata: {
                 acrossResponse: response,
             },

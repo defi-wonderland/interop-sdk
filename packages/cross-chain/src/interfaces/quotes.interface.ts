@@ -1,5 +1,23 @@
-import type { Quote } from "@wonderland/interop-oif-specs";
-import type { PrepareTransactionRequestReturnType } from "viem";
+import type { Order, Quote } from "@openintentsframework/oif-specs";
+import type { Address, PrepareTransactionRequestReturnType } from "viem";
+
+interface AcrossOrder {
+    type: "across";
+    payload: {
+        simulationSuccess: boolean;
+        chainId: number;
+        to: Address;
+        data: string;
+        gas: string;
+        maxFeePerGas: string;
+        maxPriorityFeePerGas: string;
+    };
+    metadata: object;
+}
+
+export interface QuoteWithAcross extends Omit<Quote, "order"> {
+    order: Order | AcrossOrder;
+}
 
 /**
  * An executable quote is a quote that has been prepared for execution
@@ -10,6 +28,6 @@ import type { PrepareTransactionRequestReturnType } from "viem";
  *   preparedTransaction: PrepareTransactionRequestReturnType,
  * }
  */
-export interface ExecutableQuote extends Quote {
+export interface ExecutableQuote extends QuoteWithAcross {
     preparedTransaction?: PrepareTransactionRequestReturnType;
 }

@@ -1,12 +1,9 @@
-import {
-    GetQuoteRequest,
-    getQuoteRequestSchema,
-    PostOrderResponse,
-    Quote,
-} from "@wonderland/interop-oif-specs";
+import { GetQuoteRequest, PostOrderResponse, Quote } from "@openintentsframework/oif-specs";
 import { EIP1193Provider, PrepareTransactionRequestReturnType } from "viem";
 
 import { CrossChainProvider, ExecutableQuote } from "../internal.js";
+// TODO: REMOVE THIS IMPORT WHEN OIF-SPECS IS UPDATED WITH SCHEMAS
+import { getQuoteRequestSchema } from "../schemas/oif.js";
 
 interface SampleGetQuoteParams {
     input: {

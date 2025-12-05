@@ -1,3 +1,8 @@
+import { v4 as uuidv4 } from "uuid";
+import { isHex } from "viem";
+import { z } from "zod";
+
+import { HexAddressSchema } from "./address.js";
 import {
     failureHandlingModeSchema,
     inputSchema,
@@ -5,12 +10,7 @@ import {
     outputSchema,
     quotePreferenceSchema,
     swapTypeSchema,
-} from "@wonderland/interop-oif-specs";
-import { v4 as uuidv4 } from "uuid";
-import { isHex } from "viem";
-import { z } from "zod";
-
-import { HexAddressSchema } from "./address.js";
+} from "./oif.js";
 
 export const AcrossGetQuoteParamsSchema = z.object({
     tradeType: z

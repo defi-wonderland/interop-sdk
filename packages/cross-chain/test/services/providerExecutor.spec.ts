@@ -1,5 +1,5 @@
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import { buildFromPayload } from "@wonderland/interop-addresses";
-import { GetQuoteRequest, PostOrderResponse } from "@wonderland/interop-oif-specs";
 import { Address, EIP1193Provider } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
