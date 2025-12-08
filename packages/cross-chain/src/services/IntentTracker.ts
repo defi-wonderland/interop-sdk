@@ -14,7 +14,6 @@ import {
  * Event map for IntentTracker events
  */
 export interface IntentTrackerEvents {
-    update: (update: IntentUpdate) => void;
     opening: (update: IntentUpdate) => void;
     opened: (update: IntentUpdate) => void;
     filling: (update: IntentUpdate) => void;
@@ -214,30 +213,34 @@ export class IntentTracker extends EventEmitter {
      * Uses watchIntent() internally and emits events for each status change
      * Returns a promise that resolves when the intent is filled or expired
      *
-     * @param params - Watch parameters
+     * @param params - Watch parameters including optional timeout (defaults to 5 minutes)
+     * @param params.txHash - Transaction hash where the intent was opened
+     * @param params.originChainId - Origin chain ID
+     * @param params.destinationChainId - Destination chain ID
+     * @param params.timeout - Optional timeout in ms (default: 300000ms / 5 min)
      * @returns Promise that resolves with final intent status
      *
      * @example
      * ```typescript
      * const tracker = new IntentTracker(...);
      *
-     * tracker.on('update', (update) => console.log(update.status));
+     * tracker.on('opening', (update) => console.log('Opening...'));
      * tracker.on('filled', (update) => console.log('Filled!', update.fillTxHash));
+     * tracker.on('expired', (update) => console.log('Expired'));
      *
      * const finalStatus = await tracker.startTracking({
      *   txHash,
      *   originChainId,
-     *   destinationChainId
+     *   destinationChainId,
+     *   timeout: 10 * 60 * 1000 // 10 minutes
      * });
      * ```
      */
     async startTracking(params: WatchIntentParams): Promise<IntentStatusInfo> {
         try {
             for await (const update of this.watchIntent(params)) {
-                // Emit generic update event
-                this.emit("update", update);
-
-                // Emit status-specific event
+                // Emit status-specific events (e.g., "opening", "filled", "expired")
+                // Consumers can listen to specific events they care about
                 this.emit(update.status, update);
 
                 // Stop if we reached a final state

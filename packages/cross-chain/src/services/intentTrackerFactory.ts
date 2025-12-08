@@ -68,13 +68,13 @@ export function createIntentTracker(
 
     // Use custom implementations if provided, otherwise use provider's config
     const depositInfoParser =
-        customDepositInfoParser ||
+        customDepositInfoParser ??
         new EventBasedDepositInfoParser(provider.getTrackingConfig().depositInfoParser, {
             clientManager,
         });
 
     const fillWatcher =
-        customFillWatcher ||
+        customFillWatcher ??
         new EventBasedFillWatcher(provider.getTrackingConfig().fillWatcher, {
             clientManager,
         });

@@ -440,7 +440,7 @@ describe("IntentTracker", () => {
     });
 
     describe("startTracking with event emission", () => {
-        it("should emit events during tracking", async () => {
+        it("should emit specific status events during tracking", async () => {
             const mockOpenEvent = createMockOpenEvent();
             const mockDepositInfo = createMockDepositInfo();
             const mockFillEventData = createMockFillEvent();
@@ -449,13 +449,11 @@ describe("IntentTracker", () => {
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
 
-            const updateEvents: IntentUpdate[] = [];
             const openingEvents: IntentUpdate[] = [];
             const openedEvents: IntentUpdate[] = [];
             const fillingEvents: IntentUpdate[] = [];
             const filledEvents: IntentUpdate[] = [];
 
-            tracker.on("update", (update: IntentUpdate) => updateEvents.push(update));
             tracker.on("opening", (update: IntentUpdate) => openingEvents.push(update));
             tracker.on("opened", (update: IntentUpdate) => openedEvents.push(update));
             tracker.on("filling", (update: IntentUpdate) => fillingEvents.push(update));
@@ -470,17 +468,16 @@ describe("IntentTracker", () => {
 
             await tracker.startTracking(params);
 
-            // Should emit 4 update events: opening, opened, filling, filled
-            expect(updateEvents).toHaveLength(4);
+            // Should emit specific status events: opening, opened, filling, filled
             expect(openingEvents).toHaveLength(1);
             expect(openedEvents).toHaveLength(1);
             expect(fillingEvents).toHaveLength(1);
             expect(filledEvents).toHaveLength(1);
 
-            expect(updateEvents[0]!.status).toBe("opening");
-            expect(updateEvents[1]!.status).toBe("opened");
-            expect(updateEvents[2]!.status).toBe("filling");
-            expect(updateEvents[3]!.status).toBe("filled");
+            expect(openingEvents[0]!.status).toBe("opening");
+            expect(openedEvents[0]!.status).toBe("opened");
+            expect(fillingEvents[0]!.status).toBe("filling");
+            expect(filledEvents[0]!.status).toBe("filled");
         });
 
         it("should return final status info", async () => {
