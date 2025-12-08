@@ -14,6 +14,7 @@ import {
     ExecutableQuote,
     ProviderGetQuoteFailure,
 } from "../../src/internal.js";
+import { createMockDepositInfo, createMockFillEvent } from "../mocks/intentTracking.js";
 
 // Common addresses for testing
 const USER_ADDRESS = "0x0000000000000000000000000000000000000001" as Address;
@@ -215,6 +216,94 @@ describe("ProviderExecutor", () => {
     describe("tracking", () => {
         const MOCK_API_URL = "https://mocked.across.url/api";
         const MOCK_PROVIDER_ID = "across";
+
+        describe("getIntentStatus", () => {
+            it("returns intent status for a given transaction", async () => {
+                const providerExecutor = createProviderExecutor({
+                    providers: [
+                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
+                    ],
+                });
+
+                const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+                const getIntentStatusSpy = vi.spyOn(tracker, "getIntentStatus");
+
+                const mockDepositInfo = createMockDepositInfo({
+                    depositId: 123n,
+                    destinationChainId: 84532n,
+                });
+                const mockFillEvent = createMockFillEvent({
+                    depositId: 123n,
+                });
+
+                const mockStatus = {
+                    status: "filled" as const,
+                    orderId: "0xabc123" as Hex,
+                    openTxHash: "0xdef456" as Hex,
+                    user: USER_ADDRESS,
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                    fillDeadline: Math.floor(Date.now() / 1000) + 3600,
+                    depositInfo: mockDepositInfo,
+                    fillEvent: mockFillEvent,
+                };
+
+                getIntentStatusSpy.mockResolvedValue(mockStatus);
+
+                const result = await providerExecutor.getIntentStatus({
+                    txHash: "0xdef456" as Hex,
+                    providerId: MOCK_PROVIDER_ID,
+                    originChainId: 11155111,
+                });
+
+                expect(result).toEqual(mockStatus);
+                expect(getIntentStatusSpy).toHaveBeenCalledWith("0xdef456", 11155111);
+            });
+
+            it("throws error for unsupported provider", async () => {
+                const providerExecutor = createProviderExecutor({
+                    providers: [
+                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
+                    ],
+                });
+
+                await expect(
+                    providerExecutor.getIntentStatus({
+                        txHash: "0xabc123" as Hex,
+                        providerId: "unsupported",
+                        originChainId: 11155111,
+                    }),
+                ).rejects.toThrow();
+            });
+
+            it("uses cached tracker instance", async () => {
+                const providerExecutor = createProviderExecutor({
+                    providers: [
+                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
+                    ],
+                });
+
+                const tracker1 = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+                const getIntentStatusSpy = vi.spyOn(tracker1, "getIntentStatus").mockResolvedValue({
+                    status: "filling",
+                    orderId: "0xorder1" as Hex,
+                    openTxHash: "0xtx1" as Hex,
+                    user: USER_ADDRESS,
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                    fillDeadline: Math.floor(Date.now() / 1000) + 3600,
+                    depositInfo: createMockDepositInfo(),
+                });
+
+                await providerExecutor.getIntentStatus({
+                    txHash: "0xtx1" as Hex,
+                    providerId: MOCK_PROVIDER_ID,
+                    originChainId: 11155111,
+                });
+
+                expect(getIntentStatusSpy).toHaveBeenCalled();
+            });
+        });
 
         describe("prepareTracking", () => {
             it("returns an IntentTracker instance", () => {

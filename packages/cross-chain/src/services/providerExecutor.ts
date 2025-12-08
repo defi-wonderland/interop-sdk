@@ -6,6 +6,7 @@ import {
     EventBasedDepositInfoParser,
     EventBasedFillWatcher,
     ExecutableQuote,
+    IntentStatusInfo,
     IntentTracker,
     OpenEventWatcher,
     ProviderNotFound,
@@ -36,13 +37,6 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 
 /**
  * A service that get quotes in batches and executes cross-chain actions
- * Supports intent tracking for executed transactions using provider's tracking configurations
- *
- * Tracking features:
- * - Automatic tracker creation from provider configurations
- * - Event-based status updates for UI integration
- * - Tracker caching for efficiency (one instance per protocol)
- * - Optional custom RPC URLs for faster blockchain queries
  */
 class ProviderExecutor {
     private readonly providers: Record<string, CrossChainProvider>;
@@ -200,7 +194,6 @@ class ProviderExecutor {
     }): IntentTracker {
         const tracker = this.getOrCreateTracker(params.providerId);
 
-        // Start tracking asynchronously
         const trackingParams: WatchIntentParams = {
             txHash: params.txHash,
             originChainId: params.originChainId,
@@ -208,13 +201,38 @@ class ProviderExecutor {
             timeout: params.timeout,
         };
 
-        // Start tracking in background
         tracker.startTracking(trackingParams).catch((error) => {
-            // Error will be emitted via 'error' event
             console.error("Tracking error:", error);
         });
 
         return tracker;
+    }
+
+    /**
+     * Get the current status of an intent without setting up event-based tracking
+     * This is a simple, one-time status check
+     *
+     * @param params - Status query parameters
+     * @returns Current intent status information
+     *
+     * @example
+     * ```typescript
+     * const status = await executor.getIntentStatus({
+     *   txHash: '0x123...',
+     *   providerId: 'across',
+     *   originChainId: 11155111
+     * });
+     *
+     * console.log(status.status); // 'filled' | 'filling' | 'expired'
+     * ```
+     */
+    async getIntentStatus(params: {
+        txHash: Hex;
+        providerId: string;
+        originChainId: number;
+    }): Promise<IntentStatusInfo> {
+        const tracker = this.getOrCreateTracker(params.providerId);
+        return tracker.getIntentStatus(params.txHash, params.originChainId);
     }
 
     /**
@@ -228,27 +246,21 @@ class ProviderExecutor {
      * @throws {ProviderNotFound} If provider is not registered in executor
      */
     private getOrCreateTracker(providerId: string): IntentTracker {
-        // Check cache first
         if (this.trackerCache.has(providerId)) {
             return this.trackerCache.get(providerId)!;
         }
 
-        // Get provider instance (executor already has it)
         const provider = this.providers[providerId];
         if (!provider) {
             throw new ProviderNotFound(providerId);
         }
 
-        // Get tracking config from provider instance (no hardcoded protocol logic!)
         const config = provider.getTrackingConfig();
 
-        // Create PublicClientManager with optional custom RPCs
         const clientManager = new PublicClientManager(undefined, this.rpcUrls);
 
-        // Create OpenEventWatcher (protocol-agnostic, uses EIP-7683)
         const openWatcher = new OpenEventWatcher({ clientManager });
 
-        // Create protocol-specific services using provider's config
         const depositInfoParser = new EventBasedDepositInfoParser(config.depositInfoParser, {
             clientManager,
         });
@@ -257,7 +269,6 @@ class ProviderExecutor {
             clientManager,
         });
 
-        // Create and cache tracker
         const tracker = new IntentTracker(openWatcher, depositInfoParser, fillWatcher);
         this.trackerCache.set(providerId, tracker);
 
