@@ -1,10 +1,10 @@
 {
-    "name": "@defi-wonderland/interop-addresses",
-    "version": "0.0.1",
-    "description": "",
+    "name": "@wonderland/interop-addresses",
+    "version": "0.1.1",
+    "description": "Interoperable address utilities for cross-chain operations",
     "repository": {
         "type": "git",
-        "url": "https://github.com/defi-wonderland/interop-sdk.git",
+        "url": "git+https://github.com/defi-wonderland/interop-sdk.git",
         "directory": "packages/addresses"
     },
     "license": "MIT",

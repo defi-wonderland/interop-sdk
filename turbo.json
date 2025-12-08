@@ -24,7 +24,7 @@
         },
         "build": {
             "dependsOn": ["^build"],
-            "outputs": ["dist/**", "out/**"],
+            "outputs": ["dist/**", "out/**", ".next/**", "!.next/cache/**", "build/**"],
             "inputs": ["$TURBO_DEFAULT$", "src/**/*.ts", "src/**/*.json"]
         },
         "dev": {

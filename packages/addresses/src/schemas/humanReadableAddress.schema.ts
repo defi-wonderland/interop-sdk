@@ -5,44 +5,46 @@ import {
     ChainTypeName,
     InvalidChainIdentifier,
     InvalidChainNamespace,
-    InvalidHumanReadableAddress,
     isValidChain,
     MissingHumanReadableAddress,
-    shortnameToChainId,
+    resolveChainReference,
 } from "../internal.js";
+import { interpretInteropNameComponents } from "../utils/interpretInteropNameComponents.js";
+import { parseInteropAddressString } from "../utils/parseInteropAddressString.js";
 
+/**
+ * Zod schema for validating and transforming Interoperable Name strings
+ */
 export const HumanReadableAddressSchema = z.string().transform(async (value) => {
     if (!value || value.trim() === "") {
         throw new MissingHumanReadableAddress();
     }
 
-    const match = value.match(
-        /^([.\-:_%a-zA-Z0-9]*)@(?:([-a-z0-9]{3,8}):)?([\-_a-zA-Z0-9]*)?#?([A-F0-9]{8})?$/,
-    );
-    if (!match) throw new InvalidHumanReadableAddress(value);
+    const raw = parseInteropAddressString(value);
+    const interpreted = interpretInteropNameComponents(raw, value);
+    const { address, chainNamespace, chainReference, checksum, isENSName } = interpreted;
 
-    const [, address, namespace, chain, checksum] = match;
-    let chainNamespace = namespace;
-
-    if (!chainNamespace) {
-        chainNamespace = "eip155";
-    }
-
-    if (chainNamespace && !(chainNamespace in CHAIN_TYPE)) {
+    if (!(chainNamespace in CHAIN_TYPE)) {
         throw new InvalidChainNamespace(chainNamespace);
     }
 
-    const chainId = await shortnameToChainId(chain || "");
-    const chainReference = chainId ? chainId.toString() : (chain ?? "");
+    const finalChainReference = await resolveChainReference(
+        chainNamespace as ChainTypeName,
+        chainReference,
+    );
 
-    if (chainReference && !isValidChain(chainNamespace as ChainTypeName, chainReference)) {
-        throw new InvalidChainIdentifier(chainReference);
+    if (
+        finalChainReference &&
+        !isValidChain(chainNamespace as ChainTypeName, finalChainReference)
+    ) {
+        throw new InvalidChainIdentifier(finalChainReference);
     }
 
     return {
-        address: address || "",
+        address,
         chainNamespace,
-        chainReference: chainReference || "",
+        chainReference: finalChainReference,
         checksum,
+        isENSName,
     };
 });

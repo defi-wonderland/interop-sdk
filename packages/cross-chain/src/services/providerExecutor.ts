@@ -1,18 +1,17 @@
-import { Hex, TransactionRequest } from "viem";
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
+import { EIP1193Provider, Hex } from "viem";
 
 import {
-    BasicOpenParams,
     CrossChainProvider,
     EventBasedDepositInfoParser,
     EventBasedFillWatcher,
-    GetQuoteParams,
-    GetQuoteResponse,
+    ExecutableQuote,
     IntentTracker,
     OpenEventWatcher,
-    ParamsParser,
     ProviderNotFound,
+    ProviderTimeout,
     PublicClientManager,
-    ValidActions,
+    SortingStrategy,
     WatchIntentParams,
 } from "../internal.js";
 
@@ -21,34 +20,19 @@ type GetQuotesError = {
     error: Error;
 };
 
-type GetQuotesResponse = (GetQuoteResponse<ValidActions, BasicOpenParams> | GetQuotesError)[];
-
-/**
- * Dependencies for the executor
- */
-type ExecutorDependencies<SelectedParamParser> = {
-    paramParser?: SelectedParamParser;
-    /**
-     * Optional RPC URLs for blockchain queries (quote generation, tracking, etc.)
-     * Falls back to public RPCs if not provided
-     */
-    rpcUrls?: Record<number, string>;
-};
-
-/**
- * Result from executing a quote
- * Contains transaction requests and tracking context
- */
-export interface ExecuteResult {
-    /** Transaction requests to send */
-    transactions: TransactionRequest[];
-    /** Protocol used for execution */
-    protocol: string;
-    /** Origin chain ID */
-    originChainId: number;
-    /** Destination chain ID */
-    destinationChainId: number;
+interface GetQuotesResponse {
+    quotes: ExecutableQuote[];
+    errors: GetQuotesError[];
 }
+
+interface ProviderExecutorConfig {
+    providers: CrossChainProvider[];
+    sortingStrategy?: SortingStrategy;
+    timeoutMs?: number;
+    rpcUrls?: Record<number, string>;
+}
+
+const DEFAULT_TIMEOUT_MS = 15_000;
 
 /**
  * A service that get quotes in batches and executes cross-chain actions
@@ -59,112 +43,103 @@ export interface ExecuteResult {
  * - Event-based status updates for UI integration
  * - Tracker caching for efficiency (one instance per protocol)
  * - Optional custom RPC URLs for faster blockchain queries
- *
- * TODO: Improve types declaration to define getQuotesParams interface depending on the selected param parser
  */
-class ProviderExecutor<
-    GetQuotesExecutorParams,
-    SelectedParamParser extends ParamsParser<GetQuotesExecutorParams>,
-> {
-    private readonly providers: Record<string, CrossChainProvider<BasicOpenParams>>;
-    private readonly paramParser?: SelectedParamParser;
+class ProviderExecutor {
+    private readonly providers: Record<string, CrossChainProvider>;
+    private readonly sortingStrategy?: SortingStrategy;
+    private readonly timeoutMs: number;
     private readonly rpcUrls?: Record<number, string>;
     private readonly trackerCache: Map<string, IntentTracker> = new Map();
 
     /**
      * Constructor - internal use only, prefer createProviderExecutor() factory
      * @internal
-     * @param providers - Provider map (keyed by protocol name)
-     * @param dependencies - Optional dependencies (param parser, RPC URLs)
+     * @param config - Configuration for the executor
      */
-    constructor(
-        providers: Record<string, CrossChainProvider<BasicOpenParams>>,
-        dependencies: ExecutorDependencies<SelectedParamParser>,
-    ) {
-        this.paramParser = dependencies.paramParser;
-        this.rpcUrls = dependencies.rpcUrls;
-        this.providers = providers;
+    constructor(config: ProviderExecutorConfig) {
+        const { providers, sortingStrategy, timeoutMs, rpcUrls } = config;
+        this.providers = providers.reduce(
+            (acc, provider) => {
+                acc[provider.getProviderId()] = provider;
+                return acc;
+            },
+            {} as Record<string, CrossChainProvider>,
+        );
+        this.sortingStrategy = sortingStrategy;
+        this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
+        this.rpcUrls = rpcUrls;
+    }
+
+    private splitQuotesAndErrors(quotes: (ExecutableQuote | GetQuotesError)[]): GetQuotesResponse {
+        return {
+            quotes: quotes.filter((quote) => "order" in quote) as ExecutableQuote[],
+            errors: quotes.filter((quote) => "error" in quote) as GetQuotesError[],
+        };
     }
 
     /**
      * Get quotes for a cross-chain action from all providers
-     * @param action - The action to get quotes for
      * @param params - The parameters for the action
      * @returns The quotes for the action
      */
-    async getQuotes<Action extends ValidActions>(
-        action: Action,
-        params: SelectedParamParser extends undefined
-            ? GetQuoteParams<Action>
-            : GetQuotesExecutorParams,
-    ): Promise<GetQuotesResponse> {
-        const parsedParams = this.paramParser
-            ? await this.paramParser.parseGetQuoteParams(action, params)
-            : (params as GetQuoteParams<Action>);
-
-        const quotes = await Promise.all(
+    async getQuotes(params: GetQuoteRequest): Promise<GetQuotesResponse> {
+        const resultQuotes = await Promise.all(
             Object.values(this.providers).map(async (provider) => {
                 try {
-                    return await provider.getQuote(action, parsedParams);
+                    const quotesPromise = provider.getQuotes(params).then((quotes) =>
+                        quotes.map((quote) => ({
+                            ...quote,
+                            provider: provider.getProviderId(),
+                        })),
+                    );
+
+                    let timeout: NodeJS.Timeout;
+
+                    const timeoutPromise = new Promise<never>((_, reject) => {
+                        timeout = setTimeout(() => {
+                            reject(new ProviderTimeout(`Timeout after ${this.timeoutMs}ms`));
+                        }, this.timeoutMs);
+                    });
+
+                    return await Promise.race([quotesPromise, timeoutPromise]).finally(() => {
+                        clearTimeout(timeout);
+                    });
                 } catch (error) {
-                    if (error instanceof Error) {
-                        return {
-                            errorMsg: error.message,
-                            error,
-                        };
+                    if (error instanceof ProviderTimeout) {
+                        return { error: error, errorMsg: error.message };
                     }
                     return {
-                        errorMsg: "Unknown error",
                         error: new Error(String(error)),
+                        errorMsg: (error as Error).message ?? "Unknown error",
                     };
                 }
             }),
-        );
+        ).then((results) => results.flat());
 
-        return quotes;
+        const response = this.splitQuotesAndErrors(resultQuotes);
+
+        if (this.sortingStrategy) {
+            return {
+                quotes: this.sortingStrategy.sort(response.quotes),
+                errors: response.errors,
+            };
+        }
+
+        return response;
     }
 
     /**
      * Execute a cross-chain action
      * @param quote - The quote to execute
-     * @returns The transaction requests and execution context (for tracking)
+     * @param signer - The signer to use to sign the order
+     * @returns The response from the provider
      */
-    async execute(quote: GetQuoteResponse<ValidActions, BasicOpenParams>): Promise<ExecuteResult> {
-        const provider = this.providers[quote.protocol];
+    async execute(quote: ExecutableQuote, signer: EIP1193Provider): Promise<PostOrderResponse> {
+        const provider = this.providers[quote.provider ?? ""];
         if (!provider) {
-            throw new ProviderNotFound(quote.protocol);
+            throw new ProviderNotFound(quote.provider ?? "No provider id in quote");
         }
-
-        const transactions = await provider.simulateOpen(quote.openParams);
-
-        // Extract chain IDs from quote params
-        const { originChainId, destinationChainId } = this.extractChainIds(quote);
-
-        return {
-            transactions,
-            protocol: quote.protocol,
-            originChainId,
-            destinationChainId,
-        };
-    }
-
-    /**
-     * Extract chain IDs from quote parameters
-     * @private
-     */
-    private extractChainIds(quote: GetQuoteResponse<ValidActions, BasicOpenParams>): {
-        originChainId: number;
-        destinationChainId: number;
-    } {
-        const params = quote.openParams.params as Record<string, unknown>;
-        const originChainId = Number(
-            (params.inputChainId as number) || (params.originChainId as number),
-        );
-        const destinationChainId = Number(
-            (params.outputChainId as number) || (params.destinationChainId as number),
-        );
-
-        return { originChainId, destinationChainId };
+        return provider.execute(quote, signer);
     }
 
     /**
@@ -172,30 +147,29 @@ class ProviderExecutor<
      * Returns an IntentTracker instance that can be used to set up event listeners
      * before sending the transaction
      *
-     * @param result - The result from execute()
+     * @param providerId - The provider ID to get tracker for
      * @returns IntentTracker instance (not started yet)
      *
      * @example
      * ```typescript
-     * const result = await executor.execute(quote);
-     * const tracker = executor.prepareTracking(result);
+     * const tracker = executor.prepareTracking('across');
      *
      * // Set up listeners
      * tracker.on('filled', (update) => console.log('Filled!'));
      *
-     * // Send transaction
-     * const txHash = await wallet.sendTransaction(result.transactions[1]);
+     * // Execute and get tx hash
+     * const response = await executor.execute(quote, signer);
      *
      * // Start tracking
      * await tracker.startTracking({
-     *   txHash,
-     *   originChainId: result.originChainId,
-     *   destinationChainId: result.destinationChainId
+     *   txHash: response.txHash,
+     *   originChainId: 11155111,
+     *   destinationChainId: 84532
      * });
      * ```
      */
-    prepareTracking(result: ExecuteResult): IntentTracker {
-        return this.getOrCreateTracker(result.protocol);
+    prepareTracking(providerId: string): IntentTracker {
+        return this.getOrCreateTracker(providerId);
     }
 
     /**
@@ -209,7 +183,7 @@ class ProviderExecutor<
      * ```typescript
      * const tracker = executor.track({
      *   txHash: '0x123...',
-     *   protocol: 'across',
+     *   providerId: 'across',
      *   originChainId: 11155111,
      *   destinationChainId: 84532
      * });
@@ -219,12 +193,12 @@ class ProviderExecutor<
      */
     track(params: {
         txHash: Hex;
-        protocol: string;
+        providerId: string;
         originChainId: number;
         destinationChainId: number;
         timeout?: number;
     }): IntentTracker {
-        const tracker = this.getOrCreateTracker(params.protocol);
+        const tracker = this.getOrCreateTracker(params.providerId);
 
         // Start tracking asynchronously
         const trackingParams: WatchIntentParams = {
@@ -244,25 +218,25 @@ class ProviderExecutor<
     }
 
     /**
-     * Get or create a cached tracker for a protocol
+     * Get or create a cached tracker for a provider
      * Uses provider instance's getTrackingConfig() method to get protocol-specific configuration
-     * Trackers are created lazily and cached per protocol for efficiency
+     * Trackers are created lazily and cached per provider for efficiency
      *
      * @private
-     * @param protocol - Protocol name to get tracker for
+     * @param providerId - Provider ID to get tracker for
      * @returns IntentTracker instance
      * @throws {ProviderNotFound} If provider is not registered in executor
      */
-    private getOrCreateTracker(protocol: string): IntentTracker {
+    private getOrCreateTracker(providerId: string): IntentTracker {
         // Check cache first
-        if (this.trackerCache.has(protocol)) {
-            return this.trackerCache.get(protocol)!;
+        if (this.trackerCache.has(providerId)) {
+            return this.trackerCache.get(providerId)!;
         }
 
         // Get provider instance (executor already has it)
-        const provider = this.providers[protocol];
+        const provider = this.providers[providerId];
         if (!provider) {
-            throw new ProviderNotFound(protocol);
+            throw new ProviderNotFound(providerId);
         }
 
         // Get tracking config from provider instance (no hardcoded protocol logic!)
@@ -285,7 +259,7 @@ class ProviderExecutor<
 
         // Create and cache tracker
         const tracker = new IntentTracker(openWatcher, depositInfoParser, fillWatcher);
-        this.trackerCache.set(protocol, tracker);
+        this.trackerCache.set(providerId, tracker);
 
         return tracker;
     }
@@ -293,42 +267,19 @@ class ProviderExecutor<
 
 /**
  * Create a provider executor
- * Accepts providers of any OpenParams type as long as they extend BasicOpenParams
- * The factory handles type widening internally while maintaining type safety
- *
- * @param providers - The providers to use (can be different OpenParams types)
- * @param dependencies - Optional dependencies (param parser, RPC URLs)
+ * @param config - Configuration including providers, sorting strategy, timeout, and RPC URLs
  * @returns The provider executor
  *
  * @example
  * ```typescript
- * // No type assertions needed!
- * const executor = createProviderExecutor([
- *   new AcrossProvider(),
- *   new OtherProvider(),
- * ], {
+ * const executor = createProviderExecutor({
+ *   providers: [new AcrossProvider()],
  *   rpcUrls: { 11155111: 'https://...' }
  * });
  * ```
  */
-const createProviderExecutor = <
-    GetQuotesExecutorParams,
-    SelectedParamParser extends ParamsParser<GetQuotesExecutorParams>,
-    P extends BasicOpenParams = BasicOpenParams,
->(
-    providers: Array<CrossChainProvider<P>>,
-    dependencies: ExecutorDependencies<SelectedParamParser> = {},
-): ProviderExecutor<GetQuotesExecutorParams, SelectedParamParser> => {
-    // Convert providers to map with type widening (safe - we only use base interface methods)
-    const providerMap = providers.reduce(
-        (acc, provider) => {
-            acc[provider.getProtocolName()] = provider as CrossChainProvider<BasicOpenParams>;
-            return acc;
-        },
-        {} as Record<string, CrossChainProvider<BasicOpenParams>>,
-    );
-
-    return new ProviderExecutor(providerMap, dependencies);
+const createProviderExecutor = (config: ProviderExecutorConfig): ProviderExecutor => {
+    return new ProviderExecutor(config);
 };
 
 export { ProviderExecutor, createProviderExecutor };

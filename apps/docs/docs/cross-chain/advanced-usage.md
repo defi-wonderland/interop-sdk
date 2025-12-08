@@ -7,7 +7,7 @@ title: Advanced Usage
 For more complex scenarios, you can use the ProviderExecutor to manage multiple providers:
 
 ```typescript
-import { createProviderExecutor } from "@defi-wonderland/interop";
+import { createProviderExecutor } from "@wonderland/interop";
 
 const executor = createProviderExecutor([acrossProvider, sampleProvider]);
 
@@ -20,11 +20,7 @@ const executor = createProviderExecutor([acrossProvider, sampleProvider]);
 The package includes specific error types for better error handling:
 
 ```typescript
-import {
-    UnsupportedAction,
-    UnsupportedChainId,
-    UnsupportedProtocol,
-} from "@defi-wonderland/interop";
+import { UnsupportedAction, UnsupportedChainId, UnsupportedProtocol } from "@wonderland/interop";
 
 try {
     // Your cross-chain operations here

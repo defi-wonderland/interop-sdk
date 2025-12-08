@@ -14,8 +14,8 @@ describe("isInteropAddress", () => {
     // Missing chain and checksum
     testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37", false);
 
-    // Missing chain reference
-    testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37@eip155", false);
+    // Missing chain reference (valid per ERC-7930 for raw addresses)
+    testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37@eip155", true);
 
     // Missing chain namespace
     testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37@:1#4CA88C9C", false);
@@ -28,8 +28,8 @@ describe("isInteropAddress", () => {
     // Invalid checksum
     testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#FFFFFFFF", false);
 
-    // Missing checksum
-    testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1", false);
+    // Missing checksum (valid per ERC-7930/7828)
+    testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1", true);
 
     // Invalid chain namespace
     testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1000000#4CA88C9C", false);

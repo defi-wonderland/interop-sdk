@@ -4,10 +4,15 @@ on:
     workflow_call:
     workflow_dispatch:
 
+permissions:
+    contents: read
+    id-token: write
+
 jobs:
     publish:
+        if: github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || (github.event_name == 'release' && github.event.release.draft == false)
         runs-on: ubuntu-latest
-        environment: Development
+        environment: Publisher
         defaults:
             run:
                 working-directory: packages/addresses
@@ -37,7 +42,13 @@ jobs:
             - name: Run Build
               run: pnpm build
 
-            - name: Publish
-              run: npm publish --access public --tag canary
-              env:
-                  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+            - name: Update npm (for OIDC support)
+              run: npm install -g npm@11.5.2
+
+            - name: Publish snapshot (dev branch)
+              if: github.ref == 'refs/heads/dev'
+              run: npm publish --access public --tag snapshot
+
+            - name: Publish stable (main branch)
+              if: github.ref == 'refs/heads/main'
+              run: npm publish --access public

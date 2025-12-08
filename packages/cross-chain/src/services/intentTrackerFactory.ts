@@ -1,7 +1,6 @@
 import { PublicClient } from "viem";
 
 import {
-    BasicOpenParams,
     CrossChainProvider,
     DepositInfoParser,
     EventBasedDepositInfoParser,
@@ -54,7 +53,7 @@ export interface IntentTrackerConfig {
  * ```
  */
 export function createIntentTracker(
-    provider: CrossChainProvider<BasicOpenParams>,
+    provider: CrossChainProvider,
     config?: IntentTrackerConfig,
 ): IntentTracker {
     const {

@@ -1,11 +1,16 @@
 import { z } from "zod";
 
-import { AcrossTransferOpenParamsSchema } from "../schemas/AcrossTransferOpenParams.schema.js";
+import {
+    AcrossConfigSchema,
+    AcrossGetQuoteParamsSchema,
+    AcrossGetQuoteResponseSchema,
+    AcrossOIFGetQuoteParamsSchema,
+} from "../internal.js";
 
-export type AcrossTransferOpenParams = z.infer<typeof AcrossTransferOpenParamsSchema>;
+export type AcrossGetQuoteParams = z.infer<typeof AcrossGetQuoteParamsSchema>;
 
-export type AcrossOpenParams = AcrossTransferOpenParams;
+export type AcrossGetQuoteResponse = z.infer<typeof AcrossGetQuoteResponseSchema>;
 
-export type AcrossConfigs = undefined;
+export type AcrossOIFGetQuoteParams = z.infer<typeof AcrossOIFGetQuoteParamsSchema>;
 
-export type AcrossDependencies = undefined;
+export type AcrossConfigs = z.infer<typeof AcrossConfigSchema>;

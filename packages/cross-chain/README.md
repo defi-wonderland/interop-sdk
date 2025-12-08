@@ -1,4 +1,6 @@
-# interop-sdk: cross-chain package
+# @wonderland/interop-cross-chain
+
+🚧 The cross-chain package is under construction 🚧
 
 The cross-chain package provides a standardized interface for interacting with cross-chain bridges and protocols. It enables seamless token transfers and swaps between different blockchain networks through a unified API.
 
@@ -39,7 +41,7 @@ import {
     createProviderExecutor,
     InteropAddressParamsParser,
     ProviderExecutor,
-} from "@interop-sdk/cross-chain";
+} from "@wonderland/interop-cross-chain";
 
 // Create a provider for a specific protocol (e.g., Across)
 const provider = createCrossChainProvider("across");

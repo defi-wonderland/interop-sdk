@@ -2,32 +2,16 @@
 export * from "./errors/index.js";
 export * from "./interfaces/index.js";
 export * from "./types/index.js";
+export * from "./sorting_strategies/index.js";
 
-export type { ParamsParser } from "./interfaces/paramsParser.interface.js";
-
-export { AcrossProvider } from "./providers/AcrossProvider.js";
 export {
+    AcrossProvider,
     createCrossChainProvider,
     CrossChainProviderFactory,
-} from "./services/crossChainProviderFactory.js";
-export {
     createProviderExecutor,
     ProviderExecutor,
-    type ExecuteResult,
-} from "./services/providerExecutor.js";
-export { InteropAddressParamsParser } from "./services/InteropAddressParamsParser.js";
-export { createQuoteAggregator, QuoteAggregator } from "./services/quoteAggregator.js";
-export { createIntentTracker } from "./services/intentTrackerFactory.js";
-export { IntentTracker, type IntentTrackerEvents } from "./services/IntentTracker.js";
-export { OpenEventWatcher } from "./services/OpenEventWatcher.js";
-export type { DepositInfoParserConfig } from "./services/EventBasedDepositInfoParser.js";
-export type { FillWatcherConfig } from "./services/EventBasedFillWatcher.js";
-export type {
-    OpenEvent,
-    FillEvent,
-    IntentStatus,
-    IntentStatusInfo,
-    IntentUpdate,
-    WatchIntentParams,
-    TrackingParams,
-} from "./types/intentTracking.js";
+    createIntentTracker,
+    IntentTracker,
+    OpenEventWatcher,
+    SortingStrategyFactory,
+} from "./internal.js";
