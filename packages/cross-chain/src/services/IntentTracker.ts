@@ -23,15 +23,11 @@ export interface IntentTrackerEvents {
 }
 
 /**
- * Unified intent tracker with event-based updates
- * Protocol-agnostic orchestrator that combines:
- * - Open event watching (EIP-7683 standard)
- * - Protocol-specific deposit info parsing
- * - Protocol-specific fill watching
- *
- * Supports both event-based updates (via EventEmitter) and async generator patterns
+ * Intent tracker with event-based updates
  */
 export class IntentTracker extends EventEmitter {
+    static readonly GRACE_PERIOD_SECONDS = 60;
+
     constructor(
         private readonly openWatcher: OpenEventWatcher,
         private readonly depositInfoParser: DepositInfoParser,
@@ -42,7 +38,6 @@ export class IntentTracker extends EventEmitter {
 
     /**
      * Get the current status of an intent
-     * Single point-in-time check
      *
      * @param txHash - Transaction hash where the intent was opened
      * @param originChainId - Origin chain ID
@@ -88,7 +83,6 @@ export class IntentTracker extends EventEmitter {
 
     /**
      * Watch an intent with real-time updates
-     * Uses async generator to stream status changes
      *
      * @param params - Watch parameters
      * @yields Intent updates as they occur
@@ -131,9 +125,8 @@ export class IntentTracker extends EventEmitter {
 
         const nowSeconds = Math.floor(Date.now() / 1000);
         const fillDeadline = openEvent.resolvedOrder.fillDeadline;
-        const GRACE_PERIOD_SECONDS = 60;
 
-        if (nowSeconds > fillDeadline + GRACE_PERIOD_SECONDS) {
+        if (nowSeconds > fillDeadline + IntentTracker.GRACE_PERIOD_SECONDS) {
             yield {
                 status: "expired",
                 orderId: openEvent.orderId,
@@ -147,7 +140,6 @@ export class IntentTracker extends EventEmitter {
         const elapsedTime = Date.now() - startTime;
         const remainingTimeout = Math.max(0, timeout - elapsedTime);
 
-        // If no time remaining, exit early with timeout message
         if (remainingTimeout === 0) {
             const deadlineDate = new Date(fillDeadline * 1000).toISOString();
             yield {
@@ -210,8 +202,6 @@ export class IntentTracker extends EventEmitter {
 
     /**
      * Start tracking an intent with event-based updates
-     * Uses watchIntent() internally and emits events for each status change
-     * Returns a promise that resolves when the intent is filled or expired
      *
      * @param params - Watch parameters including optional timeout (defaults to 5 minutes)
      * @param params.txHash - Transaction hash where the intent was opened
@@ -239,17 +229,13 @@ export class IntentTracker extends EventEmitter {
     async startTracking(params: WatchIntentParams): Promise<IntentStatusInfo> {
         try {
             for await (const update of this.watchIntent(params)) {
-                // Emit status-specific events (e.g., "opening", "filled", "expired")
-                // Consumers can listen to specific events they care about
                 this.emit(update.status, update);
 
-                // Stop if we reached a final state
                 if (update.status === "filled" || update.status === "expired") {
                     break;
                 }
             }
 
-            // Get final status details
             const finalStatus = await this.getIntentStatus(params.txHash, params.originChainId);
             return finalStatus;
         } catch (error) {

@@ -22,10 +22,6 @@ export interface IntentTrackerConfig {
 
 /**
  * Create an intent tracker for a provider (advanced use case)
- * Uses the provider's getTrackingConfig() method to get protocol-specific configuration.
- *
- * NOTE: Most users should use ProviderExecutor's prepareTracking() or track() methods instead.
- * This factory is for advanced scenarios where you need direct tracker creation without an executor.
  *
  * @param provider - Provider instance to create tracker for (must implement getTrackingConfig())
  * @param config - Optional configuration (custom implementations or RPC URLs)
@@ -66,7 +62,6 @@ export function createIntentTracker(
     const clientManager = new PublicClientManager(publicClient, rpcUrls);
     const openWatcher = new OpenEventWatcher({ clientManager });
 
-    // Use custom implementations if provided, otherwise use provider's config
     const depositInfoParser =
         customDepositInfoParser ??
         new EventBasedDepositInfoParser(provider.getTrackingConfig().depositInfoParser, {
