@@ -26,7 +26,15 @@ export interface IntentTrackerEvents {
  * Intent tracker with event-based updates
  */
 export class IntentTracker extends EventEmitter {
+    /**
+     * Grace period in seconds after fillDeadline to still accept fills
+     */
     static readonly GRACE_PERIOD_SECONDS = 60;
+
+    /**
+     * Default timeout in milliseconds for tracking operations
+     */
+    static readonly DEFAULT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
     constructor(
         private readonly openWatcher: OpenEventWatcher,
@@ -89,14 +97,19 @@ export class IntentTracker extends EventEmitter {
      *
      * @example
      * ```typescript
-     * for await (const update of tracker.watchIntent({ txHash, originChainId, destinationChainId })) {
+     * for await (const update of tracker.watchIntent({ txHash, originChainId, destinationChainId, timeout })) {
      *   console.log(update.status, update.message);
      *   if (update.status === 'filled') break;
      * }
      * ```
      */
     async *watchIntent(params: WatchIntentParams): AsyncGenerator<IntentUpdate> {
-        const { txHash, originChainId, destinationChainId, timeout = 5 * 60 * 1000 } = params;
+        const {
+            txHash,
+            originChainId,
+            destinationChainId,
+            timeout = IntentTracker.DEFAULT_TIMEOUT_MS,
+        } = params;
 
         if (timeout <= 0) {
             throw new Error(`Timeout must be positive, got ${timeout}ms`);
