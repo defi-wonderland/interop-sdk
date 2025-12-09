@@ -1,7 +1,7 @@
 import React from 'react';
 import { InputMode, ChainType } from '../types';
 import { EXAMPLES } from '../utils/examples';
-import { ExampleButtons, TabButton } from './index';
+import { ConvertButton, ExampleButtons, TabButton } from './index';
 
 const CHAIN_TYPE_OPTIONS = [{ value: ChainType.EIP155, label: 'eip155' }] as const;
 
@@ -18,6 +18,7 @@ interface InputSectionProps {
   setChainReference: (value: string) => void;
   onConvert: () => void;
   onExampleClick: (example: string) => void;
+  isLoading?: boolean;
 }
 
 export function InputSection({
@@ -33,6 +34,7 @@ export function InputSection({
   setChainReference,
   onConvert,
   onExampleClick,
+  isLoading = false,
 }: InputSectionProps) {
   const isReadableMode = mode === InputMode.READABLE;
   const isBuildMode = mode === InputMode.BUILD;
@@ -90,12 +92,7 @@ export function InputSection({
                   autoComplete='off'
                   className='flex-1 px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
                 />
-                <button
-                  onClick={onConvert}
-                  className='w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all shadow-lg shadow-accent/30 cursor-pointer'
-                >
-                  Convert
-                </button>
+                <ConvertButton onClick={onConvert} isLoading={isLoading} />
               </div>
             </div>
             <ExampleButtons examples={readableModeExamples} />
@@ -152,12 +149,7 @@ export function InputSection({
             </div>
             <div className='flex flex-col-reverse sm:flex-row gap-3 sm:items-center sm:justify-between'>
               <ExampleButtons examples={buildModeExamples} />
-              <button
-                onClick={onConvert}
-                className='w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all shadow-lg shadow-accent/30 cursor-pointer sm:self-end'
-              >
-                Convert
-              </button>
+              <ConvertButton onClick={onConvert} isLoading={isLoading} className='sm:self-end' />
             </div>
           </div>
         )}

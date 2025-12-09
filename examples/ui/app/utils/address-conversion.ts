@@ -11,14 +11,6 @@ export interface ConversionResult {
 }
 
 export async function convertFromReadable(humanReadableAddress: string): Promise<ConversionResult> {
-  const isValid = await InteropAddressProvider.isValidHumanReadableAddress(humanReadableAddress, {
-    validateChecksumFlag: false,
-  });
-
-  if (!isValid) {
-    throw new Error('Invalid interoperable address format');
-  }
-
   const binary = await InteropAddressProvider.humanReadableToBinary(humanReadableAddress);
   const humanParts = parseHumanReadableForDisplay(humanReadableAddress);
   const binaryParts = parseBinaryForDisplay(binary);
