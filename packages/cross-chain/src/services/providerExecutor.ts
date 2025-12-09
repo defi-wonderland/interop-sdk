@@ -3,15 +3,12 @@ import { EIP1193Provider, Hex } from "viem";
 
 import {
     CrossChainProvider,
-    EventBasedDepositInfoParser,
-    EventBasedFillWatcher,
     ExecutableQuote,
     IntentStatusInfo,
     IntentTracker,
-    OpenEventWatcher,
+    IntentTrackerFactory,
     ProviderNotFound,
     ProviderTimeout,
-    PublicClientManager,
     SortingStrategy,
     WatchIntentParams,
 } from "../internal.js";
@@ -30,7 +27,7 @@ interface ProviderExecutorConfig {
     providers: CrossChainProvider[];
     sortingStrategy?: SortingStrategy;
     timeoutMs?: number;
-    rpcUrls?: Record<number, string>;
+    trackerFactory?: IntentTrackerFactory;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -42,7 +39,7 @@ class ProviderExecutor {
     private readonly providers: Record<string, CrossChainProvider>;
     private readonly sortingStrategy?: SortingStrategy;
     private readonly timeoutMs: number;
-    private readonly rpcUrls?: Record<number, string>;
+    private readonly trackerFactory: IntentTrackerFactory;
     private readonly trackerCache: Map<string, IntentTracker> = new Map();
 
     /**
@@ -51,7 +48,7 @@ class ProviderExecutor {
      * @param config - Configuration for the executor
      */
     constructor(config: ProviderExecutorConfig) {
-        const { providers, sortingStrategy, timeoutMs, rpcUrls } = config;
+        const { providers, sortingStrategy, timeoutMs, trackerFactory } = config;
         this.providers = providers.reduce(
             (acc, provider) => {
                 acc[provider.getProviderId()] = provider;
@@ -61,7 +58,7 @@ class ProviderExecutor {
         );
         this.sortingStrategy = sortingStrategy;
         this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
-        this.rpcUrls = rpcUrls;
+        this.trackerFactory = trackerFactory ?? new IntentTrackerFactory();
     }
 
     private splitQuotesAndErrors(quotes: (ExecutableQuote | GetQuotesError)[]): GetQuotesResponse {
@@ -255,21 +252,7 @@ class ProviderExecutor {
             throw new ProviderNotFound(providerId);
         }
 
-        const config = provider.getTrackingConfig();
-
-        const clientManager = new PublicClientManager(undefined, this.rpcUrls);
-
-        const openWatcher = new OpenEventWatcher({ clientManager });
-
-        const depositInfoParser = new EventBasedDepositInfoParser(config.depositInfoParser, {
-            clientManager,
-        });
-
-        const fillWatcher = new EventBasedFillWatcher(config.fillWatcher, {
-            clientManager,
-        });
-
-        const tracker = new IntentTracker(openWatcher, depositInfoParser, fillWatcher);
+        const tracker = this.trackerFactory.createTracker(provider);
         this.trackerCache.set(providerId, tracker);
 
         return tracker;
@@ -278,14 +261,16 @@ class ProviderExecutor {
 
 /**
  * Create a provider executor
- * @param config - Configuration including providers, sorting strategy, timeout, and RPC URLs
+ * @param config - Configuration including providers, sorting strategy, timeout, and optional tracker factory
  * @returns The provider executor
  *
  * @example
  * ```typescript
  * const executor = createProviderExecutor({
  *   providers: [new AcrossProvider()],
- *   rpcUrls: { 11155111: 'https://...' }
+ *   trackerFactory: new IntentTrackerFactory({
+ *     rpcUrls: { 11155111: 'https://...' }
+ *   })
  * });
  * ```
  */

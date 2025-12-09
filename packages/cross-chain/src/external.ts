@@ -12,6 +12,7 @@ export {
     ProviderExecutor,
     createIntentTracker,
     IntentTracker,
+    IntentTrackerFactory,
     OpenEventWatcher,
     SortingStrategyFactory,
 } from "./internal.js";

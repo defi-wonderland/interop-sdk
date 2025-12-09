@@ -11,13 +11,58 @@ import {
     PublicClientManager,
 } from "../internal.js";
 
-export interface IntentTrackerConfig {
+export interface IntentTrackerFactoryConfig {
     publicClient?: PublicClient;
+    rpcUrls?: Record<number, string>;
+}
+
+export interface IntentTrackerConfig extends IntentTrackerFactoryConfig {
     depositInfoParser?: DepositInfoParser;
     fillWatcher?: FillWatcher;
-    rpcUrls?: {
-        [chainId: number]: string;
-    };
+}
+
+/**
+ * Factory class for creating IntentTracker instances
+ * Centralizes tracker creation logic and configuration
+ */
+export class IntentTrackerFactory {
+    private readonly clientManager: PublicClientManager;
+    private readonly openWatcher: OpenEventWatcher;
+
+    constructor(config?: IntentTrackerFactoryConfig) {
+        this.clientManager = new PublicClientManager(config?.publicClient, config?.rpcUrls);
+        this.openWatcher = new OpenEventWatcher({ clientManager: this.clientManager });
+    }
+
+    /**
+     * Create an IntentTracker for a specific provider
+     * @param provider - The provider to create tracker for
+     * @param config - Optional custom implementations
+     * @returns Configured IntentTracker instance
+     */
+    createTracker(
+        provider: CrossChainProvider,
+        config?: {
+            depositInfoParser?: DepositInfoParser;
+            fillWatcher?: FillWatcher;
+        },
+    ): IntentTracker {
+        const trackingConfig = provider.getTrackingConfig();
+
+        const depositInfoParser =
+            config?.depositInfoParser ??
+            new EventBasedDepositInfoParser(trackingConfig.depositInfoParser, {
+                clientManager: this.clientManager,
+            });
+
+        const fillWatcher =
+            config?.fillWatcher ??
+            new EventBasedFillWatcher(trackingConfig.fillWatcher, {
+                clientManager: this.clientManager,
+            });
+
+        return new IntentTracker(this.openWatcher, depositInfoParser, fillWatcher);
+    }
 }
 
 /**
@@ -59,20 +104,9 @@ export function createIntentTracker(
         rpcUrls,
     } = config || {};
 
-    const clientManager = new PublicClientManager(publicClient, rpcUrls);
-    const openWatcher = new OpenEventWatcher({ clientManager });
-
-    const depositInfoParser =
-        customDepositInfoParser ??
-        new EventBasedDepositInfoParser(provider.getTrackingConfig().depositInfoParser, {
-            clientManager,
-        });
-
-    const fillWatcher =
-        customFillWatcher ??
-        new EventBasedFillWatcher(provider.getTrackingConfig().fillWatcher, {
-            clientManager,
-        });
-
-    return new IntentTracker(openWatcher, depositInfoParser, fillWatcher);
+    const factory = new IntentTrackerFactory({ publicClient, rpcUrls });
+    return factory.createTracker(provider, {
+        depositInfoParser: customDepositInfoParser,
+        fillWatcher: customFillWatcher,
+    });
 }

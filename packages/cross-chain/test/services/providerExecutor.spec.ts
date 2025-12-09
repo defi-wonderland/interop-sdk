@@ -7,6 +7,7 @@ import {
     AcrossProvider,
     createProviderExecutor,
     IntentTracker,
+    IntentTrackerFactory,
     ProviderExecutor,
 } from "../../src/external.js";
 import {
@@ -392,21 +393,67 @@ describe("ProviderExecutor", () => {
             });
         });
 
-        describe("with custom RPC URLs", () => {
-            it("creates executor with custom RPC URLs", () => {
-                const customRpcUrls = {
-                    11155111: "https://custom-sepolia.com",
-                    84532: "https://custom-base.com",
-                };
-
-                const providerExecutor = createProviderExecutor({
-                    providers: [
-                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
-                    ],
-                    rpcUrls: customRpcUrls,
+        describe("with custom tracker factory", () => {
+            it("uses custom factory to create trackers", () => {
+                const customFactory = new IntentTrackerFactory({
+                    rpcUrls: {
+                        11155111: "https://custom-factory-sepolia.com",
+                        84532: "https://custom-factory-base.com",
+                    },
                 });
 
-                expect(providerExecutor).toBeDefined();
+                const provider = new AcrossProvider({
+                    apiUrl: MOCK_API_URL,
+                    providerId: MOCK_PROVIDER_ID,
+                });
+                const createTrackerSpy = vi.spyOn(customFactory, "createTracker");
+
+                const providerExecutor = createProviderExecutor({
+                    providers: [provider],
+                    trackerFactory: customFactory,
+                });
+
+                const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+
+                expect(tracker).toBeInstanceOf(IntentTracker);
+                expect(createTrackerSpy).toHaveBeenCalledOnce();
+                expect(createTrackerSpy).toHaveBeenCalledWith(provider);
+            });
+
+            it("calls factory once per provider and caches result", () => {
+                const customFactory = new IntentTrackerFactory({
+                    rpcUrls: {
+                        11155111: "https://custom-sepolia.com",
+                        84532: "https://custom-base.com",
+                    },
+                });
+
+                const createTrackerSpy = vi.spyOn(customFactory, "createTracker");
+
+                const providerA = new AcrossProvider({
+                    apiUrl: MOCK_API_URL,
+                    providerId: "across-a",
+                });
+                const providerB = new AcrossProvider({
+                    apiUrl: MOCK_API_URL,
+                    providerId: "across-b",
+                });
+
+                const providerExecutor = createProviderExecutor({
+                    providers: [providerA, providerB],
+                    trackerFactory: customFactory,
+                });
+
+                const tracker1 = providerExecutor.prepareTracking("across-a");
+                const tracker2 = providerExecutor.prepareTracking("across-a"); // Same provider again
+                providerExecutor.prepareTracking("across-b");
+
+                // Should be called only once per unique provider (caching)
+                expect(createTrackerSpy).toHaveBeenCalledTimes(2);
+                expect(createTrackerSpy).toHaveBeenCalledWith(providerA);
+                expect(createTrackerSpy).toHaveBeenCalledWith(providerB);
+                // Verify caching works
+                expect(tracker1).toBe(tracker2);
             });
         });
     });
