@@ -36,18 +36,20 @@ export async function convertFromAddress(
   chainType: ChainType,
   chainReference: string,
 ): Promise<ConversionResult> {
-  const normalizedAddress = address.startsWith('0x') ? address : `0x${address}`;
-
   const binary = await InteropAddressProvider.buildFromPayload({
     version: 1,
     chainType,
     chainReference,
-    address: normalizedAddress,
+    address,
   });
 
   // Demo-Purpose only: Convert binary to human readable
   const humanReadable = await InteropAddressProvider.binaryToHumanReadable(binary);
-  const humanParts = parseHumanReadableForDisplay(humanReadable);
+  const parsedHumanParts = parseHumanReadableForDisplay(humanReadable);
+  const humanParts = {
+    ...parsedHumanParts,
+    name: address, // Preserve the original input (ENS name if applicable)
+  };
   const binaryParts = parseBinaryForDisplay(binary);
 
   return {
