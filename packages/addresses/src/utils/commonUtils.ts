@@ -17,7 +17,6 @@ import {
     ChainTypeValue,
     InvalidAddress,
     InvalidBinaryInteropAddress,
-    InvalidChainReference,
     UnsupportedChainType,
 } from "../internal.js";
 
@@ -244,37 +243,6 @@ export const convertAddress = (
             }
 
             return decodedAddress;
-        default:
-            throw new UnsupportedChainType(options.chainType);
-    }
-};
-
-/**
- * Converts a chain reference to a Uint8Array based on the chain type
- * @param chainReference - The chain reference to convert
- * @param options - The options to convert the chain reference
- * @param options.chainType - The chain type to convert the chain reference for
- * @returns The converted chain reference
- */
-export const convertChainReference = (
-    chainReference: string,
-    options: { chainType: keyof typeof CHAIN_TYPE },
-): Uint8Array => {
-    switch (options.chainType) {
-        case ChainTypeName.EIP155:
-            if (!isHex(chainReference)) {
-                throw new InvalidChainReference("EVM chain reference must be a hex string");
-            }
-
-            return fromHex(chainReference, "bytes");
-        case ChainTypeName.SOLANA:
-            const decodedChainReference = bs58.decodeUnsafe(chainReference);
-
-            if (!decodedChainReference) {
-                throw new InvalidChainReference("Solana chain reference must be a base58 string");
-            }
-
-            return decodedChainReference;
         default:
             throw new UnsupportedChainType(options.chainType);
     }

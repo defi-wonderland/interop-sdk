@@ -1,14 +1,7 @@
-import { createPublicClient, http } from "viem";
-import * as chains from "viem/chains";
-import { normalize } from "viem/ens";
-
 import {
     CHAIN_TYPE,
     ChainTypeName,
     Checksum,
-    ENSLookupFailed,
-    ENSNotFound,
-    ETHEREUM_COIN_TYPE,
     HumanReadableAddressSchema,
     InteropAddress,
     InvalidChainNamespace,
@@ -16,56 +9,7 @@ import {
     validateInteropAddress,
 } from "../internal.js";
 import { convertToBytes } from "./convertToBytes.js";
-
-/**
- * Converts an EVM chain ID to a coin type, see https://docs.ens.domains/ensip/11/#specification
- * @param chainId - The EVM chain ID
- * @returns The coin type
- */
-const convertEVMChainIdToCoinType = (chainId: number): number => {
-    return (0x80000000 | chainId) >>> 0;
-};
-
-/**
- * Resolves an ENS name to an Ethereum address
- * @param ensName - The ENS name to resolve (e.g., "vitalik.eth")
- * @param chainReference - The chain reference (chain ID as string)
- * @returns The resolved Ethereum address or null if not found
- * @throws {ENSNotFound} If the ENS name cannot be found
- * @throws {ENSLookupFailed} If the ENS lookup fails due to network or other errors
- */
-const resolveENSName = async (ensName: string, chainReference: string): Promise<string | null> => {
-    try {
-        const client = createPublicClient({
-            chain: chains.mainnet,
-            transport: http(),
-        });
-
-        const isMainnet = chainReference === "1";
-        const chainSpecificCoinType = isMainnet
-            ? ETHEREUM_COIN_TYPE
-            : convertEVMChainIdToCoinType(Number(chainReference));
-
-        const resolvedAddress = await client.getEnsAddress({
-            name: normalize(ensName),
-            coinType: chainSpecificCoinType,
-        });
-
-        if (!resolvedAddress && !isMainnet) {
-            return await client.getEnsAddress({
-                name: normalize(ensName),
-                coinType: ETHEREUM_COIN_TYPE,
-            });
-        }
-
-        return resolvedAddress;
-    } catch (error) {
-        if (error instanceof ENSNotFound) {
-            throw error;
-        }
-        throw new ENSLookupFailed(error instanceof Error ? error.message : String(error));
-    }
-};
+import { resolveAddress } from "./resolveENS.js";
 
 /**
  * Parses an address string, handling both regular addresses and ENS names
@@ -84,18 +28,15 @@ const parseAddress = async (
         return new Uint8Array();
     }
 
+    // Resolve address (handles ENS if applicable)
+    const resolvedAddress = await resolveAddress(addressOrENSName, chainNamespace, chainReference);
+
+    // Convert to bytes based on chain type
     switch (chainNamespace) {
         case "eip155":
-            if (addressOrENSName.includes(".eth")) {
-                const resolvedAddress = await resolveENSName(addressOrENSName, chainReference);
-                if (!resolvedAddress) {
-                    throw new ENSNotFound(addressOrENSName);
-                }
-                return convertToBytes(resolvedAddress, "hex");
-            }
-            return convertToBytes(addressOrENSName, "hex");
+            return convertToBytes(resolvedAddress, "hex");
         case "solana":
-            return convertToBytes(addressOrENSName, "base58");
+            return convertToBytes(resolvedAddress, "base58");
         default:
             throw new InvalidChainNamespace(chainNamespace);
     }

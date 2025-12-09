@@ -1,7 +1,7 @@
 import React from 'react';
 import { InputMode, ChainType } from '../types';
-import { VALID_EXAMPLES, EXAMPLE_DESCRIPTIONS, BUILD_MODE_EXAMPLES } from '../utils/examples';
-import { ExampleButtons, TabButton } from './index';
+import { EXAMPLES } from '../utils/examples';
+import { ConvertButton, ExampleButtons, TabButton } from './index';
 
 const CHAIN_TYPE_OPTIONS = [{ value: ChainType.EIP155, label: 'eip155' }] as const;
 
@@ -18,6 +18,7 @@ interface InputSectionProps {
   setChainReference: (value: string) => void;
   onConvert: () => void;
   onExampleClick: (example: string) => void;
+  isLoading?: boolean;
 }
 
 export function InputSection({
@@ -33,23 +34,24 @@ export function InputSection({
   setChainReference,
   onConvert,
   onExampleClick,
+  isLoading = false,
 }: InputSectionProps) {
   const isReadableMode = mode === InputMode.READABLE;
   const isBuildMode = mode === InputMode.BUILD;
 
   const readableModeExamples = React.useMemo(
     () =>
-      VALID_EXAMPLES.map((ex, idx) => ({
-        key: ex,
-        description: EXAMPLE_DESCRIPTIONS[ex] || `Example ${idx + 1}`,
-        onClick: () => onExampleClick(ex),
+      EXAMPLES.map(({ humanReadable, description }) => ({
+        key: humanReadable,
+        description,
+        onClick: () => onExampleClick(humanReadable),
       })),
     [onExampleClick],
   );
 
   const buildModeExamples = React.useMemo(
     () =>
-      BUILD_MODE_EXAMPLES.map((example) => ({
+      EXAMPLES.map((example) => ({
         key: example.address,
         description: example.description,
         onClick: () => {
@@ -86,15 +88,11 @@ export function InputSection({
                   type='text'
                   value={readableName}
                   onChange={(e) => setReadableName(e.target.value)}
-                  placeholder='0xAddress@eip155:1#CHECKSUM'
+                  placeholder='alice.eth@rollup-name'
+                  autoComplete='off'
                   className='flex-1 px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
                 />
-                <button
-                  onClick={onConvert}
-                  className='w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all shadow-lg shadow-accent/30 cursor-pointer'
-                >
-                  Convert
-                </button>
+                <ConvertButton onClick={onConvert} isLoading={isLoading} />
               </div>
             </div>
             <ExampleButtons examples={readableModeExamples} />
@@ -113,6 +111,7 @@ export function InputSection({
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder='0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
+                autoComplete='off'
                 className='w-full px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
               />
             </div>
@@ -136,26 +135,21 @@ export function InputSection({
               </div>
               <div className='flex flex-col gap-2'>
                 <label htmlFor='chain-reference-input' className='text-sm font-medium text-text-secondary'>
-                  Chain ID
+                  Chain Reference
                 </label>
                 <input
                   id='chain-reference-input'
                   type='text'
                   value={chainReference}
                   onChange={(e) => setChainReference(e.target.value)}
-                  placeholder='1'
+                  placeholder='1, 0x1, eth, base'
                   className='px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
                 />
               </div>
             </div>
             <div className='flex flex-col-reverse sm:flex-row gap-3 sm:items-center sm:justify-between'>
               <ExampleButtons examples={buildModeExamples} />
-              <button
-                onClick={onConvert}
-                className='w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-accent to-accent-hover text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all shadow-lg shadow-accent/30 cursor-pointer sm:self-end'
-              >
-                Convert
-              </button>
+              <ConvertButton onClick={onConvert} isLoading={isLoading} className='sm:self-end' />
             </div>
           </div>
         )}
