@@ -1,9 +1,8 @@
 import React from 'react';
 import { InputMode, ChainType } from '../types';
 import { EXAMPLES } from '../utils/examples';
+import { ChainDropdown } from './ChainDropdown';
 import { ConvertButton, ExampleButtons, TabButton } from './index';
-
-const CHAIN_TYPE_OPTIONS = [{ value: ChainType.EIP155, label: 'eip155' }] as const;
 
 interface InputSectionProps {
   mode: InputMode;
@@ -28,8 +27,10 @@ export function InputSection({
   setReadableName,
   address,
   setAddress,
-  chainType,
-  setChainType,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  chainType: _chainType,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setChainType: _setChainType,
   chainReference,
   setChainReference,
   onConvert,
@@ -51,7 +52,11 @@ export function InputSection({
 
   const buildModeExamples = React.useMemo(
     () =>
-      EXAMPLES.map((example) => ({
+      EXAMPLES.filter((example) => {
+        // Only include examples with readable chain references (not numeric like '1')
+        // Readable chain references contain letters (e.g., 'eth', 'arb1')
+        return !/^\d+$/.test(example.chainReference);
+      }).map((example) => ({
         key: example.address,
         description: example.description,
         onClick: () => {
@@ -68,11 +73,11 @@ export function InputSection({
 
       <div className='relative flex flex-col gap-6'>
         <div className='flex gap-2'>
-          <TabButton isActive={isReadableMode} onClick={() => setMode(InputMode.READABLE)}>
-            Enter Human-Readable
-          </TabButton>
           <TabButton isActive={isBuildMode} onClick={() => setMode(InputMode.BUILD)}>
-            Build from Address
+            Build
+          </TabButton>
+          <TabButton isActive={isReadableMode} onClick={() => setMode(InputMode.READABLE)}>
+            From text
           </TabButton>
         </div>
 
@@ -103,48 +108,22 @@ export function InputSection({
           <div className='flex flex-col gap-4'>
             <div className='flex flex-col gap-2'>
               <label htmlFor='address-input' className='text-sm font-medium text-text-secondary'>
-                Address
+                Address @ Chain Reference
               </label>
-              <input
-                id='address-input'
-                type='text'
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder='0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
-                autoComplete='off'
-                className='w-full px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
-              />
-            </div>
-            <div className='grid grid-cols-2 gap-3'>
-              <div className='flex flex-col gap-2'>
-                <label htmlFor='chain-type-select' className='text-sm font-medium text-text-secondary'>
-                  Chain Type
-                </label>
-                <select
-                  id='chain-type-select'
-                  value={chainType}
-                  onChange={(e) => setChainType(e.target.value as ChainType)}
-                  className='px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
-                >
-                  {CHAIN_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className='flex flex-col gap-2'>
-                <label htmlFor='chain-reference-input' className='text-sm font-medium text-text-secondary'>
-                  Chain Reference
-                </label>
+              <div className='flex flex-col sm:flex-row gap-2 sm:items-center'>
                 <input
-                  id='chain-reference-input'
+                  id='address-input'
                   type='text'
-                  value={chainReference}
-                  onChange={(e) => setChainReference(e.target.value)}
-                  placeholder='1, 0x1, eth, base'
-                  className='px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder='0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
+                  autoComplete='off'
+                  className='flex-1 px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
                 />
+                <span className='hidden sm:inline text-text-secondary font-mono text-lg px-2'>@</span>
+                <div className='flex-1'>
+                  <ChainDropdown id='chain-reference-dropdown' value={chainReference} onChange={setChainReference} />
+                </div>
               </div>
             </div>
             <div className='flex flex-col-reverse sm:flex-row gap-3 sm:items-center sm:justify-between'>

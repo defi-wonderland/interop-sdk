@@ -7,7 +7,7 @@ import { InputSection } from './InputSection';
 import { ResultDisplays } from './ResultDisplays';
 
 export function InteractivePlayground() {
-  const [mode, setMode] = useState<InputMode>(InputMode.READABLE);
+  const [mode, setMode] = useState<InputMode>(InputMode.BUILD);
   const [readableName, setReadableName] = useState('');
   const [address, setAddress] = useState('');
   const [chainType, setChainType] = useState(ChainType.EIP155);

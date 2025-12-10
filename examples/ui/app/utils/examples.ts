@@ -23,6 +23,12 @@ export const EXAMPLES = [
     description: 'nick.eth (Arbitrum One)',
   },
   {
+    humanReadable: 'josh.eth@base',
+    address: 'josh.eth',
+    chainReference: 'base',
+    description: 'josh.eth (Base)',
+  },
+  {
     humanReadable: '0x1234567890AbcdEF1234567890aBcdef12345678@eip155:1',
     address: '0x1234567890AbcdEF1234567890aBcdef12345678',
     chainReference: '1',
