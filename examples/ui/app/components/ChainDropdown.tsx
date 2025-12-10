@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { cn } from '../utils/cn';
 import { DropdownContent } from './DropdownContent';
 import type { Chain } from '../lib/getChains';
 
@@ -13,71 +14,39 @@ interface ChainDropdownProps {
 }
 
 export function ChainDropdown({ chains, value, onChange, id, className }: ChainDropdownProps) {
-  const [inputValue, setInputValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Sync inputValue with value prop when value changes externally
-  useEffect(() => {
-    if (value !== inputValue && document.activeElement !== inputRef.current) {
-      setInputValue(value);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
 
   const filteredChains = useMemo(() => {
-    if (!inputValue.trim()) return chains;
-    const search = inputValue.toLowerCase();
+    if (!value.trim()) return chains;
+    const search = value.toLowerCase();
     return chains.filter(
       (chain) =>
         chain.name.toLowerCase().includes(search) ||
         chain.shortName.toLowerCase().includes(search) ||
-        chain.chainId.toString().includes(inputValue),
+        chain.chainId.toString().includes(value),
     );
-  }, [inputValue, chains]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  }, [value, chains]);
 
   const handleSelect = (chain: Chain) => {
-    setInputValue(chain.shortName);
     onChange(chain.shortName);
     setIsOpen(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInputValue(newValue);
-    onChange(newValue);
+    onChange(e.target.value);
     setIsOpen(true);
   };
 
-  const handleInputBlur = () => {
-    // Delay to allow click events on dropdown items to fire first
-    setTimeout(() => setIsOpen(false), 200);
-  };
-
   return (
-    <div ref={dropdownRef} className={`relative ${className || ''}`}>
+    <div className={cn('relative', className)}>
       <input
-        ref={inputRef}
         id={id}
         type='text'
-        value={inputValue}
+        value={value}
         onChange={handleInputChange}
         onFocus={() => setIsOpen(true)}
-        onBlur={handleInputBlur}
+        onClick={() => setIsOpen((prevOpen) => !prevOpen)}
+        onBlur={() => setIsOpen(false)}
         placeholder='Search chain name...'
         autoComplete='off'
         className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20'
