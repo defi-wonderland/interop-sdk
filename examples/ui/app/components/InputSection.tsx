@@ -1,5 +1,5 @@
 import React from 'react';
-import { InputMode, ChainType } from '../types';
+import { InputMode } from '../types';
 import { EXAMPLES } from '../utils/examples';
 import { ChainDropdown } from './ChainDropdown';
 import { ConvertButton, ExampleButtons, TabButton } from './index';
@@ -13,8 +13,6 @@ interface InputSectionProps {
   setReadableName: (value: string) => void;
   address: string;
   setAddress: (value: string) => void;
-  chainType: ChainType;
-  setChainType: (value: ChainType) => void;
   chainReference: string;
   setChainReference: (value: string) => void;
   onConvert: () => void;
@@ -30,10 +28,6 @@ export function InputSection({
   setReadableName,
   address,
   setAddress,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  chainType: _chainType,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  setChainType: _setChainType,
   chainReference,
   setChainReference,
   onConvert,

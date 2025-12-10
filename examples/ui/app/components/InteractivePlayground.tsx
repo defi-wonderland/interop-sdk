@@ -7,6 +7,8 @@ import { InputSection } from './InputSection';
 import { ResultDisplays } from './ResultDisplays';
 import type { Chain } from '../lib/getChains';
 
+const DEFAULT_CHAIN_TYPE = ChainType.EIP155;
+
 interface InteractivePlaygroundProps {
   chains: Chain[];
 }
@@ -15,7 +17,6 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
   const [mode, setMode] = useState<InputMode>(InputMode.BUILD);
   const [readableName, setReadableName] = useState('');
   const [address, setAddress] = useState('');
-  const [chainType, setChainType] = useState(ChainType.EIP155);
   const [chainReference, setChainReference] = useState('');
   const [hoveredHuman, setHoveredHuman] = useState<HumanReadablePart>(null);
   const [hoveredBinary, setHoveredBinary] = useState<BinaryPart>(null);
@@ -41,7 +42,7 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
 
   const convertBuild = async () => {
     if (!address.trim() || !chainReference.trim()) return setResult(null);
-    const result = await convertFromAddress(address, chainType, chainReference);
+    const result = await convertFromAddress(address, DEFAULT_CHAIN_TYPE, chainReference);
     updateResult(result);
   };
 
@@ -85,8 +86,6 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
         setReadableName={setReadableName}
         address={address}
         setAddress={setAddress}
-        chainType={chainType}
-        setChainType={setChainType}
         chainReference={chainReference}
         setChainReference={setChainReference}
         onConvert={handleConvert}
