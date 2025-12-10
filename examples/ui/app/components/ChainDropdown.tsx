@@ -80,7 +80,7 @@ export function ChainDropdown({ chains, value, onChange, id, className }: ChainD
         onBlur={handleInputBlur}
         placeholder='Search chain name...'
         autoComplete='off'
-        className='w-full px-4 py-3 bg-background/50 backdrop-blur border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all'
+        className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20'
       />
       {isOpen && (
         <div className='absolute z-50 w-full mt-1 bg-background border border-border/50 rounded-xl shadow-lg max-h-60 overflow-auto'>
