@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { DropdownContent } from './DropdownContent';
 import type { Chain } from '../lib/getChains';
 
 interface ChainDropdownProps {
@@ -83,24 +84,7 @@ export function ChainDropdown({ chains, value, onChange, id, className }: ChainD
       />
       {isOpen && (
         <div className='absolute z-50 w-full mt-1 bg-background border border-border/50 rounded-xl shadow-lg max-h-60 overflow-auto'>
-          {filteredChains.length === 0 ? (
-            <div className='px-4 py-3 text-sm text-text-secondary'>No chains found</div>
-          ) : (
-            filteredChains.slice(0, 50).map((chain) => (
-              <button
-                key={chain.chainId}
-                type='button'
-                onMouseDown={(e) => e.preventDefault()} // Prevent input blur
-                onClick={() => handleSelect(chain)}
-                className='w-full text-left px-4 py-2 hover:bg-accent-light/20 transition-colors cursor-pointer'
-              >
-                <div className='font-medium text-sm'>{chain.name}</div>
-                <div className='text-xs text-text-secondary'>
-                  {chain.shortName} • Chain ID: {chain.chainId}
-                </div>
-              </button>
-            ))
-          )}
+          <DropdownContent filteredChains={filteredChains} onSelect={handleSelect} />
         </div>
       )}
     </div>
