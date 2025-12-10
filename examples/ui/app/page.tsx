@@ -1,6 +1,9 @@
 import { Footer, InteractivePlayground, ThemeSwitcher } from './components';
+import { getChains } from './lib/getChains';
 
-export default function Home() {
+export default async function Home() {
+  const chains = await getChains();
+
   return (
     <div className='min-h-screen bg-background flex flex-col'>
       <ThemeSwitcher />
@@ -17,7 +20,7 @@ export default function Home() {
             </p>
           </header>
 
-          <InteractivePlayground />
+          <InteractivePlayground chains={chains} />
         </div>
 
         <Footer />

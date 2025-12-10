@@ -5,8 +5,13 @@ import { InputMode, ChainType, type HumanReadablePart, type BinaryPart, type Add
 import { convertFromReadable, convertFromAddress } from '../utils/address-conversion';
 import { InputSection } from './InputSection';
 import { ResultDisplays } from './ResultDisplays';
+import type { Chain } from '../lib/getChains';
 
-export function InteractivePlayground() {
+interface InteractivePlaygroundProps {
+  chains: Chain[];
+}
+
+export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
   const [mode, setMode] = useState<InputMode>(InputMode.BUILD);
   const [readableName, setReadableName] = useState('');
   const [address, setAddress] = useState('');
@@ -73,6 +78,7 @@ export function InteractivePlayground() {
   return (
     <div className='flex flex-col gap-6'>
       <InputSection
+        chains={chains}
         mode={mode}
         setMode={setMode}
         readableName={readableName}

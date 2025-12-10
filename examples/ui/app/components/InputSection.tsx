@@ -3,8 +3,10 @@ import { InputMode, ChainType } from '../types';
 import { EXAMPLES } from '../utils/examples';
 import { ChainDropdown } from './ChainDropdown';
 import { ConvertButton, ExampleButtons, TabButton } from './index';
+import type { Chain } from '../lib/getChains';
 
 interface InputSectionProps {
+  chains: Chain[];
   mode: InputMode;
   setMode: (mode: InputMode) => void;
   readableName: string;
@@ -21,6 +23,7 @@ interface InputSectionProps {
 }
 
 export function InputSection({
+  chains,
   mode,
   setMode,
   readableName,
@@ -122,7 +125,12 @@ export function InputSection({
                 />
                 <span className='hidden sm:inline text-text-secondary font-mono text-lg px-2'>@</span>
                 <div className='flex-1'>
-                  <ChainDropdown id='chain-reference-dropdown' value={chainReference} onChange={setChainReference} />
+                  <ChainDropdown
+                    chains={chains}
+                    id='chain-reference-dropdown'
+                    value={chainReference}
+                    onChange={setChainReference}
+                  />
                 </div>
               </div>
             </div>

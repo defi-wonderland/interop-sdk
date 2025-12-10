@@ -1,43 +1,21 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-
-interface Chain {
-  name: string;
-  chainId: number;
-  shortName: string;
-}
+import type { Chain } from '../lib/getChains';
 
 interface ChainDropdownProps {
+  chains: Chain[];
   value: string;
   onChange: (shortName: string) => void;
   id?: string;
   className?: string;
 }
 
-export function ChainDropdown({ value, onChange, id, className }: ChainDropdownProps) {
-  const [chains, setChains] = useState<Chain[]>([]);
+export function ChainDropdown({ chains, value, onChange, id, className }: ChainDropdownProps) {
   const [inputValue, setInputValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const fetchChains = async () => {
-      try {
-        const response = await fetch('https://chainid.network/chains_mini.json');
-        const data: Chain[] = await response.json();
-        setChains(data);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Failed to fetch chains:', error);
-        setIsLoading(false);
-      }
-    };
-
-    fetchChains();
-  }, []);
 
   // Sync inputValue with value prop when value changes externally
   useEffect(() => {
@@ -105,9 +83,7 @@ export function ChainDropdown({ value, onChange, id, className }: ChainDropdownP
       />
       {isOpen && (
         <div className='absolute z-50 w-full mt-1 bg-background border border-border/50 rounded-xl shadow-lg max-h-60 overflow-auto'>
-          {isLoading ? (
-            <div className='px-4 py-3 text-sm text-text-secondary'>Loading chains...</div>
-          ) : filteredChains.length === 0 ? (
+          {filteredChains.length === 0 ? (
             <div className='px-4 py-3 text-sm text-text-secondary'>No chains found</div>
           ) : (
             filteredChains.slice(0, 50).map((chain) => (
