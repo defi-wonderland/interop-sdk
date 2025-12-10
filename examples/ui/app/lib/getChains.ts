@@ -1,3 +1,5 @@
+import { viemChainNameMap } from '../utils/viem-chains';
+
 export interface Chain {
   name: string;
   chainId: number;
@@ -7,6 +9,7 @@ export interface Chain {
 /**
  * Fetches all available chains for demo purposes.
  * This allows users exploring interoperable addresses to easily select from all existing chains.
+ * Only returns chains that are supported by viem (and therefore by the SDK).
  */
 export async function getChains(): Promise<Chain[]> {
   try {
@@ -17,7 +20,7 @@ export async function getChains(): Promise<Chain[]> {
     }
 
     const data: Chain[] = await response.json();
-    return data;
+    return data.filter((chain) => !!viemChainNameMap[chain.chainId]);
   } catch (error) {
     console.error('Failed to fetch chains:', error);
     return [];
