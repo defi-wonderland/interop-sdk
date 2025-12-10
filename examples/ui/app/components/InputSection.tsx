@@ -55,11 +55,7 @@ export function InputSection({
 
   const buildModeExamples = React.useMemo(
     () =>
-      EXAMPLES.filter((example) => {
-        // Only include examples with readable chain references (not numeric like '1')
-        // Readable chain references contain letters (e.g., 'eth', 'arb1')
-        return !/^\d+$/.test(example.chainReference);
-      }).map((example) => ({
+      EXAMPLES.map((example) => ({
         key: example.address,
         description: example.description,
         onClick: () => {
