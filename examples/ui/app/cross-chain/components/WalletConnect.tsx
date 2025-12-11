@@ -1,9 +1,9 @@
 'use client';
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { formatUnits } from 'viem';
 import { useAccount, useBalance } from 'wagmi';
-import { TOKEN_INFO } from '../constants';
+import { TOKEN_INFO, DEFAULT_DECIMALS } from '../constants';
+import { formatAmount, truncateAddress } from '../utils/formatting';
 
 interface WalletConnectProps {
   selectedTokenAddress?: string;
@@ -23,9 +23,9 @@ export function WalletConnect({ selectedTokenAddress }: WalletConnectProps) {
 
   const tokenInfo = selectedTokenAddress ? TOKEN_INFO[selectedTokenAddress] : null;
   const displayBalance = tokenBalance
-    ? parseFloat(formatUnits(tokenBalance.value, tokenInfo?.decimals || 18)).toFixed(4)
+    ? formatAmount(tokenBalance.value.toString(), tokenInfo?.decimals)
     : nativeBalance
-      ? parseFloat(formatUnits(nativeBalance.value, 18)).toFixed(4)
+      ? formatAmount(nativeBalance.value.toString(), DEFAULT_DECIMALS)
       : '0.0000';
 
   const displaySymbol = tokenInfo?.symbol || nativeBalance?.symbol || 'ETH';
@@ -42,7 +42,7 @@ export function WalletConnect({ selectedTokenAddress }: WalletConnectProps) {
           <div className='flex flex-col gap-1'>
             <div className='flex items-center justify-between'>
               <span className='text-xs text-text-tertiary'>Address</span>
-              <span className='text-xs font-mono text-text-secondary'>{`${address.slice(0, 6)}...${address.slice(-4)}`}</span>
+              <span className='text-xs font-mono text-text-secondary'>{truncateAddress(address)}</span>
             </div>
             <div className='flex items-center justify-between'>
               <span className='text-xs text-text-tertiary'>Balance</span>
