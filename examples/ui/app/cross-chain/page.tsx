@@ -1,6 +1,29 @@
+'use client';
+
+import { useState } from 'react';
 import { Footer, Navigation } from '../components';
+import { SwapForm } from './components';
 
 export default function CrossChainPage() {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (params: {
+    sender: string;
+    recipient: string;
+    inputChainId: number;
+    outputChainId: number;
+    inputTokenAddress: string;
+    outputTokenAddress: string;
+    inputAmount: string;
+  }) => {
+    setIsLoading(true);
+    // TODO: Implement quote fetching in next step
+    console.log('Form submitted with params:', params);
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+  };
+
   return (
     <div className='min-h-screen bg-background flex flex-col'>
       <Navigation />
@@ -17,11 +40,7 @@ export default function CrossChainPage() {
             </p>
           </header>
 
-          <div className='flex flex-col gap-6'>
-            <div className='p-8 rounded-lg border border-border bg-surface'>
-              <p className='text-text-secondary text-center'>Cross-chain swap demo coming soon...</p>
-            </div>
-          </div>
+          <SwapForm onSubmit={handleSubmit} isLoading={isLoading} />
         </div>
 
         <Footer />
