@@ -56,7 +56,7 @@ export function parseHumanReadableForDisplay(humanReadable: string): ParsedHuman
   const colonParts = chainPart.split(':').filter(Boolean);
   const hasNamespace = colonParts.length > 1;
 
-  const namespace = hasNamespace ? colonParts[0] : 'eip155';
+  const namespace = hasNamespace ? colonParts[0] : '';
   const chain = hasNamespace ? colonParts[1] : colonParts[0] || '';
 
   return {

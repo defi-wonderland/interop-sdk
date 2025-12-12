@@ -1,13 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { InputMode, ChainType, type HumanReadablePart, type BinaryPart, type AddressResult } from '../types';
-import { convertFromReadable, convertFromAddress } from '../utils/address-conversion';
+import { InputMode, type HumanReadablePart, type BinaryPart, type AddressResult } from '../types';
+import { convertFromReadable } from '../utils/address-conversion';
 import { InputSection } from './InputSection';
 import { ResultDisplays } from './ResultDisplays';
 import type { Chain } from '../lib/getChains';
-
-const DEFAULT_CHAIN_TYPE = ChainType.EIP155;
 
 interface InteractivePlaygroundProps {
   chains: Chain[];
@@ -42,7 +40,8 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
 
   const convertBuild = async () => {
     if (!address.trim() || !chainReference.trim()) return setResult(null);
-    const result = await convertFromAddress(address, DEFAULT_CHAIN_TYPE, chainReference);
+    const _readableName = `${address}@${chainReference}`;
+    const result = await convertFromReadable(_readableName);
     updateResult(result);
   };
 
