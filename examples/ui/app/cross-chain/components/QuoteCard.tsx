@@ -8,6 +8,7 @@ interface QuoteCardProps {
   quote: ExecutableQuote;
   inputTokenAddress: string;
   outputTokenAddress: string;
+  isSelected?: boolean;
   onSelect?: (quote: ExecutableQuote) => void;
 }
 
@@ -26,7 +27,7 @@ function ProtocolAvatar({ providerName, size = 'md' }: { providerName: string; s
   );
 }
 
-export function QuoteCard({ quote, inputTokenAddress, outputTokenAddress, onSelect }: QuoteCardProps) {
+export function QuoteCard({ quote, inputTokenAddress, outputTokenAddress, isSelected, onSelect }: QuoteCardProps) {
   const formatted = formatQuoteData(quote, inputTokenAddress, outputTokenAddress);
 
   const handleClick = () => {
@@ -47,12 +48,13 @@ export function QuoteCard({ quote, inputTokenAddress, outputTokenAddress, onSele
       ? costParts.join(' + ')
       : null;
 
+  const baseClasses = 'p-3 rounded-lg border transition-all text-left w-full';
+  const selectedClasses = isSelected
+    ? 'border-accent bg-accent-light/10 ring-1 ring-accent'
+    : 'border-border bg-surface hover:bg-surface-secondary hover:border-accent';
+
   return (
-    <button
-      type='button'
-      onClick={handleClick}
-      className='p-3 rounded-lg border border-border bg-surface hover:bg-surface-secondary hover:border-accent transition-all text-left w-full'
-    >
+    <button type='button' onClick={handleClick} className={`${baseClasses} ${selectedClasses}`}>
       {/* Top row: Receive (left, prominent) | Time + Fee (right) */}
       <div className='flex items-start justify-between gap-3 mb-2'>
         <div className='flex-1 min-w-0'>

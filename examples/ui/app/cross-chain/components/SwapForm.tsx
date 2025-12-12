@@ -93,7 +93,7 @@ export function SwapForm({ onSubmit, isLoading = false }: SwapFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className='relative z-10 backdrop-blur-xl bg-surface/80 rounded-3xl border border-border/50 p-6 shadow-2xl'
+      className='relative backdrop-blur-xl bg-surface/80 rounded-3xl border border-border/50 p-6 shadow-2xl'
     >
       <div className='absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent rounded-3xl pointer-events-none' />
 

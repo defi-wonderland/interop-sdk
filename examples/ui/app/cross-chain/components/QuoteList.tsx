@@ -14,6 +14,7 @@ interface QuoteListProps {
   errors: ErrorItem[];
   inputTokenAddress: string;
   outputTokenAddress: string;
+  selectedQuoteId?: string;
   onSelectQuote?: (quote: ExecutableQuote) => void;
 }
 
@@ -58,7 +59,14 @@ function QuotePlaceholder() {
   );
 }
 
-export function QuoteList({ quotes, errors, inputTokenAddress, outputTokenAddress, onSelectQuote }: QuoteListProps) {
+export function QuoteList({
+  quotes,
+  errors,
+  inputTokenAddress,
+  outputTokenAddress,
+  selectedQuoteId,
+  onSelectQuote,
+}: QuoteListProps) {
   return (
     <div className='flex flex-col gap-3'>
       {/* Quotes section - fixed height with scroll, wrapped in a bordered container */}
@@ -70,10 +78,11 @@ export function QuoteList({ quotes, errors, inputTokenAddress, outputTokenAddres
             <div className='p-3 flex flex-col gap-2'>
               {quotes.map((quote, index) => (
                 <QuoteCard
-                  key={index}
+                  key={quote.quoteId || index}
                   quote={quote}
                   inputTokenAddress={inputTokenAddress}
                   outputTokenAddress={outputTokenAddress}
+                  isSelected={selectedQuoteId === quote.quoteId}
                   onSelect={onSelectQuote}
                 />
               ))}

@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import { Footer, Navigation } from '../components';
-import { QuoteList, SwapForm } from './components';
+import { QuoteDetails, QuoteList, SwapForm } from './components';
 import { useQuotes } from './hooks/useQuotes';
+import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 
 export default function CrossChainPage() {
   const { quotes, errors, isLoading, fetchQuotes } = useQuotes();
   const [selectedInputToken, setSelectedInputToken] = useState<string>('');
   const [selectedOutputToken, setSelectedOutputToken] = useState<string>('');
+  const [selectedQuote, setSelectedQuote] = useState<ExecutableQuote | null>(null);
 
   const handleSubmit = async (params: {
     sender: string;
@@ -21,12 +23,12 @@ export default function CrossChainPage() {
   }) => {
     setSelectedInputToken(params.inputTokenAddress);
     setSelectedOutputToken(params.outputTokenAddress);
+    setSelectedQuote(null); // Clear selection when fetching new quotes
     await fetchQuotes(params);
   };
 
-  const handleSelectQuote = (quote: (typeof quotes)[0]) => {
-    console.log('Selected quote:', quote);
-    // TODO: Handle quote selection in next step
+  const handleSelectQuote = (quote: ExecutableQuote) => {
+    setSelectedQuote(quote);
   };
 
   return (
@@ -47,9 +49,10 @@ export default function CrossChainPage() {
 
           {/* Two-column layout: Form on left, Quotes on right */}
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 items-start'>
-            {/* Left column: Form */}
+            {/* Left column: Form and Quote Details */}
             <div className='flex flex-col gap-6'>
               <SwapForm onSubmit={handleSubmit} isLoading={isLoading} />
+              {selectedQuote && <QuoteDetails quote={selectedQuote} />}
             </div>
 
             {/* Right column: Quotes List and Errors */}
@@ -59,6 +62,7 @@ export default function CrossChainPage() {
                 errors={errors}
                 inputTokenAddress={selectedInputToken}
                 outputTokenAddress={selectedOutputToken}
+                selectedQuoteId={selectedQuote?.quoteId}
                 onSelectQuote={handleSelectQuote}
               />
             </div>
