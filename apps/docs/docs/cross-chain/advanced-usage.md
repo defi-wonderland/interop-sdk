@@ -20,11 +20,7 @@ const executor = createProviderExecutor([acrossProvider, sampleProvider]);
 The package includes specific error types for better error handling:
 
 ```typescript
-import {
-    UnsupportedAction,
-    UnsupportedChainId,
-    UnsupportedProtocol,
-} from "@wonderland/interop";
+import { UnsupportedAction, UnsupportedChainId, UnsupportedProtocol } from "@wonderland/interop";
 
 try {
     // Your cross-chain operations here

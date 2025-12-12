@@ -1,7 +1,7 @@
 import { PublicClient } from "viem";
 
 import {
-    AcrossProvider,
+    CrossChainProvider,
     DepositInfoParser,
     EventBasedDepositInfoParser,
     EventBasedFillWatcher,
@@ -11,26 +11,77 @@ import {
     PublicClientManager,
 } from "../internal.js";
 
-export interface IntentTrackerConfig {
+export interface IntentTrackerFactoryConfig {
     publicClient?: PublicClient;
+    rpcUrls?: Record<number, string>;
+}
+
+export interface IntentTrackerConfig extends IntentTrackerFactoryConfig {
     depositInfoParser?: DepositInfoParser;
     fillWatcher?: FillWatcher;
-    rpcUrls?: {
-        [chainId: number]: string;
-    };
 }
 
 /**
- * Create an intent tracker for a specific protocol
- * It automatically wires up the correct components for the specified protocol.
+ * Factory class for creating IntentTracker instances
+ * Centralizes tracker creation logic and configuration
+ */
+export class IntentTrackerFactory {
+    private readonly clientManager: PublicClientManager;
+    private readonly openWatcher: OpenEventWatcher;
+
+    constructor(config?: IntentTrackerFactoryConfig) {
+        this.clientManager = new PublicClientManager(config?.publicClient, config?.rpcUrls);
+        this.openWatcher = new OpenEventWatcher({ clientManager: this.clientManager });
+    }
+
+    /**
+     * Create an IntentTracker for a specific provider
+     * @param provider - The provider to create tracker for
+     * @param config - Optional custom implementations
+     * @returns Configured IntentTracker instance
+     */
+    createTracker(
+        provider: CrossChainProvider,
+        config?: {
+            depositInfoParser?: DepositInfoParser;
+            fillWatcher?: FillWatcher;
+        },
+    ): IntentTracker {
+        const trackingConfig = provider.getTrackingConfig();
+
+        const depositInfoParser =
+            config?.depositInfoParser ??
+            new EventBasedDepositInfoParser(trackingConfig.depositInfoParser, {
+                clientManager: this.clientManager,
+            });
+
+        const fillWatcher =
+            config?.fillWatcher ??
+            new EventBasedFillWatcher(trackingConfig.fillWatcher, {
+                clientManager: this.clientManager,
+            });
+
+        return new IntentTracker(this.openWatcher, depositInfoParser, fillWatcher);
+    }
+}
+
+/**
+ * Create an intent tracker for a provider (advanced use case)
  *
- * @param protocol - Protocol to track intents for (currently only "across" is supported)
- * @param config - Optional configuration
+ * @param provider - Provider instance to create tracker for (must implement getTrackingConfig())
+ * @param config - Optional configuration (custom implementations or RPC URLs)
  * @returns Configured IntentTracker instance
  *
  * @example
  * ```typescript
- * const tracker = createIntentTracker("across");
+ * // Advanced usage: Direct tracker creation
+ * const provider = new AcrossProvider();
+ * const tracker = createIntentTracker(provider, {
+ *   rpcUrls: {
+ *     11155111: 'https://fast-sepolia.com',
+ *     84532: 'https://fast-base.com'
+ *   }
+ * });
  *
  * // Watch an intent
  * for await (const update of tracker.watchIntent({
@@ -43,7 +94,7 @@ export interface IntentTrackerConfig {
  * ```
  */
 export function createIntentTracker(
-    protocol: "across",
+    provider: CrossChainProvider,
     config?: IntentTrackerConfig,
 ): IntentTracker {
     const {
@@ -53,44 +104,9 @@ export function createIntentTracker(
         rpcUrls,
     } = config || {};
 
-    const clientManager = new PublicClientManager(publicClient, rpcUrls);
-
-    const openWatcher = new OpenEventWatcher({ clientManager });
-
-    let depositInfoParser: DepositInfoParser;
-    let fillWatcher: FillWatcher;
-
-    if (customDepositInfoParser) {
-        depositInfoParser = customDepositInfoParser;
-    } else {
-        switch (protocol) {
-            case "across": {
-                const depositParserConfig = AcrossProvider.getDepositInfoParserConfig();
-                depositInfoParser = new EventBasedDepositInfoParser(depositParserConfig, {
-                    clientManager,
-                });
-                break;
-            }
-            default:
-                throw new Error(`Unsupported protocol: ${protocol}`);
-        }
-    }
-
-    if (customFillWatcher) {
-        fillWatcher = customFillWatcher;
-    } else {
-        switch (protocol) {
-            case "across": {
-                const fillWatcherConfig = AcrossProvider.getFillWatcherConfig();
-                fillWatcher = new EventBasedFillWatcher(fillWatcherConfig, {
-                    clientManager,
-                });
-                break;
-            }
-            default:
-                throw new Error(`Unsupported protocol: ${protocol}`);
-        }
-    }
-
-    return new IntentTracker(openWatcher, depositInfoParser, fillWatcher);
+    const factory = new IntentTrackerFactory({ publicClient, rpcUrls });
+    return factory.createTracker(provider, {
+        depositInfoParser: customDepositInfoParser,
+        fillWatcher: customFillWatcher,
+    });
 }

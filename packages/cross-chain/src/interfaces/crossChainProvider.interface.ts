@@ -1,6 +1,8 @@
 import type { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import type { EIP1193Provider } from "viem";
 
+import type { DepositInfoParserConfig } from "../services/EventBasedDepositInfoParser.js";
+import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
 import type { ExecutableQuote } from "./quotes.interface.js";
 
 export abstract class CrossChainProvider {
@@ -46,4 +48,16 @@ export abstract class CrossChainProvider {
      * @returns The response from the provider
      */
     abstract execute(quote: ExecutableQuote, signer: EIP1193Provider): Promise<PostOrderResponse>;
+
+    /**
+     * Get the configuration for intent tracking
+     * This method provides the protocol-specific configuration needed to create
+     * an IntentTracker for monitoring cross-chain transaction status.
+     *
+     * @returns Configuration object containing deposit info parser and fill watcher configs
+     */
+    abstract getTrackingConfig(): {
+        depositInfoParser: DepositInfoParserConfig;
+        fillWatcher: FillWatcherConfig;
+    };
 }

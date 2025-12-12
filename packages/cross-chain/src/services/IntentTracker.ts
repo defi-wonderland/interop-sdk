@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import { Hex } from "viem";
 
 import {
@@ -10,22 +11,41 @@ import {
 } from "../internal.js";
 
 /**
- * Unified intent tracker
- * Protocol-agnostic orchestrator that combines:
- * - Open event watching (EIP-7683 standard)
- * - Protocol-specific deposit info parsing
- * - Protocol-specific fill watching
+ * Event map for IntentTracker events
  */
-export class IntentTracker {
+export interface IntentTrackerEvents {
+    opening: (update: IntentUpdate) => void;
+    opened: (update: IntentUpdate) => void;
+    filling: (update: IntentUpdate) => void;
+    filled: (update: IntentUpdate) => void;
+    expired: (update: IntentUpdate) => void;
+    error: (error: Error) => void;
+}
+
+/**
+ * Intent tracker with event-based updates
+ */
+export class IntentTracker extends EventEmitter {
+    /**
+     * Grace period in seconds after fillDeadline to still accept fills
+     */
+    static readonly GRACE_PERIOD_SECONDS = 60;
+
+    /**
+     * Default timeout in milliseconds for tracking operations
+     */
+    static readonly DEFAULT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
     constructor(
         private readonly openWatcher: OpenEventWatcher,
         private readonly depositInfoParser: DepositInfoParser,
         private readonly fillWatcher: FillWatcher,
-    ) {}
+    ) {
+        super();
+    }
 
     /**
      * Get the current status of an intent
-     * Single point-in-time check
      *
      * @param txHash - Transaction hash where the intent was opened
      * @param originChainId - Origin chain ID
@@ -71,21 +91,25 @@ export class IntentTracker {
 
     /**
      * Watch an intent with real-time updates
-     * Uses async generator to stream status changes
      *
      * @param params - Watch parameters
      * @yields Intent updates as they occur
      *
      * @example
      * ```typescript
-     * for await (const update of tracker.watchIntent({ txHash, originChainId, destinationChainId })) {
+     * for await (const update of tracker.watchIntent({ txHash, originChainId, destinationChainId, timeout })) {
      *   console.log(update.status, update.message);
      *   if (update.status === 'filled') break;
      * }
      * ```
      */
     async *watchIntent(params: WatchIntentParams): AsyncGenerator<IntentUpdate> {
-        const { txHash, originChainId, destinationChainId, timeout = 5 * 60 * 1000 } = params;
+        const {
+            txHash,
+            originChainId,
+            destinationChainId,
+            timeout = IntentTracker.DEFAULT_TIMEOUT_MS,
+        } = params;
 
         if (timeout <= 0) {
             throw new Error(`Timeout must be positive, got ${timeout}ms`);
@@ -114,9 +138,8 @@ export class IntentTracker {
 
         const nowSeconds = Math.floor(Date.now() / 1000);
         const fillDeadline = openEvent.resolvedOrder.fillDeadline;
-        const GRACE_PERIOD_SECONDS = 60;
 
-        if (nowSeconds > fillDeadline + GRACE_PERIOD_SECONDS) {
+        if (nowSeconds > fillDeadline + IntentTracker.GRACE_PERIOD_SECONDS) {
             yield {
                 status: "expired",
                 orderId: openEvent.orderId,
@@ -130,7 +153,6 @@ export class IntentTracker {
         const elapsedTime = Date.now() - startTime;
         const remainingTimeout = Math.max(0, timeout - elapsedTime);
 
-        // If no time remaining, exit early with timeout message
         if (remainingTimeout === 0) {
             const deadlineDate = new Date(fillDeadline * 1000).toISOString();
             yield {
@@ -188,6 +210,51 @@ export class IntentTracker {
                 timestamp: Math.floor(Date.now() / 1000),
                 message: `Stopped watching after timeout, but intent may still be filled before deadline at ${deadlineDate}`,
             };
+        }
+    }
+
+    /**
+     * Start tracking an intent with event-based updates
+     *
+     * @param params - Watch parameters including optional timeout (defaults to 5 minutes)
+     * @param params.txHash - Transaction hash where the intent was opened
+     * @param params.originChainId - Origin chain ID
+     * @param params.destinationChainId - Destination chain ID
+     * @param params.timeout - Optional timeout in ms (default: 300000ms / 5 min)
+     * @returns Promise that resolves with final intent status
+     *
+     * @example
+     * ```typescript
+     * const tracker = new IntentTracker(...);
+     *
+     * tracker.on('opening', (update) => console.log('Opening...'));
+     * tracker.on('filled', (update) => console.log('Filled!', update.fillTxHash));
+     * tracker.on('expired', (update) => console.log('Expired'));
+     *
+     * const finalStatus = await tracker.startTracking({
+     *   txHash,
+     *   originChainId,
+     *   destinationChainId,
+     *   timeout: 10 * 60 * 1000 // 10 minutes
+     * });
+     * ```
+     */
+    async startTracking(params: WatchIntentParams): Promise<IntentStatusInfo> {
+        try {
+            for await (const update of this.watchIntent(params)) {
+                this.emit(update.status, update);
+
+                if (update.status === "filled" || update.status === "expired") {
+                    break;
+                }
+            }
+
+            const finalStatus = await this.getIntentStatus(params.txHash, params.originChainId);
+            return finalStatus;
+        } catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.emit("error", err);
+            throw error;
         }
     }
 
