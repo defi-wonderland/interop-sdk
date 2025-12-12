@@ -1,10 +1,16 @@
-import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
+import {
+    GetQuoteRequest,
+    GetQuoteResponse,
+    PostOrderResponse,
+} from "@openintentsframework/oif-specs";
+import axios, { AxiosError } from "axios";
 import { EIP1193Provider } from "viem";
 import { ZodError } from "zod";
 
 import {
     CrossChainProvider,
     ExecutableQuote,
+    getQuoteResponseSchema,
     OifProviderConfig,
     OifProviderConfigSchema,
     ProviderConfigFailure,
@@ -57,12 +63,66 @@ export class OifProvider extends CrossChainProvider {
      * @param params - The parameters for get quote request
      * @returns Array of executable quotes
      */
-    async getQuotes(_params: GetQuoteRequest): Promise<ExecutableQuote[]> {
-        // TODO: Implement quote fetching
-        throw new ProviderGetQuoteFailure(
-            "Not implemented",
-            "OIF provider getQuotes not yet implemented",
-        );
+    async getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]> {
+        try {
+            const response = await axios.post<GetQuoteResponse>(`${this.url}/v1/quotes`, params, {
+                headers: {
+                    "Content-Type": "application/json",
+                    ...this.headers,
+                },
+            });
+
+            if (response.status !== 200) {
+                throw new ProviderGetQuoteFailure(
+                    "Failed to get OIF quotes",
+                    `Unexpected status code: ${response.status}`,
+                );
+            }
+
+            const validatedResponse = getQuoteResponseSchema.parse(response.data);
+
+            const executableQuotes: ExecutableQuote[] = validatedResponse.quotes.map(
+                (quote): ExecutableQuote => ({
+                    ...quote,
+                    provider: quote.provider ?? this.solverId,
+                    metadata: {
+                        ...quote.metadata,
+                        ...(this.adapterMetadata && { adapterMetadata: this.adapterMetadata }),
+                    },
+                }),
+            );
+
+            return executableQuotes;
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                const errorData = error.response?.data as { message?: string };
+                const message =
+                    errorData?.message ||
+                    error.cause?.message ||
+                    error.message ||
+                    "Failed to get OIF quotes";
+
+                throw new ProviderGetQuoteFailure(
+                    "Failed to get OIF quotes from solver",
+                    message,
+                    error.stack,
+                );
+            } else if (error instanceof ZodError) {
+                throw new ProviderGetQuoteFailure(
+                    "Failed to validate OIF quote response",
+                    error.message,
+                    error.stack,
+                );
+            } else if (error instanceof ProviderGetQuoteFailure) {
+                throw error;
+            }
+
+            throw new ProviderGetQuoteFailure(
+                "Failed to get OIF quotes",
+                String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
+        }
     }
 
     /**

@@ -238,3 +238,45 @@ export const oifEscrowOrderSchema = z.object({
         types: eIP712TypesSchema,
     }),
 });
+
+export const oifUserOpenIntentOrderSchema = z.object({
+    type: z.literal("oif-user-open-v0"),
+    openIntentTx: z.object({
+        to: addressSchema,
+        data: z.instanceof(Uint8Array),
+        gasRequired: z.string(),
+    }),
+    checks: z.object({
+        allowances: z.array(
+            z.object({
+                token: addressSchema,
+                user: addressSchema,
+                spender: addressSchema,
+                required: amountSchema,
+            }),
+        ),
+    }),
+});
+
+export const orderSchema = z.union([
+    oifEscrowOrderSchema,
+    oifResourceLockOrderSchema,
+    oif3009OrderSchema,
+    oifUserOpenIntentOrderSchema,
+]);
+
+export const quoteSchema = z.object({
+    order: orderSchema,
+    validUntil: z.number().optional(),
+    eta: z.number().optional(),
+    quoteId: z.string().optional(),
+    provider: z.string().optional(),
+    preview: quotePreviewSchema,
+    failureHandling: failureHandlingModeSchema,
+    partialFill: z.boolean(),
+    metadata: z.record(z.any()).optional(),
+});
+
+export const getQuoteResponseSchema = z.object({
+    quotes: z.array(quoteSchema),
+});
