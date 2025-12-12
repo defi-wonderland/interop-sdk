@@ -1,10 +1,17 @@
 'use client';
 
+import { ErrorList } from './ErrorList';
 import { QuoteCard } from './QuoteCard';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 
+interface ErrorItem {
+  errorMsg: string;
+  error: Error;
+}
+
 interface QuoteListProps {
   quotes: ExecutableQuote[];
+  errors: ErrorItem[];
   inputTokenAddress: string;
   outputTokenAddress: string;
   onSelectQuote?: (quote: ExecutableQuote) => void;
@@ -12,7 +19,7 @@ interface QuoteListProps {
 
 function QuotePlaceholder() {
   return (
-    <div className='flex flex-col items-center justify-center py-12 px-6 text-center h-full bg-[#131b2e] border border-border/50 rounded-xl'>
+    <div className='flex flex-col items-center justify-center py-12 px-6 text-center h-full'>
       <div className='w-16 h-16 rounded-full bg-accent-light/20 flex items-center justify-center mb-4'>
         <svg className='w-8 h-8 text-accent' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
           <path
@@ -51,27 +58,31 @@ function QuotePlaceholder() {
   );
 }
 
-export function QuoteList({ quotes, inputTokenAddress, outputTokenAddress, onSelectQuote }: QuoteListProps) {
+export function QuoteList({ quotes, errors, inputTokenAddress, outputTokenAddress, onSelectQuote }: QuoteListProps) {
   return (
-    <div className='flex flex-col gap-3 h-full'>
-      {quotes.length === 0 ? (
-        <QuotePlaceholder />
-      ) : (
-        <>
-          <h3 className='text-lg font-semibold text-text-primary'>Available Quotes</h3>
-          <div className='flex flex-col gap-2'>
-            {quotes.map((quote, index) => (
-              <QuoteCard
-                key={index}
-                quote={quote}
-                inputTokenAddress={inputTokenAddress}
-                outputTokenAddress={outputTokenAddress}
-                onSelect={onSelectQuote}
-              />
-            ))}
-          </div>
-        </>
-      )}
+    <div className='flex flex-col gap-3'>
+      {/* Quotes section - fixed height with scroll, wrapped in a bordered container */}
+      <div className='h-[70vh] border border-border rounded-xl overflow-hidden bg-background'>
+        <div className='h-full overflow-y-auto overscroll-contain scrollbar-custom'>
+          {quotes.length === 0 ? (
+            <QuotePlaceholder />
+          ) : (
+            <div className='p-3 flex flex-col gap-2'>
+              {quotes.map((quote, index) => (
+                <QuoteCard
+                  key={index}
+                  quote={quote}
+                  inputTokenAddress={inputTokenAddress}
+                  outputTokenAddress={outputTokenAddress}
+                  onSelect={onSelectQuote}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Error list at the bottom - independent height */}
+      <ErrorList errors={errors} />
     </div>
   );
 }

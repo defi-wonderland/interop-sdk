@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Footer, Navigation } from '../components';
-import { ErrorQuoteCard, QuoteList, SwapForm } from './components';
+import { QuoteList, SwapForm } from './components';
 import { useQuotes } from './hooks/useQuotes';
 
 export default function CrossChainPage() {
@@ -47,26 +47,16 @@ export default function CrossChainPage() {
 
           {/* Two-column layout: Form on left, Quotes on right */}
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 items-start'>
-            {/* Left column: Form and Errors */}
+            {/* Left column: Form */}
             <div className='flex flex-col gap-6'>
               <SwapForm onSubmit={handleSubmit} isLoading={isLoading} />
-
-              {errors.length > 0 && (
-                <div className='flex flex-col gap-3'>
-                  <h3 className='text-lg font-semibold text-text-primary'>Provider Errors</h3>
-                  <div className='flex flex-col gap-2'>
-                    {errors.map((err, index) => (
-                      <ErrorQuoteCard key={index} errorMsg={err.errorMsg} error={err.error} />
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Right column: Quotes List */}
-            <div className='flex flex-col h-full'>
+            {/* Right column: Quotes List and Errors */}
+            <div className='flex flex-col'>
               <QuoteList
                 quotes={quotes}
+                errors={errors}
                 inputTokenAddress={selectedInputToken}
                 outputTokenAddress={selectedOutputToken}
                 onSelectQuote={handleSelectQuote}
