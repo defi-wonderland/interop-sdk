@@ -5,4 +5,5 @@ export * from "./EventBasedFillWatcher.js";
 export * from "./IntentTracker.js";
 export * from "./intentTrackerFactory.js";
 export * from "./crossChainProviderFactory.js";
+export * from "./oifProviderFactory.js";
 export * from "./sortingStrategyFactory.js";
