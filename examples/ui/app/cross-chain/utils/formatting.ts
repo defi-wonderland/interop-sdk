@@ -1,5 +1,10 @@
 import { formatUnits } from 'viem';
-import { DEFAULT_DECIMALS, DEFAULT_DISPLAY_DECIMALS, PERCENTAGE_DECIMALS } from '../constants/display';
+import {
+  DEFAULT_DECIMALS,
+  DEFAULT_DISPLAY_DECIMALS,
+  PERCENTAGE_DECIMALS,
+  USD_DISPLAY_DECIMALS,
+} from '../constants/display';
 
 const SECONDS_PER_MINUTE = 60;
 
@@ -37,11 +42,36 @@ export function formatPercentage(percent: string | number, decimals: number = PE
 }
 
 /**
+ * Formats a USD amount for display
+ * @param amountUsd - USD amount as string (e.g., "0.0005")
+ * @param decimals - Number of decimal places (default: 4)
+ * @returns Formatted USD string with $ prefix (e.g., "$0.0005")
+ */
+export function formatUsdAmount(amountUsd: string, decimals: number = USD_DISPLAY_DECIMALS): string {
+  try {
+    const value = parseFloat(amountUsd);
+    // For very small values, use more precision
+    if (value > 0 && value < 0.0001) {
+      return `$${value.toFixed(6)}`;
+    }
+    return `$${value.toFixed(decimals)}`;
+  } catch {
+    return `$${amountUsd}`;
+  }
+}
+
+/**
  * Formats ETA from seconds to human-readable format
  * @param seconds - ETA in seconds
- * @returns Formatted ETA string (e.g., "5 min")
+ * @returns Formatted ETA string (e.g., "5 min", "30 sec", "~1 sec")
  */
 export function formatETA(seconds: number): string {
+  if (seconds < 1) {
+    return '~1 sec';
+  }
+  if (seconds < SECONDS_PER_MINUTE) {
+    return `${Math.round(seconds)} sec`;
+  }
   const minutes = Math.round(seconds / SECONDS_PER_MINUTE);
   return `${minutes} min`;
 }

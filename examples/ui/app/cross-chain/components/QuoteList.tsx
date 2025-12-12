@@ -9,13 +9,17 @@ interface ErrorItem {
   error: Error;
 }
 
+type ExecutionStatus = 'idle' | 'checking-approval' | 'approving' | 'pending' | 'confirming' | 'success' | 'error';
+
 interface QuoteListProps {
   quotes: ExecutableQuote[];
   errors: ErrorItem[];
   inputTokenAddress: string;
   outputTokenAddress: string;
   selectedQuoteId?: string;
+  executionStatus?: ExecutionStatus;
   onSelectQuote?: (quote: ExecutableQuote) => void;
+  onExecuteQuote?: (quote: ExecutableQuote) => void;
 }
 
 function QuotePlaceholder() {
@@ -65,7 +69,9 @@ export function QuoteList({
   inputTokenAddress,
   outputTokenAddress,
   selectedQuoteId,
+  executionStatus,
   onSelectQuote,
+  onExecuteQuote,
 }: QuoteListProps) {
   return (
     <div className='flex flex-col gap-3'>
@@ -75,7 +81,7 @@ export function QuoteList({
           {quotes.length === 0 ? (
             <QuotePlaceholder />
           ) : (
-            <div className='p-3 flex flex-col gap-2'>
+            <div className='p-3 pb-6 flex flex-col gap-4'>
               {quotes.map((quote, index) => (
                 <QuoteCard
                   key={quote.quoteId || index}
@@ -83,7 +89,9 @@ export function QuoteList({
                   inputTokenAddress={inputTokenAddress}
                   outputTokenAddress={outputTokenAddress}
                   isSelected={selectedQuoteId === quote.quoteId}
+                  executionStatus={selectedQuoteId === quote.quoteId ? executionStatus : 'idle'}
                   onSelect={onSelectQuote}
+                  onExecute={onExecuteQuote}
                 />
               ))}
             </div>

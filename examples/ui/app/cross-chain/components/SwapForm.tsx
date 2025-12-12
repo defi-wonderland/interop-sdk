@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
 import {
   SUPPORTED_CHAINS,
@@ -20,11 +21,13 @@ interface SwapFormProps {
     inputTokenAddress: string;
     outputTokenAddress: string;
     inputAmount: string;
+    inputAmountRaw: bigint;
   }) => void;
   isLoading?: boolean;
+  isDisabled?: boolean; // Disable form during transaction execution
 }
 
-export function SwapForm({ onSubmit, isLoading = false }: SwapFormProps) {
+export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: SwapFormProps) {
   const { address: connectedAddress, isConnected } = useAccount();
   const [recipient, setRecipient] = useState('');
   const [inputChainId, setInputChainId] = useState<number>(DEFAULT_INPUT_CHAIN_ID);
@@ -60,6 +63,10 @@ export function SwapForm({ onSubmit, isLoading = false }: SwapFormProps) {
       return;
     }
     const finalRecipient = recipient.trim() || connectedAddress;
+    const tokenInfo = TOKEN_INFO[inputTokenAddress];
+    const decimals = tokenInfo?.decimals || 18;
+    const inputAmountRaw = parseUnits(inputAmount, decimals);
+
     onSubmit({
       sender: connectedAddress,
       recipient: finalRecipient,
@@ -68,6 +75,7 @@ export function SwapForm({ onSubmit, isLoading = false }: SwapFormProps) {
       inputTokenAddress,
       outputTokenAddress,
       inputAmount,
+      inputAmountRaw,
     });
   };
 
@@ -88,7 +96,13 @@ export function SwapForm({ onSubmit, isLoading = false }: SwapFormProps) {
   };
 
   const canSubmit =
-    isConnected && connectedAddress && inputTokenAddress && outputTokenAddress && inputAmount && !isLoading;
+    isConnected &&
+    connectedAddress &&
+    inputTokenAddress &&
+    outputTokenAddress &&
+    inputAmount &&
+    !isLoading &&
+    !isDisabled;
 
   return (
     <form
@@ -111,7 +125,8 @@ export function SwapForm({ onSubmit, isLoading = false }: SwapFormProps) {
             onChange={(e) => setRecipient(e.target.value)}
             placeholder='0x... or alice.eth@chain'
             autoComplete='off'
-            className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20'
+            disabled={isDisabled}
+            className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
           <p className='text-xs text-text-tertiary mt-1'>
             Supports interoperable addresses (e.g., alice.eth@base-sepolia). Leave empty to use your wallet address.
@@ -127,7 +142,8 @@ export function SwapForm({ onSubmit, isLoading = false }: SwapFormProps) {
               id='input-chain-select'
               value={inputChainId}
               onChange={(e) => handleInputChainChange(Number(e.target.value))}
-              className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20'
+              disabled={isDisabled}
+              className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {SUPPORTED_CHAINS.map((chain) => (
                 <option key={chain.id} value={chain.id}>
@@ -139,7 +155,8 @@ export function SwapForm({ onSubmit, isLoading = false }: SwapFormProps) {
               id='input-token-select'
               value={inputTokenAddress}
               onChange={(e) => setInputTokenAddress(e.target.value)}
-              className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20'
+              disabled={isDisabled}
+              className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {inputTokens.map((token) => {
                 const info = TOKEN_INFO[token];
@@ -160,7 +177,8 @@ export function SwapForm({ onSubmit, isLoading = false }: SwapFormProps) {
               id='output-chain-select'
               value={outputChainId}
               onChange={(e) => handleOutputChainChange(Number(e.target.value))}
-              className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20'
+              disabled={isDisabled}
+              className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {SUPPORTED_CHAINS.map((chain) => (
                 <option key={chain.id} value={chain.id}>
@@ -172,7 +190,8 @@ export function SwapForm({ onSubmit, isLoading = false }: SwapFormProps) {
               id='output-token-select'
               value={outputTokenAddress}
               onChange={(e) => setOutputTokenAddress(e.target.value)}
-              className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20'
+              disabled={isDisabled}
+              className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {outputTokens.map((token) => {
                 const info = TOKEN_INFO[token];
@@ -197,7 +216,8 @@ export function SwapForm({ onSubmit, isLoading = false }: SwapFormProps) {
             onChange={(e) => setInputAmount(e.target.value)}
             placeholder='0.0'
             autoComplete='off'
-            className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20'
+            disabled={isDisabled}
+            className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
         </div>
 

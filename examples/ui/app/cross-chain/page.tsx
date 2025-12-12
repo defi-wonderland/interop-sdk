@@ -1,16 +1,67 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Footer, Navigation } from '../components';
-import { QuoteDetails, QuoteList, SwapForm } from './components';
+import { QuoteDetails, QuoteList, SwapForm, Toast, type ToastType } from './components';
+import { useExecuteQuote } from './hooks/useExecuteQuote';
 import { useQuotes } from './hooks/useQuotes';
+import { getToastErrorMessage } from './utils/errorMessages';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
+import type { Address } from 'viem';
+
+type ExecutionStatus = 'idle' | 'checking-approval' | 'approving' | 'pending' | 'confirming' | 'success' | 'error';
+
+interface ToastState {
+  message: string;
+  type: ToastType;
+}
 
 export default function CrossChainPage() {
-  const { quotes, errors, isLoading, fetchQuotes } = useQuotes();
+  const { quotes, errors, isLoading, fetchQuotes, clearQuotes } = useQuotes();
+  const { execute, error, reset, status } = useExecuteQuote();
   const [selectedInputToken, setSelectedInputToken] = useState<string>('');
   const [selectedOutputToken, setSelectedOutputToken] = useState<string>('');
   const [selectedQuote, setSelectedQuote] = useState<ExecutableQuote | null>(null);
+  const [inputAmountRaw, setInputAmountRaw] = useState<bigint>(0n);
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  // Handle success: show toast and reset after delay
+  useEffect(() => {
+    if (status !== 'success') return;
+
+    setToast({ message: 'Transaction sent successfully!', type: 'success' });
+    const timer = setTimeout(() => {
+      setSelectedQuote(null);
+      clearQuotes();
+      reset();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle error: show toast and reset after delay
+  useEffect(() => {
+    if (!error) return;
+
+    setToast({ message: getToastErrorMessage(error), type: 'error' });
+    const timer = setTimeout(() => {
+      reset();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [error]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const closeToast = useCallback(() => {
+    setToast(null);
+  }, []);
+
+  // Map hook status to ExecutionStatus (they're now the same type)
+  const getExecutionStatus = (): ExecutionStatus => {
+    if (error) return 'error';
+    return status;
+  };
+
+  // Disable form while transaction is in progress
+  const isExecuting =
+    status === 'checking-approval' || status === 'approving' || status === 'pending' || status === 'confirming';
 
   const handleSubmit = async (params: {
     sender: string;
@@ -20,15 +71,23 @@ export default function CrossChainPage() {
     inputTokenAddress: string;
     outputTokenAddress: string;
     inputAmount: string;
+    inputAmountRaw: bigint;
   }) => {
     setSelectedInputToken(params.inputTokenAddress);
     setSelectedOutputToken(params.outputTokenAddress);
+    setInputAmountRaw(params.inputAmountRaw);
     setSelectedQuote(null); // Clear selection when fetching new quotes
+    reset(); // Reset execution state
     await fetchQuotes(params);
   };
 
   const handleSelectQuote = (quote: ExecutableQuote) => {
     setSelectedQuote(quote);
+    reset(); // Reset execution state when selecting new quote
+  };
+
+  const handleExecuteQuote = async (quote: ExecutableQuote) => {
+    await execute(quote, selectedInputToken as Address, inputAmountRaw);
   };
 
   return (
@@ -51,7 +110,7 @@ export default function CrossChainPage() {
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 items-start'>
             {/* Left column: Form and Quote Details */}
             <div className='flex flex-col gap-6'>
-              <SwapForm onSubmit={handleSubmit} isLoading={isLoading} />
+              <SwapForm onSubmit={handleSubmit} isLoading={isLoading} isDisabled={isExecuting} />
               {selectedQuote && <QuoteDetails quote={selectedQuote} />}
             </div>
 
@@ -63,7 +122,9 @@ export default function CrossChainPage() {
                 inputTokenAddress={selectedInputToken}
                 outputTokenAddress={selectedOutputToken}
                 selectedQuoteId={selectedQuote?.quoteId}
+                executionStatus={getExecutionStatus()}
                 onSelectQuote={handleSelectQuote}
+                onExecuteQuote={handleExecuteQuote}
               />
             </div>
           </div>
@@ -71,6 +132,9 @@ export default function CrossChainPage() {
 
         <Footer />
       </div>
+
+      {/* Toast notifications */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
     </div>
   );
 }

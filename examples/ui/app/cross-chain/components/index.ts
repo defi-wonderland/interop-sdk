@@ -4,4 +4,6 @@ export { QuoteCard } from './QuoteCard';
 export { QuoteDetails } from './QuoteDetails';
 export { QuoteList } from './QuoteList';
 export { SwapForm } from './SwapForm';
+export { Toast } from './Toast';
+export type { ToastType } from './Toast';
 export { WalletConnect } from './WalletConnect';

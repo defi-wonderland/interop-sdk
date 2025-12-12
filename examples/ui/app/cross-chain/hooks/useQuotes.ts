@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   createCrossChainProvider,
   createProviderExecutor,
@@ -28,6 +28,7 @@ interface UseQuotesReturn {
   errors: GetQuotesError[];
   isLoading: boolean;
   fetchQuotes: (params: QuoteParams) => Promise<void>;
+  clearQuotes: () => void;
 }
 
 export function useQuotes(): UseQuotesReturn {
@@ -83,8 +84,6 @@ export function useQuotes(): UseQuotesReturn {
 
       const response = await executor.getQuotes(getQuoteRequest);
 
-      console.log('response', response);
-
       if (response.quotes) {
         setQuotes(response.quotes);
       }
@@ -104,5 +103,10 @@ export function useQuotes(): UseQuotesReturn {
     }
   };
 
-  return { quotes, errors, isLoading, fetchQuotes };
+  const clearQuotes = useCallback(() => {
+    setQuotes([]);
+    setErrors([]);
+  }, []);
+
+  return { quotes, errors, isLoading, fetchQuotes, clearQuotes };
 }
