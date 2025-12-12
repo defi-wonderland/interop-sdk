@@ -4,7 +4,7 @@ import {
     PostOrderResponse,
 } from "@openintentsframework/oif-specs";
 import axios, { AxiosError } from "axios";
-import { EIP1193Provider } from "viem";
+import { bytesToHex, EIP1193Provider, Hex, PrepareTransactionRequestReturnType } from "viem";
 import { ZodError } from "zod";
 
 import {
@@ -16,6 +16,7 @@ import {
     ProviderConfigFailure,
     ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
+    Quote,
 } from "../internal.js";
 
 /**
@@ -59,9 +60,27 @@ export class OifProvider extends CrossChainProvider {
     }
 
     /**
-     * Get quotes for a cross-chain action from the OIF solver
-     * @param params - The parameters for get quote request
-     * @returns Array of executable quotes
+     * Prepare transaction for user-mode submission
+     * @param quote - The quote containing order data
+     * @returns Transaction request for user-open orders, undefined otherwise
+     */
+    private prepareTransaction(quote: Quote): PrepareTransactionRequestReturnType | undefined {
+        try {
+            if (quote.order.type !== "oif-user-open-v0") {
+                return undefined;
+            }
+
+            return {
+                to: quote.order.openIntentTx.to as Hex,
+                data: bytesToHex(quote.order.openIntentTx.data),
+            } as PrepareTransactionRequestReturnType;
+        } catch {
+            return undefined;
+        }
+    }
+
+    /**
+     * @inheritdoc
      */
     async getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]> {
         try {
@@ -82,14 +101,19 @@ export class OifProvider extends CrossChainProvider {
             const validatedResponse = getQuoteResponseSchema.parse(response.data);
 
             const executableQuotes: ExecutableQuote[] = validatedResponse.quotes.map(
-                (quote): ExecutableQuote => ({
-                    ...quote,
-                    provider: quote.provider ?? this.solverId,
-                    metadata: {
-                        ...quote.metadata,
-                        ...(this.adapterMetadata && { adapterMetadata: this.adapterMetadata }),
-                    },
-                }),
+                (quote): ExecutableQuote => {
+                    const preparedTransaction = this.prepareTransaction(quote);
+
+                    return {
+                        ...quote,
+                        provider: quote.provider ?? this.solverId,
+                        metadata: {
+                            ...quote.metadata,
+                            ...(this.adapterMetadata && { adapterMetadata: this.adapterMetadata }),
+                        },
+                        preparedTransaction,
+                    };
+                },
             );
 
             return executableQuotes;

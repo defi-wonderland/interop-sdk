@@ -1,4 +1,5 @@
 import { GetQuoteResponse } from "@openintentsframework/oif-specs";
+import { hexToBytes } from "viem";
 
 export const getMockedOifQuoteResponse = (
     override?: Partial<GetQuoteResponse>,
@@ -72,5 +73,38 @@ export const getMockedOifQuoteResponse = (
             },
         ],
         ...override,
+    };
+};
+
+export const getMockedOifUserOpenQuoteResponse = (): GetQuoteResponse => {
+    const base = getMockedOifQuoteResponse();
+    const quote = base.quotes[0];
+    if (!quote) throw new Error("No quote in base response");
+
+    return {
+        quotes: [
+            {
+                ...quote,
+                order: {
+                    type: "oif-user-open-v0",
+                    openIntentTx: {
+                        to: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                        data: hexToBytes("0x095ea7b3000000000000000000000000"),
+                        gasRequired: "50000",
+                    },
+                    checks: {
+                        allowances: [
+                            {
+                                token: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                user: "0x000100000101742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
+                                spender: "0x00010000010195ad61b0a150d79219dcf64e1e6cc01f0c0c8a4a",
+                                required: "1000000000000000000",
+                            },
+                        ],
+                    },
+                },
+                quoteId: "test-quote-user-open-123",
+            },
+        ],
     };
 };

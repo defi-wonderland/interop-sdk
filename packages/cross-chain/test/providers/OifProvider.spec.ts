@@ -3,7 +3,7 @@ import axios from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OifProvider, ProviderGetQuoteFailure } from "../../src/external.js";
-import { getMockedOifQuoteResponse } from "../mocks/oifApi.js";
+import { getMockedOifQuoteResponse, getMockedOifUserOpenQuoteResponse } from "../mocks/oifApi.js";
 
 vi.mock("axios");
 
@@ -135,6 +135,35 @@ describe("OifProvider", () => {
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
                 ProviderGetQuoteFailure,
             );
+        });
+
+        it("should not prepare transaction for oif-escrow-v0 orders", async () => {
+            vi.mocked(axios.post).mockResolvedValue({
+                status: 200,
+                data: getMockedOifQuoteResponse(),
+            });
+
+            const quotes = await provider.getQuotes(mockQuoteRequest);
+
+            expect(quotes[0]?.preparedTransaction).toBeUndefined();
+        });
+
+        it("should prepare transaction for oif-user-open-v0 orders", async () => {
+            vi.mocked(axios.post).mockResolvedValue({
+                status: 200,
+                data: getMockedOifUserOpenQuoteResponse(),
+            });
+
+            const requestWithUserOpen: GetQuoteRequest = {
+                ...mockQuoteRequest,
+                supportedTypes: ["oif-escrow-v0", "oif-user-open-v0"],
+            };
+
+            const quotes = await provider.getQuotes(requestWithUserOpen);
+
+            expect(quotes[0]?.preparedTransaction).toBeDefined();
+            expect(quotes[0]?.preparedTransaction?.to).toBe(USDC_ADDRESS);
+            expect(quotes[0]?.preparedTransaction?.data).toBe("0x095ea7b3000000000000000000000000");
         });
     });
 });
