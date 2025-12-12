@@ -7,6 +7,17 @@ import { z } from "zod";
 
 import { OrderStatus, PostOrderResponseStatus, SettlementType } from "../types/oif.js";
 
+/**
+ * OIF Provider Configuration Schema
+ */
+export const OifProviderConfigSchema = z.object({
+    solverId: z.string().min(1, "Solver ID is required"),
+    url: z.string().url("URL must be a valid URL"),
+    headers: z.record(z.string()).optional(),
+    adapterMetadata: z.record(z.unknown()).optional(),
+    providerId: z.string().optional(),
+});
+
 export const addressSchema = z
     .string()
     .regex(/^0x0001[a-fA-F0-9]+$/)

@@ -7,7 +7,9 @@ export * from "./types/index.js";
 
 export {
     AcrossProvider,
+    OifProvider,
     createCrossChainProvider,
+    createOifProvider,
     CrossChainProviderFactory,
     createProviderExecutor,
     ProviderExecutor,
