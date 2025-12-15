@@ -1,8 +1,18 @@
-import { GetQuoteRequest } from "@openintentsframework/oif-specs";
+import {
+    GetQuoteRequest,
+    PostOrderResponse,
+    PostOrderResponseStatus,
+} from "@openintentsframework/oif-specs";
 import axios from "axios";
+import { EIP1193Provider } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { OifProvider, ProviderGetQuoteFailure } from "../../src/external.js";
+import {
+    OifProvider,
+    ProviderExecuteFailure,
+    ProviderExecuteNotImplemented,
+    ProviderGetQuoteFailure,
+} from "../../src/external.js";
 import { getMockedOifQuoteResponse, getMockedOifUserOpenQuoteResponse } from "../mocks/oifApi.js";
 
 vi.mock("axios");
@@ -80,6 +90,7 @@ describe("OifProvider", () => {
                     headers: {
                         "Content-Type": "application/json",
                     },
+                    timeout: 30000,
                 },
             );
         });
@@ -164,6 +175,178 @@ describe("OifProvider", () => {
             expect(quotes[0]?.preparedTransaction).toBeDefined();
             expect(quotes[0]?.preparedTransaction?.to).toBe(USDC_ADDRESS);
             expect(quotes[0]?.preparedTransaction?.data).toBe("0x095ea7b3000000000000000000000000");
+        });
+    });
+
+    describe("execute", () => {
+        const mockSigner: EIP1193Provider = {
+            request: vi.fn(),
+            on: vi.fn(),
+            removeListener: vi.fn(),
+        };
+
+        it("should throw error directing to new API", async () => {
+            const mockResponse = getMockedOifQuoteResponse();
+            const quote = mockResponse.quotes[0];
+            if (!quote) throw new Error("No quote in mock");
+
+            await expect(provider.execute(quote, mockSigner)).rejects.toThrow(
+                "execute() is not implemented",
+            );
+            await expect(provider.execute(quote, mockSigner)).rejects.toThrow(
+                "Use getTypedDataToSign()",
+            );
+        });
+    });
+
+    describe("getTypedDataToSign", () => {
+        it("should return EIP-712 typed data for oif-escrow-v0 orders", () => {
+            const mockResponse = getMockedOifQuoteResponse();
+            const quote = mockResponse.quotes[0];
+            if (!quote) throw new Error("No quote in mock");
+
+            const typedData = provider.getTypedDataToSign(quote);
+
+            expect(typedData).toHaveProperty("domain");
+            expect(typedData).toHaveProperty("primaryType");
+            expect(typedData).toHaveProperty("message");
+            expect(typedData).toHaveProperty("types");
+        });
+
+        it("should throw for unsupported order types", () => {
+            const mockResponse = getMockedOifQuoteResponse();
+            const quote = mockResponse.quotes[0];
+            if (!quote) throw new Error("No quote in mock");
+
+            const modifiedQuote = {
+                ...quote,
+                order: {
+                    ...quote.order,
+                    type: "oif-user-open-v0" as never,
+                },
+            };
+
+            expect(() => provider.getTypedDataToSign(modifiedQuote)).toThrow(
+                ProviderExecuteNotImplemented,
+            );
+        });
+
+        it("should throw for unsupported signature types", () => {
+            const mockResponse = getMockedOifQuoteResponse({
+                override: {
+                    quotes: [
+                        {
+                            order: {
+                                type: "oif-escrow-v0",
+                                payload: {
+                                    signatureType: "unsupported-type" as never,
+                                    domain: {},
+                                    primaryType: "",
+                                    message: {},
+                                    types: {},
+                                },
+                            },
+                            preview: { inputs: [], outputs: [] },
+                            validUntil: 0,
+                            eta: 0,
+                            quoteId: "test",
+                            provider: "test",
+                            failureHandling: "refund-automatic",
+                            partialFill: false,
+                        },
+                    ],
+                },
+            });
+            const quote = mockResponse.quotes[0];
+            if (!quote) throw new Error("No quote in mock");
+
+            expect(() => provider.getTypedDataToSign(quote)).toThrow(
+                'Unsupported signature type: unsupported-type. Only "eip712" is supported.',
+            );
+        });
+    });
+
+    describe("submitSignedOrder", () => {
+        const mockPostOrderResponse: PostOrderResponse = {
+            orderId: "test-order-id-456",
+            status: PostOrderResponseStatus.Received,
+            message: "Order received",
+        };
+
+        // Mock EIP-712 signature (130 chars = 0x + 65 bytes in hex)
+        // Using repeated pattern to avoid resembling real private keys
+        const mockSignature = ("0x" + "ab".repeat(65)) as `0x${string}`;
+
+        it("should submit signed order successfully", async () => {
+            const mockResponse = getMockedOifQuoteResponse();
+            const quote = mockResponse.quotes[0];
+            if (!quote) throw new Error("No quote in mock");
+
+            vi.mocked(axios.post).mockResolvedValueOnce({
+                status: 200,
+                data: mockPostOrderResponse,
+            });
+
+            const result = await provider.submitSignedOrder(quote, mockSignature);
+
+            // Verify the response is returned correctly
+            expect(result).toEqual(mockPostOrderResponse);
+
+            // Verify the HTTP request was made with correct parameters
+            const [url, body] = vi.mocked(axios.post).mock.calls[0] as [
+                string,
+                { order: unknown; signature: Uint8Array; quoteId: string },
+                { headers: Record<string, string>; timeout: number },
+            ];
+
+            expect(url).toBe(`${MOCK_SOLVER_URL}/v1/orders`);
+            expect(body.order).toEqual(quote.order);
+            expect(body.signature).toBeInstanceOf(Uint8Array);
+            expect(body.quoteId).toBe(quote.quoteId);
+        });
+
+        it("should handle HTTP errors during submission", async () => {
+            const mockResponse = getMockedOifQuoteResponse();
+            const quote = mockResponse.quotes[0];
+            if (!quote) throw new Error("No quote in mock");
+
+            const axiosError = Object.assign(new Error("Solver rejected order"), {
+                isAxiosError: true,
+                response: { data: { message: "Solver rejected order" } },
+            });
+
+            vi.mocked(axios.post).mockRejectedValueOnce(axiosError);
+
+            await expect(provider.submitSignedOrder(quote, mockSignature)).rejects.toThrow(
+                ProviderExecuteFailure,
+            );
+        });
+
+        it("should include custom headers when submitting", async () => {
+            const customProvider = new OifProvider({
+                solverId: MOCK_SOLVER_ID,
+                url: MOCK_SOLVER_URL,
+                headers: { "X-API-Key": "test-key" },
+            });
+
+            const mockResponse = getMockedOifQuoteResponse();
+            const quote = mockResponse.quotes[0];
+            if (!quote) throw new Error("No quote in mock");
+
+            vi.mocked(axios.post).mockResolvedValueOnce({
+                status: 200,
+                data: mockPostOrderResponse,
+            });
+
+            await customProvider.submitSignedOrder(quote, mockSignature);
+
+            expect(axios.post).toHaveBeenCalledTimes(1);
+
+            const postCall = vi.mocked(axios.post).mock.calls[0];
+            expect(postCall).toBeDefined();
+            const [, , config] = postCall as [string, unknown, { headers: Record<string, string> }];
+            expect(config.headers).toBeDefined();
+            expect(config.headers["X-API-Key"]).toBe("test-key");
         });
     });
 });

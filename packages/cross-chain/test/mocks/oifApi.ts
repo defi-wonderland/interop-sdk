@@ -1,9 +1,40 @@
 import { GetQuoteResponse } from "@openintentsframework/oif-specs";
 import { hexToBytes } from "viem";
 
-export const getMockedOifQuoteResponse = (
-    override?: Partial<GetQuoteResponse>,
-): GetQuoteResponse => {
+const getAddresses = (
+    useInteroperableAddresses: boolean,
+): { token: string; spender: string; user: string; outputAsset: string; quoteId: string } => {
+    if (useInteroperableAddresses) {
+        return {
+            token: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            spender: "0x00010000010195ad61b0a150d79219dcf64e1e6cc01f0c0c8a4a",
+            user: "0x000100000101742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
+            outputAsset: "0x000100000101dAC17F958D2ee523a2206206994597C13D831ec7",
+            quoteId: "test-quote-id-123",
+        };
+    }
+
+    return {
+        token: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        spender: "0x95ad61b0a150d79219dcf64e1e6cc01f0c0c8a4a",
+        user: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
+        outputAsset: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        quoteId: "test-quote-viem-integration",
+    };
+};
+
+export const getMockedOifQuoteResponse = (options?: {
+    useInteroperableAddresses?: boolean;
+    override?: Partial<GetQuoteResponse>;
+}): GetQuoteResponse => {
+    const { token, spender, user, outputAsset, quoteId } = getAddresses(
+        options?.useInteroperableAddresses ?? true,
+    );
+
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const validUntil = nowSeconds + 600;
+    const deadline = nowSeconds + 1800;
+
     return {
         quotes: [
             {
@@ -21,13 +52,13 @@ export const getMockedOifQuoteResponse = (
                         message: {
                             permitted: [
                                 {
-                                    token: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                    token,
                                     amount: "1000000000000000000",
                                 },
                             ],
-                            spender: "0x00010000010195ad61b0a150d79219dcf64e1e6cc01f0c0c8a4a",
+                            spender,
                             nonce: "123",
-                            deadline: 1700000000,
+                            deadline,
                         },
                         types: {
                             PermitBatchWitnessTransferFrom: [
@@ -46,22 +77,22 @@ export const getMockedOifQuoteResponse = (
                 preview: {
                     inputs: [
                         {
-                            user: "0x000100000101742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
-                            asset: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                            user,
+                            asset: token,
                             amount: "1000000000000000000",
                         },
                     ],
                     outputs: [
                         {
-                            receiver: "0x000100000101742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
-                            asset: "0x000100000101dAC17F958D2ee523a2206206994597C13D831ec7",
+                            receiver: user,
+                            asset: outputAsset,
                             amount: "990000000000000000",
                         },
                     ],
                 },
-                validUntil: 1700000000,
+                validUntil,
                 eta: 30,
-                quoteId: "test-quote-id-123",
+                quoteId,
                 provider: "test-solver",
                 failureHandling: "refund-automatic",
                 partialFill: false,
@@ -72,7 +103,7 @@ export const getMockedOifQuoteResponse = (
                 },
             },
         ],
-        ...override,
+        ...options?.override,
     };
 };
 
