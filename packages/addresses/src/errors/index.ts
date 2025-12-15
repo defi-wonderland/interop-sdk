@@ -13,3 +13,4 @@ export * from "./parseInteropAddress.exception.js";
 export * from "./ENSNotFound.exception.js";
 export * from "./ENSLookupFailed.exception.js";
 export * from "./BytesConversionFailed.exception.js";
+export * from "./ChecksumMismatchWarning.exception.js";

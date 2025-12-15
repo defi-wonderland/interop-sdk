@@ -1,14 +1,7 @@
-import { createPublicClient, http } from "viem";
-import * as chains from "viem/chains";
-import { normalize } from "viem/ens";
-
 import {
     CHAIN_TYPE,
     ChainTypeName,
     Checksum,
-    ENSLookupFailed,
-    ENSNotFound,
-    ETHEREUM_COIN_TYPE,
     HumanReadableAddressSchema,
     InteropAddress,
     InvalidChainNamespace,
@@ -16,61 +9,34 @@ import {
     validateInteropAddress,
 } from "../internal.js";
 import { convertToBytes } from "./convertToBytes.js";
-
-/**
- * Converts an EVM chain ID to a coin type, see https://docs.ens.domains/ensip/11/#specification
- * @param chainId - The EVM chain ID
- * @returns The coin type
- */
-const convertEVMChainIdToCoinType = (chainId: number): number => {
-    return (0x80000000 | chainId) >>> 0;
-};
+import { resolveAddress } from "./resolveENS.js";
 
 /**
  * Parses an address string, handling both regular addresses and ENS names
+ * @param chainNamespace - The chain namespace (e.g., "eip155", "solana")
+ * @param chainReference - The chain reference (chain ID as string)
+ * @param addressOrENSName - Either a regular address or an ENS name
+ * @returns The address as a Uint8Array
  * @throws {Error} If the address is invalid or ENS lookup fails
  */
 const parseAddress = async (
     chainNamespace: ChainTypeName,
     chainReference: string,
-    address: string,
+    addressOrENSName: string,
 ): Promise<Uint8Array> => {
-    if (!address) {
+    if (!addressOrENSName) {
         return new Uint8Array();
     }
 
+    // Resolve address (handles ENS if applicable)
+    const resolvedAddress = await resolveAddress(addressOrENSName, chainNamespace, chainReference);
+
+    // Convert to bytes based on chain type
     switch (chainNamespace) {
         case "eip155":
-            if (address.includes(".eth")) {
-                try {
-                    const client = createPublicClient({
-                        chain: chains.mainnet,
-                        transport: http(),
-                    });
-                    const coinType =
-                        chainReference === "1"
-                            ? ETHEREUM_COIN_TYPE
-                            : convertEVMChainIdToCoinType(Number(chainReference));
-                    const ensAddress = await client.getEnsAddress({
-                        name: normalize(address),
-                        coinType,
-                    });
-                    if (!ensAddress) {
-                        throw new ENSNotFound(address);
-                    }
-                    return convertToBytes(ensAddress, "hex");
-                } catch (error) {
-                    if (error instanceof ENSNotFound) {
-                        throw error;
-                    }
-                    throw new ENSLookupFailed(
-                        error instanceof Error ? error.message : String(error),
-                    );
-                }
-            }
-            return convertToBytes(address, "hex");
+            return convertToBytes(resolvedAddress, "hex");
         case "solana":
-            return convertToBytes(address, "base58");
+            return convertToBytes(resolvedAddress, "base58");
         default:
             throw new InvalidChainNamespace(chainNamespace);
     }
@@ -98,7 +64,8 @@ export type ParseHumanReadableOptions = {
 /**
  * Parses a human-readable address into an InteropAddress
  * @param humanReadableAddress - The human-readable address to parse
- * @param validateChecksumFlag - Whether to validate the checksum of the address
+ * @param options - Parsing options
+ * @param options.validateChecksumFlag - Whether to validate the checksum if provided
  * @throws {Error} If the address format is invalid or validation fails
  */
 export const parseHumanReadable = async (
@@ -109,7 +76,8 @@ export const parseHumanReadable = async (
     const parsedHumanReadableAddress =
         await HumanReadableAddressSchema.parseAsync(humanReadableAddress);
 
-    const { address, chainNamespace, chainReference, checksum } = parsedHumanReadableAddress;
+    const { address, chainNamespace, chainReference, checksum, isENSName } =
+        parsedHumanReadableAddress;
 
     const addressBytes = address
         ? await parseAddress(chainNamespace as ChainTypeName, chainReference, address)
@@ -118,7 +86,7 @@ export const parseHumanReadable = async (
         ? parseChainReference(chainNamespace as ChainTypeName, chainReference)
         : new Uint8Array();
     const chainTypeBytes = chainNamespace
-        ? convertToBytes(CHAIN_TYPE[chainNamespace], "hex")
+        ? new Uint8Array(convertToBytes(CHAIN_TYPE[chainNamespace], "hex"))
         : new Uint8Array();
 
     const interopAddress: InteropAddress = {
@@ -129,8 +97,11 @@ export const parseHumanReadable = async (
     };
 
     validateInteropAddress(interopAddress);
-    if (validateChecksumFlag) {
-        validateChecksum(interopAddress, checksum as Checksum);
+
+    if (validateChecksumFlag && checksum) {
+        validateChecksum(interopAddress, checksum as Checksum, {
+            isENSName: Boolean(isENSName),
+        });
     }
 
     return interopAddress;

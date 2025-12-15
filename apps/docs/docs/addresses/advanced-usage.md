@@ -60,7 +60,7 @@ import {
     UnsupportedChainType,
     ENSNotFound,
     ENSLookupFailed 
-} from "@wonderland/interop";
+} from "@wonderland/interop-addresses";
 
 try {
     // Your address operations here

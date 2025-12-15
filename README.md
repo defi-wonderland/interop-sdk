@@ -2,21 +2,24 @@
 
 This repository is a monorepo consisting of the following packages:
 
--   [`@interop-sdk/addresses`](./packages/addresses/): A utility library for interoperable addresses based on ERC-7930.
--   [`@interop-sdk/cross-chain`](./packages/cross-chain/): A library for cross-chain interoperability.
+-   [`@wonderland/interop-addresses`](./packages/addresses/): A utility library for interoperable addresses based on ERC-7930.
+-   [`@wonderland/interop-cross-chain`](./packages/cross-chain/): A library for cross-chain interoperability (🚧 currently under construction 🚧)
 
 ## Project Structure
 
 ```
 interop-sdk/
-├── apps/              # Application packages
-│   ├── docs/         # Documentation website
-│   └── sdk/          # SDK application
-├── packages/          # Shared packages
-│   ├── addresses/    # Address-related utilities
-│   └── cross-chain/  # Cross-chain interoperability
-├── .github/          # GitHub configuration
-├── .husky/           # Git hooks
+├── apps/                           # Application packages
+│   ├── addresses-landing-page/    # Interoperable Addresses landing page
+│   ├── docs/                      # Documentation website
+│   └── sdk/                       # SDK application
+├── packages/                       # Shared packages
+│   ├── addresses/                 # Address-related utilities (ERC-7930/ERC-7828)
+│   ├── cross-chain/               # Cross-chain interoperability
+├── examples/                       # Example implementations
+│   └── ui/                        # UI examples
+├── .github/                       # GitHub configuration
+├── .husky/                        # Git hooks
 └── ...config files
 ```
 
@@ -58,7 +61,7 @@ interop-sdk/
 The addresses package provides utilities for handling interoperable blockchain addresses across different networks.
 
 ```typescript
-import { InteropAddressProvider } from "@interop-sdk/addresses";
+import { InteropAddressProvider } from "@wonderland/interop-addresses";
 
 // Convert between human-readable and binary addresses
 const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
@@ -75,6 +78,8 @@ const isValid = await InteropAddressProvider.isValidInteropAddress(humanReadable
 
 ### Cross-Chain Package
 
+🚧 The cross-chain package is under construction 🚧
+
 The cross-chain package provides a standardized interface for cross-chain operations.
 
 ```typescript
@@ -82,7 +87,7 @@ import {
     createCrossChainProvider,
     createProviderExecutor,
     InteropAddressParamsParser,
-} from "@interop-sdk/cross-chain";
+} from "@wonderland/interop-cross-chain";
 
 // Create a provider for a specific protocol (e.g., Across)
 const provider = createCrossChainProvider("across");
@@ -99,11 +104,45 @@ const quote = await provider.getQuote("crossChainTransfer", {
 });
 ```
 
+## Release Workflow
+
+This project uses [changesets](https://github.com/changesets/changesets) for version management.
+
+### During Development (Per PR)
+
+When you make changes to any package:
+
+1. **Make changes** to one or more packages
+2. **Create changeset**: `pnpm changeset`
+    - Select which packages changed
+    - Choose change type (patch/minor/major)
+    - Write a description of the change
+3. **Commit only the changeset file** (`.changeset/random-name.md`)
+4. **Open PR** and merge to dev
+
+**Important:** Do NOT run `pnpm version-packages` during development. Changesets accumulate in `.changeset/` directory.
+
+### At Release Time (Once, by Maintainer)
+
+When ready to publish a new version:
+
+1. **Apply all accumulated changesets**: `pnpm version-packages`
+    - Reads all pending changesets
+    - Calculates new versions
+    - Updates package.json files
+    - Generates/updates CHANGELOGs
+    - Deletes applied changesets
+2. **Commit** version bumps and CHANGELOGs
+3. **Push** to GitHub
+4. **Publish** via GitHub Actions (manual workflow dispatch in Actions tab)
+
+See [.changeset/README.md](./.changeset/README.md) for more details.
+
 ## Contributing
 
 Wonderland is a team of top Web3 researchers, developers, and operators who believe that the future needs to be open-source, permissionless, and decentralized.
 
-[DeFi sucks](https://defi.sucks), but Wonderland is here to make it better.
+[Wonderland](https://wonderland.xyz), but Wonderland is here to make it better.
 
 ### 💻 Conventional Commits
 

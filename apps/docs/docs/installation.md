@@ -40,11 +40,11 @@ pnpm add @wonderland/interop-cross-chain
 If you need both packages:
 
 ```bash
-npm install @defi-wonderland/interop-addresses @wonderland/interop-cross-chain
+npm install @wonderland/interop-addresses @wonderland/interop-cross-chain
 # or
-yarn add @defi-wonderland/interop-addresses @wonderland/interop-cross-chain
+yarn add @wonderland/interop-addresses @wonderland/interop-cross-chain
 # or
-pnpm add @defi-wonderland/interop-addresses @wonderland/interop-cross-chain
+pnpm add @wonderland/interop-addresses @wonderland/interop-cross-chain
 ```
 
->Package names will be updated after EF release. Currently using `@defi-wonderland` organization.
+>Package names will be updated after EF release. Currently using `@wonderland` organization.

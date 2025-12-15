@@ -1,52 +1,46 @@
-import { getQuote, Quote } from "@across-protocol/app-sdk";
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
+import { buildFromPayload, getAddress, getChainId } from "@wonderland/interop-addresses";
+import axios, { AxiosError } from "axios";
 import {
     AbiEvent,
     Address,
     Chain,
     createPublicClient,
-    encodeAbiParameters,
-    encodeFunctionData,
-    erc20Abi,
-    formatUnits,
+    EIP1193Provider,
     Hex,
     http,
     Log,
-    pad,
+    PrepareTransactionRequestReturnType,
     PublicClient,
-    TransactionRequest,
+    toHex,
 } from "viem";
+import { ZodError } from "zod";
 
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
-    ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES,
-    ACROSS_OPEN_GAS_LIMIT,
-    ACROSS_ORDER_DATA_ABI,
-    ACROSS_ORDER_DATA_TYPE,
     ACROSS_SPOKE_POOL_ADDRESSES,
-    ACROSS_TESTING_API_URL,
-    AcrossOpenParams,
-    AcrossTransferOpenParams,
-    AcrossTransferOpenParamsSchema,
+    AcrossConfigs,
+    AcrossConfigSchema,
+    AcrossGetQuoteParams,
+    AcrossGetQuoteParamsSchema,
+    AcrossGetQuoteResponse,
+    AcrossGetQuoteResponseSchema,
+    AcrossOIFGetQuoteParams,
+    AcrossOIFGetQuoteParamsSchema,
     bytes32ToAddress,
     CrossChainProvider,
     DepositInfo,
     DepositInfoParserConfig,
-    Fee,
+    ExecutableQuote,
     FillEvent,
     FillWatcherConfig,
-    formatTokenAmount,
     getChainById,
     GetFillParams,
-    GetQuoteParams,
-    GetQuoteResponse,
-    getTokenAllowance,
-    OPEN_ABI,
     parseAbiEncodedFields,
-    parseTokenAmount,
-    TransferGetQuoteParams,
-    TransferGetQuoteParamsSchema,
-    TransferGetQuoteResponse,
-    UnsupportedAction,
+    ProviderConfigFailure,
+    ProviderExecuteNotImplemented,
+    ProviderGetQuoteFailure,
+    QuoteWithAcross,
 } from "../internal.js";
 
 /**
@@ -56,20 +50,77 @@ import {
  * @param dependencies - The dependencies for the provider
  * @returns A provider for the Across protocol
  */
-export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
+export class AcrossProvider extends CrossChainProvider {
     readonly protocolName = "across";
-    private readonly clientCache: Map<number, PublicClient> = new Map();
+    readonly providerId: string;
+    private readonly apiUrl: string;
+    private readonly rpcClientCache: Map<number, PublicClient> = new Map();
 
-    private getPublicClient({ chain }: { chain: Chain }): PublicClient {
-        if (this.clientCache.has(chain.id)) {
-            return this.clientCache.get(chain.id)!;
+    constructor(config: AcrossConfigs) {
+        super();
+
+        try {
+            const configParsed = AcrossConfigSchema.parse(config);
+            this.apiUrl = configParsed.apiUrl;
+            this.providerId = configParsed.providerId;
+        } catch (error) {
+            if (error instanceof ZodError) {
+                throw new ProviderConfigFailure(
+                    "Failed to parse Across config",
+                    error.message,
+                    error.stack,
+                );
+            }
+            throw new ProviderConfigFailure(
+                "Failed to configure Across provider",
+                String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
         }
-        const client = createPublicClient({
+    }
+
+    private async getPublicClient(chain: Chain): Promise<PublicClient> {
+        if (this.rpcClientCache.has(chain.id)) {
+            return this.rpcClientCache.get(chain.id)!;
+        }
+
+        const rpcClient = createPublicClient({
             chain,
             transport: http(),
         });
-        this.clientCache.set(chain.id, client);
-        return client;
+
+        this.rpcClientCache.set(chain.id, rpcClient);
+
+        return rpcClient;
+    }
+
+    /**
+     * Parse an interop address to a viem address and chain id
+     * @param address - The interop address to parse
+     * @returns The viem address and chain id
+     */
+    private async parseInteropAddress(
+        address: string,
+    ): Promise<{ address: Address; chain: number }> {
+        return {
+            address: (await getAddress(address)) as Address,
+            chain: (await getChainId(address)) as number,
+        };
+    }
+
+    /**
+     * Generate an interop address from a viem address and chain id
+     * @param address - The viem address
+     * @param chain - The chain id
+     * @returns The interop address
+     */
+    private generateInteropAddress(address: Address, chain: number): Promise<string> {
+        return buildFromPayload({
+            version: 1,
+            chainType: "eip155",
+            chainReference: toHex(chain),
+            address,
+        });
     }
 
     /**
@@ -77,297 +128,190 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
      * @param params - The parameters for the action
      * @returns A quote for the action
      */
-    private async getAcrossQuote(params: TransferGetQuoteParams): Promise<Quote> {
-        const route = {
-            originChainId: Number(params.inputChainId),
-            destinationChainId: Number(params.outputChainId),
-            inputToken: params.inputTokenAddress,
-            outputToken: params.outputTokenAddress,
-        };
-
-        const inputChain = getChainById(Number(params.inputChainId));
-
-        const inputAmount = await parseTokenAmount(
-            {
-                amount: params.inputAmount,
-                tokenAddress: params.inputTokenAddress,
-                chain: inputChain,
-            },
-            { publicClient: this.getPublicClient({ chain: inputChain }) },
-        );
-
-        return await getQuote({
-            route,
-            inputAmount,
-            apiUrl: ACROSS_TESTING_API_URL,
-            recipient: params.recipient,
-        });
-    }
-
-    /**
-     * Pad the depositor address
-     * @param address - The address to pad
-     * @returns The padded address as bytes32
-     */
-    private padAddress(address: Hex): Hex {
-        return pad(address, { size: 32 });
-    }
-
-    /**
-     * Get the open parameters for an Across cross-chain transfer
-     * @param quote - The quote to get the open parameters for
-     * @returns The open parameters
-     */
-    private async getAcrossOpenParams(
-        sender: Address,
-        quote: Quote,
-    ): Promise<AcrossTransferOpenParams> {
-        const orderData = await encodeAbiParameters(ACROSS_ORDER_DATA_ABI, [
-            {
-                inputToken: quote.deposit.inputToken,
-                inputAmount: quote.deposit.inputAmount,
-                outputToken: quote.deposit.outputToken,
-                outputAmount: quote.deposit.outputAmount,
-                destinationChainId: quote.deposit.destinationChainId,
-                recipient: this.padAddress(quote.deposit.recipient),
-                exclusiveRelayer: quote.deposit.exclusiveRelayer,
-                exclusivityParameter: quote.deposit.exclusivityDeadline,
-                depositNonce: quote.deposit.quoteTimestamp,
-                message: "0x",
-            },
-        ]);
-
-        const quoteResponse: AcrossTransferOpenParams = {
-            action: "crossChainTransfer",
-            params: {
-                recipient: quote.deposit.recipient,
-                inputChainId: quote.deposit.originChainId,
-                outputChainId: quote.deposit.destinationChainId,
-                inputTokenAddress: quote.deposit.inputToken,
-                outputTokenAddress: quote.deposit.outputToken,
-                sender,
-                inputAmount: quote.deposit.inputAmount,
-                fillDeadline: quote.deposit.fillDeadline,
-                orderDataType: ACROSS_ORDER_DATA_TYPE,
-                orderData,
-            },
-        };
-
-        return quoteResponse;
-    }
-
-    /**
-     * Calculate the total fee for an Across quote
-     * @param quote - The quote to calculate the fee for
-     * @returns The total fee
-     */
-    private async calculateTotalFee(quote: Quote): Promise<bigint> {
-        return quote.fees.totalRelayFee.total;
-    }
-
-    /**
-     * Calculate the percent fee for an Across quote
-     * @param quote - The quote to calculate the fee for
-     * @returns The percent fee
-     */
-    private async calculatePercentFee(quote: Quote): Promise<bigint> {
-        return quote.fees.totalRelayFee.pct;
-    }
-
-    /**
-     * Calculate the total and percent fees for an Across quote
-     * @param quote - The quote to calculate the fees for
-     * @returns The total and percent fees
-     */
-    private async calculateFee(quote: Quote): Promise<Fee> {
-        const totalFee = await this.calculateTotalFee(quote);
-        const percentFee = await this.calculatePercentFee(quote);
-
-        const inputChain = getChainById(Number(quote.deposit.originChainId));
-
-        return {
-            total: await formatTokenAmount(
+    private async getAcrossQuote(params: AcrossGetQuoteParams): Promise<AcrossGetQuoteResponse> {
+        try {
+            const response = await axios.get<AcrossGetQuoteResponse>(
+                `${this.apiUrl}/swap/approval`,
                 {
-                    amount: totalFee,
-                    tokenAddress: quote.deposit.inputToken,
-                    chain: inputChain,
+                    params,
                 },
-                { publicClient: this.getPublicClient({ chain: inputChain }) },
-            ),
-            percent: formatUnits(percentFee, 15),
+            );
+
+            if (response.status !== 200) {
+                throw new ProviderGetQuoteFailure("Failed to get Across quote");
+            }
+
+            return AcrossGetQuoteResponseSchema.parse(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                const errorData = error.response?.data as { message: string };
+
+                const message =
+                    errorData.message ||
+                    error.cause?.message ||
+                    error.message ||
+                    "Failed to get Across quote";
+
+                throw new ProviderGetQuoteFailure(
+                    "Failed to get Across quote",
+                    message,
+                    error.stack,
+                );
+            } else if (error instanceof ZodError) {
+                throw new ProviderGetQuoteFailure(
+                    "Failed to parse Across quote",
+                    error.message,
+                    error.stack,
+                );
+            }
+            throw new ProviderGetQuoteFailure(
+                "Failed to get Across quote",
+                String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
+        }
+    }
+
+    private async convertOifParamsToAcrossParams(
+        params: AcrossOIFGetQuoteParams,
+    ): Promise<AcrossGetQuoteParams> {
+        try {
+            const userParsed = await this.parseInteropAddress(params.user);
+
+            const { inputs, outputs } = params.intent;
+            const inputParsed = await this.parseInteropAddress(inputs[0].asset);
+            const outputParsed = await this.parseInteropAddress(outputs[0].asset);
+            const swapType = params.intent.swapType || "exact-input";
+            const amount = swapType === "exact-input" ? inputs[0].amount : outputs[0].amount;
+
+            return AcrossGetQuoteParamsSchema.parse({
+                tradeType: params.intent.swapType || "exact-input",
+                inputToken: inputParsed.address,
+                amount,
+                outputToken: outputParsed.address,
+                originChainId: inputParsed.chain,
+                destinationChainId: outputParsed.chain,
+                depositor: userParsed.address,
+            });
+        } catch (error) {
+            if (error instanceof ZodError) {
+                throw new ProviderGetQuoteFailure(
+                    "Failed to parse Across OIF quote request",
+                    error.message,
+                    error.stack,
+                );
+            }
+            throw new ProviderGetQuoteFailure(
+                "Failed to convert Across OIF quote request to Across params",
+                String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
+        }
+    }
+
+    private async convertAcrossSwapToOifQuote(
+        request: AcrossOIFGetQuoteParams,
+        response: AcrossGetQuoteResponse,
+    ): Promise<QuoteWithAcross> {
+        const { inputs, outputs } = request.intent;
+
+        return {
+            order: {
+                type: "across",
+                payload: response.swapTx,
+                metadata: {},
+            },
+            preview: {
+                inputs: [
+                    {
+                        user: inputs[0].user,
+                        asset: await this.generateInteropAddress(
+                            response.inputToken.address,
+                            response.inputToken.chainId,
+                        ),
+                        amount: response.inputAmount,
+                    },
+                ],
+                outputs: [
+                    {
+                        receiver: outputs[0].receiver,
+                        asset: await this.generateInteropAddress(
+                            response.outputToken.address,
+                            response.outputToken.chainId,
+                        ),
+                        amount: response.expectedOutputAmount,
+                    },
+                ],
+            },
+            quoteId: response.id,
+            eta: response.expectedFillTime,
+            partialFill: false,
+            failureHandling: "refund-automatic",
+            metadata: {
+                acrossResponse: response,
+            },
         };
     }
 
-    /**
-     * Get a quote for an Across cross-chain transfer
-     * @param params - The parameters for the action
-     * @returns A quote for the action
-     */
-    private async getTransferQuote(
-        params: TransferGetQuoteParams,
-    ): Promise<TransferGetQuoteResponse<AcrossOpenParams>> {
-        const inputChain = getChainById(Number(params.inputChainId));
-        const outputChain = getChainById(Number(params.outputChainId));
+    private async prepareTransaction(
+        quote: AcrossGetQuoteResponse,
+    ): Promise<PrepareTransactionRequestReturnType | undefined> {
+        try {
+            const chain = getChainById(quote.swapTx.chainId);
+            const publicClient = await this.getPublicClient(chain);
+            const preparedTransaction = await publicClient.prepareTransactionRequest({
+                to: quote.swapTx.to,
+                data: quote.swapTx.data,
+                chain,
+            });
 
-        const quote = await this.getAcrossQuote(params);
-        const openParams = await this.getAcrossOpenParams(params.sender, quote);
-        const fee = await this.calculateFee(quote);
-        return {
-            protocol: this.protocolName,
-            action: "crossChainTransfer",
-            isAmountTooLow: quote.isAmountTooLow,
-            output: {
-                inputTokenAddress: quote.deposit.inputToken,
-                outputTokenAddress: quote.deposit.outputToken,
-                inputAmount: await formatTokenAmount(
-                    {
-                        amount: quote.deposit.inputAmount,
-                        tokenAddress: quote.deposit.inputToken,
-                        chain: inputChain,
-                    },
-                    { publicClient: this.getPublicClient({ chain: inputChain }) },
-                ),
-                outputAmount: await formatTokenAmount(
-                    {
-                        amount: quote.deposit.outputAmount,
-                        tokenAddress: quote.deposit.outputToken,
-                        chain: outputChain,
-                    },
-                    { publicClient: this.getPublicClient({ chain: outputChain }) },
-                ),
-                inputChainId: quote.deposit.originChainId,
-                outputChainId: quote.deposit.destinationChainId,
-            },
-            openParams,
-            fee,
-        } as TransferGetQuoteResponse<AcrossOpenParams>;
+            return preparedTransaction;
+        } catch (error) {
+            return undefined;
+        }
     }
 
     /**
      * @inheritdoc
      */
-    async getQuote<Action extends AcrossOpenParams["action"]>(
-        action: Action,
-        input: GetQuoteParams<Action>,
-    ): Promise<GetQuoteResponse<Action, AcrossOpenParams>> {
-        switch (action) {
-            case "crossChainTransfer":
-                const transferParams = TransferGetQuoteParamsSchema.parse(input);
+    async getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]> {
+        try {
+            const parsedParams = AcrossOIFGetQuoteParamsSchema.parse(params);
 
-                const quoteResponse = await this.getTransferQuote(transferParams);
+            const acrossGetQuote = await this.convertOifParamsToAcrossParams(parsedParams);
+            const acrossQuote = await this.getAcrossQuote(acrossGetQuote);
+            const oifQuote = await this.convertAcrossSwapToOifQuote(parsedParams, acrossQuote);
 
-                return quoteResponse as GetQuoteResponse<Action, AcrossOpenParams>;
-            default:
-                throw new UnsupportedAction(action);
+            const preparedTransaction = await this.prepareTransaction(acrossQuote);
+
+            const executableQuote: ExecutableQuote = {
+                ...oifQuote,
+                preparedTransaction,
+            };
+
+            return [executableQuote];
+        } catch (error) {
+            if (error instanceof ZodError) {
+                throw new ProviderGetQuoteFailure(
+                    "Failed to parse Across OIF quote request",
+                    error.message,
+                    error.stack,
+                );
+            }
+            throw new ProviderGetQuoteFailure(
+                "Failed to get Across quotes",
+                String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
         }
-    }
-
-    /**
-     * Get the allowance transaction for the Across settler contract
-     * @param params - The parameters for the action
-     * @returns The allowance transaction
-     */
-    private async getSettlerAllowanceTransaction(
-        params: AcrossTransferOpenParams,
-    ): Promise<TransactionRequest[]> {
-        const { inputChainId, inputTokenAddress, inputAmount } = params.params;
-
-        const result: TransactionRequest[] = [];
-
-        const inputChain = getChainById(Number(inputChainId));
-
-        const settlerContractAddress = ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[
-            Number(inputChainId)
-        ] as Hex;
-
-        const currentAllowance = await getTokenAllowance(
-            {
-                tokenAddress: inputTokenAddress,
-                chain: inputChain,
-                owner: params.params.sender,
-                spender: settlerContractAddress,
-            },
-            { publicClient: this.getPublicClient({ chain: inputChain }) },
-        );
-
-        if (currentAllowance >= inputAmount) {
-            return result;
-        }
-
-        const approvalData = encodeFunctionData({
-            abi: erc20Abi,
-            functionName: "approve",
-            args: [settlerContractAddress, inputAmount],
-        });
-
-        const allowanceTx = await this.getPublicClient({
-            chain: inputChain,
-        }).prepareTransactionRequest({
-            account: params.params.sender,
-            to: inputTokenAddress,
-            data: approvalData,
-            chain: inputChain,
-        });
-
-        return [allowanceTx];
-    }
-
-    /**
-     * Simulate the open transaction for an Across cross-chain transfer
-     * @param params - The parameters for the action
-     * @returns The open transaction
-     */
-    private async simulateTransferOpen(
-        params: AcrossTransferOpenParams,
-    ): Promise<TransactionRequest[]> {
-        const { fillDeadline, orderDataType, orderData, inputChainId, sender } = params.params;
-        const result: TransactionRequest[] = [];
-
-        const inputChain = getChainById(Number(inputChainId));
-
-        const settlerContractAddress = ACROSS_OIF_ADAPTER_CONTRACT_ADDRESSES[Number(inputChainId)];
-
-        const allowanceTx = await this.getSettlerAllowanceTransaction(params);
-
-        result.push(...allowanceTx);
-
-        const openData = encodeFunctionData({
-            abi: OPEN_ABI,
-            functionName: "open",
-            args: [{ fillDeadline, orderDataType, orderData }],
-        });
-
-        const openTx = await this.getPublicClient({ chain: inputChain }).prepareTransactionRequest({
-            account: sender,
-            to: settlerContractAddress,
-            data: openData,
-            chain: inputChain,
-            gas: ACROSS_OPEN_GAS_LIMIT,
-        });
-
-        return [...result, openTx];
     }
 
     /**
      * @inheritdoc
      */
-    validateOpenParams(params: AcrossOpenParams): void {
-        AcrossTransferOpenParamsSchema.parse(params);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    async validatedSimulateOpen(params: AcrossOpenParams): Promise<TransactionRequest[]> {
-        const { action } = params;
-
-        switch (action) {
-            case "crossChainTransfer":
-                const transferParams = AcrossTransferOpenParamsSchema.parse(params);
-                return await this.simulateTransferOpen(transferParams);
-            default:
-                throw new UnsupportedAction(action);
-        }
+    async execute(_quote: ExecutableQuote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
+        // TODO: Implement the execute method
+        throw new ProviderExecuteNotImplemented("Not implemented");
     }
 
     /**
@@ -442,6 +386,19 @@ export class AcrossProvider extends CrossChainProvider<AcrossOpenParams> {
                     recipient: bytes32ToAddress(args.recipient),
                 };
             },
+        };
+    }
+
+    /**
+     * @inheritdoc
+     */
+    getTrackingConfig(): {
+        depositInfoParser: DepositInfoParserConfig;
+        fillWatcher: FillWatcherConfig;
+    } {
+        return {
+            depositInfoParser: AcrossProvider.getDepositInfoParserConfig(),
+            fillWatcher: AcrossProvider.getFillWatcherConfig(),
         };
     }
 }

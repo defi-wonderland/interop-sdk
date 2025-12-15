@@ -6,6 +6,7 @@ import {
     DepositInfoParser,
     FillWatcher,
     IntentTracker,
+    IntentUpdate,
     OpenEventWatcher,
     WatchIntentParams,
 } from "../../src/internal.js";
@@ -435,6 +436,121 @@ describe("IntentTracker", () => {
             expect(updates[2]?.message).toContain("may still be filled before deadline");
 
             expect(mockFillWatcher.waitForFill).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("startTracking with event emission", () => {
+        it("should emit specific status events during tracking", async () => {
+            const mockOpenEvent = createMockOpenEvent();
+            const mockDepositInfo = createMockDepositInfo();
+            const mockFillEventData = createMockFillEvent();
+
+            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
+
+            const openingEvents: IntentUpdate[] = [];
+            const openedEvents: IntentUpdate[] = [];
+            const fillingEvents: IntentUpdate[] = [];
+            const filledEvents: IntentUpdate[] = [];
+
+            tracker.on("opening", (update: IntentUpdate) => openingEvents.push(update));
+            tracker.on("opened", (update: IntentUpdate) => openedEvents.push(update));
+            tracker.on("filling", (update: IntentUpdate) => fillingEvents.push(update));
+            tracker.on("filled", (update: IntentUpdate) => filledEvents.push(update));
+
+            const params: WatchIntentParams = {
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 5000,
+            };
+
+            await tracker.startTracking(params);
+
+            // Should emit specific status events: opening, opened, filling, filled
+            expect(openingEvents).toHaveLength(1);
+            expect(openedEvents).toHaveLength(1);
+            expect(fillingEvents).toHaveLength(1);
+            expect(filledEvents).toHaveLength(1);
+
+            expect(openingEvents[0]!.status).toBe("opening");
+            expect(openedEvents[0]!.status).toBe("opened");
+            expect(fillingEvents[0]!.status).toBe("filling");
+            expect(filledEvents[0]!.status).toBe("filled");
+        });
+
+        it("should return final status info", async () => {
+            const mockOpenEvent = createMockOpenEvent();
+            const mockDepositInfo = createMockDepositInfo();
+            const mockFillEventData = createMockFillEvent();
+
+            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
+
+            const params: WatchIntentParams = {
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 5000,
+            };
+
+            const result = await tracker.startTracking(params);
+
+            expect(result).toHaveProperty("status", "filled");
+            expect(result).toHaveProperty("orderId");
+            expect(result).toHaveProperty("fillEvent");
+        });
+
+        it("should emit error event on failure", async () => {
+            const error = new Error("Test error");
+            vi.mocked(mockOpenWatcher.getOpenEvent).mockRejectedValue(error);
+
+            const errorEvents: Error[] = [];
+            tracker.on("error", (err: Error) => errorEvents.push(err));
+
+            const params: WatchIntentParams = {
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 5000,
+            };
+
+            await expect(tracker.startTracking(params)).rejects.toThrow("Test error");
+            expect(errorEvents).toHaveLength(1);
+            expect(errorEvents[0]!).toBe(error);
+        });
+
+        it("should emit expired event when deadline passed", async () => {
+            const expiredDeadline = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
+            const mockOpenEvent = createMockOpenEvent({
+                resolvedOrder: {
+                    ...createMockOpenEvent().resolvedOrder,
+                    fillDeadline: expiredDeadline,
+                },
+            });
+            const mockDepositInfo = createMockDepositInfo();
+
+            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
+
+            const expiredEvents: IntentUpdate[] = [];
+            tracker.on("expired", (update: IntentUpdate) => expiredEvents.push(update));
+
+            const params: WatchIntentParams = {
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 5000,
+            };
+
+            await tracker.startTracking(params);
+
+            expect(expiredEvents).toHaveLength(1);
+            expect(expiredEvents[0]!.status).toBe("expired");
         });
     });
 });

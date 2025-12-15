@@ -13,6 +13,7 @@
     "type": "module",
     "scripts": {
         "build": "turbo run build",
+        "changeset": "changeset",
         "check-types": "turbo run check-types",
         "clean": "turbo run clean",
         "create-package": "./create-package.sh",
@@ -26,14 +27,18 @@
         "start": "turbo run start",
         "test": "turbo run test",
         "test:cov": "turbo run test:cov",
-        "test:integration": "turbo run test:integration"
+        "test:integration": "turbo run test:integration",
+        "version-packages": "changeset version"
     },
     "lint-staged": {
         "*": "prettier --write --ignore-unknown",
-        "*.js,*.ts,*.json": "eslint --fix",
-        "package.json": "sort-package-json"
+        "packages/**/*.{js,ts,json}": "eslint --fix",
+        "apps/**/*.{js,ts,json}": "eslint --fix",
+        "package.json": "sort-package-json",
+        "examples/**": []
     },
     "devDependencies": {
+        "@changesets/cli": "2.29.7",
         "@commitlint/config-conventional": "19.4.1",
         "@ianvs/prettier-plugin-sort-imports": "4.3.1",
         "@types/node": "20.3.1",
@@ -48,12 +53,9 @@
         "lint-staged": "15.2.10",
         "prettier": "3.3.3",
         "sort-package-json": "2.10.1",
-        "turbo": "2.1.1",
+        "turbo": "2.6.1",
         "typescript": "5.5.4",
         "vitest": "2.0.5"
     },
-    "packageManager": "pnpm@9.7.1+sha256.46f1bbc8f8020aa9869568c387198f1a813f21fb44c82f400e7d1dbde6c70b40",
-    "engines": {
-        "node": "20"
-    }
+    "packageManager": "pnpm@10.24.0+sha512.01ff8ae71b4419903b65c60fb2dc9d34cf8bb6e06d03bde112ef38f7a34d6904c424ba66bea5cdcf12890230bf39f9580473140ed9c946fef328b6e5238a345a"
 }
