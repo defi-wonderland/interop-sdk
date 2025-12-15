@@ -2,7 +2,7 @@
 title: Getting Started
 ---
 
-The `addresses` package provides a robust solution for handling interoperable blockchain addresses across different networks, following the [ERC-7930](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365) standard. This guide will help you get started with using the package in your projects.
+The `addresses` package provides a robust solution for handling interoperable blockchain addresses across different networks, following the [ERC-7930](https://eips.ethereum.org/EIPS/eip-7930) and [ERC-7828](https://eips.ethereum.org/EIPS/eip-7828) standards. This guide will help you get started with using the package in your projects.
 
 ## Installing the Package
 
@@ -79,18 +79,18 @@ graph TD
     A -->|getChainId| D
     A -->|getAddress| E
 ```
+
 ## Chain Resolution
 
 The package resolves chain identifiers using off-chain registries:
 
-- **Primary**: Uses `shortnameToChainId` with built-in chain shortname mappings
-- **Fallback**: Uses viem's chain definitions and chainid.network
+-   **Primary**: Uses `shortnameToChainId` with built-in chain shortname mappings
+-   **Fallback**: Uses viem's chain definitions and chainid.network
 
-
->We’re currently working on the ENS on-chain chain registry, though it hasn’t been deployed yet.
-For now, the SDK uses off-chain registries (such as chainid.network and viem) as the main resolution mechanism.
-
+> We’re currently working on the ENS on-chain chain registry, though it hasn’t been deployed yet.
+> For now, the SDK uses off-chain registries (such as chainid.network and viem) as the main resolution mechanism.
 
 ## References
 
--   [ERC-7930: Interoperable Addresses](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365)
+-   [ERC-7930: Interoperable Addresses](https://eips.ethereum.org/EIPS/eip-7930)
+-   [ERC-7828: Readable Interoperable Addresses using ENS](https://eips.ethereum.org/EIPS/eip-7828)

@@ -25,6 +25,8 @@ pnpm add @wonderland/interop-addresses
 
 ### Cross-Chain Package
 
+> 🚧 This package is currently under development 🚧
+
 For cross-chain operations:
 
 ```bash
@@ -47,4 +49,4 @@ yarn add @wonderland/interop-addresses @wonderland/interop-cross-chain
 pnpm add @wonderland/interop-addresses @wonderland/interop-cross-chain
 ```
 
->Package names will be updated after EF release. Currently using `@wonderland` organization.
+> Package names will be updated after EF release. Currently using `@wonderland` organization.
