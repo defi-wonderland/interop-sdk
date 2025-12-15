@@ -11,8 +11,6 @@ export interface ConversionResult {
 
 export async function convertFromReadable(humanReadableAddress: string): Promise<ConversionResult> {
   const binary = await InteropAddressProvider.humanReadableToBinary(humanReadableAddress);
-  console.log('humanReadableAddress', humanReadableAddress);
-  console.log('binary', binary);
   const humanParts = parseHumanReadableForDisplay(humanReadableAddress);
   const binaryParts = parseBinaryForDisplay(binary);
 
