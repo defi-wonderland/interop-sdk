@@ -3,7 +3,6 @@ export * from "./errors/index.js";
 export * from "./interfaces/index.js";
 export * from "./types/index.js";
 export * from "./sorting_strategies/index.js";
-export * from "./types/index.js";
 
 export {
     AcrossProvider,
@@ -13,6 +12,7 @@ export {
     ProviderExecutor,
     createIntentTracker,
     IntentTracker,
+    IntentTrackerFactory,
     OpenEventWatcher,
     SortingStrategyFactory,
 } from "./internal.js";
