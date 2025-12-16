@@ -122,8 +122,61 @@ const quotesWithInterop = await executorWithParser.getQuotes("crossChainTransfer
 -   `crossChainTransfer` – Transfer tokens between chains.
 -   `crossChainSwap` – Swap tokens across chains (if supported by the protocol).
 
+## OIF Provider
+
+The `OifProvider` enables integration with any [Open Intents Framework](https://docs.openintents.xyz/) compliant solver.
+
+### Usage
+
+```typescript
+import { OifProvider } from "@wonderland/interop-cross-chain";
+import { createWalletClient, http } from "viem";
+import { base } from "viem/chains";
+
+// Create provider with your solver endpoint
+const provider = new OifProvider({
+    solverId: "my-solver",
+    url: "https://oif-api.example.com",
+});
+
+// Get quotes
+const quotes = await provider.getQuotes({
+    user: "0x123abc...",
+    intent: {
+        intentType: "oif-swap",
+        inputs: [{ asset: "0x...", amount: "1000000" }],
+        outputs: [{ asset: "0x...", amount: "990000" }],
+        swapType: "exact-input",
+    },
+});
+
+// Protocol Mode: Sign and submit order (gasless for user)
+const walletClient = createWalletClient({ account, chain: base, transport: http() });
+const { domain, primaryType, message, types } = quotes[0].order.payload;
+const signature = await walletClient.signTypedData({ domain, primaryType, message, types });
+await provider.submitSignedOrder(quotes[0], signature);
+
+// User Mode: Execute transaction directly (user pays gas)
+if (quotes[0].preparedTransaction) {
+    await walletClient.sendTransaction(quotes[0].preparedTransaction);
+}
+```
+
+### Approval Requirements
+
+Access approval info directly from the quote:
+
+```typescript
+// Protocol mode (oif-escrow-v0) - typically Permit2
+const spender = quote.order.payload.message.spender;
+
+// User mode (oif-user-open-v0)
+const { spender, token, required } = quote.order.checks.allowances[0];
+```
+
 ## References
 
+-   [Open Intents Framework](https://docs.openintents.xyz/) - OIF API specification and documentation
 -   [Viem Documentation](https://viem.sh/) - Low-level Ethereum interface used for transaction handling
 -   [Zod Documentation](https://zod.dev/) - TypeScript-first schema validation used for input validation
 -   [Cross-Chain Interoperability Standards](https://ethereum.org/en/developers/docs/bridges/) - Overview of cross-chain bridge concepts
