@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AcrossProvider, IntentTracker, IntentTrackerFactory } from "../../src/external.js";
-import { DepositInfoParser, FillWatcher } from "../../src/internal.js";
+import { DepositInfoParser, FillWatcher, OpenEventParser } from "../../src/internal.js";
 
 const MOCK_API_URL = "https://mocked.across.url/api";
 const MOCK_PROVIDER_ID = "across";
@@ -77,6 +77,18 @@ describe("IntentTrackerFactory", () => {
 
             const tracker = factory.createTracker(provider, {
                 fillWatcher: mockFillWatcher,
+            });
+
+            expect(tracker).toBeInstanceOf(IntentTracker);
+        });
+
+        it("accepts custom openEventParser", () => {
+            const mockOpenEventParser: OpenEventParser = {
+                getOpenEvent: vi.fn(),
+            };
+
+            const tracker = factory.createTracker(provider, {
+                openEventParser: mockOpenEventParser,
             });
 
             expect(tracker).toBeInstanceOf(IntentTracker);

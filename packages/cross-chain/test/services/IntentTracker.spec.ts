@@ -7,7 +7,7 @@ import {
     FillWatcher,
     IntentTracker,
     IntentUpdate,
-    OpenEventWatcher,
+    OpenEventParser,
     WatchIntentParams,
 } from "../../src/internal.js";
 import { FillTimeoutError } from "../../src/services/EventBasedFillWatcher.js";
@@ -19,7 +19,7 @@ import {
 
 describe("IntentTracker", () => {
     let tracker: IntentTracker;
-    let mockOpenWatcher: OpenEventWatcher;
+    let mockOpenEventParser: OpenEventParser;
     let mockDepositInfoParser: DepositInfoParser;
     let mockFillWatcher: FillWatcher;
 
@@ -30,9 +30,9 @@ describe("IntentTracker", () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
-        mockOpenWatcher = {
+        mockOpenEventParser = {
             getOpenEvent: vi.fn(),
-        } as unknown as OpenEventWatcher;
+        } as unknown as OpenEventParser;
 
         mockDepositInfoParser = {
             getDepositInfo: vi.fn(),
@@ -43,7 +43,7 @@ describe("IntentTracker", () => {
             waitForFill: vi.fn(),
         } as unknown as FillWatcher;
 
-        tracker = new IntentTracker(mockOpenWatcher, mockDepositInfoParser, mockFillWatcher);
+        tracker = new IntentTracker(mockOpenEventParser, mockDepositInfoParser, mockFillWatcher);
     });
 
     afterEach(() => {
@@ -57,7 +57,7 @@ describe("IntentTracker", () => {
             const mockDepositInfo = createMockDepositInfo();
             const mockFillEventData = createMockFillEvent();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
 
@@ -79,7 +79,7 @@ describe("IntentTracker", () => {
             });
             const mockDepositInfo = createMockDepositInfo();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
@@ -99,7 +99,7 @@ describe("IntentTracker", () => {
             });
             const mockDepositInfo = createMockDepositInfo();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
@@ -122,7 +122,7 @@ describe("IntentTracker", () => {
                 depositId: 99999n,
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
 
@@ -151,7 +151,7 @@ describe("IntentTracker", () => {
             });
             const mockDepositInfo = createMockDepositInfo();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
@@ -169,7 +169,7 @@ describe("IntentTracker", () => {
             });
             const mockFillEventData = createMockFillEvent();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
 
@@ -206,7 +206,7 @@ describe("IntentTracker", () => {
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
 
             const params: WatchIntentParams = {
@@ -240,7 +240,7 @@ describe("IntentTracker", () => {
             });
             const mockFillEventData = createMockFillEvent();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
 
@@ -277,7 +277,7 @@ describe("IntentTracker", () => {
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
 
             // Simulate FillTimeoutError - deadline already passed
@@ -314,7 +314,7 @@ describe("IntentTracker", () => {
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
 
             // Simulate timeout (not expired)
@@ -346,7 +346,7 @@ describe("IntentTracker", () => {
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
 
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
@@ -376,7 +376,7 @@ describe("IntentTracker", () => {
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
 
             const unexpectedError = new Error("Unexpected RPC error");
@@ -407,7 +407,7 @@ describe("IntentTracker", () => {
             });
 
             // Mock getOpenEvent taking longer than total timeout
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockImplementation(async () => {
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockImplementation(async () => {
                 await vi.advanceTimersByTimeAsync(6000);
                 return mockOpenEvent;
             });
@@ -445,7 +445,7 @@ describe("IntentTracker", () => {
             const mockDepositInfo = createMockDepositInfo();
             const mockFillEventData = createMockFillEvent();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
 
@@ -485,7 +485,7 @@ describe("IntentTracker", () => {
             const mockDepositInfo = createMockDepositInfo();
             const mockFillEventData = createMockFillEvent();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
@@ -506,7 +506,7 @@ describe("IntentTracker", () => {
 
         it("should emit error event on failure", async () => {
             const error = new Error("Test error");
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockRejectedValue(error);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockRejectedValue(error);
 
             const errorEvents: Error[] = [];
             tracker.on("error", (err: Error) => errorEvents.push(err));
@@ -533,7 +533,7 @@ describe("IntentTracker", () => {
             });
             const mockDepositInfo = createMockDepositInfo();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
+            vi.mocked(mockOpenEventParser.getOpenEvent).mockResolvedValue(mockOpenEvent);
             vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 

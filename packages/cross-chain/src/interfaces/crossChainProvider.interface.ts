@@ -3,6 +3,7 @@ import type { EIP1193Provider } from "viem";
 
 import type { DepositInfoParserConfig } from "../services/EventBasedDepositInfoParser.js";
 import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
+import type { OpenEventParserConfig } from "./openEventParser.interface.js";
 import type { ExecutableQuote } from "./quotes.interface.js";
 
 export abstract class CrossChainProvider {
@@ -54,9 +55,14 @@ export abstract class CrossChainProvider {
      * This method provides the protocol-specific configuration needed to create
      * an IntentTracker for monitoring cross-chain transaction status.
      *
-     * @returns Configuration object containing deposit info parser and fill watcher configs
+     * @returns Configuration object containing:
+     *   - openEventParser: Optional config for protocols that don't emit EIP-7683 Open events
+     *   - depositInfoParser: Config for parsing deposit info from protocol events
+     *   - fillWatcher: Config for watching fill events on destination chain
      */
     abstract getTrackingConfig(): {
+        /** Optional: For protocols that don't emit standard EIP-7683 Open events */
+        openEventParser?: OpenEventParserConfig;
         depositInfoParser: DepositInfoParserConfig;
         fillWatcher: FillWatcherConfig;
     };

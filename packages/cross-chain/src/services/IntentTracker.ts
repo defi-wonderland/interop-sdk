@@ -6,7 +6,7 @@ import {
     FillWatcher,
     IntentStatusInfo,
     IntentUpdate,
-    OpenEventWatcher,
+    OpenEventParser,
     WatchIntentParams,
 } from "../internal.js";
 
@@ -37,7 +37,7 @@ export class IntentTracker extends EventEmitter {
     static readonly DEFAULT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
     constructor(
-        private readonly openWatcher: OpenEventWatcher,
+        private readonly openEventParser: OpenEventParser,
         private readonly depositInfoParser: DepositInfoParser,
         private readonly fillWatcher: FillWatcher,
     ) {
@@ -52,7 +52,7 @@ export class IntentTracker extends EventEmitter {
      * @returns Current intent status
      */
     async getIntentStatus(txHash: Hex, originChainId: number): Promise<IntentStatusInfo> {
-        const openEvent = await this.openWatcher.getOpenEvent(txHash, originChainId);
+        const openEvent = await this.openEventParser.getOpenEvent(txHash, originChainId);
 
         const depositInfo = await this.depositInfoParser.getDepositInfo(txHash, originChainId);
 
@@ -124,7 +124,7 @@ export class IntentTracker extends EventEmitter {
             message: "Parsing intent from transaction...",
         };
 
-        const openEvent = await this.openWatcher.getOpenEvent(txHash, originChainId);
+        const openEvent = await this.openEventParser.getOpenEvent(txHash, originChainId);
 
         yield {
             status: "opened",

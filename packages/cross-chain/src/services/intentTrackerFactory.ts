@@ -5,8 +5,10 @@ import {
     DepositInfoParser,
     EventBasedDepositInfoParser,
     EventBasedFillWatcher,
+    EventBasedOpenEventParser,
     FillWatcher,
     IntentTracker,
+    OpenEventParser,
     OpenEventWatcher,
     PublicClientManager,
 } from "../internal.js";
@@ -17,6 +19,7 @@ export interface IntentTrackerFactoryConfig {
 }
 
 export interface IntentTrackerConfig extends IntentTrackerFactoryConfig {
+    openEventParser?: OpenEventParser;
     depositInfoParser?: DepositInfoParser;
     fillWatcher?: FillWatcher;
 }
@@ -27,11 +30,9 @@ export interface IntentTrackerConfig extends IntentTrackerFactoryConfig {
  */
 export class IntentTrackerFactory {
     private readonly clientManager: PublicClientManager;
-    private readonly openWatcher: OpenEventWatcher;
 
     constructor(config?: IntentTrackerFactoryConfig) {
         this.clientManager = new PublicClientManager(config?.publicClient, config?.rpcUrls);
-        this.openWatcher = new OpenEventWatcher({ clientManager: this.clientManager });
     }
 
     /**
@@ -43,11 +44,21 @@ export class IntentTrackerFactory {
     createTracker(
         provider: CrossChainProvider,
         config?: {
+            openEventParser?: OpenEventParser;
             depositInfoParser?: DepositInfoParser;
             fillWatcher?: FillWatcher;
         },
     ): IntentTracker {
         const trackingConfig = provider.getTrackingConfig();
+
+        // Use protocol-specific open event parser if provided, otherwise use EIP-7683 standard
+        const openEventParser =
+            config?.openEventParser ??
+            (trackingConfig.openEventParser
+                ? new EventBasedOpenEventParser(trackingConfig.openEventParser, {
+                      clientManager: this.clientManager,
+                  })
+                : new OpenEventWatcher({ clientManager: this.clientManager }));
 
         const depositInfoParser =
             config?.depositInfoParser ??
@@ -61,7 +72,7 @@ export class IntentTrackerFactory {
                 clientManager: this.clientManager,
             });
 
-        return new IntentTracker(this.openWatcher, depositInfoParser, fillWatcher);
+        return new IntentTracker(openEventParser, depositInfoParser, fillWatcher);
     }
 }
 
@@ -99,6 +110,7 @@ export function createIntentTracker(
 ): IntentTracker {
     const {
         publicClient,
+        openEventParser: customOpenEventParser,
         depositInfoParser: customDepositInfoParser,
         fillWatcher: customFillWatcher,
         rpcUrls,
@@ -106,6 +118,7 @@ export function createIntentTracker(
 
     const factory = new IntentTrackerFactory({ publicClient, rpcUrls });
     return factory.createTracker(provider, {
+        openEventParser: customOpenEventParser,
         depositInfoParser: customDepositInfoParser,
         fillWatcher: customFillWatcher,
     });

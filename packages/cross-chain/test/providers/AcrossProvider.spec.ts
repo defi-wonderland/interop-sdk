@@ -145,4 +145,27 @@ describe("AcrossProvider", () => {
             });
         });
     });
+
+    describe("getTrackingConfig", () => {
+        it("should return valid tracking configuration for all components", () => {
+            const config = provider.getTrackingConfig();
+
+            // openEventParser - for V3FundsDeposited event
+            expect(config.openEventParser).toBeDefined();
+            expect(config.openEventParser?.protocolName).toBe("across");
+            expect(config.openEventParser?.eventSignature).toBeDefined();
+            expect(typeof config.openEventParser?.extractOpenEvent).toBe("function");
+
+            // depositInfoParser
+            expect(config.depositInfoParser.protocolName).toBe("across");
+            expect(config.depositInfoParser.eventSignature).toBeDefined();
+            expect(typeof config.depositInfoParser.extractDepositInfo).toBe("function");
+
+            // fillWatcher
+            expect(config.fillWatcher.contractAddresses).toBeDefined();
+            expect(config.fillWatcher.eventAbi).toBeDefined();
+            expect(typeof config.fillWatcher.buildLogsArgs).toBe("function");
+            expect(typeof config.fillWatcher.extractFillEvent).toBe("function");
+        });
+    });
 });
