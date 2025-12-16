@@ -38,13 +38,12 @@ export const buildInteropAddress = async (
     }
 
     // Resolve chain reference (handles shortnames like "eth", "base")
-    const chainReferenceBytes = await parseChainReferenceString(
-        chainType as ChainTypeName,
-        chainReference,
-    );
+    const chainReferenceBytes = chainReference
+        ? await parseChainReferenceString(chainType as ChainTypeName, chainReference)
+        : new Uint8Array();
 
     // Resolve address (handles ENS if applicable)
-    const resolvedAddress = await resolveAddress(address, chainType, chainReference);
+    const resolvedAddress = address ? await resolveAddress(address, chainType, chainReference) : "";
 
     return {
         version,

@@ -228,6 +228,13 @@ export const convertAddress = (
     address: string,
     options: { chainType: keyof typeof CHAIN_TYPE },
 ): Uint8Array => {
+    // If no address is provided, return an empty Uint8Array. This is allowed by the
+    // interoperable address spec, as AddressLength MAY be zero (provided that the
+    // chain reference length is non-zero, which is validated elsewhere).
+    if (address === "") {
+        return new Uint8Array();
+    }
+
     switch (options.chainType) {
         case ChainTypeName.EIP155:
             if (!isHex(address)) {
