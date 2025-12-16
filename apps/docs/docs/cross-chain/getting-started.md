@@ -18,17 +18,24 @@ The `cross-chain` package provides a standardized interface for interacting with
 
 The package uses a factory pattern to create providers for different protocols. Currently supported protocols include:
 
--   Across Protocol
+-   Across Protocol (bridge)
+-   OIF (Open Intents Framework) (intent-based)
 -   Sample Provider (for testing)
 
 ```typescript
-import { createCrossChainProvider } from "@wonderland/interop";
+import { createCrossChainProvider, createOifProvider } from "@wonderland/interop";
 
 // Create an Across provider (no config or dependencies needed)
 const acrossProvider = createCrossChainProvider("across");
 
 // Create a sample provider (for testing)
 const sampleProvider = createCrossChainProvider("sample-protocol");
+
+// Create an OIF provider (requires solver API endpoint)
+const oifProvider = createOifProvider({
+    solverId: "my-solver",
+    url: "https://oif-api.example.com",
+});
 ```
 
 ### Getting Quotes
@@ -66,4 +73,69 @@ const transactions = await acrossProvider.simulateOpen(transferQuote.openParams)
 
 // The transactions array contains the transaction requests that need to be executed
 // You can use your preferred wallet or transaction library to send these transactions
+```
+
+## OIF Provider
+
+The OIF (Open Intents Framework) provider enables direct integration with any OIF-compliant solver. If you have access to a solver's API endpoint, you can integrate cross-chain functionality directly into your application using this provider.
+
+The provider offers intent-based cross-chain operations with two execution modes:
+
+### Protocol Mode (Gasless)
+
+User signs EIP-712 message, solver executes on their behalf:
+
+```typescript
+import { createWalletClient, http } from "viem";
+import { base } from "viem/chains";
+
+const quotes = await oifProvider.getQuotes({
+    user: "0x123abc...",
+    intent: {
+        intentType: "oif-swap",
+        inputs: [{ asset: "0x...", amount: "1000000" }],
+        outputs: [{ asset: "0x...", amount: "990000" }],
+        swapType: "exact-input",
+    },
+    supportedTypes: ["oif-escrow-v0"],
+});
+
+const walletClient = createWalletClient({ account, chain: base, transport: http() });
+const { domain, primaryType, message, types } = quotes[0].order.payload;
+const signature = await walletClient.signTypedData({ domain, primaryType, message, types });
+await oifProvider.submitSignedOrder(quotes[0], signature);
+```
+
+### User Mode (User Pays Gas)
+
+User executes transaction directly:
+
+```typescript
+const quotes = await oifProvider.getQuotes({
+    user: "0x123abc...",
+    intent: {
+        intentType: "oif-swap",
+        inputs: [{ asset: "0x...", amount: "1000000" }],
+        outputs: [{ asset: "0x...", amount: "990000" }],
+        originSubmission: { mode: "user" },
+    },
+    supportedTypes: ["oif-user-open-v0"],
+});
+
+await oifProvider.prepareTransaction(quotes[0]);
+if (quotes[0].preparedTransaction) {
+    await walletClient.sendTransaction(quotes[0].preparedTransaction);
+}
+```
+
+### Approvals
+
+Access approval information from quotes:
+
+```typescript
+// Protocol mode - typically Permit2
+const spender = quote.order.payload.message.spender;
+
+// User mode
+const { spender, token, required } = quote.order.checks.allowances[0];
 ```
