@@ -26,6 +26,6 @@ export const EXAMPLES = [
     humanReadable: '0x1234567890AbcdEF1234567890aBcdef12345678@eip155:1',
     address: '0x1234567890AbcdEF1234567890aBcdef12345678',
     chainReference: '1',
-    description: '0x1234...5678@eip155:1 (Ethereum Mainnet)',
+    description: '0x1234...5678 (Ethereum Mainnet)',
   },
 ];
