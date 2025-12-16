@@ -175,6 +175,28 @@ describe("erc7930", () => {
                 );
             });
 
+            it("resolves ENS for non-viem EVM chains using mainnet coin type only", async () => {
+                const humanReadableAddress = "vitalik.eth@eip155:9007199254740991";
+                const expectedAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+                const expected: InteropAddress = {
+                    version: 1,
+                    chainType: hexToBytes("0x0000"),
+                    chainReference: hexToBytes("0x1FFFFFFFFFFFFF"), // 9007199254740991 in hex
+                    address: hexToBytes(expectedAddress),
+                };
+
+                mockGetEnsAddress.mockResolvedValue(expectedAddress);
+
+                const interopAddress = await parseHumanReadable(humanReadableAddress);
+
+                expect(interopAddress).toEqual(expected);
+                expect(mockGetEnsAddress).toHaveBeenCalledTimes(1);
+                expect(mockGetEnsAddress).toHaveBeenCalledWith({
+                    name: "vitalik.eth",
+                    coinType: 60,
+                });
+            });
+
             it("falls back to mainnet ENS when chain-specific address not found", async () => {
                 const humanReadableAddress = "vitalik.eth@eip155:8453";
                 const expectedAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
@@ -294,9 +316,9 @@ describe("erc7930", () => {
                 );
             });
 
-            it("throws InvalidChainIdentifier for invalid chain reference", async () => {
+            it("throws InvalidChainIdentifier for non-numeric chain reference", async () => {
                 const humanReadableAddress =
-                    "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1000000#4CA88C9C";
+                    "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:not-a-number#4CA88C9C";
                 await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
                     InvalidChainIdentifier,
                 );
