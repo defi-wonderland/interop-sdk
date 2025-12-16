@@ -5,12 +5,20 @@ import {
     PostOrderResponse,
 } from "@openintentsframework/oif-specs";
 import axios, { AxiosError } from "axios";
-import { bytesToHex, EIP1193Provider, Hex, PrepareTransactionRequestReturnType } from "viem";
+import {
+    Address,
+    bytesToHex,
+    EIP1193Provider,
+    Hex,
+    PrepareTransactionRequestReturnType,
+} from "viem";
 import { ZodError } from "zod";
 
 import {
     CrossChainProvider,
+    DepositInfoParserConfig,
     ExecutableQuote,
+    FillWatcherConfig,
     getQuoteResponseSchema,
     OifProviderConfig,
     OifProviderConfigSchema,
@@ -245,5 +253,36 @@ export class OifProvider extends CrossChainProvider {
         throw new ProviderExecuteNotImplemented(
             "OIF provider does not support execute(). Use submitSignedOrder() instead.",
         );
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * TODO: Implement OIF tracking using ERC-7683 Open/Filled events.
+     */
+    getTrackingConfig(): {
+        depositInfoParser: DepositInfoParserConfig;
+        fillWatcher: FillWatcherConfig;
+    } {
+        return {
+            depositInfoParser: {
+                protocolName: "oif",
+                eventSignature:
+                    "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                extractDepositInfo: (): never => {
+                    throw new Error("OifProvider: tracking not yet implemented");
+                },
+            },
+            fillWatcher: {
+                contractAddresses: {} as Record<number, Address>,
+                eventAbi: [],
+                buildLogsArgs: (): never => {
+                    throw new Error("OifProvider: tracking not yet implemented");
+                },
+                extractFillEvent: (): never => {
+                    throw new Error("OifProvider: tracking not yet implemented");
+                },
+            },
+        };
     }
 }
