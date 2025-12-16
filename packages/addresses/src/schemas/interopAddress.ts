@@ -4,8 +4,8 @@ import { z } from "zod";
 export const interopAddressFieldsSchema = z.object({
     version: z.number().positive().int(),
     chainType: z.string(),
-    chainReference: z.string(),
-    address: z.string(),
+    chainReference: z.string().optional(),
+    address: z.string().optional(),
 });
 
 export const interopAddressSchema = z.object({
