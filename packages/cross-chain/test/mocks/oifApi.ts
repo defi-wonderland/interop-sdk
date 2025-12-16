@@ -1,25 +1,46 @@
 import { GetQuoteResponse } from "@openintentsframework/oif-specs";
 import { hexToBytes } from "viem";
 
+export const MOCK_QUOTE_IDS = {
+    ESCROW_INTEROPERABLE: "test-quote-id-123",
+    ESCROW_STANDARD: "test-quote-viem-integration",
+    USER_OPEN: "test-quote-user-open-123",
+} as const;
+
+export const MOCK_ADDRESSES = {
+    INTEROPERABLE: {
+        TOKEN: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        SPENDER: "0x00010000010195ad61b0a150d79219dcf64e1e6cc01f0c0c8a4a",
+        USER: "0x000100000101742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
+        OUTPUT_ASSET: "0x000100000101dAC17F958D2ee523a2206206994597C13D831ec7",
+    },
+    STANDARD: {
+        TOKEN: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        SPENDER: "0x95ad61b0a150d79219dcf64e1e6cc01f0c0c8a4a",
+        USER: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
+        OUTPUT_ASSET: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    },
+} as const;
+
 const getAddresses = (
     useInteroperableAddresses: boolean,
 ): { token: string; spender: string; user: string; outputAsset: string; quoteId: string } => {
     if (useInteroperableAddresses) {
         return {
-            token: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-            spender: "0x00010000010195ad61b0a150d79219dcf64e1e6cc01f0c0c8a4a",
-            user: "0x000100000101742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
-            outputAsset: "0x000100000101dAC17F958D2ee523a2206206994597C13D831ec7",
-            quoteId: "test-quote-id-123",
+            token: MOCK_ADDRESSES.INTEROPERABLE.TOKEN,
+            spender: MOCK_ADDRESSES.INTEROPERABLE.SPENDER,
+            user: MOCK_ADDRESSES.INTEROPERABLE.USER,
+            outputAsset: MOCK_ADDRESSES.INTEROPERABLE.OUTPUT_ASSET,
+            quoteId: MOCK_QUOTE_IDS.ESCROW_INTEROPERABLE,
         };
     }
 
     return {
-        token: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        spender: "0x95ad61b0a150d79219dcf64e1e6cc01f0c0c8a4a",
-        user: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
-        outputAsset: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-        quoteId: "test-quote-viem-integration",
+        token: MOCK_ADDRESSES.STANDARD.TOKEN,
+        spender: MOCK_ADDRESSES.STANDARD.SPENDER,
+        user: MOCK_ADDRESSES.STANDARD.USER,
+        outputAsset: MOCK_ADDRESSES.STANDARD.OUTPUT_ASSET,
+        quoteId: MOCK_QUOTE_IDS.ESCROW_STANDARD,
     };
 };
 
@@ -119,22 +140,22 @@ export const getMockedOifUserOpenQuoteResponse = (): GetQuoteResponse => {
                 order: {
                     type: "oif-user-open-v0",
                     openIntentTx: {
-                        to: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                        to: MOCK_ADDRESSES.INTEROPERABLE.TOKEN,
                         data: hexToBytes("0x095ea7b3000000000000000000000000"),
                         gasRequired: "50000",
                     },
                     checks: {
                         allowances: [
                             {
-                                token: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-                                user: "0x000100000101742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
-                                spender: "0x00010000010195ad61b0a150d79219dcf64e1e6cc01f0c0c8a4a",
+                                token: MOCK_ADDRESSES.INTEROPERABLE.TOKEN,
+                                user: MOCK_ADDRESSES.INTEROPERABLE.USER,
+                                spender: MOCK_ADDRESSES.INTEROPERABLE.SPENDER,
                                 required: "1000000000000000000",
                             },
                         ],
                     },
                 },
-                quoteId: "test-quote-user-open-123",
+                quoteId: MOCK_QUOTE_IDS.USER_OPEN,
             },
         ],
     };

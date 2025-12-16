@@ -5,13 +5,7 @@ import {
     PostOrderResponse,
 } from "@openintentsframework/oif-specs";
 import axios, { AxiosError } from "axios";
-import {
-    bytesToHex,
-    EIP1193Provider,
-    Hex,
-    hexToBytes,
-    PrepareTransactionRequestReturnType,
-} from "viem";
+import { bytesToHex, EIP1193Provider, Hex, PrepareTransactionRequestReturnType } from "viem";
 import { ZodError } from "zod";
 
 import {
@@ -166,39 +160,6 @@ export class OifProvider extends CrossChainProvider {
     }
 
     /**
-     * Get EIP-712 typed data to sign for an order
-     * @param quote - The quote containing the order
-     * @returns Typed data ready for signing with walletClient.signTypedData()
-     */
-    getTypedDataToSign(quote: ExecutableQuote): {
-        domain: object;
-        primaryType: string;
-        message: object;
-        types: Record<string, { name: string; type: string }[]>;
-    } {
-        if (quote.order.type !== "oif-escrow-v0") {
-            throw new ProviderExecuteNotImplemented(
-                `Execute not supported for order type: ${quote.order.type}`,
-            );
-        }
-
-        if (quote.order.payload.signatureType !== "eip712") {
-            throw new Error(
-                `Unsupported signature type: ${quote.order.payload.signatureType}. Only "eip712" is supported.`,
-            );
-        }
-
-        const { domain, primaryType, message, types } = quote.order.payload;
-
-        return {
-            domain,
-            primaryType,
-            message,
-            types,
-        };
-    }
-
-    /**
      * Submit a signed order to the solver
      * @param quote - The quote containing the order
      * @param signature - The EIP-712 signature (hex string or Uint8Array)
@@ -214,15 +175,16 @@ export class OifProvider extends CrossChainProvider {
             );
         }
 
-        const signatureBytes = typeof signature === "string" ? hexToBytes(signature) : signature;
+        const signatureBytes =
+            typeof signature === "string"
+                ? new Uint8Array(Buffer.from(signature.slice(2), "hex"))
+                : signature;
 
-        const postOrderRequest: PostOrderRequest = {
+        return this.submitOrderToSolver({
             order: quote.order,
             signature: signatureBytes,
             quoteId: quote.quoteId,
-        };
-
-        return this.submitOrderToSolver(postOrderRequest);
+        });
     }
 
     /**
@@ -278,11 +240,10 @@ export class OifProvider extends CrossChainProvider {
 
     /**
      * @inheritdoc
-     * @throws Always throws - use getTypedDataToSign() + submitSignedOrder() instead
      */
     async execute(_quote: ExecutableQuote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
-        throw new Error(
-            "execute() is not implemented. Use getTypedDataToSign() to get typed data, sign it with your wallet, then call submitSignedOrder() with the signature.",
+        throw new ProviderExecuteNotImplemented(
+            "OIF provider does not support execute(). Use submitSignedOrder() instead.",
         );
     }
 }

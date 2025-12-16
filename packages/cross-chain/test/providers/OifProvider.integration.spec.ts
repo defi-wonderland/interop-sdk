@@ -6,7 +6,7 @@ import { mainnet } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OifProvider } from "../../src/external.js";
-import { getMockedOifQuoteResponse } from "../mocks/oifApi.js";
+import { getMockedOifQuoteResponse, MOCK_QUOTE_IDS } from "../mocks/oifApi.js";
 
 vi.mock("axios");
 
@@ -39,19 +39,14 @@ describe("OifProvider Integration Tests", () => {
             const mockResponse = getMockedOifQuoteResponse({ useInteroperableAddresses: false });
             const quote = mockResponse.quotes[0];
             if (!quote) throw new Error("No quote in mock");
+            if (quote.order.type !== "oif-escrow-v0") throw new Error("Expected escrow order");
 
-            const typedData = provider.getTypedDataToSign(quote);
-
-            expect(typedData).toHaveProperty("domain");
-            expect(typedData).toHaveProperty("primaryType");
-            expect(typedData).toHaveProperty("message");
-            expect(typedData).toHaveProperty("types");
-
+            const { domain, primaryType, message, types } = quote.order.payload;
             const signature = await walletClient.signTypedData({
-                domain: typedData.domain,
-                primaryType: typedData.primaryType,
-                message: typedData.message as Record<string, unknown>,
-                types: typedData.types,
+                domain,
+                primaryType,
+                message: message as Record<string, unknown>,
+                types,
             });
 
             expect(isHex(signature)).toBe(true);
@@ -73,11 +68,14 @@ describe("OifProvider Integration Tests", () => {
 
             const postCall = vi.mocked(axios.post).mock.calls[0];
             expect(postCall).toBeDefined();
-            const [url, body] = postCall as [string, { signature: Uint8Array; quoteId: string }];
+            const [url, body] = postCall as [
+                string,
+                { order: unknown; signature: Uint8Array; quoteId?: string },
+            ];
             expect(url).toBe(`${MOCK_SOLVER_URL}/v1/orders`);
             expect(body.signature).toBeInstanceOf(Uint8Array);
-            expect(body.signature.length).toBe(65);
-            expect(body.quoteId).toBe("test-quote-viem-integration");
+            expect(body.signature).toHaveLength(65);
+            expect(body.quoteId).toBe(MOCK_QUOTE_IDS.ESCROW_STANDARD);
         });
     });
 });

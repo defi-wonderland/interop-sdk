@@ -265,17 +265,20 @@ export const orderSchema = z.union([
     oifUserOpenIntentOrderSchema,
 ]);
 
-export const quoteSchema = z.object({
-    order: orderSchema,
-    validUntil: z.number().optional(),
-    eta: z.number().optional(),
-    quoteId: z.string().optional(),
-    provider: z.string().optional(),
-    preview: quotePreviewSchema,
-    failureHandling: failureHandlingModeSchema,
-    partialFill: z.boolean(),
-    metadata: z.record(z.any()).optional(),
-});
+export const quoteSchema = z
+    .object({
+        order: orderSchema,
+        validUntil: z.number().optional(),
+        eta: z.number().optional(),
+        quoteId: z.string().optional(),
+        provider: z.string().optional(),
+        preview: quotePreviewSchema,
+        failureHandling: failureHandlingModeSchema,
+        partialFill: z.boolean(),
+        metadata: z.record(z.any()).optional(),
+    })
+    // Allow extra fields from solver implementations (e.g., OpenZeppelin's solverId, integrityChecksum)
+    .passthrough();
 
 export const getQuoteResponseSchema = z.object({
     quotes: z.array(quoteSchema),

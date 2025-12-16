@@ -10,7 +10,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
     OifProvider,
     ProviderExecuteFailure,
-    ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
 } from "../../src/external.js";
 import { getMockedOifQuoteResponse, getMockedOifUserOpenQuoteResponse } from "../mocks/oifApi.js";
@@ -185,83 +184,13 @@ describe("OifProvider", () => {
             removeListener: vi.fn(),
         };
 
-        it("should throw error directing to new API", async () => {
+        it("should throw not implemented error", async () => {
             const mockResponse = getMockedOifQuoteResponse();
             const quote = mockResponse.quotes[0];
             if (!quote) throw new Error("No quote in mock");
 
             await expect(provider.execute(quote, mockSigner)).rejects.toThrow(
-                "execute() is not implemented",
-            );
-            await expect(provider.execute(quote, mockSigner)).rejects.toThrow(
-                "Use getTypedDataToSign()",
-            );
-        });
-    });
-
-    describe("getTypedDataToSign", () => {
-        it("should return EIP-712 typed data for oif-escrow-v0 orders", () => {
-            const mockResponse = getMockedOifQuoteResponse();
-            const quote = mockResponse.quotes[0];
-            if (!quote) throw new Error("No quote in mock");
-
-            const typedData = provider.getTypedDataToSign(quote);
-
-            expect(typedData).toHaveProperty("domain");
-            expect(typedData).toHaveProperty("primaryType");
-            expect(typedData).toHaveProperty("message");
-            expect(typedData).toHaveProperty("types");
-        });
-
-        it("should throw for unsupported order types", () => {
-            const mockResponse = getMockedOifQuoteResponse();
-            const quote = mockResponse.quotes[0];
-            if (!quote) throw new Error("No quote in mock");
-
-            const modifiedQuote = {
-                ...quote,
-                order: {
-                    ...quote.order,
-                    type: "oif-user-open-v0" as never,
-                },
-            };
-
-            expect(() => provider.getTypedDataToSign(modifiedQuote)).toThrow(
-                ProviderExecuteNotImplemented,
-            );
-        });
-
-        it("should throw for unsupported signature types", () => {
-            const mockResponse = getMockedOifQuoteResponse({
-                override: {
-                    quotes: [
-                        {
-                            order: {
-                                type: "oif-escrow-v0",
-                                payload: {
-                                    signatureType: "unsupported-type" as never,
-                                    domain: {},
-                                    primaryType: "",
-                                    message: {},
-                                    types: {},
-                                },
-                            },
-                            preview: { inputs: [], outputs: [] },
-                            validUntil: 0,
-                            eta: 0,
-                            quoteId: "test",
-                            provider: "test",
-                            failureHandling: "refund-automatic",
-                            partialFill: false,
-                        },
-                    ],
-                },
-            });
-            const quote = mockResponse.quotes[0];
-            if (!quote) throw new Error("No quote in mock");
-
-            expect(() => provider.getTypedDataToSign(quote)).toThrow(
-                'Unsupported signature type: unsupported-type. Only "eip712" is supported.',
+                "OIF provider does not support execute()",
             );
         });
     });
@@ -295,7 +224,7 @@ describe("OifProvider", () => {
             // Verify the HTTP request was made with correct parameters
             const [url, body] = vi.mocked(axios.post).mock.calls[0] as [
                 string,
-                { order: unknown; signature: Uint8Array; quoteId: string },
+                { order: unknown; signature: Uint8Array; quoteId?: string },
                 { headers: Record<string, string>; timeout: number },
             ];
 
