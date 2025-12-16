@@ -19,6 +19,7 @@ import { ZodError } from "zod";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
+    ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
     AcrossConfigs,
     AcrossConfigSchema,
     AcrossGetQuoteParams,
@@ -36,6 +37,8 @@ import {
     FillWatcherConfig,
     getChainById,
     GetFillParams,
+    OpenEvent,
+    OpenEventParserConfig,
     parseAbiEncodedFields,
     ProviderConfigFailure,
     ProviderExecuteNotImplemented,
@@ -124,7 +127,7 @@ export class AcrossProvider extends CrossChainProvider {
     }
 
     /**
-     * Get a quote for an Across cross-chain transfer calling to the Across SDK
+     * Get a quote for an Across cross-chain transfer calling to the Across API
      * @param params - The parameters for the action
      * @returns A quote for the action
      */
@@ -253,6 +256,9 @@ export class AcrossProvider extends CrossChainProvider {
         };
     }
 
+    /**
+     * Prepare the transaction using the swapTx from the Across API
+     */
     private async prepareTransaction(
         quote: AcrossGetQuoteResponse,
     ): Promise<PrepareTransactionRequestReturnType | undefined> {
@@ -261,12 +267,12 @@ export class AcrossProvider extends CrossChainProvider {
             const publicClient = await this.getPublicClient(chain);
             const preparedTransaction = await publicClient.prepareTransactionRequest({
                 to: quote.swapTx.to,
-                data: quote.swapTx.data,
+                data: quote.swapTx.data as Hex,
                 chain,
             });
 
             return preparedTransaction;
-        } catch (error) {
+        } catch {
             return undefined;
         }
     }
@@ -278,11 +284,15 @@ export class AcrossProvider extends CrossChainProvider {
         try {
             const parsedParams = AcrossOIFGetQuoteParamsSchema.parse(params);
 
+            // Get quote from Across API
             const acrossGetQuote = await this.convertOifParamsToAcrossParams(parsedParams);
             const acrossQuote = await this.getAcrossQuote(acrossGetQuote);
-            const oifQuote = await this.convertAcrossSwapToOifQuote(parsedParams, acrossQuote);
 
+            // Prepare transaction
             const preparedTransaction = await this.prepareTransaction(acrossQuote);
+
+            // Convert to OIF quote format
+            const oifQuote = await this.convertAcrossSwapToOifQuote(parsedParams, acrossQuote);
 
             const executableQuote: ExecutableQuote = {
                 ...oifQuote,
@@ -384,6 +394,60 @@ export class AcrossProvider extends CrossChainProvider {
                     depositId: params.depositId,
                     relayer: bytes32ToAddress(args.relayer),
                     recipient: bytes32ToAddress(args.recipient),
+                };
+            },
+        };
+    }
+
+    /**
+     * Get the open event parser configuration for Across
+     * Used to configure a generic EventBasedOpenEventParser
+     *
+     * This parses the V3FundsDeposited event from SpokePool
+     * and converts it to the standard OpenEvent format for tracking
+     */
+    static getOpenEventParserConfig(): OpenEventParserConfig {
+        return {
+            protocolName: AcrossProvider.prototype.protocolName,
+            eventSignature: ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
+            extractOpenEvent: (log: Log, txHash: Hex, chainId: number): OpenEvent => {
+                // V3FundsDeposited event topics:
+                // topic[0]: event signature
+                // topic[1]: destinationChainId (indexed)
+                // topic[2]: depositId (indexed)
+                // topic[3]: depositor (indexed)
+                const depositId = BigInt(log.topics[2] || "0");
+                const depositor = ("0x" + (log.topics[3] || "").slice(-40)) as Address;
+
+                // Parse non-indexed fields from data
+                // Data layout: inputToken, outputToken, inputAmount, outputAmount,
+                // quoteTimestamp, fillDeadline, exclusivityDeadline, recipient, exclusiveRelayer, message
+                const fieldIndices = [4, 5]; // quoteTimestamp and fillDeadline indices
+                const [quoteTimestampBigInt, fillDeadlineBigInt] = parseAbiEncodedFields(
+                    log.data,
+                    fieldIndices,
+                );
+
+                // Convert bigints to numbers (these are uint32 timestamps)
+                const quoteTimestamp = Number(quoteTimestampBigInt);
+                const fillDeadline = Number(fillDeadlineBigInt);
+
+                // Create a unique orderId from depositId and chainId
+                const orderIdHex = depositId.toString(16).padStart(64, "0");
+                const orderId = ("0x" + orderIdHex) as Hex;
+
+                return {
+                    orderId,
+                    resolvedOrder: {
+                        user: depositor,
+                        originChainId: BigInt(chainId),
+                        openDeadline: quoteTimestamp,
+                        fillDeadline,
+                        orderId,
+                    },
+                    settlementContract: log.address,
+                    txHash,
+                    blockNumber: log.blockNumber || 0n,
                 };
             },
         };

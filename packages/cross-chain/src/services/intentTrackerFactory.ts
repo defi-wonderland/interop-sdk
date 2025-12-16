@@ -5,14 +5,17 @@ import {
     DepositInfoParser,
     EventBasedDepositInfoParser,
     EventBasedFillWatcher,
+    EventBasedOpenEventParser,
     FillWatcher,
     IntentTracker,
+    OpenEventParser,
     OpenEventWatcher,
     PublicClientManager,
 } from "../internal.js";
 
 export interface IntentTrackerConfig {
     publicClient?: PublicClient;
+    openEventParser?: OpenEventParser;
     depositInfoParser?: DepositInfoParser;
     fillWatcher?: FillWatcher;
     rpcUrls?: {
@@ -48,6 +51,7 @@ export function createIntentTracker(
 ): IntentTracker {
     const {
         publicClient,
+        openEventParser: customOpenEventParser,
         depositInfoParser: customDepositInfoParser,
         fillWatcher: customFillWatcher,
         rpcUrls,
@@ -55,11 +59,30 @@ export function createIntentTracker(
 
     const clientManager = new PublicClientManager(publicClient, rpcUrls);
 
-    const openWatcher = new OpenEventWatcher({ clientManager });
-
+    let openEventParser: OpenEventParser;
     let depositInfoParser: DepositInfoParser;
     let fillWatcher: FillWatcher;
 
+    // Set up open event parser (protocol-specific or EIP-7683 standard)
+    if (customOpenEventParser) {
+        openEventParser = customOpenEventParser;
+    } else {
+        switch (protocol) {
+            case "across": {
+                // Across uses V3FundsDeposited event, not EIP-7683 Open event
+                const openParserConfig = AcrossProvider.getOpenEventParserConfig();
+                openEventParser = new EventBasedOpenEventParser(openParserConfig, {
+                    clientManager,
+                });
+                break;
+            }
+            default:
+                // Default to EIP-7683 standard Open event parser
+                openEventParser = new OpenEventWatcher({ clientManager });
+        }
+    }
+
+    // Set up deposit info parser
     if (customDepositInfoParser) {
         depositInfoParser = customDepositInfoParser;
     } else {
@@ -76,6 +99,7 @@ export function createIntentTracker(
         }
     }
 
+    // Set up fill watcher
     if (customFillWatcher) {
         fillWatcher = customFillWatcher;
     } else {
@@ -92,5 +116,5 @@ export function createIntentTracker(
         }
     }
 
-    return new IntentTracker(openWatcher, depositInfoParser, fillWatcher);
+    return new IntentTracker(openEventParser, depositInfoParser, fillWatcher);
 }
