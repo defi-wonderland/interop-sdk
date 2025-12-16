@@ -59,6 +59,36 @@ describe("buildInteropAddress", () => {
         );
     });
 
+    it("builds an InteropAddress without a chain reference (address only)", async () => {
+        const interopAddress = await buildInteropAddress({
+            version: 1,
+            chainType: "eip155",
+            address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+        });
+
+        expect(interopAddress).toBeDefined();
+        expect(interopAddress.version).toBe(1);
+        expect(interopAddress.chainType).toEqual(fromHex(CHAIN_TYPE["eip155"] as Hex, "bytes"));
+        expect(interopAddress.chainReference).toEqual(new Uint8Array());
+        expect(interopAddress.address).toEqual(
+            fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
+        );
+    });
+
+    it("builds an InteropAddress without an address (chain reference only)", async () => {
+        const interopAddress = await buildInteropAddress({
+            version: 1,
+            chainType: "eip155",
+            chainReference: "0x1",
+        });
+
+        expect(interopAddress).toBeDefined();
+        expect(interopAddress.version).toBe(1);
+        expect(interopAddress.chainType).toEqual(fromHex(CHAIN_TYPE["eip155"] as Hex, "bytes"));
+        expect(interopAddress.chainReference).toEqual(fromHex("0x1", "bytes"));
+        expect(interopAddress.address).toEqual(new Uint8Array());
+    });
+
     it("throws error if chain type is not supported", async () => {
         await expect(
             buildInteropAddress({
