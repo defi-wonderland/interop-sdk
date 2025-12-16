@@ -74,12 +74,12 @@ const resolveENSName = async (ensName: string, chainReference: string): Promise<
 export const resolveAddress = async (
     address: string,
     chainType: string,
-    chainReference: string,
+    chainReference?: string,
 ): Promise<string> => {
     // Only resolve ENS for eip155 chains with .eth domains
     if (chainType !== "eip155" || !address.includes(".eth")) {
         return address;
     }
 
-    return await resolveENSName(address, chainReference);
+    return await resolveENSName(address, chainReference ?? "1");
 };
