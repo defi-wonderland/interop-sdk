@@ -1,5 +1,6 @@
 export { ErrorList } from './ErrorList';
 export { ErrorQuoteCard } from './ErrorQuoteCard';
+export { IntentTracking } from './IntentTracking';
 export { QuoteCard } from './QuoteCard';
 export { QuoteDetails } from './QuoteDetails';
 export { QuoteList } from './QuoteList';

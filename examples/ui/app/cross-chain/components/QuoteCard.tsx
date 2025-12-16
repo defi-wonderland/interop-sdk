@@ -12,6 +12,7 @@ interface QuoteCardProps {
   outputTokenAddress: string;
   isSelected?: boolean;
   executionStatus?: ExecutionStatus;
+  hideExecuteButton?: boolean;
   onSelect?: (quote: ExecutableQuote) => void;
   onExecute?: (quote: ExecutableQuote) => void;
 }
@@ -37,6 +38,7 @@ export function QuoteCard({
   outputTokenAddress,
   isSelected,
   executionStatus = 'idle',
+  hideExecuteButton = false,
   onSelect,
   onExecute,
 }: QuoteCardProps) {
@@ -258,8 +260,8 @@ export function QuoteCard({
         </div>
       </button>
 
-      {/* Floating Execute Button - appears when selected, hides when finished */}
-      {isSelected && !isFinished && (
+      {/* Floating Execute Button - appears when selected, hides when finished or explicitly hidden */}
+      {isSelected && !isFinished && !hideExecuteButton && (
         <button
           type='button'
           onClick={handleExecuteClick}

@@ -1,15 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Footer, Navigation } from '../components';
-import { QuoteDetails, QuoteList, SwapForm, Toast, type ToastType } from './components';
-import { useExecuteQuote } from './hooks/useExecuteQuote';
+import { IntentTracking, QuoteCard, QuoteDetails, QuoteList, SwapForm, Toast, type ToastType } from './components';
+import { useIntentExecution } from './hooks';
 import { useQuotes } from './hooks/useQuotes';
-import { getToastErrorMessage } from './utils/errorMessages';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address } from 'viem';
-
-type ExecutionStatus = 'idle' | 'checking-approval' | 'approving' | 'pending' | 'confirming' | 'success' | 'error';
 
 interface ToastState {
   message: string;
@@ -18,50 +15,22 @@ interface ToastState {
 
 export default function CrossChainPage() {
   const { quotes, errors, isLoading, fetchQuotes, clearQuotes } = useQuotes();
-  const { execute, error, reset, status } = useExecuteQuote();
+  const { state: executionState, execute, reset: resetExecution } = useIntentExecution();
+
   const [selectedInputToken, setSelectedInputToken] = useState<string>('');
   const [selectedOutputToken, setSelectedOutputToken] = useState<string>('');
   const [selectedQuote, setSelectedQuote] = useState<ExecutableQuote | null>(null);
   const [inputAmountRaw, setInputAmountRaw] = useState<bigint>(0n);
+  const [inputChainId, setInputChainId] = useState<number>(0);
+  const [outputChainId, setOutputChainId] = useState<number>(0);
   const [toast, setToast] = useState<ToastState | null>(null);
 
-  // Handle success: show toast and reset after delay
-  useEffect(() => {
-    if (status !== 'success') return;
-
-    setToast({ message: 'Transaction sent successfully!', type: 'success' });
-    const timer = setTimeout(() => {
-      setSelectedQuote(null);
-      clearQuotes();
-      reset();
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Handle error: show toast and reset after delay
-  useEffect(() => {
-    if (!error) return;
-
-    setToast({ message: getToastErrorMessage(error), type: 'error' });
-    const timer = setTimeout(() => {
-      reset();
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [error]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Determine if we're in "tracking mode" (execution started)
+  const isInTrackingMode = executionState.status !== 'idle';
 
   const closeToast = useCallback(() => {
     setToast(null);
   }, []);
-
-  // Map hook status to ExecutionStatus (they're now the same type)
-  const getExecutionStatus = (): ExecutionStatus => {
-    if (error) return 'error';
-    return status;
-  };
-
-  // Disable form while transaction is in progress
-  const isExecuting =
-    status === 'checking-approval' || status === 'approving' || status === 'pending' || status === 'confirming';
 
   const handleSubmit = async (params: {
     sender: string;
@@ -76,19 +45,27 @@ export default function CrossChainPage() {
     setSelectedInputToken(params.inputTokenAddress);
     setSelectedOutputToken(params.outputTokenAddress);
     setInputAmountRaw(params.inputAmountRaw);
-    setSelectedQuote(null); // Clear selection when fetching new quotes
-    reset(); // Reset execution state
+    setInputChainId(params.inputChainId);
+    setOutputChainId(params.outputChainId);
+    setSelectedQuote(null);
+    resetExecution();
     await fetchQuotes(params);
   };
 
   const handleSelectQuote = (quote: ExecutableQuote) => {
     setSelectedQuote(quote);
-    reset(); // Reset execution state when selecting new quote
+    resetExecution();
   };
 
   const handleExecuteQuote = async (quote: ExecutableQuote) => {
-    await execute(quote, selectedInputToken as Address, inputAmountRaw);
+    await execute(quote, selectedInputToken as Address, inputAmountRaw, inputChainId, outputChainId);
   };
+
+  const handleReset = useCallback(() => {
+    resetExecution();
+    setSelectedQuote(null);
+    clearQuotes();
+  }, [resetExecution, clearQuotes]);
 
   return (
     <div className='min-h-screen bg-background flex flex-col'>
@@ -106,26 +83,46 @@ export default function CrossChainPage() {
             </p>
           </header>
 
-          {/* Two-column layout: Form on left, Quotes on right */}
+          {/* Two-column layout */}
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 items-start'>
             {/* Left column: Form and Quote Details */}
             <div className='flex flex-col gap-6'>
-              <SwapForm onSubmit={handleSubmit} isLoading={isLoading} isDisabled={isExecuting} />
-              {selectedQuote && <QuoteDetails quote={selectedQuote} />}
+              <SwapForm onSubmit={handleSubmit} isLoading={isLoading} isDisabled={isInTrackingMode} />
+
+              {/* Show Quote Details only when not in tracking mode */}
+              {selectedQuote && !isInTrackingMode && <QuoteDetails quote={selectedQuote} />}
             </div>
 
-            {/* Right column: Quotes List and Errors */}
-            <div className='flex flex-col'>
-              <QuoteList
-                quotes={quotes}
-                errors={errors}
-                inputTokenAddress={selectedInputToken}
-                outputTokenAddress={selectedOutputToken}
-                selectedQuoteId={selectedQuote?.quoteId}
-                executionStatus={getExecutionStatus()}
-                onSelectQuote={handleSelectQuote}
-                onExecuteQuote={handleExecuteQuote}
-              />
+            {/* Right column: Quotes List or Isolated Selected Quote + Tracking */}
+            <div className='flex flex-col gap-4'>
+              {isInTrackingMode && selectedQuote ? (
+                // Isolated selected quote + tracking during execution
+                <>
+                  <div className='rounded-xl border border-border bg-background/50 p-4'>
+                    <h3 className='text-sm font-semibold text-text-primary mb-3'>Selected Quote</h3>
+                    <QuoteCard
+                      quote={selectedQuote}
+                      inputTokenAddress={selectedInputToken}
+                      outputTokenAddress={selectedOutputToken}
+                      isSelected={true}
+                      hideExecuteButton={true}
+                    />
+                  </div>
+                  <IntentTracking state={executionState} onReset={handleReset} />
+                </>
+              ) : (
+                // Normal quote list
+                <QuoteList
+                  quotes={quotes}
+                  errors={errors}
+                  inputTokenAddress={selectedInputToken}
+                  outputTokenAddress={selectedOutputToken}
+                  selectedQuoteId={selectedQuote?.quoteId}
+                  executionStatus='idle'
+                  onSelectQuote={handleSelectQuote}
+                  onExecuteQuote={handleExecuteQuote}
+                />
+              )}
             </div>
           </div>
         </div>
