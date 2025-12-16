@@ -18,9 +18,9 @@ The `cross-chain` package provides a standardized interface for interacting with
 
 The package uses a factory pattern to create providers for different protocols. Currently supported protocols include:
 
--   Across Protocol (bridge)
--   OIF (Open Intents Framework) (intent-based)
+-   Across Protocol
 -   Sample Provider (for testing)
+-   OIF (Open Intents Framework)
 
 ```typescript
 import { createCrossChainProvider, createOifProvider } from "@wonderland/interop";
