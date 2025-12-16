@@ -5,20 +5,20 @@ import {
     FillWatcher,
     IntentStatusInfo,
     IntentUpdate,
-    OpenEventParser,
+    OpenEventWatcher,
     WatchIntentParams,
 } from "../internal.js";
 
 /**
  * Unified intent tracker
  * Protocol-agnostic orchestrator that combines:
- * - Open event parsing (protocol-specific or EIP-7683 standard)
+ * - Open event watching (EIP-7683 standard)
  * - Protocol-specific deposit info parsing
  * - Protocol-specific fill watching
  */
 export class IntentTracker {
     constructor(
-        private readonly openEventParser: OpenEventParser,
+        private readonly openWatcher: OpenEventWatcher,
         private readonly depositInfoParser: DepositInfoParser,
         private readonly fillWatcher: FillWatcher,
     ) {}
@@ -32,7 +32,7 @@ export class IntentTracker {
      * @returns Current intent status
      */
     async getIntentStatus(txHash: Hex, originChainId: number): Promise<IntentStatusInfo> {
-        const openEvent = await this.openEventParser.getOpenEvent(txHash, originChainId);
+        const openEvent = await this.openWatcher.getOpenEvent(txHash, originChainId);
 
         const depositInfo = await this.depositInfoParser.getDepositInfo(txHash, originChainId);
 
@@ -100,7 +100,7 @@ export class IntentTracker {
             message: "Parsing intent from transaction...",
         };
 
-        const openEvent = await this.openEventParser.getOpenEvent(txHash, originChainId);
+        const openEvent = await this.openWatcher.getOpenEvent(txHash, originChainId);
 
         yield {
             status: "opened",

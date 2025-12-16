@@ -113,36 +113,3 @@ export const ACROSS_FILLED_RELAY_EVENT_ABI = [
  */
 export const ACROSS_FILLED_RELAY_SIGNATURE =
     "0x44b559f101f8fbcc8a0ea43fa91a05a729a5ea6e14a7c75aa750374690137208" as const;
-
-/**
- * V3FundsDeposited event ABI for Across V3
- * Emitted when a user deposits funds to initiate a cross-chain transfer
- */
-export const ACROSS_V3_FUNDS_DEPOSITED_ABI = [
-    {
-        anonymous: false,
-        type: "event",
-        name: "V3FundsDeposited",
-        inputs: [
-            { indexed: false, internalType: "address", name: "inputToken", type: "address" },
-            { indexed: false, internalType: "address", name: "outputToken", type: "address" },
-            { indexed: false, internalType: "uint256", name: "inputAmount", type: "uint256" },
-            { indexed: false, internalType: "uint256", name: "outputAmount", type: "uint256" },
-            { indexed: true, internalType: "uint256", name: "destinationChainId", type: "uint256" },
-            { indexed: true, internalType: "uint32", name: "depositId", type: "uint32" },
-            { indexed: false, internalType: "uint32", name: "quoteTimestamp", type: "uint32" },
-            { indexed: false, internalType: "uint32", name: "fillDeadline", type: "uint32" },
-            { indexed: false, internalType: "uint32", name: "exclusivityDeadline", type: "uint32" },
-            { indexed: true, internalType: "address", name: "depositor", type: "address" },
-            { indexed: false, internalType: "address", name: "recipient", type: "address" },
-            { indexed: false, internalType: "address", name: "exclusiveRelayer", type: "address" },
-            { indexed: false, internalType: "bytes", name: "message", type: "bytes" },
-        ],
-    },
-] as const;
-
-/**
- * Event signature for V3FundsDeposited event
- */
-export const ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE =
-    "0x32ed1a409ef04c7b0227189c3a103dc5ac10e775a15b785dcc510201f7c25ad3" as const;
