@@ -5,14 +5,12 @@ describe('parseHumanReadableForDisplay', () => {
   it('parses chain label with optional checksum', () => {
     expect(parseHumanReadableForDisplay('vitalik.eth@eth#4CA88C9C')).toEqual({
       name: 'vitalik.eth',
-      chainType: 'eip155',
       chainReference: 'eth',
       checksum: '4CA88C9C',
     });
 
     expect(parseHumanReadableForDisplay('vitalik.eth@eth')).toEqual({
       name: 'vitalik.eth',
-      chainType: 'eip155',
       chainReference: 'eth',
       checksum: '',
     });
