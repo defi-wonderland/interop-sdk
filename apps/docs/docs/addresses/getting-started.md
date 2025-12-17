@@ -2,7 +2,17 @@
 title: Getting Started
 ---
 
-The `addresses` package provides a robust solution for handling interoperable blockchain addresses across different networks, following the [ERC-7930](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365) standard. This guide will help you get started with using the package in your projects.
+The `addresses` package provides a robust solution for handling interoperable blockchain addresses across different networks, following the [ERC-7930](https://eips.ethereum.org/EIPS/eip-7930) and [ERC-7828](https://eips.ethereum.org/EIPS/eip-7828) standards. This guide will help you get started with using the package in your projects.
+
+## Installing the Package
+
+```bash
+npm install @wonderland/interop-addresses
+# or
+yarn add @wonderland/interop-addresses
+# or
+pnpm add @wonderland/interop-addresses
+```
 
 ## Basic Usage
 
@@ -14,7 +24,7 @@ The package provides two main ways to work with addresses:
 ### Using InteropAddressProvider
 
 ```typescript
-import { InteropAddressProvider } from "@wonderland/interop";
+import { InteropAddressProvider } from "wonderland/interop-addresses";
 
 // Convert a human-readable address to binary format
 const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
@@ -40,7 +50,7 @@ import {
     getAddress,
     getChainId,
     humanReadableToBinary,
-} from "@wonderland/interop";
+} from "wonderland/interop-addresses";
 
 const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
 const binaryAddress = await humanReadableToBinary(humanReadableAddress);
@@ -70,6 +80,17 @@ graph TD
     A -->|getAddress| E
 ```
 
+## Chain Resolution
+
+The package resolves chain identifiers using off-chain registries:
+
+-   **Primary**: Uses `shortnameToChainId` with built-in chain shortname mappings
+-   **Fallback**: Uses viem's chain definitions and chainid.network
+
+> We’re currently working on the ENS on-chain chain registry, though it hasn’t been deployed yet.
+> For now, the SDK uses off-chain registries (such as chainid.network and viem) as the main resolution mechanism.
+
 ## References
 
--   [ERC-7930: Interoperable Addresses](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365)
+-   [ERC-7930: Interoperable Addresses](https://eips.ethereum.org/EIPS/eip-7930)
+-   [ERC-7828: Readable Interoperable Addresses using ENS](https://eips.ethereum.org/EIPS/eip-7828)

@@ -12,7 +12,7 @@ While interop addresses provide a convenient, human-readable way to represent ac
 
 ## Use Case
 
-Suppose you're a wallet developer. You want your users to be able to input an interop address (e.g., `alice.eth@op`) and seamlessly interact with contracts that only accept canonical addresses. The SDK makes this process straightforward.
+Suppose you're a wallet developer. You want your users to be able to input an interop address (e.g., `alice.eth@base`) and seamlessly interact with contracts that only accept canonical addresses. The SDK makes this process straightforward.
 
 Since you're building a wallet and want your product to be as fast and lightweight as possible, it's best to import only the individual functions you need. This approach maximizes tree shaking and minimizes your bundle size.
 
@@ -25,7 +25,7 @@ sequenceDiagram
     participant SDK
     participant SmartContract
 
-    User->>Wallet: Input interop address (e.g., alice.eth@op)
+    User->>Wallet: Input interop address (e.g., alice.eth@base)
     Wallet->>SDK: getChainId(interopAddress)
     SDK-->>Wallet: chainId
     Wallet->>SDK: getAddress(interopAddress)
@@ -40,13 +40,13 @@ The `getChainId` method allows you to extract the chain ID from a human-readable
 ```js
 import { getChainId } from "@wonderland/interop";
 
-const humanReadableAddress = "alice.eth@op";
+const humanReadableAddress = "alice.eth@base";
 const chainId = await getChainId(humanReadableAddress);
 
 console.log(chainId); // 10
 ```
 
--   The chain ID is determined by the suffix after the `@` symbol (e.g., `@op` for Optimism, which has chain ID 10).
+-   The chain ID is determined by the suffix after the `@` symbol (e.g., `@base` for Optimism, which has chain ID 10).
 -   For details on supported chains, see [ERC-7828](https://ethereum-magicians.org/t/erc-7828-chain-specific-addresses-using-ens/21930).
 -   If the suffix is unrecognized, the function will throw an error.
 
@@ -57,7 +57,7 @@ The `getAddress` method returns the canonical address corresponding to the inter
 ```js
 import { getAddress } from "@wonderland/interop";
 
-const humanReadableAddress = "alice.eth@op";
+const humanReadableAddress = "alice.eth@base";
 const address = await getAddress(humanReadableAddress);
 
 console.log(address); // 0x123...789

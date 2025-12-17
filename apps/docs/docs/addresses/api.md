@@ -33,7 +33,7 @@ A static class with utility methods for converting and validating interoperable 
     Extracts the chain ID from a human-readable or binary address.
 
     ```typescript
-    const chainId = await InteropAddressProvider.getChainId("alice.eth@op#ABCD1234");
+    const chainId = await InteropAddressProvider.getChainId("alice.eth@base#ABCD1234");
     ```
 
 -   **getAddress**(address: string): Promise\<[EncodedAddress\<ChainTypeName\>](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/types/encodings.ts#L24)\>
@@ -41,7 +41,7 @@ A static class with utility methods for converting and validating interoperable 
     Extracts the address component from a human-readable or binary address.
 
     ```typescript
-    const address = await InteropAddressProvider.getAddress("alice.eth@op#ABCD1234");
+    const address = await InteropAddressProvider.getAddress("alice.eth@base#ABCD1234");
     ```
 
 -   **buildFromPayload**(payload: InteropAddressFields): [BinaryAddress](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/types/binaryAddress.ts#L3)
@@ -63,7 +63,7 @@ A static class with utility methods for converting and validating interoperable 
     Computes the checksum for a human-readable address.
 
     ```typescript
-    const checksum = await InteropAddressProvider.computeChecksum("alice.eth@op");
+    const checksum = await InteropAddressProvider.computeChecksum("alice.eth@base");
     ```
 
 -   **isValidInteropAddress**(address: string, options?: [ParseHumanReadableOptions](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/utils/parseHumanReadable.ts#L76)): Promise\<boolean\>
@@ -71,7 +71,7 @@ A static class with utility methods for converting and validating interoperable 
     Checks if a string is a valid interop address (human-readable or binary).
 
     ```typescript
-    const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@op");
+    const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@base");
     ```
 
 -   **isValidHumanReadableAddress**(humanReadableAddress: string, options?: [ParseHumanReadableOptions](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/utils/parseHumanReadable.ts#L76)): Promise\<boolean\>
@@ -79,7 +79,7 @@ A static class with utility methods for converting and validating interoperable 
     Checks if a string is a valid human-readable interop address.
 
     ```typescript
-    const isValid = await InteropAddressProvider.isValidHumanReadableAddress("alice.eth@op");
+    const isValid = await InteropAddressProvider.isValidHumanReadableAddress("alice.eth@base");
     ```
 
 -   **isValidBinaryAddress**(binaryAddress: Hex): boolean
@@ -92,8 +92,23 @@ A static class with utility methods for converting and validating interoperable 
     );
     ```
 
-All methods are also exported as individual functions for modular usage and tree-shaking.
+All methods are also exported as individual functions for modular usage and tree-shaking:
+
+```typescript
+import {
+    binaryToHumanReadable,
+    buildFromPayload,
+    computeChecksum,
+    getAddress,
+    getChainId,
+    humanReadableToBinary,
+    isValidBinaryAddress,
+    isValidHumanReadableAddress,
+    isValidInteropAddress,
+} from "@wonderland/interop-addresses";
+```
 
 ## References
 
--   [ERC 7930: Interoperable Addresses - Fellowship of Ethereum Magicians](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365)
+-   [ERC-7930: Interoperable Addresses](https://eips.ethereum.org/EIPS/eip-7930)
+-   [ERC-7828: Readable Interoperable Addresses using ENS](https://eips.ethereum.org/EIPS/eip-7828)
