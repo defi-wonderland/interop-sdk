@@ -150,16 +150,16 @@ describe("AcrossProvider", () => {
         it("should return valid tracking configuration for all components", () => {
             const config = provider.getTrackingConfig();
 
-            // openEventParser - for V3FundsDeposited event
-            expect(config.openEventParser).toBeDefined();
-            expect(config.openEventParser?.protocolName).toBe("across");
-            expect(config.openEventParser?.eventSignature).toBeDefined();
-            expect(typeof config.openEventParser?.extractOpenEvent).toBe("function");
-
-            // depositInfoParser
-            expect(config.depositInfoParser.protocolName).toBe("across");
-            expect(config.depositInfoParser.eventSignature).toBeDefined();
-            expect(typeof config.depositInfoParser.extractDepositInfo).toBe("function");
+            // openedIntentParser - for V3FundsDeposited event (custom-event type)
+            expect(config.openedIntentParser).toBeDefined();
+            expect(config.openedIntentParser.type).toBe("custom-event");
+            if (config.openedIntentParser.type === "custom-event") {
+                expect(config.openedIntentParser.config.protocolName).toBe("across");
+                expect(config.openedIntentParser.config.eventSignature).toBeDefined();
+                expect(typeof config.openedIntentParser.config.extractOpenedIntent).toBe(
+                    "function",
+                );
+            }
 
             // fillWatcher
             expect(config.fillWatcher.contractAddresses).toBeDefined();

@@ -13,6 +13,7 @@ export {
     createIntentTracker,
     IntentTracker,
     IntentTrackerFactory,
-    OpenEventWatcher,
+    OIFOpenedIntentParser,
+    CustomEventOpenedIntentParser,
     SortingStrategyFactory,
 } from "./internal.js";

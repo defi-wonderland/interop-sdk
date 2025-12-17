@@ -9,3 +9,4 @@ export * from "./ProviderGetQuoteFailure.exception.js";
 export * from "./ProviderExecuteNotImplemented.exception.js";
 export * from "./ProviderTimeout.exception.js";
 export * from "./ProviderConfigFailure.exception.js";
+export * from "./OpenedIntentNotFound.exception.js";

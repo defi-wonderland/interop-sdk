@@ -30,15 +30,14 @@ import {
     AcrossOIFGetQuoteParamsSchema,
     bytes32ToAddress,
     CrossChainProvider,
-    DepositInfo,
-    DepositInfoParserConfig,
+    CustomEventOpenedIntentParserConfig,
     ExecutableQuote,
     FillEvent,
     FillWatcherConfig,
     getChainById,
     GetFillParams,
-    OpenEvent,
-    OpenEventParserConfig,
+    OpenedIntent,
+    OpenedIntentParserConfig,
     parseAbiEncodedFields,
     ProviderConfigFailure,
     ProviderExecuteNotImplemented,
@@ -323,30 +322,49 @@ export class AcrossProvider extends CrossChainProvider {
     }
 
     /**
-     * Get the deposit info parser configuration for Across
-     * Used to configure a generic EventBasedDepositInfoParser
+     * Get the opened intent parser configuration for Across
+     * Parses the V3FundsDeposited event from SpokePool to extract all tracking data
      */
-    static getDepositInfoParserConfig(): DepositInfoParserConfig {
-        const FUNDS_DEPOSITED_SIGNATURE =
-            "0x32ed1a409ef04c7b0227189c3a103dc5ac10e775a15b785dcc510201f7c25ad3" as Hex;
-
+    static getOpenedIntentParserConfig(): CustomEventOpenedIntentParserConfig {
         return {
             protocolName: AcrossProvider.PROTOCOL_NAME,
-            eventSignature: FUNDS_DEPOSITED_SIGNATURE,
-            extractDepositInfo: (log: Log): DepositInfo => {
+            eventSignature: ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
+            extractOpenedIntent: (log: Log, txHash: Hex, blockNumber: bigint): OpenedIntent => {
+                // V3FundsDeposited event topics:
+                // topic[0]: event signature
+                // topic[1]: destinationChainId (indexed)
+                // topic[2]: depositId (indexed)
+                // topic[3]: depositor (indexed)
                 const destinationChainId = BigInt(log.topics[1] || "0");
                 const depositId = BigInt(log.topics[2] || "0");
+                const depositor = ("0x" + (log.topics[3] || "").slice(-40)) as Address;
 
-                const [inputAmount, outputAmount] = parseAbiEncodedFields(log.data, [2, 3]) as [
-                    bigint,
-                    bigint,
-                ];
+                // Parse non-indexed fields from data
+                // Data layout: inputToken, outputToken, inputAmount, outputAmount,
+                // quoteTimestamp, fillDeadline, exclusivityDeadline, recipient, exclusiveRelayer, message
+                const fieldIndices = [2, 3, 5]; // inputAmount, outputAmount, fillDeadline indices
+                const parsedFields = parseAbiEncodedFields(log.data, fieldIndices);
+                const inputAmount = parsedFields[0] ?? 0n;
+                const outputAmount = parsedFields[1] ?? 0n;
+                const fillDeadlineBigInt = parsedFields[2] ?? 0n;
+
+                const fillDeadline = Number(fillDeadlineBigInt);
+
+                // Create a unique orderId from depositId
+                const orderIdHex = depositId.toString(16).padStart(64, "0");
+                const orderId = ("0x" + orderIdHex) as Hex;
 
                 return {
+                    orderId,
+                    txHash,
+                    blockNumber,
+                    originContract: log.address,
+                    user: depositor,
+                    fillDeadline,
                     depositId,
+                    destinationChainId,
                     inputAmount,
                     outputAmount,
-                    destinationChainId,
                 };
             },
         };
@@ -398,70 +416,17 @@ export class AcrossProvider extends CrossChainProvider {
     }
 
     /**
-     * Get the open event parser configuration for Across
-     * Used to configure a generic EventBasedOpenEventParser
-     *
-     * This parses the V3FundsDeposited event from SpokePool
-     * and converts it to the standard OpenEvent format for tracking
-     */
-    static getOpenEventParserConfig(): OpenEventParserConfig {
-        return {
-            protocolName: AcrossProvider.PROTOCOL_NAME,
-            eventSignature: ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
-            extractOpenEvent: (log: Log, txHash: Hex, chainId: number): OpenEvent => {
-                // V3FundsDeposited event topics:
-                // topic[0]: event signature
-                // topic[1]: destinationChainId (indexed)
-                // topic[2]: depositId (indexed)
-                // topic[3]: depositor (indexed)
-                const depositId = BigInt(log.topics[2] || "0");
-                const depositor = ("0x" + (log.topics[3] || "").slice(-40)) as Address;
-
-                // Parse non-indexed fields from data
-                // Data layout: inputToken, outputToken, inputAmount, outputAmount,
-                // quoteTimestamp, fillDeadline, exclusivityDeadline, recipient, exclusiveRelayer, message
-                const fieldIndices = [4, 5]; // quoteTimestamp and fillDeadline indices
-                const [quoteTimestampBigInt, fillDeadlineBigInt] = parseAbiEncodedFields(
-                    log.data,
-                    fieldIndices,
-                );
-
-                // Convert bigints to numbers (these are uint32 timestamps)
-                const quoteTimestamp = Number(quoteTimestampBigInt);
-                const fillDeadline = Number(fillDeadlineBigInt);
-
-                // Create a unique orderId from depositId and chainId
-                const orderIdHex = depositId.toString(16).padStart(64, "0");
-                const orderId = ("0x" + orderIdHex) as Hex;
-
-                return {
-                    orderId,
-                    resolvedOrder: {
-                        user: depositor,
-                        originChainId: BigInt(chainId),
-                        openDeadline: quoteTimestamp,
-                        fillDeadline,
-                        orderId,
-                    },
-                    settlementContract: log.address,
-                    txHash,
-                    blockNumber: log.blockNumber || 0n,
-                };
-            },
-        };
-    }
-
-    /**
      * @inheritdoc
      */
     getTrackingConfig(): {
-        openEventParser: OpenEventParserConfig;
-        depositInfoParser: DepositInfoParserConfig;
+        openedIntentParser: OpenedIntentParserConfig;
         fillWatcher: FillWatcherConfig;
     } {
         return {
-            openEventParser: AcrossProvider.getOpenEventParserConfig(),
-            depositInfoParser: AcrossProvider.getDepositInfoParserConfig(),
+            openedIntentParser: {
+                type: "custom-event",
+                config: AcrossProvider.getOpenedIntentParserConfig(),
+            },
             fillWatcher: AcrossProvider.getFillWatcherConfig(),
         };
     }
