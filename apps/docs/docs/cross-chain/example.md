@@ -11,11 +11,7 @@ This guide demonstrates how to execute a cross-chain intent using the SDK. The p
 First, import the required libraries and set up your environment variables, such as your private key and a generic RPC URL.
 
 ```js
-import {
-    createCrossChainProvider,
-    createProviderExecutor,
-    InteropAddressParamsParser,
-} from "@wonderland/interop-cross-chain";
+import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
@@ -42,6 +38,7 @@ const publicClient = createPublicClient({
 const walletClient = createWalletClient({
     chain: sepolia,
     transport: http(RPC_URL),
+    account: privateAccount,
 });
 ```
 
@@ -50,32 +47,44 @@ const walletClient = createWalletClient({
 Initialize the cross-chain provider and executor, which will handle quoting and executing cross-chain transfers.
 
 ```js
-const acrossProvider = createCrossChainProvider(
-    "across",
-    { apiUrl: "https://..." }, // Provider config
-    {}, // Dependencies
-);
+const acrossProvider = createCrossChainProvider("across", { apiUrl: "https://..." }, {});
 
-const executor = createProviderExecutor([acrossProvider], {
-    paramParser: new InteropAddressParamsParser(),
+const executor = createProviderExecutor({
+    providers: [acrossProvider],
 });
 ```
 
 ## 4. Retrieve a Cross-Chain Quote
 
-Request a quote for a cross-chain transfer by specifying sender, recipient, amount, and token addresses.
+Request a quote for a cross-chain transfer using OIF GetQuoteRequest format.
 
 ```js
-const params = await executor.getQuotes("crossChainTransfer", {
-    sender: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
-    recipient: "0x8043951e77347c5282d6bcD2294e134B4072fE3b@eip155:84532#D9F7BE3F",
-    amount: "0.100",
-    inputTokenAddress: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-    outputTokenAddress: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+const response = await executor.getQuotes({
+    user: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
+    intent: {
+        intentType: "oif-swap",
+        inputs: [{
+            user: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
+            asset: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238@eip155:11155111#2597C7E5",
+            amount: "100000000000000000", // 0.1 in wei
+        }],
+        outputs: [{
+            receiver: "0x8043951e77347c5282d6bcD2294e134B4072fE3b@eip155:84532#D9F7BE3F",
+            asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e@eip155:84532#D9F7BE3F",
+        }],
+        swapType: "exact-input",
+    },
+    supportedTypes: ["oif-escrow-v0"],
 });
 
-if (!params[0] || (params[0] && "error" in params[0])) {
-    console.error(params[0]?.error || "No quote found");
+// Check for errors
+if (response.errors.length > 0) {
+    console.error("Errors:", response.errors);
+}
+
+// Check if we got quotes
+if (response.quotes.length === 0) {
+    console.error("No quotes available");
     return;
 }
 ```
@@ -85,8 +94,8 @@ if (!params[0] || (params[0] && "error" in params[0])) {
 Execute the quote using your wallet client:
 
 ```js
-// Select the quote you prefer
-const quote = params[0];
+// Select the quote you prefer (e.g., first one)
+const quote = response.quotes[0];
 
 if (quote.preparedTransaction) {
     console.log("Sending transaction...");
