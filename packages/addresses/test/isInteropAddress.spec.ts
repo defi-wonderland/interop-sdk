@@ -1,14 +1,34 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { isInteropAddress } from "../src/internal.js";
 
-const testAddress = (address: string, expected: boolean): void => {
-    it(`${expected ? "true" : "false"} for ${address}`, async () => {
-        expect(await isInteropAddress(address)).toBe(expected);
-    });
+const mockGetEnsAddress = vi.fn();
+vi.mock("viem", async () => {
+    const actual = await vi.importActual("viem");
+    return {
+        ...actual,
+        createPublicClient: (): unknown => ({
+            getEnsAddress: mockGetEnsAddress,
+        }),
+    };
+});
+
+const testAddress = (address: string, expected: boolean, timeout?: number): void => {
+    it(
+        `${expected ? "true" : "false"} for ${address}`,
+        async () => {
+            expect(await isInteropAddress(address)).toBe(expected);
+        },
+        timeout,
+    );
 };
 
 describe("isInteropAddress", () => {
+    beforeEach(() => {
+        mockGetEnsAddress.mockClear();
+        // Default: mock ENS resolution to fail for invalid chain IDs
+        mockGetEnsAddress.mockResolvedValue(null);
+    });
     testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C", true);
 
     // Missing chain and checksum
@@ -25,8 +45,8 @@ describe("isInteropAddress", () => {
 
     testAddress("@eip155:1#F54D4FBF", true);
 
-    // Invalid chain reference
-    testAddress("vitalik.eth@eip155:1000000#4CA88C9C", false);
+    // Invalid chain reference (ENS resolution will fail for invalid chain ID)
+    testAddress("vitalik.eth@eip155:1000000#4CA88C9C", false, 10000);
 
     // Invalid checksum
     testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#FFFFFFFF", false);
