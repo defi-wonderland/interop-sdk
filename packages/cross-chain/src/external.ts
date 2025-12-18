@@ -8,7 +8,6 @@ export {
     AcrossProvider,
     OifProvider,
     createCrossChainProvider,
-    createOifProvider,
     CrossChainProviderFactory,
     createProviderExecutor,
     ProviderExecutor,

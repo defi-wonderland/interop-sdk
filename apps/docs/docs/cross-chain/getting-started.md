@@ -23,7 +23,7 @@ The package uses a factory pattern to create providers for different protocols. 
 -   OIF (Open Intents Framework)
 
 ```typescript
-import { createCrossChainProvider, createOifProvider } from "@wonderland/interop";
+import { createCrossChainProvider } from "@wonderland/interop";
 
 // Create an Across provider (no config or dependencies needed)
 const acrossProvider = createCrossChainProvider("across");
@@ -32,7 +32,7 @@ const acrossProvider = createCrossChainProvider("across");
 const sampleProvider = createCrossChainProvider("sample-protocol");
 
 // Create an OIF provider (requires solver API endpoint)
-const oifProvider = createOifProvider({
+const oifProvider = createCrossChainProvider("oif", {
     solverId: "my-solver",
     url: "https://oif-api.example.com",
 });
