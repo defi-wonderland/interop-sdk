@@ -36,6 +36,7 @@ import {
     FillWatcherConfig,
     getChainById,
     GetFillParams,
+    InvalidOpenEventError,
     OpenedIntent,
     OpenedIntentParserConfig,
     parseAbiEncodedFields,
@@ -335,18 +336,50 @@ export class AcrossProvider extends CrossChainProvider {
                 // topic[1]: destinationChainId (indexed)
                 // topic[2]: depositId (indexed)
                 // topic[3]: depositor (indexed)
-                const destinationChainId = BigInt(log.topics[1] || "0");
-                const depositId = BigInt(log.topics[2] || "0");
-                const depositor = ("0x" + (log.topics[3] || "").slice(-40)) as Address;
+                const destinationChainIdTopic = log.topics[1];
+                const depositIdTopic = log.topics[2];
+                const depositorTopic = log.topics[3];
+
+                if (!destinationChainIdTopic) {
+                    throw new InvalidOpenEventError(
+                        "Missing destinationChainId in V3FundsDeposited event",
+                    );
+                }
+                if (!depositIdTopic) {
+                    throw new InvalidOpenEventError("Missing depositId in V3FundsDeposited event");
+                }
+                if (!depositorTopic) {
+                    throw new InvalidOpenEventError("Missing depositor in V3FundsDeposited event");
+                }
+
+                const destinationChainId = BigInt(destinationChainIdTopic);
+                const depositId = BigInt(depositIdTopic);
+                const depositor = ("0x" + depositorTopic.slice(-40)) as Address;
 
                 // Parse non-indexed fields from data
                 // Data layout: inputToken, outputToken, inputAmount, outputAmount,
                 // quoteTimestamp, fillDeadline, exclusivityDeadline, recipient, exclusiveRelayer, message
                 const fieldIndices = [2, 3, 5]; // inputAmount, outputAmount, fillDeadline indices
                 const parsedFields = parseAbiEncodedFields(log.data, fieldIndices);
-                const inputAmount = parsedFields[0] ?? 0n;
-                const outputAmount = parsedFields[1] ?? 0n;
-                const fillDeadlineBigInt = parsedFields[2] ?? 0n;
+                const inputAmount = parsedFields[0];
+                const outputAmount = parsedFields[1];
+                const fillDeadlineBigInt = parsedFields[2];
+
+                if (inputAmount === undefined) {
+                    throw new InvalidOpenEventError(
+                        "Missing inputAmount in V3FundsDeposited event",
+                    );
+                }
+                if (outputAmount === undefined) {
+                    throw new InvalidOpenEventError(
+                        "Missing outputAmount in V3FundsDeposited event",
+                    );
+                }
+                if (fillDeadlineBigInt === undefined) {
+                    throw new InvalidOpenEventError(
+                        "Missing fillDeadline in V3FundsDeposited event",
+                    );
+                }
 
                 const fillDeadline = Number(fillDeadlineBigInt);
 
