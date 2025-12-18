@@ -2,7 +2,7 @@ import { createPublicClient, http } from "viem";
 import * as chains from "viem/chains";
 import { normalize } from "viem/ens";
 
-import { ENSLookupFailed, ENSNotFound, ETHEREUM_COIN_TYPE } from "../internal.js";
+import { ENSLookupFailed, ENSNotFound, ETHEREUM_COIN_TYPE, isViemChainId } from "../internal.js";
 
 /**
  * Converts an EVM chain ID to a coin type, see https://docs.ens.domains/ensip/11/#specification
@@ -28,17 +28,21 @@ const resolveENSName = async (ensName: string, chainReference: string): Promise<
             transport: http(),
         });
 
-        const isMainnet = chainReference === "1";
-        const chainSpecificCoinType = isMainnet
-            ? ETHEREUM_COIN_TYPE
-            : convertEVMChainIdToCoinType(Number(chainReference));
+        const chainId = Number(chainReference);
+        const isMainnet = chainId === 1 || chainReference === "1";
+        const knownViemChain = Number.isInteger(chainId) && isViemChainId(chainId);
+
+        const chainSpecificCoinType =
+            isMainnet || !knownViemChain
+                ? ETHEREUM_COIN_TYPE
+                : convertEVMChainIdToCoinType(chainId);
 
         const resolvedAddress = await client.getEnsAddress({
             name: normalize(ensName),
             coinType: chainSpecificCoinType,
         });
 
-        if (!resolvedAddress && !isMainnet) {
+        if (!resolvedAddress && !isMainnet && knownViemChain) {
             const fallbackAddress = await client.getEnsAddress({
                 name: normalize(ensName),
                 coinType: ETHEREUM_COIN_TYPE,
@@ -74,12 +78,12 @@ const resolveENSName = async (ensName: string, chainReference: string): Promise<
 export const resolveAddress = async (
     address: string,
     chainType: string,
-    chainReference: string,
+    chainReference?: string,
 ): Promise<string> => {
     // Only resolve ENS for eip155 chains with .eth domains
     if (chainType !== "eip155" || !address.includes(".eth")) {
         return address;
     }
 
-    return await resolveENSName(address, chainReference);
+    return await resolveENSName(address, chainReference ?? "1");
 };

@@ -1,5 +1,5 @@
 import { GetQuoteRequest, PostOrderResponse, Quote } from "@openintentsframework/oif-specs";
-import { Address, EIP1193Provider, PrepareTransactionRequestReturnType } from "viem";
+import { Address, Hex, PrepareTransactionRequestReturnType } from "viem";
 
 import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
 import { CrossChainProvider, ExecutableQuote, OpenedIntentParserConfig } from "../internal.js";
@@ -62,7 +62,13 @@ export class SampleProvider extends CrossChainProvider {
         return [executableQuote];
     }
 
-    async execute(_quote: ExecutableQuote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
+    /**
+     * @inheritdoc
+     */
+    async submitSignedOrder(
+        _quote: ExecutableQuote,
+        _signature: Hex | Uint8Array,
+    ): Promise<PostOrderResponse> {
         throw new Error("Not implemented");
     }
 

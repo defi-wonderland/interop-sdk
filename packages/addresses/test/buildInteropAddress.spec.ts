@@ -1,4 +1,4 @@
-import { fromHex, Hex } from "viem";
+import { fromHex, getAddress, Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -30,14 +30,16 @@ describe("buildInteropAddress", () => {
             version: 1,
             chainType: "eip155",
             chainReference: "0x1",
-            address: "0x1",
+            address: "0x0000000000000000000000000000000000000001",
         });
 
         expect(interopAddress).toBeDefined();
         expect(interopAddress.version).toBe(1);
         expect(interopAddress.chainType).toEqual(fromHex(CHAIN_TYPE["eip155"] as Hex, "bytes"));
         expect(interopAddress.chainReference).toEqual(fromHex("0x1", "bytes"));
-        expect(interopAddress.address).toEqual(fromHex("0x1", "bytes"));
+        expect(interopAddress.address).toEqual(
+            fromHex("0x0000000000000000000000000000000000000001", "bytes"),
+        );
     });
 
     it("build an InteropAddress from a solana address", async () => {
@@ -57,6 +59,36 @@ describe("buildInteropAddress", () => {
         expect(interopAddress.address).toEqual(
             fromHex("0x05333498d5aea4ae009585c43f7b8c30df8e70187d4a713d134f977fc8dfe0b5", "bytes"),
         );
+    });
+
+    it("builds an InteropAddress without a chain reference (address only)", async () => {
+        const interopAddress = await buildInteropAddress({
+            version: 1,
+            chainType: "eip155",
+            address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
+        });
+
+        expect(interopAddress).toBeDefined();
+        expect(interopAddress.version).toBe(1);
+        expect(interopAddress.chainType).toEqual(fromHex(CHAIN_TYPE["eip155"] as Hex, "bytes"));
+        expect(interopAddress.chainReference).toEqual(new Uint8Array());
+        expect(interopAddress.address).toEqual(
+            fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
+        );
+    });
+
+    it("builds an InteropAddress without an address (chain reference only)", async () => {
+        const interopAddress = await buildInteropAddress({
+            version: 1,
+            chainType: "eip155",
+            chainReference: "0x1",
+        });
+
+        expect(interopAddress).toBeDefined();
+        expect(interopAddress.version).toBe(1);
+        expect(interopAddress.chainType).toEqual(fromHex(CHAIN_TYPE["eip155"] as Hex, "bytes"));
+        expect(interopAddress.chainReference).toEqual(fromHex("0x1", "bytes"));
+        expect(interopAddress.address).toEqual(new Uint8Array());
     });
 
     it("throws error if chain type is not supported", async () => {
@@ -163,5 +195,63 @@ describe("buildInteropAddress", () => {
                 address: "nonexistent.eth",
             }),
         ).rejects.toThrow(ENSNotFound);
+    });
+
+    it("throws InvalidAddress when EIP-155 address is not a valid Ethereum address", async () => {
+        await expect(
+            buildInteropAddress({
+                version: 1,
+                chainType: "eip155",
+                chainReference: "0x1",
+                // Too short to be a valid Ethereum address
+                address: "0x1234",
+            }),
+        ).rejects.toThrow(InvalidAddress);
+    });
+
+    describe("address checksum normalization", () => {
+        it("normalizes lowercase address to checksummed format", async () => {
+            const lowercaseAddress = "0xd8da6bf26964af9d7eed9e03e53415d37aa96045";
+            const checksummedAddress = getAddress(lowercaseAddress);
+
+            const interopAddress = await buildInteropAddress({
+                version: 1,
+                chainType: "eip155",
+                chainReference: "0x1",
+                address: lowercaseAddress,
+            });
+
+            // Verify the address is normalized to checksummed format
+            expect(interopAddress.address).toEqual(fromHex(checksummedAddress, "bytes"));
+        });
+
+        it("normalizes mixed-case address to checksummed format", async () => {
+            const mixedCaseAddress = "0xD8DA6BF26964AF9D7EED9E03E53415D37AA96045";
+            const checksummedAddress = getAddress(mixedCaseAddress);
+
+            const interopAddress = await buildInteropAddress({
+                version: 1,
+                chainType: "eip155",
+                chainReference: "0x1",
+                address: mixedCaseAddress,
+            });
+
+            // Verify the address is normalized to checksummed format
+            expect(interopAddress.address).toEqual(fromHex(checksummedAddress, "bytes"));
+        });
+
+        it("accepts already checksummed address and preserves it", async () => {
+            const checksummedAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+
+            const interopAddress = await buildInteropAddress({
+                version: 1,
+                chainType: "eip155",
+                chainReference: "0x1",
+                address: checksummedAddress,
+            });
+
+            // Verify the checksummed address is preserved
+            expect(interopAddress.address).toEqual(fromHex(checksummedAddress, "bytes"));
+        });
     });
 });
