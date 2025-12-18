@@ -73,8 +73,12 @@ const quotes = await executor.getQuotes("crossChainTransfer", {
     outputChainId: 84532,
 });
 
-// Execute a quote (simulate open)
-const txRequests = await executor.execute(quotes[0]);
+// Execute the selected quote
+const selectedQuote = quotes[0];
+if (selectedQuote.preparedTransaction) {
+    const hash = await walletClient.sendTransaction(selectedQuote.preparedTransaction);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+}
 
 // Using InteropAddressParamsParser for human-readable or binary addresses
 const paramParser = new InteropAddressParamsParser();
@@ -104,7 +108,7 @@ const quotesWithInterop = await executorWithParser.getQuotes("crossChainTransfer
 -   `createProviderExecutor(providers, dependencies?)` – Create an executor for batch quoting and execution.
 -   `ProviderExecutor`
     -   `.getQuotes(action, params)` – Get quotes from all providers.
-    -   `.execute(quote)` – Simulate the open transaction for a quote.
+    -   `.prepareTracking(providerId)` – Prepare intent tracking for a provider.
 
 ### Param Parsers
 

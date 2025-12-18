@@ -97,14 +97,6 @@ A class that manages multiple cross-chain providers and coordinates their operat
     });
     ```
 
--   **execute**(quote: Quote): Promise\<TransactionRequest[]\>
-
-    Executes a cross-chain operation using the specified quote.
-
-    ```typescript
-    const result = await executor.execute(selectedQuote);
-    ```
-
 ### Quote Aggregator
 
 A utility for fetching and comparing quotes from multiple providers with sorting and timeout handling.

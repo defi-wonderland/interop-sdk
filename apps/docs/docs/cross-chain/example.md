@@ -78,64 +78,21 @@ if (!params[0] || (params[0] && "error" in params[0])) {
 
 ## 5. Execute the Cross-Chain Transaction
 
-For each transaction in the quote, estimate gas, prepare, sign, and send the transaction, then wait for confirmation.
+Execute the quote using your wallet client:
 
 ```js
-const txs = await executor.execute(params[0]);
+// Select the quote you prefer
+const quote = params[0];
 
-console.log("Sending transactions...");
+if (quote.preparedTransaction) {
+    console.log("Sending transaction...");
+    const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+    console.log("Transaction sent:", hash);
 
-for (const tx of txs) {
-    console.log("Original transaction request:", tx);
-
-    try {
-        // Step 1: Get the current nonce for the account
-        const nonce = await publicClient.getTransactionCount({
-            address: privateAccount.address,
-        });
-
-        // Step 2: Estimate gas and prepare the transaction with all necessary fields
-        const gasEstimate = await publicClient.estimateGas({
-            ...tx,
-            account: privateAccount.address,
-        });
-
-        console.log("Gas estimate:", gasEstimate);
-
-        // Step 3: Prepare a complete transaction request with all fields
-        const preparedTx = await publicClient.prepareTransactionRequest({
-            ...tx,
-            nonce,
-            gas: gasEstimate,
-            account: privateAccount,
-        });
-
-        console.log("Prepared transaction:", preparedTx);
-
-        // Step 4: Sign the transaction locally
-        const signedTx = await walletClient.signTransaction(preparedTx);
-        console.log("Transaction signed successfully");
-
-        // Step 5: Send the raw signed transaction via the public client
-        const txHash = await publicClient.sendRawTransaction({
-            serializedTransaction: signedTx,
-        });
-        console.log("Transaction hash:", txHash);
-
-        // Step 6: Wait for the transaction to be mined
-        const receipt = await publicClient.waitForTransactionReceipt({
-            hash: txHash,
-        });
-        console.log("Transaction confirmed:", receipt.status === "success" ? "Success" : "Failed");
-    } catch (error) {
-        console.error("Transaction failed:", error);
-        // Log detailed error information
-        if (error.cause) {
-            console.error("Error details:", error.cause.details || error.cause.message);
-        }
-
-        break;
-    }
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    console.log("Transaction confirmed:", receipt.status === "success" ? "Success" : "Failed");
+} else {
+    console.error("No prepared transaction in quote");
 }
 ```
 
