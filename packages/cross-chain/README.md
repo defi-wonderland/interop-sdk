@@ -44,7 +44,11 @@ import {
 } from "@wonderland/interop-cross-chain";
 
 // Create a provider for a specific protocol (e.g., Across)
-const provider = createCrossChainProvider("across");
+const provider = createCrossChainProvider(
+    "across",
+    { apiUrl: "https://..." }, // Provider config
+    {}, // Dependencies
+);
 
 // Get a quote for a cross-chain transfer
 const quote = await provider.getQuote("crossChainTransfer", {
@@ -62,7 +66,7 @@ const txs = await provider.simulateOpen(quote.openParams);
 
 // Batch quotes and execution using ProviderExecutor
 const providers = [provider];
-const executor = createProviderExecutor(providers);
+const executor = createProviderExecutor(providers, {});
 const quotes = await executor.getQuotes("crossChainTransfer", {
     sender: "0x...",
     recipient: "0x...",
@@ -96,7 +100,7 @@ const quotesWithInterop = await executorWithParser.getQuotes("crossChainTransfer
 
 ### Providers
 
--   `createCrossChainProvider(protocolName, config?, dependencies?)` – Create a provider for a supported protocol (e.g., "across").
+-   `createCrossChainProvider(protocolName, config, dependencies)` – Create a provider for a supported protocol (e.g., "across").
 -   `CrossChainProvider` (abstract class)
     -   `.getProtocolName()` – Returns the protocol name.
     -   `.getQuote(action, params)` – Fetch a quote for a cross-chain action ("crossChainTransfer" or "crossChainSwap").
@@ -105,7 +109,7 @@ const quotesWithInterop = await executorWithParser.getQuotes("crossChainTransfer
 
 ### Provider Executor
 
--   `createProviderExecutor(providers, dependencies?)` – Create an executor for batch quoting and execution.
+-   `createProviderExecutor(providers, dependencies)` – Create an executor for batch quoting and execution.
 -   `ProviderExecutor`
     -   `.getQuotes(action, params)` – Get quotes from all providers.
     -   `.prepareTracking(providerId)` – Prepare intent tracking for a provider.

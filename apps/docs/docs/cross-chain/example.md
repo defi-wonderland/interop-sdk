@@ -50,7 +50,11 @@ const walletClient = createWalletClient({
 Initialize the cross-chain provider and executor, which will handle quoting and executing cross-chain transfers.
 
 ```js
-const acrossProvider = createCrossChainProvider("across");
+const acrossProvider = createCrossChainProvider(
+    "across",
+    { apiUrl: "https://..." }, // Provider config
+    {}, // Dependencies
+);
 
 const executor = createProviderExecutor([acrossProvider], {
     paramParser: new InteropAddressParamsParser(),
