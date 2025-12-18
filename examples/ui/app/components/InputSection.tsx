@@ -37,6 +37,8 @@ export function InputSection({
   const isReadableMode = mode === InputMode.READABLE;
   const isBuildMode = mode === InputMode.BUILD;
 
+  const isConvertDisabled = isReadableMode ? !readableName.trim() : !address.trim() || !chainReference.trim();
+
   const readableModeExamples = React.useMemo(
     () =>
       EXAMPLES.map(({ humanReadable, description }) => ({
@@ -122,7 +124,7 @@ export function InputSection({
 
         <div className='flex flex-col-reverse sm:flex-row gap-3 sm:justify-between'>
           <ExampleButtons examples={isReadableMode ? readableModeExamples : buildModeExamples} />
-          <ConvertButton onClick={onConvert} isLoading={isLoading} />
+          <ConvertButton onClick={onConvert} isLoading={isLoading} isDisabled={isConvertDisabled} />
         </div>
       </div>
     </div>
