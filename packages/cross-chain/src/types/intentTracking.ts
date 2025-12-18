@@ -1,12 +1,19 @@
 import { Address, Hex } from "viem";
 
 /**
- * Unified type representing an opened cross-chain intent
- * Contains all necessary data for tracking from origin chain
- * Merges what was previously OpenEvent + DepositInfo
+ * Opened cross-chain intent parsed from an EIP-7683 Open event.
+ *
+ * Contains all data extracted from the standard EIP-7683 ResolvedCrossChainOrder struct:
+ * - Basic order info (orderId, user, fillDeadline)
+ * - Destination chain from fillInstructions
+ * - Input/output amounts from maxSpent/minReceived
+ *
+ * This type represents a fully parsed intent ready for tracking.
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-7683
  */
 export interface OpenedIntent {
-    /** Unique identifier for this order */
+    /** Unique identifier for this order (bytes32) */
     orderId: Hex;
     /** Transaction hash where the order was opened */
     txHash: Hex;
@@ -18,13 +25,16 @@ export interface OpenedIntent {
     user: Address;
     /** Fill deadline timestamp (Unix seconds) */
     fillDeadline: number;
-    /** Protocol-specific deposit ID (e.g., Across depositId) */
+    /**
+     * Protocol-specific deposit ID
+     * Derived from orderId for compatibility with protocols like Across
+     */
     depositId: bigint;
-    /** Destination chain ID */
+    /** Destination chain ID where the intent will be filled */
     destinationChainId: bigint;
-    /** Input token amount */
+    /** Input token amount (in smallest unit) from maxSpent[0] */
     inputAmount: bigint;
-    /** Expected output token amount */
+    /** Expected output token amount (in smallest unit) from minReceived[0] */
     outputAmount: bigint;
 }
 
@@ -79,9 +89,9 @@ export interface IntentStatusInfo {
     fillDeadline: number;
     /** Protocol-specific deposit ID */
     depositId: bigint;
-    /** Input token amount */
+    /** Input token amount from maxSpent[0] */
     inputAmount: bigint;
-    /** Output token amount */
+    /** Output token amount from minReceived[0] */
     outputAmount: bigint;
     /** Fill event data (present when status is 'filled') */
     fillEvent?: FillEvent;

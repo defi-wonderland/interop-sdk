@@ -1,4 +1,4 @@
-import { Address, Hex, Log, PublicClient } from "viem";
+import { Address, encodeAbiParameters, Hex, Log, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -9,31 +9,104 @@ import {
     PublicClientManager,
 } from "../../src/internal.js";
 
+/**
+ * Create mock Open event log with full EIP-7683 ResolvedCrossChainOrder data
+ */
 const createMockOpenEventLog = (overrides?: Partial<Log>): Log => {
-    // Open event data:
-    // - orderId is indexed (topic[1])
-    // - resolvedOrder is non-indexed (in data)
     const orderId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hex;
     const user = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as Address;
     const originChainId = 11155111n;
     const openDeadline = 1700000000;
     const fillDeadline = 1700003600;
+    const destinationChainId = 84532n; // Base Sepolia
+    const inputAmount = 1000000000000000000n; // 1 ETH
+    const outputAmount = 990000000000000000n; // 0.99 ETH
 
-    // ABI encode the resolvedOrder tuple
-    // ResolvedCrossChainOrder: (address user, uint256 originChainId, uint32 openDeadline, uint32 fillDeadline, bytes32 orderId)
-    const data =
-        "0x" +
-        user.slice(2).padStart(64, "0") + // user (address padded to 32 bytes)
-        originChainId.toString(16).padStart(64, "0") + // originChainId
-        openDeadline.toString(16).padStart(64, "0") + // openDeadline
-        fillDeadline.toString(16).padStart(64, "0") + // fillDeadline
-        orderId.slice(2); // orderId
+    // Encode the full ResolvedCrossChainOrder struct
+    const data = encodeAbiParameters(
+        [
+            {
+                type: "tuple",
+                components: [
+                    { type: "address", name: "user" },
+                    { type: "uint256", name: "originChainId" },
+                    { type: "uint32", name: "openDeadline" },
+                    { type: "uint32", name: "fillDeadline" },
+                    { type: "bytes32", name: "orderId" },
+                    {
+                        type: "tuple[]",
+                        name: "maxSpent",
+                        components: [
+                            { type: "bytes32", name: "token" },
+                            { type: "uint256", name: "amount" },
+                            { type: "bytes32", name: "recipient" },
+                            { type: "uint256", name: "chainId" },
+                        ],
+                    },
+                    {
+                        type: "tuple[]",
+                        name: "minReceived",
+                        components: [
+                            { type: "bytes32", name: "token" },
+                            { type: "uint256", name: "amount" },
+                            { type: "bytes32", name: "recipient" },
+                            { type: "uint256", name: "chainId" },
+                        ],
+                    },
+                    {
+                        type: "tuple[]",
+                        name: "fillInstructions",
+                        components: [
+                            { type: "uint256", name: "destinationChainId" },
+                            { type: "bytes32", name: "destinationSettler" },
+                            { type: "bytes", name: "originData" },
+                        ],
+                    },
+                ],
+            },
+        ],
+        [
+            {
+                user,
+                originChainId,
+                openDeadline,
+                fillDeadline,
+                orderId,
+                maxSpent: [
+                    {
+                        token: "0x0000000000000000000000000000000000000000000000000000000000000001" as Hex,
+                        amount: inputAmount,
+                        recipient:
+                            "0x0000000000000000000000000000000000000000000000000000000000000002" as Hex,
+                        chainId: originChainId,
+                    },
+                ],
+                minReceived: [
+                    {
+                        token: "0x0000000000000000000000000000000000000000000000000000000000000003" as Hex,
+                        amount: outputAmount,
+                        recipient:
+                            "0x0000000000000000000000000000000000000000000000000000000000000004" as Hex,
+                        chainId: destinationChainId,
+                    },
+                ],
+                fillInstructions: [
+                    {
+                        destinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000005" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
+            },
+        ],
+    );
 
     return {
         address: "0x5f9D51679F5A0C7C1e2b7F0aE8F2c3c7c9c1c2c3" as Address,
         blockHash: "0xaabbccdd1234567890aabbccdd1234567890aabbccdd1234567890aabbccdd12" as Hex,
         blockNumber: 1000000n,
-        data: data as Hex,
+        data,
         logIndex: 0,
         removed: false,
         topics: [OPEN_EVENT_SIGNATURE as Hex, orderId], // topic[0] = event sig, topic[1] = orderId (indexed)
@@ -69,7 +142,7 @@ describe("OIFOpenedIntentParser", () => {
     });
 
     describe("getOpenedIntent", () => {
-        it("should parse OIF Open event and return OpenedIntent", async () => {
+        it("should parse OIF Open event and return complete OpenedIntent", async () => {
             const mockOpenLog = createMockOpenEventLog();
 
             vi.mocked(mockPublicClient.getTransactionReceipt).mockResolvedValue({
@@ -79,12 +152,18 @@ describe("OIFOpenedIntentParser", () => {
 
             const result = await parser.getOpenedIntent(mockTxHash, mockChainId);
 
+            // Basic fields
             expect(result.orderId).toBe(
                 "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
             );
             expect(result.txHash).toBe(mockTxHash);
             expect(result.blockNumber).toBe(1000000n);
             expect(result.originContract).toBe(mockOpenLog.address);
+
+            // EIP-7683 extended fields
+            expect(result.destinationChainId).toBe(84532n); // Base Sepolia
+            expect(result.inputAmount).toBe(1000000000000000000n); // 1 ETH
+            expect(result.outputAmount).toBe(990000000000000000n); // 0.99 ETH
         });
 
         it("should throw OIFOpenEventNotFoundError when no Open event in receipt", async () => {

@@ -1,6 +1,7 @@
 import { Chain, decodeEventLog, Hex, PublicClient } from "viem";
 
 import {
+    EIP7683ResolvedOrder,
     getChainById,
     InvalidOpenEventError,
     OIFOpenEventNotFoundError,
@@ -12,12 +13,19 @@ import {
 } from "../internal.js";
 
 /**
- * Parser for OIF (Open Intent Framework) standard Open events
- * For protocols that emit the standard EIP-7683 Open event
+ * Parser for OIF (Open Intent Framework) standard Open events.
+ * For protocols that emit the standard EIP-7683 Open event.
  *
- * NOTE: The OIF Open event doesn't contain all protocol-specific data
- * (like inputAmount, outputAmount). For protocols with custom events,
- * use CustomEventOpenedIntentParser instead.
+ * Extracts data from the EIP-7683 ResolvedCrossChainOrder struct:
+ * - destinationChainId from fillInstructions[0]
+ * - inputAmount from maxSpent[0] (first input token)
+ * - outputAmount from minReceived[0] (first output token)
+ *
+ * NOTE: This implementation currently supports single-token intents only.
+ * EIP-7683 allows multi-token intents (multiple entries in maxSpent/minReceived),
+ * but this parser only extracts the first token from each array.
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-7683
  */
 export class OIFOpenedIntentParser implements OpenedIntentParser {
     constructor(private readonly dependencies: OpenedIntentParserDependencies) {}
@@ -27,11 +35,14 @@ export class OIFOpenedIntentParser implements OpenedIntentParser {
     }
 
     /**
-     * Parse OIF Open event from a transaction and return OpenedIntent
+     * Parse OIF Open event from a transaction and return OpenedIntent.
+     *
+     * Extracts the full intent data from the EIP-7683 Open event including
+     * destination chain, input amounts, and output amounts.
      *
      * @param txHash - Transaction hash to parse
      * @param chainId - Chain ID where the transaction occurred
-     * @returns Opened intent data
+     * @returns Complete opened intent data
      * @throws {OIFOpenEventNotFoundError} If Open event is not found
      * @throws {InvalidOpenEventError} If Open event data is malformed
      */
@@ -54,11 +65,44 @@ export class OIFOpenedIntentParser implements OpenedIntentParser {
                 topics: openLog.topics,
             });
 
-            const { orderId, resolvedOrder } = decoded.args;
+            const { orderId, resolvedOrder } = decoded.args as {
+                orderId: Hex;
+                resolvedOrder: EIP7683ResolvedOrder;
+            };
 
             if (!orderId || !resolvedOrder) {
                 throw new InvalidOpenEventError("Missing orderId or resolvedOrder");
             }
+
+            // Validate fillInstructions exist for destination chain
+            const firstFillInstruction = resolvedOrder.fillInstructions?.[0];
+            if (!firstFillInstruction) {
+                throw new InvalidOpenEventError("Missing fillInstructions in Open event");
+            }
+
+            // Extract destination chain from first fill instruction
+            // TODO: Multi-token support - handle multiple fill instructions for different destination chains
+            const destinationChainId = firstFillInstruction.destinationChainId;
+
+            // Extract input amount from first maxSpent entry (what user is spending)
+            // TODO: Multi-token support - EIP-7683 allows multiple input tokens in maxSpent[].
+            //       Current implementation only uses the first token. For multi-token intents,
+            //       consider returning the full array or a structured object with per-token amounts.
+            const firstInput = resolvedOrder.maxSpent?.[0];
+            if (!firstInput) {
+                throw new InvalidOpenEventError("Missing maxSpent in Open event");
+            }
+            const inputAmount = firstInput.amount;
+
+            // Extract output amount from first minReceived entry (what user will receive)
+            // TODO: Multi-token support - EIP-7683 allows multiple output tokens in minReceived[].
+            //       Current implementation only uses the first token. For multi-token intents,
+            //       consider returning the full array or a structured object with per-token amounts.
+            const firstOutput = resolvedOrder.minReceived?.[0];
+            if (!firstOutput) {
+                throw new InvalidOpenEventError("Missing minReceived in Open event");
+            }
+            const outputAmount = firstOutput.amount;
 
             // Convert orderId bytes32 to bigint for depositId
             const depositId = BigInt(orderId);
@@ -71,13 +115,9 @@ export class OIFOpenedIntentParser implements OpenedIntentParser {
                 user: resolvedOrder.user,
                 fillDeadline: resolvedOrder.fillDeadline,
                 depositId,
-                // OIF Open event doesn't specify destination chain directly
-                // Use originChainId as fallback (protocols should use CustomEventOpenedIntentParser for proper handling)
-                destinationChainId: resolvedOrder.originChainId,
-                // These amounts are not available in the basic Open event
-                // For real values, protocols should use CustomEventOpenedIntentParser
-                inputAmount: 0n,
-                outputAmount: 0n,
+                destinationChainId,
+                inputAmount,
+                outputAmount,
             };
         } catch (error) {
             if (

@@ -31,7 +31,7 @@ export class IntentTracker extends EventEmitter {
     }
 
     /**
-     * Get the current status of an intent
+     * Get the current status of an intent.
      *
      * @param txHash - Transaction hash where the intent was opened
      * @param originChainId - Origin chain ID
