@@ -4,7 +4,6 @@ import {
     PostOrderResponseStatus,
 } from "@openintentsframework/oif-specs";
 import axios from "axios";
-import { EIP1193Provider } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -174,24 +173,6 @@ describe("OifProvider", () => {
             expect(quotes[0]?.preparedTransaction).toBeDefined();
             expect(quotes[0]?.preparedTransaction?.to).toBe(USDC_ADDRESS);
             expect(quotes[0]?.preparedTransaction?.data).toBe("0x095ea7b3000000000000000000000000");
-        });
-    });
-
-    describe("execute", () => {
-        const mockSigner: EIP1193Provider = {
-            request: vi.fn(),
-            on: vi.fn(),
-            removeListener: vi.fn(),
-        };
-
-        it("should throw not implemented error", async () => {
-            const mockResponse = getMockedOifQuoteResponse();
-            const quote = mockResponse.quotes[0];
-            if (!quote) throw new Error("No quote in mock");
-
-            await expect(provider.execute(quote, mockSigner)).rejects.toThrow(
-                "OIF provider does not support execute()",
-            );
         });
     });
 

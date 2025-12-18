@@ -1,4 +1,4 @@
-import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
+import { GetQuoteRequest } from "@openintentsframework/oif-specs";
 import { buildFromPayload, getAddress, getChainId } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import {
@@ -6,7 +6,6 @@ import {
     Address,
     Chain,
     createPublicClient,
-    EIP1193Provider,
     Hex,
     http,
     Log,
@@ -38,7 +37,6 @@ import {
     GetFillParams,
     parseAbiEncodedFields,
     ProviderConfigFailure,
-    ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
     QuoteWithAcross,
 } from "../internal.js";
@@ -304,14 +302,6 @@ export class AcrossProvider extends CrossChainProvider {
                 error instanceof Error ? error.stack : undefined,
             );
         }
-    }
-
-    /**
-     * @inheritdoc
-     */
-    async execute(_quote: ExecutableQuote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
-        // TODO: Implement the execute method
-        throw new ProviderExecuteNotImplemented("Not implemented");
     }
 
     /**

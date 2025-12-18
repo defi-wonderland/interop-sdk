@@ -5,13 +5,7 @@ import {
     PostOrderResponse,
 } from "@openintentsframework/oif-specs";
 import axios, { AxiosError } from "axios";
-import {
-    Address,
-    bytesToHex,
-    EIP1193Provider,
-    Hex,
-    PrepareTransactionRequestReturnType,
-} from "viem";
+import { Address, bytesToHex, Hex, PrepareTransactionRequestReturnType } from "viem";
 import { ZodError } from "zod";
 
 import {
@@ -244,15 +238,6 @@ export class OifProvider extends CrossChainProvider {
                 error instanceof Error ? error.stack : undefined,
             );
         }
-    }
-
-    /**
-     * @inheritdoc
-     */
-    async execute(_quote: ExecutableQuote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
-        throw new ProviderExecuteNotImplemented(
-            "OIF provider does not support execute(). Use submitSignedOrder() instead.",
-        );
     }
 
     /**
