@@ -6,6 +6,7 @@ export * from "./sorting_strategies/index.js";
 
 export {
     AcrossProvider,
+    OifProvider,
     createCrossChainProvider,
     CrossChainProviderFactory,
     createProviderExecutor,

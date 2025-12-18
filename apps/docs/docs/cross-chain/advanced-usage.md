@@ -7,10 +7,7 @@ title: Advanced Usage
 For more complex scenarios, you can use the ProviderExecutor to manage multiple providers:
 
 ```typescript
-import { 
-    createProviderExecutor,
-    createCrossChainProvider 
-} from "@wonderland/interop-cross-chain";
+import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
 
 const acrossProvider = createCrossChainProvider("across");
 const executor = createProviderExecutor([acrossProvider]);
@@ -27,15 +24,16 @@ const quotes = await executor.getQuotes("crossChainTransfer", {
     outputChainId: 84532,
 });
 ```
+
 ## Quote Aggregator
 
 The Quote Aggregator allows you to fetch quotes from multiple providers in parallel, with automatic sorting and timeout handling:
 
 ```typescript
-import { 
+import {
     createQuoteAggregator,
+    QuoteResultStatus,
     SortingCriteria,
-    QuoteResultStatus
 } from "@wonderland/interop-cross-chain";
 
 // Create aggregator with specific providers
@@ -58,7 +56,7 @@ const results = await aggregator.getQuotes({
 });
 
 // Check results
-results.forEach(result => {
+results.forEach((result) => {
     if (result.status === QuoteResultStatus.SUCCESS) {
         console.log(`${result.provider}: ${result.quote.output.outputAmount}`);
         console.log(`Fee: ${result.quote.fee.percent}%`);
@@ -68,7 +66,7 @@ results.forEach(result => {
 });
 
 // Use the best quote (first successful result)
-const bestQuote = results.find(r => r.status === QuoteResultStatus.SUCCESS);
+const bestQuote = results.find((r) => r.status === QuoteResultStatus.SUCCESS);
 if (bestQuote?.quote) {
     console.log(`Best quote from ${bestQuote.provider}`);
     // Use bestQuote.quote to execute the transaction (see Complete Workflow Example below)
@@ -82,7 +80,9 @@ You can also provide a custom sorting function:
 ```typescript
 const results = await aggregator.getQuotes({
     action: "crossChainTransfer",
-    params: { /* ... */ },
+    params: {
+        /* ... */
+    },
     sorting: (a, b) => {
         if (!a.quote || !b.quote) return 0;
         // Custom sorting logic
@@ -112,11 +112,11 @@ for await (const update of tracker.watchIntent({
     timeout: 300000, // 5 minutes
 })) {
     console.log(`[${update.status}] ${update.message}`);
-    
-    if (update.status === 'filled') {
+
+    if (update.status === "filled") {
         console.log(`Filled in tx: ${update.fillTxHash}`);
         break;
-    } else if (update.status === 'expired') {
+    } else if (update.status === "expired") {
         console.log("Transfer expired");
         break;
     }
@@ -129,6 +129,7 @@ if (status.fillEvent) {
     console.log(`Filled by: ${status.fillEvent.relayer}`);
 }
 ```
+
 ## Error Handling
 
 The package includes specific error types for better error handling:
