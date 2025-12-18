@@ -19,10 +19,13 @@ import type {
     EncodedChainReference,
 } from "../internal.js";
 import {
+    AddressResolutionFailed,
     BINARY_LENGTHS,
     BINARY_OFFSETS,
     ChainTypeName,
     ChainTypeValue,
+    ENSLookupFailed,
+    ENSNotFound,
     InvalidAddress,
     InvalidBinaryInteropAddress,
     UnsupportedChainType,
@@ -233,6 +236,11 @@ export const formatChainReference = <T extends ChainTypeName>(
  * @param options.chainType - The chain type to convert the address for
  * @param options.chainReference - The chain reference (used for ENS resolution on EVM chains)
  * @returns The converted address
+ * @throws {ENSNotFound} If an ENS name cannot be resolved
+ * @throws {ENSLookupFailed} If ENS lookup fails due to network or other errors
+ * @throws {AddressResolutionFailed} If address resolution fails for unexpected reasons
+ * @throws {InvalidAddress} If the address is invalid for the given chain type
+ * @throws {UnsupportedChainType} If the chain type is not supported
  */
 export const convertAddress = async (
     address: string | null | undefined,
@@ -241,14 +249,26 @@ export const convertAddress = async (
     // If no address is provided, return an empty Uint8Array. This is allowed by the
     // interoperable address spec, as AddressLength MAY be zero (provided that the
     // chain reference length is non-zero, which is validated elsewhere).
-    if (!address || address === "") {
+    if (!address) {
         return new Uint8Array();
     }
 
     const { chainType, chainReference } = options;
 
     // Resolve address (handles ENS if applicable).
-    const resolvedAddress = await resolveAddress(address, chainType, chainReference);
+    let resolvedAddress: string;
+    try {
+        resolvedAddress = await resolveAddress(address, chainType, chainReference);
+    } catch (error) {
+        // Re-throw ENS-specific errors as-is (they already have proper context)
+        if (error instanceof ENSNotFound || error instanceof ENSLookupFailed) {
+            throw error;
+        }
+        // Wrap any unexpected errors with more context
+        throw new AddressResolutionFailed(
+            `address "${address}" for chain type "${chainType}": ${error instanceof Error ? error.message : String(error)}`,
+        );
+    }
 
     switch (chainType) {
         case ChainTypeName.EIP155:
