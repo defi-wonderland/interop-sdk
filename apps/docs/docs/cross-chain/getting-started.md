@@ -9,10 +9,29 @@ The `cross-chain` package provides a standardized interface for interacting with
 -   Cross-chain token transfers between supported networks
 -   Cross-chain token swaps with customizable slippage
 -   Quote fetching for cross-chain operations
+-   Intent tracking from initiation to completion
+-   Multi-provider quote aggregation and comparison
 -   Standardized provider interface for integrating different bridge protocols
 -   Type-safe interactions with comprehensive TypeScript support
 
+Currently Supported Providers
+
+-   Testnet: Across Protocol - Full support for cross-chain transfers
+-   Testing Only: Sample Provider - For testing and development purposes
+
+> Currently, only Across Protocol is testnet. Additional protocols are planned for future releases.
+
 ## Basic Usage
+
+### Installing the Package
+
+```bash
+npm install @wonderland/interop-cross-chain
+# or
+yarn add @wonderland/interop-cross-chain
+# or
+pnpm add @wonderland/interop-cross-chain
+```
 
 ### Creating a Provider
 
@@ -23,7 +42,7 @@ The package uses a factory pattern to create providers for different protocols. 
 -   OIF (Open Intents Framework)
 
 ```typescript
-import { createCrossChainProvider } from "@wonderland/interop";
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 // Create an Across provider (no config or dependencies needed)
 const acrossProvider = createCrossChainProvider("across");
@@ -45,23 +64,17 @@ You can get quotes for cross-chain transfers and swaps:
 ```typescript
 // Get a quote for a cross-chain transfer
 const transferQuote = await acrossProvider.getQuote("crossChainTransfer", {
-    inputChainId: "1", // Ethereum mainnet
-    outputChainId: "137", // Polygon
+    sender: "0x...", // sender address (hex)
+    recipient: "0x...", // recipient address (hex)
     inputTokenAddress: "0x...", // Token address on source chain
     outputTokenAddress: "0x...", // Token address on destination chain
     inputAmount: "1000000000000000000", // 1 token (in wei)
-});
-
-// Get a quote for a cross-chain swap
-const swapQuote = await acrossProvider.getQuote("crossChainSwap", {
-    inputChainId: "1",
-    outputChainId: "137",
-    inputTokenAddress: "0x...",
-    outputTokenAddress: "0x...",
-    inputAmount: "1000000000000000000",
-    outputAmount: "900000000000000000", // Expected output amount
+    inputChainId: 11155111, // source chain ID (number)
+    outputChainId: 84532, // destination chain ID (number)
 });
 ```
+
+> Currently, Across Protocol only supports `crossChainTransfer`. Cross-chain swaps are planned for future releases.
 
 ### Executing Cross-Chain Operations
 
@@ -139,3 +152,10 @@ const spender = quote.order.payload.message.spender;
 // User mode
 const { spender, token, required } = quote.order.checks.allowances[0];
 ```
+
+## Next Steps
+
+-   Learn about [Intent Tracking](./intent-tracking.md) to monitor cross-chain transfers
+-   Use [Quote Aggregator](./quote-aggregator.md) to compare quotes from multiple providers
+-   Check the [API Reference](./api.md) for detailed method documentation
+-   See [Advanced Usage](./advanced-usage.md) for complex scenarios

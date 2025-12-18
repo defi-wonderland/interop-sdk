@@ -11,7 +11,7 @@ export async function formatChainReference(chainReference: string, fullAddress: 
   const resolvedChainId = Number(await getChainId(fullAddress));
   const chainName = viemChainNameMap[resolvedChainId];
 
-  if (chainName) return `${resolvedChainId.toString()} (${chainName})`;
+  if (chainName) return `${chainReference} (${chainName})`;
 
   return chainReference;
 }

@@ -15,7 +15,7 @@ import {
     createCrossChainProvider,
     createProviderExecutor,
     InteropAddressParamsParser,
-} from "@wonderland/interop";
+} from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
@@ -149,4 +149,31 @@ const main = async (): Promise<void> => {
 };
 
 main().catch(console.error);
+```
+
+## Optional: Track Intent Status
+
+After executing the transaction, you can track its status using the Intent Tracker:
+
+```js
+import { createIntentTracker } from "@wonderland/interop-cross-chain";
+
+const tracker = createIntentTracker("across");
+
+// Track the intent
+for await (const update of tracker.watchIntent({
+    txHash: txHash, // from step 5
+    originChainId: 11155111,
+    destinationChainId: 84532,
+})) {
+    console.log(`[${update.status}] ${update.message}`);
+
+    if (update.status === "filled") {
+        console.log("Transfer completed!");
+        break;
+    } else if (update.status === "expired") {
+        console.log("Transfer expired");
+        break;
+    }
+}
 ```
