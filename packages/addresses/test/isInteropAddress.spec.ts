@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { isInteropAddress } from "../src/internal.js";
 
-const testAddress = (address: string, expected: boolean): void => {
-    it(`${expected ? "true" : "false"} for ${address}`, async () => {
-        expect(await isInteropAddress(address)).toBe(expected);
-    });
+const testAddress = (address: string, expected: boolean, timeout?: number): void => {
+    it(
+        `${expected ? "true" : "false"} for ${address}`,
+        async () => {
+            expect(await isInteropAddress(address)).toBe(expected);
+        },
+        timeout,
+    );
 };
 
 describe("isInteropAddress", () => {
@@ -22,8 +26,8 @@ describe("isInteropAddress", () => {
 
     testAddress("@eip155:1#F54D4FBF", true);
 
-    // Invalid chain reference
-    testAddress("vitalik.eth@eip155:1000000#4CA88C9C", false);
+    // Invalid chain reference (ENS resolution requires longer timeout in CI)
+    testAddress("vitalik.eth@eip155:1000000#4CA88C9C", false, 15000);
 
     // Invalid checksum
     testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#FFFFFFFF", false);
