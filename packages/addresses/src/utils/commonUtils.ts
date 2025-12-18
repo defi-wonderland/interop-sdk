@@ -228,20 +228,20 @@ export const formatChainReference = <T extends ChainTypeName>(
 
 /**
  * Converts an address to a Uint8Array based on the chain type
- * @param address - The address to convert
+ * @param address - The address to convert (can be null/undefined for empty addresses)
  * @param options - The options to convert the address
  * @param options.chainType - The chain type to convert the address for
  * @param options.chainReference - The chain reference (used for ENS resolution on EVM chains)
  * @returns The converted address
  */
 export const convertAddress = async (
-    address: string,
+    address: string | null | undefined,
     options: { chainType: keyof typeof CHAIN_TYPE; chainReference?: string },
 ): Promise<Uint8Array> => {
     // If no address is provided, return an empty Uint8Array. This is allowed by the
     // interoperable address spec, as AddressLength MAY be zero (provided that the
     // chain reference length is non-zero, which is validated elsewhere).
-    if (address === "") {
+    if (!address || address === "") {
         return new Uint8Array();
     }
 

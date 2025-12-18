@@ -12,30 +12,6 @@ import {
 import { convertToBytes } from "./convertToBytes.js";
 
 /**
- * Parses an address string, handling both regular addresses and ENS names
- * @param chainNamespace - The chain namespace (e.g., "eip155", "solana")
- * @param chainReference - The chain reference (chain ID as string)
- * @param addressOrENSName - Either a regular address or an ENS name
- * @returns The address as a Uint8Array
- * @throws {Error} If the address is invalid or ENS lookup fails
- */
-const parseAddress = async (
-    chainNamespace: ChainTypeName,
-    chainReference: string,
-    addressOrENSName: string,
-): Promise<Uint8Array> => {
-    if (!addressOrENSName) {
-        return new Uint8Array();
-    }
-
-    // Delegate ENS resolution + address validation + conversion to the shared helper
-    return await convertAddress(addressOrENSName, {
-        chainType: chainNamespace,
-        chainReference,
-    });
-};
-
-/**
  * Parses a chain reference into a Uint8Array
  * @throws {Error} If the chain reference is invalid
  */
@@ -72,9 +48,10 @@ export const parseHumanReadable = async (
     const { address, chainNamespace, chainReference, checksum, isENSName } =
         parsedHumanReadableAddress;
 
-    const addressBytes = address
-        ? await parseAddress(chainNamespace as ChainTypeName, chainReference, address)
-        : new Uint8Array();
+    const addressBytes = await convertAddress(address, {
+        chainType: chainNamespace as ChainTypeName,
+        chainReference,
+    });
     const chainReferenceBytes = chainReference
         ? parseChainReference(chainNamespace as ChainTypeName, chainReference)
         : new Uint8Array();

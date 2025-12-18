@@ -42,9 +42,7 @@ export const buildInteropAddress = async (
         : new Uint8Array();
 
     // Resolve + validate + convert address (handles ENS if applicable)
-    const addressBytes = address
-        ? await convertAddress(address, { chainType, chainReference })
-        : new Uint8Array();
+    const addressBytes = await convertAddress(address, { chainType, chainReference });
 
     return {
         version,
