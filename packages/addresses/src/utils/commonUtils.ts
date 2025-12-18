@@ -252,11 +252,14 @@ export const convertAddress = async (
 
     switch (chainType) {
         case ChainTypeName.EIP155:
-            // Validate as a proper Ethereum address using viem.
-            if (!isAddress(resolvedAddress)) {
+            // Validate as a proper Ethereum address using viem (case-insensitive).
+            if (!isAddress(resolvedAddress, { strict: false })) {
                 throw new InvalidAddress("EVM address must be a valid Ethereum address");
             }
-            return fromHex(resolvedAddress, "bytes");
+
+            // Normalize to a checksummed address before converting to bytes.
+            // https://viem.sh/docs/utilities/getAddress
+            return fromHex(getAddress(resolvedAddress), "bytes");
         case ChainTypeName.SOLANA:
             const decodedAddress = bs58.decodeUnsafe(resolvedAddress);
 
