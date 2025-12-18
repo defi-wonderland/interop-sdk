@@ -55,13 +55,13 @@ export abstract class CrossChainProvider {
      * an IntentTracker for monitoring cross-chain transaction status.
      *
      * @returns Configuration object containing:
-     *   - openedIntentParser: Config for parsing opened intent from origin chain
-     *   - fillWatcher: Config for watching fill events on destination chain
+     *   - openedIntentParserConfig: Config for parsing opened intent from origin chain
+     *   - fillWatcherConfig: Config for watching fill events on destination chain
      */
     abstract getTrackingConfig(): {
         /** Configuration for parsing opened intent data */
-        openedIntentParser: OpenedIntentParserConfig;
+        openedIntentParserConfig: OpenedIntentParserConfig;
         /** Configuration for watching fill events */
-        fillWatcher: FillWatcherConfig;
+        fillWatcherConfig: FillWatcherConfig;
     };
 }

@@ -150,22 +150,22 @@ describe("AcrossProvider", () => {
         it("should return valid tracking configuration for all components", () => {
             const config = provider.getTrackingConfig();
 
-            // openedIntentParser - for V3FundsDeposited event (custom-event type)
-            expect(config.openedIntentParser).toBeDefined();
-            expect(config.openedIntentParser.type).toBe("custom-event");
-            if (config.openedIntentParser.type === "custom-event") {
-                expect(config.openedIntentParser.config.protocolName).toBe("across");
-                expect(config.openedIntentParser.config.eventSignature).toBeDefined();
-                expect(typeof config.openedIntentParser.config.extractOpenedIntent).toBe(
+            // openedIntentParserConfig - for V3FundsDeposited event (custom-event type)
+            expect(config.openedIntentParserConfig).toBeDefined();
+            expect(config.openedIntentParserConfig.type).toBe("custom-event");
+            if (config.openedIntentParserConfig.type === "custom-event") {
+                expect(config.openedIntentParserConfig.config.protocolName).toBe("across");
+                expect(config.openedIntentParserConfig.config.eventSignature).toBeDefined();
+                expect(typeof config.openedIntentParserConfig.config.extractOpenedIntent).toBe(
                     "function",
                 );
             }
 
-            // fillWatcher
-            expect(config.fillWatcher.contractAddresses).toBeDefined();
-            expect(config.fillWatcher.eventAbi).toBeDefined();
-            expect(typeof config.fillWatcher.buildLogsArgs).toBe("function");
-            expect(typeof config.fillWatcher.extractFillEvent).toBe("function");
+            // fillWatcherConfig
+            expect(config.fillWatcherConfig.contractAddresses).toBeDefined();
+            expect(config.fillWatcherConfig.eventAbi).toBeDefined();
+            expect(typeof config.fillWatcherConfig.buildLogsArgs).toBe("function");
+            expect(typeof config.fillWatcherConfig.extractFillEvent).toBe("function");
         });
     });
 });

@@ -40,11 +40,11 @@ export class IntentTrackerFactory {
         // Create parser based on config type
         const openedIntentParser =
             config?.openedIntentParser ??
-            this.createOpenedIntentParser(trackingConfig.openedIntentParser);
+            this.createOpenedIntentParser(trackingConfig.openedIntentParserConfig);
 
         const fillWatcher =
             config?.fillWatcher ??
-            new EventBasedFillWatcher(trackingConfig.fillWatcher, {
+            new EventBasedFillWatcher(trackingConfig.fillWatcherConfig, {
                 clientManager: this.clientManager,
             });
 
@@ -55,7 +55,7 @@ export class IntentTrackerFactory {
      * Create the appropriate OpenedIntentParser based on config type
      */
     private createOpenedIntentParser(
-        config: ReturnType<CrossChainProvider["getTrackingConfig"]>["openedIntentParser"],
+        config: ReturnType<CrossChainProvider["getTrackingConfig"]>["openedIntentParserConfig"],
     ): OpenedIntentParser {
         switch (config.type) {
             case "oif":

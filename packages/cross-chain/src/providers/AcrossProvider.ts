@@ -419,15 +419,15 @@ export class AcrossProvider extends CrossChainProvider {
      * @inheritdoc
      */
     getTrackingConfig(): {
-        openedIntentParser: OpenedIntentParserConfig;
-        fillWatcher: FillWatcherConfig;
+        openedIntentParserConfig: OpenedIntentParserConfig;
+        fillWatcherConfig: FillWatcherConfig;
     } {
         return {
-            openedIntentParser: {
+            openedIntentParserConfig: {
                 type: "custom-event",
                 config: AcrossProvider.getOpenedIntentParserConfig(),
             },
-            fillWatcher: AcrossProvider.getFillWatcherConfig(),
+            fillWatcherConfig: AcrossProvider.getFillWatcherConfig(),
         };
     }
 }

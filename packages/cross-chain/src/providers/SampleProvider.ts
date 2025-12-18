@@ -73,14 +73,14 @@ export class SampleProvider extends CrossChainProvider {
      * Real providers should implement their protocol-specific tracking configuration.
      */
     getTrackingConfig(): {
-        openedIntentParser: OpenedIntentParserConfig;
-        fillWatcher: FillWatcherConfig;
+        openedIntentParserConfig: OpenedIntentParserConfig;
+        fillWatcherConfig: FillWatcherConfig;
     } {
         // Stub implementation - replace with actual protocol-specific configuration
         // Using OIF type means standard Open event parsing
         return {
-            openedIntentParser: { type: "oif" },
-            fillWatcher: {
+            openedIntentParserConfig: { type: "oif" },
+            fillWatcherConfig: {
                 contractAddresses: {} as Record<number, Address>,
                 eventAbi: [],
                 buildLogsArgs: (): never => {
