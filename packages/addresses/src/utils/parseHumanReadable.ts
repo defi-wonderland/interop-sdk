@@ -2,6 +2,7 @@ import {
     CHAIN_TYPE,
     ChainTypeName,
     Checksum,
+    convertAddress,
     HumanReadableAddressSchema,
     InteropAddress,
     InvalidChainNamespace,
@@ -9,7 +10,6 @@ import {
     validateInteropAddress,
 } from "../internal.js";
 import { convertToBytes } from "./convertToBytes.js";
-import { resolveAddress } from "./resolveENS.js";
 
 /**
  * Parses an address string, handling both regular addresses and ENS names
@@ -28,18 +28,11 @@ const parseAddress = async (
         return new Uint8Array();
     }
 
-    // Resolve address (handles ENS if applicable)
-    const resolvedAddress = await resolveAddress(addressOrENSName, chainNamespace, chainReference);
-
-    // Convert to bytes based on chain type
-    switch (chainNamespace) {
-        case "eip155":
-            return convertToBytes(resolvedAddress, "hex");
-        case "solana":
-            return convertToBytes(resolvedAddress, "base58");
-        default:
-            throw new InvalidChainNamespace(chainNamespace);
-    }
+    // Delegate ENS resolution + address validation + conversion to the shared helper
+    return await convertAddress(addressOrENSName, {
+        chainType: chainNamespace,
+        chainReference,
+    });
 };
 
 /**

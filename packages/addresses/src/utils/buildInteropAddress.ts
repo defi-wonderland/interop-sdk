@@ -10,7 +10,6 @@ import {
     UnsupportedChainType,
 } from "../internal.js";
 import { parseChainReferenceString } from "./parseChainReference.js";
-import { resolveAddress } from "./resolveENS.js";
 
 /**
  * Builds an InteropAddress from a set of parameters
@@ -42,13 +41,15 @@ export const buildInteropAddress = async (
         ? await parseChainReferenceString(chainType as ChainTypeName, chainReference)
         : new Uint8Array();
 
-    // Resolve address (handles ENS if applicable)
-    const resolvedAddress = address ? await resolveAddress(address, chainType, chainReference) : "";
+    // Resolve + validate + convert address (handles ENS if applicable)
+    const addressBytes = address
+        ? await convertAddress(address, { chainType, chainReference })
+        : new Uint8Array();
 
     return {
         version,
         chainType: fromHex(CHAIN_TYPE[chainType], "bytes"),
         chainReference: chainReferenceBytes,
-        address: convertAddress(resolvedAddress, { chainType }),
+        address: addressBytes,
     };
 };

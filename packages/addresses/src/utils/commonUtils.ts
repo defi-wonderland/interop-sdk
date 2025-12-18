@@ -1,5 +1,13 @@
 import bs58 from "bs58";
-import { bytesToNumber, createPublicClient, fromHex, getAddress, http, isHex, toHex } from "viem";
+import {
+    bytesToNumber,
+    createPublicClient,
+    fromHex,
+    getAddress,
+    http,
+    isAddress,
+    toHex,
+} from "viem";
 import { mainnet } from "viem/chains";
 
 import type {
@@ -19,6 +27,7 @@ import {
     InvalidBinaryInteropAddress,
     UnsupportedChainType,
 } from "../internal.js";
+import { resolveAddress } from "./resolveENS.js";
 
 /**
  * Extracts the version from a binary interop address.
@@ -222,12 +231,13 @@ export const formatChainReference = <T extends ChainTypeName>(
  * @param address - The address to convert
  * @param options - The options to convert the address
  * @param options.chainType - The chain type to convert the address for
+ * @param options.chainReference - The chain reference (used for ENS resolution on EVM chains)
  * @returns The converted address
  */
-export const convertAddress = (
+export const convertAddress = async (
     address: string,
-    options: { chainType: keyof typeof CHAIN_TYPE },
-): Uint8Array => {
+    options: { chainType: keyof typeof CHAIN_TYPE; chainReference?: string },
+): Promise<Uint8Array> => {
     // If no address is provided, return an empty Uint8Array. This is allowed by the
     // interoperable address spec, as AddressLength MAY be zero (provided that the
     // chain reference length is non-zero, which is validated elsewhere).
@@ -235,15 +245,20 @@ export const convertAddress = (
         return new Uint8Array();
     }
 
-    switch (options.chainType) {
-        case ChainTypeName.EIP155:
-            if (!isHex(address)) {
-                throw new InvalidAddress("EVM address must be a hex string");
-            }
+    const { chainType, chainReference } = options;
 
-            return fromHex(address, "bytes");
+    // Resolve address (handles ENS if applicable).
+    const resolvedAddress = await resolveAddress(address, chainType, chainReference);
+
+    switch (chainType) {
+        case ChainTypeName.EIP155:
+            // Validate as a proper Ethereum address using viem.
+            if (!isAddress(resolvedAddress)) {
+                throw new InvalidAddress("EVM address must be a valid Ethereum address");
+            }
+            return fromHex(resolvedAddress, "bytes");
         case ChainTypeName.SOLANA:
-            const decodedAddress = bs58.decodeUnsafe(address);
+            const decodedAddress = bs58.decodeUnsafe(resolvedAddress);
 
             if (!decodedAddress) {
                 throw new InvalidAddress("Solana address must be a base58 string");
@@ -251,6 +266,6 @@ export const convertAddress = (
 
             return decodedAddress;
         default:
-            throw new UnsupportedChainType(options.chainType);
+            throw new UnsupportedChainType(chainType);
     }
 };
