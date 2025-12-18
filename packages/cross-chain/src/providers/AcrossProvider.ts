@@ -1,4 +1,4 @@
-import { GetQuoteRequest } from "@openintentsframework/oif-specs";
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import { buildFromPayload, getAddress, getChainId } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import {
@@ -37,6 +37,7 @@ import {
     GetFillParams,
     parseAbiEncodedFields,
     ProviderConfigFailure,
+    ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
     QuoteWithAcross,
 } from "../internal.js";
@@ -302,6 +303,18 @@ export class AcrossProvider extends CrossChainProvider {
                 error instanceof Error ? error.stack : undefined,
             );
         }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    async submitSignedOrder(
+        _quote: ExecutableQuote,
+        _signature: Hex | Uint8Array,
+    ): Promise<PostOrderResponse> {
+        throw new ProviderExecuteNotImplemented(
+            "Across provider does not support submitSignedOrder",
+        );
     }
 
     /**

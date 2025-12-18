@@ -107,6 +107,7 @@ if (selectedQuote?.preparedTransaction) {
     -   `.getProtocolName()` – Returns the protocol name.
     -   `.getProviderId()` – Returns the provider identifier.
     -   `.getQuotes(params)` – Fetch quotes for a cross-chain request (OIF GetQuoteRequest format).
+    -   `.submitSignedOrder(quote, signature)` – Submit a signed order to the provider (throws MethodNotImplemented for providers that don't support it, like Across).
     -   `.getTrackingConfig()` – Get configuration for intent tracking.
 
 ### Provider Executor

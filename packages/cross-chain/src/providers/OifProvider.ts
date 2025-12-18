@@ -162,10 +162,7 @@ export class OifProvider extends CrossChainProvider {
     }
 
     /**
-     * Submit a signed order to the solver
-     * @param quote - The quote containing the order
-     * @param signature - The EIP-712 signature (hex string or Uint8Array)
-     * @returns The post order response
+     * @inheritdoc
      */
     async submitSignedOrder(
         quote: ExecutableQuote,
