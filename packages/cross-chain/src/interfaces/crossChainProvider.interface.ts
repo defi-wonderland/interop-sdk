@@ -1,8 +1,8 @@
 import type { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import type { Hex } from "viem";
 
-import type { DepositInfoParserConfig } from "../services/EventBasedDepositInfoParser.js";
 import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
+import type { OpenedIntentParserConfig } from "./openedIntentParser.interface.js";
 import type { ExecutableQuote } from "./quotes.interface.js";
 
 export abstract class CrossChainProvider {
@@ -58,10 +58,14 @@ export abstract class CrossChainProvider {
      * This method provides the protocol-specific configuration needed to create
      * an IntentTracker for monitoring cross-chain transaction status.
      *
-     * @returns Configuration object containing deposit info parser and fill watcher configs
+     * @returns Configuration object containing:
+     *   - openedIntentParserConfig: Config for parsing opened intent from origin chain
+     *   - fillWatcherConfig: Config for watching fill events on destination chain
      */
     abstract getTrackingConfig(): {
-        depositInfoParser: DepositInfoParserConfig;
-        fillWatcher: FillWatcherConfig;
+        /** Configuration for parsing opened intent data */
+        openedIntentParserConfig: OpenedIntentParserConfig;
+        /** Configuration for watching fill events */
+        fillWatcherConfig: FillWatcherConfig;
     };
 }

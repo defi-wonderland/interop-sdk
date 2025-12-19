@@ -41,7 +41,7 @@ export function InputSection({
 
   const readableModeExamples = React.useMemo(
     () =>
-      EXAMPLES.map(({ humanReadable, description }) => ({
+      EXAMPLES.filter((example) => example.showInReadableMode).map(({ humanReadable, description }) => ({
         key: humanReadable,
         description,
         onClick: () => onExampleClick(humanReadable),
@@ -51,7 +51,7 @@ export function InputSection({
 
   const buildModeExamples = React.useMemo(
     () =>
-      EXAMPLES.map((example) => ({
+      EXAMPLES.filter((example) => example.showInBuildMode).map((example) => ({
         key: example.address,
         description: example.description,
         onClick: () => {

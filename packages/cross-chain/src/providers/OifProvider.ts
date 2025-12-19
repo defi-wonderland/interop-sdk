@@ -5,17 +5,17 @@ import {
     PostOrderResponse,
 } from "@openintentsframework/oif-specs";
 import axios, { AxiosError } from "axios";
-import { Address, bytesToHex, Hex, PrepareTransactionRequestReturnType } from "viem";
+import { bytesToHex, Hex, PrepareTransactionRequestReturnType } from "viem";
 import { ZodError } from "zod";
 
 import {
     CrossChainProvider,
-    DepositInfoParserConfig,
     ExecutableQuote,
     FillWatcherConfig,
     getQuoteResponseSchema,
     OifProviderConfig,
     OifProviderConfigSchema,
+    OpenedIntentParserConfig,
     ProviderConfigFailure,
     ProviderExecuteFailure,
     ProviderExecuteNotImplemented,
@@ -132,7 +132,7 @@ export class OifProvider extends CrossChainProvider {
                 const errorData = error.response?.data as { message?: string };
                 const baseMessage =
                     errorData?.message ||
-                    error.cause?.message ||
+                    (error.cause as Error | undefined)?.message ||
                     error.message ||
                     "Failed to get OIF quotes";
 
@@ -214,7 +214,7 @@ export class OifProvider extends CrossChainProvider {
                 const errorData = error.response?.data as { message?: string };
                 const baseMessage =
                     errorData?.message ||
-                    error.cause?.message ||
+                    (error.cause as Error | undefined)?.message ||
                     error.message ||
                     "Failed to submit order";
 
@@ -240,29 +240,40 @@ export class OifProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      *
-     * TODO: Implement OIF tracking using ERC-7683 Open/Filled events.
+     * Intent tracking for OIF providers:
+     *
+     * **Open event parsing**: ✅ Fully supported via OIFOpenedIntentParser.
+     *
+     * **Fill watching**: ❌ Not yet implemented.
+     * EIP-7683 does NOT define a standard Fill event - only the fill() function.
+     * Each protocol may emit different events (e.g., Across emits FilledRelay).
+     *
+     * TODO: Implement solver API status endpoint tracking via `GET /v1/orders/:orderId`.
      */
     getTrackingConfig(): {
-        depositInfoParser: DepositInfoParserConfig;
-        fillWatcher: FillWatcherConfig;
+        openedIntentParserConfig: OpenedIntentParserConfig;
+        fillWatcherConfig: FillWatcherConfig;
     } {
         return {
-            depositInfoParser: {
-                protocolName: "oif",
-                eventSignature:
-                    "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
-                extractDepositInfo: (): never => {
-                    throw new Error("OifProvider: tracking not yet implemented");
-                },
-            },
-            fillWatcher: {
-                contractAddresses: {} as Record<number, Address>,
+            // Use standard OIF Open event parsing (EIP-7683)
+            openedIntentParserConfig: { type: "oif" },
+            fillWatcherConfig: {
+                // NOTE: Contract addresses are available per-intent from fillInstructions[0].destinationSettler
+                // But we can't use them because EIP-7683 doesn't define a standard Fill event ABI
+                contractAddresses: {},
                 eventAbi: [],
                 buildLogsArgs: (): never => {
-                    throw new Error("OifProvider: tracking not yet implemented");
+                    throw new Error(
+                        "OifProvider: On-chain fill watching not supported. " +
+                            "EIP-7683 does not define a standard Fill event. " +
+                            "Use a protocol-specific provider (e.g., AcrossProvider) for on-chain fill tracking.",
+                    );
                 },
                 extractFillEvent: (): never => {
-                    throw new Error("OifProvider: tracking not yet implemented");
+                    throw new Error(
+                        "OifProvider: On-chain fill watching not supported. " +
+                            "EIP-7683 does not define a standard Fill event.",
+                    );
                 },
             },
         };
