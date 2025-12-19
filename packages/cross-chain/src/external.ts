@@ -6,6 +6,7 @@ export * from "./sorting_strategies/index.js";
 
 export {
     AcrossProvider,
+    OifProvider,
     createCrossChainProvider,
     CrossChainProviderFactory,
     createProviderExecutor,
@@ -13,6 +14,7 @@ export {
     createIntentTracker,
     IntentTracker,
     IntentTrackerFactory,
-    OpenEventWatcher,
+    OIFOpenedIntentParser,
+    CustomEventOpenedIntentParser,
     SortingStrategyFactory,
 } from "./internal.js";

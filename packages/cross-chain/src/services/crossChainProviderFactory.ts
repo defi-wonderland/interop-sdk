@@ -4,11 +4,10 @@ import type {
     SupportedProtocolsConfigs,
     SupportedProtocolsDependencies,
 } from "../internal.js";
-import { AcrossProvider, PROTOCOLS, UnsupportedProtocol } from "../internal.js";
+import { AcrossProvider, OifProvider, PROTOCOLS, UnsupportedProtocol } from "../internal.js";
 
 /**
  * A factory for creating CrossChainProviders based on the protocol name
- * TODO: Check if we can improve typing here https://github.com/defi-wonderland/interop-sdk/pull/23#discussion_r2107826666
  */
 export class CrossChainProviderFactory {
     /**
@@ -26,7 +25,11 @@ export class CrossChainProviderFactory {
     ): CrossChainProvider {
         switch (protocolName) {
             case PROTOCOLS.ACROSS:
-                return new AcrossProvider(config);
+                return new AcrossProvider(
+                    config as SupportedProtocolsConfigs<typeof PROTOCOLS.ACROSS>,
+                );
+            case PROTOCOLS.OIF:
+                return new OifProvider(config as SupportedProtocolsConfigs<typeof PROTOCOLS.OIF>);
             default:
                 throw new UnsupportedProtocol(protocolName);
         }

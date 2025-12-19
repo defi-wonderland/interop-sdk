@@ -15,14 +15,14 @@ const config: Config = {
     },
 
     // Set the production url of your site here
-    url: "https://your-docusaurus-site.example.com",
+    url: "https://docs.interop.wonderland.xyz",
     // Set the /<baseUrl>/ pathname under which your site is served
     // For GitHub pages deployment, it is often '/<projectName>/'
     baseUrl: "/",
 
     // GitHub pages deployment config.
     // If you aren't using GitHub pages, you don't need these.
-    organizationName: "ethereum", // Usually your GitHub org/user name.
+    organizationName: "defi-wonderland", // Usually your GitHub org/user name.
     projectName: "interop-sdk", // Usually your repo name.
 
     onBrokenLinks: "throw",
@@ -48,7 +48,7 @@ const config: Config = {
                 docs: {
                     sidebarPath: "./sidebars.ts",
                     routeBasePath: "/",
-                    editUrl: "https://github.com/ethereum/interop-sdk/tree/main/apps/docs",
+                    editUrl: "https://github.com/defi-wonderland/interop-sdk/tree/main/apps/docs",
                 },
                 blog: false,
                 theme: {
@@ -69,7 +69,7 @@ const config: Config = {
             },
             items: [
                 {
-                    href: "https://github.com/ethereum/interop-sdk",
+                    href: "https://github.com/defi-wonderland/interop-sdk",
                     label: "GitHub",
                     position: "right",
                 },

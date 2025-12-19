@@ -1,5 +1,5 @@
 import bs58 from "bs58";
-import { hexToBytes } from "viem";
+import { getAddress, hexToBytes } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { InteropAddress } from "../src/internal.js";
@@ -7,6 +7,7 @@ import {
     ChecksumMismatchWarning,
     ENSLookupFailed,
     ENSNotFound,
+    InvalidAddress,
     InvalidChainIdentifier,
     InvalidChainNamespace,
     InvalidChecksum,
@@ -44,6 +45,52 @@ describe("erc7930", () => {
                 };
 
                 const interopAddress = await parseHumanReadable(humanReadableAddress);
+
+                expect(interopAddress).toEqual(expected);
+            });
+
+            it("throws InvalidAddress for invalid EVM address", async () => {
+                const humanReadableAddress = "0x1234@eip155:1#FFFFFFFF";
+
+                await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
+                    InvalidAddress,
+                );
+            });
+
+            it("normalizes lowercase address to checksummed format", async () => {
+                const lowercaseAddress = "0xd8da6bf26964af9d7eed9e03e53415d37aa96045";
+                const checksummedAddress = getAddress(lowercaseAddress);
+                // Test without checksum to focus on normalization behavior
+                const humanReadableAddress = `${lowercaseAddress}@eip155:1`;
+                const expected: InteropAddress = {
+                    version: 1,
+                    chainType: hexToBytes("0x0000"),
+                    chainReference: hexToBytes("0x01"),
+                    address: hexToBytes(checksummedAddress),
+                };
+
+                const interopAddress = await parseHumanReadable(humanReadableAddress, {
+                    validateChecksumFlag: false,
+                });
+
+                expect(interopAddress).toEqual(expected);
+            });
+
+            it("normalizes mixed-case address to checksummed format", async () => {
+                const mixedCaseAddress = "0xD8DA6BF26964AF9D7EED9E03E53415D37AA96045";
+                const checksummedAddress = getAddress(mixedCaseAddress);
+                // Test without checksum to focus on normalization behavior
+                const humanReadableAddress = `${mixedCaseAddress}@eip155:1`;
+                const expected: InteropAddress = {
+                    version: 1,
+                    chainType: hexToBytes("0x0000"),
+                    chainReference: hexToBytes("0x01"),
+                    address: hexToBytes(checksummedAddress),
+                };
+
+                const interopAddress = await parseHumanReadable(humanReadableAddress, {
+                    validateChecksumFlag: false,
+                });
 
                 expect(interopAddress).toEqual(expected);
             });

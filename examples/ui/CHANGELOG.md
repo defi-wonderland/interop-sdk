@@ -1,5 +1,14 @@
 # @examples/ui
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [00d4ba2]
+- Updated dependencies [bd26c1f]
+- Updated dependencies
+  - @wonderland/interop-addresses@0.2.0
+
 ## 0.1.2
 
 ### Patch Changes

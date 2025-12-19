@@ -4,21 +4,49 @@ title: "Installation"
 
 ## Prerequisites
 
--   **Node.js** v16 or higher
+-   **Node.js** v20.x or higher
 -   A package manager: npm, yarn, or pnpm
 
 ## Installation
 
-Choose your preferred package manager and run one of the following commands:
+The Interop SDK consists of two separate packages. Install the ones you need:
+
+### Addresses Package
+
+For interoperable address handling:
 
 ```bash
-npm install @wonderland/interop
+npm install @wonderland/interop-addresses
 # or
-yarn add @wonderland/interop
+yarn add @wonderland/interop-addresses
 # or
-pnpm add @wonderland/interop
+pnpm add @wonderland/interop-addresses
 ```
 
-:::info
-Replace the wonderland org packages after EF release
-:::
+### Cross-Chain Package
+
+> 🚧 This package is currently under development 🚧
+
+For cross-chain operations:
+
+```bash
+npm install @wonderland/interop-cross-chain
+# or
+yarn add @wonderland/interop-cross-chain
+# or
+pnpm add @wonderland/interop-cross-chain
+```
+
+### Install Both
+
+If you need both packages:
+
+```bash
+npm install @wonderland/interop-addresses @wonderland/interop-cross-chain
+# or
+yarn add @wonderland/interop-addresses @wonderland/interop-cross-chain
+# or
+pnpm add @wonderland/interop-addresses @wonderland/interop-cross-chain
+```
+
+> Package names will be updated after EF release. Currently using `@wonderland` organization.

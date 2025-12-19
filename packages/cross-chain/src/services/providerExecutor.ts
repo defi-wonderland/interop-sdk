@@ -1,5 +1,5 @@
-import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
-import { EIP1193Provider, Hex } from "viem";
+import { GetQuoteRequest } from "@openintentsframework/oif-specs";
+import { Hex } from "viem";
 
 import {
     CrossChainProvider,
@@ -117,20 +117,6 @@ class ProviderExecutor {
         }
 
         return response;
-    }
-
-    /**
-     * Execute a cross-chain action
-     * @param quote - The quote to execute
-     * @param signer - The signer to use to sign the order
-     * @returns The response from the provider
-     */
-    async execute(quote: ExecutableQuote, signer: EIP1193Provider): Promise<PostOrderResponse> {
-        const provider = this.providers[quote.provider ?? ""];
-        if (!provider) {
-            throw new ProviderNotFound(quote.provider ?? "No provider id in quote");
-        }
-        return provider.execute(quote, signer);
     }
 
     /**

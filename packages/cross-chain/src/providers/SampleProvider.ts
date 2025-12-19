@@ -1,9 +1,8 @@
 import { GetQuoteRequest, PostOrderResponse, Quote } from "@openintentsframework/oif-specs";
-import { Address, EIP1193Provider, Hex, PrepareTransactionRequestReturnType } from "viem";
+import { Address, Hex, PrepareTransactionRequestReturnType } from "viem";
 
-import type { DepositInfoParserConfig } from "../services/EventBasedDepositInfoParser.js";
 import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
-import { CrossChainProvider, ExecutableQuote } from "../internal.js";
+import { CrossChainProvider, ExecutableQuote, OpenedIntentParserConfig } from "../internal.js";
 // TODO: REMOVE THIS IMPORT WHEN OIF-SPECS IS UPDATED WITH SCHEMAS
 import { getQuoteRequestSchema } from "../schemas/oif.js";
 
@@ -63,7 +62,13 @@ export class SampleProvider extends CrossChainProvider {
         return [executableQuote];
     }
 
-    async execute(_quote: ExecutableQuote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
+    /**
+     * @inheritdoc
+     */
+    async submitSignedOrder(
+        _quote: ExecutableQuote,
+        _signature: Hex | Uint8Array,
+    ): Promise<PostOrderResponse> {
         throw new Error("Not implemented");
     }
 
@@ -74,20 +79,14 @@ export class SampleProvider extends CrossChainProvider {
      * Real providers should implement their protocol-specific tracking configuration.
      */
     getTrackingConfig(): {
-        depositInfoParser: DepositInfoParserConfig;
-        fillWatcher: FillWatcherConfig;
+        openedIntentParserConfig: OpenedIntentParserConfig;
+        fillWatcherConfig: FillWatcherConfig;
     } {
         // Stub implementation - replace with actual protocol-specific configuration
+        // Using OIF type means standard Open event parsing
         return {
-            depositInfoParser: {
-                protocolName: "sample",
-                eventSignature:
-                    "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
-                extractDepositInfo: (): never => {
-                    throw new Error("SampleProvider: tracking not implemented");
-                },
-            },
-            fillWatcher: {
+            openedIntentParserConfig: { type: "oif" },
+            fillWatcherConfig: {
                 contractAddresses: {} as Record<number, Address>,
                 eventAbi: [],
                 buildLogsArgs: (): never => {
