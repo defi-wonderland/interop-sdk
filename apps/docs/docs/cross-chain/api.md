@@ -8,12 +8,16 @@ A set of classes and utilities for handling cross-chain operations through vario
 
 #### Methods
 
--   **createCrossChainProvider**(protocolName: string, config?: ProviderConfig, dependencies?: Dependencies): [CrossChainProvider](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/interfaces/crossChainProvider.interface.ts#L84)
+-   **createCrossChainProvider**(protocolName: string, config: ProviderConfig, dependencies: Dependencies): [CrossChainProvider](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/interfaces/crossChainProvider.interface.ts#L84)
 
     Creates a provider instance for a supported cross-chain protocol.
 
     ```typescript
-    const provider = createCrossChainProvider("across");
+    const provider = createCrossChainProvider(
+        "across",
+        { apiUrl: "https://..." }, // Provider config
+        {}, // Dependencies
+    );
     ```
 
 #### [CrossChainProvider Class](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/interfaces/crossChainProvider.interface.ts#L84)
@@ -66,15 +70,18 @@ A utility for managing multiple cross-chain providers and executing operations a
 
 #### Methods
 
--   **createProviderExecutor**(providers: CrossChainProvider[], dependencies?: Dependencies): [ProviderExecutor](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/providerExecutor.ts#L28)
+-   **createProviderExecutor**(providers: CrossChainProvider[], dependencies: Dependencies): [ProviderExecutor](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/providerExecutor.ts#L28)
 
     Creates an executor instance for managing multiple providers.
 
     ```typescript
-    const executor = createProviderExecutor([
-        acrossProvider,
-        // other providers
-    ]);
+    const executor = createProviderExecutor(
+        [
+            acrossProvider,
+            // other providers
+        ],
+        {},
+    );
     ```
 
 #### [ProviderExecutor Class](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/providerExecutor.ts#L28)
@@ -97,14 +104,6 @@ A class that manages multiple cross-chain providers and coordinates their operat
     });
     ```
 
--   **execute**(quote: Quote): Promise\<TransactionRequest[]\>
-
-    Executes a cross-chain operation using the specified quote.
-
-    ```typescript
-    const result = await executor.execute(selectedQuote);
-    ```
-    
 ### Quote Aggregator
 
 A utility for fetching and comparing quotes from multiple providers with sorting and timeout handling.
@@ -174,7 +173,7 @@ A class that tracks cross-chain intents through their lifecycle.
         timeout: 300000, // Optional, in milliseconds
     })) {
         console.log(update.status, update.message);
-        if (update.status === 'filled') break;
+        if (update.status === "filled") break;
     }
     ```
 

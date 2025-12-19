@@ -37,6 +37,8 @@ export function InputSection({
   const isReadableMode = mode === InputMode.READABLE;
   const isBuildMode = mode === InputMode.BUILD;
 
+  const isConvertDisabled = isReadableMode ? !readableName.trim() : !address.trim() || !chainReference.trim();
+
   const readableModeExamples = React.useMemo(
     () =>
       EXAMPLES.map(({ humanReadable, description }) => ({
@@ -86,6 +88,7 @@ export function InputSection({
               onChange={(e) => setReadableName(e.target.value)}
               placeholder='alice.eth@rollup-name'
               autoComplete='off'
+              data-1p-ignore
               className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 mt-2'
             />
           </div>
@@ -104,6 +107,7 @@ export function InputSection({
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder='0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
                 autoComplete='off'
+                data-1p-ignore
                 className='w-full sm:flex-1 px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20'
               />
               <div className='flex items-center gap-2 sm:contents'>
@@ -122,7 +126,7 @@ export function InputSection({
 
         <div className='flex flex-col-reverse sm:flex-row gap-3 sm:justify-between'>
           <ExampleButtons examples={isReadableMode ? readableModeExamples : buildModeExamples} />
-          <ConvertButton onClick={onConvert} isLoading={isLoading} />
+          <ConvertButton onClick={onConvert} isLoading={isLoading} isDisabled={isConvertDisabled} />
         </div>
       </div>
     </div>

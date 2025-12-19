@@ -19,50 +19,76 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
   const [hoveredHuman, setHoveredHuman] = useState<HumanReadablePart>(null);
   const [hoveredBinary, setHoveredBinary] = useState<BinaryPart>(null);
   const [copied, setCopied] = useState(false);
-  const [result, setResult] = useState<AddressResult | null>(null);
-  const [error, setError] = useState('');
+  const [readableResult, setReadableResult] = useState<AddressResult | null>(null);
+  const [buildResult, setBuildResult] = useState<AddressResult | null>(null);
+  const [readableError, setReadableError] = useState('');
+  const [buildError, setBuildError] = useState('');
+  const [lastReadableInput, setLastReadableInput] = useState('');
+  const [lastBuildAddress, setLastBuildAddress] = useState('');
+  const [lastBuildChainReference, setLastBuildChainReference] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const updateResult = (conversionResult: Awaited<ReturnType<typeof convertFromReadable>>) => {
-    setResult({
+  const updateReadableResult = (conversionResult: Awaited<ReturnType<typeof convertFromReadable>>) => {
+    setReadableResult({
       ...conversionResult.humanParts,
       humanReadable: conversionResult.humanReadable,
       binary: conversionResult.binary,
       ...conversionResult.binaryParts,
     });
+    setLastReadableInput(readableName.trim());
+  };
+
+  const updateBuildResult = (conversionResult: Awaited<ReturnType<typeof convertFromReadable>>) => {
+    setBuildResult({
+      ...conversionResult.humanParts,
+      humanReadable: conversionResult.humanReadable,
+      binary: conversionResult.binary,
+      ...conversionResult.binaryParts,
+    });
+    setLastBuildAddress(address.trim());
+    setLastBuildChainReference(chainReference.trim());
   };
 
   const convertReadable = async () => {
-    if (!readableName.trim()) return setResult(null);
-    const result = await convertFromReadable(readableName);
-    updateResult(result);
-  };
-
-  const convertBuild = async () => {
-    if (!address.trim() || !chainReference.trim()) return setResult(null);
-    const _readableName = `${address}@${chainReference}`;
-    const result = await convertFromReadable(_readableName);
-    updateResult(result);
-  };
-
-  const handleConvert = async () => {
     try {
-      setError('');
-      setIsLoading(true);
-      const convert = mode === InputMode.READABLE ? convertReadable : convertBuild;
-      await convert();
+      setReadableError('');
+      if (!readableName.trim()) return setReadableResult(null);
+      const result = await convertFromReadable(readableName);
+      updateReadableResult(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process');
-      setResult(null);
-    } finally {
-      setIsLoading(false);
+      const message = err instanceof Error ? err.message : 'Failed to process';
+      setReadableError(message);
+      setReadableResult(null);
     }
   };
 
-  const handleCopy = async () => {
-    if (!result) return;
+  const convertBuild = async () => {
     try {
-      await navigator.clipboard.writeText(result.humanReadable);
+      setBuildError('');
+      if (!address.trim() || !chainReference.trim()) return setBuildResult(null);
+      const _readableName = `${address}@${chainReference}`;
+      const result = await convertFromReadable(_readableName);
+      updateBuildResult(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to process';
+      setBuildError(message);
+      setBuildResult(null);
+    }
+  };
+
+  const handleConvert = async () => {
+    setIsLoading(true);
+    const convert = mode === InputMode.READABLE ? convertReadable : convertBuild;
+    await convert();
+    setIsLoading(false);
+  };
+
+  const handleCopy = async () => {
+    const activeResult = mode === InputMode.READABLE ? readableResult : buildResult;
+
+    if (!activeResult) return;
+    try {
+      await navigator.clipboard.writeText(activeResult.humanReadable);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -74,6 +100,15 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
     setMode(InputMode.READABLE);
     setReadableName(example);
   };
+
+  const activeResult = mode === InputMode.READABLE ? readableResult : buildResult;
+  const activeError = mode === InputMode.READABLE ? readableError : buildError;
+  const isReadableStale = !!readableResult && Boolean(lastReadableInput) && lastReadableInput !== readableName.trim();
+  const isBuildStale =
+    !!buildResult &&
+    Boolean(lastBuildAddress || lastBuildChainReference) &&
+    (lastBuildAddress !== address.trim() || lastBuildChainReference !== chainReference.trim());
+  const isStale = mode === InputMode.READABLE ? isReadableStale : isBuildStale;
 
   return (
     <div className='flex flex-col gap-6'>
@@ -94,8 +129,10 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
 
       <ResultDisplays
         isLoading={isLoading}
-        error={error}
-        result={result}
+        error={activeError}
+        result={activeResult}
+        isStale={isStale}
+        onRefresh={handleConvert}
         hoveredHuman={hoveredHuman}
         setHoveredHuman={setHoveredHuman}
         hoveredBinary={hoveredBinary}

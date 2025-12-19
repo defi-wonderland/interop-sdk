@@ -1,5 +1,5 @@
 import type { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
-import type { EIP1193Provider } from "viem";
+import type { Hex } from "viem";
 
 import type { DepositInfoParserConfig } from "../services/EventBasedDepositInfoParser.js";
 import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
@@ -42,12 +42,16 @@ export abstract class CrossChainProvider {
     abstract getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]>;
 
     /**
-     * Execute a quote submitting it to the provider
-     * @param quote - The quote to execute
-     * @param signer - The signer to use to sign the order
-     * @returns The response from the provider
+     * Submit a signed order to the provider
+     * @param quote - The quote containing the order
+     * @param signature - The EIP-712 signature (hex string or Uint8Array)
+     * @returns The post order response
+     * @throws ProviderExecuteNotImplemented if the provider doesn't support this method
      */
-    abstract execute(quote: ExecutableQuote, signer: EIP1193Provider): Promise<PostOrderResponse>;
+    abstract submitSignedOrder(
+        quote: ExecutableQuote,
+        signature: Hex | Uint8Array,
+    ): Promise<PostOrderResponse>;
 
     /**
      * Get the configuration for intent tracking
