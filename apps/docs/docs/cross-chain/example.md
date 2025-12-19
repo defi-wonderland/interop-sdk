@@ -63,15 +63,19 @@ const response = await executor.getQuotes({
     user: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
     intent: {
         intentType: "oif-swap",
-        inputs: [{
-            user: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
-            asset: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238@eip155:11155111#2597C7E5",
-            amount: "100000000000000000", // 0.1 in wei
-        }],
-        outputs: [{
-            receiver: "0x8043951e77347c5282d6bcD2294e134B4072fE3b@eip155:84532#D9F7BE3F",
-            asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e@eip155:84532#D9F7BE3F",
-        }],
+        inputs: [
+            {
+                user: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
+                asset: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238@eip155:11155111#2597C7E5",
+                amount: "100000000000000000", // 0.1 in wei
+            },
+        ],
+        outputs: [
+            {
+                receiver: "0x8043951e77347c5282d6bcD2294e134B4072fE3b@eip155:84532#D9F7BE3F",
+                asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e@eip155:84532#D9F7BE3F",
+            },
+        ],
         swapType: "exact-input",
     },
     supportedTypes: ["oif-escrow-v0"],
