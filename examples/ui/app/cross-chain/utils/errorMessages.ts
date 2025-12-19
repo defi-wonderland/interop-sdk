@@ -171,3 +171,21 @@ export function getToastErrorMessage(error: unknown): string {
   const parsed = parseError(error);
   return parsed.message;
 }
+
+/**
+ * Check if an error is a user rejection (user cancelled the transaction in wallet)
+ */
+export function isUserRejectionError(error: unknown): boolean {
+  if (!error) return false;
+
+  const err = error as { code?: number; message?: string; shortMessage?: string };
+
+  // Check for user rejection error code (4001 is standard EIP-1193)
+  if (err.code === 4001) {
+    return true;
+  }
+
+  // Check message patterns
+  const message = err.shortMessage || err.message || String(error);
+  return /user denied|user rejected|rejected by user/i.test(message);
+}

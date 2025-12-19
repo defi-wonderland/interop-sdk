@@ -58,7 +58,10 @@ export default function CrossChainPage() {
   };
 
   const handleExecuteQuote = async (quote: ExecutableQuote) => {
-    await execute(quote, selectedInputToken as Address, inputAmountRaw, inputChainId, outputChainId);
+    const result = await execute(quote, selectedInputToken as Address, inputAmountRaw, inputChainId, outputChainId);
+    if (result.userRejected) {
+      setToast({ message: 'Transaction rejected', type: 'info' });
+    }
   };
 
   const handleReset = useCallback(() => {

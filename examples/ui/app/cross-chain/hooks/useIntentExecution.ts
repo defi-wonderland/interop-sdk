@@ -11,6 +11,7 @@ import { erc20Abi, type Address, type Hex } from 'viem';
 import { sepolia, baseSepolia, arbitrumSepolia } from 'viem/chains';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { PROVIDERS } from '../constants';
+import { isUserRejectionError } from '../utils/errorMessages';
 
 // Public RPC URLs for intent tracking (read-only operations)
 const RPC_URLS: Record<number, string> = {
@@ -44,6 +45,11 @@ export interface IntentExecutionState {
   error?: Error;
 }
 
+export interface ExecuteResult {
+  success: boolean;
+  userRejected?: boolean;
+}
+
 interface UseIntentExecutionReturn {
   state: IntentExecutionState;
   execute: (
@@ -52,7 +58,7 @@ interface UseIntentExecutionReturn {
     inputAmount: bigint,
     originChainId: number,
     destinationChainId: number,
-  ) => Promise<void>;
+  ) => Promise<ExecuteResult>;
   reset: () => void;
   isExecuting: boolean;
   isTracking: boolean;
@@ -89,7 +95,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
       inputAmount: bigint,
       originChainId: number,
       destinationChainId: number,
-    ) => {
+    ): Promise<ExecuteResult> => {
       // Cancel any previous tracking
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -100,7 +106,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
 
       if (!isConnected || !address) {
         setState({ status: 'error', message: 'Wallet not connected', error: new Error('Wallet not connected') });
-        return;
+        return { success: false };
       }
 
       if (!walletClient || !publicClient) {
@@ -109,7 +115,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
           message: 'Wallet client not available',
           error: new Error('Wallet client not available'),
         });
-        return;
+        return { success: false };
       }
 
       // Extract transaction data from order payload
@@ -128,7 +134,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
           message: 'Invalid quote: missing transaction data',
           error: new Error('Invalid quote: missing transaction data'),
         });
-        return;
+        return { success: false };
       }
 
       const spenderAddress = order.payload.to;
@@ -232,7 +238,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
           })) {
             // Check if aborted
             if (abortControllerRef.current?.signal.aborted) {
-              return;
+              return { success: false };
             }
 
             // Map SDK update to our state
@@ -253,7 +259,15 @@ export function useIntentExecution(): UseIntentExecutionReturn {
             txHash,
           });
         }
+
+        return { success: true };
       } catch (err) {
+        // Handle user rejection gracefully - don't show error UI, just reset
+        if (isUserRejectionError(err)) {
+          setState(INITIAL_STATE);
+          return { success: false, userRejected: true };
+        }
+
         const error = err instanceof Error ? err : new Error(String(err));
         setState({
           status: 'error',
@@ -261,6 +275,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
           error,
           txHash: state.txHash,
         });
+        return { success: false };
       }
     },
     [isConnected, address, walletClient, publicClient, state.txHash],
