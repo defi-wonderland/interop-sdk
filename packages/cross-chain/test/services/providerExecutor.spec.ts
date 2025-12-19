@@ -1,14 +1,21 @@
 import { GetQuoteRequest } from "@openintentsframework/oif-specs";
 import { buildFromPayload } from "@wonderland/interop-addresses";
-import { Address } from "viem";
+import { Address, Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createProviderExecutor, ProviderExecutor } from "../../src/external.js";
+import {
+    AcrossProvider,
+    createProviderExecutor,
+    IntentTracker,
+    IntentTrackerFactory,
+    ProviderExecutor,
+} from "../../src/external.js";
 import {
     CrossChainProvider,
     ExecutableQuote,
     ProviderGetQuoteFailure,
 } from "../../src/internal.js";
+import { createMockFillEvent } from "../mocks/intentTracking.js";
 
 // Common addresses for testing
 const USER_ADDRESS = "0x0000000000000000000000000000000000000001" as Address;
@@ -18,28 +25,29 @@ const OUTPUT_TOKEN_ADDRESS = "0x4200000000000000000000000000000000000006" as Add
 const INPUT_CHAIN_ID = 11155111;
 const OUTPUT_CHAIN_ID = 84532;
 
-const USER_INTEROP_ADDRESS = buildFromPayload({
+// Use top-level await for async buildFromPayload
+const USER_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
     chainReference: `0x${INPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
     address: USER_ADDRESS,
 });
 
-const RECEIVER_INTEROP_ADDRESS = buildFromPayload({
+const RECEIVER_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
     chainReference: `0x${OUTPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
     address: RECEIVER_ADDRESS,
 });
 
-const INPUT_TOKEN_INTEROP_ADDRESS = buildFromPayload({
+const INPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
     chainReference: `0x${INPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
     address: INPUT_TOKEN_ADDRESS,
 });
 
-const OUTPUT_TOKEN_INTEROP_ADDRESS = buildFromPayload({
+const OUTPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
     chainReference: `0x${OUTPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
@@ -203,6 +211,250 @@ describe("ProviderExecutor", () => {
 
             expect(mockProviderA.getQuotes).toHaveBeenCalledWith(mockGetQuoteRequest);
             expect(mockProviderB.getQuotes).toHaveBeenCalledWith(mockGetQuoteRequest);
+        });
+    });
+
+    describe("tracking", () => {
+        const MOCK_API_URL = "https://mocked.across.url/api";
+        const MOCK_PROVIDER_ID = "across";
+
+        describe("getIntentStatus", () => {
+            it("returns intent status for a given transaction", async () => {
+                const providerExecutor = createProviderExecutor({
+                    providers: [
+                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
+                    ],
+                });
+
+                const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+                const getIntentStatusSpy = vi.spyOn(tracker, "getIntentStatus");
+
+                const mockFillEvent = createMockFillEvent({
+                    depositId: 123n,
+                });
+
+                const mockStatus = {
+                    status: "filled" as const,
+                    orderId: "0xabc123" as Hex,
+                    openTxHash: "0xdef456" as Hex,
+                    user: USER_ADDRESS,
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                    fillDeadline: Math.floor(Date.now() / 1000) + 3600,
+                    depositId: 123n,
+                    inputAmount: 1000000000000000000n,
+                    outputAmount: 990000000000000000n,
+                    fillEvent: mockFillEvent,
+                };
+
+                getIntentStatusSpy.mockResolvedValue(mockStatus);
+
+                const result = await providerExecutor.getIntentStatus({
+                    txHash: "0xdef456" as Hex,
+                    providerId: MOCK_PROVIDER_ID,
+                    originChainId: 11155111,
+                });
+
+                expect(result).toEqual(mockStatus);
+                expect(getIntentStatusSpy).toHaveBeenCalledWith("0xdef456", 11155111);
+            });
+
+            it("throws error for unsupported provider", async () => {
+                const providerExecutor = createProviderExecutor({
+                    providers: [
+                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
+                    ],
+                });
+
+                await expect(
+                    providerExecutor.getIntentStatus({
+                        txHash: "0xabc123" as Hex,
+                        providerId: "unsupported",
+                        originChainId: 11155111,
+                    }),
+                ).rejects.toThrow();
+            });
+
+            it("uses cached tracker instance", async () => {
+                const providerExecutor = createProviderExecutor({
+                    providers: [
+                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
+                    ],
+                });
+
+                const tracker1 = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+                const getIntentStatusSpy = vi.spyOn(tracker1, "getIntentStatus").mockResolvedValue({
+                    status: "filling",
+                    orderId: "0xorder1" as Hex,
+                    openTxHash: "0xtx1" as Hex,
+                    user: USER_ADDRESS,
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                    fillDeadline: Math.floor(Date.now() / 1000) + 3600,
+                    depositId: 12345n,
+                    inputAmount: 1000000000000000000n,
+                    outputAmount: 990000000000000000n,
+                });
+
+                await providerExecutor.getIntentStatus({
+                    txHash: "0xtx1" as Hex,
+                    providerId: MOCK_PROVIDER_ID,
+                    originChainId: 11155111,
+                });
+
+                expect(getIntentStatusSpy).toHaveBeenCalled();
+            });
+        });
+
+        describe("prepareTracking", () => {
+            it("returns an IntentTracker instance", () => {
+                const providerExecutor = createProviderExecutor({
+                    providers: [
+                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
+                    ],
+                });
+
+                const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+
+                expect(tracker).toBeInstanceOf(IntentTracker);
+            });
+
+            it("caches tracker instances per provider", () => {
+                const providerExecutor = createProviderExecutor({
+                    providers: [
+                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
+                    ],
+                });
+
+                const tracker1 = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+                const tracker2 = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+
+                expect(tracker1).toBe(tracker2);
+            });
+        });
+
+        describe("track", () => {
+            it("returns an IntentTracker instance", () => {
+                const providerExecutor = createProviderExecutor({
+                    providers: [
+                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
+                    ],
+                });
+
+                const tracker = providerExecutor.track({
+                    txHash: "0xabc123" as Hex,
+                    providerId: MOCK_PROVIDER_ID,
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                });
+
+                expect(tracker).toBeInstanceOf(IntentTracker);
+            });
+
+            it("uses cached tracker for same provider", () => {
+                const providerExecutor = createProviderExecutor({
+                    providers: [
+                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
+                    ],
+                });
+
+                const tracker1 = providerExecutor.track({
+                    txHash: "0xabc123" as Hex,
+                    providerId: MOCK_PROVIDER_ID,
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                });
+
+                const tracker2 = providerExecutor.track({
+                    txHash: "0xdef456" as Hex,
+                    providerId: MOCK_PROVIDER_ID,
+                    originChainId: 11155111,
+                    destinationChainId: 84532,
+                });
+
+                expect(tracker1).toBe(tracker2);
+            });
+
+            it("throws error for unsupported provider", () => {
+                const providerExecutor = createProviderExecutor({
+                    providers: [
+                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
+                    ],
+                });
+
+                expect(() => {
+                    providerExecutor.track({
+                        txHash: "0xabc123" as Hex,
+                        providerId: "unsupported",
+                        originChainId: 11155111,
+                        destinationChainId: 84532,
+                    });
+                }).toThrow();
+            });
+        });
+
+        describe("with custom tracker factory", () => {
+            it("uses custom factory to create trackers", () => {
+                const customFactory = new IntentTrackerFactory({
+                    rpcUrls: {
+                        11155111: "https://custom-factory-sepolia.com",
+                        84532: "https://custom-factory-base.com",
+                    },
+                });
+
+                const provider = new AcrossProvider({
+                    apiUrl: MOCK_API_URL,
+                    providerId: MOCK_PROVIDER_ID,
+                });
+                const createTrackerSpy = vi.spyOn(customFactory, "createTracker");
+
+                const providerExecutor = createProviderExecutor({
+                    providers: [provider],
+                    trackerFactory: customFactory,
+                });
+
+                const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+
+                expect(tracker).toBeInstanceOf(IntentTracker);
+                expect(createTrackerSpy).toHaveBeenCalledOnce();
+                expect(createTrackerSpy).toHaveBeenCalledWith(provider);
+            });
+
+            it("calls factory once per provider and caches result", () => {
+                const customFactory = new IntentTrackerFactory({
+                    rpcUrls: {
+                        11155111: "https://custom-sepolia.com",
+                        84532: "https://custom-base.com",
+                    },
+                });
+
+                const createTrackerSpy = vi.spyOn(customFactory, "createTracker");
+
+                const providerA = new AcrossProvider({
+                    apiUrl: MOCK_API_URL,
+                    providerId: "across-a",
+                });
+                const providerB = new AcrossProvider({
+                    apiUrl: MOCK_API_URL,
+                    providerId: "across-b",
+                });
+
+                const providerExecutor = createProviderExecutor({
+                    providers: [providerA, providerB],
+                    trackerFactory: customFactory,
+                });
+
+                const tracker1 = providerExecutor.prepareTracking("across-a");
+                const tracker2 = providerExecutor.prepareTracking("across-a"); // Same provider again
+                providerExecutor.prepareTracking("across-b");
+
+                // Should be called only once per unique provider (caching)
+                expect(createTrackerSpy).toHaveBeenCalledTimes(2);
+                expect(createTrackerSpy).toHaveBeenCalledWith(providerA);
+                expect(createTrackerSpy).toHaveBeenCalledWith(providerB);
+                // Verify caching works
+                expect(tracker1).toBe(tracker2);
+            });
         });
     });
 });

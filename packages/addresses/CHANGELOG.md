@@ -1,5 +1,18 @@
 # @defi-wonderland/interop-addresses
 
+## 0.2.0
+
+### Minor Changes
+
+-   Implement OIF Provider for custom connection to the SDK
+    Refactor on Executor integration
+    Improvements on addresses validations
+
+### Patch Changes
+
+-   00d4ba2: improve eip155 address validation
+-   bd26c1f: fix: build with optional fields, remove viem chain validation
+
 ## 0.1.1
 
 ### Patch Changes

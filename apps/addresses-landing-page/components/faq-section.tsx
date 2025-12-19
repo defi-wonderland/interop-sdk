@@ -67,8 +67,46 @@ export function FaqSection() {
                             How do I get started as a developer?
                         </h3>
                         <p className="font-mono text-sm lg:text-[0.9375rem] text-muted-foreground leading-relaxed">
-                            Install our SDK: npm install @wonderland/interop-addresses. See docs for
-                            implementation examples.
+                            Install our SDK: npm install @wonderland/interop-addresses. For
+                            implementation examples and guides, see the{" "}
+                            <a
+                                href="https://docs.interop.wonderland.xyz/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:no-underline"
+                            >
+                                Interop SDK documentation
+                            </a>
+                            .
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 className="font-mono text-base lg:text-lg font-medium mb-3 lg:mb-4">
+                            What is the status of the onchain chain registry?
+                        </h3>
+                        <p className="font-mono text-sm lg:text-[0.9375rem] text-muted-foreground leading-relaxed">
+                            The onchain chain registry is currently under development in the{" "}
+                            <a
+                                href="https://github.com/unruggable-labs/chain-resolver"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:no-underline"
+                            >
+                                chain-resolver
+                            </a>{" "}
+                            project and is approaching final testing. It will be powered by a custom
+                            ENS resolver under the dedicated ENS name <code>on.eth</code>. Until
+                            this is live, the SDK uses data from{" "}
+                            <a
+                                href="https://github.com/ethereum-lists/chains/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:no-underline"
+                            >
+                                ethereum-lists/chains
+                            </a>
+                            , using <code>shortName</code> values as identifiers.
                         </p>
                     </div>
 

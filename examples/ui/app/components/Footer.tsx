@@ -6,7 +6,7 @@ export function Footer() {
       <p className='flex items-center justify-center gap-x-1.5 gap-y-2 flex-wrap'>
         <span>Built with the</span>
         <a
-          href='https://interop-sdk.vercel.app/'
+          href='https://docs.interop.wonderland.xyz/'
           target='_blank'
           rel='noopener noreferrer'
           className='text-accent hover:opacity-80 transition-opacity'

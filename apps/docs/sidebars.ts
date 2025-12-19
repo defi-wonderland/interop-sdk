@@ -27,18 +27,7 @@ const sidebars: SidebarsConfig = {
                 "addresses/api",
             ],
         },
-        {
-            type: "category",
-            label: "Cross-Chain",
-            collapsible: false,
-            items: [
-                "cross-chain/getting-started",
-                "cross-chain/advanced-usage",
-                "cross-chain/example",
-                "cross-chain/flow",
-                "cross-chain/api",
-            ],
-        },
+        "cross-chain",
     ],
 };
 

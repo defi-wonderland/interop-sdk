@@ -1,5 +1,6 @@
 "use client";
 
+import { TerminalSnippet } from "@/components/terminal-snippet";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 
@@ -94,10 +95,14 @@ export function HeroSection() {
                     Chain-aware addressing for the Ethereum ecosystem
                 </h2>
 
-                <p className="font-mono text-[0.9375rem] leading-relaxed md:text-base lg:text-lg text-muted-foreground mb-8 md:mb-12 lg:mb-16 max-w-xl">
+                <p className="font-mono text-[0.9375rem] leading-relaxed md:text-base lg:text-lg text-muted-foreground mb-6 md:mb-8 lg:mb-10 max-w-xl">
                     Simplify interoperability and eliminate cross-chain mistakes with human-readable
                     addresses that include chain information.
                 </p>
+
+                <div className="max-w-xl mb-6 md:mb-8 lg:mb-10">
+                    <TerminalSnippet />
+                </div>
 
                 <div className="flex flex-col sm:flex-row flex-wrap gap-4">
                     <Button size="lg" className="font-mono" asChild>
