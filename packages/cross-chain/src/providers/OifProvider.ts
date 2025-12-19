@@ -132,7 +132,7 @@ export class OifProvider extends CrossChainProvider {
                 const errorData = error.response?.data as { message?: string };
                 const baseMessage =
                     errorData?.message ||
-                    error.cause?.message ||
+                    (error.cause instanceof Error ? error.cause.message : undefined) ||
                     error.message ||
                     "Failed to get OIF quotes";
 
@@ -214,7 +214,7 @@ export class OifProvider extends CrossChainProvider {
                 const errorData = error.response?.data as { message?: string };
                 const baseMessage =
                     errorData?.message ||
-                    error.cause?.message ||
+                    (error.cause instanceof Error ? error.cause.message : undefined) ||
                     error.message ||
                     "Failed to submit order";
 
