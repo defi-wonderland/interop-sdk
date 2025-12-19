@@ -147,7 +147,7 @@ export class AcrossProvider extends CrossChainProvider {
 
                 const message =
                     errorData.message ||
-                    error.cause?.message ||
+                    (error.cause as Error | undefined)?.message ||
                     error.message ||
                     "Failed to get Across quote";
 
