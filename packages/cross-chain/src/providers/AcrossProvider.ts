@@ -18,6 +18,7 @@ import { ZodError } from "zod";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
+    ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
     AcrossConfigs,
     AcrossConfigSchema,
     AcrossGetQuoteParams,
@@ -28,13 +29,15 @@ import {
     AcrossOIFGetQuoteParamsSchema,
     bytes32ToAddress,
     CrossChainProvider,
-    DepositInfo,
-    DepositInfoParserConfig,
+    CustomEventOpenedIntentParserConfig,
     ExecutableQuote,
     FillEvent,
     FillWatcherConfig,
     getChainById,
     GetFillParams,
+    InvalidOpenEventError,
+    OpenedIntent,
+    OpenedIntentParserConfig,
     parseAbiEncodedFields,
     ProviderConfigFailure,
     ProviderExecuteNotImplemented,
@@ -50,7 +53,9 @@ import {
  * @returns A provider for the Across protocol
  */
 export class AcrossProvider extends CrossChainProvider {
-    readonly protocolName = "across";
+    static readonly PROTOCOL_NAME = "across" as const;
+
+    readonly protocolName = AcrossProvider.PROTOCOL_NAME;
     readonly providerId: string;
     private readonly apiUrl: string;
     private readonly rpcClientCache: Map<number, PublicClient> = new Map();
@@ -123,7 +128,7 @@ export class AcrossProvider extends CrossChainProvider {
     }
 
     /**
-     * Get a quote for an Across cross-chain transfer calling to the Across SDK
+     * Get a quote for an Across cross-chain transfer calling to the Across API
      * @param params - The parameters for the action
      * @returns A quote for the action
      */
@@ -252,6 +257,9 @@ export class AcrossProvider extends CrossChainProvider {
         };
     }
 
+    /**
+     * Prepare the transaction using the swapTx from the Across API
+     */
     private async prepareTransaction(
         quote: AcrossGetQuoteResponse,
     ): Promise<PrepareTransactionRequestReturnType | undefined> {
@@ -265,7 +273,7 @@ export class AcrossProvider extends CrossChainProvider {
             });
 
             return preparedTransaction;
-        } catch (error) {
+        } catch {
             return undefined;
         }
     }
@@ -318,30 +326,81 @@ export class AcrossProvider extends CrossChainProvider {
     }
 
     /**
-     * Get the deposit info parser configuration for Across
-     * Used to configure a generic EventBasedDepositInfoParser
+     * Get the opened intent parser configuration for Across
+     * Parses the V3FundsDeposited event from SpokePool to extract all tracking data
      */
-    static getDepositInfoParserConfig(): DepositInfoParserConfig {
-        const FUNDS_DEPOSITED_SIGNATURE =
-            "0x32ed1a409ef04c7b0227189c3a103dc5ac10e775a15b785dcc510201f7c25ad3" as Hex;
-
+    static getOpenedIntentParserConfig(): CustomEventOpenedIntentParserConfig {
         return {
-            protocolName: AcrossProvider.prototype.protocolName,
-            eventSignature: FUNDS_DEPOSITED_SIGNATURE,
-            extractDepositInfo: (log: Log): DepositInfo => {
-                const destinationChainId = BigInt(log.topics[1] || "0");
-                const depositId = BigInt(log.topics[2] || "0");
+            protocolName: AcrossProvider.PROTOCOL_NAME,
+            eventSignature: ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
+            extractOpenedIntent: (log: Log, txHash: Hex, blockNumber: bigint): OpenedIntent => {
+                // V3FundsDeposited event topics:
+                // topic[0]: event signature
+                // topic[1]: destinationChainId (indexed)
+                // topic[2]: depositId (indexed)
+                // topic[3]: depositor (indexed)
+                const destinationChainIdTopic = log.topics[1];
+                const depositIdTopic = log.topics[2];
+                const depositorTopic = log.topics[3];
 
-                const [inputAmount, outputAmount] = parseAbiEncodedFields(log.data, [2, 3]) as [
-                    bigint,
-                    bigint,
-                ];
+                if (!destinationChainIdTopic) {
+                    throw new InvalidOpenEventError(
+                        "Missing destinationChainId in V3FundsDeposited event",
+                    );
+                }
+                if (!depositIdTopic) {
+                    throw new InvalidOpenEventError("Missing depositId in V3FundsDeposited event");
+                }
+                if (!depositorTopic) {
+                    throw new InvalidOpenEventError("Missing depositor in V3FundsDeposited event");
+                }
+
+                const destinationChainId = BigInt(destinationChainIdTopic);
+                const depositId = BigInt(depositIdTopic);
+                const depositor = ("0x" + depositorTopic.slice(-40)) as Address;
+
+                // Parse non-indexed fields from data
+                // Data layout: inputToken, outputToken, inputAmount, outputAmount,
+                // quoteTimestamp, fillDeadline, exclusivityDeadline, recipient, exclusiveRelayer, message
+                const fieldIndices = [2, 3, 5]; // inputAmount, outputAmount, fillDeadline indices
+                const parsedFields = parseAbiEncodedFields(log.data, fieldIndices);
+                const inputAmount = parsedFields[0];
+                const outputAmount = parsedFields[1];
+                const fillDeadlineBigInt = parsedFields[2];
+
+                if (inputAmount === undefined) {
+                    throw new InvalidOpenEventError(
+                        "Missing inputAmount in V3FundsDeposited event",
+                    );
+                }
+                if (outputAmount === undefined) {
+                    throw new InvalidOpenEventError(
+                        "Missing outputAmount in V3FundsDeposited event",
+                    );
+                }
+                if (fillDeadlineBigInt === undefined) {
+                    throw new InvalidOpenEventError(
+                        "Missing fillDeadline in V3FundsDeposited event",
+                    );
+                }
+
+                const fillDeadline = Number(fillDeadlineBigInt);
+
+                // Create a unique orderId from depositId
+                const orderIdHex = depositId.toString(16).padStart(64, "0");
+                const orderId = ("0x" + orderIdHex) as Hex;
 
                 return {
+                    orderId,
+                    txHash,
+                    blockNumber,
+                    originContract: log.address,
+                    user: depositor,
+                    fillDeadline,
                     depositId,
+                    destinationChainId,
                     inputAmount,
                     outputAmount,
-                    destinationChainId,
                 };
             },
         };
@@ -396,12 +455,15 @@ export class AcrossProvider extends CrossChainProvider {
      * @inheritdoc
      */
     getTrackingConfig(): {
-        depositInfoParser: DepositInfoParserConfig;
-        fillWatcher: FillWatcherConfig;
+        openedIntentParserConfig: OpenedIntentParserConfig;
+        fillWatcherConfig: FillWatcherConfig;
     } {
         return {
-            depositInfoParser: AcrossProvider.getDepositInfoParserConfig(),
-            fillWatcher: AcrossProvider.getFillWatcherConfig(),
+            openedIntentParserConfig: {
+                type: "custom-event",
+                config: AcrossProvider.getOpenedIntentParserConfig(),
+            },
+            fillWatcherConfig: AcrossProvider.getFillWatcherConfig(),
         };
     }
 }

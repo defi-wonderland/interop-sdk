@@ -1,54 +1,41 @@
 import { Address, Hex } from "viem";
 
 /**
- * Minimal representation of EIP-7683 ResolvedCrossChainOrder
- * Contains only the fields needed for intent tracking.
+ * Opened cross-chain intent parsed from an EIP-7683 Open event.
  *
- * NOTE: The full ResolvedCrossChainOrder contains additional fields:
- * - maxSpent: Output[] - Maximum tokens to spend on origin chain
- * - minReceived: Output[] - Minimum tokens to receive on destination chain
- * - fillInstructions: FillInstruction[] - Instructions for fillers
+ * Contains all data extracted from the standard EIP-7683 ResolvedCrossChainOrder struct:
+ * - Basic order info (orderId, user, fillDeadline)
+ * - Destination chain from fillInstructions
+ * - Input/output amounts from maxSpent/minReceived
  *
- * These can be accessed from the raw event data if needed.
+ * This type represents a fully parsed intent ready for tracking.
+ *
+ * @see https://eips.ethereum.org/EIPS/eip-7683
  */
-export interface ResolvedCrossChainOrder {
-    user: Address;
-    originChainId: bigint;
-    openDeadline: number;
-    fillDeadline: number;
+export interface OpenedIntent {
+    /** Unique identifier for this order (bytes32) */
     orderId: Hex;
-}
-
-/**
- * EIP-7683 Open event data
- * Emitted when a cross-chain order is created on a settlement contract
- */
-export interface OpenEvent {
-    /** Unique identifier for this order (EIP-7683 standard) */
-    orderId: Hex;
-    /** Minimal resolved order details */
-    resolvedOrder: ResolvedCrossChainOrder;
-    /** Settlement contract that emitted the event */
-    settlementContract: Address;
     /** Transaction hash where the order was opened */
     txHash: Hex;
     /** Block number where the order was opened */
     blockNumber: bigint;
-}
-
-/**
- * Protocol-specific deposit information
- * Used to match orders with fills on destination chain
- */
-export interface DepositInfo {
-    /** Protocol-specific deposit ID (e.g., Across depositId) */
+    /** Contract that emitted the open event */
+    originContract: Address;
+    /** User who created the order */
+    user: Address;
+    /** Fill deadline timestamp (Unix seconds) */
+    fillDeadline: number;
+    /**
+     * Protocol-specific deposit ID
+     * Derived from orderId for compatibility with protocols like Across
+     */
     depositId: bigint;
-    /** Input token amount */
-    inputAmount: bigint;
-    /** Expected output token amount */
-    outputAmount: bigint;
-    /** Destination chain ID */
+    /** Destination chain ID where the intent will be filled */
     destinationChainId: bigint;
+    /** Input token amount (in smallest unit) from maxSpent[0] */
+    inputAmount: bigint;
+    /** Expected output token amount (in smallest unit) from minReceived[0] */
+    outputAmount: bigint;
 }
 
 /**
@@ -88,7 +75,7 @@ export type IntentStatus = "opening" | "opened" | "filling" | "filled" | "expire
 export interface IntentStatusInfo {
     /** Current status of the intent */
     status: IntentStatus;
-    /** EIP-7683 order ID */
+    /** Order ID */
     orderId: Hex;
     /** Transaction hash where order was opened */
     openTxHash: Hex;
@@ -100,8 +87,12 @@ export interface IntentStatusInfo {
     destinationChainId: number;
     /** Fill deadline timestamp */
     fillDeadline: number;
-    /** Protocol-specific deposit information */
-    depositInfo?: DepositInfo;
+    /** Protocol-specific deposit ID */
+    depositId: bigint;
+    /** Input token amount from maxSpent[0] */
+    inputAmount: bigint;
+    /** Output token amount from minReceived[0] */
+    outputAmount: bigint;
     /** Fill event data (present when status is 'filled') */
     fillEvent?: FillEvent;
 }
@@ -113,7 +104,7 @@ export interface IntentStatusInfo {
 export interface IntentUpdate {
     /** Current status */
     status: IntentStatus;
-    /** EIP-7683 order ID (available after Open event is parsed) */
+    /** Order ID (available after intent is parsed) */
     orderId?: Hex;
     /** Transaction hash where order was opened */
     openTxHash: Hex;

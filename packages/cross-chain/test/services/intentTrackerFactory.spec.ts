@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AcrossProvider, IntentTracker, IntentTrackerFactory } from "../../src/external.js";
-import { DepositInfoParser, FillWatcher } from "../../src/internal.js";
+import { FillWatcher, OpenedIntentParser } from "../../src/internal.js";
 
 const MOCK_API_URL = "https://mocked.across.url/api";
 const MOCK_PROVIDER_ID = "across";
@@ -57,13 +57,13 @@ describe("IntentTrackerFactory", () => {
             expect(tracker1).not.toBe(tracker2);
         });
 
-        it("accepts custom depositInfoParser", () => {
-            const mockDepositInfoParser: DepositInfoParser = {
-                getDepositInfo: vi.fn(),
+        it("accepts custom openedIntentParser", () => {
+            const mockOpenedIntentParser: OpenedIntentParser = {
+                getOpenedIntent: vi.fn(),
             };
 
             const tracker = factory.createTracker(provider, {
-                depositInfoParser: mockDepositInfoParser,
+                openedIntentParser: mockOpenedIntentParser,
             });
 
             expect(tracker).toBeInstanceOf(IntentTracker);

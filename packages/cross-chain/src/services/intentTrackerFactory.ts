@@ -1,25 +1,15 @@
-import { PublicClient } from "viem";
-
 import {
     CrossChainProvider,
-    DepositInfoParser,
-    EventBasedDepositInfoParser,
+    CustomEventOpenedIntentParser,
     EventBasedFillWatcher,
     FillWatcher,
     IntentTracker,
-    OpenEventWatcher,
+    IntentTrackerConfig,
+    IntentTrackerFactoryConfig,
+    OIFOpenedIntentParser,
+    OpenedIntentParser,
     PublicClientManager,
 } from "../internal.js";
-
-export interface IntentTrackerFactoryConfig {
-    publicClient?: PublicClient;
-    rpcUrls?: Record<number, string>;
-}
-
-export interface IntentTrackerConfig extends IntentTrackerFactoryConfig {
-    depositInfoParser?: DepositInfoParser;
-    fillWatcher?: FillWatcher;
-}
 
 /**
  * Factory class for creating IntentTracker instances
@@ -27,11 +17,9 @@ export interface IntentTrackerConfig extends IntentTrackerFactoryConfig {
  */
 export class IntentTrackerFactory {
     private readonly clientManager: PublicClientManager;
-    private readonly openWatcher: OpenEventWatcher;
 
     constructor(config?: IntentTrackerFactoryConfig) {
         this.clientManager = new PublicClientManager(config?.publicClient, config?.rpcUrls);
-        this.openWatcher = new OpenEventWatcher({ clientManager: this.clientManager });
     }
 
     /**
@@ -43,25 +31,52 @@ export class IntentTrackerFactory {
     createTracker(
         provider: CrossChainProvider,
         config?: {
-            depositInfoParser?: DepositInfoParser;
+            openedIntentParser?: OpenedIntentParser;
             fillWatcher?: FillWatcher;
         },
     ): IntentTracker {
         const trackingConfig = provider.getTrackingConfig();
 
-        const depositInfoParser =
-            config?.depositInfoParser ??
-            new EventBasedDepositInfoParser(trackingConfig.depositInfoParser, {
-                clientManager: this.clientManager,
-            });
+        // Create parser based on config type
+        const openedIntentParser =
+            config?.openedIntentParser ??
+            this.createOpenedIntentParser(trackingConfig.openedIntentParserConfig);
 
         const fillWatcher =
             config?.fillWatcher ??
-            new EventBasedFillWatcher(trackingConfig.fillWatcher, {
+            new EventBasedFillWatcher(trackingConfig.fillWatcherConfig, {
                 clientManager: this.clientManager,
             });
 
-        return new IntentTracker(this.openWatcher, depositInfoParser, fillWatcher);
+        return new IntentTracker(openedIntentParser, fillWatcher);
+    }
+
+    /**
+     * Create the appropriate OpenedIntentParser based on config type
+     */
+    private createOpenedIntentParser(
+        config: ReturnType<CrossChainProvider["getTrackingConfig"]>["openedIntentParserConfig"],
+    ): OpenedIntentParser {
+        switch (config.type) {
+            case "oif":
+                return new OIFOpenedIntentParser({ clientManager: this.clientManager });
+
+            case "custom-event":
+                return new CustomEventOpenedIntentParser(config.config, {
+                    clientManager: this.clientManager,
+                });
+
+            case "api":
+                // TODO: Implement APIOpenedIntentParser when needed
+                throw new Error("API-based OpenedIntentParser not yet implemented");
+
+            default:
+                // Exhaustive check
+                const _exhaustive: never = config;
+                throw new Error(
+                    `Unknown OpenedIntentParser config type: ${JSON.stringify(_exhaustive)}`,
+                );
+        }
     }
 }
 
@@ -99,14 +114,14 @@ export function createIntentTracker(
 ): IntentTracker {
     const {
         publicClient,
-        depositInfoParser: customDepositInfoParser,
+        openedIntentParser: customParser,
         fillWatcher: customFillWatcher,
         rpcUrls,
     } = config || {};
 
     const factory = new IntentTrackerFactory({ publicClient, rpcUrls });
     return factory.createTracker(provider, {
-        depositInfoParser: customDepositInfoParser,
+        openedIntentParser: customParser,
         fillWatcher: customFillWatcher,
     });
 }

@@ -3,24 +3,18 @@ import { baseSepolia, sepolia } from "viem/chains";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-    DepositInfoParser,
     FillWatcher,
     IntentTracker,
     IntentUpdate,
-    OpenEventWatcher,
+    OpenedIntentParser,
     WatchIntentParams,
 } from "../../src/internal.js";
 import { FillTimeoutError } from "../../src/services/EventBasedFillWatcher.js";
-import {
-    createMockDepositInfo,
-    createMockFillEvent,
-    createMockOpenEvent,
-} from "../mocks/intentTracking.js";
+import { createMockFillEvent, createMockOpenedIntent } from "../mocks/intentTracking.js";
 
 describe("IntentTracker", () => {
     let tracker: IntentTracker;
-    let mockOpenWatcher: OpenEventWatcher;
-    let mockDepositInfoParser: DepositInfoParser;
+    let mockOpenedIntentParser: OpenedIntentParser;
     let mockFillWatcher: FillWatcher;
 
     const mockTxHash = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" as Hex;
@@ -30,20 +24,16 @@ describe("IntentTracker", () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
-        mockOpenWatcher = {
-            getOpenEvent: vi.fn(),
-        } as unknown as OpenEventWatcher;
-
-        mockDepositInfoParser = {
-            getDepositInfo: vi.fn(),
-        } as unknown as DepositInfoParser;
+        mockOpenedIntentParser = {
+            getOpenedIntent: vi.fn(),
+        } as unknown as OpenedIntentParser;
 
         mockFillWatcher = {
             getFill: vi.fn(),
             waitForFill: vi.fn(),
         } as unknown as FillWatcher;
 
-        tracker = new IntentTracker(mockOpenWatcher, mockDepositInfoParser, mockFillWatcher);
+        tracker = new IntentTracker(mockOpenedIntentParser, mockFillWatcher);
     });
 
     afterEach(() => {
@@ -53,34 +43,27 @@ describe("IntentTracker", () => {
 
     describe("getIntentStatus", () => {
         it('should return "filled" status when fill event exists', async () => {
-            const mockOpenEvent = createMockOpenEvent();
-            const mockDepositInfo = createMockDepositInfo();
+            const mockOpenedIntent = createMockOpenedIntent();
             const mockFillEventData = createMockFillEvent();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
 
             const result = await tracker.getIntentStatus(mockTxHash, mockOriginChainId);
 
             expect(result.status).toBe("filled");
-            expect(result.orderId).toBe(mockOpenEvent.orderId);
+            expect(result.orderId).toBe(mockOpenedIntent.orderId);
             expect(result.fillEvent).toEqual(mockFillEventData);
-            expect(result.depositInfo).toEqual(mockDepositInfo);
+            expect(result.depositId).toBe(mockOpenedIntent.depositId);
         });
 
         it('should return "expired" when past fillDeadline with no fill', async () => {
             const expiredDeadline = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
-            const mockOpenEvent = createMockOpenEvent({
-                resolvedOrder: {
-                    ...createMockOpenEvent().resolvedOrder,
-                    fillDeadline: expiredDeadline,
-                },
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillDeadline: expiredDeadline,
             });
-            const mockDepositInfo = createMockDepositInfo();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
             const result = await tracker.getIntentStatus(mockTxHash, mockOriginChainId);
@@ -91,16 +74,11 @@ describe("IntentTracker", () => {
 
         it('should return "filling" when before fillDeadline with no fill', async () => {
             const futureDeadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
-            const mockOpenEvent = createMockOpenEvent({
-                resolvedOrder: {
-                    ...createMockOpenEvent().resolvedOrder,
-                    fillDeadline: futureDeadline,
-                },
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillDeadline: futureDeadline,
             });
-            const mockDepositInfo = createMockDepositInfo();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
             const result = await tracker.getIntentStatus(mockTxHash, mockOriginChainId);
@@ -109,12 +87,10 @@ describe("IntentTracker", () => {
             expect(result.fillEvent).toBeUndefined();
         });
 
-        it("should correctly combine data from all three dependencies", async () => {
-            const mockOpenEvent = createMockOpenEvent({
+        it("should correctly combine data from parser and fill watcher", async () => {
+            const mockOpenedIntent = createMockOpenedIntent({
                 orderId:
                     "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Hex,
-            });
-            const mockDepositInfo = createMockDepositInfo({
                 depositId: 99999n,
                 destinationChainId: BigInt(mockDestinationChainId),
             });
@@ -122,37 +98,28 @@ describe("IntentTracker", () => {
                 depositId: 99999n,
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
 
             const result = await tracker.getIntentStatus(mockTxHash, mockOriginChainId);
 
-            expect(result.orderId).toBe(mockOpenEvent.orderId);
-            expect(result.user).toBe(mockOpenEvent.resolvedOrder.user);
-            expect(result.fillDeadline).toBe(mockOpenEvent.resolvedOrder.fillDeadline);
-
-            expect(result.depositInfo).toEqual(mockDepositInfo);
-            expect(result.destinationChainId).toBe(Number(mockDepositInfo.destinationChainId));
-
+            expect(result.orderId).toBe(mockOpenedIntent.orderId);
+            expect(result.user).toBe(mockOpenedIntent.user);
+            expect(result.fillDeadline).toBe(mockOpenedIntent.fillDeadline);
+            expect(result.depositId).toBe(mockOpenedIntent.depositId);
+            expect(result.destinationChainId).toBe(Number(mockOpenedIntent.destinationChainId));
             expect(result.fillEvent).toEqual(mockFillEventData);
-
             expect(result.openTxHash).toBe(mockTxHash);
             expect(result.originChainId).toBe(mockOriginChainId);
         });
 
         it("should handle edge case: exactly at deadline boundary", async () => {
             const currentTime = Math.floor(Date.now() / 1000);
-            const mockOpenEvent = createMockOpenEvent({
-                resolvedOrder: {
-                    ...createMockOpenEvent().resolvedOrder,
-                    fillDeadline: currentTime,
-                },
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillDeadline: currentTime,
             });
-            const mockDepositInfo = createMockDepositInfo();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
             const result = await tracker.getIntentStatus(mockTxHash, mockOriginChainId);
@@ -163,14 +130,12 @@ describe("IntentTracker", () => {
 
     describe("watchIntent - async generator", () => {
         it("should emit correct sequence: opening → opened → filling → filled", async () => {
-            const mockOpenEvent = createMockOpenEvent();
-            const mockDepositInfo = createMockDepositInfo({
+            const mockOpenedIntent = createMockOpenedIntent({
                 destinationChainId: BigInt(mockDestinationChainId),
             });
             const mockFillEventData = createMockFillEvent();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
 
             const params: WatchIntentParams = {
@@ -196,18 +161,12 @@ describe("IntentTracker", () => {
 
         it("should emit expired if already past deadline before watching (with GRACE_PERIOD)", async () => {
             const expiredDeadline = Math.floor(Date.now() / 1000) - 120; // 2 minutes ago
-            const mockOpenEvent = createMockOpenEvent({
-                resolvedOrder: {
-                    ...createMockOpenEvent().resolvedOrder,
-                    fillDeadline: expiredDeadline,
-                },
-            });
-            const mockDepositInfo = createMockDepositInfo({
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillDeadline: expiredDeadline,
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
 
             const params: WatchIntentParams = {
                 txHash: mockTxHash,
@@ -229,19 +188,13 @@ describe("IntentTracker", () => {
 
         it("should NOT emit expired if within GRACE_PERIOD (deadline recently passed)", async () => {
             const recentDeadline = Math.floor(Date.now() / 1000) - 30;
-            const mockOpenEvent = createMockOpenEvent({
-                resolvedOrder: {
-                    ...createMockOpenEvent().resolvedOrder,
-                    fillDeadline: recentDeadline,
-                },
-            });
-            const mockDepositInfo = createMockDepositInfo({
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillDeadline: recentDeadline,
                 destinationChainId: BigInt(mockDestinationChainId),
             });
             const mockFillEventData = createMockFillEvent();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
 
             const params: WatchIntentParams = {
@@ -266,23 +219,16 @@ describe("IntentTracker", () => {
 
         it("should emit expired if deadline passes during fill wait", async () => {
             const expiredDeadline = Math.floor(Date.now() / 1000) - 10; // 10 seconds ago
-            const mockOpenEvent = createMockOpenEvent({
-                resolvedOrder: {
-                    ...createMockOpenEvent().resolvedOrder,
-                    fillDeadline: expiredDeadline,
-                    openDeadline: expiredDeadline - 100,
-                },
-            });
-            const mockDepositInfo = createMockDepositInfo({
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillDeadline: expiredDeadline,
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
 
             // Simulate FillTimeoutError - deadline already passed
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
-                new FillTimeoutError(mockDepositInfo.depositId, 10000),
+                new FillTimeoutError(mockOpenedIntent.depositId, 10000),
             );
 
             const params: WatchIntentParams = {
@@ -304,22 +250,16 @@ describe("IntentTracker", () => {
 
         it("should emit filling status on timeout with helpful message", async () => {
             const futureDeadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
-            const mockOpenEvent = createMockOpenEvent({
-                resolvedOrder: {
-                    ...createMockOpenEvent().resolvedOrder,
-                    fillDeadline: futureDeadline,
-                },
-            });
-            const mockDepositInfo = createMockDepositInfo({
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillDeadline: futureDeadline,
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
 
             // Simulate timeout (not expired)
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
-                new FillTimeoutError(mockDepositInfo.depositId, 10000),
+                new FillTimeoutError(mockOpenedIntent.depositId, 10000),
             );
 
             const params: WatchIntentParams = {
@@ -341,16 +281,14 @@ describe("IntentTracker", () => {
         });
 
         it("should handle waitForFill timeout vs expired distinction", async () => {
-            const mockOpenEvent = createMockOpenEvent();
-            const mockDepositInfo = createMockDepositInfo({
+            const mockOpenedIntent = createMockOpenedIntent({
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
 
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
-                new FillTimeoutError(mockDepositInfo.depositId, 10000),
+                new FillTimeoutError(mockOpenedIntent.depositId, 10000),
             );
 
             const params: WatchIntentParams = {
@@ -371,13 +309,11 @@ describe("IntentTracker", () => {
         });
 
         it("should propagate non-FillTimeoutError errors", async () => {
-            const mockOpenEvent = createMockOpenEvent();
-            const mockDepositInfo = createMockDepositInfo({
+            const mockOpenedIntent = createMockOpenedIntent({
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
 
             const unexpectedError = new Error("Unexpected RPC error");
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(unexpectedError);
@@ -401,18 +337,15 @@ describe("IntentTracker", () => {
         it("should handle timeout expiring during intent setup", async () => {
             vi.useFakeTimers();
 
-            const mockOpenEvent = createMockOpenEvent();
-            const mockDepositInfo = createMockDepositInfo({
+            const mockOpenedIntent = createMockOpenedIntent({
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            // Mock getOpenEvent taking longer than total timeout
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockImplementation(async () => {
+            // Mock getOpenedIntent taking longer than total timeout
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockImplementation(async () => {
                 await vi.advanceTimersByTimeAsync(6000);
-                return mockOpenEvent;
+                return mockOpenedIntent;
             });
-
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
 
             const params: WatchIntentParams = {
                 txHash: mockTxHash,
@@ -441,12 +374,10 @@ describe("IntentTracker", () => {
 
     describe("startTracking with event emission", () => {
         it("should emit specific status events during tracking", async () => {
-            const mockOpenEvent = createMockOpenEvent();
-            const mockDepositInfo = createMockDepositInfo();
+            const mockOpenedIntent = createMockOpenedIntent();
             const mockFillEventData = createMockFillEvent();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
 
             const openingEvents: IntentUpdate[] = [];
@@ -481,12 +412,10 @@ describe("IntentTracker", () => {
         });
 
         it("should return final status info", async () => {
-            const mockOpenEvent = createMockOpenEvent();
-            const mockDepositInfo = createMockDepositInfo();
+            const mockOpenedIntent = createMockOpenedIntent();
             const mockFillEventData = createMockFillEvent();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
 
@@ -506,7 +435,7 @@ describe("IntentTracker", () => {
 
         it("should emit error event on failure", async () => {
             const error = new Error("Test error");
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockRejectedValue(error);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockRejectedValue(error);
 
             const errorEvents: Error[] = [];
             tracker.on("error", (err: Error) => errorEvents.push(err));
@@ -525,16 +454,11 @@ describe("IntentTracker", () => {
 
         it("should emit expired event when deadline passed", async () => {
             const expiredDeadline = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
-            const mockOpenEvent = createMockOpenEvent({
-                resolvedOrder: {
-                    ...createMockOpenEvent().resolvedOrder,
-                    fillDeadline: expiredDeadline,
-                },
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillDeadline: expiredDeadline,
             });
-            const mockDepositInfo = createMockDepositInfo();
 
-            vi.mocked(mockOpenWatcher.getOpenEvent).mockResolvedValue(mockOpenEvent);
-            vi.mocked(mockDepositInfoParser.getDepositInfo).mockResolvedValue(mockDepositInfo);
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
             const expiredEvents: IntentUpdate[] = [];

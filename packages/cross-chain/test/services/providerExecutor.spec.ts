@@ -15,7 +15,7 @@ import {
     ExecutableQuote,
     ProviderGetQuoteFailure,
 } from "../../src/internal.js";
-import { createMockDepositInfo, createMockFillEvent } from "../mocks/intentTracking.js";
+import { createMockFillEvent } from "../mocks/intentTracking.js";
 
 // Common addresses for testing
 const USER_ADDRESS = "0x0000000000000000000000000000000000000001" as Address;
@@ -229,10 +229,6 @@ describe("ProviderExecutor", () => {
                 const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
                 const getIntentStatusSpy = vi.spyOn(tracker, "getIntentStatus");
 
-                const mockDepositInfo = createMockDepositInfo({
-                    depositId: 123n,
-                    destinationChainId: 84532n,
-                });
                 const mockFillEvent = createMockFillEvent({
                     depositId: 123n,
                 });
@@ -245,7 +241,9 @@ describe("ProviderExecutor", () => {
                     originChainId: 11155111,
                     destinationChainId: 84532,
                     fillDeadline: Math.floor(Date.now() / 1000) + 3600,
-                    depositInfo: mockDepositInfo,
+                    depositId: 123n,
+                    inputAmount: 1000000000000000000n,
+                    outputAmount: 990000000000000000n,
                     fillEvent: mockFillEvent,
                 };
 
@@ -293,7 +291,9 @@ describe("ProviderExecutor", () => {
                     originChainId: 11155111,
                     destinationChainId: 84532,
                     fillDeadline: Math.floor(Date.now() / 1000) + 3600,
-                    depositInfo: createMockDepositInfo(),
+                    depositId: 12345n,
+                    inputAmount: 1000000000000000000n,
+                    outputAmount: 990000000000000000n,
                 });
 
                 await providerExecutor.getIntentStatus({

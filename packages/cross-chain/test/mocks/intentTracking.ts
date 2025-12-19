@@ -1,31 +1,20 @@
 import { Address, Hex, Log } from "viem";
 import { baseSepolia, sepolia } from "viem/chains";
 
-import { DepositInfo, FillEvent, OpenEvent } from "../../src/internal.js";
+import { FillEvent, OpenedIntent } from "../../src/internal.js";
 
-export const createMockOpenEvent = (overrides?: Partial<OpenEvent>): OpenEvent => {
+export const createMockOpenedIntent = (overrides?: Partial<OpenedIntent>): OpenedIntent => {
     return {
         orderId: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hex,
-        resolvedOrder: {
-            user: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as Address,
-            originChainId: BigInt(sepolia.id),
-            openDeadline: Math.floor(Date.now() / 1000) - 60, // 1 minute ago
-            fillDeadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-            orderId: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hex,
-        },
-        settlementContract: "0x5f9D51679F5A0C7C1e2b7F0aE8F2c3c7c9c1c2c3" as Address,
         txHash: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" as Hex,
         blockNumber: 1000000n,
-        ...overrides,
-    };
-};
-
-export const createMockDepositInfo = (overrides?: Partial<DepositInfo>): DepositInfo => {
-    return {
+        originContract: "0x5f9D51679F5A0C7C1e2b7F0aE8F2c3c7c9c1c2c3" as Address,
+        user: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as Address,
+        fillDeadline: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
         depositId: 12345n,
+        destinationChainId: BigInt(baseSepolia.id),
         inputAmount: 1000000000000000000n, // 1 ETH
         outputAmount: 990000000000000000n, // 0.99 ETH
-        destinationChainId: BigInt(baseSepolia.id),
         ...overrides,
     };
 };
@@ -35,7 +24,7 @@ export const createMockFillEvent = (overrides?: Partial<FillEvent>): FillEvent =
         fillTxHash: "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321" as Hex,
         blockNumber: 2000000n,
         timestamp: Math.floor(Date.now() / 1000),
-        originChainId: 11155111,
+        originChainId: sepolia.id,
         depositId: 12345n,
         relayer: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb" as Address,
         recipient: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as Address,
