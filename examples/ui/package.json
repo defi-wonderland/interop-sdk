@@ -13,7 +13,8 @@
     "format:check": "prettier app --check",
     "lint": "eslint app",
     "lint:fix": "eslint app --fix",
-    "start": "next start"
+    "start": "next start",
+    "test:e2e": "playwright test"
   },
   "lint-staged": {
     "app/**/*.{js,jsx,ts,tsx}": "eslint --cache --fix",
@@ -34,6 +35,7 @@
     "@eslint/eslintrc": "3.3.3",
     "@eslint/js": "9.39.2",
     "@next/eslint-plugin-next": "15.3.3",
+    "@playwright/test": "1.57.0",
     "@tailwindcss/postcss": "4.1.15",
     "@types/node": "22.7.4",
     "@types/react": "19.2.7",
