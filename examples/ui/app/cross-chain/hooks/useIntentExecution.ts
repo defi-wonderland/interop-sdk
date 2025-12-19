@@ -1,10 +1,16 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { createIntentTracker, type ExecutableQuote, type IntentUpdate } from '@wonderland/interop-cross-chain';
+import {
+  AcrossProvider,
+  createIntentTracker,
+  type ExecutableQuote,
+  type IntentUpdate,
+} from '@wonderland/interop-cross-chain';
 import { erc20Abi, type Address, type Hex } from 'viem';
 import { sepolia, baseSepolia, arbitrumSepolia } from 'viem/chains';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
+import { PROVIDERS } from '../constants';
 
 // Public RPC URLs for intent tracking (read-only operations)
 const RPC_URLS: Record<number, string> = {
@@ -206,8 +212,13 @@ export function useIntentExecution(): UseIntentExecutionReturn {
         setState({ status: 'opening', message: 'Transaction confirmed! Parsing intent...', txHash });
 
         // Create tracker for the protocol
-        const provider = (quote.provider || 'across') as 'across';
-        const tracker = createIntentTracker(provider, {
+        // Get the Across provider config from our constants
+        const acrossConfig = PROVIDERS.find((p) => p.id === 'across')?.config;
+        if (!acrossConfig) {
+          throw new Error('Across provider configuration not found');
+        }
+        const acrossProvider = new AcrossProvider(acrossConfig);
+        const tracker = createIntentTracker(acrossProvider, {
           rpcUrls: RPC_URLS,
         });
 
