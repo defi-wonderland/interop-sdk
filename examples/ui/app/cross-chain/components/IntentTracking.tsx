@@ -31,11 +31,6 @@ const STEPS = [
     label: 'Filling',
     statuses: ['filling'] as IntentExecutionStatus[],
   },
-  {
-    id: 'complete',
-    label: 'Complete',
-    statuses: ['filled'] as IntentExecutionStatus[],
-  },
 ];
 
 /**
@@ -73,11 +68,6 @@ function getStepStatus(
     return 'complete';
   }
 
-  // Special case: if filled, mark complete step as active
-  if (currentStatus === 'filled' && stepStatuses.includes('filled')) {
-    return 'active';
-  }
-
   return 'pending';
 }
 
@@ -100,9 +90,9 @@ function SpinnerIcon() {
 /**
  * Check icon component
  */
-function CheckIcon() {
+function CheckIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
-    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+    <svg className={className} fill='none' stroke='currentColor' viewBox='0 0 24 24'>
       <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
     </svg>
   );
@@ -115,6 +105,22 @@ function ErrorIcon() {
   return (
     <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
       <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+    </svg>
+  );
+}
+
+/**
+ * External link icon component
+ */
+function ExternalLinkIcon() {
+  return (
+    <svg className='w-3.5 h-3.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+      <path
+        strokeLinecap='round'
+        strokeLinejoin='round'
+        strokeWidth={2}
+        d='M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14'
+      />
     </svg>
   );
 }
@@ -134,7 +140,7 @@ function StepIndicator({ status }: { status: 'pending' | 'active' | 'complete' |
       );
     case 'complete':
       return (
-        <div className={`${baseClasses} bg-green-500 text-white`}>
+        <div className={`${baseClasses} bg-accent text-white`}>
           <CheckIcon />
         </div>
       );
@@ -150,14 +156,163 @@ function StepIndicator({ status }: { status: 'pending' | 'active' | 'complete' |
 }
 
 /**
- * Intent tracking progress component
- * Shows a visual stepper for the intent execution and tracking flow
+ * Success view component - shown when intent is filled
  */
-export function IntentTracking({ state, onReset }: IntentTrackingProps) {
-  const isComplete = state.status === 'filled';
-  const isError = state.status === 'error' || state.status === 'expired';
-  const showReset = isComplete || isError;
+function SuccessView({ state, onReset }: IntentTrackingProps) {
+  return (
+    <div className='p-6 rounded-xl border border-accent/30 bg-accent/5'>
+      {/* Success header */}
+      <div className='flex items-center gap-3 mb-4'>
+        <div className='w-12 h-12 rounded-full bg-accent flex items-center justify-center'>
+          <CheckIcon className='w-6 h-6 text-white' />
+        </div>
+        <div>
+          <h3 className='text-lg font-semibold text-accent'>Intent Filled Successfully!</h3>
+          <p className='text-sm text-text-secondary'>{state.message}</p>
+        </div>
+      </div>
 
+      {/* Transaction links */}
+      <div className='space-y-2 mb-4'>
+        {state.txHash && (
+          <a
+            href={`https://sepolia.etherscan.io/tx/${state.txHash}`}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='flex items-center justify-between p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group'
+          >
+            <div className='flex items-center gap-2'>
+              <div className='w-2 h-2 rounded-full bg-accent/60' />
+              <div>
+                <span className='text-sm text-text-primary'>Origin Transaction</span>
+                <span className='text-xs text-text-tertiary ml-2'>Ethereum Sepolia</span>
+              </div>
+            </div>
+            <div className='flex items-center gap-2 text-text-tertiary group-hover:text-accent'>
+              <span className='text-xs font-mono'>
+                {state.txHash.slice(0, 10)}...{state.txHash.slice(-8)}
+              </span>
+              <ExternalLinkIcon />
+            </div>
+          </a>
+        )}
+        {state.fillTxHash && (
+          <a
+            href={`https://sepolia.basescan.org/tx/${state.fillTxHash}`}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='flex items-center justify-between p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group'
+          >
+            <div className='flex items-center gap-2'>
+              <div className='w-2 h-2 rounded-full bg-accent' />
+              <div>
+                <span className='text-sm text-text-primary'>Fill Transaction</span>
+                <span className='text-xs text-text-tertiary ml-2'>Base Sepolia</span>
+              </div>
+            </div>
+            <div className='flex items-center gap-2 text-text-tertiary group-hover:text-accent'>
+              <span className='text-xs font-mono'>
+                {state.fillTxHash.slice(0, 10)}...{state.fillTxHash.slice(-8)}
+              </span>
+              <ExternalLinkIcon />
+            </div>
+          </a>
+        )}
+      </div>
+
+      {/* Raw fill event data */}
+      <details className='mb-4'>
+        <summary className='cursor-pointer text-xs text-text-tertiary hover:text-text-secondary transition-colors'>
+          View raw intent data
+        </summary>
+        <div className='mt-2 p-3 rounded-lg bg-surface-secondary border border-border font-mono text-xs overflow-x-auto'>
+          <pre className='text-text-secondary whitespace-pre-wrap break-all'>
+            {JSON.stringify(
+              {
+                status: state.status,
+                orderId: state.orderId,
+                originTxHash: state.txHash,
+                fillTxHash: state.fillTxHash,
+              },
+              null,
+              2,
+            )}
+          </pre>
+        </div>
+      </details>
+
+      {/* Close button */}
+      {onReset && (
+        <button
+          type='button'
+          onClick={onReset}
+          className='w-full py-3 px-4 text-sm font-medium rounded-lg bg-accent hover:bg-accent/90 text-white transition-colors'
+        >
+          Start New Intent
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Error/Expired view component
+ */
+function ErrorView({ state, onReset }: IntentTrackingProps) {
+  const isExpired = state.status === 'expired';
+
+  return (
+    <div className='p-6 rounded-xl border border-red-500/30 bg-red-500/5'>
+      {/* Error header */}
+      <div className='flex items-center gap-3 mb-4'>
+        <div className='w-12 h-12 rounded-full bg-red-500 flex items-center justify-center'>
+          <ErrorIcon />
+        </div>
+        <div>
+          <h3 className='text-lg font-semibold text-red-400'>{isExpired ? 'Intent Expired' : 'Intent Failed'}</h3>
+          <p className='text-sm text-text-secondary'>{state.message}</p>
+        </div>
+      </div>
+
+      {/* Transaction link if available */}
+      {state.txHash && (
+        <a
+          href={`https://sepolia.etherscan.io/tx/${state.txHash}`}
+          target='_blank'
+          rel='noopener noreferrer'
+          className='flex items-center justify-between p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group mb-4'
+        >
+          <div className='flex items-center gap-2'>
+            <div className='w-2 h-2 rounded-full bg-blue-400' />
+            <span className='text-sm text-text-primary'>Origin Transaction</span>
+          </div>
+          <div className='flex items-center gap-2 text-text-tertiary group-hover:text-accent'>
+            <span className='text-xs font-mono'>
+              {state.txHash.slice(0, 10)}...{state.txHash.slice(-8)}
+            </span>
+            <ExternalLinkIcon />
+          </div>
+        </a>
+      )}
+
+      {/* Try again button */}
+      {onReset && (
+        <button
+          type='button'
+          onClick={onReset}
+          className='w-full py-3 px-4 text-sm font-medium rounded-lg border border-red-500/50 hover:bg-red-500/10 text-red-400 transition-colors'
+        >
+          Try Again
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Progress view component - shown during execution
+ */
+function ProgressView({ state }: { state: IntentExecutionState }) {
   return (
     <div className='p-4 rounded-xl border border-border bg-surface'>
       <h3 className='text-sm font-semibold text-text-primary mb-4'>Intent Progress</h3>
@@ -176,7 +331,7 @@ export function IntentTracking({ state, onReset }: IntentTrackingProps) {
                 {!isLast && (
                   <div
                     className={`w-0.5 h-6 mt-1 transition-colors ${
-                      stepStatus === 'complete' ? 'bg-green-500' : 'bg-border'
+                      stepStatus === 'complete' ? 'bg-accent' : 'bg-border'
                     }`}
                   />
                 )}
@@ -189,7 +344,7 @@ export function IntentTracking({ state, onReset }: IntentTrackingProps) {
                     stepStatus === 'active'
                       ? 'text-accent'
                       : stepStatus === 'complete'
-                        ? 'text-green-500'
+                        ? 'text-accent'
                         : stepStatus === 'error'
                           ? 'text-red-500'
                           : 'text-text-tertiary'
@@ -206,24 +361,9 @@ export function IntentTracking({ state, onReset }: IntentTrackingProps) {
         })}
       </div>
 
-      {/* Status message area */}
-      {state.message && (
-        <div
-          className={`mt-4 p-3 rounded-lg text-sm ${
-            isError
-              ? 'bg-red-500/10 border border-red-500/20 text-red-400'
-              : isComplete
-                ? 'bg-green-500/10 border border-green-500/20 text-green-400'
-                : 'bg-accent/10 border border-accent/20 text-text-secondary'
-          }`}
-        >
-          {state.message}
-        </div>
-      )}
-
-      {/* Transaction links */}
+      {/* Transaction link during progress */}
       {state.txHash && (
-        <div className='mt-3 flex flex-col gap-1'>
+        <div className='mt-4 pt-3 border-t border-border'>
           <a
             href={`https://sepolia.etherscan.io/tx/${state.txHash}`}
             target='_blank'
@@ -231,46 +371,32 @@ export function IntentTracking({ state, onReset }: IntentTrackingProps) {
             className='text-xs text-accent hover:underline flex items-center gap-1'
           >
             <span>View origin transaction</span>
-            <svg className='w-3 h-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14'
-              />
-            </svg>
+            <ExternalLinkIcon />
           </a>
-          {state.fillTxHash && (
-            <a
-              href={`https://sepolia.basescan.org/tx/${state.fillTxHash}`}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-xs text-green-400 hover:underline flex items-center gap-1'
-            >
-              <span>View fill transaction</span>
-              <svg className='w-3 h-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14'
-                />
-              </svg>
-            </a>
-          )}
         </div>
-      )}
-
-      {/* Reset button */}
-      {showReset && onReset && (
-        <button
-          type='button'
-          onClick={onReset}
-          className='mt-4 w-full py-2 px-4 text-sm font-medium rounded-lg border border-border bg-surface-secondary hover:bg-surface text-text-primary transition-colors'
-        >
-          {isComplete ? 'New Transfer' : 'Try Again'}
-        </button>
       )}
     </div>
   );
+}
+
+/**
+ * Intent tracking progress component
+ * Shows different views based on the intent execution state
+ */
+export function IntentTracking({ state, onReset }: IntentTrackingProps) {
+  const isComplete = state.status === 'filled';
+  const isError = state.status === 'error' || state.status === 'expired';
+
+  // Show success view when filled
+  if (isComplete) {
+    return <SuccessView state={state} onReset={onReset} />;
+  }
+
+  // Show error view when failed or expired
+  if (isError) {
+    return <ErrorView state={state} onReset={onReset} />;
+  }
+
+  // Show progress view during execution
+  return <ProgressView state={state} />;
 }

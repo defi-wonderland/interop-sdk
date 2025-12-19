@@ -30,7 +30,7 @@ export type IntentExecutionStatus =
   | 'confirming' // Waiting for bridge tx to confirm on origin chain
   | 'opening' // SDK: Parsing intent from transaction
   | 'opened' // SDK: Intent opened, orderId available
-  | 'filling' // SDK: Waiting for relayer to fill on destination chain
+  | 'filling' // SDK: Waiting for solver to fill on destination chain
   | 'filled' // SDK: Intent successfully filled!
   | 'expired' // SDK: Fill deadline passed
   | 'error'; // Something failed
@@ -284,12 +284,45 @@ export function useIntentExecution(): UseIntentExecutionReturn {
 }
 
 /**
+ * Customize SDK messages for better UX in the demo
+ * - Uses "solver" instead of "relayer"
+ * - Adds chain context to messages
+ */
+function customizeMessage(update: IntentUpdate): string {
+  const { status, message } = update;
+
+  switch (status) {
+    case 'filling':
+      // Replace "relayer" with "solver" and add context
+      if (message.includes('Waiting for relayer')) {
+        return 'Waiting for solver to fill intent on destination chain...';
+      }
+      if (message.includes('Stopped watching')) {
+        return 'Stopped watching, but the intent may still be filled by a solver.';
+      }
+      return message.replace(/relayer/gi, 'solver');
+
+    case 'filled':
+      // Add destination chain context
+      if (message.includes('Intent filled in block')) {
+        const blockMatch = message.match(/block (\d+)/);
+        const blockNumber = blockMatch ? blockMatch[1] : 'unknown';
+        return `Intent filled by solver in block ${blockNumber} on destination chain`;
+      }
+      return message;
+
+    default:
+      return message.replace(/relayer/gi, 'solver');
+  }
+}
+
+/**
  * Maps SDK IntentUpdate to our IntentExecutionState
  */
 function mapIntentUpdateToState(update: IntentUpdate, txHash: Hex): IntentExecutionState {
   return {
     status: update.status as IntentExecutionStatus,
-    message: update.message,
+    message: customizeMessage(update),
     txHash,
     fillTxHash: update.fillTxHash,
     orderId: update.orderId,
