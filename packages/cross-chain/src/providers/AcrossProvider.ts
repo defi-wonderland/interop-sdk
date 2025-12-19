@@ -6,7 +6,6 @@ import {
     Address,
     Chain,
     createPublicClient,
-    EIP1193Provider,
     Hex,
     http,
     Log,
@@ -309,9 +308,13 @@ export class AcrossProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      */
-    async execute(_quote: ExecutableQuote, _signer: EIP1193Provider): Promise<PostOrderResponse> {
-        // TODO: Implement the execute method
-        throw new ProviderExecuteNotImplemented("Not implemented");
+    async submitSignedOrder(
+        _quote: ExecutableQuote,
+        _signature: Hex | Uint8Array,
+    ): Promise<PostOrderResponse> {
+        throw new ProviderExecuteNotImplemented(
+            "Across provider does not support submitSignedOrder",
+        );
     }
 
     /**

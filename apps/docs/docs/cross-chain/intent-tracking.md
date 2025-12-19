@@ -53,11 +53,11 @@ for await (const update of tracker.watchIntent({
 })) {
     console.log(`Status: ${update.status}`);
     console.log(`Message: ${update.message}`);
-    
-    if (update.status === 'filled') {
+
+    if (update.status === "filled") {
         console.log(`Filled in tx: ${update.fillTxHash}`);
         break;
-    } else if (update.status === 'expired') {
+    } else if (update.status === "expired") {
         console.log("Transfer expired");
         break;
     }
@@ -76,7 +76,7 @@ const tracker = createIntentTracker("across");
 // Get current status
 const status = await tracker.getIntentStatus(
     "0xabc...", // transaction hash
-    11155111    // origin chain ID
+    11155111, // origin chain ID
 );
 
 console.log(status.status); // 'opening' | 'opened' | 'filling' | 'filled' | 'expired'
@@ -174,7 +174,7 @@ const tracker = createIntentTracker("across", {
     rpcUrls: {
         11155111: "https://sepolia.infura.io/v3/YOUR_API_KEY",
         84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY",
-    }
+    },
 });
 ```
 
@@ -195,6 +195,7 @@ const tracker = createIntentTracker("across", {
     publicClient,
 });
 ```
+
 ## Error Handling
 
 The Intent Tracker handles errors gracefully:
@@ -227,4 +228,3 @@ try {
 
 -   [EIP-7683: Open Intent Framework](https://www.erc7683.org/)
 -   [Intent Tracking Types](./api.md#intent-tracker)
-

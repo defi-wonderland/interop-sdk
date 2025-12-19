@@ -564,6 +564,8 @@ export interface Quote {
     partialFill: boolean;
     /** Metadata for the order, never required, potentially contains provider specific data */
     metadata?: object;
+    /** Allow extra fields from solver-specific implementations (e.g., solverId, integrityChecksum) */
+    [key: string]: unknown;
 }
 
 /**

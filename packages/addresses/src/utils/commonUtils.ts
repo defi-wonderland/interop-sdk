@@ -1,5 +1,13 @@
 import bs58 from "bs58";
-import { bytesToNumber, createPublicClient, fromHex, getAddress, http, isHex, toHex } from "viem";
+import {
+    bytesToNumber,
+    createPublicClient,
+    fromHex,
+    getAddress,
+    http,
+    isAddress,
+    toHex,
+} from "viem";
 import { mainnet } from "viem/chains";
 
 import type {
@@ -11,14 +19,18 @@ import type {
     EncodedChainReference,
 } from "../internal.js";
 import {
+    AddressResolutionFailed,
     BINARY_LENGTHS,
     BINARY_OFFSETS,
     ChainTypeName,
     ChainTypeValue,
+    ENSLookupFailed,
+    ENSNotFound,
     InvalidAddress,
     InvalidBinaryInteropAddress,
     UnsupportedChainType,
 } from "../internal.js";
+import { resolveAddress } from "./resolveENS.js";
 
 /**
  * Extracts the version from a binary interop address.
@@ -219,31 +231,57 @@ export const formatChainReference = <T extends ChainTypeName>(
 
 /**
  * Converts an address to a Uint8Array based on the chain type
- * @param address - The address to convert
+ * @param address - The address to convert (can be null/undefined for empty addresses)
  * @param options - The options to convert the address
  * @param options.chainType - The chain type to convert the address for
+ * @param options.chainReference - The chain reference (used for ENS resolution on EVM chains)
  * @returns The converted address
+ * @throws {ENSNotFound} If an ENS name cannot be resolved
+ * @throws {ENSLookupFailed} If ENS lookup fails due to network or other errors
+ * @throws {AddressResolutionFailed} If address resolution fails for unexpected reasons
+ * @throws {InvalidAddress} If the address is invalid for the given chain type
+ * @throws {UnsupportedChainType} If the chain type is not supported
  */
-export const convertAddress = (
-    address: string,
-    options: { chainType: keyof typeof CHAIN_TYPE },
-): Uint8Array => {
+export const convertAddress = async (
+    address: string | null | undefined,
+    options: { chainType: keyof typeof CHAIN_TYPE; chainReference?: string },
+): Promise<Uint8Array> => {
     // If no address is provided, return an empty Uint8Array. This is allowed by the
     // interoperable address spec, as AddressLength MAY be zero (provided that the
     // chain reference length is non-zero, which is validated elsewhere).
-    if (address === "") {
+    if (!address) {
         return new Uint8Array();
     }
 
-    switch (options.chainType) {
+    const { chainType, chainReference } = options;
+
+    // Resolve address (handles ENS if applicable).
+    let resolvedAddress: string;
+    try {
+        resolvedAddress = await resolveAddress(address, chainType, chainReference);
+    } catch (error) {
+        // Re-throw ENS-specific errors as-is (they already have proper context)
+        if (error instanceof ENSNotFound || error instanceof ENSLookupFailed) {
+            throw error;
+        }
+        // Wrap any unexpected errors with more context
+        throw new AddressResolutionFailed(
+            `address "${address}" for chain type "${chainType}": ${error instanceof Error ? error.message : String(error)}`,
+        );
+    }
+
+    switch (chainType) {
         case ChainTypeName.EIP155:
-            if (!isHex(address)) {
-                throw new InvalidAddress("EVM address must be a hex string");
+            // Validate as a proper Ethereum address using viem (case-insensitive).
+            if (!isAddress(resolvedAddress, { strict: false })) {
+                throw new InvalidAddress("EVM address must be a valid Ethereum address");
             }
 
-            return fromHex(address, "bytes");
+            // Normalize to a checksummed address before converting to bytes.
+            // https://viem.sh/docs/utilities/getAddress
+            return fromHex(getAddress(resolvedAddress), "bytes");
         case ChainTypeName.SOLANA:
-            const decodedAddress = bs58.decodeUnsafe(address);
+            const decodedAddress = bs58.decodeUnsafe(resolvedAddress);
 
             if (!decodedAddress) {
                 throw new InvalidAddress("Solana address must be a base58 string");
@@ -251,6 +289,6 @@ export const convertAddress = (
 
             return decodedAddress;
         default:
-            throw new UnsupportedChainType(options.chainType);
+            throw new UnsupportedChainType(chainType);
     }
 };

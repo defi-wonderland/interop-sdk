@@ -11,11 +11,7 @@ This guide demonstrates how to execute a cross-chain intent using the SDK. The p
 First, import the required libraries and set up your environment variables, such as your private key and a generic RPC URL.
 
 ```js
-import {
-    createCrossChainProvider,
-    createProviderExecutor,
-    InteropAddressParamsParser,
-} from "@wonderland/interop-cross-chain";
+import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
@@ -42,6 +38,7 @@ const publicClient = createPublicClient({
 const walletClient = createWalletClient({
     chain: sepolia,
     transport: http(RPC_URL),
+    account: privateAccount,
 });
 ```
 
@@ -50,92 +47,65 @@ const walletClient = createWalletClient({
 Initialize the cross-chain provider and executor, which will handle quoting and executing cross-chain transfers.
 
 ```js
-const acrossProvider = createCrossChainProvider("across");
+const acrossProvider = createCrossChainProvider("across", { apiUrl: "https://..." }, {});
 
-const executor = createProviderExecutor([acrossProvider], {
-    paramParser: new InteropAddressParamsParser(),
+const executor = createProviderExecutor({
+    providers: [acrossProvider],
 });
 ```
 
 ## 4. Retrieve a Cross-Chain Quote
 
-Request a quote for a cross-chain transfer by specifying sender, recipient, amount, and token addresses.
+Request a quote for a cross-chain transfer using OIF GetQuoteRequest format.
 
 ```js
-const params = await executor.getQuotes("crossChainTransfer", {
-    sender: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
-    recipient: "0x8043951e77347c5282d6bcD2294e134B4072fE3b@eip155:84532#D9F7BE3F",
-    amount: "0.100",
-    inputTokenAddress: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-    outputTokenAddress: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+const response = await executor.getQuotes({
+    user: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
+    intent: {
+        intentType: "oif-swap",
+        inputs: [{
+            user: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
+            asset: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238@eip155:11155111#2597C7E5",
+            amount: "100000000000000000", // 0.1 in wei
+        }],
+        outputs: [{
+            receiver: "0x8043951e77347c5282d6bcD2294e134B4072fE3b@eip155:84532#D9F7BE3F",
+            asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e@eip155:84532#D9F7BE3F",
+        }],
+        swapType: "exact-input",
+    },
+    supportedTypes: ["oif-escrow-v0"],
 });
 
-if (!params[0] || (params[0] && "error" in params[0])) {
-    console.error(params[0]?.error || "No quote found");
+// Check for errors
+if (response.errors.length > 0) {
+    console.error("Errors:", response.errors);
+}
+
+// Check if we got quotes
+if (response.quotes.length === 0) {
+    console.error("No quotes available");
     return;
 }
 ```
 
 ## 5. Execute the Cross-Chain Transaction
 
-For each transaction in the quote, estimate gas, prepare, sign, and send the transaction, then wait for confirmation.
+Execute the quote using your wallet client:
 
 ```js
-const txs = await executor.execute(params[0]);
+// Select the quote you prefer (e.g., first one)
+const quote = response.quotes[0];
 
-console.log("Sending transactions...");
+if (quote.preparedTransaction) {
+    console.log("Sending transaction...");
+    const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+    console.log("Transaction sent:", hash);
 
-for (const tx of txs) {
-    console.log("Original transaction request:", tx);
-
-    try {
-        // Step 1: Get the current nonce for the account
-        const nonce = await publicClient.getTransactionCount({
-            address: privateAccount.address,
-        });
-
-        // Step 2: Estimate gas and prepare the transaction with all necessary fields
-        const gasEstimate = await publicClient.estimateGas({
-            ...tx,
-            account: privateAccount.address,
-        });
-
-        console.log("Gas estimate:", gasEstimate);
-
-        // Step 3: Prepare a complete transaction request with all fields
-        const preparedTx = await publicClient.prepareTransactionRequest({
-            ...tx,
-            nonce,
-            gas: gasEstimate,
-            account: privateAccount,
-        });
-
-        console.log("Prepared transaction:", preparedTx);
-
-        // Step 4: Sign the transaction locally
-        const signedTx = await walletClient.signTransaction(preparedTx);
-        console.log("Transaction signed successfully");
-
-        // Step 5: Send the raw signed transaction via the public client
-        const txHash = await publicClient.sendRawTransaction({
-            serializedTransaction: signedTx,
-        });
-        console.log("Transaction hash:", txHash);
-
-        // Step 6: Wait for the transaction to be mined
-        const receipt = await publicClient.waitForTransactionReceipt({
-            hash: txHash,
-        });
-        console.log("Transaction confirmed:", receipt.status === "success" ? "Success" : "Failed");
-    } catch (error) {
-        console.error("Transaction failed:", error);
-        // Log detailed error information
-        if (error.cause) {
-            console.error("Error details:", error.cause.details || error.cause.message);
-        }
-
-        break;
-    }
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    console.log("Transaction confirmed:", receipt.status === "success" ? "Success" : "Failed");
+} else {
+    console.error("No prepared transaction in quote");
 }
 ```
 
@@ -167,11 +137,11 @@ for await (const update of tracker.watchIntent({
     destinationChainId: 84532,
 })) {
     console.log(`[${update.status}] ${update.message}`);
-    
-    if (update.status === 'filled') {
+
+    if (update.status === "filled") {
         console.log("Transfer completed!");
         break;
-    } else if (update.status === 'expired') {
+    } else if (update.status === "expired") {
         console.log("Transfer expired");
         break;
     }

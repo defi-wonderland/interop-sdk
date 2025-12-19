@@ -46,7 +46,7 @@ const isValidHumanReadable = await InteropAddressProvider.isValidHumanReadableAd
 
 // Validate binary addresses
 const isValidBinary = InteropAddressProvider.isValidBinaryAddress(
-    "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045"
+    "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045",
 );
 ```
 
@@ -55,11 +55,11 @@ const isValidBinary = InteropAddressProvider.isValidBinaryAddress(
 The package includes specific error types for better error handling:
 
 ```typescript
-import { 
-    InvalidAddress, 
-    UnsupportedChainType,
+import {
+    ENSLookupFailed,
     ENSNotFound,
-    ENSLookupFailed 
+    InvalidAddress,
+    UnsupportedChainType,
 } from "@wonderland/interop-addresses";
 
 try {

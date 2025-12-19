@@ -8,11 +8,11 @@ The Quote Aggregator allows you to fetch quotes from multiple cross-chain provid
 
 The Quote Aggregator:
 
-- Fetches quotes from multiple providers in parallel
-- Handles timeouts gracefully per provider
-- Sorts quotes by configurable criteria
-- Separates successful quotes from errors
-- Provides detailed error information
+-   Fetches quotes from multiple providers in parallel
+-   Handles timeouts gracefully per provider
+-   Sorts quotes by configurable criteria
+-   Separates successful quotes from errors
+-   Provides detailed error information
 
 ## Installation
 
@@ -43,10 +43,10 @@ const aggregator = createQuoteAggregator(["across"]);
 Get quotes from all configured providers:
 
 ```typescript
-import { 
+import {
     createQuoteAggregator,
+    QuoteResultStatus,
     SortingCriteria,
-    QuoteResultStatus
 } from "@wonderland/interop-cross-chain";
 
 const aggregator = createQuoteAggregator(["across"]);
@@ -67,7 +67,7 @@ const results = await aggregator.getQuotes({
 });
 
 // Check results
-results.forEach(result => {
+results.forEach((result) => {
     if (result.status === QuoteResultStatus.SUCCESS) {
         console.log(`${result.provider}: ${result.quote.output.outputAmount}`);
         console.log(`Fee: ${result.quote.fee.percent}%`);
@@ -88,7 +88,9 @@ Sorts by highest output amount:
 ```typescript
 const results = await aggregator.getQuotes({
     action: "crossChainTransfer",
-    params: { /* ... */ },
+    params: {
+        /* ... */
+    },
     sorting: SortingCriteria.BEST_OUTPUT,
 });
 ```
@@ -100,7 +102,9 @@ Sorts by lowest absolute fee:
 ```typescript
 const results = await aggregator.getQuotes({
     action: "crossChainTransfer",
-    params: { /* ... */ },
+    params: {
+        /* ... */
+    },
     sorting: SortingCriteria.LOWEST_FEE_AMOUNT,
 });
 ```
@@ -112,7 +116,9 @@ Sorts by lowest fee percentage:
 ```typescript
 const results = await aggregator.getQuotes({
     action: "crossChainTransfer",
-    params: { /* ... */ },
+    params: {
+        /* ... */
+    },
     sorting: SortingCriteria.LOWEST_FEE_PERCENT,
 });
 ```
@@ -124,14 +130,16 @@ You can provide a custom sorting function:
 ```typescript
 const results = await aggregator.getQuotes({
     action: "crossChainTransfer",
-    params: { /* ... */ },
+    params: {
+        /* ... */
+    },
     sorting: (a, b) => {
         if (!a.quote || !b.quote) return 0;
-        
+
         // Custom sorting logic
         const aOutput = BigInt(a.quote.output.outputAmount);
         const bOutput = BigInt(b.quote.output.outputAmount);
-        
+
         // Sort by output amount descending
         return aOutput > bOutput ? -1 : aOutput < bOutput ? 1 : 0;
     },
@@ -147,11 +155,13 @@ import { QuoteResultStatus } from "@wonderland/interop-cross-chain";
 
 const results = await aggregator.getQuotes({
     action: "crossChainTransfer",
-    params: { /* ... */ },
+    params: {
+        /* ... */
+    },
 });
 
 // Find successful quotes
-const successfulQuotes = results.filter(r => r.status === QuoteResultStatus.SUCCESS);
+const successfulQuotes = results.filter((r) => r.status === QuoteResultStatus.SUCCESS);
 
 if (successfulQuotes.length > 0) {
     const bestQuote = successfulQuotes[0]; // Already sorted
@@ -168,10 +178,12 @@ import { QuoteResultStatus } from "@wonderland/interop-cross-chain";
 
 const results = await aggregator.getQuotes({
     action: "crossChainTransfer",
-    params: { /* ... */ },
+    params: {
+        /* ... */
+    },
 });
 
-results.forEach(result => {
+results.forEach((result) => {
     if (result.status === QuoteResultStatus.SUCCESS) {
         // Handle successful quote
     } else if (result.status === QuoteResultStatus.ERROR) {
@@ -196,13 +208,13 @@ Each provider request will timeout independently, so slow providers won't block 
 
 The Quote Aggregator and ProviderExecutor serve different purposes:
 
-| Feature | Quote Aggregator | ProviderExecutor |
-|---------|-----------------|------------------|
-| **Focus** | Quote fetching and comparison | Quote fetching and execution |
-| **Sorting** | Built-in sorting strategies | Manual sorting required |
-| **Timeout** | Per-provider timeout handling | No timeout handling |
-| **Error Handling** | Graceful error handling per provider | Throws errors |
-| **Use Case** | Compare quotes, find best rate | Execute specific quotes |
+| Feature            | Quote Aggregator                     | ProviderExecutor             |
+| ------------------ | ------------------------------------ | ---------------------------- |
+| **Focus**          | Quote fetching and comparison        | Quote fetching and execution |
+| **Sorting**        | Built-in sorting strategies          | Manual sorting required      |
+| **Timeout**        | Per-provider timeout handling        | No timeout handling          |
+| **Error Handling** | Graceful error handling per provider | Throws errors                |
+| **Use Case**       | Compare quotes, find best rate       | Execute specific quotes      |
 
 Use Quote Aggregator when you need to compare quotes and find the best option. Use ProviderExecutor when you already know which quote to execute.
 
@@ -210,4 +222,3 @@ Use Quote Aggregator when you need to compare quotes and find the best option. U
 
 -   [API Reference](./api.md#quote-aggregator)
 -   [Provider Executor](./advanced-usage.md#provider-executor)
-

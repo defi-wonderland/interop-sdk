@@ -13,11 +13,12 @@ This document lists all cross-chain providers supported by the Interop SDK, thei
 **Protocol Name**: `"across"`
 
 **Features**:
-- Cross-chain token transfers
-- Quote fetching with fee calculation
-- Transaction simulation
-- Intent tracking support
-- EIP-7683 Open Intent Framework integration
+
+-   Cross-chain token transfers
+-   Quote fetching with fee calculation
+-   Transaction simulation
+-   Intent tracking support
+-   EIP-7683 Open Intent Framework integration
 
 **Usage**:
 
@@ -38,10 +39,12 @@ const quote = await provider.getQuote("crossChainTransfer", {
 ```
 
 **Supported Actions**:
-- `crossChainTransfer`
+
+-   `crossChainTransfer`
 
 **Documentation**:
-- [Across Protocol Documentation](https://docs.across.to/)
+
+-   [Across Protocol Documentation](https://docs.across.to/)
 
 ---
 
@@ -52,9 +55,10 @@ const quote = await provider.getQuote("crossChainTransfer", {
 **Protocol Name**: `"sample-protocol"`
 
 **Features**:
-- Basic quote generation (returns input amount as output)
-- Transaction simulation (returns empty array)
-- Useful for testing SDK integration
+
+-   Basic quote generation (returns input amount as output)
+-   Transaction simulation (returns empty array)
+-   Useful for testing SDK integration
 
 **Usage**:
 
@@ -76,19 +80,22 @@ const quote = await provider.getQuote("crossChainTransfer", {
 ```
 
 **Supported Actions**:
-- `crossChainTransfer` 
-- `crossChainSwap` 
 
->This provider is for testing only and should not be used in production.
+-   `crossChainTransfer`
+-   `crossChainSwap`
 
-
+> This provider is for testing only and should not be used in production.
 
 ## Creating Custom Providers
 
 You can create custom providers by implementing the `CrossChainProvider` interface:
 
 ```typescript
-import { CrossChainProvider, GetQuoteParams, GetQuoteResponse } from "@wonderland/interop-cross-chain";
+import {
+    CrossChainProvider,
+    GetQuoteParams,
+    GetQuoteResponse,
+} from "@wonderland/interop-cross-chain";
 
 class MyCustomProvider extends CrossChainProvider<MyOpenParams> {
     readonly protocolName = "my-protocol";
@@ -130,4 +137,3 @@ const protocolName = provider.getProtocolName(); // "across"
 -   [API Reference](./api.md)
 -   [Getting Started](./getting-started.md)
 -   [Provider Executor](./advanced-usage.md#provider-executor)
-

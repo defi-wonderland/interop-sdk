@@ -35,95 +35,168 @@ Available scripts that can be run using `pnpm`:
 ## Usage
 
 ```typescript
-import {
-    AcrossProvider,
-    createCrossChainProvider,
-    createProviderExecutor,
-    InteropAddressParamsParser,
-    ProviderExecutor,
-} from "@wonderland/interop-cross-chain";
+import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createPublicClient, createWalletClient, http } from "viem";
+import { sepolia } from "viem/chains";
 
-// Create a provider for a specific protocol (e.g., Across)
-const provider = createCrossChainProvider("across");
-
-// Get a quote for a cross-chain transfer
-const quote = await provider.getQuote("crossChainTransfer", {
-    sender: "0x...", // sender address (hex)
-    recipient: "0x...", // recipient address (hex)
-    inputTokenAddress: "0x...", // input token address
-    outputTokenAddress: "0x...", // output token address
-    inputAmount: "1000000000000000000", // amount in wei
-    inputChainId: 11155111, // source chain ID
-    outputChainId: 84532, // destination chain ID
+// Setup viem clients (needed for transaction execution)
+const publicClient = createPublicClient({
+    chain: sepolia,
+    transport: http("https://..."),
 });
 
-// Simulate the open transaction for the quote
-const txs = await provider.simulateOpen(quote.openParams);
-
-// Batch quotes and execution using ProviderExecutor
-const providers = [provider];
-const executor = createProviderExecutor(providers);
-const quotes = await executor.getQuotes("crossChainTransfer", {
-    sender: "0x...",
-    recipient: "0x...",
-    inputTokenAddress: "0x...",
-    outputTokenAddress: "0x...",
-    inputAmount: "1000000000000000000",
-    inputChainId: 11155111,
-    outputChainId: 84532,
+const walletClient = createWalletClient({
+    chain: sepolia,
+    transport: http("https://..."),
+    account: "0x...", // Your account
 });
 
-// Execute a quote (simulate open)
-const txRequests = await executor.execute(quotes[0]);
+// Create providers for different protocols
+// Across example:
+const acrossProvider = createCrossChainProvider("across", { apiUrl: "https://..." }, {});
 
-// Using InteropAddressParamsParser for human-readable or binary addresses
-const paramParser = new InteropAddressParamsParser();
-const executorWithParser = createProviderExecutor(providers, { paramParser });
-const quotesWithInterop = await executorWithParser.getQuotes("crossChainTransfer", {
-    sender: "alice.eth@eip155:1#ABCD1234", // human-readable interop address
-    recipient: "0x...", // hex address
-    amount: "1000000000000000000",
-    inputTokenAddress: "0x...",
-    outputTokenAddress: "0x...",
+// OIF example:
+const oifProvider = createCrossChainProvider(
+    "oif",
+    { solverId: "my-solver", url: "https://..." },
+    {},
+);
+
+// Create executor with providers (can mix Across, OIF, etc.)
+const executor = createProviderExecutor({
+    providers: [acrossProvider, oifProvider],
 });
+
+// Get quotes using OIF GetQuoteRequest format
+const response = await executor.getQuotes({
+    user: "0x...@eip155:11155111#...",
+    intent: {
+        intentType: "oif-swap",
+        inputs: [
+            {
+                user: "0x...@eip155:11155111#...",
+                asset: "0x...@eip155:11155111#...",
+                amount: "1000000000000000000",
+            },
+        ],
+        outputs: [
+            {
+                receiver: "0x...@eip155:84532#...",
+                asset: "0x...@eip155:84532#...",
+            },
+        ],
+        swapType: "exact-input",
+    },
+    supportedTypes: ["oif-escrow-v0"],
+});
+
+// Execute the selected quote
+const selectedQuote = response.quotes[0];
+if (selectedQuote?.preparedTransaction) {
+    const hash = await walletClient.sendTransaction(selectedQuote.preparedTransaction);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+}
 ```
 
 ## API
 
 ### Providers
 
--   `createCrossChainProvider(protocolName, config?, dependencies?)` – Create a provider for a supported protocol (e.g., "across").
+-   `createCrossChainProvider(protocolName, config, dependencies)` – Create a provider for a supported protocol (e.g., "across", "oif").
 -   `CrossChainProvider` (abstract class)
     -   `.getProtocolName()` – Returns the protocol name.
-    -   `.getQuote(action, params)` – Fetch a quote for a cross-chain action ("crossChainTransfer" or "crossChainSwap").
-    -   `.simulateOpen(openParams)` – Simulate the open transaction for a quote.
-    -   `.validateOpenParams(openParams)` – Validate open parameters.
+    -   `.getProviderId()` – Returns the provider identifier.
+    -   `.getQuotes(params)` – Fetch quotes for a cross-chain request (OIF GetQuoteRequest format).
+    -   `.submitSignedOrder(quote, signature)` – Submit a signed order to the provider (throws MethodNotImplemented for providers that don't support it, like Across).
+    -   `.getTrackingConfig()` – Get configuration for intent tracking.
 
 ### Provider Executor
 
--   `createProviderExecutor(providers, dependencies?)` – Create an executor for batch quoting and execution.
+-   `createProviderExecutor(config)` – Create an executor for batch quoting and execution.
+    -   Config: `{ providers: CrossChainProvider[], sortingStrategy?, timeoutMs?, trackerFactory? }`
 -   `ProviderExecutor`
-    -   `.getQuotes(action, params)` – Get quotes from all providers.
-    -   `.execute(quote)` – Simulate the open transaction for a quote.
-
-### Param Parsers
-
--   `InteropAddressParamsParser` – Parses human-readable or binary interop addresses for use in cross-chain actions.
--   `ParamsParser` (interface) – Custom param parsers can be implemented for advanced use cases.
+    -   `.getQuotes(params)` – Get quotes from all providers (params: GetQuoteRequest, returns: GetQuotesResponse).
+    -   `.prepareTracking(providerId)` – Prepare intent tracking for a provider.
+    -   `.track(params)` – Track an existing transaction.
+    -   `.getIntentStatus(params)` – Get current status without watching.
 
 ### Types
 
--   `GetQuoteParams<Action>` – Parameters for quoting (see `crossChainProvider.interface.ts`).
--   `GetQuoteResponse<Action, OpenParams>` – Quote response structure.
--   `BasicOpenParams`, `Fee`, and more (see exported types).
+-   `GetQuoteRequest` – OIF-compliant quote request (see `@openintentsframework/oif-specs`).
+-   `GetQuotesResponse` – Response containing `{ quotes: ExecutableQuote[], errors: GetQuotesError[] }`.
+-   `ExecutableQuote` – Quote with optional `preparedTransaction` for execution.
+-   `ProviderExecutorConfig`, `IntentTrackerConfig`, and more (see exported types).
 
-### Supported Actions
+## OIF Provider
 
--   `crossChainTransfer` – Transfer tokens between chains.
--   `crossChainSwap` – Swap tokens across chains (if supported by the protocol).
+The OIF Provider enables integration with any [Open Intents Framework](https://docs.openintents.xyz/) compliant solver.
+
+### Usage
+
+```typescript
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+import { createWalletClient, http } from "viem";
+import { mainnet } from "viem/chains";
+
+// Setup wallet client
+const walletClient = createWalletClient({
+    chain: mainnet,
+    transport: http("https://..."),
+    account: "0x...",
+});
+
+// Create OIF provider with your solver endpoint
+const provider = createCrossChainProvider("oif", { solverId: "my-solver", url: "https://..." }, {});
+
+// Get quotes using OIF GetQuoteRequest format
+const response = await provider.getQuotes({
+    user: "0x...@eip155:1#...",
+    intent: {
+        intentType: "oif-swap",
+        inputs: [
+            {
+                user: "0x...@eip155:1#...",
+                asset: "0x...@eip155:1#...",
+                amount: "1000000",
+            },
+        ],
+        outputs: [
+            {
+                receiver: "0x...@eip155:1#...",
+                asset: "0x...@eip155:1#...",
+            },
+        ],
+        swapType: "exact-input",
+    },
+    supportedTypes: ["oif-escrow-v0"],
+});
+
+// Protocol Mode: Sign and submit order (gasless for user)
+const { domain, primaryType, message, types } = response[0].order.payload;
+const signature = await walletClient.signTypedData({ domain, primaryType, message, types });
+await provider.submitSignedOrder(response[0], signature);
+
+// User Mode: Execute transaction directly (user pays gas)
+if (response[0]?.preparedTransaction) {
+    await walletClient.sendTransaction(response[0].preparedTransaction);
+}
+```
+
+### Approval Requirements
+
+Access approval info directly from the quote:
+
+```typescript
+// Protocol mode (oif-escrow-v0) - typically Permit2
+const spender = quote.order.payload.message.spender;
+
+// User mode (oif-user-open-v0)
+const { spender, token, required } = quote.order.checks.allowances[0];
+```
 
 ## References
 
+-   [Open Intents Framework](https://docs.openintents.xyz/) - OIF API specification and documentation
 -   [Viem Documentation](https://viem.sh/) - Low-level Ethereum interface used for transaction handling
 -   [Zod Documentation](https://zod.dev/) - TypeScript-first schema validation used for input validation
 -   [Cross-Chain Interoperability Standards](https://ethereum.org/en/developers/docs/bridges/) - Overview of cross-chain bridge concepts

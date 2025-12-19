@@ -1,5 +1,6 @@
 export * from "./crossChainProvider.interface.js";
 export * from "./AcrossProvider.interface.js";
+export * from "./OifProvider.interface.js";
 export * from "./depositInfoParser.interface.js";
 export * from "./fillWatcher.interface.js";
 export * from "./quotes.interface.js";
