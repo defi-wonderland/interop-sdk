@@ -21,6 +21,7 @@
     "app/**/*.{js,jsx,ts,tsx,css,scss,md,html}": "prettier --write --ignore-unknown"
   },
   "dependencies": {
+    "@radix-ui/react-popover": "1.1.4",
     "@vercel/analytics": "1.6.1",
     "@wonderland/interop-addresses": "workspace:*",
     "clsx": "2.1.1",
