@@ -114,7 +114,7 @@ function ErrorIcon() {
  */
 function ExternalLinkIcon() {
   return (
-    <svg className='w-3.5 h-3.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+    <svg className='w-5 h-5 shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
       <path
         strokeLinecap='round'
         strokeLinejoin='round'
@@ -160,15 +160,15 @@ function StepIndicator({ status }: { status: 'pending' | 'active' | 'complete' |
  */
 function SuccessView({ state, onReset }: IntentTrackingProps) {
   return (
-    <div className='p-6 rounded-xl border border-accent/30 bg-accent/5'>
+    <div className='p-4 sm:p-6 rounded-xl border border-accent/30 bg-accent/5'>
       {/* Success header */}
-      <div className='flex items-center gap-3 mb-4'>
-        <div className='w-12 h-12 rounded-full bg-accent flex items-center justify-center'>
-          <CheckIcon className='w-6 h-6 text-white' />
+      <div className='flex items-start gap-3 mb-4'>
+        <div className='w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-accent flex items-center justify-center shrink-0'>
+          <CheckIcon className='w-5 h-5 sm:w-6 sm:h-6 text-white' />
         </div>
-        <div>
-          <h3 className='text-lg font-semibold text-accent'>Intent Filled Successfully!</h3>
-          <p className='text-sm text-text-secondary'>{state.message}</p>
+        <div className='min-w-0'>
+          <h3 className='text-base sm:text-lg font-semibold text-accent'>Intent Filled Successfully!</h3>
+          <p className='text-xs sm:text-sm text-text-secondary break-words'>{state.message}</p>
         </div>
       </div>
 
@@ -179,17 +179,17 @@ function SuccessView({ state, onReset }: IntentTrackingProps) {
             href={`https://sepolia.etherscan.io/tx/${state.txHash}`}
             target='_blank'
             rel='noopener noreferrer'
-            className='flex items-center justify-between p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group'
+            className='block p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group'
           >
-            <div className='flex items-center gap-2'>
-              <div className='w-2 h-2 rounded-full bg-accent/60' />
-              <div>
-                <span className='text-sm text-text-primary'>Origin Transaction</span>
-                <span className='text-xs text-text-tertiary ml-2'>Ethereum Sepolia</span>
+            <div className='flex items-center justify-between mb-1'>
+              <div className='flex items-center gap-2'>
+                <div className='w-2 h-2 rounded-full bg-accent/60' />
+                <span className='text-sm font-medium text-text-primary'>Origin</span>
               </div>
+              <span className='text-xs text-text-tertiary'>Ethereum Sepolia</span>
             </div>
-            <div className='flex items-center gap-2 text-text-tertiary group-hover:text-accent'>
-              <span className='text-xs font-mono'>
+            <div className='flex items-center justify-between text-text-tertiary group-hover:text-accent'>
+              <span className='text-sm font-mono'>
                 {state.txHash.slice(0, 10)}...{state.txHash.slice(-8)}
               </span>
               <ExternalLinkIcon />
@@ -201,17 +201,17 @@ function SuccessView({ state, onReset }: IntentTrackingProps) {
             href={`https://sepolia.basescan.org/tx/${state.fillTxHash}`}
             target='_blank'
             rel='noopener noreferrer'
-            className='flex items-center justify-between p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group'
+            className='block p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group'
           >
-            <div className='flex items-center gap-2'>
-              <div className='w-2 h-2 rounded-full bg-accent' />
-              <div>
-                <span className='text-sm text-text-primary'>Fill Transaction</span>
-                <span className='text-xs text-text-tertiary ml-2'>Base Sepolia</span>
+            <div className='flex items-center justify-between mb-1'>
+              <div className='flex items-center gap-2'>
+                <div className='w-2 h-2 rounded-full bg-accent' />
+                <span className='text-sm font-medium text-text-primary'>Fill</span>
               </div>
+              <span className='text-xs text-text-tertiary'>Base Sepolia</span>
             </div>
-            <div className='flex items-center gap-2 text-text-tertiary group-hover:text-accent'>
-              <span className='text-xs font-mono'>
+            <div className='flex items-center justify-between text-text-tertiary group-hover:text-accent'>
+              <span className='text-sm font-mono'>
                 {state.fillTxHash.slice(0, 10)}...{state.fillTxHash.slice(-8)}
               </span>
               <ExternalLinkIcon />
