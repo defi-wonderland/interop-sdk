@@ -13,7 +13,8 @@
     "format:check": "prettier app --check",
     "lint": "eslint app",
     "lint:fix": "eslint app --fix",
-    "start": "next start"
+    "start": "next start",
+    "test:e2e": "playwright test"
   },
   "lint-staged": {
     "app/**/*.{js,jsx,ts,tsx}": "eslint --cache --fix",

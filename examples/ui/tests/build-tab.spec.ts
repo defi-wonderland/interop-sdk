@@ -16,7 +16,7 @@ test('Build tab - Convert address', async ({ page }) => {
 });
 
 test('Build tab - Use example chips', async ({ page }) => {
-    const exampleChips: string[] = ['vitalik.eth (Ethereum Mainnet)', 'nick.eth (Arbitrum One)', '0x1234...5678 (Ethereum Mainnet)'];
+    const exampleChips: string[] = ['vitalik.eth (Ethereum Mainnet)', 'nick.eth (Arbitrum One)', '0x8335...A02913 (Base)'];
 
     for (const locator of exampleChips) {
         await page.getByRole('button', { name: locator }).click();

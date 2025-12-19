@@ -13,8 +13,8 @@ test('"From text" tab - Convert address', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
 });
 
-test('Enter Human-readable - Use example chips', async ({ page }) => {
-    const exampleChips: string[] = ['vitalik.eth (Ethereum Mainnet)', 'nick.eth (Arbitrum One)', '0x1234...5678 (Ethereum Mainnet)'];
+test('"From text" - Use example chips', async ({ page }) => {
+    const exampleChips: string[] = ['vitalik.eth (Ethereum Mainnet)', 'nick.eth (Arbitrum One)', '0x8335...A02913 (Base)'];
     await page.getByRole('button', { name: 'From text' }).click();
     for (const locator of exampleChips) {
         await page.getByRole('button', { name: locator }).click();
