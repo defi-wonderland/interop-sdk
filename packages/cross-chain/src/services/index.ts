@@ -6,3 +6,5 @@ export * from "./IntentTracker.js";
 export * from "./intentTrackerFactory.js";
 export * from "./crossChainProviderFactory.js";
 export * from "./sortingStrategyFactory.js";
+export * from "./intentValidatorFactory.js";
+export * from "./intentValidationsAggregator.js";
