@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { cn } from '../utils/cn';
-import { DropdownContent } from './DropdownContent';
+import { useMemo } from 'react';
+import { Select, type SelectOption } from './Select';
 import type { Chain } from '../lib/getChains';
 
 interface ChainDropdownProps {
@@ -14,48 +13,40 @@ interface ChainDropdownProps {
 }
 
 export function ChainDropdown({ chains, value, onChange, id, className }: ChainDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const options: SelectOption[] = useMemo(
+    () =>
+      chains.map((chain) => ({
+        value: chain.shortName,
+        label: chain.name,
+        description: `${chain.shortName} • Chain ID: ${chain.chainId}`,
+      })),
+    [chains],
+  );
 
-  const filteredChains = useMemo(() => {
-    if (!value.trim()) return chains;
-    const search = value.toLowerCase();
-    return chains.filter(
-      (chain) =>
-        chain.name.toLowerCase().includes(search) ||
-        chain.shortName.toLowerCase().includes(search) ||
-        chain.chainId.toString().includes(value),
-    );
-  }, [value, chains]);
+  const selectedValue = useMemo(() => {
+    // Find matching chain: try by shortName first, then by chainId
+    let matchedChain = chains.find((chain) => chain.shortName === value);
 
-  const handleSelect = (chain: Chain) => {
-    onChange(chain.shortName);
-    setIsOpen(false);
-  };
+    if (!matchedChain) {
+      const numericChainId = Number(value);
+      if (!isNaN(numericChainId)) {
+        matchedChain = chains.find((chain) => chain.chainId === numericChainId);
+      }
+    }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
-    setIsOpen(true);
-  };
+    return matchedChain?.shortName || '';
+  }, [chains, value]);
 
   return (
-    <div className={cn('relative', className)}>
-      <input
-        id={id}
-        type='text'
-        value={value}
-        onChange={handleInputChange}
-        onFocus={() => setIsOpen(true)}
-        onClick={() => setIsOpen((prevOpen) => !prevOpen)}
-        onBlur={() => setIsOpen(false)}
-        placeholder='Search chain name...'
-        autoComplete='off'
-        className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20'
-      />
-      {isOpen && (
-        <div className='absolute z-50 w-full mt-1 bg-background border border-border/50 rounded-xl shadow-lg max-h-60 overflow-auto'>
-          <DropdownContent filteredChains={filteredChains} onSelect={handleSelect} />
-        </div>
-      )}
-    </div>
+    <Select
+      id={id}
+      value={selectedValue}
+      options={options}
+      onChange={onChange}
+      placeholder='Select chain...'
+      searchPlaceholder='Search chain...'
+      emptyMessage='No chains found'
+      className={className}
+    />
   );
 }
