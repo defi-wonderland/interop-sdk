@@ -20,7 +20,7 @@ vi.mock("viem", async () => {
 
 describe("erc7930", () => {
     describe("toHumanReadable", () => {
-        it("convert interop address to human readable", async () => {
+        it("convert interop address to human readable", () => {
             const interopAddress: InteropAddress = {
                 version: 1,
                 chainType: hexToBytes("0x0000"),
@@ -28,14 +28,14 @@ describe("erc7930", () => {
                 address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
             };
 
-            const humanReadableAddress = await toHumanReadable(interopAddress);
+            const humanReadableAddress = toHumanReadable(interopAddress);
 
             expect(humanReadableAddress).toEqual(
                 "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C",
             );
         });
 
-        it("convert solana interop address to human readable", async () => {
+        it("convert solana interop address to human readable", () => {
             const interopAddress: InteropAddress = {
                 version: 1,
                 chainType: hexToBytes("0x0002"),
@@ -47,14 +47,14 @@ describe("erc7930", () => {
                 ),
             };
 
-            const humanReadableAddress = await toHumanReadable(interopAddress);
+            const humanReadableAddress = toHumanReadable(interopAddress);
 
             expect(humanReadableAddress).toEqual(
                 "MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2@solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d#88835C11",
             );
         });
 
-        it("correctly format without address", async () => {
+        it("correctly format without address", () => {
             const interopAddress: InteropAddress = {
                 version: 1,
                 chainType: hexToBytes("0x0000"),
@@ -62,12 +62,12 @@ describe("erc7930", () => {
                 address: new Uint8Array(),
             };
 
-            const humanReadableAddress = await toHumanReadable(interopAddress);
+            const humanReadableAddress = toHumanReadable(interopAddress);
 
             expect(humanReadableAddress).toEqual("@eip155:1#F54D4FBF");
         });
 
-        it("correctly format without chain reference", async () => {
+        it("correctly format without chain reference", () => {
             const interopAddress: InteropAddress = {
                 version: 1,
                 chainType: hexToBytes("0x0002"),
@@ -76,10 +76,10 @@ describe("erc7930", () => {
             };
             const expected = "MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2@solana:#18D1CBB4";
 
-            expect(await toHumanReadable(interopAddress)).toBe(expected);
+            expect(toHumanReadable(interopAddress)).toBe(expected);
         });
 
-        it("should correctly format without chain reference and address", async () => {
+        it("should correctly format without chain reference and address", () => {
             const interopAddress: InteropAddress = {
                 version: 1,
                 chainType: hexToBytes("0x0002"),
@@ -88,10 +88,10 @@ describe("erc7930", () => {
             };
             const expected = "@solana:#F40BB840";
 
-            expect(await toHumanReadable(interopAddress)).toBe(expected);
+            expect(toHumanReadable(interopAddress)).toBe(expected);
         });
 
-        it("correctly format EVM rollup address", async () => {
+        it("correctly format EVM rollup address", () => {
             const interopAddress: InteropAddress = {
                 version: 1,
                 chainType: hexToBytes("0x0000"),
@@ -100,10 +100,10 @@ describe("erc7930", () => {
             };
 
             const expected = "0xD46acbA18e4f3C8b8b6c501DF1a6B05609a642Bd@eip155:10#CCA85AD3";
-            expect(await toHumanReadable(interopAddress)).toBe(expected);
+            expect(toHumanReadable(interopAddress)).toBe(expected);
         });
 
-        it("throw an error if the chain type is not supported", async () => {
+        it("throw an error if the chain type is not supported", () => {
             const interopAddress: InteropAddress = {
                 version: 1,
                 chainType: hexToBytes("0xffff"), // invalid chain type
@@ -111,7 +111,7 @@ describe("erc7930", () => {
                 address: hexToBytes("0xD46acbA18e4f3C8b8b6c501DF1a6B05609a642Bd"),
             };
 
-            await expect(toHumanReadable(interopAddress)).rejects.toThrow(UnsupportedChainType);
+            expect(() => toHumanReadable(interopAddress)).toThrow(UnsupportedChainType);
         });
 
         // FIXME: use ERC-7828 to reverse resolution of ENS addresses

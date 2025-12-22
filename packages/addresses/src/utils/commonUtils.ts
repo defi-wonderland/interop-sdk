@@ -1,14 +1,5 @@
 import bs58 from "bs58";
-import {
-    bytesToNumber,
-    createPublicClient,
-    fromHex,
-    getAddress,
-    http,
-    isAddress,
-    toHex,
-} from "viem";
-import { mainnet } from "viem/chains";
+import { bytesToNumber, fromHex, getAddress, isAddress, toHex } from "viem";
 
 import type {
     Address,
@@ -168,37 +159,19 @@ export const parseAddress = (binaryAddress: Uint8Array): Address => {
 };
 
 /**
- * Formats an address based on the chain type
- * @param address - The address to format
- * @param chainType - The chain type to format the address for
- * @param options - The options to format the address
- * @param options.acceptENS - Whether to accept ENS names
- * @returns The formatted address
- * @throws An error if the chain type is not supported
+ * Formats an address based on the chain type.
+ * @param address - The address to format.
+ * @param chainType - The chain type to format the address for.
+ * @returns The formatted address.
+ * @throws An error if the chain type is not supported.
  */
-export const formatAddress = async <T extends ChainTypeName>(
+export const formatAddress = <T extends ChainTypeName>(
     address: Uint8Array,
     chainType: ChainType,
-    options: { acceptENS?: boolean } = {},
-): Promise<EncodedAddress<T>> => {
-    const { acceptENS = false } = options;
+): EncodedAddress<T> => {
     const chainTypeHex = toHex(chainType);
     switch (chainTypeHex) {
         case ChainTypeValue.EIP155:
-            const hexAddress = toHex(address);
-            // FIXME: use ERC-7828 to reverse resolution of ENS addresses
-            if (acceptENS) {
-                const client = createPublicClient({
-                    chain: mainnet,
-                    transport: http(),
-                });
-                const ensName = await client.getEnsName({
-                    address: hexAddress,
-                });
-                if (ensName) {
-                    return ensName as EncodedAddress<T>;
-                }
-            }
             return getAddress(toHex(address)) as EncodedAddress<T>;
         case ChainTypeValue.SOLANA:
             return bs58.encode(address) as EncodedAddress<T>;
