@@ -31,7 +31,7 @@ const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
 const binaryAddress = await InteropAddressProvider.humanReadableToBinary(humanReadableAddress);
 
 // Convert a binary address back to human-readable format
-const humanReadable = await InteropAddressProvider.binaryToHumanReadable(binaryAddress);
+const humanReadable = InteropAddressProvider.binaryToHumanReadable(binaryAddress);
 
 // Extract chain ID from a binary address
 const chainId = await InteropAddressProvider.getChainId(binaryAddress);
@@ -54,6 +54,7 @@ import {
 
 const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
 const binaryAddress = await humanReadableToBinary(humanReadableAddress);
+const roundTripped = binaryToHumanReadable(binaryAddress);
 ```
 
 ## Address Format

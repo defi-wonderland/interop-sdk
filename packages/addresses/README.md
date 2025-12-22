@@ -32,12 +32,12 @@ const binaryAddress = await humanReadableToBinary(humanReadableAddress)
 
 Available methods
 
--   `humanReadableToBinary(humanReadableAddress: string)`
--   `binaryToHumanReadable(binaryAddress: Hex)`
--   `getChainId(humanReadableAddress | binaryAddress)`
--   `getAddress(humanReadableAddress | binaryAddress)`
--   `buildFromPayload(payload: InteropAddressFields)`
--   `computeChecksum(humanReadableAddress: string)`
+-   `humanReadableToBinary(humanReadableAddress: string): Promise<BinaryAddress>`
+-   `binaryToHumanReadable(binaryAddress: Hex): HumanReadableAddress`
+-   `getChainId(humanReadableAddress | binaryAddress): Promise<EncodedChainReference<ChainTypeName>>`
+-   `getAddress(humanReadableAddress | binaryAddress): Promise<EncodedAddress<ChainTypeName>>`
+-   `buildFromPayload(payload: InteropAddressFields): BinaryAddress`
+-   `computeChecksum(humanReadableAddress: string): Promise<Checksum>`
 
 All methods are also exported as individual functions to allow maximum modularity and tree-shaking
 
