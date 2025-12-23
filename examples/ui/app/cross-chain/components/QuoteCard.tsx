@@ -1,17 +1,16 @@
 'use client';
 
 import { NOT_AVAILABLE } from '../constants';
+import { EXECUTION_STATUS, type IntentExecutionStatus } from '../types/execution';
 import { formatQuoteData } from '../utils/quoteFormatter';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
-
-type ExecutionStatus = 'idle' | 'checking-approval' | 'approving' | 'pending' | 'confirming' | 'success' | 'error';
 
 interface QuoteCardProps {
   quote: ExecutableQuote;
   inputTokenAddress: string;
   outputTokenAddress: string;
   isSelected?: boolean;
-  executionStatus?: ExecutionStatus;
+  executionStatus?: IntentExecutionStatus;
   hideExecuteButton?: boolean;
   onSelect?: (quote: ExecutableQuote) => void;
   onExecute?: (quote: ExecutableQuote) => void;
@@ -37,7 +36,7 @@ export function QuoteCard({
   inputTokenAddress,
   outputTokenAddress,
   isSelected,
-  executionStatus = 'idle',
+  executionStatus = EXECUTION_STATUS.IDLE,
   hideExecuteButton = false,
   onSelect,
   onExecute,
@@ -81,35 +80,35 @@ export function QuoteCard({
     );
 
     switch (executionStatus) {
-      case 'checking-approval':
+      case EXECUTION_STATUS.CHECKING_APPROVAL:
         return (
           <>
             {spinnerIcon}
             <span>Checking...</span>
           </>
         );
-      case 'approving':
+      case EXECUTION_STATUS.APPROVING:
         return (
           <>
             {spinnerIcon}
             <span>Approving...</span>
           </>
         );
-      case 'pending':
+      case EXECUTION_STATUS.SUBMITTING:
         return (
           <>
             {spinnerIcon}
             <span>Confirm...</span>
           </>
         );
-      case 'confirming':
+      case EXECUTION_STATUS.CONFIRMING:
         return (
           <>
             {spinnerIcon}
             <span>Pending...</span>
           </>
         );
-      case 'success':
+      case EXECUTION_STATUS.FILLED:
         return (
           <>
             <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
@@ -118,7 +117,7 @@ export function QuoteCard({
             <span>Sent!</span>
           </>
         );
-      case 'error':
+      case EXECUTION_STATUS.ERROR:
         return (
           <>
             <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
@@ -140,12 +139,12 @@ export function QuoteCard({
   };
 
   const isExecuting =
-    executionStatus === 'checking-approval' ||
-    executionStatus === 'approving' ||
-    executionStatus === 'pending' ||
-    executionStatus === 'confirming';
+    executionStatus === EXECUTION_STATUS.CHECKING_APPROVAL ||
+    executionStatus === EXECUTION_STATUS.APPROVING ||
+    executionStatus === EXECUTION_STATUS.SUBMITTING ||
+    executionStatus === EXECUTION_STATUS.CONFIRMING;
 
-  const isFinished = executionStatus === 'success' || executionStatus === 'error';
+  const isFinished = executionStatus === EXECUTION_STATUS.FILLED || executionStatus === EXECUTION_STATUS.ERROR;
 
   // Button styling: darker when loading, normal otherwise (no green for success)
   const executeButtonClasses = isExecuting

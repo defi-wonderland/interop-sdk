@@ -13,6 +13,12 @@ import { erc20Abi, type Address, type Hex } from 'viem';
 import { sepolia, baseSepolia, arbitrumSepolia } from 'viem/chains';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { PROVIDERS, TIMEOUT_MS } from '../constants';
+import {
+  EXECUTION_STATUS,
+  type ExecuteResult,
+  type IntentExecutionState,
+  type IntentExecutionStatus,
+} from '../types/execution';
 import { isUserRejectionError } from '../utils/errorMessages';
 
 // Public RPC URLs for intent tracking (read-only operations)
@@ -21,36 +27,6 @@ const RPC_URLS: Record<number, string> = {
   [baseSepolia.id]: 'https://base-sepolia-rpc.publicnode.com',
   [arbitrumSepolia.id]: 'https://api.zan.top/arb-sepolia',
 };
-
-/**
- * All possible states during intent execution and tracking
- */
-export type IntentExecutionStatus =
-  | 'idle' // Not started
-  | 'checking-approval' // Checking if token approval is needed
-  | 'approving' // Waiting for approval transaction
-  | 'submitting' // Sending bridge transaction
-  | 'confirming' // Waiting for bridge tx to confirm on origin chain
-  | 'opening' // SDK: Parsing intent from transaction
-  | 'opened' // SDK: Intent opened, orderId available
-  | 'filling' // SDK: Waiting for solver to fill on destination chain
-  | 'filled' // SDK: Intent successfully filled!
-  | 'expired' // SDK: Fill deadline passed
-  | 'error'; // Something failed
-
-export interface IntentExecutionState {
-  status: IntentExecutionStatus;
-  message: string;
-  txHash?: Hex;
-  fillTxHash?: Hex;
-  orderId?: Hex;
-  error?: Error;
-}
-
-export interface ExecuteResult {
-  success: boolean;
-  userRejected?: boolean;
-}
 
 interface UseIntentExecutionReturn {
   state: IntentExecutionState;
@@ -68,7 +44,7 @@ interface UseIntentExecutionReturn {
 }
 
 const INITIAL_STATE: IntentExecutionState = {
-  status: 'idle',
+  status: EXECUTION_STATUS.IDLE,
   message: '',
 };
 
@@ -86,9 +62,20 @@ export function useIntentExecution(): UseIntentExecutionReturn {
   const [state, setState] = useState<IntentExecutionState>(INITIAL_STATE);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const isExecuting = ['checking-approval', 'approving', 'submitting', 'confirming'].includes(state.status);
-  const isTracking = ['opening', 'opened', 'filling'].includes(state.status);
-  const isComplete = ['filled', 'expired', 'error'].includes(state.status);
+  const isExecuting = (
+    [
+      EXECUTION_STATUS.CHECKING_APPROVAL,
+      EXECUTION_STATUS.APPROVING,
+      EXECUTION_STATUS.SUBMITTING,
+      EXECUTION_STATUS.CONFIRMING,
+    ] as IntentExecutionStatus[]
+  ).includes(state.status);
+  const isTracking = (
+    [EXECUTION_STATUS.OPENING, EXECUTION_STATUS.OPENED, EXECUTION_STATUS.FILLING] as IntentExecutionStatus[]
+  ).includes(state.status);
+  const isComplete = (
+    [EXECUTION_STATUS.FILLED, EXECUTION_STATUS.EXPIRED, EXECUTION_STATUS.ERROR] as IntentExecutionStatus[]
+  ).includes(state.status);
 
   const execute = useCallback(
     async (
@@ -104,16 +91,20 @@ export function useIntentExecution(): UseIntentExecutionReturn {
       }
       abortControllerRef.current = new AbortController();
 
-      setState({ status: 'idle', message: '' });
+      setState({ status: EXECUTION_STATUS.IDLE, message: '' });
 
       if (!isConnected || !address) {
-        setState({ status: 'error', message: 'Wallet not connected', error: new Error('Wallet not connected') });
+        setState({
+          status: EXECUTION_STATUS.ERROR,
+          message: 'Wallet not connected',
+          error: new Error('Wallet not connected'),
+        });
         return { success: false };
       }
 
       if (!walletClient || !publicClient) {
         setState({
-          status: 'error',
+          status: EXECUTION_STATUS.ERROR,
           message: 'Wallet client not available',
           error: new Error('Wallet client not available'),
         });
@@ -132,7 +123,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
 
       if (!order?.payload?.to || !order?.payload?.data) {
         setState({
-          status: 'error',
+          status: EXECUTION_STATUS.ERROR,
           message: 'Invalid quote: missing transaction data',
           error: new Error('Invalid quote: missing transaction data'),
         });
@@ -143,7 +134,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
 
       try {
         // ========== PHASE 1: Token Approval ==========
-        setState({ status: 'checking-approval', message: 'Checking token allowance...' });
+        setState({ status: EXECUTION_STATUS.CHECKING_APPROVAL, message: 'Checking token allowance...' });
 
         let allowance = await publicClient.readContract({
           address: inputTokenAddress,
@@ -153,7 +144,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
         });
 
         if (allowance < inputAmount) {
-          setState({ status: 'approving', message: 'Please approve token spending in your wallet...' });
+          setState({ status: EXECUTION_STATUS.APPROVING, message: 'Please approve token spending in your wallet...' });
 
           const approvalHash = await walletClient.writeContract({
             address: inputTokenAddress,
@@ -162,7 +153,11 @@ export function useIntentExecution(): UseIntentExecutionReturn {
             args: [spenderAddress, inputAmount],
           });
 
-          setState({ status: 'approving', message: 'Waiting for approval confirmation...', txHash: approvalHash });
+          setState({
+            status: EXECUTION_STATUS.APPROVING,
+            message: 'Waiting for approval confirmation...',
+            txHash: approvalHash,
+          });
 
           // Wait for approval confirmation with retry logic
           try {
@@ -185,14 +180,17 @@ export function useIntentExecution(): UseIntentExecutionReturn {
         }
 
         // ========== PHASE 2: Bridge Transaction ==========
-        setState({ status: 'submitting', message: 'Please confirm the bridge transaction in your wallet...' });
+        setState({
+          status: EXECUTION_STATUS.SUBMITTING,
+          message: 'Please confirm the bridge transaction in your wallet...',
+        });
 
         const txHash = await walletClient.sendTransaction({
           to: order.payload.to,
           data: order.payload.data,
         });
 
-        setState({ status: 'confirming', message: 'Waiting for transaction confirmation...', txHash });
+        setState({ status: EXECUTION_STATUS.CONFIRMING, message: 'Waiting for transaction confirmation...', txHash });
 
         // Wait for transaction confirmation - this is REQUIRED before tracking
         // The Open event won't exist until the transaction is mined
@@ -212,12 +210,12 @@ export function useIntentExecution(): UseIntentExecutionReturn {
 
         if (!confirmed) {
           // Transaction might still be pending - wait a bit more
-          setState({ status: 'confirming', message: 'Waiting for block confirmation...', txHash });
+          setState({ status: EXECUTION_STATUS.CONFIRMING, message: 'Waiting for block confirmation...', txHash });
           await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS.BLOCK_CONFIRMATION_WAIT));
         }
 
         // ========== PHASE 3: Intent Tracking ==========
-        setState({ status: 'opening', message: 'Transaction confirmed! Parsing intent...', txHash });
+        setState({ status: EXECUTION_STATUS.OPENING, message: 'Transaction confirmed! Parsing intent...', txHash });
 
         // Create tracker for the protocol
         // Get the Across provider config from our constants
@@ -248,7 +246,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
             setState(newState);
 
             // Stop if we reached a terminal state
-            if (update.status === 'filled' || update.status === 'expired') {
+            if (update.status === EXECUTION_STATUS.FILLED || update.status === EXECUTION_STATUS.EXPIRED) {
               break;
             }
           }
@@ -256,7 +254,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
           // Tracking failed - show as "filling" with manual check message
           console.warn('Intent tracking failed:', trackingErr);
           setState({
-            status: 'filling',
+            status: EXECUTION_STATUS.FILLING,
             message: 'Transfer in progress! Check Across explorer for fill status.',
             txHash,
           });
@@ -272,7 +270,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
 
         const error = err instanceof Error ? err : new Error(String(err));
         setState({
-          status: 'error',
+          status: EXECUTION_STATUS.ERROR,
           message: error.message,
           error,
           txHash: state.txHash,
@@ -309,7 +307,7 @@ function customizeMessage(update: IntentUpdate): string {
   const { status, message } = update;
 
   switch (status) {
-    case 'filling':
+    case EXECUTION_STATUS.FILLING:
       // Replace "relayer" with "solver" and add context
       if (message.includes('Waiting for relayer')) {
         return 'Waiting for solver to fill intent on destination chain...';
@@ -319,7 +317,7 @@ function customizeMessage(update: IntentUpdate): string {
       }
       return message.replace(/relayer/gi, 'solver');
 
-    case 'filled':
+    case EXECUTION_STATUS.FILLED:
       // Add destination chain context
       if (message.includes('Intent filled in block')) {
         const blockMatch = message.match(/block (\d+)/);

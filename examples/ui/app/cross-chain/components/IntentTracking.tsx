@@ -1,6 +1,6 @@
 'use client';
 
-import { type IntentExecutionState, type IntentExecutionStatus } from '../hooks/useIntentExecution';
+import { EXECUTION_STATUS, type IntentExecutionState, type IntentExecutionStatus } from '../types/execution';
 
 interface IntentTrackingProps {
   state: IntentExecutionState;
@@ -14,22 +14,22 @@ const STEPS = [
   {
     id: 'approval',
     label: 'Approval',
-    statuses: ['checking-approval', 'approving'] as IntentExecutionStatus[],
+    statuses: [EXECUTION_STATUS.CHECKING_APPROVAL, EXECUTION_STATUS.APPROVING] as IntentExecutionStatus[],
   },
   {
     id: 'submit',
     label: 'Submit',
-    statuses: ['submitting', 'confirming'] as IntentExecutionStatus[],
+    statuses: [EXECUTION_STATUS.SUBMITTING, EXECUTION_STATUS.CONFIRMING] as IntentExecutionStatus[],
   },
   {
     id: 'opening',
     label: 'Opening',
-    statuses: ['opening', 'opened'] as IntentExecutionStatus[],
+    statuses: [EXECUTION_STATUS.OPENING, EXECUTION_STATUS.OPENED] as IntentExecutionStatus[],
   },
   {
     id: 'filling',
     label: 'Filling',
-    statuses: ['filling'] as IntentExecutionStatus[],
+    statuses: [EXECUTION_STATUS.FILLING] as IntentExecutionStatus[],
   },
 ];
 
@@ -42,7 +42,7 @@ function getStepStatus(
   stepIndex: number,
 ): 'pending' | 'active' | 'complete' | 'error' {
   // Error state - mark current step as error
-  if (currentStatus === 'error') {
+  if (currentStatus === EXECUTION_STATUS.ERROR) {
     const currentStepIndex = STEPS.findIndex((s) => s.statuses.includes(currentStatus));
     if (stepIndex === currentStepIndex || (currentStepIndex === -1 && stepIndex === 0)) {
       return 'error';
@@ -50,7 +50,7 @@ function getStepStatus(
   }
 
   // Expired is treated as error on the filling step
-  if (currentStatus === 'expired' && stepStatuses.includes('filling')) {
+  if (currentStatus === EXECUTION_STATUS.EXPIRED && stepStatuses.includes(EXECUTION_STATUS.FILLING)) {
     return 'error';
   }
 
@@ -61,7 +61,10 @@ function getStepStatus(
 
   // Check if step is complete (any later step is active or complete)
   const currentStepIndex = STEPS.findIndex(
-    (s) => s.statuses.includes(currentStatus) || currentStatus === 'filled' || currentStatus === 'expired',
+    (s) =>
+      s.statuses.includes(currentStatus) ||
+      currentStatus === EXECUTION_STATUS.FILLED ||
+      currentStatus === EXECUTION_STATUS.EXPIRED,
   );
 
   if (currentStepIndex > stepIndex) {
@@ -259,7 +262,7 @@ function SuccessView({ state, onReset }: IntentTrackingProps) {
  * Error/Expired view component
  */
 function ErrorView({ state, onReset }: IntentTrackingProps) {
-  const isExpired = state.status === 'expired';
+  const isExpired = state.status === EXECUTION_STATUS.EXPIRED;
 
   return (
     <div className='p-6 rounded-xl border border-red-500/30 bg-red-500/5'>
@@ -384,8 +387,8 @@ function ProgressView({ state }: { state: IntentExecutionState }) {
  * Shows different views based on the intent execution state
  */
 export function IntentTracking({ state, onReset }: IntentTrackingProps) {
-  const isComplete = state.status === 'filled';
-  const isError = state.status === 'error' || state.status === 'expired';
+  const isComplete = state.status === EXECUTION_STATUS.FILLED;
+  const isError = state.status === EXECUTION_STATUS.ERROR || state.status === EXECUTION_STATUS.EXPIRED;
 
   // Show success view when filled
   if (isComplete) {

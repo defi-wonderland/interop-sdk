@@ -1,5 +1,6 @@
 'use client';
 
+import { EXECUTION_STATUS, type IntentExecutionStatus } from '../types/execution';
 import { ErrorList } from './ErrorList';
 import { QuoteCard } from './QuoteCard';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
@@ -9,15 +10,13 @@ interface ErrorItem {
   error: Error;
 }
 
-type ExecutionStatus = 'idle' | 'checking-approval' | 'approving' | 'pending' | 'confirming' | 'success' | 'error';
-
 interface QuoteListProps {
   quotes: ExecutableQuote[];
   errors: ErrorItem[];
   inputTokenAddress: string;
   outputTokenAddress: string;
   selectedQuoteId?: string;
-  executionStatus?: ExecutionStatus;
+  executionStatus?: IntentExecutionStatus;
   onSelectQuote?: (quote: ExecutableQuote) => void;
   onExecuteQuote?: (quote: ExecutableQuote) => void;
 }
@@ -89,7 +88,7 @@ export function QuoteList({
                   inputTokenAddress={inputTokenAddress}
                   outputTokenAddress={outputTokenAddress}
                   isSelected={selectedQuoteId === quote.quoteId}
-                  executionStatus={selectedQuoteId === quote.quoteId ? executionStatus : 'idle'}
+                  executionStatus={selectedQuoteId === quote.quoteId ? executionStatus : EXECUTION_STATUS.IDLE}
                   onSelect={onSelectQuote}
                   onExecute={onExecuteQuote}
                 />

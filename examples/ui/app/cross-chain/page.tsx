@@ -5,6 +5,7 @@ import { Footer, Navigation } from '../components';
 import { IntentTracking, QuoteCard, QuoteDetails, QuoteList, SwapForm, Toast, type ToastType } from './components';
 import { useIntentExecution } from './hooks';
 import { useQuotes } from './hooks/useQuotes';
+import { EXECUTION_STATUS } from './types/execution';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address } from 'viem';
 
@@ -26,7 +27,7 @@ export default function CrossChainPage() {
   const [toast, setToast] = useState<ToastState | null>(null);
 
   // Determine if we're in "tracking mode" (execution started)
-  const isInTrackingMode = executionState.status !== 'idle';
+  const isInTrackingMode = executionState.status !== EXECUTION_STATUS.IDLE;
 
   const closeToast = useCallback(() => {
     setToast(null);
@@ -121,7 +122,7 @@ export default function CrossChainPage() {
                   inputTokenAddress={selectedInputToken}
                   outputTokenAddress={selectedOutputToken}
                   selectedQuoteId={selectedQuote?.quoteId}
-                  executionStatus='idle'
+                  executionStatus={EXECUTION_STATUS.IDLE}
                   onSelectQuote={handleSelectQuote}
                   onExecuteQuote={handleExecuteQuote}
                 />
