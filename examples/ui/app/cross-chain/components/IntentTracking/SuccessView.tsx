@@ -1,7 +1,13 @@
+import { getChainConfig, getExplorerTxUrl } from '../../constants/chains';
 import { CheckIcon, ExternalLinkIcon } from '../icons';
 import type { IntentTrackingProps } from './types';
 
 export function SuccessView({ state, onReset }: IntentTrackingProps) {
+  const originChain = getChainConfig(state.originChainId);
+  const destinationChain = getChainConfig(state.destinationChainId);
+  const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
+  const fillTxUrl = getExplorerTxUrl(state.destinationChainId, state.fillTxHash);
+
   return (
     <div className='p-4 sm:p-6 rounded-xl border border-accent/30 bg-accent/5'>
       {/* Success header */}
@@ -17,9 +23,9 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
 
       {/* Transaction links */}
       <div className='space-y-2 mb-4'>
-        {state.txHash && (
+        {state.txHash && originTxUrl && (
           <a
-            href={`https://sepolia.etherscan.io/tx/${state.txHash}`}
+            href={originTxUrl}
             target='_blank'
             rel='noopener noreferrer'
             className='block p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group'
@@ -29,7 +35,7 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
                 <div className='w-2 h-2 rounded-full bg-accent/60' />
                 <span className='text-sm font-medium text-text-primary'>Origin</span>
               </div>
-              <span className='text-xs text-text-tertiary'>Ethereum Sepolia</span>
+              <span className='text-xs text-text-tertiary'>{originChain?.name ?? 'Unknown'}</span>
             </div>
             <div className='flex items-center justify-between text-text-tertiary group-hover:text-accent'>
               <span className='text-sm font-mono'>
@@ -39,9 +45,9 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
             </div>
           </a>
         )}
-        {state.fillTxHash && (
+        {state.fillTxHash && fillTxUrl && (
           <a
-            href={`https://sepolia.basescan.org/tx/${state.fillTxHash}`}
+            href={fillTxUrl}
             target='_blank'
             rel='noopener noreferrer'
             className='block p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group'
@@ -51,7 +57,7 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
                 <div className='w-2 h-2 rounded-full bg-accent' />
                 <span className='text-sm font-medium text-text-primary'>Fill</span>
               </div>
-              <span className='text-xs text-text-tertiary'>Base Sepolia</span>
+              <span className='text-xs text-text-tertiary'>{destinationChain?.name ?? 'Unknown'}</span>
             </div>
             <div className='flex items-center justify-between text-text-tertiary group-hover:text-accent'>
               <span className='text-sm font-mono'>

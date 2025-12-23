@@ -1,9 +1,12 @@
+import { getChainConfig, getExplorerTxUrl } from '../../constants/chains';
 import { EXECUTION_STATUS } from '../../types/execution';
 import { CloseIcon, ExternalLinkIcon } from '../icons';
 import type { IntentTrackingProps } from './types';
 
 export function ErrorView({ state, onReset }: IntentTrackingProps) {
   const isExpired = state.status === EXECUTION_STATUS.EXPIRED;
+  const originChain = getChainConfig(state.originChainId);
+  const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
 
   return (
     <div className='p-6 rounded-xl border border-red-500/30 bg-red-500/5'>
@@ -19,16 +22,16 @@ export function ErrorView({ state, onReset }: IntentTrackingProps) {
       </div>
 
       {/* Transaction link if available */}
-      {state.txHash && (
+      {state.txHash && originTxUrl && (
         <a
-          href={`https://sepolia.etherscan.io/tx/${state.txHash}`}
+          href={originTxUrl}
           target='_blank'
           rel='noopener noreferrer'
           className='flex items-center justify-between p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group mb-4'
         >
           <div className='flex items-center gap-2'>
             <div className='w-2 h-2 rounded-full bg-blue-400' />
-            <span className='text-sm text-text-primary'>Origin Transaction</span>
+            <span className='text-sm text-text-primary'>Origin Transaction ({originChain?.name ?? 'Unknown'})</span>
           </div>
           <div className='flex items-center gap-2 text-text-tertiary group-hover:text-accent'>
             <span className='text-xs font-mono'>

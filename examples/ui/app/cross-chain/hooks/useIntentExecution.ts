@@ -224,7 +224,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
             }
 
             // Map SDK update to our state
-            const newState = mapIntentUpdateToState(update, txHash);
+            const newState = mapIntentUpdateToState(update, txHash, originChainId, destinationChainId);
             setState(newState);
 
             // Stop if we reached a terminal state
@@ -239,6 +239,8 @@ export function useIntentExecution(): UseIntentExecutionReturn {
             status: EXECUTION_STATUS.FILLING,
             message: 'Transfer in progress! Check Across explorer for fill status.',
             txHash,
+            originChainId,
+            destinationChainId,
           });
         }
 
@@ -316,12 +318,19 @@ function customizeMessage(update: IntentUpdate): string {
 /**
  * Maps SDK IntentUpdate to our IntentExecutionState
  */
-function mapIntentUpdateToState(update: IntentUpdate, txHash: Hex): IntentExecutionState {
+function mapIntentUpdateToState(
+  update: IntentUpdate,
+  txHash: Hex,
+  originChainId: number,
+  destinationChainId: number,
+): IntentExecutionState {
   return {
     status: update.status as IntentExecutionStatus,
     message: customizeMessage(update),
     txHash,
     fillTxHash: update.fillTxHash,
     orderId: update.orderId,
+    originChainId,
+    destinationChainId,
   };
 }

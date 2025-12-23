@@ -33,6 +33,8 @@ export interface IntentExecutionState {
   fillTxHash?: Hex;
   orderId?: Hex;
   error?: Error;
+  originChainId?: number;
+  destinationChainId?: number;
 }
 
 export interface ExecuteResult {
