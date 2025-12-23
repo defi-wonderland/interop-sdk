@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { WarningIcon, ChevronDownIcon } from './icons';
 
 interface ErrorItem {
   errorMsg: string;
@@ -27,26 +28,12 @@ export function ErrorList({ errors }: ErrorListProps) {
         className='w-full px-4 py-3 flex items-center justify-between hover:bg-error-light/20 transition-colors'
       >
         <div className='flex items-center gap-2'>
-          <svg className='w-4 h-4 text-error' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-            <path
-              strokeLinecap='round'
-              strokeLinejoin='round'
-              strokeWidth={2}
-              d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'
-            />
-          </svg>
+          <WarningIcon className='w-4 h-4 text-error' />
           <span className='font-medium text-error'>
             {errors.length} {errors.length === 1 ? 'Error' : 'Errors'}
           </span>
         </div>
-        <svg
-          className={`w-4 h-4 text-error transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-          fill='none'
-          stroke='currentColor'
-          viewBox='0 0 24 24'
-        >
-          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
-        </svg>
+        <ChevronDownIcon className={`w-4 h-4 text-error transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Error list - Expandable */}

@@ -1,4 +1,4 @@
-import { CheckIcon, ExternalLinkIcon } from './icons';
+import { CheckIcon, ExternalLinkIcon } from '../icons';
 import type { IntentTrackingProps } from './types';
 
 export function SuccessView({ state, onReset }: IntentTrackingProps) {

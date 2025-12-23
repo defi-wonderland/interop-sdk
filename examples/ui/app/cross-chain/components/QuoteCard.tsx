@@ -3,6 +3,7 @@
 import { NOT_AVAILABLE } from '../constants';
 import { EXECUTION_STATUS, type IntentExecutionStatus } from '../types/execution';
 import { formatQuoteData } from '../utils/quoteFormatter';
+import { SpinnerIcon, CheckIcon, CloseIcon, BoltIcon, ClockIcon, QuestionIcon } from './icons';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 
 interface QuoteCardProps {
@@ -68,70 +69,53 @@ export function QuoteCard({
 
   // Execute button content based on status
   const getExecuteButtonContent = () => {
-    const spinnerIcon = (
-      <svg className='w-4 h-4 animate-spin' fill='none' viewBox='0 0 24 24'>
-        <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
-        <path
-          className='opacity-75'
-          fill='currentColor'
-          d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-        />
-      </svg>
-    );
-
     switch (executionStatus) {
       case EXECUTION_STATUS.CHECKING_APPROVAL:
         return (
           <>
-            {spinnerIcon}
+            <SpinnerIcon />
             <span>Checking...</span>
           </>
         );
       case EXECUTION_STATUS.APPROVING:
         return (
           <>
-            {spinnerIcon}
+            <SpinnerIcon />
             <span>Approving...</span>
           </>
         );
       case EXECUTION_STATUS.SUBMITTING:
         return (
           <>
-            {spinnerIcon}
+            <SpinnerIcon />
             <span>Confirm...</span>
           </>
         );
       case EXECUTION_STATUS.CONFIRMING:
         return (
           <>
-            {spinnerIcon}
+            <SpinnerIcon />
             <span>Pending...</span>
           </>
         );
       case EXECUTION_STATUS.FILLED:
         return (
           <>
-            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
-            </svg>
+            <CheckIcon />
             <span>Sent!</span>
           </>
         );
       case EXECUTION_STATUS.ERROR:
         return (
           <>
-            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
-            </svg>
+            <CloseIcon />
             <span>Failed</span>
           </>
         );
       default:
         return (
           <>
-            <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-              <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M13 10V3L4 14h7v7l9-11h-7z' />
-            </svg>
+            <BoltIcon />
             <span>Execute</span>
           </>
         );
@@ -172,14 +156,7 @@ export function QuoteCard({
             {/* ETA */}
             {formatted.eta !== NOT_AVAILABLE && (
               <div className='flex items-center gap-1 text-xs text-text-secondary font-medium'>
-                <svg className='w-3.5 h-3.5 shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
-                  />
-                </svg>
+                <ClockIcon className='w-3.5 h-3.5 shrink-0' />
                 <span>{formatted.eta}</span>
               </div>
             )}
@@ -187,9 +164,7 @@ export function QuoteCard({
             {/* Cost: Fee + Gas (prefer USD display for consistency) */}
             {(hasFee || hasGas || gasUnknown) && (
               <div className='flex items-center gap-1.5 text-xs text-text-tertiary'>
-                <svg className='w-3.5 h-3.5 shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M13 10V3L4 14h7v7l9-11h-7z' />
-                </svg>
+                <BoltIcon className='w-3.5 h-3.5 shrink-0' />
                 <span className='text-right'>
                   {useUsdDisplay ? (
                     <>
@@ -200,14 +175,7 @@ export function QuoteCard({
                       {gasUnknown && !hasGasUsd && (
                         <span className='inline-flex items-center gap-0.5 group relative'>
                           <span>gas TBD</span>
-                          <svg className='w-3 h-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                            <path
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                              strokeWidth={2}
-                              d='M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-                            />
-                          </svg>
+                          <QuestionIcon className='w-3 h-3' />
                           <span className='absolute bottom-full right-0 mb-2 px-3 py-2 text-xs text-text-primary bg-surface border border-border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-20'>
                             Gas estimated after approval
                           </span>
@@ -231,14 +199,7 @@ export function QuoteCard({
                       {gasUnknown && !hasGas && (
                         <span className='inline-flex items-center gap-0.5 group relative'>
                           <span>gas TBD</span>
-                          <svg className='w-3 h-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                            <path
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                              strokeWidth={2}
-                              d='M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-                            />
-                          </svg>
+                          <QuestionIcon className='w-3 h-3' />
                           <span className='absolute bottom-full right-0 mb-2 px-3 py-2 text-xs text-text-primary bg-surface border border-border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-20'>
                             Gas estimated after approval
                           </span>

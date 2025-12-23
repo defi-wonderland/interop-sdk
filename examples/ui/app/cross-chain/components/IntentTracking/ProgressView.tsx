@@ -1,6 +1,6 @@
 import { INTENT_STEPS, getStepStatus } from '../../utils/intentTrackingHelpers';
+import { ExternalLinkIcon } from '../icons';
 import { StepIndicator } from './StepIndicator';
-import { ExternalLinkIcon } from './icons';
 import type { IntentExecutionState } from '../../types/execution';
 
 export function ProgressView({ state }: { state: IntentExecutionState }) {

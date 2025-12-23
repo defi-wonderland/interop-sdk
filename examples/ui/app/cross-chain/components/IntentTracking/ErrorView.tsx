@@ -1,5 +1,5 @@
 import { EXECUTION_STATUS } from '../../types/execution';
-import { ErrorIcon, ExternalLinkIcon } from './icons';
+import { CloseIcon, ExternalLinkIcon } from '../icons';
 import type { IntentTrackingProps } from './types';
 
 export function ErrorView({ state, onReset }: IntentTrackingProps) {
@@ -9,8 +9,8 @@ export function ErrorView({ state, onReset }: IntentTrackingProps) {
     <div className='p-6 rounded-xl border border-red-500/30 bg-red-500/5'>
       {/* Error header */}
       <div className='flex items-center gap-3 mb-4'>
-        <div className='w-12 h-12 rounded-full bg-red-500 flex items-center justify-center'>
-          <ErrorIcon />
+        <div className='w-12 h-12 rounded-full bg-red-500 flex items-center justify-center text-white'>
+          <CloseIcon className='w-6 h-6' />
         </div>
         <div>
           <h3 className='text-lg font-semibold text-red-400'>{isExpired ? 'Intent Expired' : 'Intent Failed'}</h3>

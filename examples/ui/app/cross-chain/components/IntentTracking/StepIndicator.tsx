@@ -1,4 +1,4 @@
-import { SpinnerIcon, CheckIcon, ErrorIcon } from './icons';
+import { SpinnerIcon, CheckIcon, CloseIcon } from '../icons';
 import type { StepStatus } from '../../utils/intentTrackingHelpers';
 
 export function StepIndicator({ status }: { status: StepStatus }) {
@@ -20,7 +20,7 @@ export function StepIndicator({ status }: { status: StepStatus }) {
     case 'error':
       return (
         <div className={`${baseClasses} bg-red-500 text-white`}>
-          <ErrorIcon />
+          <CloseIcon />
         </div>
       );
     default:

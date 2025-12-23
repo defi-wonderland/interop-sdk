@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { CodeIcon, ChevronDownIcon } from './icons';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 
 interface QuoteDetailsProps {
@@ -115,24 +116,12 @@ export function QuoteDetails({ quote }: QuoteDetailsProps) {
         className='w-full px-4 py-3 flex items-center justify-between hover:bg-surface-secondary transition-colors'
       >
         <div className='flex items-center gap-2'>
-          <svg className='w-4 h-4 text-accent' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-            <path
-              strokeLinecap='round'
-              strokeLinejoin='round'
-              strokeWidth={2}
-              d='M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4'
-            />
-          </svg>
+          <CodeIcon className='w-4 h-4 text-accent' />
           <span className='text-sm font-medium text-text-primary'>Raw Quote Data</span>
         </div>
-        <svg
+        <ChevronDownIcon
           className={`w-4 h-4 text-text-secondary transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-          fill='none'
-          stroke='currentColor'
-          viewBox='0 0 24 24'
-        >
-          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
-        </svg>
+        />
       </button>
 
       {/* Expandable content */}
