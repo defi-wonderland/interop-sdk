@@ -4,13 +4,14 @@ import { useCallback, useRef, useState } from 'react';
 import {
   AcrossProvider,
   createIntentTracker,
+  PROTOCOLS,
   type ExecutableQuote,
   type IntentUpdate,
 } from '@wonderland/interop-cross-chain';
 import { erc20Abi, type Address, type Hex } from 'viem';
 import { sepolia, baseSepolia, arbitrumSepolia } from 'viem/chains';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { PROVIDERS } from '../constants';
+import { PROVIDERS, TIMEOUT_MS } from '../constants';
 import { isUserRejectionError } from '../utils/errorMessages';
 
 // Public RPC URLs for intent tracking (read-only operations)
@@ -167,7 +168,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
             await publicClient.waitForTransactionReceipt({ hash: approvalHash });
           } catch (receiptError) {
             console.warn('Failed to get approval receipt, verifying allowance...', receiptError);
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS.APPROVAL_VERIFICATION));
 
             allowance = await publicClient.readContract({
               address: inputTokenAddress,
@@ -203,7 +204,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
           } catch (receiptError) {
             console.warn(`Attempt ${attempt + 1}: Failed to get bridge tx receipt`, receiptError);
             if (attempt < 2) {
-              await new Promise((resolve) => setTimeout(resolve, 3000));
+              await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS.TX_RETRY));
             }
           }
         }
@@ -211,7 +212,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
         if (!confirmed) {
           // Transaction might still be pending - wait a bit more
           setState({ status: 'confirming', message: 'Waiting for block confirmation...', txHash });
-          await new Promise((resolve) => setTimeout(resolve, 5000));
+          await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS.BLOCK_CONFIRMATION_WAIT));
         }
 
         // ========== PHASE 3: Intent Tracking ==========
@@ -219,7 +220,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
 
         // Create tracker for the protocol
         // Get the Across provider config from our constants
-        const acrossConfig = PROVIDERS.find((p) => p.id === 'across')?.config;
+        const acrossConfig = PROVIDERS.find((p) => p.id === PROTOCOLS.ACROSS)?.config;
         if (!acrossConfig) {
           throw new Error('Across provider configuration not found');
         }
@@ -234,7 +235,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
             txHash,
             originChainId,
             destinationChainId,
-            timeout: 10 * 60 * 1000, // 10 minutes
+            timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
           })) {
             // Check if aborted
             if (abortControllerRef.current?.signal.aborted) {
