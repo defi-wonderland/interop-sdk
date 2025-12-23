@@ -4,53 +4,57 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
-test('Build tab - Convert address', async ({ page }) => {
-  await page
-    .getByRole('textbox', { name: 'Address @ Chain Reference' })
-    .fill('0x1234567890AbcdEF1234567890aBcdef12345678');
+test.describe('Build tab - Convert address', () => {
+  test('Convert address', async ({ page }) => {
+    await page
+      .getByRole('textbox', { name: 'Address @ Chain Reference' })
+      .fill('0x1234567890AbcdEF1234567890aBcdef12345678');
 
-  await page.getByRole('button', { name: 'Select chain...' }).click();
-  await page.getByText('Ethereum Mainnet').first().click();
+    await page.getByRole('button', { name: 'Select chain...' }).click();
+    await page.getByText('Ethereum Mainnet').first().click();
 
-  await page.getByRole('button', { name: 'Convert' }).click();
-
-  await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
-});
-
-test('Build tab - Use example chips', async ({ page }) => {
-  const exampleChips: string[] = [
-    'vitalik.eth (Ethereum Mainnet)',
-    'nick.eth (Arbitrum One)',
-    '0x8335...A02913 (Base)',
-  ];
-
-  for (const locator of exampleChips) {
-    await page.getByRole('button', { name: locator }).click();
     await page.getByRole('button', { name: 'Convert' }).click();
 
     await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
-  }
+  });
+
+  test('Use example chips', async ({ page }) => {
+    const exampleChips: string[] = [
+      'vitalik.eth (Ethereum Mainnet)',
+      'nick.eth (Arbitrum One)',
+      '0x8335...A02913 (Base)',
+    ];
+
+    for (const locator of exampleChips) {
+      await page.getByRole('button', { name: locator }).click();
+      await page.getByRole('button', { name: 'Convert' }).click();
+
+      await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
+    }
+  });
 });
 
-test('ChainDropdown - Select chain (happy path)', async ({ page }) => {
-  await page.getByRole('button', { name: 'Select chain...' }).click();
-  await page.getByPlaceholder('Search chain..').fill('ethereum');
-  await page.getByText('Ethereum Mainnet').first().click();
+test.describe('Build tab - Chain dropdown', () => {
+  test('Select chain (happy path)', async ({ page }) => {
+    await page.getByRole('button', { name: 'Select chain...' }).click();
+    await page.getByPlaceholder('Search chain..').fill('ethereum');
+    await page.getByText('Ethereum Mainnet').last().click();
 
-  await expect(page.getByPlaceholder('Search chain...')).not.toBeVisible();
-  await expect(page.getByRole('button', { name: 'Ethereum Mainnet', exact: true })).toBeVisible();
+    await expect(page.getByPlaceholder('Search chain...')).not.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ethereum Mainnet', exact: true })).toBeVisible();
+  });
+
+  test('No chains found', async ({ page }) => {
+    await page.getByRole('button', { name: 'Select chain...' }).click();
+    await page.getByPlaceholder('Search chain..').fill('xyznonexistent');
+
+    await expect(page.getByText('No chains found')).toBeVisible();
+  });
 });
 
-test('ChainDropdown - No chains found', async ({ page }) => {
-  await page.getByRole('button', { name: 'Select chain...' }).click();
-  await page.getByPlaceholder('Search chain..').fill('xyznonexistent');
-
-  await expect(page.getByText('No chains found')).toBeVisible();
-});
-
-test.describe('Address input validations', () => {
+test.describe('Build tab - Address input validations', () => {
   test('Convert button is disabled when address is empty', async ({ page }) => {
     await page.getByRole('button', { name: 'Select chain...' }).click();
     await page.waitForTimeout(5000);
