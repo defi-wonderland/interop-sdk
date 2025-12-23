@@ -1,8 +1,20 @@
 import { useState, useCallback } from 'react';
+import { buildFromPayload } from '@wonderland/interop-addresses';
 import { crossChainExecutor } from '../services/sdk';
-import { toInteropAddress } from '../utils/addressConverter';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
+
+/**
+ * Converts a hex address to EIP-7930 interoperable address format
+ */
+function toInteropAddress(address: string, chainId: number): Promise<string> {
+  return buildFromPayload({
+    version: 1,
+    chainType: 'eip155',
+    chainReference: chainId.toString(),
+    address: address as `0x${string}`,
+  });
+}
 
 interface QuoteParams {
   sender: string;
