@@ -1,18 +1,10 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import {
-  AcrossProvider,
-  createIntentTracker,
-  PROTOCOLS,
-  type AcrossConfigs,
-  type ExecutableQuote,
-  type IntentUpdate,
-} from '@wonderland/interop-cross-chain';
 import { erc20Abi, type Address, type Hex } from 'viem';
-import { sepolia, baseSepolia, arbitrumSepolia } from 'viem/chains';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { PROVIDERS, TIMEOUT_MS } from '../constants';
+import { TIMEOUT_MS } from '../constants';
+import { crossChainExecutor } from '../services/sdk';
 import {
   EXECUTION_STATUS,
   type ExecuteResult,
@@ -20,13 +12,7 @@ import {
   type IntentExecutionStatus,
 } from '../types/execution';
 import { isUserRejectionError } from '../utils/errorMessages';
-
-// Public RPC URLs for intent tracking (read-only operations)
-const RPC_URLS: Record<number, string> = {
-  [sepolia.id]: 'https://ethereum-sepolia-rpc.publicnode.com',
-  [baseSepolia.id]: 'https://base-sepolia-rpc.publicnode.com',
-  [arbitrumSepolia.id]: 'https://api.zan.top/arb-sepolia',
-};
+import type { ExecutableQuote, IntentUpdate } from '@wonderland/interop-cross-chain';
 
 interface UseIntentExecutionReturn {
   state: IntentExecutionState;
@@ -217,16 +203,12 @@ export function useIntentExecution(): UseIntentExecutionReturn {
         // ========== PHASE 3: Intent Tracking ==========
         setState({ status: EXECUTION_STATUS.OPENING, message: 'Transaction confirmed! Parsing intent...', txHash });
 
-        // Create tracker for the protocol
-        // Get the Across provider config from our constants
-        const acrossConfig = PROVIDERS.find((p) => p.id === PROTOCOLS.ACROSS)?.config;
-        if (!acrossConfig) {
-          throw new Error('Across provider configuration not found');
+        // Get tracker for this quote's provider (supports any provider, not just Across)
+        const providerId = quote.provider;
+        if (!providerId) {
+          throw new Error('Quote missing provider identifier');
         }
-        const acrossProvider = new AcrossProvider(acrossConfig as AcrossConfigs);
-        const tracker = createIntentTracker(acrossProvider, {
-          rpcUrls: RPC_URLS,
-        });
+        const tracker = crossChainExecutor.prepareTracking(providerId);
 
         try {
           // Watch the intent with async generator

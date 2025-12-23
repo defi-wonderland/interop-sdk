@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { crossChainExecutor } from '../services/crossChainExecutor';
+import { crossChainExecutor } from '../services/sdk';
 import { toInteropAddress } from '../utils/addressConverter';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
