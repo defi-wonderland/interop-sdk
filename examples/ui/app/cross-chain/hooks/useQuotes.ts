@@ -44,7 +44,7 @@ export function useQuotes(): UseQuotesReturn {
     try {
       // Create all providers from configuration
       const providers = PROVIDERS.map((providerConfig) =>
-        createCrossChainProvider(providerConfig.id as 'across', providerConfig.config, {}),
+        createCrossChainProvider(providerConfig.id, providerConfig.config, {}),
       );
       const executor = createProviderExecutor({ providers });
 

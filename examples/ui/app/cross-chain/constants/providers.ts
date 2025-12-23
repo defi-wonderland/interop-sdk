@@ -1,14 +1,14 @@
-import type { AcrossConfigs } from '@wonderland/interop-cross-chain';
+import { PROTOCOLS, type SupportedProtocols, type SupportedProtocolsConfigs } from '@wonderland/interop-cross-chain';
 
 export interface ProviderConfig {
-  id: string;
+  id: SupportedProtocols;
   displayName: string;
-  config: AcrossConfigs;
+  config: SupportedProtocolsConfigs<SupportedProtocols>;
 }
 
 export const PROVIDERS: ProviderConfig[] = [
   {
-    id: 'across',
+    id: PROTOCOLS.ACROSS,
     displayName: 'Across Protocol',
     config: {
       apiUrl: process.env.NEXT_PUBLIC_ACROSS_API_URL || 'https://testnet.across.to/api',
