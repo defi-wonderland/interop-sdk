@@ -3,6 +3,7 @@
 import { NOT_AVAILABLE } from '../constants';
 import { EXECUTION_STATUS, type IntentExecutionStatus } from '../types/execution';
 import { formatQuoteData } from '../utils/quoteFormatter';
+import { Tooltip } from './Tooltip';
 import { SpinnerIcon, CheckIcon, CloseIcon, BoltIcon, ClockIcon, QuestionIcon } from './icons';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 
@@ -173,13 +174,12 @@ export function QuoteCard({
                       {hasFeeUsd && (hasGasUsd || gasUnknown) && ' + '}
                       {hasGasUsd && <>{formatted.originGasUsd} gas</>}
                       {gasUnknown && !hasGasUsd && (
-                        <span className='inline-flex items-center gap-0.5 group relative'>
-                          <span>gas TBD</span>
-                          <QuestionIcon className='w-3 h-3' />
-                          <span className='absolute bottom-full right-0 mb-2 px-3 py-2 text-xs text-text-primary bg-surface border border-border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-20'>
-                            Gas estimated after approval
+                        <Tooltip content='Gas estimated after approval' side='top' align='end'>
+                          <span className='inline-flex items-center gap-0.5 cursor-help'>
+                            <span>gas TBD</span>
+                            <QuestionIcon className='w-3 h-3' />
                           </span>
-                        </span>
+                        </Tooltip>
                       )}
                     </>
                   ) : (
@@ -197,13 +197,12 @@ export function QuoteCard({
                         </>
                       )}
                       {gasUnknown && !hasGas && (
-                        <span className='inline-flex items-center gap-0.5 group relative'>
-                          <span>gas TBD</span>
-                          <QuestionIcon className='w-3 h-3' />
-                          <span className='absolute bottom-full right-0 mb-2 px-3 py-2 text-xs text-text-primary bg-surface border border-border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-20'>
-                            Gas estimated after approval
+                        <Tooltip content='Gas estimated after approval' side='top' align='end'>
+                          <span className='inline-flex items-center gap-0.5 cursor-help'>
+                            <span>gas TBD</span>
+                            <QuestionIcon className='w-3 h-3' />
                           </span>
-                        </span>
+                        </Tooltip>
                       )}
                     </>
                   )}

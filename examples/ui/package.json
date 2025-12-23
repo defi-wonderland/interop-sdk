@@ -20,6 +20,7 @@
     "app/**/*.{js,jsx,ts,tsx,css,scss,md,html}": "prettier --write --ignore-unknown"
   },
   "dependencies": {
+    "@radix-ui/react-tooltip": "1.1.6",
     "@rainbow-me/rainbowkit": "2.2.4",
     "@tanstack/react-query": "5.62.16",
     "@vercel/analytics": "1.6.1",
