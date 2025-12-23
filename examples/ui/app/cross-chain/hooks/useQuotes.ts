@@ -84,11 +84,11 @@ export function useQuotes(): UseQuotesReturn {
 
       const response = await executor.getQuotes(getQuoteRequest);
 
-      if (response.quotes) {
+      if (response.quotes?.length) {
         setQuotes(response.quotes);
       }
 
-      if (response.errors) {
+      if (response.errors?.length) {
         setErrors(response.errors);
       }
     } catch (error) {
