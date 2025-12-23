@@ -1,12 +1,8 @@
 import { useState, useCallback } from 'react';
-import {
-  createCrossChainProvider,
-  createProviderExecutor,
-  type ExecutableQuote,
-} from '@wonderland/interop-cross-chain';
-import { PROVIDERS } from '../constants';
+import { crossChainExecutor } from '../services/crossChainExecutor';
 import { toInteropAddress } from '../utils/addressConverter';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
+import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 
 interface QuoteParams {
   sender: string;
@@ -42,12 +38,6 @@ export function useQuotes(): UseQuotesReturn {
     setErrors([]);
 
     try {
-      // Create all providers from configuration
-      const providers = PROVIDERS.map((providerConfig) =>
-        createCrossChainProvider(providerConfig.id, providerConfig.config, {}),
-      );
-      const executor = createProviderExecutor({ providers });
-
       // Convert amount to smallest unit (wei/smallest unit)
       const amountInSmallestUnit = convertAmountToSmallestUnit(params.inputAmount, params.inputTokenAddress);
 
@@ -82,7 +72,7 @@ export function useQuotes(): UseQuotesReturn {
         supportedTypes: ['oif-escrow-v0'],
       };
 
-      const response = await executor.getQuotes(getQuoteRequest);
+      const response = await crossChainExecutor.getQuotes(getQuoteRequest);
 
       if (response.quotes?.length) {
         setQuotes(response.quotes);
