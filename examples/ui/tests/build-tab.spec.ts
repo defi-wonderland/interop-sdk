@@ -33,3 +33,19 @@ test('Build tab - Use example chips', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
   }
 });
+
+test('ChainDropdown - Select chain (happy path)', async ({ page }) => {
+  await page.getByRole('button', { name: 'Select chain...' }).click();
+  await page.getByPlaceholder('Search chain..').fill('ethereum');
+  await page.getByText('Ethereum Mainnet').first().click();
+
+  await expect(page.getByPlaceholder('Search chain...')).not.toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ethereum Mainnet', exact: true })).toBeVisible();
+});
+
+test('ChainDropdown - No chains found', async ({ page }) => {
+  await page.getByRole('button', { name: 'Select chain...' }).click();
+  await page.getByPlaceholder('Search chain..').fill('xyznonexistent');
+
+  await expect(page.getByText('No chains found')).toBeVisible();
+});
