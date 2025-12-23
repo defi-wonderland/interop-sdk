@@ -5,6 +5,7 @@ import {
   AcrossProvider,
   createIntentTracker,
   PROTOCOLS,
+  type AcrossConfigs,
   type ExecutableQuote,
   type IntentUpdate,
 } from '@wonderland/interop-cross-chain';
@@ -224,7 +225,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
         if (!acrossConfig) {
           throw new Error('Across provider configuration not found');
         }
-        const acrossProvider = new AcrossProvider(acrossConfig);
+        const acrossProvider = new AcrossProvider(acrossConfig as AcrossConfigs);
         const tracker = createIntentTracker(acrossProvider, {
           rpcUrls: RPC_URLS,
         });
