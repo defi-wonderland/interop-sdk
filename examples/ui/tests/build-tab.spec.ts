@@ -49,3 +49,63 @@ test('ChainDropdown - No chains found', async ({ page }) => {
 
   await expect(page.getByText('No chains found')).toBeVisible();
 });
+
+test.describe('Address input validations', () => {
+  test('Convert button is disabled when address is empty', async ({ page }) => {
+    await page.getByRole('button', { name: 'Select chain...' }).click();
+    await page.waitForTimeout(5000);
+    await page.getByText('Ethereum Mainnet').last().click();
+
+    await expect(page.getByRole('button', { name: 'Convert' })).toBeDisabled();
+  });
+
+  test('Convert button is disabled when chain is not selected', async ({ page }) => {
+    await page
+      .getByRole('textbox', { name: 'Address @ Chain Reference' })
+      .fill('0x1234567890AbcdEF1234567890aBcdef12345678');
+
+    await expect(page.getByRole('button', { name: 'Convert' })).toBeDisabled();
+  });
+
+  test('Convert button is disabled when both inputs are empty', async ({ page }) => {
+    await expect(page.getByRole('button', { name: 'Convert' })).toBeDisabled();
+  });
+
+  test('Shows error for invalid address format', async ({ page }) => {
+    await page
+      .getByRole('textbox', { name: 'Address @ Chain Reference' })
+      .fill('invalid-address');
+    await page.getByRole('button', { name: 'Select chain...' }).click();
+    await page.getByText('Ethereum Mainnet').last().click();
+    await page.getByRole('button', { name: 'Convert' }).click();
+
+    await expect(page.getByText('EVM address must be a valid Ethereum address')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).not.toBeVisible();
+  });
+
+  test('Shows error for address with incorrect length', async ({ page }) => {
+    await page
+      .getByRole('textbox', { name: 'Address @ Chain Reference' })
+      .fill('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA0291');
+    await page.getByRole('button', { name: 'Select chain...' }).click();
+    await page.getByText('Ethereum Mainnet').last().click();
+    await page.getByRole('button', { name: 'Convert' }).click();
+
+    await expect(page.getByText('EVM address must be a valid Ethereum address')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).not.toBeVisible();
+  });
+
+  test('Shows error for address with invalid characters', async ({ page }) => {
+    const invalidCharactersAddress = '0xXYZ$#';
+    await page
+      .getByRole('textbox', { name: 'Address @ Chain Reference' })
+      .fill(invalidCharactersAddress);
+
+    await page.getByRole('button', { name: 'Select chain...' }).click();
+    await page.getByText('Ethereum Mainnet').last().click();
+    await page.getByRole('button', { name: 'Convert' }).click();
+
+    await expect(page.getByText(`Invalid human readable address: ${invalidCharactersAddress}`)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).not.toBeVisible();
+  });
+});
