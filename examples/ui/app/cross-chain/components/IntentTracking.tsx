@@ -1,77 +1,11 @@
 'use client';
 
-import { EXECUTION_STATUS, type IntentExecutionState, type IntentExecutionStatus } from '../types/execution';
+import { EXECUTION_STATUS, type IntentExecutionState } from '../types/execution';
+import { INTENT_STEPS, getStepStatus, type StepStatus } from '../utils/intentTrackingHelpers';
 
 interface IntentTrackingProps {
   state: IntentExecutionState;
   onReset?: () => void;
-}
-
-/**
- * Visual steps for the intent execution flow
- */
-const STEPS = [
-  {
-    id: 'approval',
-    label: 'Approval',
-    statuses: [EXECUTION_STATUS.CHECKING_APPROVAL, EXECUTION_STATUS.APPROVING] as IntentExecutionStatus[],
-  },
-  {
-    id: 'submit',
-    label: 'Submit',
-    statuses: [EXECUTION_STATUS.SUBMITTING, EXECUTION_STATUS.CONFIRMING] as IntentExecutionStatus[],
-  },
-  {
-    id: 'opening',
-    label: 'Opening',
-    statuses: [EXECUTION_STATUS.OPENING, EXECUTION_STATUS.OPENED] as IntentExecutionStatus[],
-  },
-  {
-    id: 'filling',
-    label: 'Filling',
-    statuses: [EXECUTION_STATUS.FILLING] as IntentExecutionStatus[],
-  },
-];
-
-/**
- * Get step status based on current execution status
- */
-function getStepStatus(
-  stepStatuses: IntentExecutionStatus[],
-  currentStatus: IntentExecutionStatus,
-  stepIndex: number,
-): 'pending' | 'active' | 'complete' | 'error' {
-  // Error state - mark current step as error
-  if (currentStatus === EXECUTION_STATUS.ERROR) {
-    const currentStepIndex = STEPS.findIndex((s) => s.statuses.includes(currentStatus));
-    if (stepIndex === currentStepIndex || (currentStepIndex === -1 && stepIndex === 0)) {
-      return 'error';
-    }
-  }
-
-  // Expired is treated as error on the filling step
-  if (currentStatus === EXECUTION_STATUS.EXPIRED && stepStatuses.includes(EXECUTION_STATUS.FILLING)) {
-    return 'error';
-  }
-
-  // Check if this step is active
-  if (stepStatuses.includes(currentStatus)) {
-    return 'active';
-  }
-
-  // Check if step is complete (any later step is active or complete)
-  const currentStepIndex = STEPS.findIndex(
-    (s) =>
-      s.statuses.includes(currentStatus) ||
-      currentStatus === EXECUTION_STATUS.FILLED ||
-      currentStatus === EXECUTION_STATUS.EXPIRED,
-  );
-
-  if (currentStepIndex > stepIndex) {
-    return 'complete';
-  }
-
-  return 'pending';
 }
 
 /**
@@ -131,7 +65,7 @@ function ExternalLinkIcon() {
 /**
  * Step indicator component
  */
-function StepIndicator({ status }: { status: 'pending' | 'active' | 'complete' | 'error' }) {
+function StepIndicator({ status }: { status: StepStatus }) {
   const baseClasses = 'w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all';
 
   switch (status) {
@@ -322,9 +256,9 @@ function ProgressView({ state }: { state: IntentExecutionState }) {
 
       {/* Progress stepper */}
       <div className='space-y-3'>
-        {STEPS.map((step, index) => {
+        {INTENT_STEPS.map((step, index) => {
           const stepStatus = getStepStatus(step.statuses, state.status, index);
-          const isLast = index === STEPS.length - 1;
+          const isLast = index === INTENT_STEPS.length - 1;
 
           return (
             <div key={step.id} className='flex items-start gap-3'>
