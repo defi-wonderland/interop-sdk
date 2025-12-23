@@ -87,7 +87,7 @@ test.describe('Build tab - Address input validations', () => {
     await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).not.toBeVisible();
   });
 
-  test('Shows error for address with incorrect length', async ({ page }) => {
+  test('Shows error when address has incorrect length', async ({ page }) => {
     await page
       .getByRole('textbox', { name: 'Address @ Chain Reference' })
       .fill('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA0291');
@@ -99,7 +99,7 @@ test.describe('Build tab - Address input validations', () => {
     await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).not.toBeVisible();
   });
 
-  test('Shows error for address with invalid characters', async ({ page }) => {
+  test('Shows error for invalid human readable address', async ({ page }) => {
     const invalidCharactersAddress = '0xXYZ$#';
     await page
       .getByRole('textbox', { name: 'Address @ Chain Reference' })
