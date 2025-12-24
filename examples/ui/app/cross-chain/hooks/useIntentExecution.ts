@@ -1,10 +1,8 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { erc20Abi, type Address, type Hex } from 'viem';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { TIMEOUT_MS } from '../constants';
-import { crossChainExecutor } from '../services/sdk';
+import { handleTokenApproval, submitBridgeTransaction, trackIntent } from '../services/intentExecution';
 import {
   EXECUTION_STATUS,
   type ExecuteResult,
@@ -12,7 +10,8 @@ import {
   type IntentExecutionStatus,
 } from '../types/execution';
 import { isUserRejectionError } from '../utils/errorMessages';
-import type { ExecutableQuote, IntentUpdate } from '@wonderland/interop-cross-chain';
+import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
+import type { Address, Hex } from 'viem';
 
 interface UseIntentExecutionReturn {
   state: IntentExecutionState;
@@ -56,9 +55,11 @@ export function useIntentExecution(): UseIntentExecutionReturn {
       EXECUTION_STATUS.CONFIRMING,
     ] as IntentExecutionStatus[]
   ).includes(state.status);
+
   const isTracking = (
     [EXECUTION_STATUS.OPENING, EXECUTION_STATUS.OPENED, EXECUTION_STATUS.FILLING] as IntentExecutionStatus[]
   ).includes(state.status);
+
   const isComplete = (
     [EXECUTION_STATUS.FILLED, EXECUTION_STATUS.EXPIRED, EXECUTION_STATUS.ERROR] as IntentExecutionStatus[]
   ).includes(state.status);
@@ -97,7 +98,6 @@ export function useIntentExecution(): UseIntentExecutionReturn {
         return { success: false };
       }
 
-      // Extract transaction data from order payload
       const order = quote.order as {
         type?: string;
         payload?: {
@@ -119,134 +119,40 @@ export function useIntentExecution(): UseIntentExecutionReturn {
       const spenderAddress = order.payload.to;
 
       try {
-        // ========== PHASE 1: Token Approval ==========
-        setState({ status: EXECUTION_STATUS.CHECKING_APPROVAL, message: 'Checking token allowance...' });
+        await handleTokenApproval(
+          publicClient,
+          walletClient,
+          address,
+          inputTokenAddress,
+          spenderAddress,
+          inputAmount,
+          setState,
+        );
 
-        let allowance = await publicClient.readContract({
-          address: inputTokenAddress,
-          abi: erc20Abi,
-          functionName: 'allowance',
-          args: [address, spenderAddress],
-        });
+        const txHash = await submitBridgeTransaction(
+          publicClient,
+          walletClient,
+          order.payload.to,
+          order.payload.data,
+          setState,
+        );
 
-        if (allowance < inputAmount) {
-          setState({ status: EXECUTION_STATUS.APPROVING, message: 'Please approve token spending in your wallet...' });
-
-          const approvalHash = await walletClient.writeContract({
-            address: inputTokenAddress,
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [spenderAddress, inputAmount],
-          });
-
-          setState({
-            status: EXECUTION_STATUS.APPROVING,
-            message: 'Waiting for approval confirmation...',
-            txHash: approvalHash,
-          });
-
-          // Wait for approval confirmation with retry logic
-          try {
-            await publicClient.waitForTransactionReceipt({ hash: approvalHash });
-          } catch (receiptError) {
-            console.warn('Failed to get approval receipt, verifying allowance...', receiptError);
-            await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS.APPROVAL_VERIFICATION));
-
-            allowance = await publicClient.readContract({
-              address: inputTokenAddress,
-              abi: erc20Abi,
-              functionName: 'allowance',
-              args: [address, spenderAddress],
-            });
-
-            if (allowance < inputAmount) {
-              throw new Error('Approval transaction may have failed. Please try again.');
-            }
-          }
-        }
-
-        // ========== PHASE 2: Bridge Transaction ==========
-        setState({
-          status: EXECUTION_STATUS.SUBMITTING,
-          message: 'Please confirm the bridge transaction in your wallet...',
-        });
-
-        const txHash = await walletClient.sendTransaction({
-          to: order.payload.to,
-          data: order.payload.data,
-        });
-
-        setState({ status: EXECUTION_STATUS.CONFIRMING, message: 'Waiting for transaction confirmation...', txHash });
-
-        // Wait for transaction confirmation - this is REQUIRED before tracking
-        // The Open event won't exist until the transaction is mined
-        let confirmed = false;
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            await publicClient.waitForTransactionReceipt({ hash: txHash });
-            confirmed = true;
-            break;
-          } catch (receiptError) {
-            console.warn(`Attempt ${attempt + 1}: Failed to get bridge tx receipt`, receiptError);
-            if (attempt < 2) {
-              await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS.TX_RETRY));
-            }
-          }
-        }
-
-        if (!confirmed) {
-          // Transaction might still be pending - wait a bit more
-          setState({ status: EXECUTION_STATUS.CONFIRMING, message: 'Waiting for block confirmation...', txHash });
-          await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS.BLOCK_CONFIRMATION_WAIT));
-        }
-
-        // ========== PHASE 3: Intent Tracking ==========
-        setState({ status: EXECUTION_STATUS.OPENING, message: 'Transaction confirmed! Parsing intent...', txHash });
-
-        // Get tracker for this quote's provider (supports any provider, not just Across)
         const providerId = quote.provider;
         if (!providerId) {
           throw new Error('Quote missing provider identifier');
         }
-        const tracker = crossChainExecutor.prepareTracking(providerId);
 
-        try {
-          // Watch the intent with async generator
-          for await (const update of tracker.watchIntent({
-            txHash,
-            originChainId,
-            destinationChainId,
-            timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
-          })) {
-            // Check if aborted
-            if (abortControllerRef.current?.signal.aborted) {
-              return { success: false };
-            }
-
-            // Map SDK update to our state
-            const newState = mapIntentUpdateToState(update, txHash, originChainId, destinationChainId);
-            setState(newState);
-
-            // Stop if we reached a terminal state
-            if (update.status === EXECUTION_STATUS.FILLED || update.status === EXECUTION_STATUS.EXPIRED) {
-              break;
-            }
-          }
-        } catch (trackingErr) {
-          // Tracking failed - show as "filling" with manual check message
-          console.warn('Intent tracking failed:', trackingErr);
-          setState({
-            status: EXECUTION_STATUS.FILLING,
-            message: 'Transfer in progress! Check Across explorer for fill status.',
-            txHash,
-            originChainId,
-            destinationChainId,
-          });
-        }
+        await trackIntent(
+          providerId,
+          txHash,
+          originChainId,
+          destinationChainId,
+          abortControllerRef.current?.signal,
+          setState,
+        );
 
         return { success: true };
       } catch (err) {
-        // Handle user rejection gracefully - don't show error UI, just reset
         if (isUserRejectionError(err)) {
           setState(INITIAL_STATE);
           return { success: false, userRejected: true };
@@ -279,58 +185,5 @@ export function useIntentExecution(): UseIntentExecutionReturn {
     isExecuting,
     isTracking,
     isComplete,
-  };
-}
-
-/**
- * Customize SDK messages for better UX in the demo
- * - Uses "solver" instead of "relayer"
- * - Adds chain context to messages
- */
-function customizeMessage(update: IntentUpdate): string {
-  const { status, message } = update;
-
-  switch (status) {
-    case EXECUTION_STATUS.FILLING:
-      // Replace "relayer" with "solver" and add context
-      if (message.includes('Waiting for relayer')) {
-        return 'Waiting for solver to fill intent on destination chain...';
-      }
-      if (message.includes('Stopped watching')) {
-        return 'Stopped watching, but the intent may still be filled by a solver.';
-      }
-      return message.replace(/relayer/gi, 'solver');
-
-    case EXECUTION_STATUS.FILLED:
-      // Add destination chain context
-      if (message.includes('Intent filled in block')) {
-        const blockMatch = message.match(/block (\d+)/);
-        const blockNumber = blockMatch ? blockMatch[1] : 'unknown';
-        return `Intent filled by solver in block ${blockNumber} on destination chain`;
-      }
-      return message;
-
-    default:
-      return message.replace(/relayer/gi, 'solver');
-  }
-}
-
-/**
- * Maps SDK IntentUpdate to our IntentExecutionState
- */
-function mapIntentUpdateToState(
-  update: IntentUpdate,
-  txHash: Hex,
-  originChainId: number,
-  destinationChainId: number,
-): IntentExecutionState {
-  return {
-    status: update.status as IntentExecutionStatus,
-    message: customizeMessage(update),
-    txHash,
-    fillTxHash: update.fillTxHash,
-    orderId: update.orderId,
-    originChainId,
-    destinationChainId,
   };
 }
