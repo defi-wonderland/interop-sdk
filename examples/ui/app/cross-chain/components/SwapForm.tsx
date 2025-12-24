@@ -24,7 +24,12 @@ interface SwapFormProps {
     inputAmountRaw: bigint;
   }) => void;
   isLoading?: boolean;
-  isDisabled?: boolean; // Disable form during transaction execution
+  isDisabled?: boolean;
+}
+
+function getDefaultToken(chainId: number): string {
+  const tokens = SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
+  return tokens[0] || '';
 }
 
 export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: SwapFormProps) {
@@ -32,8 +37,8 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
   const [recipient, setRecipient] = useState('');
   const [inputChainId, setInputChainId] = useState<number>(DEFAULT_INPUT_CHAIN_ID);
   const [outputChainId, setOutputChainId] = useState<number>(DEFAULT_OUTPUT_CHAIN_ID);
-  const [inputTokenAddress, setInputTokenAddress] = useState<string>('');
-  const [outputTokenAddress, setOutputTokenAddress] = useState<string>('');
+  const [inputTokenAddress, setInputTokenAddress] = useState(() => getDefaultToken(DEFAULT_INPUT_CHAIN_ID));
+  const [outputTokenAddress, setOutputTokenAddress] = useState(() => getDefaultToken(DEFAULT_OUTPUT_CHAIN_ID));
   const [inputAmount, setInputAmount] = useState('');
 
   const inputTokens = useMemo(() => SUPPORTED_TOKEN_BY_CHAIN_ID[inputChainId] || [], [inputChainId]);
@@ -44,18 +49,6 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
       setRecipient(connectedAddress);
     }
   }, [isConnected, connectedAddress, recipient]);
-
-  useEffect(() => {
-    if (inputTokens.length > 0 && (!inputTokenAddress || !inputTokens.includes(inputTokenAddress))) {
-      setInputTokenAddress(inputTokens[0]);
-    }
-  }, [inputChainId, inputTokens, inputTokenAddress]);
-
-  useEffect(() => {
-    if (outputTokens.length > 0 && (!outputTokenAddress || !outputTokens.includes(outputTokenAddress))) {
-      setOutputTokenAddress(outputTokens[0]);
-    }
-  }, [outputChainId, outputTokens, outputTokenAddress]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,7 +155,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
                 const info = TOKEN_INFO[token];
                 return (
                   <option key={token} value={token}>
-                    {info?.symbol || token.slice(0, 8)}...
+                    {info?.symbol || token.slice(0, 8)}
                   </option>
                 );
               })}
@@ -197,7 +190,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
                 const info = TOKEN_INFO[token];
                 return (
                   <option key={token} value={token}>
-                    {info?.symbol || token.slice(0, 8)}...
+                    {info?.symbol || token.slice(0, 8)}
                   </option>
                 );
               })}
