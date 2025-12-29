@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/addresses');
 });
 
 test.describe('Build tab - Convert address', () => {
@@ -28,6 +28,7 @@ test.describe('Build tab - Convert address', () => {
 
     for (const locator of exampleChips) {
       await page.getByRole('button', { name: locator }).click();
+      await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled();
       await page.getByRole('button', { name: 'Convert' }).click();
 
       await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).toBeVisible();
@@ -39,7 +40,7 @@ test.describe('Build tab - Convert address', () => {
 test.describe('Build tab - Chain dropdown', () => {
   test('Select chain (happy path)', async ({ page }) => {
     await page.getByRole('button', { name: 'Select chain...' }).click();
-    await page.getByPlaceholder('Search chain..').fill('ethereum');
+    await page.getByPlaceholder('Search chain...').fill('ethereum');
     await page.getByText('Ethereum Mainnet').last().click();
 
     await expect(page.getByPlaceholder('Search chain...')).not.toBeVisible();
@@ -48,7 +49,7 @@ test.describe('Build tab - Chain dropdown', () => {
 
   test('No chains found', async ({ page }) => {
     await page.getByRole('button', { name: 'Select chain...' }).click();
-    await page.getByPlaceholder('Search chain..').fill('xyznonexistent');
+    await page.getByPlaceholder('Search chain...').fill('xyznonexistent');
 
     await expect(page.getByText('No chains found')).toBeVisible();
   });
@@ -76,9 +77,7 @@ test.describe('Build tab - Address input validations', () => {
   });
 
   test('Shows error for invalid address format', async ({ page }) => {
-    await page
-      .getByRole('textbox', { name: 'Address @ Chain Reference' })
-      .fill('invalid-address');
+    await page.getByRole('textbox', { name: 'Address @ Chain Reference' }).fill('invalid-address');
     await page.getByRole('button', { name: 'Select chain...' }).click();
     await page.getByText('Ethereum Mainnet').last().click();
     await page.getByRole('button', { name: 'Convert' }).click();
@@ -101,9 +100,7 @@ test.describe('Build tab - Address input validations', () => {
 
   test('Shows error for invalid human readable address', async ({ page }) => {
     const invalidCharactersAddress = '0xXYZ$#';
-    await page
-      .getByRole('textbox', { name: 'Address @ Chain Reference' })
-      .fill(invalidCharactersAddress);
+    await page.getByRole('textbox', { name: 'Address @ Chain Reference' }).fill(invalidCharactersAddress);
 
     await page.getByRole('button', { name: 'Select chain...' }).click();
     await page.getByText('Ethereum Mainnet').last().click();
