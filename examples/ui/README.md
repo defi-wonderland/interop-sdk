@@ -16,6 +16,17 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
+### Running E2E Tests
+
+```bash
+# From root
+pnpm --filter @examples/ui test:e2e
+
+# Or from this directory
+cd examples/ui
+pnpm test:e2e
+```
+
 ## Features
 
 ### Interactive Playground
@@ -43,6 +54,7 @@ Open [http://localhost:3000](http://localhost:3000)
 - TypeScript
 - Tailwind CSS
 - @wonderland/interop-addresses
+- Playwright
 
 ## Documentation
 
