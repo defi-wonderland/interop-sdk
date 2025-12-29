@@ -43,17 +43,18 @@ export class InteropAddressProvider {
     }
 
     /**
-     * Converts a binary address to a human-readable address
-     * @param binaryAddress - The binary address to convert
-     * @returns HumanReadableAddress - The human-readable address
+     * Converts a binary address to a human-readable address.
+     * @param binaryAddress - The binary address to convert.
+     * @returns HumanReadableAddress - The human-readable address.
      * @example
      * ```ts
-     * const humanReadableAddress = await InteropAddressProvider.binaryToHumanReadable("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
+     * const humanReadableAddress =
+     *   InteropAddressProvider.binaryToHumanReadable("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
      * ```
      */
-    public static async binaryToHumanReadable(binaryAddress: Hex): Promise<HumanReadableAddress> {
+    public static binaryToHumanReadable(binaryAddress: Hex): HumanReadableAddress {
         const interopAddress = parseBinary(binaryAddress);
-        return await toHumanReadable(interopAddress);
+        return toHumanReadable(interopAddress);
     }
 
     /**
@@ -73,9 +74,9 @@ export class InteropAddressProvider {
     }
 
     /**
-     * Get the address from a binary or human readable address
-     * @param address - The binary or human readable address to get the address from
-     * @returns The address in the format of the chain type
+     * Get the address from a binary or human readable address.
+     * @param address - The binary or human readable address to get the address from.
+     * @returns The address in the format of the chain type.
      */
     public static async getAddress(address: string): Promise<EncodedAddress<ChainTypeName>> {
         let interopAddress: InteropAddress;

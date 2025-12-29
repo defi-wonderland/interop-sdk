@@ -11,15 +11,13 @@ import {
 } from "../internal.js";
 
 /**
- * Converts an InteropAddress to a human-readable string format
- * @param addressData - The address data to convert
- * @returns A human-readable string representation of the address
+ * Converts an InteropAddress to a human-readable string format.
+ * @param addressData - The address data to convert.
+ * @returns A human-readable string representation of the address.
  */
-export const toHumanReadable = async (
-    addressData: InteropAddress,
-): Promise<HumanReadableAddress> => {
+export const toHumanReadable = (addressData: InteropAddress): HumanReadableAddress => {
     const { chainType, chainReference, address } = validateInteropAddress(addressData);
-    const formattedAddress = address.length ? await formatAddress(address, chainType) : "";
+    const formattedAddress = address.length ? formatAddress(address, chainType) : "";
     const chainTypeHex = toHex(chainType);
     const namespace = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex as ChainTypeValue];
 

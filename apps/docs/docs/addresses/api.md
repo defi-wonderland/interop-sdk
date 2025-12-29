@@ -18,12 +18,12 @@ A static class with utility methods for converting and validating interoperable 
     );
     ```
 
--   **binaryToHumanReadable**(binaryAddress: Hex): Promise\<[HumanReadableAddress](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/types/humanReadableAddress.ts#L7)\>
+-   **binaryToHumanReadable**(binaryAddress: Hex): [HumanReadableAddress](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/addresses/src/types/humanReadableAddress.ts#L7)
 
     Converts a binary address to its human-readable representation.
 
     ```typescript
-    const human = await InteropAddressProvider.binaryToHumanReadable(
+    const human = InteropAddressProvider.binaryToHumanReadable(
         "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045",
     );
     ```

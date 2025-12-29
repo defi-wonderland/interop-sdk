@@ -14,16 +14,15 @@ pnpm add @wonderland/interop-addresses
 
 ```typescript
 // Using the Provider
-import { InteropAddressProvider } from '@wonderland/interop-addresses';
+// Or just importing the method
+import { humanReadableToBinary, InteropAddressProvider } from "@wonderland/interop-addresses";
 
 // With checksum (recommended for sharing)
-const humanReadableAddress = "alice.eth@eip155:1#ABCD1234"
-const binaryAddress = await InteropAddressProvider.humanReadableToBinary(humanReadableAddress)
+const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
+const binaryAddress = await InteropAddressProvider.humanReadableToBinary(humanReadableAddress);
 
-// Or just importing the method
-import { humanReadableToBinary } from '@wonderland/interop-addresses';
-const humanReadableAddress = "alice.eth@eip155:1#ABCD1234"
-const binaryAddress = await humanReadableToBinary(humanReadableAddress)
+const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
+const binaryAddress = await humanReadableToBinary(humanReadableAddress);
 ```
 
 ## API
@@ -32,12 +31,12 @@ const binaryAddress = await humanReadableToBinary(humanReadableAddress)
 
 Available methods
 
--   `humanReadableToBinary(humanReadableAddress: string)`
--   `binaryToHumanReadable(binaryAddress: Hex)`
--   `getChainId(humanReadableAddress | binaryAddress)`
--   `getAddress(humanReadableAddress | binaryAddress)`
--   `buildFromPayload(payload: InteropAddressFields)`
--   `computeChecksum(humanReadableAddress: string)`
+-   `humanReadableToBinary(humanReadableAddress: string): Promise<BinaryAddress>`
+-   `binaryToHumanReadable(binaryAddress: Hex): HumanReadableAddress`
+-   `getChainId(humanReadableAddress | binaryAddress): Promise<EncodedChainReference<ChainTypeName>>`
+-   `getAddress(humanReadableAddress | binaryAddress): Promise<EncodedAddress<ChainTypeName>>`
+-   `buildFromPayload(payload: InteropAddressFields): BinaryAddress`
+-   `computeChecksum(humanReadableAddress: string): Promise<Checksum>`
 
 All methods are also exported as individual functions to allow maximum modularity and tree-shaking
 

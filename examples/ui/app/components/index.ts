@@ -5,6 +5,7 @@ export { Footer } from './Footer';
 export { InteractivePlayground } from './InteractivePlayground';
 export { Navigation } from './Navigation';
 export { ResultDisplays } from './ResultDisplays';
+export { Select, type SelectOption } from './Select';
 export { TabButton } from './TabButton';
 export { ThemeSwitcher } from './ThemeSwitcher';
 export { WonderlandLogotype } from './WonderlandLogotype';
