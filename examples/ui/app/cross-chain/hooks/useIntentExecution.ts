@@ -1,15 +1,20 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
-import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { handleTokenApproval, submitBridgeTransaction, trackIntent } from '../services/intentExecution';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAccount, useConfig, useSwitchChain } from 'wagmi';
+import {
+  ensureCorrectChain,
+  handleTokenApproval,
+  submitBridgeTransaction,
+  trackIntent,
+} from '../services/intentExecution';
 import {
   EXECUTION_STATUS,
   type ExecuteResult,
   type IntentExecutionState,
   type IntentExecutionStatus,
 } from '../types/execution';
-import { isUserRejectionError } from '../utils/errorMessages';
+import { isUserRejectionError, parseError } from '../utils/errorMessages';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address, Hex } from 'viem';
 
@@ -40,15 +45,28 @@ const INITIAL_STATE: IntentExecutionState = {
  * 3. Intent tracking via SDK until filled/expired
  */
 export function useIntentExecution(): UseIntentExecutionReturn {
-  const { address, isConnected } = useAccount();
-  const publicClient = usePublicClient();
-  const { data: walletClient } = useWalletClient();
+  const { address, isConnected, chainId: walletChainId } = useAccount();
+  const config = useConfig();
+  const { switchChainAsync } = useSwitchChain();
 
   const [state, setState] = useState<IntentExecutionState>(INITIAL_STATE);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const expectedWalletChainIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const isInErrorState = state.status === EXECUTION_STATUS.ERROR;
+    const isExpectingSwitch = expectedWalletChainIdRef.current !== null;
+    const isWalletOnExpectedChain = walletChainId === expectedWalletChainIdRef.current;
+
+    if (isInErrorState && isExpectingSwitch && isWalletOnExpectedChain) {
+      expectedWalletChainIdRef.current = null;
+      setState(INITIAL_STATE);
+    }
+  }, [walletChainId, state.status]);
 
   const isExecuting = (
     [
+      EXECUTION_STATUS.SWITCHING_NETWORK,
       EXECUTION_STATUS.CHECKING_APPROVAL,
       EXECUTION_STATUS.APPROVING,
       EXECUTION_STATUS.SUBMITTING,
@@ -72,12 +90,12 @@ export function useIntentExecution(): UseIntentExecutionReturn {
       originChainId: number,
       destinationChainId: number,
     ): Promise<ExecuteResult> => {
-      // Cancel any previous tracking
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       abortControllerRef.current = new AbortController();
 
+      expectedWalletChainIdRef.current = originChainId;
       setState({ status: EXECUTION_STATUS.IDLE, message: '' });
 
       if (!isConnected || !address) {
@@ -85,15 +103,6 @@ export function useIntentExecution(): UseIntentExecutionReturn {
           status: EXECUTION_STATUS.ERROR,
           message: 'Wallet not connected',
           error: new Error('Wallet not connected'),
-        });
-        return { success: false };
-      }
-
-      if (!walletClient || !publicClient) {
-        setState({
-          status: EXECUTION_STATUS.ERROR,
-          message: 'Wallet client not available',
-          error: new Error('Wallet client not available'),
         });
         return { success: false };
       }
@@ -119,6 +128,14 @@ export function useIntentExecution(): UseIntentExecutionReturn {
       const spenderAddress = order.payload.to;
 
       try {
+        const { walletClient, publicClient } = await ensureCorrectChain(
+          config,
+          walletChainId,
+          originChainId,
+          switchChainAsync,
+          setState,
+        );
+
         await handleTokenApproval(
           publicClient,
           walletClient,
@@ -159,22 +176,23 @@ export function useIntentExecution(): UseIntentExecutionReturn {
         }
 
         const error = err instanceof Error ? err : new Error(String(err));
+        const parsed = parseError(err);
         setState({
           status: EXECUTION_STATUS.ERROR,
-          message: error.message,
+          message: parsed.message,
           error,
-          txHash: state.txHash,
         });
         return { success: false };
       }
     },
-    [isConnected, address, walletClient, publicClient, state.txHash],
+    [isConnected, address, walletChainId, config, switchChainAsync],
   );
 
   const reset = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+    expectedWalletChainIdRef.current = null;
     setState(INITIAL_STATE);
   }, []);
 

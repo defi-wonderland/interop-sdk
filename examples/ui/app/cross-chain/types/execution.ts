@@ -7,6 +7,7 @@ import type { Hex } from 'viem';
 export const EXECUTION_STATUS = {
   // UI-specific states (before tracking begins)
   IDLE: 'idle',
+  SWITCHING_NETWORK: 'switching-network',
   CHECKING_APPROVAL: 'checking-approval',
   APPROVING: 'approving',
   SUBMITTING: 'submitting',
