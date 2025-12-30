@@ -62,6 +62,13 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; result: ParsedError }> = [
     },
   },
   {
+    pattern: /current chain.*does not match|chain mismatch|wrong network|wrong chain/i,
+    result: {
+      title: 'Wrong Network',
+      message: 'Please switch to the correct network in your wallet and try again.',
+    },
+  },
+  {
     pattern: /insufficient funds/i,
     result: {
       title: 'Insufficient Funds',
