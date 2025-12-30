@@ -47,7 +47,9 @@ const walletClient = createWalletClient({
 Initialize the cross-chain provider and executor, which will handle quoting and executing cross-chain transfers.
 
 ```js
-const acrossProvider = createCrossChainProvider("across", { apiUrl: "https://..." }, {});
+const acrossProvider = createCrossChainProvider("across", {
+    apiUrl: "https://testnet.across.to/api",
+});
 
 const executor = createProviderExecutor({
     providers: [acrossProvider],
@@ -63,18 +65,22 @@ const response = await executor.getQuotes({
     user: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
     intent: {
         intentType: "oif-swap",
-        inputs: [{
-            user: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
-            asset: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238@eip155:11155111#2597C7E5",
-            amount: "100000000000000000", // 0.1 in wei
-        }],
-        outputs: [{
-            receiver: "0x8043951e77347c5282d6bcD2294e134B4072fE3b@eip155:84532#D9F7BE3F",
-            asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e@eip155:84532#D9F7BE3F",
-        }],
+        inputs: [
+            {
+                user: "0xeca5cca87fDF2Cb3f3a5d795699cEAA561c4B19d@eip155:11155111#2597C7E5",
+                asset: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238@eip155:11155111#2597C7E5",
+                amount: "100000000000000000", // 0.1 in wei
+            },
+        ],
+        outputs: [
+            {
+                receiver: "0x8043951e77347c5282d6bcD2294e134B4072fE3b@eip155:84532#D9F7BE3F",
+                asset: "0x036CbD53842c5426634e7929541eC2318f3dCF7e@eip155:84532#D9F7BE3F",
+            },
+        ],
         swapType: "exact-input",
     },
-    supportedTypes: ["oif-escrow-v0"],
+    supportedTypes: ["across"],
 });
 
 // Check for errors
@@ -121,29 +127,6 @@ const main = async (): Promise<void> => {
 main().catch(console.error);
 ```
 
-## Optional: Track Intent Status
+## Next Step
 
-After executing the transaction, you can track its status using the Intent Tracker:
-
-```js
-import { createIntentTracker } from "@wonderland/interop-cross-chain";
-
-const tracker = createIntentTracker("across");
-
-// Track the intent
-for await (const update of tracker.watchIntent({
-    txHash: txHash, // from step 5
-    originChainId: 11155111,
-    destinationChainId: 84532,
-})) {
-    console.log(`[${update.status}] ${update.message}`);
-
-    if (update.status === "filled") {
-        console.log("Transfer completed!");
-        break;
-    } else if (update.status === "expired") {
-        console.log("Transfer expired");
-        break;
-    }
-}
-```
+Learn how to monitor your transaction: [Intent Tracking](./intent-tracking.md)

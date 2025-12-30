@@ -59,4 +59,4 @@ The SDK also supports:
 -   **Intent Tracking**: Monitor cross-chain transfers from initiation to completion
 -   **Error Handling**: Graceful handling of timeouts and provider errors
 
-See the [Intent Tracking](./intent-tracking.md) and [Quote Aggregator](./quote-aggregator.md) guides for more details.
+See the [Intent Tracking](./intent-tracking.md) and [Advanced Usage](./advanced-usage.md) guides for more details.
