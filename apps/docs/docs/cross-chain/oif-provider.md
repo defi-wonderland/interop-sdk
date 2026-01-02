@@ -2,7 +2,7 @@
 title: OIF Provider
 ---
 
-The OIF (Open Intents Framework) provider enables direct integration with any OIF-compliant solver. If you have access to a solver's API endpoint, you can integrate cross-chain functionality directly into your application using this provider.
+The [OIF (Open Intents Framework)](https://github.com/BootNodeDev/intents-framework) provider enables direct integration with any OIF-compliant solver. If you have access to a solver's API endpoint, you can integrate cross-chain functionality directly into your application using this provider.
 
 ## Configuration
 
