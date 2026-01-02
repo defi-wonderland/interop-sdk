@@ -17,10 +17,13 @@ The cross-chain package provides a standardized interface for interacting with c
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-// Create an Across provider
+// Create an OIF provider
 const provider = createCrossChainProvider(
-    "across",
-    { apiUrl: "https://testnet.across.to/api" },
+    "oif",
+    {
+        solverId: "my-solver",
+        url: "https://oif-api.example.com",
+    },
     {},
 );
 
@@ -39,8 +42,10 @@ const quotes = await provider.getQuotes({
         outputs: [{ receiver: RECEIVER_INTEROP_ADDRESS, asset: OUTPUT_TOKEN_ADDRESS }],
         swapType: "exact-input",
     },
-    supportedTypes: ["across"],
+    supportedTypes: ["oif-escrow-v0"],
 });
 ```
+
+For Across Protocol integration, see the [Across Provider](./cross-chain/across-provider.md) guide.
 
 See the [Getting Started](./cross-chain/getting-started.md) guide for more details.
