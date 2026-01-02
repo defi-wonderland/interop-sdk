@@ -47,7 +47,7 @@ const quotes = await acrossProvider.getQuotes({
         ],
         swapType: "exact-input",
     },
-    supportedTypes: ["across"],
+    supportedTypes: ["across"], // Required by OIF interface, value is ignored by Across
 });
 
 const quote = quotes[0]; // Select the first quote
