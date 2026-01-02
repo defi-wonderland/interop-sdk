@@ -18,19 +18,28 @@ The cross-chain package provides a standardized interface for interacting with c
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 // Create an Across provider
-const provider = createCrossChainProvider("across", {
-    apiUrl: "https://testnet.across.to/api",
-});
+const provider = createCrossChainProvider(
+    "across",
+    { apiUrl: "https://testnet.across.to/api" },
+    {},
+);
 
-// Get a quote for a cross-chain transfer
-const quote = await provider.getQuote("crossChainTransfer", {
-    sender: "0x...",
-    recipient: "0x...",
-    inputTokenAddress: "0x...",
-    outputTokenAddress: "0x...",
-    inputAmount: "1000000000000000000",
-    inputChainId: 11155111,
-    outputChainId: 84532,
+// Get quotes for a cross-chain transfer
+const quotes = await provider.getQuotes({
+    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
+    intent: {
+        intentType: "oif-swap",
+        inputs: [
+            {
+                user: USER_INTEROP_ADDRESS,
+                asset: INPUT_TOKEN_ADDRESS,
+                amount: "1000000000000000000",
+            },
+        ],
+        outputs: [{ receiver: RECEIVER_INTEROP_ADDRESS, asset: OUTPUT_TOKEN_ADDRESS }],
+        swapType: "exact-input",
+    },
+    supportedTypes: ["across"],
 });
 ```
 
