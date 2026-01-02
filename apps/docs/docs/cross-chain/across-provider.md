@@ -33,6 +33,7 @@ const quotes = await acrossProvider.getQuotes({
     intent: {
         intentType: "oif-swap",
         inputs: [
+            // Across only supports single input/output
             {
                 user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
                 asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
