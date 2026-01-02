@@ -81,12 +81,6 @@ if (quote.preparedTransaction) {
 -   Intent tracking support
 -   EIP-7683 Open Intent Framework integration
 
-## Supported Actions
-
--   `crossChainTransfer`
-
-> Currently, Across Protocol only supports `crossChainTransfer`. Cross-chain swaps are planned for future releases.
-
 ## Next Step
 
 See a complete working example: [Execute Intent](./example.md)
