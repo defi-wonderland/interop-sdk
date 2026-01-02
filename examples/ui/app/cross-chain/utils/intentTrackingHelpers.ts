@@ -7,7 +7,11 @@ export const INTENT_STEPS = [
   {
     id: 'approval',
     label: 'Approval',
-    statuses: [EXECUTION_STATUS.CHECKING_APPROVAL, EXECUTION_STATUS.APPROVING] as IntentExecutionStatus[],
+    statuses: [
+      EXECUTION_STATUS.SWITCHING_NETWORK,
+      EXECUTION_STATUS.CHECKING_APPROVAL,
+      EXECUTION_STATUS.APPROVING,
+    ] as IntentExecutionStatus[],
   },
   {
     id: 'submit',
