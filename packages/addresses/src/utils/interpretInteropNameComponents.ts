@@ -17,7 +17,6 @@ export interface InterpretedInteropName {
  * - @eip155:1 → namespace="eip155", chain="1"
  * - @eip155   → namespace="eip155", chain=""
  * - @eth      → namespace="eip155", chain="eth" (default namespace)
- * - @1        → namespace="eip155", chain="1" (default namespace)
  */
 function interpretChainComponents(
     namespace: string | undefined,
@@ -36,6 +35,15 @@ function interpretChainComponents(
         if (chain in CHAIN_TYPE) {
             return { chainNamespace: chain, chainReference: "" };
         }
+
+        // Reject numeric chain references without explicit namespace (per ERC-7930/7828)
+        // Numeric references like "1", "8453" require explicit namespace format: @eip155:1
+        if (/^\d+$/.test(chain)) {
+            throw new InvalidHumanReadableAddress(
+                `Numeric chain references require an explicit namespace. Use @<namespace>:<reference> format (e.g., @eip155:1 instead of @1).`,
+            );
+        }
+
         return { chainNamespace: "eip155", chainReference: chain };
     }
 

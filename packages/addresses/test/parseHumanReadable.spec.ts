@@ -341,18 +341,12 @@ describe("erc7930", () => {
         });
 
         describe("chain namespace handling", () => {
-            it("defaults to eip155 if chain namespace is not provided", async () => {
+            it("rejects numeric chain references without explicit namespace", async () => {
                 const humanReadableAddress =
                     "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@8453#17DE0709";
-                const expected: InteropAddress = {
-                    version: 1,
-                    chainType: hexToBytes("0x0000"),
-                    chainReference: hexToBytes("0x2105"),
-                    address: hexToBytes("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"),
-                };
-                const interopAddress = await parseHumanReadable(humanReadableAddress);
-
-                expect(interopAddress).toEqual(expected);
+                await expect(parseHumanReadable(humanReadableAddress)).rejects.toThrow(
+                    InvalidHumanReadableAddress,
+                );
             });
 
             it("throws InvalidChainNamespace for invalid namespace", async () => {

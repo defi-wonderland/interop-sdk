@@ -14,16 +14,15 @@ pnpm add @wonderland/interop-addresses
 
 ```typescript
 // Using the Provider
-import { InteropAddressProvider } from '@wonderland/interop-addresses';
+// Or just importing the method
+import { humanReadableToBinary, InteropAddressProvider } from "@wonderland/interop-addresses";
 
 // With checksum (recommended for sharing)
-const humanReadableAddress = "alice.eth@eip155:1#ABCD1234"
-const binaryAddress = await InteropAddressProvider.humanReadableToBinary(humanReadableAddress)
+const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
+const binaryAddress = await InteropAddressProvider.humanReadableToBinary(humanReadableAddress);
 
-// Or just importing the method
-import { humanReadableToBinary } from '@wonderland/interop-addresses';
-const humanReadableAddress = "alice.eth@eip155:1#ABCD1234"
-const binaryAddress = await humanReadableToBinary(humanReadableAddress)
+const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
+const binaryAddress = await humanReadableToBinary(humanReadableAddress);
 ```
 
 ## API

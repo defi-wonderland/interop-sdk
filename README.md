@@ -50,8 +50,15 @@ interop-sdk/
     ```
 
 -   **Run tests**
+
     ```bash
     pnpm test
+    ```
+
+-   **Run E2E tests** (UI examples)
+
+    ```bash
+    pnpm --filter @examples/ui test:e2e
     ```
 
 ## Examples
