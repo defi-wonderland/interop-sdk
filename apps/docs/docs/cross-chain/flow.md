@@ -2,29 +2,24 @@
 title: Flow
 ---
 
-This document provides an overview of the cross-chain transaction flow using the Interop SDK. It illustrates how a developer can interact with different cross-chain protocols, specifically Across, to obtain quotes, simulate transactions, and execute them on-chain. The flow diagram below details the sequence of interactions between the developer, the SDK, the protocol services, and the blockchain RPC endpoint.
+This document provides an overview of the cross-chain transaction flow using the Interop SDK. It illustrates how a developer can interact with different cross-chain protocols to obtain quotes, execute transactions, and track them on-chain.
 
 ```mermaid
 sequenceDiagram
     participant dev as Dev
     participant sdk as Interop SDK
-    participant across as Across
+    participant provider as Provider
     participant rpc as RPC
     participant tracker as Intent Tracker
 
     Note over dev,tracker: Quote Phase
-    dev->>+sdk: Get Quote: Input, Across
-    sdk->>+across: Get Quote: Input
-    across-->>-sdk: Quote
-    sdk-->>-dev: Quote Response
+    dev->>+sdk: getQuotes(request)
+    sdk->>+provider: getQuotes(request)
+    provider-->>-sdk: ExecutableQuote[]
+    sdk-->>-dev: { quotes, errors }
 
     Note over dev,tracker: Execution Phase
-    dev->>+sdk: Simulate Open: Quote, Across
-    sdk->>+across: Simulate Open: Quote
-    across-->>-sdk: Tx to Execute
-    sdk-->>-dev: Transaction Requests
-
-    dev->>+rpc: Send Transaction(s)
+    dev->>+rpc: sendTransaction(quote.preparedTransaction)
     rpc-->>-dev: Transaction Hash
 
     Note over dev,tracker: Tracking Phase
@@ -45,7 +40,7 @@ The developer requests a quote from the SDK, which queries the provider protocol
 
 ### 2. Execution Phase
 
-After reviewing the quote, the developer simulates the transaction to get the exact transaction data, then sends it to the blockchain.
+After selecting a quote, the developer sends the prepared transaction to the blockchain.
 
 ### 3. Tracking Phase
 

@@ -4,41 +4,68 @@ title: Advanced Usage
 
 ## Provider Executor
 
-For complex scenarios, use the ProviderExecutor to manage multiple providers with sorting and timeout handling:
+For complex scenarios, use the ProviderExecutor to manage multiple providers with sorting, timeout handling, and built-in intent tracking.
+
+### Minimal Setup
+
+```typescript
+import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
+
+const acrossProvider = createCrossChainProvider(
+    "across",
+    { apiUrl: "https://testnet.across.to/api" },
+    {},
+);
+
+const executor = createProviderExecutor({
+    providers: [acrossProvider],
+});
+```
+
+### Full Configuration
 
 ```typescript
 import {
     createCrossChainProvider,
     createProviderExecutor,
+    IntentTrackerFactory,
     SortingStrategyFactory,
 } from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider("across", {
-    apiUrl: "https://testnet.across.to/api",
-});
+const acrossProvider = createCrossChainProvider(
+    "across",
+    { apiUrl: "https://testnet.across.to/api" },
+    {},
+);
 
 const executor = createProviderExecutor({
     providers: [acrossProvider],
     sortingStrategy: SortingStrategyFactory.createStrategy("bestOutput"),
     timeoutMs: 15000,
+    trackerFactory: new IntentTrackerFactory({
+        rpcUrls: {
+            11155111: "https://sepolia.infura.io/v3/YOUR_API_KEY",
+            84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY",
+        },
+    }),
 });
 
 // Get quotes from all providers
 const response = await executor.getQuotes({
-    user: "0xYourAddress@eip155:11155111#CHECKSUM",
+    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
     intent: {
         intentType: "oif-swap",
         inputs: [
             {
-                user: "0xYourAddress@eip155:11155111#CHECKSUM",
-                asset: "0xInputToken@eip155:11155111#CHECKSUM",
+                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
+                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
                 amount: "1000000000000000000",
             },
         ],
         outputs: [
             {
-                receiver: "0xRecipient@eip155:84532#CHECKSUM",
-                asset: "0xOutputToken@eip155:84532#CHECKSUM",
+                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
+                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
             },
         ],
         swapType: "exact-input",
@@ -61,68 +88,43 @@ For more details on the Provider Executor configuration, see the [API Reference]
 
 ## Intent Tracking
 
-Track cross-chain transfers from initiation to completion:
+The executor includes built-in intent tracking when configured with a `trackerFactory`. After executing a transaction, use `executor.track()` to monitor the cross-chain transfer:
 
 ```typescript
-import { createCrossChainProvider, createIntentTracker } from "@wonderland/interop-cross-chain";
+// Execute the transaction
+const quote = response.quotes[0];
+const hash = await walletClient.sendTransaction(quote.preparedTransaction);
 
-// Create provider first
-const acrossProvider = createCrossChainProvider("across", {
-    apiUrl: "https://testnet.across.to/api",
-});
-
-// Create tracker from provider
-const tracker = createIntentTracker(acrossProvider, {
-    rpcUrls: {
-        11155111: "https://sepolia.infura.io/v3/YOUR_API_KEY",
-        84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY",
-    },
-});
-
-// Watch an intent with real-time updates using async generator
-for await (const update of tracker.watchIntent({
-    txHash: "0x...",
+// Track with real-time events
+const tracker = executor.track({
+    txHash: hash,
+    providerId: quote.provider, // e.g., "across"
     originChainId: 11155111,
     destinationChainId: 84532,
     timeout: 300000, // 5 minutes
-})) {
-    console.log(`[${update.status}] ${update.message}`);
+});
 
-    if (update.status === "filled") {
-        console.log(`Filled in tx: ${update.fillTxHash}`);
-        break;
-    } else if (update.status === "expired") {
-        console.log("Transfer expired");
-        break;
-    }
-}
+tracker.on("opened", (update) => console.log("Order opened:", update.orderId));
+tracker.on("filled", (update) => console.log("Filled!", update.fillTxHash));
+tracker.on("expired", (update) => console.log("Transfer expired"));
+tracker.on("error", (error) => console.error("Tracking error:", error));
+```
 
-// Or get current status without watching
-const status = await tracker.getIntentStatus("0x...", 11155111);
+### One-Time Status Check
+
+For a simple status check without event-based tracking:
+
+```typescript
+const status = await executor.getIntentStatus({
+    txHash: "0x...",
+    providerId: "across",
+    originChainId: 11155111,
+});
+
 console.log(status.status); // 'opening' | 'opened' | 'filling' | 'filled' | 'expired'
 if (status.fillEvent) {
     console.log(`Filled by: ${status.fillEvent.relayer}`);
 }
-```
-
-### Event-Based Tracking
-
-You can also use event-based tracking with `startTracking`:
-
-```typescript
-tracker.on("opening", (update) => console.log("Opening..."));
-tracker.on("opened", (update) => console.log("Opened:", update.orderId));
-tracker.on("filling", (update) => console.log("Waiting for fill..."));
-tracker.on("filled", (update) => console.log("Filled!", update.fillTxHash));
-tracker.on("expired", (update) => console.log("Expired"));
-tracker.on("error", (error) => console.error("Error:", error));
-
-const finalStatus = await tracker.startTracking({
-    txHash: "0x...",
-    originChainId: 11155111,
-    destinationChainId: 84532,
-    timeout: 300000,
-});
 ```
 
 For more details, see [Intent Tracking](./intent-tracking.md).

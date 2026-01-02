@@ -19,10 +19,14 @@ The OIF (Open Intents Framework) provider enables direct integration with any OI
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-const oifProvider = createCrossChainProvider("oif", {
-    solverId: "my-solver",
-    url: "https://oif-api.example.com",
-});
+const oifProvider = createCrossChainProvider(
+    "oif",
+    {
+        solverId: "my-solver",
+        url: "https://oif-api.example.com",
+    },
+    {},
+);
 ```
 
 ## Execution Modes
@@ -38,20 +42,20 @@ import { createWalletClient, http } from "viem";
 import { base } from "viem/chains";
 
 const quotes = await oifProvider.getQuotes({
-    user: "0xYourAddress@eip155:8453#CHECKSUM",
+    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
     intent: {
         intentType: "oif-swap",
         inputs: [
             {
-                user: "0xYourAddress@eip155:8453#CHECKSUM",
-                asset: "0xInputToken@eip155:8453#CHECKSUM",
+                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
+                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
                 amount: "1000000",
             },
         ],
         outputs: [
             {
-                receiver: "0xRecipient@eip155:42161#CHECKSUM",
-                asset: "0xOutputToken@eip155:42161#CHECKSUM",
+                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
+                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
             },
         ],
         swapType: "exact-input",
@@ -72,20 +76,20 @@ User executes transaction directly. The `preparedTransaction` is included automa
 
 ```typescript
 const quotes = await oifProvider.getQuotes({
-    user: "0xYourAddress@eip155:8453#CHECKSUM",
+    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
     intent: {
         intentType: "oif-swap",
         inputs: [
             {
-                user: "0xYourAddress@eip155:8453#CHECKSUM",
-                asset: "0xInputToken@eip155:8453#CHECKSUM",
+                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
+                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
                 amount: "1000000",
             },
         ],
         outputs: [
             {
-                receiver: "0xRecipient@eip155:42161#CHECKSUM",
-                asset: "0xOutputToken@eip155:42161#CHECKSUM",
+                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
+                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
             },
         ],
         originSubmission: { mode: "user" },

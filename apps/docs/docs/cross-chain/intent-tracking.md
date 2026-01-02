@@ -14,55 +14,56 @@ The Intent Tracker monitors cross-chain transfers through their complete lifecyc
 4. **Filled** - Transfer completed successfully
 5. **Expired** - Transfer deadline exceeded
 
-## Installation
-
-```bash
-npm install @wonderland/interop-cross-chain
-# or
-yarn add @wonderland/interop-cross-chain
-# or
-pnpm add @wonderland/interop-cross-chain
-```
-
 ## Basic Usage
 
-### Creating an Intent Tracker
+The recommended way to track intents is through the `ProviderExecutor`, which handles tracker creation and caching automatically:
 
 ```typescript
-import { createCrossChainProvider, createIntentTracker } from "@wonderland/interop-cross-chain";
+import {
+    createCrossChainProvider,
+    createProviderExecutor,
+    IntentTrackerFactory,
+} from "@wonderland/interop-cross-chain";
 
-// Create a provider first
-const acrossProvider = createCrossChainProvider("across", {
-    apiUrl: "https://testnet.across.to/api",
+const acrossProvider = createCrossChainProvider(
+    "across",
+    { apiUrl: "https://testnet.across.to/api" },
+    {},
+);
+
+const executor = createProviderExecutor({
+    providers: [acrossProvider],
+    trackerFactory: new IntentTrackerFactory({
+        rpcUrls: {
+            11155111: "https://sepolia.infura.io/v3/YOUR_API_KEY",
+            84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY",
+        },
+    }),
 });
-
-// Create a tracker from the provider
-const tracker = createIntentTracker(acrossProvider);
 ```
 
-### Watching an Intent
+### Tracking an Intent
 
-Watch an intent with real-time updates using an async generator:
+After executing a transaction, use `executor.track()` for real-time updates:
 
 ```typescript
-// Watch an intent with real-time updates
-for await (const update of tracker.watchIntent({
-    txHash: "0xabc...",
-    originChainId: 11155111, // Sepolia
-    destinationChainId: 84532, // Base Sepolia
-    timeout: 300000, // 5 minutes (optional)
-})) {
-    console.log(`Status: ${update.status}`);
-    console.log(`Message: ${update.message}`);
+const quote = response.quotes[0];
+const hash = await walletClient.sendTransaction(quote.preparedTransaction);
 
-    if (update.status === "filled") {
-        console.log(`Filled in tx: ${update.fillTxHash}`);
-        break;
-    } else if (update.status === "expired") {
-        console.log("Transfer expired");
-        break;
-    }
-}
+const tracker = executor.track({
+    txHash: hash,
+    providerId: quote.provider,
+    originChainId: 11155111,
+    destinationChainId: 84532,
+    timeout: 300000, // 5 minutes
+});
+
+tracker.on("opening", (update) => console.log("Opening..."));
+tracker.on("opened", (update) => console.log("Opened:", update.orderId));
+tracker.on("filling", (update) => console.log("Waiting for fill..."));
+tracker.on("filled", (update) => console.log("Filled!", update.fillTxHash));
+tracker.on("expired", (update) => console.log("Transfer expired"));
+tracker.on("error", (error) => console.error("Error:", error));
 ```
 
 ### Getting Current Status
@@ -70,16 +71,16 @@ for await (const update of tracker.watchIntent({
 Check the current status of an intent without watching:
 
 ```typescript
-// Get current status
-const status = await tracker.getIntentStatus(
-    "0xabc...", // transaction hash
-    11155111, // origin chain ID
-);
+const status = await executor.getIntentStatus({
+    txHash: "0xabc...",
+    providerId: "across",
+    originChainId: 11155111,
+});
 
 console.log(status.status); // 'opening' | 'opened' | 'filling' | 'filled' | 'expired'
 console.log(status.orderId); // Order ID
-console.log(status.inputAmount); // Input amount
-console.log(status.outputAmount); // Output amount
+console.log(status.inputAmount); // Input amount (bigint)
+console.log(status.outputAmount); // Output amount (bigint)
 
 if (status.fillEvent) {
     console.log(`Filled by: ${status.fillEvent.relayer}`);
@@ -157,19 +158,49 @@ The transfer deadline has been exceeded.
 }
 ```
 
-## Advanced Configuration
+## Advanced: Standalone Tracker
 
-### Custom RPC URLs
-
-You can provide custom RPC URLs for specific chains:
+For advanced use cases, you can create a tracker directly without using the executor:
 
 ```typescript
+import { createCrossChainProvider, createIntentTracker } from "@wonderland/interop-cross-chain";
+
+const acrossProvider = createCrossChainProvider(
+    "across",
+    { apiUrl: "https://testnet.across.to/api" },
+    {},
+);
+
 const tracker = createIntentTracker(acrossProvider, {
     rpcUrls: {
         11155111: "https://sepolia.infura.io/v3/YOUR_API_KEY",
         84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY",
     },
 });
+```
+
+### Watching an Intent
+
+Watch an intent with real-time updates using an async generator:
+
+```typescript
+for await (const update of tracker.watchIntent({
+    txHash: "0xabc...",
+    originChainId: 11155111,
+    destinationChainId: 84532,
+    timeout: 300000, // 5 minutes
+})) {
+    console.log(`Status: ${update.status}`);
+    console.log(`Message: ${update.message}`);
+
+    if (update.status === "filled") {
+        console.log(`Filled in tx: ${update.fillTxHash}`);
+        break;
+    } else if (update.status === "expired") {
+        console.log("Transfer expired");
+        break;
+    }
+}
 ```
 
 ### Custom Public Client
@@ -214,7 +245,7 @@ try {
 
 1. Always set an appropriate timeout for intent watching
 2. Handle all status types appropriately in your UI
-3. Use `getIntentStatus` for one-time checks instead of watching
+3. Use `getIntentStatus()` for one-time checks instead of watching
 4. Provide custom RPC URLs for better reliability
 5. Monitor for expired intents and handle them appropriately
 

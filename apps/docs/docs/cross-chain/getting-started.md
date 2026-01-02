@@ -41,9 +41,13 @@ The package uses a factory pattern to create providers for different protocols:
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 // Create a provider for a specific protocol
-const provider = createCrossChainProvider("protocol-name", {
-    // provider-specific configuration
-});
+const provider = createCrossChainProvider(
+    "protocol-name",
+    {
+        // provider-specific configuration
+    },
+    {}, // dependencies
+);
 ```
 
 See the provider-specific documentation for configuration options:
@@ -57,20 +61,20 @@ All providers support fetching quotes for cross-chain operations using the OIF f
 
 ```typescript
 const quotes = await provider.getQuotes({
-    user: "0xYourAddress@eip155:11155111#CHECKSUM", // user interop address
+    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
     intent: {
         intentType: "oif-swap",
         inputs: [
             {
-                user: "0xYourAddress@eip155:11155111#CHECKSUM", // sender interop address
-                asset: "0xInputToken@eip155:11155111#CHECKSUM", // input token interop address
+                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
+                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
                 amount: "1000000000000000000", // 1 token (in wei)
             },
         ],
         outputs: [
             {
-                receiver: "0xRecipient@eip155:84532#CHECKSUM", // recipient interop address
-                asset: "0xOutputToken@eip155:84532#CHECKSUM", // output token interop address
+                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
+                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
             },
         ],
         swapType: "exact-input",

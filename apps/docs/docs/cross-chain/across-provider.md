@@ -18,29 +18,31 @@ The Across Protocol provider enables cross-chain token transfers using the Acros
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider("across", {
-    apiUrl: "https://testnet.across.to/api",
-});
+const acrossProvider = createCrossChainProvider(
+    "across",
+    { apiUrl: "https://testnet.across.to/api" },
+    {},
+);
 ```
 
 ## Getting Quotes
 
 ```typescript
 const quotes = await acrossProvider.getQuotes({
-    user: "0xYourAddress@eip155:11155111#CHECKSUM", // user interop address
+    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
     intent: {
         intentType: "oif-swap",
         inputs: [
             {
-                user: "0xYourAddress@eip155:11155111#CHECKSUM", // sender interop address
-                asset: "0xInputToken@eip155:11155111#CHECKSUM", // input token interop address
+                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
+                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
                 amount: "1000000000000000000", // 1 token (in wei)
             },
         ],
         outputs: [
             {
-                receiver: "0xRecipient@eip155:84532#CHECKSUM", // recipient interop address
-                asset: "0xOutputToken@eip155:84532#CHECKSUM", // output token interop address
+                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
+                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
             },
         ],
         swapType: "exact-input",

@@ -15,36 +15,47 @@ This document lists all cross-chain providers supported by the Interop SDK.
 
 ## Creating Custom Providers
 
-You can create custom providers by implementing the `CrossChainProvider` interface:
+You can create custom providers by extending the `CrossChainProvider` abstract class:
 
 ```typescript
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import {
     CrossChainProvider,
-    GetQuoteParams,
-    GetQuoteResponse,
+    ExecutableQuote,
+    FillWatcherConfig,
+    OpenedIntentParserConfig,
+    ProviderExecuteNotImplemented,
 } from "@wonderland/interop-cross-chain";
+import { Hex } from "viem";
 
-class MyCustomProvider extends CrossChainProvider<MyOpenParams> {
+class MyCustomProvider extends CrossChainProvider {
     readonly protocolName = "my-protocol";
+    readonly providerId = "my-protocol-1";
 
-    async getQuote<Action extends MyOpenParams["action"]>(
-        action: Action,
-        params: GetQuoteParams<Action>,
-    ): Promise<GetQuoteResponse<Action, MyOpenParams>> {
+    async getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]> {
         // Implement quote fetching logic
+        // Return array of ExecutableQuote with preparedTransaction
     }
 
-    validateOpenParams(params: MyOpenParams): void {
-        // Implement validation logic
+    async submitSignedOrder(
+        quote: ExecutableQuote,
+        signature: Hex | Uint8Array,
+    ): Promise<PostOrderResponse> {
+        // Implement signed order submission for gasless execution
+        // Throw if not supported:
+        throw new ProviderExecuteNotImplemented("submitSignedOrder not supported");
     }
 
-    async validatedSimulateOpen(params: MyOpenParams): Promise<TransactionRequest[]> {
-        // Implement transaction simulation
+    getTrackingConfig(): {
+        openedIntentParserConfig: OpenedIntentParserConfig;
+        fillWatcherConfig: FillWatcherConfig;
+    } {
+        // Return protocol-specific tracking configuration
     }
 }
 ```
 
-See the [API Reference](./api.md) for more details on implementing custom providers.
+See the [API Reference](./api.md) for more details on the provider interface.
 
 ## References
 
