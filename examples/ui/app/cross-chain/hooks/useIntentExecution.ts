@@ -136,6 +136,8 @@ export function useIntentExecution(): UseIntentExecutionReturn {
           setState,
         );
 
+        expectedWalletChainIdRef.current = null;
+
         await handleTokenApproval(
           publicClient,
           walletClient,
@@ -177,10 +179,13 @@ export function useIntentExecution(): UseIntentExecutionReturn {
 
         const error = err instanceof Error ? err : new Error(String(err));
         const parsed = parseError(err);
+        const txHash = (err as { txHash?: Hex }).txHash;
         setState({
           status: EXECUTION_STATUS.ERROR,
           message: parsed.message,
           error,
+          originChainId,
+          txHash,
         });
         return { success: false };
       }

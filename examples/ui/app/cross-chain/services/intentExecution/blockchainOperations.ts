@@ -132,25 +132,42 @@ export async function submitBridgeTransaction(
 
   const txHash = await walletClient.sendTransaction({ to, data });
 
+  const createRevertError = () => {
+    const error = new Error('Transaction reverted on-chain. The bridge transaction failed.');
+    (error as Error & { txHash: Hex }).txHash = txHash;
+    return error;
+  };
+
   onStateChange({ status: EXECUTION_STATUS.CONFIRMING, message: 'Waiting for transaction confirmation...', txHash });
 
-  let confirmed = false;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      await publicClient.waitForTransactionReceipt({ hash: txHash });
-      confirmed = true;
-      break;
-    } catch (receiptError) {
-      console.warn(`Attempt ${attempt + 1}: Failed to get bridge tx receipt`, receiptError);
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+      if (receipt.status === 'reverted') {
+        throw createRevertError();
+      }
+
+      return txHash;
+    } catch (e) {
+      const receiptError = e as Error | undefined;
+      if (receiptError?.message?.includes('reverted')) {
+        throw receiptError;
+      }
+
+      console.warn(`Attempt ${attempt + 1}: Failed to get bridge tx receipt`, e);
       if (attempt < 2) {
         await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS.TX_RETRY));
       }
     }
   }
 
-  if (!confirmed) {
-    onStateChange({ status: EXECUTION_STATUS.CONFIRMING, message: 'Waiting for block confirmation...', txHash });
-    await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS.BLOCK_CONFIRMATION_WAIT));
+  onStateChange({ status: EXECUTION_STATUS.CONFIRMING, message: 'Waiting for block confirmation...', txHash });
+  await new Promise((resolve) => setTimeout(resolve, TIMEOUT_MS.BLOCK_CONFIRMATION_WAIT));
+
+  const finalReceipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+  if (finalReceipt.status === 'reverted') {
+    throw createRevertError();
   }
 
   return txHash;

@@ -27,13 +27,13 @@ export function ErrorView({ state, onReset }: IntentTrackingProps) {
           href={originTxUrl}
           target='_blank'
           rel='noopener noreferrer'
-          className='flex items-center justify-between p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group mb-4'
+          className='flex items-center justify-between p-3 rounded-lg bg-red-500/10 border border-red-500/30 hover:border-red-500/50 transition-colors group mb-4'
         >
           <div className='flex items-center gap-2'>
-            <div className='w-2 h-2 rounded-full bg-blue-400' />
-            <span className='text-sm text-text-primary'>Origin Transaction ({originChain?.name ?? 'Unknown'})</span>
+            <div className='w-2 h-2 rounded-full bg-red-400' />
+            <span className='text-sm text-red-300'>Origin Transaction ({originChain?.name ?? 'Unknown'})</span>
           </div>
-          <div className='flex items-center gap-2 text-text-tertiary group-hover:text-accent'>
+          <div className='flex items-center gap-2 text-red-400/70 group-hover:text-red-300'>
             <span className='text-xs font-mono'>
               {state.txHash.slice(0, 10)}...{state.txHash.slice(-8)}
             </span>
