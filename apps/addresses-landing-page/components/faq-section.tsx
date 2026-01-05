@@ -12,9 +12,11 @@ export function FaqSection() {
                             Why two separate ERCs?
                         </h3>
                         <p className="font-mono text-sm lg:text-[0.9375rem] text-muted-foreground leading-relaxed">
-                            ERC-7930 provides the foundational binary format that works everywhere.
-                            ERC-7828 adds ENS integration for better UX. You can use 7930 alone, or
-                            enhance it with 7828.
+                            ERC-7930 provides the foundational binary format that works everywhere,
+                            but is optimised for use in smart contracts. ERC-7828 focuses on
+                            human-readable addresses, adding ENS integration for better UX and
+                            checksums for safe sharing. You can use 7930 alone, or enhance it with
+                            7828.
                         </p>
                     </div>
 
@@ -115,10 +117,11 @@ export function FaqSection() {
                             What if a name resolves to different addresses?
                         </h3>
                         <p className="font-mono text-sm lg:text-[0.9375rem] text-muted-foreground leading-relaxed">
-                            The standard includes 4-byte checksums calculated over the binary
-                            format. If a name resolves to a different address or there&apos;s an
-                            error, the checksum won&apos;t match and will alert about the problem.
-                            Checksums help prevent errors and detect inconsistencies in resolution.
+                            The Interoperable Name specification includes 4-byte checksums
+                            calculated over the resolved Interoperable Address. If a name resolves
+                            to a different address or there&apos;s an error, the checksum won&apos;t
+                            match and will alert about the problem. Checksums help prevent errors
+                            and detect inconsistencies in resolution.
                         </p>
                     </div>
                 </div>

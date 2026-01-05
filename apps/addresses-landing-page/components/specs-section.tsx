@@ -15,10 +15,9 @@ export function SpecsSection() {
                             Interoperable Addresses
                         </h4>
                         <p className="font-mono text-sm md:text-[0.9375rem] lg:text-base text-muted-foreground leading-relaxed mb-5 lg:mb-6">
-                            Binary format that binds address and chain together—compact, verifiable,
-                            and extensible across any blockchain ecosystem, with a basic readable
-                            name for usability. Works with any chain type, from EVM to non-EVM
-                            networks.
+                            Binary format that binds address and chain together — compact,
+                            verifiable, and extensible across any blockchain ecosystem. Works with
+                            any chain type, from EVM to non-EVM networks.
                         </p>
                         <a
                             href="https://eips.ethereum.org/EIPS/eip-7930"
@@ -38,10 +37,10 @@ export function SpecsSection() {
                             Human-readable Interoperable Names
                         </h4>
                         <p className="font-mono text-sm md:text-[0.9375rem] lg:text-base text-muted-foreground leading-relaxed mb-5 lg:mb-6">
-                            Powered by ENS with an on-chain registry—making addresses and chain
-                            identifiers accessible while maintaining technical precision. Extends
-                            ERC-7930 by allowing resolution to shorter names using ENS. Replaces
-                            centralized chain lists with a decentralized on-chain registry.
+                            Defines a standard
+                            {" <address>@<chain>"} text representation for an Interoperable Address,
+                            supporting optional resolution of ENS names and readable chain
+                            identifiers based on an on-chain registry.
                         </p>
                         <a
                             href="https://eips.ethereum.org/EIPS/eip-7828"
