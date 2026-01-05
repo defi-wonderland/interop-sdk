@@ -53,9 +53,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
   });
 
   const inputTokenInfo = inputTokenAddress ? TOKEN_INFO[inputTokenAddress] : null;
-  const displayBalance = tokenBalance
-    ? formatAmount(tokenBalance.value.toString(), inputTokenInfo?.decimals)
-    : '0.0000';
+  const displayBalance = tokenBalance ? formatAmount(tokenBalance.value.toString(), inputTokenInfo?.decimals) : '-';
 
   const parsedInputAmount = useMemo(() => {
     if (!inputAmount) return 0n;
