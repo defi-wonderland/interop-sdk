@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { parseUnits } from 'viem';
-import { useAccount } from 'wagmi';
+import { useAccount, useBalance } from 'wagmi';
 import {
   SUPPORTED_CHAINS,
   DEFAULT_INPUT_CHAIN_ID,
@@ -10,7 +10,9 @@ import {
   SUPPORTED_TOKEN_BY_CHAIN_ID,
   TOKEN_INFO,
 } from '../constants';
+import { formatAmount } from '../utils/formatting';
 import { WalletConnect } from './WalletConnect';
+import { SpinnerIcon } from './icons';
 
 interface SwapFormProps {
   onSubmit: (params: {
@@ -43,6 +45,29 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
 
   const inputTokens = useMemo(() => SUPPORTED_TOKEN_BY_CHAIN_ID[inputChainId] || [], [inputChainId]);
   const outputTokens = useMemo(() => SUPPORTED_TOKEN_BY_CHAIN_ID[outputChainId] || [], [outputChainId]);
+
+  const { data: tokenBalance, isLoading: isBalanceLoading } = useBalance({
+    address: isConnected ? connectedAddress : undefined,
+    token: inputTokenAddress as `0x${string}` | undefined,
+    chainId: inputChainId,
+  });
+
+  const inputTokenInfo = inputTokenAddress ? TOKEN_INFO[inputTokenAddress] : null;
+  const displayBalance = tokenBalance
+    ? formatAmount(tokenBalance.value.toString(), inputTokenInfo?.decimals)
+    : '0.0000';
+
+  const parsedInputAmount = useMemo(() => {
+    if (!inputAmount) return 0n;
+    try {
+      const decimals = inputTokenInfo?.decimals || 18;
+      return parseUnits(inputAmount, decimals);
+    } catch {
+      return 0n;
+    }
+  }, [inputAmount, inputTokenInfo?.decimals]);
+
+  const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.value);
 
   useEffect(() => {
     if (isConnected && connectedAddress && !recipient) {
@@ -95,7 +120,15 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
     outputTokenAddress &&
     inputAmount &&
     !isLoading &&
-    !isDisabled;
+    !isDisabled &&
+    !hasInsufficientBalance;
+
+  const getButtonText = () => {
+    if (!isConnected) return 'Connect Wallet';
+    if (isLoading) return 'Fetching Quotes...';
+    if (hasInsufficientBalance) return 'Insufficient Balance';
+    return 'Get Quotes';
+  };
 
   return (
     <form
@@ -105,7 +138,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
       <div className='absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent rounded-3xl pointer-events-none' />
 
       <div className='relative flex flex-col gap-6'>
-        <WalletConnect selectedTokenAddress={inputTokenAddress} />
+        <WalletConnect />
 
         <div>
           <label htmlFor='recipient-address' className='text-sm font-medium text-text-secondary mb-2 block'>
@@ -212,6 +245,11 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
             disabled={isDisabled}
             className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
+          {isConnected && (
+            <p className='text-sm text-accent mt-1 flex items-center gap-1'>
+              Balance: {isBalanceLoading ? <SpinnerIcon className='w-3 h-3' /> : displayBalance}
+            </p>
+          )}
         </div>
 
         <button
@@ -223,7 +261,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               : 'bg-surface-secondary text-text-tertiary cursor-not-allowed opacity-50'
           }`}
         >
-          {!isConnected ? 'Connect Wallet' : isLoading ? 'Fetching Quotes...' : 'Get Quotes'}
+          {getButtonText()}
         </button>
       </div>
     </form>
