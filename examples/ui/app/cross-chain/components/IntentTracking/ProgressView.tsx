@@ -37,7 +37,7 @@ export function ProgressView({ state }: { state: IntentExecutionState }) {
                       : stepStatus === 'complete'
                         ? 'text-accent'
                         : stepStatus === 'error'
-                          ? 'text-red-500'
+                          ? 'text-error'
                           : 'text-text-tertiary'
                   }`}
                 >
