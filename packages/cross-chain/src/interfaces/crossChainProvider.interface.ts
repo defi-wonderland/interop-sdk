@@ -56,7 +56,7 @@ export abstract class CrossChainProvider {
     /**
      * Get the configuration for intent tracking
      * This method provides the protocol-specific configuration needed to create
-     * an IntentTracker for monitoring cross-chain transaction status.
+     * an OrderTracker for monitoring cross-chain transaction status.
      *
      * @returns Configuration object containing:
      *   - openedIntentParserConfig: Config for parsing opened intent from origin chain

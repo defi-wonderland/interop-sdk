@@ -125,7 +125,7 @@ if (selectedQuote?.preparedTransaction) {
 -   `GetQuoteRequest` – OIF-compliant quote request (see `@openintentsframework/oif-specs`).
 -   `GetQuotesResponse` – Response containing `{ quotes: ExecutableQuote[], errors: GetQuotesError[] }`.
 -   `ExecutableQuote` – Quote with optional `preparedTransaction` for execution.
--   `ProviderExecutorConfig`, `IntentTrackerConfig`, and more (see exported types).
+-   `ProviderExecutorConfig`, `OrderTrackerConfig`, and more (see exported types).
 
 ## OIF Provider
 

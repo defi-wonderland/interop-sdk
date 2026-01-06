@@ -3,41 +3,49 @@ import { Hex } from "viem";
 
 import {
     FillWatcher,
-    IntentStatusInfo,
-    IntentUpdate,
+    getChainById,
     OpenedIntentParser,
-    WatchIntentParams,
+    OrderApiStatusInfo,
+    OrderApiStatusUpdate,
+    PublicClientManager,
+    WatchOrderParams,
 } from "../internal.js";
 
 /**
- * Intent tracker with event-based updates
+ * Order tracker with event-based updates (OIF-aligned)
+ * @see https://docs.openintents.xyz/docs/apis/order-api#order-statuses
  */
-export class IntentTracker extends EventEmitter {
-    /**
-     * Grace period in seconds after fillDeadline to still accept fills
-     */
+export class OrderTracker extends EventEmitter {
     static readonly GRACE_PERIOD_SECONDS = 60;
-
-    /**
-     * Default timeout in milliseconds for tracking operations
-     */
-    static readonly DEFAULT_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    static readonly DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 
     constructor(
         private readonly openedIntentParser: OpenedIntentParser,
         private readonly fillWatcher: FillWatcher,
+        private readonly clientManager?: PublicClientManager,
     ) {
         super();
     }
 
-    /**
-     * Get the current status of an intent.
-     *
-     * @param txHash - Transaction hash where the intent was opened
-     * @param originChainId - Origin chain ID
-     * @returns Current intent status
-     */
-    async getIntentStatus(txHash: Hex, originChainId: number): Promise<IntentStatusInfo> {
+    async getOrderStatus(txHash: Hex, originChainId: number): Promise<OrderApiStatusInfo> {
+        if (this.clientManager) {
+            const isReverted = await this.checkOriginTxReverted(txHash, originChainId);
+            if (isReverted) {
+                return {
+                    status: "failed",
+                    orderId: "0x" as Hex,
+                    openTxHash: txHash,
+                    user: "0x" as Hex,
+                    originChainId,
+                    destinationChainId: 0,
+                    fillDeadline: 0,
+                    depositId: 0n,
+                    inputAmount: 0n,
+                    outputAmount: 0n,
+                };
+            }
+        }
+
         const openedIntent = await this.openedIntentParser.getOpenedIntent(txHash, originChainId);
 
         const fillEvent = await this.fillWatcher.getFill({
@@ -48,9 +56,9 @@ export class IntentTracker extends EventEmitter {
             fillDeadline: openedIntent.fillDeadline,
         });
 
-        let status: IntentStatusInfo["status"];
+        let status: OrderApiStatusInfo["status"];
         if (fillEvent) {
-            status = "filled";
+            status = "completed";
         } else {
             const now = Math.floor(Date.now() / 1000);
             if (now > openedIntent.fillDeadline) {
@@ -76,25 +84,25 @@ export class IntentTracker extends EventEmitter {
     }
 
     /**
-     * Watch an intent with real-time updates
+     * Watch an order with real-time updates
      *
      * @param params - Watch parameters
-     * @yields Intent updates as they occur
+     * @yields Order updates as they occur
      *
      * @example
      * ```typescript
-     * for await (const update of tracker.watchIntent({ txHash, originChainId, destinationChainId, timeout })) {
+     * for await (const update of tracker.watchOrder({ txHash, originChainId, destinationChainId, timeout })) {
      *   console.log(update.status, update.message);
-     *   if (update.status === 'filled') break;
+     *   if (update.status === 'completed') break;
      * }
      * ```
      */
-    async *watchIntent(params: WatchIntentParams): AsyncGenerator<IntentUpdate> {
+    async *watchOrder(params: WatchOrderParams): AsyncGenerator<OrderApiStatusUpdate> {
         const {
             txHash,
             originChainId,
             destinationChainId,
-            timeout = IntentTracker.DEFAULT_TIMEOUT_MS,
+            timeout = OrderTracker.DEFAULT_TIMEOUT_MS,
         } = params;
 
         if (timeout <= 0) {
@@ -104,32 +112,45 @@ export class IntentTracker extends EventEmitter {
         const startTime = Date.now();
 
         yield {
-            status: "opening",
+            status: "pending",
             openTxHash: txHash,
             timestamp: Math.floor(Date.now() / 1000),
-            message: "Parsing intent from transaction...",
+            message: "Parsing order from transaction...",
         };
+
+        if (this.clientManager) {
+            const isReverted = await this.checkOriginTxReverted(txHash, originChainId);
+            if (isReverted) {
+                yield {
+                    status: "failed",
+                    openTxHash: txHash,
+                    timestamp: Math.floor(Date.now() / 1000),
+                    message: "Origin transaction reverted",
+                };
+                return;
+            }
+        }
 
         const openedIntent = await this.openedIntentParser.getOpenedIntent(txHash, originChainId);
 
         yield {
-            status: "opened",
+            status: "pending",
             orderId: openedIntent.orderId,
             openTxHash: txHash,
             timestamp: Math.floor(Date.now() / 1000),
-            message: `Intent opened with orderId ${openedIntent.orderId.slice(0, 10)}...`,
+            message: `Order parsed with orderId ${openedIntent.orderId.slice(0, 10)}...`,
         };
 
         const nowSeconds = Math.floor(Date.now() / 1000);
         const fillDeadline = openedIntent.fillDeadline;
 
-        if (nowSeconds > fillDeadline + IntentTracker.GRACE_PERIOD_SECONDS) {
+        if (nowSeconds > fillDeadline + OrderTracker.GRACE_PERIOD_SECONDS) {
             yield {
                 status: "expired",
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 timestamp: Math.floor(Date.now() / 1000),
-                message: "Intent expired before watching started",
+                message: "Order expired before watching started",
             };
             return;
         }
@@ -144,7 +165,7 @@ export class IntentTracker extends EventEmitter {
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 timestamp: Math.floor(Date.now() / 1000),
-                message: `Timeout expired during intent setup. Intent may still be filled before deadline at ${deadlineDate}`,
+                message: `Timeout expired during order setup. Order may still be filled before deadline at ${deadlineDate}`,
             };
             return;
         }
@@ -154,7 +175,7 @@ export class IntentTracker extends EventEmitter {
             orderId: openedIntent.orderId,
             openTxHash: txHash,
             timestamp: Math.floor(Date.now() / 1000),
-            message: "Waiting for relayer to fill intent...",
+            message: "Waiting for solver to fill order...",
         };
 
         const fillResult = await this.waitForFillWithTimeout(
@@ -168,14 +189,14 @@ export class IntentTracker extends EventEmitter {
             remainingTimeout,
         );
 
-        if (fillResult.status === "filled") {
+        if (fillResult.status === "completed") {
             yield {
-                status: "filled",
+                status: "completed",
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 fillTxHash: fillResult.fillTxHash,
                 timestamp: Math.floor(Date.now() / 1000),
-                message: `Intent filled in block ${fillResult.blockNumber}`,
+                message: `Order completed in block ${fillResult.blockNumber}`,
             };
         } else if (fillResult.status === "expired") {
             yield {
@@ -183,7 +204,7 @@ export class IntentTracker extends EventEmitter {
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 timestamp: Math.floor(Date.now() / 1000),
-                message: "Intent expired before fill",
+                message: "Order expired before fill",
             };
         } else {
             const deadlineDate = new Date(fillDeadline * 1000).toISOString();
@@ -192,53 +213,69 @@ export class IntentTracker extends EventEmitter {
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 timestamp: Math.floor(Date.now() / 1000),
-                message: `Stopped watching after timeout, but intent may still be filled before deadline at ${deadlineDate}`,
+                message: `Stopped watching after timeout, but order may still be filled before deadline at ${deadlineDate}`,
             };
         }
     }
 
     /**
-     * Start tracking an intent with event-based updates
+     * Start tracking an order with event-based updates
      *
      * @param params - Watch parameters including optional timeout (defaults to 5 minutes)
-     * @param params.txHash - Transaction hash where the intent was opened
-     * @param params.originChainId - Origin chain ID
-     * @param params.destinationChainId - Destination chain ID
-     * @param params.timeout - Optional timeout in ms (default: 300000ms / 5 min)
-     * @returns Promise that resolves with final intent status
+     * @returns Promise that resolves with final order status
      *
      * @example
      * ```typescript
-     * const tracker = new IntentTracker(...);
+     * const tracker = new OrderTracker(...);
      *
-     * tracker.on('opening', (update) => console.log('Opening...'));
-     * tracker.on('filled', (update) => console.log('Filled!', update.fillTxHash));
+     * tracker.on('pending', (update) => console.log('Pending...'));
+     * tracker.on('completed', (update) => console.log('Completed!', update.fillTxHash));
      * tracker.on('expired', (update) => console.log('Expired'));
+     * tracker.on('failed', (update) => console.log('Failed'));
      *
      * const finalStatus = await tracker.startTracking({
      *   txHash,
      *   originChainId,
      *   destinationChainId,
-     *   timeout: 10 * 60 * 1000 // 10 minutes
+     *   timeout: 10 * 60 * 1000
      * });
      * ```
      */
-    async startTracking(params: WatchIntentParams): Promise<IntentStatusInfo> {
+    async startTracking(params: WatchOrderParams): Promise<OrderApiStatusInfo> {
         try {
-            for await (const update of this.watchIntent(params)) {
+            for await (const update of this.watchOrder(params)) {
                 this.emit(update.status, update);
 
-                if (update.status === "filled" || update.status === "expired") {
+                if (
+                    update.status === "completed" ||
+                    update.status === "expired" ||
+                    update.status === "failed"
+                ) {
                     break;
                 }
             }
 
-            const finalStatus = await this.getIntentStatus(params.txHash, params.originChainId);
+            const finalStatus = await this.getOrderStatus(params.txHash, params.originChainId);
             return finalStatus;
         } catch (error) {
             const err = error instanceof Error ? error : new Error(String(error));
             this.emit("error", err);
             throw error;
+        }
+    }
+
+    private async checkOriginTxReverted(txHash: Hex, chainId: number): Promise<boolean> {
+        if (!this.clientManager) {
+            return false;
+        }
+
+        try {
+            const chain = getChainById(chainId);
+            const client = this.clientManager.getClient(chain);
+            const receipt = await client.getTransactionReceipt({ hash: txHash });
+            return receipt.status === "reverted";
+        } catch {
+            return false;
         }
     }
 
@@ -252,14 +289,14 @@ export class IntentTracker extends EventEmitter {
         },
         timeout: number,
     ): Promise<
-        | { status: "filled"; fillTxHash: Hex; blockNumber: bigint }
+        | { status: "completed"; fillTxHash: Hex; blockNumber: bigint }
         | { status: "expired" }
         | { status: "timeout" }
     > {
         try {
             const fillEvent = await this.fillWatcher.waitForFill(fillParams, timeout);
             return {
-                status: "filled",
+                status: "completed",
                 fillTxHash: fillEvent.fillTxHash,
                 blockNumber: fillEvent.blockNumber,
             };

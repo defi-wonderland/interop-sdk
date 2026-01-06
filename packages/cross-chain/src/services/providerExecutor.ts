@@ -4,13 +4,13 @@ import { Hex } from "viem";
 import {
     CrossChainProvider,
     ExecutableQuote,
-    IntentStatusInfo,
-    IntentTracker,
-    IntentTrackerFactory,
+    OrderApiStatusInfo,
+    OrderTracker,
+    OrderTrackerFactory,
     ProviderNotFound,
     ProviderTimeout,
     SortingStrategy,
-    WatchIntentParams,
+    WatchOrderParams,
 } from "../internal.js";
 
 type GetQuotesError = {
@@ -27,7 +27,7 @@ interface ProviderExecutorConfig {
     providers: CrossChainProvider[];
     sortingStrategy?: SortingStrategy;
     timeoutMs?: number;
-    trackerFactory?: IntentTrackerFactory;
+    trackerFactory?: OrderTrackerFactory;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -39,8 +39,8 @@ class ProviderExecutor {
     private readonly providers: Record<string, CrossChainProvider>;
     private readonly sortingStrategy?: SortingStrategy;
     private readonly timeoutMs: number;
-    private readonly trackerFactory: IntentTrackerFactory;
-    private readonly trackerCache: Map<string, IntentTracker> = new Map();
+    private readonly trackerFactory: OrderTrackerFactory;
+    private readonly trackerCache: Map<string, OrderTracker> = new Map();
 
     /**
      * Constructor - internal use only, prefer createProviderExecutor() factory
@@ -58,7 +58,7 @@ class ProviderExecutor {
         );
         this.sortingStrategy = sortingStrategy;
         this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
-        this.trackerFactory = trackerFactory ?? new IntentTrackerFactory();
+        this.trackerFactory = trackerFactory ?? new OrderTrackerFactory();
     }
 
     private splitQuotesAndErrors(quotes: (ExecutableQuote | GetQuotesError)[]): GetQuotesResponse {
@@ -121,23 +121,21 @@ class ProviderExecutor {
 
     /**
      * Prepare tracking for an executed transaction
-     * Returns an IntentTracker instance that can be used to set up event listeners
+     * Returns an OrderTracker instance that can be used to set up event listeners
      * before sending the transaction
      *
      * @param providerId - The provider ID to get tracker for
-     * @returns IntentTracker instance (not started yet)
+     * @returns OrderTracker instance (not started yet)
      *
      * @example
      * ```typescript
      * const tracker = executor.prepareTracking('across');
      *
-     * // Set up listeners
-     * tracker.on('filled', (update) => console.log('Filled!'));
+     * tracker.on('completed', (update) => console.log('Completed!'));
+     * tracker.on('failed', (update) => console.log('Failed'));
      *
-     * // Execute and get tx hash
      * const response = await executor.execute(quote, signer);
      *
-     * // Start tracking
      * await tracker.startTracking({
      *   txHash: response.txHash,
      *   originChainId: 11155111,
@@ -145,7 +143,7 @@ class ProviderExecutor {
      * });
      * ```
      */
-    prepareTracking(providerId: string): IntentTracker {
+    prepareTracking(providerId: string): OrderTracker {
         return this.getOrCreateTracker(providerId);
     }
 
@@ -154,7 +152,7 @@ class ProviderExecutor {
      * Creates or reuses a tracker and immediately starts tracking
      *
      * @param params - Tracking parameters
-     * @returns IntentTracker instance (already started)
+     * @returns OrderTracker instance (already started)
      *
      * @example
      * ```typescript
@@ -165,7 +163,7 @@ class ProviderExecutor {
      *   destinationChainId: 84532
      * });
      *
-     * tracker.on('filled', (update) => console.log('Done!'));
+     * tracker.on('completed', (update) => console.log('Done!'));
      * ```
      */
     track(params: {
@@ -174,10 +172,10 @@ class ProviderExecutor {
         originChainId: number;
         destinationChainId: number;
         timeout?: number;
-    }): IntentTracker {
+    }): OrderTracker {
         const tracker = this.getOrCreateTracker(params.providerId);
 
-        const trackingParams: WatchIntentParams = {
+        const trackingParams: WatchOrderParams = {
             txHash: params.txHash,
             originChainId: params.originChainId,
             destinationChainId: params.destinationChainId,
@@ -192,43 +190,37 @@ class ProviderExecutor {
     }
 
     /**
-     * Get the current status of an intent without setting up event-based tracking
+     * Get the current status of an order without setting up event-based tracking
      * This is a simple, one-time status check
      *
      * @param params - Status query parameters
-     * @returns Current intent status information
+     * @returns Current order status information
      *
      * @example
      * ```typescript
-     * const status = await executor.getIntentStatus({
+     * const status = await executor.getOrderStatus({
      *   txHash: '0x123...',
      *   providerId: 'across',
      *   originChainId: 11155111
      * });
      *
-     * console.log(status.status); // 'filled' | 'filling' | 'expired'
+     * console.log(status.status); // 'completed' | 'filling' | 'expired' | 'failed'
      * ```
      */
-    async getIntentStatus(params: {
+    async getOrderStatus(params: {
         txHash: Hex;
         providerId: string;
         originChainId: number;
-    }): Promise<IntentStatusInfo> {
+    }): Promise<OrderApiStatusInfo> {
         const tracker = this.getOrCreateTracker(params.providerId);
-        return tracker.getIntentStatus(params.txHash, params.originChainId);
+        return tracker.getOrderStatus(params.txHash, params.originChainId);
     }
 
     /**
      * Get or create a cached tracker for a provider
-     * Uses provider instance's getTrackingConfig() method to get protocol-specific configuration
-     * Trackers are created lazily and cached per provider for efficiency
-     *
      * @private
-     * @param providerId - Provider ID to get tracker for
-     * @returns IntentTracker instance
-     * @throws {ProviderNotFound} If provider is not registered in executor
      */
-    private getOrCreateTracker(providerId: string): IntentTracker {
+    private getOrCreateTracker(providerId: string): OrderTracker {
         if (this.trackerCache.has(providerId)) {
             return this.trackerCache.get(providerId)!;
         }
@@ -254,7 +246,7 @@ class ProviderExecutor {
  * ```typescript
  * const executor = createProviderExecutor({
  *   providers: [new AcrossProvider()],
- *   trackerFactory: new IntentTrackerFactory({
+ *   trackerFactory: new OrderTrackerFactory({
  *     rpcUrls: { 11155111: 'https://...' }
  *   })
  * });

@@ -1,37 +1,37 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AcrossProvider, IntentTracker, IntentTrackerFactory } from "../../src/external.js";
+import { AcrossProvider, OrderTracker, OrderTrackerFactory } from "../../src/external.js";
 import { FillWatcher, OpenedIntentParser } from "../../src/internal.js";
 
 const MOCK_API_URL = "https://mocked.across.url/api";
 const MOCK_PROVIDER_ID = "across";
 
-describe("IntentTrackerFactory", () => {
+describe("OrderTrackerFactory", () => {
     describe("constructor", () => {
         it("creates a factory instance with default config", () => {
-            const factory = new IntentTrackerFactory();
+            const factory = new OrderTrackerFactory();
 
-            expect(factory).toBeInstanceOf(IntentTrackerFactory);
+            expect(factory).toBeInstanceOf(OrderTrackerFactory);
         });
 
         it("creates a factory instance with custom RPC URLs", () => {
-            const factory = new IntentTrackerFactory({
+            const factory = new OrderTrackerFactory({
                 rpcUrls: {
                     11155111: "https://custom-sepolia.com",
                     84532: "https://custom-base.com",
                 },
             });
 
-            expect(factory).toBeInstanceOf(IntentTrackerFactory);
+            expect(factory).toBeInstanceOf(OrderTrackerFactory);
         });
     });
 
     describe("createTracker", () => {
-        let factory: IntentTrackerFactory;
+        let factory: OrderTrackerFactory;
         let provider: AcrossProvider;
 
         beforeEach(() => {
-            factory = new IntentTrackerFactory({
+            factory = new OrderTrackerFactory({
                 rpcUrls: {
                     11155111: "https://sepolia.com",
                     84532: "https://base.com",
@@ -44,10 +44,10 @@ describe("IntentTrackerFactory", () => {
             });
         });
 
-        it("creates an IntentTracker instance", () => {
+        it("creates an OrderTracker instance", () => {
             const tracker = factory.createTracker(provider);
 
-            expect(tracker).toBeInstanceOf(IntentTracker);
+            expect(tracker).toBeInstanceOf(OrderTracker);
         });
 
         it("creates different tracker instances for each call", () => {
@@ -66,7 +66,7 @@ describe("IntentTrackerFactory", () => {
                 openedIntentParser: mockOpenedIntentParser,
             });
 
-            expect(tracker).toBeInstanceOf(IntentTracker);
+            expect(tracker).toBeInstanceOf(OrderTracker);
         });
 
         it("accepts custom fillWatcher", () => {
@@ -79,7 +79,7 @@ describe("IntentTrackerFactory", () => {
                 fillWatcher: mockFillWatcher,
             });
 
-            expect(tracker).toBeInstanceOf(IntentTracker);
+            expect(tracker).toBeInstanceOf(OrderTracker);
         });
 
         it("creates unique trackers for different providers", () => {
@@ -96,8 +96,8 @@ describe("IntentTrackerFactory", () => {
             const trackerA = factory.createTracker(providerA);
             const trackerB = factory.createTracker(providerB);
 
-            expect(trackerA).toBeInstanceOf(IntentTracker);
-            expect(trackerB).toBeInstanceOf(IntentTracker);
+            expect(trackerA).toBeInstanceOf(OrderTracker);
+            expect(trackerB).toBeInstanceOf(OrderTracker);
             expect(trackerA).not.toBe(trackerB);
         });
     });

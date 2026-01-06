@@ -60,21 +60,37 @@ export interface FillEvent {
 }
 
 /**
- * Intent lifecycle status
- * - opening: Parsing the transaction and Open event
- * - opened: Intent successfully opened and parsed
- * - filling: Waiting for relayer to fill on destination chain
- * - filled: Successfully filled on destination chain
- * - expired: Fill deadline passed without being filled
+ * Public order tracking status exposed by the SDK.
+ * Aligned with OIF Order API statuses.
+ *
+ * NOTE: This is different from `OrderStatus` in oif.ts which represents
+ * the solver's internal state machine (Created, Pending, Executed, Settled, etc.).
+ *
+ * @see https://docs.openintents.xyz/docs/apis/order-api#order-statuses
+ *
+ * - pending: Order created, awaiting execution (includes tx parsing phase)
+ * - filling: Solver/relayer delivering outputs on destination chain
+ * - filled: Outputs delivered successfully (intermediate state, not all providers emit this)
+ * - claiming: Solver claiming input assets (not all providers emit this)
+ * - completed: Fully executed successfully
+ * - failed: Execution failed (e.g. origin tx reverted, unrecoverable error)
+ * - expired: Fill deadline passed without completion / refund initiated
  */
-export type IntentStatus = "opening" | "opened" | "filling" | "filled" | "expired";
+export type OrderApiStatus =
+    | "pending"
+    | "filling"
+    | "filled"
+    | "claiming"
+    | "completed"
+    | "failed"
+    | "expired";
 
 /**
- * Complete intent status information
+ * Complete order tracking information
  */
-export interface IntentStatusInfo {
-    /** Current status of the intent */
-    status: IntentStatus;
+export interface OrderApiStatusInfo {
+    /** Current tracking status of the order */
+    status: OrderApiStatus;
     /** Order ID */
     orderId: Hex;
     /** Transaction hash where order was opened */
@@ -93,22 +109,22 @@ export interface IntentStatusInfo {
     inputAmount: bigint;
     /** Output token amount from minReceived[0] */
     outputAmount: bigint;
-    /** Fill event data (present when status is 'filled') */
+    /** Fill event data (present when status is 'completed' or 'filled') */
     fillEvent?: FillEvent;
 }
 
 /**
- * Intent update streamed during tracking
- * Used by async generator for real-time updates
+ * Order update streamed during tracking.
+ * Used by async generator for real-time updates.
  */
-export interface IntentUpdate {
+export interface OrderApiStatusUpdate {
     /** Current status */
-    status: IntentStatus;
-    /** Order ID (available after intent is parsed) */
+    status: OrderApiStatus;
+    /** Order ID (available after order is parsed) */
     orderId?: Hex;
     /** Transaction hash where order was opened */
     openTxHash: Hex;
-    /** Fill transaction hash (available when filled) */
+    /** Fill transaction hash (available when completed) */
     fillTxHash?: Hex;
     /** Timestamp of the update (Unix timestamp in seconds) */
     timestamp: number;
@@ -117,9 +133,9 @@ export interface IntentUpdate {
 }
 
 /**
- * Parameters for watching an intent
+ * Parameters for watching an order
  */
-export interface WatchIntentParams {
+export interface WatchOrderParams {
     /** Transaction hash where the order was opened */
     txHash: Hex;
     /** Origin chain ID */
@@ -149,9 +165,9 @@ export interface GetFillParams {
 }
 
 /**
- * Parameters for tracking an existing transaction (power user method)
+ * Parameters for tracking an existing order (power user method)
  */
-export interface TrackingParams {
+export interface OrderTrackingParams {
     /** Transaction hash to track */
     txHash: Hex;
     /** Protocol name (e.g., 'across') */

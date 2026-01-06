@@ -4,16 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     FillWatcher,
-    IntentTracker,
-    IntentUpdate,
     OpenedIntentParser,
-    WatchIntentParams,
+    OrderApiStatusUpdate,
+    OrderTracker,
+    WatchOrderParams,
 } from "../../src/internal.js";
 import { FillTimeoutError } from "../../src/services/EventBasedFillWatcher.js";
 import { createMockFillEvent, createMockOpenedIntent } from "../mocks/orderTracking.js";
 
-describe("IntentTracker", () => {
-    let tracker: IntentTracker;
+describe("OrderTracker", () => {
+    let tracker: OrderTracker;
     let mockOpenedIntentParser: OpenedIntentParser;
     let mockFillWatcher: FillWatcher;
 
@@ -33,7 +33,7 @@ describe("IntentTracker", () => {
             waitForFill: vi.fn(),
         } as unknown as FillWatcher;
 
-        tracker = new IntentTracker(mockOpenedIntentParser, mockFillWatcher);
+        tracker = new OrderTracker(mockOpenedIntentParser, mockFillWatcher);
     });
 
     afterEach(() => {
@@ -41,24 +41,24 @@ describe("IntentTracker", () => {
         vi.useRealTimers();
     });
 
-    describe("getIntentStatus", () => {
-        it('should return "filled" status when fill event exists', async () => {
+    describe("getOrderStatus", () => {
+        it('should return "completed" status when fill event exists', async () => {
             const mockOpenedIntent = createMockOpenedIntent();
             const mockFillEventData = createMockFillEvent();
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
 
-            const result = await tracker.getIntentStatus(mockTxHash, mockOriginChainId);
+            const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
-            expect(result.status).toBe("filled");
+            expect(result.status).toBe("completed");
             expect(result.orderId).toBe(mockOpenedIntent.orderId);
             expect(result.fillEvent).toEqual(mockFillEventData);
             expect(result.depositId).toBe(mockOpenedIntent.depositId);
         });
 
         it('should return "expired" when past fillDeadline with no fill', async () => {
-            const expiredDeadline = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
+            const expiredDeadline = Math.floor(Date.now() / 1000) - 3600;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: expiredDeadline,
             });
@@ -66,14 +66,14 @@ describe("IntentTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
-            const result = await tracker.getIntentStatus(mockTxHash, mockOriginChainId);
+            const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
             expect(result.status).toBe("expired");
             expect(result.fillEvent).toBeUndefined();
         });
 
         it('should return "filling" when before fillDeadline with no fill', async () => {
-            const futureDeadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+            const futureDeadline = Math.floor(Date.now() / 1000) + 3600;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: futureDeadline,
             });
@@ -81,7 +81,7 @@ describe("IntentTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
-            const result = await tracker.getIntentStatus(mockTxHash, mockOriginChainId);
+            const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
             expect(result.status).toBe("filling");
             expect(result.fillEvent).toBeUndefined();
@@ -101,7 +101,7 @@ describe("IntentTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
 
-            const result = await tracker.getIntentStatus(mockTxHash, mockOriginChainId);
+            const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
             expect(result.orderId).toBe(mockOpenedIntent.orderId);
             expect(result.user).toBe(mockOpenedIntent.user);
@@ -122,14 +122,14 @@ describe("IntentTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
-            const result = await tracker.getIntentStatus(mockTxHash, mockOriginChainId);
+            const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
             expect(result.status).toBe("filling");
         });
     });
 
-    describe("watchIntent - async generator", () => {
-        it("should emit correct sequence: opening → opened → filling → filled", async () => {
+    describe("watchOrder - async generator", () => {
+        it("should emit correct sequence: pending → pending → filling → completed", async () => {
             const mockOpenedIntent = createMockOpenedIntent({
                 destinationChainId: BigInt(mockDestinationChainId),
             });
@@ -138,7 +138,7 @@ describe("IntentTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
@@ -146,21 +146,21 @@ describe("IntentTracker", () => {
             };
 
             const updates = [];
-            for await (const update of tracker.watchIntent(params)) {
+            for await (const update of tracker.watchOrder(params)) {
                 updates.push(update);
             }
 
             expect(updates).toHaveLength(4);
-            expect(updates[0]?.status).toBe("opening");
-            expect(updates[1]?.status).toBe("opened");
+            expect(updates[0]?.status).toBe("pending");
+            expect(updates[1]?.status).toBe("pending");
             expect(updates[2]?.status).toBe("filling");
-            expect(updates[3]?.status).toBe("filled");
+            expect(updates[3]?.status).toBe("completed");
 
             expect(updates[3]?.fillTxHash).toBe(mockFillEventData.fillTxHash);
         });
 
         it("should emit expired if already past deadline before watching (with GRACE_PERIOD)", async () => {
-            const expiredDeadline = Math.floor(Date.now() / 1000) - 120; // 2 minutes ago
+            const expiredDeadline = Math.floor(Date.now() / 1000) - 120;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: expiredDeadline,
                 destinationChainId: BigInt(mockDestinationChainId),
@@ -168,20 +168,20 @@ describe("IntentTracker", () => {
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
             };
 
             const updates = [];
-            for await (const update of tracker.watchIntent(params)) {
+            for await (const update of tracker.watchOrder(params)) {
                 updates.push(update);
             }
 
             expect(updates).toHaveLength(3);
-            expect(updates[0]?.status).toBe("opening");
-            expect(updates[1]?.status).toBe("opened");
+            expect(updates[0]?.status).toBe("pending");
+            expect(updates[1]?.status).toBe("pending");
             expect(updates[2]?.status).toBe("expired");
             expect(updates[2]?.message).toContain("expired before watching started");
         });
@@ -197,28 +197,28 @@ describe("IntentTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
             };
 
             const updates = [];
-            for await (const update of tracker.watchIntent(params)) {
+            for await (const update of tracker.watchOrder(params)) {
                 updates.push(update);
             }
 
             expect(updates).toHaveLength(4);
-            expect(updates[0]?.status).toBe("opening");
-            expect(updates[1]?.status).toBe("opened");
+            expect(updates[0]?.status).toBe("pending");
+            expect(updates[1]?.status).toBe("pending");
             expect(updates[2]?.status).toBe("filling");
-            expect(updates[3]?.status).toBe("filled");
+            expect(updates[3]?.status).toBe("completed");
 
             expect(mockFillWatcher.waitForFill).toHaveBeenCalled();
         });
 
         it("should emit expired if deadline passes during fill wait", async () => {
-            const expiredDeadline = Math.floor(Date.now() / 1000) - 10; // 10 seconds ago
+            const expiredDeadline = Math.floor(Date.now() / 1000) - 10;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: expiredDeadline,
                 destinationChainId: BigInt(mockDestinationChainId),
@@ -226,12 +226,11 @@ describe("IntentTracker", () => {
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
 
-            // Simulate FillTimeoutError - deadline already passed
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
                 new FillTimeoutError(mockOpenedIntent.depositId, 10000),
             );
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
@@ -239,7 +238,7 @@ describe("IntentTracker", () => {
             };
 
             const updates = [];
-            for await (const update of tracker.watchIntent(params)) {
+            for await (const update of tracker.watchOrder(params)) {
                 updates.push(update);
             }
 
@@ -249,7 +248,7 @@ describe("IntentTracker", () => {
         });
 
         it("should emit filling status on timeout with helpful message", async () => {
-            const futureDeadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+            const futureDeadline = Math.floor(Date.now() / 1000) + 3600;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: futureDeadline,
                 destinationChainId: BigInt(mockDestinationChainId),
@@ -257,12 +256,11 @@ describe("IntentTracker", () => {
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
 
-            // Simulate timeout (not expired)
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
                 new FillTimeoutError(mockOpenedIntent.depositId, 10000),
             );
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
@@ -270,7 +268,7 @@ describe("IntentTracker", () => {
             };
 
             const updates = [];
-            for await (const update of tracker.watchIntent(params)) {
+            for await (const update of tracker.watchOrder(params)) {
                 updates.push(update);
             }
 
@@ -291,14 +289,14 @@ describe("IntentTracker", () => {
                 new FillTimeoutError(mockOpenedIntent.depositId, 10000),
             );
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
             };
 
             const updates = [];
-            for await (const update of tracker.watchIntent(params)) {
+            for await (const update of tracker.watchOrder(params)) {
                 updates.push(update);
             }
 
@@ -318,13 +316,13 @@ describe("IntentTracker", () => {
             const unexpectedError = new Error("Unexpected RPC error");
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(unexpectedError);
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
             };
 
-            const generator = tracker.watchIntent(params);
+            const generator = tracker.watchOrder(params);
 
             await expect(async () => {
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -334,27 +332,26 @@ describe("IntentTracker", () => {
             }).rejects.toThrow("Unexpected RPC error");
         });
 
-        it("should handle timeout expiring during intent setup", async () => {
+        it("should handle timeout expiring during order setup", async () => {
             vi.useFakeTimers();
 
             const mockOpenedIntent = createMockOpenedIntent({
                 destinationChainId: BigInt(mockDestinationChainId),
             });
 
-            // Mock getOpenedIntent taking longer than total timeout
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockImplementation(async () => {
                 await vi.advanceTimersByTimeAsync(6000);
                 return mockOpenedIntent;
             });
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
                 timeout: 5000,
             };
 
-            const generator = tracker.watchIntent(params);
+            const generator = tracker.watchOrder(params);
 
             const updates = [];
             for await (const update of generator) {
@@ -362,10 +359,10 @@ describe("IntentTracker", () => {
             }
 
             expect(updates).toHaveLength(3);
-            expect(updates[0]?.status).toBe("opening");
-            expect(updates[1]?.status).toBe("opened");
+            expect(updates[0]?.status).toBe("pending");
+            expect(updates[1]?.status).toBe("pending");
             expect(updates[2]?.status).toBe("filling");
-            expect(updates[2]?.message).toContain("Timeout expired during intent setup");
+            expect(updates[2]?.message).toContain("Timeout expired during order setup");
             expect(updates[2]?.message).toContain("may still be filled before deadline");
 
             expect(mockFillWatcher.waitForFill).not.toHaveBeenCalled();
@@ -380,17 +377,15 @@ describe("IntentTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
 
-            const openingEvents: IntentUpdate[] = [];
-            const openedEvents: IntentUpdate[] = [];
-            const fillingEvents: IntentUpdate[] = [];
-            const filledEvents: IntentUpdate[] = [];
+            const pendingEvents: OrderApiStatusUpdate[] = [];
+            const fillingEvents: OrderApiStatusUpdate[] = [];
+            const completedEvents: OrderApiStatusUpdate[] = [];
 
-            tracker.on("opening", (update: IntentUpdate) => openingEvents.push(update));
-            tracker.on("opened", (update: IntentUpdate) => openedEvents.push(update));
-            tracker.on("filling", (update: IntentUpdate) => fillingEvents.push(update));
-            tracker.on("filled", (update: IntentUpdate) => filledEvents.push(update));
+            tracker.on("pending", (update: OrderApiStatusUpdate) => pendingEvents.push(update));
+            tracker.on("filling", (update: OrderApiStatusUpdate) => fillingEvents.push(update));
+            tracker.on("completed", (update: OrderApiStatusUpdate) => completedEvents.push(update));
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
@@ -399,16 +394,14 @@ describe("IntentTracker", () => {
 
             await tracker.startTracking(params);
 
-            // Should emit specific status events: opening, opened, filling, filled
-            expect(openingEvents).toHaveLength(1);
-            expect(openedEvents).toHaveLength(1);
+            expect(pendingEvents).toHaveLength(2);
             expect(fillingEvents).toHaveLength(1);
-            expect(filledEvents).toHaveLength(1);
+            expect(completedEvents).toHaveLength(1);
 
-            expect(openingEvents[0]!.status).toBe("opening");
-            expect(openedEvents[0]!.status).toBe("opened");
+            expect(pendingEvents[0]!.status).toBe("pending");
+            expect(pendingEvents[1]!.status).toBe("pending");
             expect(fillingEvents[0]!.status).toBe("filling");
-            expect(filledEvents[0]!.status).toBe("filled");
+            expect(completedEvents[0]!.status).toBe("completed");
         });
 
         it("should return final status info", async () => {
@@ -419,7 +412,7 @@ describe("IntentTracker", () => {
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
@@ -428,7 +421,7 @@ describe("IntentTracker", () => {
 
             const result = await tracker.startTracking(params);
 
-            expect(result).toHaveProperty("status", "filled");
+            expect(result).toHaveProperty("status", "completed");
             expect(result).toHaveProperty("orderId");
             expect(result).toHaveProperty("fillEvent");
         });
@@ -440,7 +433,7 @@ describe("IntentTracker", () => {
             const errorEvents: Error[] = [];
             tracker.on("error", (err: Error) => errorEvents.push(err));
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
@@ -453,7 +446,7 @@ describe("IntentTracker", () => {
         });
 
         it("should emit expired event when deadline passed", async () => {
-            const expiredDeadline = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
+            const expiredDeadline = Math.floor(Date.now() / 1000) - 3600;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: expiredDeadline,
             });
@@ -461,10 +454,10 @@ describe("IntentTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
-            const expiredEvents: IntentUpdate[] = [];
-            tracker.on("expired", (update: IntentUpdate) => expiredEvents.push(update));
+            const expiredEvents: OrderApiStatusUpdate[] = [];
+            tracker.on("expired", (update: OrderApiStatusUpdate) => expiredEvents.push(update));
 
-            const params: WatchIntentParams = {
+            const params: WatchOrderParams = {
                 txHash: mockTxHash,
                 originChainId: mockOriginChainId,
                 destinationChainId: mockDestinationChainId,
