@@ -40,7 +40,7 @@ export function ResultDisplays({
     return (
       <div
         data-testid='error-container'
-        className='backdrop-blur-xl bg-error-light/80 border border-error/30 rounded-2xl p-4 shadow-lg'
+        className='backdrop-blur-xl bg-error-light/80 border border-error/30 rounded-2xl p-4 shadow-lg break-words'
       >
         <p className='text-sm text-error font-medium'>{error}</p>
       </div>

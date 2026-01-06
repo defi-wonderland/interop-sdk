@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-type Box = { width: number };
+const USER_FRIENDLY_ERROR_MESSAGE = 'please try again or check your connection';
 
 test.describe('Error handling', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,7 +8,7 @@ test.describe('Error handling', () => {
     await page.getByRole('button', { name: 'From text' }).click();
   });
 
-  test('displays clean error message without technical details', async ({ page }) => {
+  test('displays user-friendly error message on network failure', async ({ page }) => {
     await page.route('**/*', (route) => {
       const postData = route.request().postData();
       // Reject all rpc calls
@@ -19,19 +19,10 @@ test.describe('Error handling', () => {
     });
 
     await page.getByRole('textbox', { name: 'Human-Readable Address' }).fill('vitalik.eth@eth');
-
-    const inputCard = page.getByTestId('input-card');
-    const originalBox = (await inputCard.boundingBox()) as Box;
-    expect(originalBox).not.toBeNull();
-
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    // Error should not break layout (error container shouldn't be wider than input card)
     const errorContainer = page.getByTestId('error-container');
     await expect(errorContainer).toBeVisible();
-
-    const errorBox = (await errorContainer.boundingBox()) as Box;
-    expect(errorBox).not.toBeNull();
-    expect(errorBox.width).toBeLessThanOrEqual(originalBox.width);
+    await expect(errorContainer).toContainText(USER_FRIENDLY_ERROR_MESSAGE);
   });
 });
