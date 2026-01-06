@@ -1,12 +1,12 @@
 export function FaqSection() {
     return (
-        <section id="faq" className="px-6 lg:px-16 py-20 lg:py-24">
+        <section id="faq" className="px-6 lg:px-16 py-12 lg:py-16">
             <div className="max-w-3xl">
-                <h2 className="font-mono text-[1.75rem] leading-[1.2] md:text-3xl md:leading-tight lg:text-4xl lg:leading-tight font-light mb-12 md:mb-16 lg:mb-20">
+                <h2 className="font-mono text-[1.75rem] leading-[1.2] md:text-3xl md:leading-tight lg:text-4xl lg:leading-tight font-light mb-8 md:mb-10 lg:mb-12">
                     Frequently Asked Questions
                 </h2>
 
-                <div className="space-y-10 md:space-y-11 lg:space-y-12">
+                <div className="space-y-8 md:space-y-9 lg:space-y-10">
                     <div>
                         <h3 className="font-mono text-base lg:text-lg font-medium mb-3 lg:mb-4">
                             Why two separate ERCs?
@@ -48,7 +48,23 @@ export function FaqSection() {
                         </h3>
                         <p className="font-mono text-sm lg:text-[0.9375rem] text-muted-foreground leading-relaxed">
                             Yes! Both ERCs can support addresses on Bitcoin, Solana, and any
-                            CAIP-supported chains.
+                            CAIP-supported chains. The specifications build upon CAIP-350, a
+                            meta-specification that defines binary encoding for blockchain addresses
+                            across different ecosystems.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h3 className="font-mono text-base lg:text-lg font-medium mb-3 lg:mb-4">
+                            What is CAIP-350 and how does it relate to Interoperable Addresses?
+                        </h3>
+                        <p className="font-mono text-sm lg:text-[0.9375rem] text-muted-foreground leading-relaxed">
+                            CAIP-350 is a living specification from the Chain Agnostic Standards
+                            Alliance that provides a template for how different blockchain
+                            ecosystems serialize addresses and chain identifiers. Each blockchain
+                            namespace (Ethereum, Bitcoin, Solana, etc.) maintains its own
+                            implementation profile. ERC-7930 and ERC-7828 leverage this registry for
+                            serialization and deserialization of chain-specific addresses.
                         </p>
                     </div>
 

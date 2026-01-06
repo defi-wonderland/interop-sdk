@@ -25,6 +25,8 @@ export const metadata: Metadata = {
         "Ethereum",
         "ERC-7930",
         "ERC-7828",
+        "CAIP-350",
+        "CAIP",
         "interoperability",
         "cross-chain",
         "blockchain",
