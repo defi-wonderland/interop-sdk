@@ -10,7 +10,7 @@ import {
     WatchIntentParams,
 } from "../../src/internal.js";
 import { FillTimeoutError } from "../../src/services/EventBasedFillWatcher.js";
-import { createMockFillEvent, createMockOpenedIntent } from "../mocks/intentTracking.js";
+import { createMockFillEvent, createMockOpenedIntent } from "../mocks/orderTracking.js";
 
 describe("IntentTracker", () => {
     let tracker: IntentTracker;

@@ -15,7 +15,7 @@ import {
     ExecutableQuote,
     ProviderGetQuoteFailure,
 } from "../../src/internal.js";
-import { createMockFillEvent } from "../mocks/intentTracking.js";
+import { createMockFillEvent } from "../mocks/orderTracking.js";
 
 // Common addresses for testing
 const USER_ADDRESS = "0x0000000000000000000000000000000000000001" as Address;
