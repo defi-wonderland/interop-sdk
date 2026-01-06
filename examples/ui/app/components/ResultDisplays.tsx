@@ -38,7 +38,10 @@ export function ResultDisplays({
 }: ResultDisplaysProps) {
   if (error) {
     return (
-      <div className='backdrop-blur-xl bg-error-light/80 border border-error/30 rounded-2xl p-4 shadow-lg'>
+      <div
+        data-testid='error-container'
+        className='backdrop-blur-xl bg-error-light/80 border border-error/30 rounded-2xl p-4 shadow-lg'
+      >
         <p className='text-sm text-error font-medium'>{error}</p>
       </div>
     );

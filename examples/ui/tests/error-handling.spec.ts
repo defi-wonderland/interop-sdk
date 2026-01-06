@@ -20,14 +20,14 @@ test.describe('Error handling', () => {
 
     await page.getByRole('textbox', { name: 'Human-Readable Address' }).fill('vitalik.eth@eth');
 
-    const inputCard = page.locator('[class*="rounded-3xl"][class*="border"]').first();
+    const inputCard = page.getByTestId('input-card');
     const originalBox = (await inputCard.boundingBox()) as Box;
     expect(originalBox).not.toBeNull();
 
     await page.getByRole('button', { name: 'Convert' }).click();
 
     // Error should not break layout (error container shouldn't be wider than input card)
-    const errorContainer = page.locator('[class*="bg-error-light"]');
+    const errorContainer = page.getByTestId('error-container');
     await expect(errorContainer).toBeVisible();
 
     const errorBox = (await errorContainer.boundingBox()) as Box;
