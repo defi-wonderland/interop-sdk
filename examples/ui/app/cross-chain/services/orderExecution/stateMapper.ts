@@ -1,11 +1,23 @@
+import { OrderStatus, type OrderTrackingUpdate } from '@wonderland/interop-cross-chain';
 import { EXECUTION_STATUS, type OrderExecutionState, type OrderExecutionStatus } from '../../types/execution';
-import type { OrderApiStatusUpdate } from '@wonderland/interop-cross-chain';
 import type { Hex } from 'viem';
 
-function customizeMessage(update: OrderApiStatusUpdate): string {
-  const { status, message } = update;
+const SDK_TO_UI_STATUS: Record<string, OrderExecutionStatus> = {
+  [OrderStatus.Pending]: EXECUTION_STATUS.PENDING,
+  [OrderStatus.Executing]: EXECUTION_STATUS.FILLING,
+  [OrderStatus.Finalized]: EXECUTION_STATUS.COMPLETED,
+  [OrderStatus.Failed]: EXECUTION_STATUS.FAILED,
+  expired: EXECUTION_STATUS.EXPIRED,
+};
 
-  switch (status) {
+function mapSdkStatusToUi(sdkStatus: string): OrderExecutionStatus {
+  return SDK_TO_UI_STATUS[sdkStatus] ?? (sdkStatus as OrderExecutionStatus);
+}
+
+function customizeMessage(update: OrderTrackingUpdate, uiStatus: OrderExecutionStatus): string {
+  const { message } = update;
+
+  switch (uiStatus) {
     case EXECUTION_STATUS.FILLING:
       if (message.includes('Waiting for solver')) {
         return 'Waiting for solver to fill order on destination chain...';
@@ -32,14 +44,15 @@ function customizeMessage(update: OrderApiStatusUpdate): string {
 }
 
 export function mapOrderUpdateToState(
-  update: OrderApiStatusUpdate,
+  update: OrderTrackingUpdate,
   txHash: Hex,
   originChainId: number,
   destinationChainId: number,
 ): OrderExecutionState {
+  const uiStatus = mapSdkStatusToUi(update.status);
   return {
-    status: update.status as OrderExecutionStatus,
-    message: customizeMessage(update),
+    status: uiStatus,
+    message: customizeMessage(update, uiStatus),
     txHash,
     fillTxHash: update.fillTxHash,
     orderId: update.orderId,

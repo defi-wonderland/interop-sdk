@@ -1,3 +1,4 @@
+import { OrderStatus } from '@wonderland/interop-cross-chain';
 import {
   erc20Abi,
   type Account,
@@ -130,11 +131,9 @@ export async function trackOrder(
 
       onStateChange(mapOrderUpdateToState(update, txHash, originChainId, destinationChainId));
 
-      if (
-        update.status === EXECUTION_STATUS.COMPLETED ||
-        update.status === EXECUTION_STATUS.EXPIRED ||
-        update.status === EXECUTION_STATUS.FAILED
-      ) {
+      const isTerminal =
+        update.status === OrderStatus.Finalized || update.status === OrderStatus.Failed || update.status === 'expired';
+      if (isTerminal) {
         break;
       }
     }
