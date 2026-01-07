@@ -5,8 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
     FillWatcher,
     OpenedIntentParser,
-    OrderApiStatusUpdate,
+    OrderStatusOrExpired,
     OrderTracker,
+    OrderTrackingUpdate,
     WatchOrderParams,
 } from "../../src/internal.js";
 import { FillTimeoutError } from "../../src/services/EventBasedFillWatcher.js";
@@ -42,7 +43,7 @@ describe("OrderTracker", () => {
     });
 
     describe("getOrderStatus", () => {
-        it('should return "completed" status when fill event exists', async () => {
+        it("should return finalized status when terminal event exists", async () => {
             const mockOpenedIntent = createMockOpenedIntent();
             const mockFillEventData = createMockFillEvent();
 
@@ -51,7 +52,7 @@ describe("OrderTracker", () => {
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
-            expect(result.status).toBe("completed");
+            expect(result.status).toBe(OrderStatusOrExpired.Finalized);
             expect(result.orderId).toBe(mockOpenedIntent.orderId);
             expect(result.fillEvent).toEqual(mockFillEventData);
             expect(result.depositId).toBe(mockOpenedIntent.depositId);
@@ -68,11 +69,11 @@ describe("OrderTracker", () => {
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
-            expect(result.status).toBe("expired");
+            expect(result.status).toBe(OrderStatusOrExpired.Expired);
             expect(result.fillEvent).toBeUndefined();
         });
 
-        it('should return "filling" when before fillDeadline with no fill', async () => {
+        it("should return pending when before fillDeadline with no terminal event", async () => {
             const futureDeadline = Math.floor(Date.now() / 1000) + 3600;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: futureDeadline,
@@ -83,7 +84,7 @@ describe("OrderTracker", () => {
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
-            expect(result.status).toBe("filling");
+            expect(result.status).toBe(OrderStatusOrExpired.Pending);
             expect(result.fillEvent).toBeUndefined();
         });
 
@@ -124,12 +125,12 @@ describe("OrderTracker", () => {
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
-            expect(result.status).toBe("filling");
+            expect(result.status).toBe(OrderStatusOrExpired.Pending);
         });
     });
 
     describe("watchOrder - async generator", () => {
-        it("should emit correct sequence: pending → pending → filling → completed", async () => {
+        it("should emit correct sequence: pending → pending → pending → finalized", async () => {
             const mockOpenedIntent = createMockOpenedIntent({
                 destinationChainId: BigInt(mockDestinationChainId),
             });
@@ -151,10 +152,10 @@ describe("OrderTracker", () => {
             }
 
             expect(updates).toHaveLength(4);
-            expect(updates[0]?.status).toBe("pending");
-            expect(updates[1]?.status).toBe("pending");
-            expect(updates[2]?.status).toBe("filling");
-            expect(updates[3]?.status).toBe("completed");
+            expect(updates[0]?.status).toBe(OrderStatusOrExpired.Pending);
+            expect(updates[1]?.status).toBe(OrderStatusOrExpired.Pending);
+            expect(updates[2]?.status).toBe(OrderStatusOrExpired.Pending);
+            expect(updates[3]?.status).toBe(OrderStatusOrExpired.Finalized);
 
             expect(updates[3]?.fillTxHash).toBe(mockFillEventData.fillTxHash);
         });
@@ -180,9 +181,9 @@ describe("OrderTracker", () => {
             }
 
             expect(updates).toHaveLength(3);
-            expect(updates[0]?.status).toBe("pending");
-            expect(updates[1]?.status).toBe("pending");
-            expect(updates[2]?.status).toBe("expired");
+            expect(updates[0]?.status).toBe(OrderStatusOrExpired.Pending);
+            expect(updates[1]?.status).toBe(OrderStatusOrExpired.Pending);
+            expect(updates[2]?.status).toBe(OrderStatusOrExpired.Expired);
             expect(updates[2]?.message).toContain("expired before watching started");
         });
 
@@ -209,10 +210,10 @@ describe("OrderTracker", () => {
             }
 
             expect(updates).toHaveLength(4);
-            expect(updates[0]?.status).toBe("pending");
-            expect(updates[1]?.status).toBe("pending");
-            expect(updates[2]?.status).toBe("filling");
-            expect(updates[3]?.status).toBe("completed");
+            expect(updates[0]?.status).toBe(OrderStatusOrExpired.Pending);
+            expect(updates[1]?.status).toBe(OrderStatusOrExpired.Pending);
+            expect(updates[2]?.status).toBe(OrderStatusOrExpired.Pending);
+            expect(updates[3]?.status).toBe(OrderStatusOrExpired.Finalized);
 
             expect(mockFillWatcher.waitForFill).toHaveBeenCalled();
         });
@@ -243,11 +244,11 @@ describe("OrderTracker", () => {
             }
 
             expect(updates).toHaveLength(4);
-            expect(updates[3]?.status).toBe("expired");
+            expect(updates[3]?.status).toBe(OrderStatusOrExpired.Expired);
             expect(updates[3]?.message).toContain("expired before fill");
         });
 
-        it("should emit filling status on timeout with helpful message", async () => {
+        it("should emit pending status on timeout with helpful message", async () => {
             const futureDeadline = Math.floor(Date.now() / 1000) + 3600;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: futureDeadline,
@@ -273,7 +274,7 @@ describe("OrderTracker", () => {
             }
 
             expect(updates).toHaveLength(4);
-            expect(updates[3]?.status).toBe("filling");
+            expect(updates[3]?.status).toBe(OrderStatusOrExpired.Pending);
             expect(updates[3]?.message).toContain("Stopped watching after timeout");
             expect(updates[3]?.message).toContain("may still be filled before deadline");
         });
@@ -302,7 +303,7 @@ describe("OrderTracker", () => {
 
             const lastUpdate = updates[updates.length - 1];
 
-            expect(lastUpdate?.status).toBe("filling");
+            expect(lastUpdate?.status).toBe(OrderStatusOrExpired.Pending);
             expect(lastUpdate?.message).toContain("timeout");
         });
 
@@ -359,9 +360,9 @@ describe("OrderTracker", () => {
             }
 
             expect(updates).toHaveLength(3);
-            expect(updates[0]?.status).toBe("pending");
-            expect(updates[1]?.status).toBe("pending");
-            expect(updates[2]?.status).toBe("filling");
+            expect(updates[0]?.status).toBe(OrderStatusOrExpired.Pending);
+            expect(updates[1]?.status).toBe(OrderStatusOrExpired.Pending);
+            expect(updates[2]?.status).toBe(OrderStatusOrExpired.Pending);
             expect(updates[2]?.message).toContain("Timeout expired during order setup");
             expect(updates[2]?.message).toContain("may still be filled before deadline");
 
@@ -377,13 +378,11 @@ describe("OrderTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
 
-            const pendingEvents: OrderApiStatusUpdate[] = [];
-            const fillingEvents: OrderApiStatusUpdate[] = [];
-            const completedEvents: OrderApiStatusUpdate[] = [];
+            const pendingEvents: OrderTrackingUpdate[] = [];
+            const finalizedEvents: OrderTrackingUpdate[] = [];
 
-            tracker.on("pending", (update: OrderApiStatusUpdate) => pendingEvents.push(update));
-            tracker.on("filling", (update: OrderApiStatusUpdate) => fillingEvents.push(update));
-            tracker.on("completed", (update: OrderApiStatusUpdate) => completedEvents.push(update));
+            tracker.on("pending", (update: OrderTrackingUpdate) => pendingEvents.push(update));
+            tracker.on("finalized", (update: OrderTrackingUpdate) => finalizedEvents.push(update));
 
             const params: WatchOrderParams = {
                 txHash: mockTxHash,
@@ -394,14 +393,13 @@ describe("OrderTracker", () => {
 
             await tracker.startTracking(params);
 
-            expect(pendingEvents).toHaveLength(2);
-            expect(fillingEvents).toHaveLength(1);
-            expect(completedEvents).toHaveLength(1);
+            expect(pendingEvents).toHaveLength(3);
+            expect(finalizedEvents).toHaveLength(1);
 
-            expect(pendingEvents[0]!.status).toBe("pending");
-            expect(pendingEvents[1]!.status).toBe("pending");
-            expect(fillingEvents[0]!.status).toBe("filling");
-            expect(completedEvents[0]!.status).toBe("completed");
+            expect(pendingEvents[0]!.status).toBe(OrderStatusOrExpired.Pending);
+            expect(pendingEvents[1]!.status).toBe(OrderStatusOrExpired.Pending);
+            expect(pendingEvents[2]!.status).toBe(OrderStatusOrExpired.Pending);
+            expect(finalizedEvents[0]!.status).toBe(OrderStatusOrExpired.Finalized);
         });
 
         it("should return final status info", async () => {
@@ -421,7 +419,7 @@ describe("OrderTracker", () => {
 
             const result = await tracker.startTracking(params);
 
-            expect(result).toHaveProperty("status", "completed");
+            expect(result).toHaveProperty("status", OrderStatusOrExpired.Finalized);
             expect(result).toHaveProperty("orderId");
             expect(result).toHaveProperty("fillEvent");
         });
@@ -454,8 +452,8 @@ describe("OrderTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
-            const expiredEvents: OrderApiStatusUpdate[] = [];
-            tracker.on("expired", (update: OrderApiStatusUpdate) => expiredEvents.push(update));
+            const expiredEvents: OrderTrackingUpdate[] = [];
+            tracker.on("expired", (update: OrderTrackingUpdate) => expiredEvents.push(update));
 
             const params: WatchOrderParams = {
                 txHash: mockTxHash,
@@ -467,7 +465,7 @@ describe("OrderTracker", () => {
             await tracker.startTracking(params);
 
             expect(expiredEvents).toHaveLength(1);
-            expect(expiredEvents[0]!.status).toBe("expired");
+            expect(expiredEvents[0]!.status).toBe(OrderStatusOrExpired.Expired);
         });
     });
 });

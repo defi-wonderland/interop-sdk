@@ -1,5 +1,7 @@
 import { Address, Hex } from "viem";
 
+import { OrderStatus } from "./oif.js";
+
 /**
  * Opened cross-chain intent parsed from an EIP-7683 Open event.
  *
@@ -59,38 +61,18 @@ export interface FillEvent {
     recipient: Address;
 }
 
-/**
- * Public order tracking status exposed by the SDK.
- * Aligned with OIF Order API statuses.
- *
- * NOTE: This is different from `OrderStatus` in oif.ts which represents
- * the solver's internal state machine (Created, Pending, Executed, Settled, etc.).
- *
- * @see https://docs.openintents.xyz/docs/apis/order-api#order-statuses
- *
- * - pending: Order created, awaiting execution (includes tx parsing phase)
- * - filling: Solver/relayer delivering outputs on destination chain
- * - filled: Outputs delivered successfully (intermediate state, not all providers emit this)
- * - claiming: Solver claiming input assets (not all providers emit this)
- * - completed: Fully executed successfully
- * - failed: Execution failed (e.g. origin tx reverted, unrecoverable error)
- * - expired: Fill deadline passed without completion / refund initiated
- */
-export type OrderApiStatus =
-    | "pending"
-    | "filling"
-    | "filled"
-    | "claiming"
-    | "completed"
-    | "failed"
-    | "expired";
+export const OrderStatusOrExpired = {
+    ...OrderStatus,
+    Expired: "expired",
+} as const;
+
+export type OrderStatusOrExpired = (typeof OrderStatusOrExpired)[keyof typeof OrderStatusOrExpired];
 
 /**
  * Complete order tracking information
  */
-export interface OrderApiStatusInfo {
-    /** Current tracking status of the order */
-    status: OrderApiStatus;
+export interface OrderTrackingInfo {
+    status: OrderStatusOrExpired;
     /** Order ID */
     orderId: Hex;
     /** Transaction hash where order was opened */
@@ -117,9 +99,8 @@ export interface OrderApiStatusInfo {
  * Order update streamed during tracking.
  * Used by async generator for real-time updates.
  */
-export interface OrderApiStatusUpdate {
-    /** Current status */
-    status: OrderApiStatus;
+export interface OrderTrackingUpdate {
+    status: OrderStatusOrExpired;
     /** Order ID (available after order is parsed) */
     orderId?: Hex;
     /** Transaction hash where order was opened */

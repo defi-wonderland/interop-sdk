@@ -4,9 +4,9 @@ import { Hex } from "viem";
 import {
     CrossChainProvider,
     ExecutableQuote,
-    OrderApiStatusInfo,
     OrderTracker,
     OrderTrackerFactory,
+    OrderTrackingInfo,
     ProviderNotFound,
     ProviderTimeout,
     SortingStrategy,
@@ -131,7 +131,7 @@ class ProviderExecutor {
      * ```typescript
      * const tracker = executor.prepareTracking('across');
      *
-     * tracker.on('completed', (update) => console.log('Completed!'));
+     * tracker.on('finalized', (update) => console.log('Finalized!'));
      * tracker.on('failed', (update) => console.log('Failed'));
      *
      * const response = await executor.execute(quote, signer);
@@ -163,7 +163,7 @@ class ProviderExecutor {
      *   destinationChainId: 84532
      * });
      *
-     * tracker.on('completed', (update) => console.log('Done!'));
+     * tracker.on('finalized', (update) => console.log('Done!'));
      * ```
      */
     track(params: {
@@ -204,14 +204,14 @@ class ProviderExecutor {
      *   originChainId: 11155111
      * });
      *
-     * console.log(status.status); // 'completed' | 'filling' | 'expired' | 'failed'
+     * console.log(status.status); // OrderStatus | 'expired'
      * ```
      */
     async getOrderStatus(params: {
         txHash: Hex;
         providerId: string;
         originChainId: number;
-    }): Promise<OrderApiStatusInfo> {
+    }): Promise<OrderTrackingInfo> {
         const tracker = this.getOrCreateTracker(params.providerId);
         return tracker.getOrderStatus(params.txHash, params.originChainId);
     }
