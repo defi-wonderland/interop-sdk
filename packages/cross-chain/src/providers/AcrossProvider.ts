@@ -1,5 +1,5 @@
 import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
-import { buildFromPayload, getAddress, getChainId } from "@wonderland/interop-addresses";
+import { getAddress, getChainId, textToBinary } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import {
     AbiEvent,
@@ -11,7 +11,6 @@ import {
     Log,
     PrepareTransactionRequestReturnType,
     PublicClient,
-    toHex,
 } from "viem";
 import { ZodError } from "zod";
 
@@ -118,13 +117,16 @@ export class AcrossProvider extends CrossChainProvider {
      * @param chain - The chain id
      * @returns The interop address
      */
-    private generateInteropAddress(address: Address, chain: number): Promise<string> {
-        return buildFromPayload({
-            version: 1,
-            chainType: "eip155",
-            chainReference: toHex(chain),
-            address,
-        });
+    private generateInteropAddress(address: Address, chain: number): string {
+        return textToBinary(
+            {
+                version: 1,
+                chainType: "eip155",
+                chainReference: chain.toString(),
+                address,
+            },
+            { format: "hex" },
+        ) as string;
     }
 
     /**
@@ -229,7 +231,7 @@ export class AcrossProvider extends CrossChainProvider {
                 inputs: [
                     {
                         user: inputs[0].user,
-                        asset: await this.generateInteropAddress(
+                        asset: this.generateInteropAddress(
                             response.inputToken.address,
                             response.inputToken.chainId,
                         ),
@@ -239,7 +241,7 @@ export class AcrossProvider extends CrossChainProvider {
                 outputs: [
                     {
                         receiver: outputs[0].receiver,
-                        asset: await this.generateInteropAddress(
+                        asset: this.generateInteropAddress(
                             response.outputToken.address,
                             response.outputToken.chainId,
                         ),

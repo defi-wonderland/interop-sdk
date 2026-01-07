@@ -1,8 +1,10 @@
 export * from "./providers/index.js";
 
 export type {
-    InteropAddressFields,
     InteropAddress,
     BinaryAddress,
-    HumanReadableAddress,
+    InteroperableName,
+    InteroperableAddressText,
 } from "./types/index.js";
+
+export type { ParsedInteroperableNameResult } from "./name/index.js";

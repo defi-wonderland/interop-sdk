@@ -1,22 +1,35 @@
 import { Hex } from "viem";
 
-import { HumanReadableAddress } from "../types/humanReadableAddress.js";
-import { parseBinary } from "./parseBinary.js";
-import { parseHumanReadable, ParseHumanReadableOptions } from "./parseHumanReadable.js";
+import type { InteroperableName } from "../types/interopAddress.js";
+import { decodeInteroperableAddress } from "../binary/index.js";
+import { validateChecksum } from "../internal.js";
+import { parseInteroperableName } from "../name/index.js";
+
+export type ParseInteroperableNameOptions = {
+    validateChecksumFlag?: boolean;
+};
 
 /**
- * Checks if a human readable address is a valid interop address
- * @param humanReadableAddress - The human readable address to check
- * @param options - The options to pass to the parseHumanReadable function
+ * Checks if an interoperable name is a valid interop address
+ * @param interoperableName - The interoperable name to check
+ * @param options - The options for validation
  *        - validateChecksumFlag: Whether to validate the checksum of the address
  * @returns Promise<boolean> true if the address is a valid interop address, false otherwise
  */
-export const isHumanReadableInteropAddress = async (
-    humanReadableAddress: HumanReadableAddress,
-    options: ParseHumanReadableOptions = {},
+export const isInteroperableName = async (
+    interoperableName: InteroperableName,
+    options: ParseInteroperableNameOptions = {},
 ): Promise<boolean> => {
     try {
-        await parseHumanReadable(humanReadableAddress, options);
+        const { address, meta } = await parseInteroperableName(interoperableName);
+
+        if (options.validateChecksumFlag && meta.checksum) {
+            // checksum is already validated through schema in parseInteroperableName
+            validateChecksum(address, meta.checksum, {
+                isENSName: meta.isENS,
+            });
+        }
+
         return true;
     } catch (error) {
         return false;
@@ -26,11 +39,11 @@ export const isHumanReadableInteropAddress = async (
 /**
  * Checks if a binary address is a valid interop address
  * @param binaryAddress - The binary address to check
- * @returns Promise<boolean> true if the address is a valid interop address, false otherwise
+ * @returns boolean true if the address is a valid interop address, false otherwise
  */
 export const isBinaryInteropAddress = (binaryAddress: Hex): boolean => {
     try {
-        parseBinary(binaryAddress);
+        decodeInteroperableAddress(binaryAddress);
         return true;
     } catch (error) {
         return false;
@@ -40,16 +53,16 @@ export const isBinaryInteropAddress = (binaryAddress: Hex): boolean => {
 /**
  * Checks if a given address is a valid interop address
  * @param address - The address to check
- * @param options - The options to pass to the parseHumanReadable function
+ * @param options - The options for validation
  *        - validateChecksumFlag: Whether to validate the checksum of the address
  * @returns Promise<boolean> true if the address is a valid interop address, false otherwise
  */
 export const isInteropAddress = async (
     address: string,
-    options: ParseHumanReadableOptions = {},
+    options: ParseInteroperableNameOptions = {},
 ): Promise<boolean> => {
     return (
-        (await isHumanReadableInteropAddress(address as HumanReadableAddress, options)) ||
+        (await isInteroperableName(address as InteroperableName, options)) ||
         isBinaryInteropAddress(address as Hex)
     );
 };

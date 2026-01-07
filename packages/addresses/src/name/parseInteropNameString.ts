@@ -1,0 +1,60 @@
+import { InvalidInteroperableName } from "../internal.js";
+import { isValidChainType } from "./isValidChain.js";
+
+/**
+ * Parsed components from an Interoperable Name string
+ */
+export interface ParsedInteropNameComponents {
+    address: string;
+    chainNamespace: string | undefined;
+    chainReference: string;
+    checksum: string | undefined;
+}
+
+const INTEROP_NAME_REGEX = new RegExp(
+    "^" +
+        "(?<address>[.\\-:_%a-zA-Z0-9]*)" + // Address part
+        "@" + // Separator
+        "(?:(?<namespace>[-a-z0-9]{3,8}):)?" + // Namespace with :
+        "(?<chain>[\\-_a-zA-Z0-9]*)?" + // Chain reference
+        "(?:#(?<checksum>[A-F0-9]{8}))?" + // Checksum with #
+        "$",
+);
+
+/**
+ * Parses an Interoperable Name string into raw components using regex
+ *
+ * If there is a <chain> but no <namespace>, checks if the <chain> is a valid chain type.
+ * If it is, returns it as the namespace (with chain empty). Otherwise, returns it as chainReference.
+ *
+ * @param value - The Interoperable Name string (e.g., "alice.eth@eip155:1#ABCD1234")
+ * @returns Raw components extracted from the string
+ * @throws {InvalidInteroperableName} If the string doesn't match the expected format
+ */
+export function parseInteropNameString(value: string): ParsedInteropNameComponents {
+    const match = value.match(INTEROP_NAME_REGEX);
+
+    if (!match || !match.groups) {
+        throw new InvalidInteroperableName(value);
+    }
+
+    let chainNamespace: string | undefined = match.groups.namespace || undefined;
+    let chainReference: string = match.groups.chain || "";
+
+    // If there's a chain but no namespace, check if chain is a valid chain type
+    if (!chainNamespace && chainReference) {
+        if (isValidChainType(chainReference)) {
+            // Chain value is a valid chain type, treat it as namespace-only
+            chainNamespace = chainReference;
+            chainReference = "";
+        }
+        // Otherwise, keep chainReference as is (chainNamespace remains undefined)
+    }
+
+    return {
+        address: match.groups.address || "",
+        chainNamespace,
+        chainReference,
+        checksum: match.groups.checksum || undefined,
+    };
+}

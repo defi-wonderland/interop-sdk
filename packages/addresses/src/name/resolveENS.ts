@@ -2,7 +2,18 @@ import { createPublicClient, http } from "viem";
 import * as chains from "viem/chains";
 import { normalize } from "viem/ens";
 
-import { ENSLookupFailed, ENSNotFound, ETHEREUM_COIN_TYPE, isViemChainId } from "../internal.js";
+import { ChainTypeName } from "../constants/interopAddress.js";
+import {
+    ENSLookupFailed,
+    ENSNotFound,
+    ETHEREUM_COIN_TYPE,
+    InvalidInteroperableName,
+} from "../internal.js";
+import { isViemChainId } from "./isValidChain.js";
+
+function isENSName(address: string): boolean {
+    return address.length > 0 && address.includes(".");
+}
 
 /**
  * Converts an EVM chain ID to a coin type, see https://docs.ens.domains/ensip/11/#specification
@@ -66,24 +77,57 @@ const resolveENSName = async (ensName: string, chainReference: string): Promise<
     }
 };
 
+export interface ResolvedAddress {
+    address: string;
+    isENS: boolean;
+}
+
 /**
- * Resolves an address, handling ENS names if applicable
+ * Resolves an address, handling ENS names if applicable.
+ * Also validates that ENS names have a chain reference.
+ *
  * @param address - The address to resolve (can be a regular address or ENS name)
- * @param chainType - The chain type (e.g., "eip155", "solana")
+ * @param chainNamespace - The chain namespace (e.g., "eip155")
  * @param chainReference - The chain reference (chain ID as string)
- * @returns The resolved address (original address if not ENS, resolved address if ENS)
+ * @returns The resolved address and whether it was an ENS name
+ * @throws {InvalidInteroperableName} If an ENS name is provided without a chain reference
  * @throws {ENSNotFound} If ENS name cannot be found
  * @throws {ENSLookupFailed} If ENS lookup fails
  */
 export const resolveAddress = async (
     address: string,
-    chainType: string,
-    chainReference?: string,
-): Promise<string> => {
-    // Only resolve ENS for eip155 chains with .eth domains
-    if (chainType !== "eip155" || !address.includes(".eth")) {
-        return address;
+    chainNamespace: ChainTypeName,
+    chainReference: string | undefined,
+): Promise<ResolvedAddress> => {
+    const isENS = isENSName(address);
+
+    // Validate ENS requirement: ENS names must have chain reference
+    if (isENS && !chainReference) {
+        throw new InvalidInteroperableName(
+            `ENS names require a specific chain reference (e.g., @eip155:1 or @ethereum). ` +
+                `Use @<namespace>:<reference> format.`,
+        );
     }
 
-    return await resolveENSName(address, chainReference ?? "1");
+    let resolvedAddress = address;
+
+    if (isENS) {
+        // Only resolve ENS names for EIP-155 chains
+        if (chainNamespace === "eip155" && chainReference) {
+            try {
+                const resolved = await resolveENSName(address, chainReference);
+                if (resolved) {
+                    resolvedAddress = resolved;
+                }
+            } catch (error) {
+                // If resolution fails, return the original address
+                // This allows the caller to handle the error or use the original value
+            }
+        }
+    }
+
+    return {
+        address: resolvedAddress,
+        isENS,
+    };
 };

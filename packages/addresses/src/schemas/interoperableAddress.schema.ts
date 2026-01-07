@@ -1,4 +1,4 @@
-import { trim } from "viem";
+import { pad, trim } from "viem";
 import { z } from "zod";
 
 /**
@@ -16,7 +16,7 @@ export const interoperableAddressTextSchema = z
         message: "At least one of chainReference or address must be provided",
     });
 
-export const interopAddressSchema = z.object({
+export const interoperableAddressSchema = z.object({
     version: z.number().positive().int(),
     chainType: z
         .custom<Uint8Array>((value) => value instanceof Uint8Array, {
@@ -24,7 +24,8 @@ export const interopAddressSchema = z.object({
         })
         .refine((value) => trim(value).length <= 2, {
             message: "Chain type must be representable as 2 bytes",
-        }),
+        })
+        .transform((value) => pad(trim(value), { size: 2 })),
     chainReference: z
         .custom<Uint8Array>((value) => value instanceof Uint8Array, {
             message: "Chain reference must be a Uint8Array",

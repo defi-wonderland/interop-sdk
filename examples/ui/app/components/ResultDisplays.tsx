@@ -1,14 +1,17 @@
 'use client';
 
+import { AdvancedDisplay } from './AdvancedDisplay';
 import { BinaryFormatDisplay } from './BinaryFormatDisplay';
 import { DisplaySkeleton } from './DisplaySkeleton';
 import { HumanReadableDisplay } from './HumanReadableDisplay';
 import type { AddressResult, BinaryPart, HumanReadablePart } from '../types';
+import type { ParsedInteroperableNameResult } from '@wonderland/interop-addresses';
 
 interface ResultDisplaysProps {
   isLoading: boolean;
   error: string;
   result: AddressResult | null;
+  parsedResult: ParsedInteroperableNameResult | null;
   isStale: boolean;
   onRefresh: () => void;
   hoveredHuman: HumanReadablePart;
@@ -27,6 +30,7 @@ export function ResultDisplays({
   isLoading,
   error,
   result,
+  parsedResult,
   isStale,
   onRefresh,
   hoveredHuman,
@@ -85,6 +89,7 @@ export function ResultDisplays({
         onCopy={onCopy}
       />
       <BinaryFormatDisplay result={result} hoveredPart={hoveredBinary} setHoveredPart={setHoveredBinary} />
+      {parsedResult && <AdvancedDisplay parsedResult={parsedResult} />}
     </ResultsContainer>
   );
 }

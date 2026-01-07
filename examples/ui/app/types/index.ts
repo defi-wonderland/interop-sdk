@@ -50,5 +50,5 @@ export interface FieldCardProps {
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   className?: string;
-  color?: 'accent' | 'success';
+  color?: 'accent' | 'success' | 'info';
 }

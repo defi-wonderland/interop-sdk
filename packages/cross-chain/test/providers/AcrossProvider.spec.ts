@@ -1,5 +1,5 @@
 import type viem from "viem";
-import { buildFromPayload } from "@wonderland/interop-addresses";
+import { encodeInteroperableAddress, parseInteroperableName } from "@wonderland/interop-addresses";
 import axios from "axios";
 import { Address, createPublicClient, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,33 +18,31 @@ const INPUT_CHAIN_ID = 11155111; // Sepolia
 const OUTPUT_CHAIN_ID = 84532; // Base Sepolia
 
 // Convert to interop addresses
-const USER_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${INPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: COMMON_USER_ADDRESS,
-});
+const userResult = await parseInteroperableName(`${COMMON_USER_ADDRESS}@eip155:${INPUT_CHAIN_ID}`);
+const USER_INTEROP_ADDRESS = encodeInteroperableAddress(userResult.address, {
+    format: "hex",
+}) as string;
 
-const RECEIVER_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${OUTPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: COMMON_RECEIVER_ADDRESS,
-});
+const receiverResult = await parseInteroperableName(
+    `${COMMON_RECEIVER_ADDRESS}@eip155:${OUTPUT_CHAIN_ID}`,
+);
+const RECEIVER_INTEROP_ADDRESS = encodeInteroperableAddress(receiverResult.address, {
+    format: "hex",
+}) as string;
 
-const INPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${INPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: INPUT_TOKEN_ADDRESS,
-});
+const inputTokenResult = await parseInteroperableName(
+    `${INPUT_TOKEN_ADDRESS}@eip155:${INPUT_CHAIN_ID}`,
+);
+const INPUT_TOKEN_INTEROP_ADDRESS = encodeInteroperableAddress(inputTokenResult.address, {
+    format: "hex",
+}) as string;
 
-const OUTPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${OUTPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: OUTPUT_TOKEN_ADDRESS,
-});
+const outputTokenResult = await parseInteroperableName(
+    `${OUTPUT_TOKEN_ADDRESS}@eip155:${OUTPUT_CHAIN_ID}`,
+);
+const OUTPUT_TOKEN_INTEROP_ADDRESS = encodeInteroperableAddress(outputTokenResult.address, {
+    format: "hex",
+}) as string;
 
 vi.mock("axios");
 vi.mock("viem", async () => {
