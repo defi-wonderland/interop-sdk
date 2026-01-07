@@ -19,7 +19,7 @@ export function StepIndicator({ status }: { status: StepStatus }) {
       );
     case 'error':
       return (
-        <div className={`${baseClasses} bg-red-500 text-white`}>
+        <div className={`${baseClasses} bg-error text-white`}>
           <CloseIcon />
         </div>
       );
