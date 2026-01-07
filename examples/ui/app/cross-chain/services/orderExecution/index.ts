@@ -2,7 +2,7 @@ export {
   ensureCorrectChain,
   handleTokenApproval,
   submitBridgeTransaction,
-  trackIntent,
+  trackOrder,
   type ChainClients,
 } from './blockchainOperations';
-export { mapIntentUpdateToState } from './stateMapper';
+export { mapOrderUpdateToState } from './stateMapper';

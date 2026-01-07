@@ -2,33 +2,31 @@ import type { Hex } from 'viem';
 
 /**
  * Execution status constants - single source of truth
- * Combines UI-specific states (approval, transaction) with SDK tracking states
+ * Combines UI-specific states (approval, transaction) with SDK tracking states (OIF-aligned)
+ * @see https://docs.openintents.xyz/docs/apis/order-api#order-statuses
  */
 export const EXECUTION_STATUS = {
-  // UI-specific states (before tracking begins)
   IDLE: 'idle',
   SWITCHING_NETWORK: 'switching-network',
   CHECKING_APPROVAL: 'checking-approval',
   APPROVING: 'approving',
   SUBMITTING: 'submitting',
   CONFIRMING: 'confirming',
-  // SDK tracking states (from IntentTracker)
-  OPENING: 'opening',
-  OPENED: 'opened',
+  PENDING: 'pending',
   FILLING: 'filling',
-  FILLED: 'filled',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
   EXPIRED: 'expired',
-  // Error state
   ERROR: 'error',
 } as const;
 
 /**
  * Execution status type - derived from constants
  */
-export type IntentExecutionStatus = (typeof EXECUTION_STATUS)[keyof typeof EXECUTION_STATUS];
+export type OrderExecutionStatus = (typeof EXECUTION_STATUS)[keyof typeof EXECUTION_STATUS];
 
-export interface IntentExecutionState {
-  status: IntentExecutionStatus;
+export interface OrderExecutionState {
+  status: OrderExecutionStatus;
   message: string;
   txHash?: Hex;
   fillTxHash?: Hex;
