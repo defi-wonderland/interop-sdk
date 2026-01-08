@@ -2,7 +2,7 @@
 
 A TypeScript library for handling interoperable blockchain addresses across different networks.
 
-This package provides methods to convert between interoperable names (ERC-7828), structured text (CAIP-350), and binary addresses (EIP-7930), following a clean three-layer architecture.
+This package provides methods to convert between interoperable names (ERC-7828), structured objects with CAIP-350 text-encoded fields, and binary addresses (EIP-7930), following a clean three-layer architecture.
 
 ## Installation
 
@@ -28,7 +28,7 @@ Pure binary encoding/decoding of interoperable addresses. Synchronous, no depend
 
 ### 2. Text Layer (CAIP-350)
 
-Structured text representation. Synchronous conversion between binary and structured text.
+Structured objects with fields using CAIP-350 text serialization rules. Synchronous conversion between binary and structured representations.
 
 **Key Functions:**
 
@@ -95,7 +95,7 @@ import {
 // Parse name with full result (includes metadata)
 const result = await parseInteroperableName("vitalik.eth@eip155:1#4CA88C9C");
 // result.name - original parsed components
-// result.text - CAIP-350 text representation
+// result.text - structured object with CAIP-350 text-encoded fields
 // result.address - binary address (InteroperableAddress)
 // result.meta.checksum - calculated checksum
 // result.meta.checksumMismatch - if provided checksum didn't match
@@ -164,11 +164,11 @@ All methods are available as static methods on `InteropAddressProvider` or as st
 
 -   `textToBinary(text: InteroperableAddressText, opts?: { format?: "hex" | "bytes" }): Hex | Uint8Array`
 
-    -   Converts structured text to binary (synchronous).
+    -   Converts structured object with CAIP-350 text-encoded fields to binary (synchronous).
 
 -   `binaryToText(binaryAddress: Hex | Uint8Array): InteroperableAddressText`
 
-    -   Converts binary to structured text (synchronous).
+    -   Converts binary to structured object with CAIP-350 text-encoded fields (synchronous).
 
 -   `isValidBinaryAddress(binaryAddress: Hex): boolean`
     -   Checks if a binary address is valid (synchronous).
@@ -215,16 +215,22 @@ The canonical binary representation (EIP-7930 object):
 
 ### InteroperableAddressText
 
-The CAIP-350 structured text representation:
+Structured object with fields using CAIP-350 text serialization rules (per chainType):
 
 ```typescript
 {
   version: number;
   chainType: ChainTypeName; // e.g., "eip155"
-  chainReference?: string;   // e.g., "1"
-  address?: string;          // e.g., "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+  chainReference?: string;   // e.g., "1" (encoding per CAIP-350 for the chainType)
+  address?: string;          // e.g., "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (encoding per CAIP-350 for the chainType)
 }
 ```
+
+The fields use CAIP-350's text encoding rules, which are chainType-specific:
+
+-   **eip155**: Chain references as decimal strings, addresses as hex strings with EIP-55 checksumming
+-   **solana**: Chain references and addresses as base58-encoded strings
+-   Other chain types follow their respective CAIP-350 encoding rules
 
 ### InteroperableName
 
@@ -256,7 +262,7 @@ The result from `parseInteroperableName`:
 ```typescript
 {
   name: ParsedInteropNameComponents;      // Original parsed components
-  text: InteroperableAddressText;         // CAIP-350 text representation
+  text: InteroperableAddressText;         // Structured object with CAIP-350 text-encoded fields
   address: InteroperableAddress;          // Binary address
   meta: {
     checksum: Checksum;                    // Calculated checksum (always present)
@@ -283,7 +289,7 @@ This package implements:
 ### EIP-7930 (Interoperable Addresses)
 
 -   ✅ Binary format with version, chain type, chain reference, and address
--   ✅ Structured text format (CAIP-350): `<address>@<chainType>:<chainReference>`
+-   ✅ Text serialization using CAIP-350 encoding rules: `<address>@<chainType>:<chainReference>`
 -   ✅ Checksum calculation (first 4 bytes of keccak256 hash)
 -   ✅ Support for zero-length addresses and chain references
 -   ✅ Versioning support

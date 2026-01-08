@@ -32,13 +32,14 @@ export interface ParsedInteroperableNameResult {
 }
 
 /**
- * Parses an interoperable name (string or raw components) into its CAIP-350 text representation
- * and binary address, plus checksum/ENS metadata.
+ * Parses an interoperable name (string or raw components) into a structured representation
+ * with CAIP-350 text-encoded fields and binary address, plus checksum/ENS metadata.
  *
  * This function resolves ENS names and chain labels, preserving original values in the result.
+ * The returned text object uses CAIP-350 text serialization rules (per chainType) for field encoding.
  *
  * @param input - Either an interoperable name string (e.g., "vitalik.eth@eip155:1") or parsed components from parseInteropNameString
- * @returns The parsed result with text representation, binary address, and metadata
+ * @returns The parsed result with structured text (CAIP-350 encoded fields), binary address, and metadata
  * @throws An error if the parameters are invalid
  */
 export const parseInteroperableName = async (
@@ -171,10 +172,10 @@ export const parseInteroperableName = async (
 };
 
 /**
- * Formats a CAIP-350 text representation and checksum into an interoperable
+ * Formats a structured object with CAIP-350 text-encoded fields and checksum into an interoperable
  * name string.
  *
- * @param text - The CAIP-350 structured text representation
+ * @param text - Structured object with fields using CAIP-350 text encoding rules (per chainType)
  * @param checksum - The checksum to include in the formatted name
  * @returns The interoperable name string in the format: `${address}@${chainType}:${chainReference}#${checksum}`
  * @example

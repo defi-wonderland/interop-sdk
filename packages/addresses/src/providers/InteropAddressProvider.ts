@@ -110,9 +110,9 @@ export class InteropAddressProvider {
     /**
      * Converts InteroperableAddressText to a binary address.
      * This is a synchronous convenience method that chains toBinary and encodeInteroperableAddress.
-     * Use this when you already have structured text data and don't need resolution (ENS, chain labels).
+     * Use this when you already have structured data with CAIP-350 text-encoded fields and don't need resolution (ENS, chain labels).
      *
-     * @param text - The CAIP-350 structured text representation
+     * @param text - Structured object with fields using CAIP-350 text encoding rules (per chainType)
      * @param opts - Options for encoding format (hex or bytes)
      * @returns The binary address in the specified format
      * @example
@@ -138,7 +138,7 @@ export class InteropAddressProvider {
      * This is a synchronous convenience method that wraps the text layer's toText function.
      *
      * @param binaryAddress - The binary address to convert
-     * @returns The CAIP-350 structured text representation
+     * @returns Structured object with fields using CAIP-350 text encoding rules (per chainType)
      * @example
      * ```ts
      * const text = InteropAddressProvider.binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
@@ -241,9 +241,9 @@ export const binaryToName = InteropAddressProvider.binaryToName;
 /**
  * Converts InteroperableAddressText to a binary address.
  * This is a synchronous convenience method that chains toBinary and encodeInteroperableAddress.
- * Use this when you already have structured text data and don't need resolution (ENS, chain labels).
+ * Use this when you already have structured data with CAIP-350 text-encoded fields and don't need resolution (ENS, chain labels).
  *
- * @param text - The CAIP-350 structured text representation
+ * @param text - Structured object with fields using CAIP-350 text encoding rules (per chainType)
  * @param opts - Options for encoding format (hex or bytes)
  * @returns The binary address in the specified format
  * @example
@@ -263,7 +263,7 @@ export const textToBinary = InteropAddressProvider.textToBinary;
  * This is a synchronous convenience method that wraps the text layer's toText function.
  *
  * @param binaryAddress - The binary address to convert
- * @returns The CAIP-350 structured text representation
+ * @returns Structured object with fields using CAIP-350 text encoding rules (per chainType)
  * @example
  * ```ts
  * const text = binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");

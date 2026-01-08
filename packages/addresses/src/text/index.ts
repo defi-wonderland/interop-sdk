@@ -21,14 +21,16 @@ import {
 } from "./caip350.js";
 
 /**
- * Converts a binary interoperable address object into its CAIP-350
- * structured text representation.
+ * Converts a binary interoperable address object into a structured representation
+ * with fields encoded using CAIP-350 text serialization rules (per chainType).
  *
  * This is a synchronous function that converts the binary EIP-7930 format
- * to the structured text format used by CAIP-350.
+ * to a structured object where fields use CAIP-350 text encoding rules specific
+ * to the chainType (e.g., for eip155: chain references as decimal strings, addresses
+ * as hex strings with EIP-55 checksumming; for solana: base58 encoding).
  *
  * @param addr - The binary interoperable address to convert
- * @returns The CAIP-350 structured text representation
+ * @returns Structured object with fields using CAIP-350 text encoding rules (per chainType)
  * @throws {UnsupportedChainType} If the chain type is not supported
  * @example
  * ```ts
@@ -67,13 +69,15 @@ export const toText = (addr: InteroperableAddress): InteroperableAddressText => 
 };
 
 /**
- * Converts a CAIP-350 structured text representation into the
+ * Converts a structured object with CAIP-350 text-encoded fields into the
  * binary interoperable address object.
  *
- * This is a synchronous function that converts the structured text format
- * to the binary EIP-7930 format.
+ * This is a synchronous function that converts fields encoded using CAIP-350
+ * text serialization rules (per chainType) to the binary EIP-7930 format.
+ * The encoding rules are chainType-specific (e.g., eip155 uses decimal for
+ * chain references and hex with EIP-55 for addresses; solana uses base58).
  *
- * @param text - The CAIP-350 structured text representation
+ * @param text - Structured object with fields using CAIP-350 text encoding rules (per chainType)
  * @returns The binary interoperable address object
  * @throws {InvalidChainNamespace} If the chain type is invalid
  * @example

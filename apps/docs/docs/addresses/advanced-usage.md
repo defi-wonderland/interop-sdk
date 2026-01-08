@@ -37,17 +37,18 @@ validateChecksum(addr, checksum);
 
 ### Text Layer (CAIP-350)
 
-Structured text representation - synchronous conversion:
+Structured objects with fields using CAIP-350 text serialization rules (per chainType) - synchronous conversion:
 
 ```typescript
 import { binaryToText, textToBinary, toBinary, toText } from "@wonderland/interop-addresses";
 
-// Convert binary to text
+// Convert binary to structured object with CAIP-350 text-encoded fields
 const addr = decodeInteroperableAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
 const text = toText(addr);
 // Returns: { version: 1, chainType: "eip155", chainReference: "1", address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" }
+// Fields use CAIP-350 encoding rules (per chainType): for eip155, chainReference as decimal string, address as hex with EIP-55 checksum
 
-// Convert text to binary
+// Convert structured object with CAIP-350 text-encoded fields to binary
 const binary = toBinary(text);
 
 // Or use convenience methods
@@ -70,7 +71,7 @@ import {
 // Parse with full metadata
 const result = await parseInteroperableName("vitalik.eth@eip155:1#4CA88C9C");
 // result.name - original parsed components
-// result.text - CAIP-350 text representation
+// result.text - structured object with CAIP-350 text-encoded fields
 // result.address - binary address
 // result.meta.checksum - calculated checksum
 // result.meta.isENS - whether address was ENS
@@ -240,7 +241,7 @@ const textRoundTrip = binaryToText(binary);
 
 ## Best Practices
 
-1. **Use synchronous methods when possible**: If you already have structured text data, use `textToBinary` instead of `nameToBinary` to avoid async overhead.
+1. **Use synchronous methods when possible**: If you already have structured data with CAIP-350 text-encoded fields (per chainType), use `textToBinary` instead of `nameToBinary` to avoid async overhead.
 
 2. **Always validate addresses**: Use validation methods before using addresses in production code.
 

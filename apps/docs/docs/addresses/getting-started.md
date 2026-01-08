@@ -19,7 +19,7 @@ pnpm add @wonderland/interop-addresses
 The package follows a clean three-layer architecture:
 
 1. **Binary Layer (EIP-7930)**: Pure binary encoding/decoding - synchronous, no dependencies
-2. **Text Layer (CAIP-350)**: Structured text representation - synchronous conversion
+2. **Text Layer (CAIP-350)**: Structured objects with fields using CAIP-350 text serialization rules - synchronous conversion
 3. **Name Layer (ERC-7828)**: Human-readable names with ENS resolution - async operations
 
 ## Basic Usage
@@ -81,17 +81,20 @@ The package supports four main address representations:
     - Supports ENS names and chain labels
     - Requires async operations for resolution
 
-2. **InteroperableAddressText (CAIP-350)**: Structured object with string fields
+2. **InteroperableAddressText (CAIP-350)**: Structured object with fields using CAIP-350 text serialization rules (per chainType)
 
     ```typescript
     {
       version: 1,
       chainType: "eip155",
-      chainReference: "1",
-      address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+      chainReference: "1",  // Encoding per CAIP-350 for eip155 (decimal string)
+      address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"  // Encoding per CAIP-350 for eip155 (hex with EIP-55 checksum)
     }
     ```
 
+    - Fields use CAIP-350 text encoding rules, which are chainType-specific:
+        - **eip155**: Decimal strings for chain references, hex with EIP-55 checksumming for addresses
+        - **solana**: Base58 encoding for both chain references and addresses
     - Synchronous conversions
     - No resolution needed
     - Used by the Text layer
@@ -148,7 +151,7 @@ import { nameToBinary, parseInteroperableName } from "@wonderland/interop-addres
 // Parse with full metadata
 const result = await parseInteroperableName("vitalik.eth@eip155:1#4CA88C9C");
 // result.name - original parsed components
-// result.text - CAIP-350 text representation
+// result.text - structured object with CAIP-350 text-encoded fields
 // result.address - binary address
 // result.meta.checksum - calculated checksum
 // result.meta.isENS - whether address was ENS
@@ -160,21 +163,21 @@ const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "he
 
 ### Text Layer (Synchronous)
 
-Use when you already have structured data and don't need resolution:
+Use when you already have structured data with CAIP-350 text-encoded fields and don't need resolution:
 
 ```typescript
 import { binaryToText, textToBinary, toBinary, toText } from "@wonderland/interop-addresses";
 
-// Convert text to binary
+// Convert structured object with CAIP-350 text-encoded fields to binary
 const text = {
     version: 1,
     chainType: "eip155",
-    chainReference: "1",
-    address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    chainReference: "1", // Encoding per CAIP-350 for eip155 (decimal string)
+    address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", // Encoding per CAIP-350 for eip155 (hex with EIP-55 checksum)
 };
 const binary = textToBinary(text, { format: "hex" });
 
-// Convert binary to text
+// Convert binary to structured object with CAIP-350 text-encoded fields
 const textFromBinary = binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
 ```
 

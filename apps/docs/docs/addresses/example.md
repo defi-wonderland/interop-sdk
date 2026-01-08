@@ -108,14 +108,14 @@ import { binaryToText } from "@wonderland/interop-addresses";
 
 const binaryAddress = "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045";
 
-// Convert to structured text (synchronous)
+// Convert to structured object with CAIP-350 text-encoded fields (synchronous)
 const text = binaryToText(binaryAddress);
 console.log(text);
 // {
 //   version: 1,
 //   chainType: "eip155",
-//   chainReference: "1",
-//   address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+//   chainReference: "1",  // Decimal string per CAIP-350
+//   address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"  // Hex with EIP-55 checksum per CAIP-350
 // }
 ```
 

@@ -141,7 +141,7 @@ const name = binaryToName("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96
 
 #### `textToBinary`
 
-Converts structured text to binary (synchronous).
+Converts structured object with CAIP-350 text-encoded fields to binary (synchronous).
 
 ```typescript
 textToBinary(
@@ -158,15 +158,15 @@ import { textToBinary } from "@wonderland/interop-addresses";
 const text = {
     version: 1,
     chainType: "eip155",
-    chainReference: "1",
-    address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    chainReference: "1", // Decimal string per CAIP-350
+    address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", // Hex with EIP-55 checksum per CAIP-350
 };
 const binary = textToBinary(text, { format: "hex" });
 ```
 
 #### `binaryToText`
 
-Converts binary to structured text (synchronous).
+Converts binary to structured object with CAIP-350 text-encoded fields (synchronous).
 
 ```typescript
 binaryToText(binaryAddress: Hex | Uint8Array): InteroperableAddressText
@@ -252,7 +252,7 @@ validateChecksum(
 
 #### `toText`
 
-Converts a binary address to structured text.
+Converts a binary address to a structured object with CAIP-350 text-encoded fields.
 
 ```typescript
 toText(addr: InteroperableAddress): InteroperableAddressText
@@ -260,7 +260,7 @@ toText(addr: InteroperableAddress): InteroperableAddressText
 
 #### `toBinary`
 
-Converts structured text to a binary address.
+Converts structured object with CAIP-350 text-encoded fields to a binary address.
 
 ```typescript
 toBinary(text: InteroperableAddressText): InteroperableAddress
@@ -283,7 +283,7 @@ parseInteroperableName(
 ```typescript
 {
   name: ParsedInteropNameComponents;      // Original parsed components
-  text: InteroperableAddressText;         // CAIP-350 text representation
+  text: InteroperableAddressText;         // Structured object with CAIP-350 text-encoded fields
   address: InteroperableAddress;          // Binary address
   meta: {
     checksum: Checksum;                    // Calculated checksum
@@ -299,7 +299,7 @@ parseInteroperableName(
 
 #### `formatInteroperableName`
 
-Formats structured text and checksum into an interoperable name.
+Formats structured object with CAIP-350 text-encoded fields and checksum into an interoperable name.
 
 ```typescript
 formatInteroperableName(
@@ -408,16 +408,22 @@ The canonical binary representation (EIP-7930 object):
 
 ### `InteroperableAddressText`
 
-The CAIP-350 structured text representation:
+Structured object with fields using CAIP-350 text serialization rules (per chainType):
 
 ```typescript
 {
   version: number;
   chainType: ChainTypeName; // e.g., "eip155"
-  chainReference?: string;   // e.g., "1"
-  address?: string;          // e.g., "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+  chainReference?: string;   // e.g., "1" (encoding per CAIP-350 for the chainType)
+  address?: string;          // e.g., "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (encoding per CAIP-350 for the chainType)
 }
 ```
+
+The fields use CAIP-350's text encoding rules, which are chainType-specific:
+
+-   **eip155**: Chain references as decimal strings, addresses as hex strings with EIP-55 checksumming
+-   **solana**: Chain references and addresses as base58-encoded strings
+-   Other chain types follow their respective CAIP-350 encoding rules
 
 ### `InteroperableName`
 
@@ -463,7 +469,7 @@ The result from `parseInteroperableName`:
 ```typescript
 {
   name: ParsedInteropNameComponents;
-  text: InteroperableAddressText;
+  text: InteroperableAddressText;  // Structured object with CAIP-350 text-encoded fields
   address: InteroperableAddress;
   meta: {
     checksum: Checksum;

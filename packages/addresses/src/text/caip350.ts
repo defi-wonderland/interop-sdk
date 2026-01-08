@@ -12,9 +12,12 @@ import {
 } from "../internal.js";
 
 /**
- * CAIP-350 helpers for working with chain references and addresses.
+ * CAIP-350 text serialization helpers for working with chain references and addresses.
  *
- * These helpers are synchronous and contain no ENS or network resolution logic.
+ * These helpers implement CAIP-350's text encoding rules, which are chainType-specific
+ * (e.g., for eip155: decimal strings for chain references, hex strings with EIP-55 checksumming
+ * for addresses; for solana: base58 encoding). They are synchronous and contain no ENS
+ * or network resolution logic.
  */
 
 /**

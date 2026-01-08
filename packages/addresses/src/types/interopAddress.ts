@@ -26,10 +26,12 @@ export type ChainReference = InteroperableAddress["chainReference"];
 export type Address = InteroperableAddress["address"];
 
 /**
- * Canonical CAIP-350 structured text representation.
+ * Structured representation with fields using CAIP-350 text serialization rules (per chainType).
  *
- * This is the structured form used by the text layer. Human-readable
- * names are formatted on top of this (`InteroperableName`).
+ * This is the structured form used by the text layer. The fields use CAIP-350's
+ * text encoding rules, which are chainType-specific (e.g., for eip155: chain references
+ * as decimal strings, addresses as hex strings with EIP-55 checksumming; for solana:
+ * base58 encoding). Human-readable names are formatted on top of this (`InteroperableName`).
  *
  * Fields are optional per the spec - at least one of chainReference or address must be present.
  */
