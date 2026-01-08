@@ -2,13 +2,13 @@ import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
 import type { InteroperableAddress } from "../../src/types/interopAddress.js";
-import { encodeAddress } from "../../src/binary/index.js";
+import { encodeAddress } from "../../src/address/index.js";
 import { ParseInteropAddress } from "../../src/internal.js";
 
 describe("erc7930", () => {
     describe("encodeAddress", () => {
-        it("convert interop address to binary", () => {
-            const interopAddress = {
+        it("convert binary interop address to binary", () => {
+            const interopAddress: InteroperableAddress = {
                 version: 1,
                 chainType: fromHex("0x0000", "bytes"),
                 chainReference: fromHex("0x01", "bytes"),
@@ -31,8 +31,8 @@ describe("erc7930", () => {
       */
         });
 
-        it("parse solana binary interop address", () => {
-            const interopAddress = {
+        it("encode solana binary interop address", () => {
+            const interopAddress: InteroperableAddress = {
                 version: 1,
                 chainType: fromHex("0x0002", "bytes"),
                 chainReference: fromHex(
@@ -61,11 +61,10 @@ describe("erc7930", () => {
       */
         });
 
-        it("parse evm without chain id binary interop address", () => {
-            const interopAddress = {
+        it("encode evm without chain id binary interop address", () => {
+            const interopAddress: InteroperableAddress = {
                 version: 1,
                 chainType: fromHex("0x0000", "bytes"),
-                chainReference: fromHex("0x", "bytes"),
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             };
             const binaryAddress = encodeAddress(interopAddress, { format: "hex" });
@@ -81,15 +80,14 @@ describe("erc7930", () => {
       */
         });
 
-        it("parse solana binary interop address without address", () => {
-            const interopAddress = {
+        it("encode solana binary interop address without address", () => {
+            const interopAddress: InteroperableAddress = {
                 version: 1,
                 chainType: fromHex("0x0002", "bytes"),
                 chainReference: fromHex(
                     "0x45296998a6f8e2a784db5d9f95e18fc23f70441a1039446801089879b08c7ef0",
                     "bytes",
                 ),
-                address: fromHex("0x", "bytes"),
             };
 
             const binaryAddress = encodeAddress(interopAddress, { format: "hex" });
@@ -107,10 +105,24 @@ describe("erc7930", () => {
             */
         });
 
+        it("can encode text representation", () => {
+            const interopAddress: InteroperableAddress = {
+                version: 1,
+                chainType: "eip155",
+                chainReference: "1",
+                address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            };
+
+            const binaryAddress = encodeAddress(interopAddress, { format: "hex" });
+
+            expect(binaryAddress).toEqual(
+                "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045",
+            );
+        });
+
         it("throws if version is not there", () => {
             const interopAddress = {
                 chainType: fromHex("0x0000", "bytes"),
-                chainReference: fromHex("0x", "bytes"),
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteroperableAddress;
 
@@ -122,7 +134,6 @@ describe("erc7930", () => {
         it("throws if chain type is not there", () => {
             const interopAddress = {
                 version: 1,
-                chainReference: fromHex("0x", "bytes"),
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteroperableAddress;
 
@@ -135,7 +146,6 @@ describe("erc7930", () => {
             const interopAddress = {
                 version: 1,
                 chainType: fromHex("0x100000", "bytes"),
-                chainReference: fromHex("0x", "bytes"),
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteroperableAddress;
 
@@ -145,7 +155,7 @@ describe("erc7930", () => {
         });
 
         it("does not throw if chain type is 2 bytes representable", () => {
-            const interopAddress = {
+            const interopAddress: InteroperableAddress = {
                 version: 1,
                 chainType: fromHex("0x0000000001", "bytes"),
                 chainReference: fromHex("0x01", "bytes"),
@@ -159,11 +169,10 @@ describe("erc7930", () => {
             );
         });
 
-        it("throws if chain reference is not there", () => {
+        it("throws if both chain reference and address are missing", () => {
             const interopAddress = {
                 version: 1,
                 chainType: fromHex("0x0000", "bytes"),
-                address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteroperableAddress;
 
             expect(() => encodeAddress(interopAddress, { format: "hex" })).toThrow(
@@ -171,23 +180,10 @@ describe("erc7930", () => {
             );
         });
 
-        it("throws if address is not there", () => {
-            const interopAddress = {
+        it("does not throw if chain reference is undefined (address present)", () => {
+            const interopAddress: InteroperableAddress = {
                 version: 1,
                 chainType: fromHex("0x0000", "bytes"),
-                chainReference: fromHex("0x", "bytes"),
-            } as unknown as InteroperableAddress;
-
-            expect(() => encodeAddress(interopAddress, { format: "hex" })).toThrow(
-                ParseInteropAddress,
-            );
-        });
-
-        it("does not throw if chain reference has length 0", () => {
-            const interopAddress = {
-                version: 1,
-                chainType: fromHex("0x0000", "bytes"),
-                chainReference: fromHex("0x", "bytes"),
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             };
 
@@ -196,12 +192,11 @@ describe("erc7930", () => {
             );
         });
 
-        it("does not throw if address has length 0", () => {
-            const interopAddress = {
+        it("does not throw if address is undefined (chain reference present)", () => {
+            const interopAddress: InteroperableAddress = {
                 version: 1,
                 chainType: fromHex("0x0000", "bytes"),
-                chainReference: fromHex("0x", "bytes"),
-                address: fromHex("0x", "bytes"),
+                chainReference: fromHex("0x01", "bytes"),
             };
 
             expect(() => encodeAddress(interopAddress, { format: "hex" })).not.toThrow(

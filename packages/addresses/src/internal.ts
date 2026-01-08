@@ -1,5 +1,5 @@
 // Add your internal exports here
-export * from "./binary/index.js";
+export * from "./address/index.js";
 export * from "./constants/index.js";
 export * from "./name/index.js";
 export * from "./utils/index.js";

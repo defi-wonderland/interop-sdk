@@ -139,48 +139,6 @@ const name = binaryToName("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96
 // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C"
 ```
 
-#### `addressTextToBinary`
-
-Converts structured object with CAIP-350 text-encoded fields to binary (synchronous).
-
-```typescript
-addressTextToBinary(
-  text: InteroperableAddressText,
-  opts?: { format?: "hex" | "bytes" }
-): Hex | Uint8Array
-```
-
-**Example:**
-
-```typescript
-import { addressTextToBinary } from "@wonderland/interop-addresses";
-
-const text = {
-    version: 1,
-    chainType: "eip155",
-    chainReference: "1", // Decimal string per CAIP-350
-    address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", // Hex with EIP-55 checksum per CAIP-350
-};
-const binary = addressTextToBinary(text, { format: "hex" });
-```
-
-#### `binaryToAddressText`
-
-Converts binary to structured object with CAIP-350 text-encoded fields (synchronous).
-
-```typescript
-binaryToAddressText(binaryAddress: Hex | Uint8Array): InteroperableAddressText
-```
-
-**Example:**
-
-```typescript
-import { binaryToAddressText } from "@wonderland/interop-addresses";
-
-const text = binaryToAddressText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
-// Returns: { version: 1, chainType: "eip155", chainReference: "1", address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" }
-```
-
 #### `isValidBinaryAddress`
 
 Checks if a binary address is valid (synchronous).
@@ -199,19 +157,41 @@ const isValid = isValidBinaryAddress("0x00010000010114d8da6bf26964af9d7eed9e03e5
 
 ## Direct Layer Functions
 
-### Binary Layer
+### Address Layer
 
 #### `decodeAddress`
 
-Decodes a binary address into an `InteroperableAddress` object.
+Decodes a binary address into an `InteroperableAddress` object. Defaults to text representation.
 
 ```typescript
-decodeAddress(value: Uint8Array | Hex): InteroperableAddress
+decodeAddress(
+  value: Uint8Array | Hex,
+  opts?: { representation?: "binary" | "text" }
+): InteroperableAddress
+```
+
+**Returns:** Address in the specified representation (defaults to "text"):
+
+-   Text variant: `chainType: "eip155" | "solana"`, `chainReference?: string`, `address?: string`
+-   Binary variant: `chainType: Uint8Array`, `chainReference?: Uint8Array`, `address?: Uint8Array`
+
+**Example:**
+
+```typescript
+// Get text representation (default)
+const textAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+// textAddr.chainType is "eip155" (string)
+
+// Get binary representation
+const binaryAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045", {
+    representation: "binary",
+});
+// binaryAddr.chainType is Uint8Array
 ```
 
 #### `encodeAddress`
 
-Encodes an `InteroperableAddress` object to binary format.
+Encodes an `InteroperableAddress` object to binary format. Accepts either binary or text representation and converts automatically.
 
 ```typescript
 encodeAddress(
@@ -220,9 +200,53 @@ encodeAddress(
 ): Hex | Uint8Array
 ```
 
+**Example:**
+
+```typescript
+// Encode text representation
+const textAddr = { version: 1, chainType: "eip155", chainReference: "1", address: "0x..." };
+const hex = encodeAddress(textAddr, { format: "hex" }); // Automatically converts
+
+// Encode binary representation
+const binaryAddr = decodeAddress("0x...", { representation: "binary" });
+const hex2 = encodeAddress(binaryAddr, { format: "hex" });
+```
+
+#### `toBinaryRepresentation`
+
+Converts a text representation to a binary representation.
+
+```typescript
+toBinaryRepresentation(addr: InteroperableAddress): InteroperableAddress
+```
+
+**Example:**
+
+```typescript
+const textAddr = { version: 1, chainType: "eip155", chainReference: "1", address: "0x..." };
+const binaryAddr = toBinaryRepresentation(textAddr);
+// Returns binary variant (chainType: Uint8Array, etc.)
+```
+
+#### `toTextRepresentation`
+
+Converts a binary representation to a text representation.
+
+```typescript
+toTextRepresentation(addr: InteroperableAddress): InteroperableAddress
+```
+
+**Example:**
+
+```typescript
+const binaryAddr = decodeAddress("0x...", { representation: "binary" });
+const textAddr = toTextRepresentation(binaryAddr);
+// Returns text variant (chainType: "eip155", etc.)
+```
+
 #### `calculateChecksum`
 
-Calculates the checksum for an `InteroperableAddress`.
+Calculates the checksum for an `InteroperableAddress`. Accepts either representation and converts automatically.
 
 ```typescript
 calculateChecksum(addr: InteroperableAddress): Checksum
@@ -230,7 +254,7 @@ calculateChecksum(addr: InteroperableAddress): Checksum
 
 #### `validateInteroperableAddress`
 
-Validates an `InteroperableAddress` structure.
+Validates an `InteroperableAddress` structure. Accepts either representation.
 
 ```typescript
 validateInteroperableAddress(addr: InteroperableAddress): InteroperableAddress
@@ -238,7 +262,7 @@ validateInteroperableAddress(addr: InteroperableAddress): InteroperableAddress
 
 #### `validateChecksum`
 
-Validates a checksum against an `InteroperableAddress`.
+Validates a checksum against an `InteroperableAddress`. Accepts either representation and converts automatically.
 
 ```typescript
 validateChecksum(
@@ -248,33 +272,16 @@ validateChecksum(
 ): void
 ```
 
-### Text Layer
-
-#### `toAddressText`
-
-Converts a binary address to a structured object with CAIP-350 text-encoded fields.
-
-```typescript
-toAddressText(addr: InteroperableAddress): InteroperableAddressText
-```
-
-#### `toAddress`
-
-Converts structured object with CAIP-350 text-encoded fields to a binary address.
-
-```typescript
-toAddress(text: InteroperableAddressText): InteroperableAddress
-```
-
 ### Name Layer
 
 #### `parseName`
 
-Parses an interoperable name with full metadata.
+Parses an interoperable name with full metadata. Defaults to text representation.
 
 ```typescript
 parseName(
-  input: string | ParsedInteropNameComponents
+  input: string | ParsedInteropNameComponents,
+  opts?: { representation?: "binary" | "text" }
 ): Promise<ParsedInteroperableNameResult>
 ```
 
@@ -283,8 +290,7 @@ parseName(
 ```typescript
 {
   name: ParsedInteropNameComponents;      // Original parsed components
-  text: InteroperableAddressText;         // Structured object with CAIP-350 text-encoded fields
-  address: InteroperableAddress;          // Binary address
+  address: InteroperableAddress;          // Address in specified representation (defaults to "text")
   meta: {
     checksum: Checksum;                    // Calculated checksum
     checksumMismatch?: {                   // If provided checksum didn't match
@@ -297,15 +303,49 @@ parseName(
 }
 ```
 
+The `address` field is an `InteroperableAddress` in the requested representation. Use type guards to access fields:
+
+```typescript
+import { isTextAddress } from "@wonderland/interop-addresses";
+
+const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
+
+if (isTextAddress(result.address)) {
+    // Access text fields directly
+    console.log(result.address.chainType); // "eip155"
+    console.log(result.address.chainReference); // "1"
+    console.log(result.address.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+}
+```
+
 #### `formatName`
 
-Formats structured object with CAIP-350 text-encoded fields and checksum into an interoperable name.
+Formats an `InteroperableAddress` into an interoperable name. Accepts either representation and converts automatically. Calculates the checksum internally.
 
 ```typescript
 formatName(
-  text: InteroperableAddressText,
-  checksum: Checksum
+  addr: InteroperableAddress,
+  opts?: { includeChecksum?: boolean }
 ): InteroperableName
+```
+
+**Example:**
+
+```typescript
+import { decodeAddress, formatName } from "@wonderland/interop-addresses";
+
+// Format from text representation (checksum included by default)
+const textAddr = { version: 1, chainType: "eip155", chainReference: "1", address: "0x..." };
+const name = formatName(textAddr);
+
+// Format from binary representation
+const binaryAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045", {
+    representation: "binary",
+});
+const name2 = formatName(binaryAddr); // Automatically converts and includes checksum
+
+// Format without checksum
+const name3 = formatName(textAddr, { includeChecksum: false });
 ```
 
 #### `isValidChain`
@@ -360,32 +400,28 @@ All methods are exported as individual functions for modular usage and tree-shak
 
 ```typescript
 import {
-    addressTextToBinary,
-    binaryToAddressText,
     binaryToName,
     calculateChecksum,
     computeChecksum,
-    // Binary layer
     decodeAddress,
     encodeAddress,
     formatName,
     getAddress,
     getChainId,
+    isBinaryAddress,
+    isTextAddress,
     isValidBinaryAddress,
     isValidChain,
     isValidChainType,
     isValidInteropAddress,
     isValidInteroperableName,
-    // High-level convenience methods
     nameToBinary,
-    // Name layer
     parseName,
     resolveAddress,
     resolveChain,
     shortnameToChainId,
-    toAddress,
-    // Text layer
-    toAddressText,
+    toBinaryRepresentation,
+    toTextRepresentation,
     validateChecksum,
     validateInteroperableAddress,
 } from "@wonderland/interop-addresses";
@@ -395,31 +431,50 @@ import {
 
 ### `InteroperableAddress`
 
-The canonical binary representation (EIP-7930 object):
+A discriminated union type that represents either binary or text fields, but not both. TypeScript narrows based on the `chainType` field type:
 
 ```typescript
-{
-    version: number;
-    chainType: Uint8Array;
-    chainReference: Uint8Array;
-    address: Uint8Array;
+type InteroperableAddress =
+    | {
+          version: number;
+          chainType: Uint8Array; // Binary variant
+          chainReference?: Uint8Array;
+          address?: Uint8Array;
+      }
+    | {
+          version: number;
+          chainType: "eip155" | "solana"; // Text variant
+          chainReference?: string;
+          address?: string;
+      };
+```
+
+**Type Guards:**
+
+-   `isTextAddress(addr: InteroperableAddress): boolean` - Check if address is text variant
+-   `isBinaryAddress(addr: InteroperableAddress): boolean` - Check if address is binary variant
+
+**Usage:**
+
+```typescript
+import { decodeAddress, isTextAddress } from "@wonderland/interop-addresses";
+
+const addr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+
+if (isTextAddress(addr)) {
+    // TypeScript knows addr.chainType is "eip155" | "solana"
+    console.log(addr.chainType); // "eip155"
+    console.log(addr.chainReference); // "1" (string)
+    console.log(addr.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (string)
+} else {
+    // TypeScript knows addr.chainType is Uint8Array
+    console.log(addr.chainType); // Uint8Array
+    console.log(addr.chainReference); // Uint8Array | undefined
+    console.log(addr.address); // Uint8Array | undefined
 }
 ```
 
-### `InteroperableAddressText`
-
-Structured object with fields using CAIP-350 text serialization rules (per chainType):
-
-```typescript
-{
-  version: number;
-  chainType: ChainTypeName; // e.g., "eip155"
-  chainReference?: string;   // e.g., "1" (encoding per CAIP-350 for the chainType)
-  address?: string;          // e.g., "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (encoding per CAIP-350 for the chainType)
-}
-```
-
-The fields use CAIP-350's text encoding rules, which are chainType-specific:
+The text variant uses CAIP-350's text encoding rules, which are chainType-specific:
 
 -   **eip155**: Chain references as decimal strings, addresses as hex strings with EIP-55 checksumming
 -   **solana**: Chain references and addresses as base58-encoded strings
@@ -469,14 +524,28 @@ The result from `parseName`:
 ```typescript
 {
   name: ParsedInteropNameComponents;
-  text: InteroperableAddressText;  // Structured object with CAIP-350 text-encoded fields
-  address: InteroperableAddress;
+  address: InteroperableAddress;  // Address in specified representation (defaults to "text")
   meta: {
     checksum: Checksum;
     checksumMismatch?: { provided: Checksum; calculated: Checksum };
     isENS: boolean;
     isChainLabel: boolean;
   };
+}
+```
+
+The `address` field contains the `InteroperableAddress` type in the requested representation (defaults to "text"). Use type guards to access fields:
+
+```typescript
+import { isTextAddress } from "@wonderland/interop-addresses";
+
+const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
+
+if (isTextAddress(result.address)) {
+    // Access text fields directly
+    console.log(result.address.chainType); // "eip155"
+    console.log(result.address.chainReference); // "1"
+    console.log(result.address.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 }
 ```
 

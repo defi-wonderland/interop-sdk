@@ -1,5 +1,5 @@
 import { GetQuoteRequest } from "@openintentsframework/oif-specs";
-import { addressTextToBinary } from "@wonderland/interop-addresses";
+import { encodeAddress } from "@wonderland/interop-addresses";
 import { Address, Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -25,8 +25,8 @@ const OUTPUT_TOKEN_ADDRESS = "0x4200000000000000000000000000000000000006" as Add
 const INPUT_CHAIN_ID = 11155111;
 const OUTPUT_CHAIN_ID = 84532;
 
-// Convert to interop addresses using synchronous addressTextToBinary
-const USER_INTEROP_ADDRESS = addressTextToBinary(
+// Convert to interop addresses using synchronous encodeAddress
+const USER_INTEROP_ADDRESS = encodeAddress(
     {
         version: 1,
         chainType: "eip155",
@@ -36,7 +36,7 @@ const USER_INTEROP_ADDRESS = addressTextToBinary(
     { format: "hex" },
 ) as string;
 
-const RECEIVER_INTEROP_ADDRESS = addressTextToBinary(
+const RECEIVER_INTEROP_ADDRESS = encodeAddress(
     {
         version: 1,
         chainType: "eip155",
@@ -46,7 +46,7 @@ const RECEIVER_INTEROP_ADDRESS = addressTextToBinary(
     { format: "hex" },
 ) as string;
 
-const INPUT_TOKEN_INTEROP_ADDRESS = addressTextToBinary(
+const INPUT_TOKEN_INTEROP_ADDRESS = encodeAddress(
     {
         version: 1,
         chainType: "eip155",
@@ -56,7 +56,7 @@ const INPUT_TOKEN_INTEROP_ADDRESS = addressTextToBinary(
     { format: "hex" },
 ) as string;
 
-const OUTPUT_TOKEN_INTEROP_ADDRESS = addressTextToBinary(
+const OUTPUT_TOKEN_INTEROP_ADDRESS = encodeAddress(
     {
         version: 1,
         chainType: "eip155",

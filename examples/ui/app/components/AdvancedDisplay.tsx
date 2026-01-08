@@ -1,3 +1,4 @@
+import { isTextAddress, toTextRepresentation } from '@wonderland/interop-addresses';
 import { FormatDisplay, type FieldConfig } from './FormatDisplay';
 import type { ParsedInteroperableNameResult } from '@wonderland/interop-addresses';
 
@@ -19,29 +20,48 @@ const fields: FieldConfig<AdvancedFieldKey, ParsedInteroperableNameResult>[] = [
   {
     key: 'text-version',
     label: 'Text: Version',
-    getValue: (r) => r.text.version?.toString() || null,
-    getDisplayValue: (r) => r.text.version?.toString() || <span className='text-text-tertiary italic'>(not set)</span>,
+    getValue: (r) => r.address.version?.toString() || null,
+    getDisplayValue: (r) =>
+      r.address.version?.toString() || <span className='text-text-tertiary italic'>(not set)</span>,
     description: 'CAIP-350 text format version',
   },
   {
     key: 'text-chainType',
     label: 'Text: Chain Type',
-    getValue: (r) => r.text.chainType || null,
-    getDisplayValue: (r) => r.text.chainType || <span className='text-text-tertiary italic'>(not set)</span>,
+    getValue: (r) => {
+      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      return textAddr.chainType || null;
+    },
+    getDisplayValue: (r) => {
+      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      return textAddr.chainType || <span className='text-text-tertiary italic'>(not set)</span>;
+    },
     description: 'Chain namespace (e.g., eip155, solana)',
   },
   {
     key: 'text-chainReference',
     label: 'Text: Chain Reference',
-    getValue: (r) => r.text.chainReference || null,
-    getDisplayValue: (r) => r.text.chainReference || <span className='text-text-tertiary italic'>(not set)</span>,
+    getValue: (r) => {
+      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      return textAddr.chainReference || null;
+    },
+    getDisplayValue: (r) => {
+      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      return textAddr.chainReference || <span className='text-text-tertiary italic'>(not set)</span>;
+    },
     description: 'Chain identifier (numeric ID or label)',
   },
   {
     key: 'text-address',
     label: 'Text: Address',
-    getValue: (r) => r.text.address || null,
-    getDisplayValue: (r) => r.text.address || <span className='text-text-tertiary italic'>(not set)</span>,
+    getValue: (r) => {
+      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      return textAddr.address || null;
+    },
+    getDisplayValue: (r) => {
+      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      return textAddr.address || <span className='text-text-tertiary italic'>(not set)</span>;
+    },
     description: 'Resolved address (hex or ENS name)',
     className: 'sm:col-span-2',
   },

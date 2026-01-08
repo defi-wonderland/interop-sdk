@@ -2,65 +2,66 @@
 title: Advanced Usage
 ---
 
-## Three-Layer Architecture
+## Two-Layer Architecture
 
-The package follows a clean three-layer architecture:
+The package follows a clean two-layer architecture with a discriminated union type system:
 
-### Binary Layer (EIP-7930)
+### Address Layer (EIP-7930 + CAIP-350)
 
-Pure binary encoding/decoding - synchronous, no dependencies:
+Discriminated union address representation (binary or text) - synchronous encoding/decoding:
 
 ```typescript
 import {
     calculateChecksum,
     decodeAddress,
     encodeAddress,
+    isBinaryAddress,
+    isTextAddress,
+    toBinaryRepresentation,
+    toTextRepresentation,
     validateChecksum,
     validateInteroperableAddress,
 } from "@wonderland/interop-addresses";
 
-// Decode binary address
-const addr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
+// Decode binary to text representation (default)
+const textAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
+// textAddr.chainType - "eip155" (string)
+// textAddr.chainReference - "1" (string)
+// textAddr.address - "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (string)
 
-// Encode to binary
-const hex = encodeAddress(addr, { format: "hex" });
+// Decode binary to binary representation
+const binaryAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045", {
+    representation: "binary",
+});
+// binaryAddr.chainType - Uint8Array
+// binaryAddr.chainReference - Uint8Array
+// binaryAddr.address - Uint8Array
 
-// Calculate checksum
-const checksum = calculateChecksum(addr);
+// Encode either representation to binary (auto-converts)
+const hex = encodeAddress(textAddr, { format: "hex" });
+const hex2 = encodeAddress(binaryAddr, { format: "hex" });
 
-// Validate address structure
-const validated = validateInteroperableAddress(addr);
+// Calculate checksum (accepts either representation)
+const checksum = calculateChecksum(textAddr);
+const checksum2 = calculateChecksum(binaryAddr);
 
-// Validate checksum
-validateChecksum(addr, checksum);
-```
+// Validate address structure (accepts either representation)
+const validated = validateInteroperableAddress(textAddr);
 
-### Text Layer (CAIP-350)
+// Validate checksum (accepts either representation)
+validateChecksum(textAddr, checksum);
 
-Structured objects with fields using CAIP-350 text serialization rules (per chainType) - synchronous conversion:
+// Convert between representations
+const binaryFromText = toBinaryRepresentation(textAddr);
+const textFromBinary = toTextRepresentation(binaryAddr);
 
-```typescript
-import {
-    addressTextToBinary,
-    binaryToAddressText,
-    toAddress,
-    toAddressText,
-} from "@wonderland/interop-addresses";
-
-// Convert binary to structured object with CAIP-350 text-encoded fields
-const addr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
-const text = toAddressText(addr);
-// Returns: { version: 1, chainType: "eip155", chainReference: "1", address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" }
-// Fields use CAIP-350 encoding rules (per chainType): for eip155, chainReference as decimal string, address as hex with EIP-55 checksum
-
-// Convert structured object with CAIP-350 text-encoded fields to binary
-const binary = toAddress(text);
-
-// Or use convenience methods
-const binaryFromText = addressTextToBinary(text, { format: "hex" });
-const textFromBinary = binaryToAddressText(
-    "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045",
-);
+// Use type guards to narrow types
+if (isTextAddress(textAddr)) {
+    console.log(textAddr.chainType); // TypeScript knows this is "eip155" | "solana"
+}
+if (isBinaryAddress(binaryAddr)) {
+    console.log(binaryAddr.chainType); // TypeScript knows this is Uint8Array
+}
 ```
 
 ### Name Layer (ERC-7828)
@@ -68,19 +69,33 @@ const textFromBinary = binaryToAddressText(
 Human-readable names with ENS resolution - async operations:
 
 ```typescript
-import { binaryToName, formatName, nameToBinary, parseName } from "@wonderland/interop-addresses";
+import {
+    binaryToName,
+    formatName,
+    isTextAddress,
+    nameToBinary,
+    parseName,
+} from "@wonderland/interop-addresses";
 
-// Parse with full metadata
+// Parse with full metadata (defaults to text representation)
 const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
 // result.name - original parsed components
-// result.text - structured object with CAIP-350 text-encoded fields
-// result.address - binary address
+// result.address - address in text representation (default)
+//   - Use isTextAddress() to access text fields
+//   - result.address.chainType - "eip155" (string)
+//   - result.address.chainReference - "1" (string)
+//   - result.address.address - "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (string)
 // result.meta.checksum - calculated checksum
 // result.meta.isENS - whether address was ENS
 // result.meta.isChainLabel - whether chain reference was a label
 
-// Format text to name
-const name = formatName(result.text, result.meta.checksum);
+// Parse with binary representation
+const resultBinary = await parseName("vitalik.eth@eip155:1#4CA88C9C", {
+    representation: "binary",
+});
+
+// Format to name (accepts either representation, auto-converts, calculates checksum)
+const name = formatName(result.address);
 
 // Simple conversions
 const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "hex" });
@@ -195,38 +210,42 @@ try {
 
 ```typescript
 import {
-    addressTextToBinary,
-    binaryToAddressText,
     calculateChecksum,
+    decodeAddress,
+    encodeAddress,
     formatName,
+    isTextAddress,
     parseName,
 } from "@wonderland/interop-addresses";
 
 // Start with name
 const name = "vitalik.eth@eip155:1#4CA88C9C";
 
-// Parse to get text and binary
+// Parse to get text address (default)
 const parsed = await parseName(name);
-const text = parsed.text;
-const binary = parsed.address;
+const textAddr = parsed.address;
 
-// Convert binary back to text
-const textFromBinary = binaryToAddressText(encodeAddress(binary, { format: "hex" }));
+// Verify it's text representation
+if (!isTextAddress(textAddr)) {
+    throw new Error("Expected text representation");
+}
 
-// Convert text back to binary
-const binaryFromText = addressTextToBinary(textFromBinary);
+// Encode text address to binary
+const binary = encodeAddress(textAddr, { format: "hex" });
 
-// Format back to name
-const checksum = calculateChecksum(binaryFromText);
-const nameFromText = formatName(textFromBinary, checksum);
+// Decode binary back to text address
+const textAddrFromBinary = decodeAddress(binary);
+
+// Format back to name (checksum calculated automatically)
+const nameFromText = formatName(textAddrFromBinary);
 ```
 
 ### Text → Binary → Text (Synchronous)
 
 ```typescript
-import { addressTextToBinary, binaryToAddressText } from "@wonderland/interop-addresses";
+import { decodeAddress, encodeAddress, isTextAddress } from "@wonderland/interop-addresses";
 
-const text = {
+const textAddr = {
     version: 1,
     chainType: "eip155",
     chainReference: "1",
@@ -234,25 +253,34 @@ const text = {
 };
 
 // Convert to binary
-const binary = addressTextToBinary(text, { format: "hex" });
+const binary = encodeAddress(textAddr, { format: "hex" });
 
 // Convert back to text
-const textRoundTrip = binaryToAddressText(binary);
-// textRoundTrip should equal text
+const textRoundTrip = decodeAddress(binary);
+// textRoundTrip should equal textAddr (use isTextAddress to verify)
+if (isTextAddress(textRoundTrip)) {
+    console.log(textRoundTrip.chainType); // "eip155"
+    console.log(textRoundTrip.chainReference); // "1"
+    console.log(textRoundTrip.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+}
 ```
 
 ## Best Practices
 
-1. **Use synchronous methods when possible**: If you already have structured data with CAIP-350 text-encoded fields (per chainType), use `addressTextToBinary` instead of `nameToBinary` to avoid async overhead.
+1. **Use type guards for type safety**: Always use `isTextAddress()` or `isBinaryAddress()` to narrow the discriminated union before accessing fields.
 
-2. **Always validate addresses**: Use validation methods before using addresses in production code.
+2. **Default to text representation**: The default representation is "text" (more user-friendly). Use binary only when you need raw bytes.
 
-3. **Handle checksum mismatches**: Check `result.meta.checksumMismatch` when parsing names to detect potential issues.
+3. **Automatic conversion**: Functions like `encodeAddress` and `formatName` accept either representation and convert automatically - no need to manually convert first.
 
-4. **Use individual functions for tree-shaking**: Import only what you need to minimize bundle size.
+4. **Always validate addresses**: Use validation methods before using addresses in production code.
 
-5. **Handle errors appropriately**: Use the provided error types for better error handling.
+5. **Handle checksum mismatches**: Check `result.meta.checksumMismatch` when parsing names to detect potential issues.
 
-6. **Use ENS names for better UX**: ENS names provide a better user experience when available.
+6. **Use individual functions for tree-shaking**: Import only what you need to minimize bundle size.
 
-7. **Consider layer separation**: Use the binary layer for performance-critical paths, text layer for structured data, and name layer when you need resolution.
+7. **Handle errors appropriately**: Use the provided error types for better error handling.
+
+8. **Use ENS names for better UX**: ENS names provide a better user experience when available.
+
+9. **Convert representations explicitly when needed**: Use `toBinaryRepresentation()` or `toTextRepresentation()` only when you need to change the representation type explicitly.

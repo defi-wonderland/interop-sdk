@@ -1,25 +1,33 @@
-import type { InteroperableAddress } from "../internal.js";
+import type {
+    InteroperableAddress,
+    InteroperableAddressBinary,
+    InteroperableAddressText,
+} from "../types/interopAddress.js";
 import type { ParsedInteropNameComponents } from "./parseInteropNameString.js";
 import type { ResolvedAddress } from "./resolveENS.js";
-import { calculateChecksum } from "../binary/index.js";
+import {
+    calculateChecksum,
+    toBinaryRepresentation,
+    toTextRepresentation,
+} from "../address/index.js";
 import {
     Checksum,
-    InteroperableAddressText,
     interoperableAddressTextSchema,
     InteroperableName,
     InvalidChainIdentifier,
     MissingInteroperableName,
     ParseInteropAddress,
 } from "../internal.js";
-import { toAddress } from "../text/index.js";
+import { isTextAddress } from "../types/interopAddress.js";
 import { parseInteropNameString } from "./parseInteropNameString.js";
 import { resolveChain } from "./resolveChain.js";
 import { resolveAddress } from "./resolveENS.js";
 
-export interface ParsedInteroperableNameResult {
+export interface ParsedInteroperableNameResult<
+    T extends InteroperableAddress = InteroperableAddress,
+> {
     name: ParsedInteropNameComponents;
-    text: InteroperableAddressText;
-    address: InteroperableAddress;
+    address: T;
     meta: {
         checksum?: Checksum;
         isENS: boolean;
@@ -29,19 +37,39 @@ export interface ParsedInteroperableNameResult {
 }
 
 /**
- * Parses an interoperable name (string or raw components) into a structured representation
- * with CAIP-350 text-encoded fields and binary address, plus checksum/ENS metadata.
+ * Parses an interoperable name (string or raw components) into an address
+ * representation with checksum/ENS metadata.
  *
  * This function resolves ENS names and chain labels, preserving original values in the result.
- * The returned text object uses CAIP-350 text serialization rules (per chainType) for field encoding.
+ * The returned address uses the specified representation (defaults to "text").
  *
  * @param input - Either an interoperable name string (e.g., "vitalik.eth@eip155:1") or parsed components from parseInteropNameString
- * @returns The parsed result with structured text (CAIP-350 encoded fields), binary address, and metadata
+ * @param opts - Parsing options
+ * @param opts.representation - Representation to return: "binary" or "text" (defaults to "text")
+ * @returns The parsed result with address in the specified representation and metadata
  * @throws An error if the parameters are invalid
+ * @example
+ * ```ts
+ * // Get text representation (default)
+ * const result = await parseName("vitalik.eth@eip155:1");
+ *
+ * // Get binary representation
+ * const result2 = await parseName("vitalik.eth@eip155:1", { representation: "binary" });
+ * ```
  */
-export const parseName = async (
+export function parseName(
     input: string | ParsedInteropNameComponents,
-): Promise<ParsedInteroperableNameResult> => {
+    opts: { representation: "binary" },
+): Promise<ParsedInteroperableNameResult<InteroperableAddressBinary>>;
+export function parseName(
+    input: string | ParsedInteropNameComponents,
+    opts?: { representation?: "text" },
+): Promise<ParsedInteroperableNameResult<InteroperableAddressText>>;
+export async function parseName(
+    input: string | ParsedInteropNameComponents,
+    opts?: { representation?: "binary" | "text" },
+): Promise<ParsedInteroperableNameResult> {
+    const representation = opts?.representation ?? "text";
     // If string, parse it first; otherwise use parsed components directly
     const parsed: ParsedInteropNameComponents =
         typeof input === "string"
@@ -70,42 +98,47 @@ export const parseName = async (
         resolvedAddress = await resolveAddress(parsed.address, resolvedChainType, resolvedChainRef);
     }
 
-    // Step 3: Build text from resolved chain values and resolved address
+    // Step 3: Build text variant from resolved chain values and resolved address
 
     // Must have at least one of chain reference or address
     if (!resolvedChainRef && !resolvedAddress?.address) {
         throw new InvalidChainIdentifier(
-            "InteroperableAddressText must have at least one of chainReference or address",
+            "InteroperableAddress must have at least one of chainReference or address",
         );
     }
 
-    const text: InteroperableAddressText = {
+    const textAddr: InteroperableAddress = {
         version: 1,
         chainType: resolvedChainType,
     };
 
     if (resolvedChainRef) {
-        text.chainReference = resolvedChainRef;
+        textAddr.chainReference = resolvedChainRef;
     }
 
     // Use resolved address in text
     if (resolvedAddress) {
-        text.address = resolvedAddress.address;
+        textAddr.address = resolvedAddress.address;
     }
 
     // Step 4: Validate with Zod
-    const validated = interoperableAddressTextSchema.safeParse(text);
+    const validated = interoperableAddressTextSchema.safeParse(textAddr);
     if (!validated.success) {
         throw new ParseInteropAddress(validated.error);
     }
 
     const validatedText = validated.data;
 
-    // Step 5: Convert text to binary (text already contains resolved address)
-    const binaryAddress: InteroperableAddress = toAddress(validatedText);
+    // Step 5: Convert to requested representation
+    let address: InteroperableAddress;
+    if (representation === "binary") {
+        address = toBinaryRepresentation(validatedText);
+    } else {
+        address = validatedText;
+    }
 
-    // Step 6: Calculate checksum from binary address (always generate, even if not provided)
-    const calculatedChecksum = calculateChecksum(binaryAddress);
+    // Step 6: Calculate checksum from address (always generate, even if not provided)
+    const calculatedChecksum = calculateChecksum(address);
 
     // If a checksum was provided, check if it matches (but don't throw on mismatch)
     let checksum: Checksum | undefined;
@@ -126,8 +159,7 @@ export const parseName = async (
 
     return {
         name: parsed,
-        text: validatedText,
-        address: binaryAddress,
+        address,
         meta: {
             checksum,
             ...(checksumMismatch && { checksumMismatch }),
@@ -135,36 +167,52 @@ export const parseName = async (
             isChainLabel,
         },
     };
-};
+}
 
 /**
- * Formats a structured object with CAIP-350 text-encoded fields and checksum into an interoperable
- * name string.
+ * Formats an interoperable address into an interoperable name string.
  *
- * @param text - Structured object with fields using CAIP-350 text encoding rules (per chainType)
- * @param checksum - The checksum to include in the formatted name
+ * Accepts either binary or text representation and converts internally if needed.
+ * Calculates the checksum automatically from the address.
+ *
+ * @param addr - Interoperable address (binary or text representation)
+ * @param opts - Formatting options
+ * @param opts.includeChecksum - Whether to include the checksum in the formatted name (defaults to true)
  * @returns The interoperable name string in the format: `${address}@${chainType}:${chainReference}#${checksum}`
  * @example
  * ```ts
- * const text: InteroperableAddressText = {
- *   version: 1,
- *   chainType: "eip155",
- *   chainReference: "1",
- *   address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
- * };
- * const name = formatInteroperableName(text, "4CA88C9C");
- * // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C"
+ * // Format text representation (checksum included by default)
+ * const textAddr = { version: 1, chainType: "eip155", chainReference: "1", address: "0x..." };
+ * const name = formatName(textAddr);
+ *
+ * // Format binary representation
+ * const binaryAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045", { representation: "binary" });
+ * const name2 = formatName(binaryAddr);
+ *
+ * // Format without checksum
+ * const name3 = formatName(textAddr, { includeChecksum: false });
  * ```
  */
 export const formatName = (
-    text: InteroperableAddressText,
-    checksum: Checksum,
+    addr: InteroperableAddress,
+    opts?: { includeChecksum?: boolean },
 ): InteroperableName => {
-    const address = text.address ?? "";
-    const chainType = text.chainType;
-    const chainReference = text.chainReference ?? "";
+    const includeChecksum = opts?.includeChecksum ?? true;
 
-    return `${address}@${chainType}:${chainReference}#${checksum}` as InteroperableName;
+    // Convert to text if needed
+    const textAddr = isTextAddress(addr) ? addr : toTextRepresentation(addr);
+
+    const address = textAddr.address ?? "";
+    const chainType = textAddr.chainType;
+    const chainReference = textAddr.chainReference ?? "";
+
+    if (includeChecksum) {
+        // Calculate checksum from the original address (may be binary or text)
+        const calculatedChecksum = calculateChecksum(addr);
+        return `${address}@${chainType}:${chainReference}#${calculatedChecksum}` as InteroperableName;
+    }
+
+    return `${address}@${chainType}:${chainReference}` as InteroperableName;
 };
 
 // Re-export name-specific utilities

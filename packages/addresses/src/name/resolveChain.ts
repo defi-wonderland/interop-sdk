@@ -78,5 +78,5 @@ export const resolveChain = async (input: ResolveChainInput): Promise<ResolvedCh
     }
 
     // Case 4: Neither provided - error
-    throw new InvalidChainNamespace("Chain type is required to build InteroperableAddressText");
+    throw new InvalidChainNamespace("Chain type is required to build InteroperableAddress");
 };

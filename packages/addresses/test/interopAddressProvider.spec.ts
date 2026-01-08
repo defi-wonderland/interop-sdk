@@ -1,13 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type {
-    BinaryAddress,
-    InteroperableAddressText,
-    InteroperableName,
-} from "../src/types/index.js";
+import type { BinaryAddress, InteroperableName } from "../src/types/index.js";
 import {
-    addressTextToBinary,
-    binaryToAddressText,
     computeChecksum,
     getAddress,
     getChainId,
@@ -69,111 +63,6 @@ describe("InteropAddressProvider", () => {
             };
             const interopAddress = await nameToBinary(parsed, { format: "hex" });
             expect(interopAddress).toBe("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
-        });
-    });
-
-    describe("addressTextToBinary", () => {
-        it("builds a binary InteroperableAddress from InteroperableAddressText (synchronous)", () => {
-            const text: InteroperableAddressText = {
-                version: 1,
-                chainType: "eip155",
-                chainReference: "1",
-                address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
-            };
-            const interopAddress = addressTextToBinary(text, { format: "hex" });
-            expect(interopAddress).toBe("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
-        });
-
-        it("builds a binary InteroperableAddress with bytes format", () => {
-            const text: InteroperableAddressText = {
-                version: 1,
-                chainType: "eip155",
-                chainReference: "1",
-                address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
-            };
-            const interopAddress = addressTextToBinary(text, { format: "bytes" });
-            expect(interopAddress).toBeInstanceOf(Uint8Array);
-            expect(interopAddress.length).toBeGreaterThan(0);
-        });
-
-        it("builds a binary InteroperableAddress without address (chain reference only)", () => {
-            const text: InteroperableAddressText = {
-                version: 1,
-                chainType: "eip155",
-                chainReference: "1",
-            };
-            const interopAddress = addressTextToBinary(text, { format: "hex" });
-            // Address length byte (00) is included even when address is empty
-            expect(interopAddress).toBe("0x00010000010100");
-        });
-
-        it("builds a binary InteroperableAddress without chain reference (address only)", () => {
-            const text: InteroperableAddressText = {
-                version: 1,
-                chainType: "eip155",
-                address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
-            };
-            const interopAddress = addressTextToBinary(text, { format: "hex" });
-            expect(interopAddress).toBe("0x000100000014d8da6bf26964af9d7eed9e03e53415d37aa96045");
-        });
-
-        it("builds a binary InteroperableAddress for Solana", () => {
-            const text: InteroperableAddressText = {
-                version: 1,
-                chainType: "solana",
-                chainReference: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
-                address: "MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2",
-            };
-            const interopAddress = addressTextToBinary(text, { format: "hex" });
-            expect(typeof interopAddress).toBe("string");
-            expect((interopAddress as string).startsWith("0x0001")).toBe(true);
-        });
-
-        it("uses hex format by default", () => {
-            const text: InteroperableAddressText = {
-                version: 1,
-                chainType: "eip155",
-                chainReference: "1",
-                address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
-            };
-            const interopAddress = addressTextToBinary(text);
-            expect(typeof interopAddress).toBe("string");
-            expect((interopAddress as string).startsWith("0x")).toBe(true);
-        });
-    });
-
-    describe("binaryToAddressText", () => {
-        it("converts a binary address to InteroperableAddressText", () => {
-            const binaryAddress =
-                "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045" as BinaryAddress;
-            const text = binaryToAddressText(binaryAddress);
-            expect(text).toEqual({
-                version: 1,
-                chainType: "eip155",
-                chainReference: "1",
-                address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", // Checksummed (EIP-55)
-            });
-        });
-
-        it("converts a binary address without address field", () => {
-            const binaryAddress = "0x00010000010100" as BinaryAddress;
-            const text = binaryToAddressText(binaryAddress);
-            expect(text).toEqual({
-                version: 1,
-                chainType: "eip155",
-                chainReference: "1",
-            });
-        });
-
-        it("converts a binary address without chain reference", () => {
-            const binaryAddress =
-                "0x000100000014d8da6bf26964af9d7eed9e03e53415d37aa96045" as BinaryAddress;
-            const text = binaryToAddressText(binaryAddress);
-            expect(text).toEqual({
-                version: 1,
-                chainType: "eip155",
-                address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", // Checksummed (EIP-55)
-            });
         });
     });
 

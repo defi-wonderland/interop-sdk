@@ -1,23 +1,18 @@
 import { Hex } from "viem";
 
-import type { FormatResult } from "../binary/index.js";
+import type { FormatResult } from "../address/index.js";
 import type { ParseInteroperableNameOptions } from "../internal.js";
 import type { ParsedInteroperableNameResult } from "../name/index.js";
 import type { ParsedInteropNameComponents } from "../name/parseInteropNameString.js";
 import type { BinaryAddress } from "../types/binaryAddress.js";
 import type { Checksum } from "../types/checksum.js";
 import type { EncodedAddress, EncodedChainReference } from "../types/encodings.js";
-import type {
-    InteroperableAddress,
-    InteroperableAddressText,
-    InteroperableName,
-} from "../types/interopAddress.js";
-import { calculateChecksum, decodeAddress, encodeAddress } from "../binary/index.js";
+import type { InteroperableAddress, InteroperableName } from "../types/interopAddress.js";
+import { calculateChecksum, decodeAddress, encodeAddress } from "../address/index.js";
 import { ChainTypeName } from "../constants/interopAddress.js";
 import { isBinaryInteropAddress, isInteropAddress, isInteroperableName } from "../internal.js";
 import { formatName, parseName } from "../name/index.js";
-import { addressToText, chainReferenceToText } from "../text/caip350.js";
-import { toAddress, toAddressText } from "../text/index.js";
+import { isTextAddress } from "../types/interopAddress.js";
 
 export class InteropAddressProvider {
     private constructor() {} // prevent instantiation
@@ -54,10 +49,8 @@ export class InteropAddressProvider {
      */
     public static binaryToName(binaryAddress: Hex | Uint8Array): InteroperableName {
         const addr = decodeAddress(binaryAddress);
-        const text = toAddressText(addr);
-        // calculateChecksum already validates through ChecksumSchema internally
-        const checksum = calculateChecksum(addr);
-        return formatName(text, checksum);
+        // formatName calculates checksum internally
+        return formatName(addr);
     }
 
     /**
@@ -68,7 +61,7 @@ export class InteropAddressProvider {
     public static async getChainId(address: string): Promise<EncodedChainReference<ChainTypeName>> {
         let interopAddress: InteroperableAddress;
         if (isBinaryInteropAddress(address as BinaryAddress)) {
-            interopAddress = decodeAddress(address as BinaryAddress);
+            interopAddress = decodeAddress(address as BinaryAddress, { representation: "text" });
         } else {
             const result: ParsedInteroperableNameResult = await parseName(
                 address as InteroperableName,
@@ -76,10 +69,11 @@ export class InteropAddressProvider {
             interopAddress = result.address;
         }
 
-        return chainReferenceToText(
-            interopAddress.chainReference,
-            interopAddress.chainType,
-        ) as EncodedChainReference<ChainTypeName>;
+        // Extract text field - address is guaranteed to be text variant
+        if (!isTextAddress(interopAddress)) {
+            throw new Error("Internal error: expected text representation");
+        }
+        return (interopAddress.chainReference ?? "") as EncodedChainReference<ChainTypeName>;
     }
 
     /**
@@ -90,7 +84,7 @@ export class InteropAddressProvider {
     public static async getAddress(address: string): Promise<EncodedAddress<ChainTypeName>> {
         let interopAddress: InteroperableAddress;
         if (isBinaryInteropAddress(address as BinaryAddress)) {
-            interopAddress = decodeAddress(address as BinaryAddress);
+            interopAddress = decodeAddress(address as BinaryAddress, { representation: "text" });
         } else {
             const result: ParsedInteroperableNameResult = await parseName(
                 address as InteroperableName,
@@ -98,52 +92,11 @@ export class InteropAddressProvider {
             interopAddress = result.address;
         }
 
-        return addressToText(
-            interopAddress.address,
-            interopAddress.chainType,
-        ) as EncodedAddress<ChainTypeName>;
-    }
-
-    /**
-     * Converts InteroperableAddressText to a binary address.
-     * This is a synchronous convenience method that chains toAddress and encodeAddress.
-     * Use this when you already have structured data with CAIP-350 text-encoded fields and don't need resolution (ENS, chain labels).
-     *
-     * @param text - Structured object with fields using CAIP-350 text encoding rules (per chainType)
-     * @param opts - Options for encoding format (hex or bytes)
-     * @returns The binary address in the specified format
-     * @example
-     * ```ts
-     * const binaryAddress = InteropAddressProvider.addressTextToBinary({
-     *   version: 1,
-     *   chainType: "eip155",
-     *   chainReference: "1",
-     *   address: "0x1"
-     * });
-     * ```
-     */
-    public static addressTextToBinary<T extends "hex" | "bytes" | undefined = undefined>(
-        text: InteroperableAddressText,
-        opts?: { format?: T },
-    ): FormatResult<T> {
-        const binary = toAddress(text);
-        return encodeAddress(binary, opts);
-    }
-
-    /**
-     * Converts a binary address to InteroperableAddressText.
-     * This is a synchronous convenience method that wraps the text layer's toAddressText function.
-     *
-     * @param binaryAddress - The binary address to convert
-     * @returns Structured object with fields using CAIP-350 text encoding rules (per chainType)
-     * @example
-     * ```ts
-     * const text = InteropAddressProvider.binaryToAddressText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
-     * ```
-     */
-    public static binaryToAddressText(binaryAddress: Hex | Uint8Array): InteroperableAddressText {
-        const addr = decodeAddress(binaryAddress);
-        return toAddressText(addr);
+        // Extract text field - address is guaranteed to be text variant
+        if (!isTextAddress(interopAddress)) {
+            throw new Error("Internal error: expected text representation");
+        }
+        return (interopAddress.address ?? "") as EncodedAddress<ChainTypeName>;
     }
 
     /**
@@ -241,44 +194,6 @@ export async function nameToBinary<T extends "hex" | "bytes" | undefined = undef
 export const binaryToName = InteropAddressProvider.binaryToName;
 
 /**
- * Converts InteroperableAddressText to a binary address.
- * This is a synchronous convenience method that chains toAddress and encodeAddress.
- * Use this when you already have structured data with CAIP-350 text-encoded fields and don't need resolution (ENS, chain labels).
- *
- * @param text - Structured object with fields using CAIP-350 text encoding rules (per chainType)
- * @param opts - Options for encoding format (hex or bytes)
- * @returns The binary address in the specified format
- * @example
- * ```ts
- * const binaryAddress = textToBinary({
- *   version: 1,
- *   chainType: "eip155",
- *   chainReference: "1",
- *   address: "0x1"
- * });
- * ```
- */
-export function addressTextToBinary<T extends "hex" | "bytes" | undefined = undefined>(
-    text: InteroperableAddressText,
-    opts?: { format?: T },
-): FormatResult<T> {
-    return InteropAddressProvider.addressTextToBinary(text, opts);
-}
-
-/**
- * Converts a binary address to InteroperableAddressText.
- * This is a synchronous convenience method that wraps the text layer's toAddressText function.
- *
- * @param binaryAddress - The binary address to convert
- * @returns Structured object with fields using CAIP-350 text encoding rules (per chainType)
- * @example
- * ```ts
- * const text = binaryToAddressText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
- * ```
- */
-export const binaryToAddressText = InteropAddressProvider.binaryToAddressText;
-
-/**
  * Get the chain ID from a binary address or interoperable name.
  *
  * @param address - The binary address or interoperable name to get the chain ID from
@@ -356,12 +271,3 @@ export const isValidInteroperableName = InteropAddressProvider.isValidInteropera
  * ```
  */
 export const isValidBinaryAddress = InteropAddressProvider.isValidBinaryAddress;
-
-// Binary layer functions - re-exported for direct use
-export { calculateChecksum, decodeAddress, encodeAddress } from "../binary/index.js";
-
-// Text layer functions - re-exported for direct use
-export { toAddressText, toAddress } from "../text/index.js";
-
-// Name layer functions - re-exported for direct use
-export { parseName, formatName } from "../name/index.js";

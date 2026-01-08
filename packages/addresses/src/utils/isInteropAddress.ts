@@ -1,7 +1,7 @@
 import { Hex } from "viem";
 
 import type { InteroperableName } from "../types/interopAddress.js";
-import { decodeAddress } from "../binary/index.js";
+import { decodeAddress } from "../address/index.js";
 import { validateChecksum } from "../internal.js";
 import { parseName } from "../name/index.js";
 

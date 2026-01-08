@@ -37,13 +37,16 @@ sequenceDiagram
 The `parseName` method is the recommended way to extract all components from an interoperable address. It returns the address, chain ID, checksum, and metadata in a single call.
 
 ```typescript
-import { parseName } from "@wonderland/interop-addresses";
+import { isTextAddress, parseName } from "@wonderland/interop-addresses";
 
 const interoperableName = "vitalik.eth@base#4CA88C9C";
 const result = await parseName(interoperableName);
 
-console.log(result.text.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
-console.log(result.text.chainReference); // "8453" (Base chain ID)
+// Use type guard to access text fields
+if (isTextAddress(result.address)) {
+    console.log(result.address.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+    console.log(result.address.chainReference); // "8453" (Base chain ID)
+}
 console.log(result.meta.checksum); // "4CA88C9C"
 console.log(result.meta.isENS); // true
 ```
@@ -137,8 +140,8 @@ async function processInteropAddress(interopAddress: string) {
         }
 
         // Use the extracted components
-        const address = result.text.address!;
-        const chainId = result.text.chainReference!;
+        const address = result.address.address?.text!;
+        const chainId = result.address.chainReference?.text!;
 
         // Now you can use these with your smart contract
         console.log(`Address: ${address}`);

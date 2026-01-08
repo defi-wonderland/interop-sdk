@@ -1,3 +1,4 @@
+import { isBinaryAddress, toBinaryRepresentation } from '@wonderland/interop-addresses';
 import { toHex } from 'viem';
 import type { InteroperableAddress } from '@wonderland/interop-addresses';
 
@@ -22,21 +23,26 @@ export interface ParsedHumanReadable {
  * Formats the binary address structure for display purposes.
  */
 export function parseInteroperableAddressForDisplay(interopAddress: InteroperableAddress): ParsedBinary {
+  // Convert to binary if needed
+  const binaryAddr = isBinaryAddress(interopAddress) ? interopAddress : toBinaryRepresentation(interopAddress);
+
   // Format version (2 bytes)
-  const versionHex = toHex(interopAddress.version, { size: 2 }).slice(2);
+  const versionHex = toHex(binaryAddr.version, { size: 2 }).slice(2);
 
   // Format chainType (2 bytes)
-  const chainTypeHex = toHex(interopAddress.chainType, { size: 2 }).slice(2);
+  const chainTypeHex = toHex(binaryAddr.chainType, { size: 2 }).slice(2);
 
   // Format chainReference length and hex
-  const chainRefLength = interopAddress.chainReference.length;
+  const chainRefBinary = binaryAddr.chainReference ?? new Uint8Array();
+  const chainRefLength = chainRefBinary.length;
   const chainRefLengthHex = chainRefLength.toString(16).padStart(2, '0');
-  const chainRefHex = toHex(interopAddress.chainReference).slice(2);
+  const chainRefHex = chainRefBinary.length > 0 ? toHex(chainRefBinary).slice(2) : '';
 
   // Format address length and hex
-  const addressLength = interopAddress.address.length;
+  const addressBinary = binaryAddr.address ?? new Uint8Array();
+  const addressLength = addressBinary.length;
   const addressLengthHex = addressLength.toString(16).padStart(2, '0');
-  const addressHex = toHex(interopAddress.address).slice(2);
+  const addressHex = addressBinary.length > 0 ? toHex(addressBinary).slice(2) : '';
 
   return {
     version: versionHex,

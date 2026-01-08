@@ -6,6 +6,7 @@ import {
     MissingInteroperableName,
 } from "../../src/internal.js";
 import { parseName } from "../../src/name/index.js";
+import { isTextAddress } from "../../src/types/interopAddress.js";
 
 const { mockShortnameToChainId } = vi.hoisted(() => {
     const mockShortnameToChainId = vi.fn();
@@ -38,12 +39,13 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        expect(result.text).toEqual({
-            version: 1,
-            chainType: "eip155",
-            chainReference: "1",
-            address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-        });
+        expect(result.address.version).toBe(1);
+        expect(isTextAddress(result.address)).toBe(true);
+        if (isTextAddress(result.address)) {
+            expect(result.address.chainType).toBe("eip155");
+            expect(result.address.chainReference).toBe("1");
+            expect(result.address.address).toBe("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+        }
         expect(result.meta.checksum).toBe("4CA88C9C");
         expect(result.meta.isENS).toBe(false);
         expect(result.meta.isChainLabel).toBe(false);
@@ -54,12 +56,13 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        expect(result.text).toEqual({
-            version: 1,
-            chainType: "eip155",
-            chainReference: "1",
-            address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-        });
+        expect(result.address.version).toBe(1);
+        expect(isTextAddress(result.address)).toBe(true);
+        if (isTextAddress(result.address)) {
+            expect(result.address.chainType).toBe("eip155");
+            expect(result.address.chainReference).toBe("1");
+            expect(result.address.address).toBe("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+        }
         // Checksum is always calculated, even if not provided
         expect(result.meta.checksum).toBeDefined();
         expect(typeof result.meta.checksum).toBe("string");
@@ -74,12 +77,15 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        expect(result.text).toEqual({
-            version: 1,
-            chainType: "solana",
-            chainReference: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
-            address: "MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2",
-        });
+        expect(result.address.version).toBe(1);
+        expect(isTextAddress(result.address)).toBe(true);
+        if (isTextAddress(result.address)) {
+            expect(result.address.chainType).toBe("solana");
+            expect(result.address.chainReference).toBe(
+                "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+            );
+            expect(result.address.address).toBe("MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2");
+        }
         expect(result.meta.checksum).toBe("88835C11");
         expect(result.meta.isENS).toBe(false);
         expect(result.meta.isChainLabel).toBe(false); // chainType is provided, so no chain label resolution was needed
@@ -90,12 +96,13 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        expect(result.text).toEqual({
-            version: 1,
-            chainType: "eip155",
-            address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-        });
-        expect(result.text.chainReference).toBeUndefined();
+        expect(result.address.version).toBe(1);
+        expect(isTextAddress(result.address)).toBe(true);
+        if (isTextAddress(result.address)) {
+            expect(result.address.chainType).toBe("eip155");
+            expect(result.address.address).toBe("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+            expect(result.address.chainReference).toBeUndefined();
+        }
     });
 
     it("parses address without address field", async () => {
@@ -103,12 +110,13 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        expect(result.text).toEqual({
-            version: 1,
-            chainType: "eip155",
-            chainReference: "1",
-        });
-        expect(result.text.address).toBeUndefined();
+        expect(result.address.version).toBe(1);
+        expect(isTextAddress(result.address)).toBe(true);
+        if (isTextAddress(result.address)) {
+            expect(result.address.chainType).toBe("eip155");
+            expect(result.address.chainReference).toBe("1");
+            expect(result.address.address).toBeUndefined();
+        }
     });
 
     it("preserves chain reference when both chainType and chainReference are provided", async () => {
@@ -117,7 +125,9 @@ describe("parseName", () => {
         const result = await parseName(name);
 
         // When both chainType and chainReference are provided, no resolution occurs
-        expect(result.text.chainReference).toBe("1");
+        if (isTextAddress(result.address)) {
+            expect(result.address.chainReference).toBe("1");
+        }
         expect(result.meta.isChainLabel).toBe(false); // "1" is numeric, not a label
     });
 
@@ -128,8 +138,10 @@ describe("parseName", () => {
         const result = await parseName(name);
 
         // When only chainReference is provided, it should be resolved to namespace/reference
-        expect(result.text.chainType).toBe("eip155");
-        expect(result.text.chainReference).toBe("1");
+        if (isTextAddress(result.address)) {
+            expect(result.address.chainType).toBe("eip155");
+            expect(result.address.chainReference).toBe("1");
+        }
         expect(result.meta.isChainLabel).toBe(true); // "eth" is a chain label
         expect(mockShortnameToChainId).toHaveBeenCalledWith("eth");
     });
@@ -145,8 +157,10 @@ describe("parseName", () => {
         expect(result.meta.isChainLabel).toBe(true);
         expect(result.name.chainType).toBeUndefined(); // Original parsed name has no chainType
         expect(result.name.chainReference).toBe("arbitrum"); // Original parsed name has the label
-        expect(result.text.chainType).toBe("eip155"); // Resolved chainType
-        expect(result.text.chainReference).toBe("42161"); // Resolved chainReference
+        if (isTextAddress(result.address)) {
+            expect(result.address.chainType).toBe("eip155"); // Resolved chainType
+            expect(result.address.chainReference).toBe("42161"); // Resolved chainReference
+        }
         expect(mockShortnameToChainId).toHaveBeenCalledWith("arbitrum");
     });
 
@@ -184,8 +198,10 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        // Resolved address is used in both text and binary fields
-        expect(result.text.address).toBe(resolvedAddress);
+        // Resolved address is used in address
+        if (isTextAddress(result.address)) {
+            expect(result.address.address).toBe(resolvedAddress);
+        }
         expect(result.name.address).toBe("vitalik.eth"); // Original is preserved in name field
         expect(result.meta.isENS).toBe(true);
         expect(result.meta.isChainLabel).toBe(false);
@@ -195,7 +211,20 @@ describe("parseName", () => {
         const name = "@eip155";
 
         await expect(parseName(name)).rejects.toThrow(
-            "InteroperableAddressText must have at least one of chainReference or address",
+            "InteroperableAddress must have at least one of chainReference or address",
         );
+    });
+
+    it("can parse to binary representation", async () => {
+        const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C";
+
+        const result = await parseName(name, { representation: "binary" });
+
+        expect(result.address.version).toBe(1);
+        expect(result.address.chainType instanceof Uint8Array).toBe(true);
+        if (result.address.chainType instanceof Uint8Array) {
+            expect(result.address.chainReference instanceof Uint8Array).toBe(true);
+            expect(result.address.address instanceof Uint8Array).toBe(true);
+        }
     });
 });
