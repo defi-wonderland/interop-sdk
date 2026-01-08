@@ -336,14 +336,14 @@ resolveAddress(
 ): Promise<ResolvedAddress>
 ```
 
-#### `resolveChainReference`
+#### `resolveChain`
 
-Resolves a chain reference to its chain type and reference.
+Resolves and validates chain identifier components. Handles cases where both chainType and chainReference are provided, only chainType is provided, or only chainReference is provided (resolves shortnames).
 
 ```typescript
-resolveChainReference(
-  chainReference: string
-): Promise<{ chainType: ChainTypeName; chainReference: string } | null>
+resolveChain(
+  input: { chainType?: string; chainReference?: string }
+): Promise<{ chainType: ChainTypeName; chainReference?: string }>
 ```
 
 #### `shortnameToChainId`
@@ -380,7 +380,7 @@ import {
     // Name layer
     parseInteroperableName,
     resolveAddress,
-    resolveChainReference,
+    resolveChain,
     shortnameToChainId,
     textToBinary,
     toBinary,

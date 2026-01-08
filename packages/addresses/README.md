@@ -195,7 +195,7 @@ All methods are available as static methods on `InteropAddressProvider` or as st
 -   `isValidChain(chainType: ChainTypeName, chainReference: string): boolean`
 -   `isValidChainType(chainType: string): chainType is ChainTypeName`
 -   `resolveAddress(address: string, chainNamespace: ChainTypeName, chainReference: string | undefined): Promise<ResolvedAddress>`
--   `resolveChainReference(chainReference: string): Promise<{ chainType: ChainTypeName; chainReference: string } | null>`
+-   `resolveChain(input: { chainType?: string; chainReference?: string }): Promise<ResolvedChain>`
 -   `shortnameToChainId(shortname: string): number | null`
 
 ## Types

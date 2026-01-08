@@ -82,7 +82,7 @@ describe("parseInteroperableName", () => {
         });
         expect(result.meta.checksum).toBe("88835C11");
         expect(result.meta.isENS).toBe(false);
-        expect(result.meta.isChainLabel).toBe(true); // Solana cluster ID is non-numeric, so it's a chain label
+        expect(result.meta.isChainLabel).toBe(false); // chainType is provided, so no chain label resolution was needed
     });
 
     it("parses address without chain reference", async () => {
@@ -132,6 +132,22 @@ describe("parseInteroperableName", () => {
         expect(result.text.chainReference).toBe("1");
         expect(result.meta.isChainLabel).toBe(true); // "eth" is a chain label
         expect(mockShortnameToChainId).toHaveBeenCalledWith("eth");
+    });
+
+    it("correctly identifies chain label when only chainReference is provided (no chainType)", async () => {
+        mockShortnameToChainId.mockResolvedValue(42161);
+        const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@arbitrum#4CA88C9C";
+
+        const result = await parseInteroperableName(name);
+
+        // When only chainReference is provided (no chainType), isChainLabel should be true
+        // because the chainReference needs to be resolved to a chainType
+        expect(result.meta.isChainLabel).toBe(true);
+        expect(result.name.chainType).toBeUndefined(); // Original parsed name has no chainType
+        expect(result.name.chainReference).toBe("arbitrum"); // Original parsed name has the label
+        expect(result.text.chainType).toBe("eip155"); // Resolved chainType
+        expect(result.text.chainReference).toBe("42161"); // Resolved chainReference
+        expect(mockShortnameToChainId).toHaveBeenCalledWith("arbitrum");
     });
 
     it("throws MissingInteroperableName for empty string", async () => {

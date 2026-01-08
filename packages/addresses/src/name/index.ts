@@ -3,20 +3,17 @@ import type { ParsedInteropNameComponents } from "./parseInteropNameString.js";
 import type { ResolvedAddress } from "./resolveENS.js";
 import { calculateChecksum } from "../binary/index.js";
 import {
-    ChainTypeName,
     Checksum,
     InteroperableAddressText,
     interoperableAddressTextSchema,
     InteroperableName,
     InvalidChainIdentifier,
-    InvalidChainNamespace,
     MissingInteroperableName,
     ParseInteropAddress,
 } from "../internal.js";
 import { toBinary } from "../text/index.js";
-import { isValidChain, isValidChainType } from "./isValidChain.js";
 import { parseInteropNameString } from "./parseInteropNameString.js";
-import { resolveChainReference } from "./resolveChainReference.js";
+import { resolveChain } from "./resolveChain.js";
 import { resolveAddress } from "./resolveENS.js";
 
 export interface ParsedInteroperableNameResult {
@@ -56,58 +53,27 @@ export const parseInteroperableName = async (
               })()
             : input;
 
-    // Step 1: Validate name components
-    // Validate chainType if provided
-    if (parsed.chainType && !isValidChainType(parsed.chainType)) {
-        throw new InvalidChainNamespace(parsed.chainType);
-    }
-
     // Track metadata flags
-    const isChainLabel = Boolean(parsed.chainReference && !/^\d+$/.test(parsed.chainReference));
+    const isChainLabel = !parsed.chainType;
 
-    // Step 2: Resolve chain identifier (to namespace & reference)
-    let resolvedChainNamespace: ChainTypeName | undefined;
-    let resolvedChainRef: string | undefined;
+    // Step 1: Resolve and validate chain identifier
+    const resolvedChain = await resolveChain({
+        chainType: parsed.chainType,
+        chainReference: parsed.chainReference,
+    });
+    const resolvedChainType = resolvedChain.chainType;
+    const resolvedChainRef = resolvedChain.chainReference;
 
-    if (parsed.chainType && parsed.chainReference) {
-        // We have both chainType and chainReference - use them directly, no resolution needed
-        resolvedChainNamespace = parsed.chainType as ChainTypeName;
-        resolvedChainRef = parsed.chainReference;
-
-        // Validate the chain reference
-        if (!isValidChain(resolvedChainNamespace, resolvedChainRef)) {
-            throw new InvalidChainIdentifier(resolvedChainRef);
-        }
-    } else if (parsed.chainType) {
-        // We have chainType but no chainReference
-        resolvedChainNamespace = parsed.chainType as ChainTypeName;
-    } else if (parsed.chainReference) {
-        // We have chainReference but no chainType - resolve it (shortname to namespace/reference)
-        const resolved = await resolveChainReference(parsed.chainReference);
-        if (!resolved) {
-            throw new InvalidChainIdentifier(
-                `Chain reference "${parsed.chainReference}" could not be resolved to a valid chain type`,
-            );
-        }
-        resolvedChainNamespace = resolved.chainType;
-        resolvedChainRef = resolved.chainReference;
+    // Step 2: Resolve address (ENS resolution)
+    let resolvedAddress: ResolvedAddress | undefined;
+    if (parsed.address) {
+        resolvedAddress = await resolveAddress(parsed.address, resolvedChainType, resolvedChainRef);
     }
 
-    // Step 3: Resolve address (ENS resolution)
-    // At this point, if we have an address, we must have a resolvedChainNamespace
-    // (otherwise we would have failed at Step 4 when building the text)
-    let resolved: ResolvedAddress | undefined;
-    if (parsed.address && resolvedChainNamespace) {
-        resolved = await resolveAddress(parsed.address, resolvedChainNamespace, resolvedChainRef);
-    }
-
-    // Step 4: Build text from resolved chain values and resolved address
-    if (!resolvedChainNamespace) {
-        throw new InvalidChainNamespace("Namespace is required to build InteroperableAddressText");
-    }
+    // Step 3: Build text from resolved chain values and resolved address
 
     // Must have at least one of chain reference or address
-    if (!resolvedChainRef && !resolved?.address) {
+    if (!resolvedChainRef && !resolvedAddress?.address) {
         throw new InvalidChainIdentifier(
             "InteroperableAddressText must have at least one of chainReference or address",
         );
@@ -115,7 +81,7 @@ export const parseInteroperableName = async (
 
     const text: InteroperableAddressText = {
         version: 1,
-        chainType: resolvedChainNamespace,
+        chainType: resolvedChainType,
     };
 
     if (resolvedChainRef) {
@@ -123,11 +89,11 @@ export const parseInteroperableName = async (
     }
 
     // Use resolved address in text
-    if (resolved) {
-        text.address = resolved.address;
+    if (resolvedAddress) {
+        text.address = resolvedAddress.address;
     }
 
-    // Step 5: Validate with Zod
+    // Step 4: Validate with Zod
     const validated = interoperableAddressTextSchema.safeParse(text);
     if (!validated.success) {
         throw new ParseInteropAddress(validated.error);
@@ -135,10 +101,10 @@ export const parseInteroperableName = async (
 
     const validatedText = validated.data;
 
-    // Step 6: Convert text to binary (text already contains resolved address)
+    // Step 5: Convert text to binary (text already contains resolved address)
     const binaryAddress: InteropAddress = toBinary(validatedText);
 
-    // Step 7: Calculate checksum from binary address (always generate, even if not provided)
+    // Step 6: Calculate checksum from binary address (always generate, even if not provided)
     const calculatedChecksum = calculateChecksum(binaryAddress);
 
     // If a checksum was provided, check if it matches (but don't throw on mismatch)
@@ -165,7 +131,7 @@ export const parseInteroperableName = async (
         meta: {
             checksum,
             ...(checksumMismatch && { checksumMismatch }),
-            isENS: resolved ? resolved.isENS : false,
+            isENS: resolvedAddress ? resolvedAddress.isENS : false,
             isChainLabel,
         },
     };
@@ -204,5 +170,5 @@ export const formatInteroperableName = (
 // Re-export name-specific utilities
 export { isValidChain, isValidChainType, isViemChainId } from "./isValidChain.js";
 export { resolveAddress } from "./resolveENS.js";
-export { resolveChainReference } from "./resolveChainReference.js";
+export { resolveChain } from "./resolveChain.js";
 export { shortnameToChainId } from "./shortnameToChainId.js";

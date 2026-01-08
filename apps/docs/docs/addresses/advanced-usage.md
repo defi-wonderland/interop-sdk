@@ -135,7 +135,7 @@ const isValidBinary = isValidBinaryAddress(
 import {
     isValidChain,
     isValidChainType,
-    resolveChainReference,
+    resolveChain,
     shortnameToChainId,
 } from "@wonderland/interop-addresses";
 
@@ -145,9 +145,9 @@ const isValid = isValidChainType("eip155"); // true
 // Validate chain reference
 const isValidChainRef = isValidChain("eip155", "1"); // true
 
-// Resolve chain reference (shortname to chain type + reference)
-const resolved = await resolveChainReference("eth");
-// Returns: { chainType: "eip155", chainReference: "1" } or null
+// Resolve chain (handles shortname resolution, validation, etc.)
+const resolved = await resolveChain({ chainReference: "eth" });
+// Returns: { chainType: "eip155", chainReference: "1" }
 
 // Resolve shortname to chain ID
 const chainId = await shortnameToChainId("eth");
