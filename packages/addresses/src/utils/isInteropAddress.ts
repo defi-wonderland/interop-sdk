@@ -1,9 +1,9 @@
 import { Hex } from "viem";
 
 import type { InteroperableName } from "../types/interopAddress.js";
-import { decodeInteroperableAddress } from "../binary/index.js";
+import { decodeAddress } from "../binary/index.js";
 import { validateChecksum } from "../internal.js";
-import { parseInteroperableName } from "../name/index.js";
+import { parseName } from "../name/index.js";
 
 export type ParseInteroperableNameOptions = {
     validateChecksumFlag?: boolean;
@@ -21,7 +21,7 @@ export const isInteroperableName = async (
     options: ParseInteroperableNameOptions = {},
 ): Promise<boolean> => {
     try {
-        const { address, meta } = await parseInteroperableName(interoperableName);
+        const { address, meta } = await parseName(interoperableName);
 
         if (options.validateChecksumFlag && meta.checksum) {
             // checksum is already validated through schema in parseInteroperableName
@@ -43,7 +43,7 @@ export const isInteroperableName = async (
  */
 export const isBinaryInteropAddress = (binaryAddress: Hex): boolean => {
     try {
-        decodeInteroperableAddress(binaryAddress);
+        decodeAddress(binaryAddress);
         return true;
     } catch (error) {
         return false;

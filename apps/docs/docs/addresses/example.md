@@ -26,7 +26,7 @@ sequenceDiagram
     participant SmartContract
 
     User->>Wallet: vitalik.eth@base#4CA88C9C
-    Wallet->>SDK: parseInteroperableName(interopAddress)
+    Wallet->>SDK: parseName(interopAddress)
     SDK-->>Wallet: result with address, chainType, chainReference, checksum
     Wallet->>Wallet: Validate checksum
     Wallet->>SmartContract: callFunction(address, chainReference)
@@ -34,13 +34,13 @@ sequenceDiagram
 
 ## Parsing with Full Metadata
 
-The `parseInteroperableName` method is the recommended way to extract all components from an interoperable address. It returns the address, chain ID, checksum, and metadata in a single call.
+The `parseName` method is the recommended way to extract all components from an interoperable address. It returns the address, chain ID, checksum, and metadata in a single call.
 
 ```typescript
-import { parseInteroperableName } from "@wonderland/interop-addresses";
+import { parseName } from "@wonderland/interop-addresses";
 
 const interoperableName = "vitalik.eth@base#4CA88C9C";
-const result = await parseInteroperableName(interoperableName);
+const result = await parseName(interoperableName);
 
 console.log(result.text.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 console.log(result.text.chainReference); // "8453" (Base chain ID)
@@ -57,10 +57,10 @@ console.log(result.meta.isENS); // true
 Before using the parsed address, you should validate the checksum to ensure the address hasn't been tampered with:
 
 ```typescript
-import { parseInteroperableName, validateChecksum } from "@wonderland/interop-addresses";
+import { parseName, validateChecksum } from "@wonderland/interop-addresses";
 
 const interoperableName = "vitalik.eth@base#4CA88C9C";
-const result = await parseInteroperableName(interoperableName);
+const result = await parseName(interoperableName);
 
 // Check if there was a checksum mismatch
 if (result.meta.checksumMismatch) {
@@ -104,12 +104,12 @@ console.log(chainId); // "8453"
 If you already have a binary address, you can extract components synchronously:
 
 ```typescript
-import { binaryToText } from "@wonderland/interop-addresses";
+import { binaryToAddressText } from "@wonderland/interop-addresses";
 
 const binaryAddress = "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045";
 
 // Convert to structured object with CAIP-350 text-encoded fields (synchronous)
-const text = binaryToText(binaryAddress);
+const text = binaryToAddressText(binaryAddress);
 console.log(text);
 // {
 //   version: 1,
@@ -124,12 +124,12 @@ console.log(text);
 Here's a complete example showing the recommended workflow:
 
 ```typescript
-import { parseInteroperableName, validateChecksum } from "@wonderland/interop-addresses";
+import { parseName, validateChecksum } from "@wonderland/interop-addresses";
 
 async function processInteropAddress(interopAddress: string) {
     try {
         // Parse the address
-        const result = await parseInteroperableName(interopAddress);
+        const result = await parseName(interopAddress);
 
         // Validate checksum
         if (result.meta.checksumMismatch) {
@@ -158,7 +158,7 @@ await processInteropAddress("vitalik.eth@base#4CA88C9C");
 
 ## Additional Notes
 
--   **Error Handling:** `parseInteroperableName` will throw errors if the input is invalid or the chain reference is not supported. Always wrap calls in try/catch blocks for production use.
+-   **Error Handling:** `parseName` will throw errors if the input is invalid or the chain reference is not supported. Always wrap calls in try/catch blocks for production use.
 -   **ENS Resolution:** The ENS resolution is performed following [ENSIP-11](https://docs.ens.domains/ensip/11), ensuring compatibility with the latest ENS standards.
 -   **Checksum Validation:** Always validate checksums before using addresses in production to prevent tampering.
 -   **Chain Shortnames:** The SDK resolves chain shortnames (like `base`, `eth`) to their numeric chain IDs automatically.

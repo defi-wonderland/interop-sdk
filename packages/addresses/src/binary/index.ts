@@ -155,7 +155,7 @@ const parseAddress = (binaryAddress: Uint8Array): Address => {
  * This is the canonical entry-point for decoding raw bytes into the
  * `InteroperableAddress` object used across the SDK.
  */
-export const decodeInteroperableAddress = (value: Uint8Array | Hex): InteroperableAddress => {
+export const decodeAddress = (value: Uint8Array | Hex): InteroperableAddress => {
     const bytes = typeof value === "string" ? fromHex(value, "bytes") : value;
 
     const version = parseVersion(bytes);
@@ -184,7 +184,7 @@ export const decodeInteroperableAddress = (value: Uint8Array | Hex): Interoperab
  * - addressLength:        1 byte
  * - address:              M bytes
  */
-export const encodeInteroperableAddress = <T extends EncodeFormat | undefined = undefined>(
+export const encodeAddress = <T extends EncodeFormat | undefined = undefined>(
     addr: InteroperableAddress,
     opts?: { format?: T },
 ): FormatResult<T> => {
@@ -235,7 +235,7 @@ export const encodeInteroperableAddress = <T extends EncodeFormat | undefined = 
  * @throws {Error} If the calculated checksum string doesn't match the schema (should never happen)
  */
 export const calculateChecksum = (addr: InteroperableAddress): Checksum => {
-    const hex = encodeInteroperableAddress(addr, { format: "hex" }) as Hex;
+    const hex = encodeAddress(addr, { format: "hex" }) as Hex;
     const hash = keccak256(`0x${hex.slice(6)}`);
 
     const checksumString = hash.slice(2, 10).toUpperCase();

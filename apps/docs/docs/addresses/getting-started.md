@@ -30,10 +30,10 @@ The package provides high-level convenience methods and direct layer functions:
 
 ```typescript
 import {
+    addressTextToBinary,
+    binaryToAddressText,
     binaryToName,
-    binaryToText,
     nameToBinary,
-    textToBinary,
 } from "@wonderland/interop-addresses";
 
 // Convert an interoperable name to binary (async - may resolve ENS)
@@ -50,10 +50,12 @@ const text = {
     chainReference: "1",
     address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
 };
-const binaryFromText = textToBinary(text, { format: "hex" });
+const binaryFromText = addressTextToBinary(text, { format: "hex" });
 
 // Convert binary to structured text (synchronous)
-const textFromBinary = binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+const textFromBinary = binaryToAddressText(
+    "0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045",
+);
 ```
 
 ### Extracting Components
@@ -127,16 +129,16 @@ graph TD
     C[InteroperableAddress]
     D[Binary Address]
 
-    A -->|parseInteroperableName async| B
+    A -->|parseName async| B
     A -->|nameToBinary async| D
-    B -->|toBinary sync| C
-    B -->|textToBinary sync| D
-    C -->|encodeInteroperableAddress sync| D
-    C -->|toText sync| B
-    D -->|decodeInteroperableAddress sync| C
-    D -->|binaryToText sync| B
+    B -->|toAddress sync| C
+    B -->|addressTextToBinary sync| D
+    C -->|encodeAddress sync| D
+    C -->|toAddressText sync| B
+    D -->|decodeAddress sync| C
+    D -->|binaryToAddressText sync| B
     D -->|binaryToName sync| A
-    B -->|formatInteroperableName sync| A
+    B -->|formatName sync| A
 ```
 
 ## Working with Different Layers
@@ -146,10 +148,10 @@ graph TD
 Use when you need ENS resolution or chain label resolution:
 
 ```typescript
-import { nameToBinary, parseInteroperableName } from "@wonderland/interop-addresses";
+import { nameToBinary, parseName } from "@wonderland/interop-addresses";
 
 // Parse with full metadata
-const result = await parseInteroperableName("vitalik.eth@eip155:1#4CA88C9C");
+const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
 // result.name - original parsed components
 // result.text - structured object with CAIP-350 text-encoded fields
 // result.address - binary address
@@ -166,7 +168,12 @@ const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "he
 Use when you already have structured data with CAIP-350 text-encoded fields and don't need resolution:
 
 ```typescript
-import { binaryToText, textToBinary, toBinary, toText } from "@wonderland/interop-addresses";
+import {
+    addressTextToBinary,
+    binaryToAddressText,
+    toAddress,
+    toAddressText,
+} from "@wonderland/interop-addresses";
 
 // Convert structured object with CAIP-350 text-encoded fields to binary
 const text = {
@@ -175,10 +182,12 @@ const text = {
     chainReference: "1", // Encoding per CAIP-350 for eip155 (decimal string)
     address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", // Encoding per CAIP-350 for eip155 (hex with EIP-55 checksum)
 };
-const binary = textToBinary(text, { format: "hex" });
+const binary = addressTextToBinary(text, { format: "hex" });
 
 // Convert binary to structured object with CAIP-350 text-encoded fields
-const textFromBinary = binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+const textFromBinary = binaryToAddressText(
+    "0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045",
+);
 ```
 
 ### Binary Layer (Synchronous)
@@ -186,17 +195,13 @@ const textFromBinary = binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53
 Use for direct binary operations:
 
 ```typescript
-import {
-    calculateChecksum,
-    decodeInteroperableAddress,
-    encodeInteroperableAddress,
-} from "@wonderland/interop-addresses";
+import { calculateChecksum, decodeAddress, encodeAddress } from "@wonderland/interop-addresses";
 
 // Decode binary
-const addr = decodeInteroperableAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+const addr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
 
 // Encode to binary
-const hex = encodeInteroperableAddress(addr, { format: "hex" });
+const hex = encodeAddress(addr, { format: "hex" });
 
 // Calculate checksum
 const checksum = calculateChecksum(addr);

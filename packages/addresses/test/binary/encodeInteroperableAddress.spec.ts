@@ -2,11 +2,11 @@ import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
 import type { InteroperableAddress } from "../../src/types/interopAddress.js";
-import { encodeInteroperableAddress } from "../../src/binary/index.js";
+import { encodeAddress } from "../../src/binary/index.js";
 import { ParseInteropAddress } from "../../src/internal.js";
 
 describe("erc7930", () => {
-    describe("encodeInteroperableAddress", () => {
+    describe("encodeAddress", () => {
         it("convert interop address to binary", () => {
             const interopAddress = {
                 version: 1,
@@ -15,7 +15,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             };
 
-            const binaryAddress = encodeInteroperableAddress(interopAddress, { format: "hex" });
+            const binaryAddress = encodeAddress(interopAddress, { format: "hex" });
 
             expect(binaryAddress).toEqual(
                 "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045",
@@ -45,7 +45,7 @@ describe("erc7930", () => {
                 ),
             };
 
-            const binaryAddress = encodeInteroperableAddress(interopAddress, { format: "hex" });
+            const binaryAddress = encodeAddress(interopAddress, { format: "hex" });
 
             expect(binaryAddress).toEqual(
                 "0x000100022045296998a6f8e2a784db5d9f95e18fc23f70441a1039446801089879b08c7ef02005333498d5aea4ae009585c43f7b8c30df8e70187d4a713d134f977fc8dfe0b5",
@@ -68,7 +68,7 @@ describe("erc7930", () => {
                 chainReference: fromHex("0x", "bytes"),
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             };
-            const binaryAddress = encodeInteroperableAddress(interopAddress, { format: "hex" });
+            const binaryAddress = encodeAddress(interopAddress, { format: "hex" });
 
             expect(binaryAddress).toEqual("0x000100000014d8da6bf26964af9d7eed9e03e53415d37aa96045");
 
@@ -92,7 +92,7 @@ describe("erc7930", () => {
                 address: fromHex("0x", "bytes"),
             };
 
-            const binaryAddress = encodeInteroperableAddress(interopAddress, { format: "hex" });
+            const binaryAddress = encodeAddress(interopAddress, { format: "hex" });
 
             expect(binaryAddress).toEqual(
                 "0x000100022045296998a6f8e2a784db5d9f95e18fc23f70441a1039446801089879b08c7ef000",
@@ -114,7 +114,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteroperableAddress;
 
-            expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).toThrow(
+            expect(() => encodeAddress(interopAddress, { format: "hex" })).toThrow(
                 ParseInteropAddress,
             );
         });
@@ -126,7 +126,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteroperableAddress;
 
-            expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).toThrow(
+            expect(() => encodeAddress(interopAddress, { format: "hex" })).toThrow(
                 ParseInteropAddress,
             );
         });
@@ -139,7 +139,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteroperableAddress;
 
-            expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).toThrow(
+            expect(() => encodeAddress(interopAddress, { format: "hex" })).toThrow(
                 ParseInteropAddress,
             );
         });
@@ -152,7 +152,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             };
 
-            const binaryAddress = encodeInteroperableAddress(interopAddress, { format: "hex" });
+            const binaryAddress = encodeAddress(interopAddress, { format: "hex" });
 
             expect(binaryAddress).toEqual(
                 "0x00010001010114d8da6bf26964af9d7eed9e03e53415d37aa96045",
@@ -166,7 +166,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             } as unknown as InteroperableAddress;
 
-            expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).toThrow(
+            expect(() => encodeAddress(interopAddress, { format: "hex" })).toThrow(
                 ParseInteropAddress,
             );
         });
@@ -178,7 +178,7 @@ describe("erc7930", () => {
                 chainReference: fromHex("0x", "bytes"),
             } as unknown as InteroperableAddress;
 
-            expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).toThrow(
+            expect(() => encodeAddress(interopAddress, { format: "hex" })).toThrow(
                 ParseInteropAddress,
             );
         });
@@ -191,7 +191,7 @@ describe("erc7930", () => {
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
             };
 
-            expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).not.toThrow(
+            expect(() => encodeAddress(interopAddress, { format: "hex" })).not.toThrow(
                 ParseInteropAddress,
             );
         });
@@ -204,7 +204,7 @@ describe("erc7930", () => {
                 address: fromHex("0x", "bytes"),
             };
 
-            expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).not.toThrow(
+            expect(() => encodeAddress(interopAddress, { format: "hex" })).not.toThrow(
                 ParseInteropAddress,
             );
         });

@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import type { InteroperableAddress } from "../../src/types/interopAddress.js";
 import { UnsupportedChainType } from "../../src/internal.js";
-import { toText } from "../../src/text/index.js";
+import { toAddressText } from "../../src/text/index.js";
 
-describe("toText", () => {
+describe("toAddressText", () => {
     it("converts an EVM mainnet address to InteroperableAddressText", () => {
         const interopAddress: InteroperableAddress = {
             version: 1,
@@ -14,7 +14,7 @@ describe("toText", () => {
             address: fromHex("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", "bytes"),
         };
 
-        const text = toText(interopAddress);
+        const text = toAddressText(interopAddress);
 
         expect(text).toEqual({
             version: 1,
@@ -38,7 +38,7 @@ describe("toText", () => {
             ),
         };
 
-        const text = toText(interopAddress);
+        const text = toAddressText(interopAddress);
 
         expect(text).toEqual({
             version: 1,
@@ -56,7 +56,7 @@ describe("toText", () => {
             address: fromHex("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", "bytes"),
         };
 
-        const text = toText(interopAddress);
+        const text = toAddressText(interopAddress);
 
         expect(text).toEqual({
             version: 1,
@@ -74,7 +74,7 @@ describe("toText", () => {
             address: new Uint8Array(),
         };
 
-        const text = toText(interopAddress);
+        const text = toAddressText(interopAddress);
 
         expect(text).toEqual({
             version: 1,
@@ -92,7 +92,7 @@ describe("toText", () => {
             address: new Uint8Array(),
         };
 
-        const text = toText(interopAddress);
+        const text = toAddressText(interopAddress);
 
         expect(text).toEqual({
             version: 1,
@@ -110,7 +110,7 @@ describe("toText", () => {
             address: fromHex("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", "bytes"),
         };
 
-        const text = toText(interopAddress);
+        const text = toAddressText(interopAddress);
 
         expect(text).toEqual({
             version: 1,
@@ -128,6 +128,6 @@ describe("toText", () => {
             address: fromHex("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", "bytes"),
         };
 
-        expect(() => toText(interopAddress)).toThrow(UnsupportedChainType);
+        expect(() => toAddressText(interopAddress)).toThrow(UnsupportedChainType);
     });
 });

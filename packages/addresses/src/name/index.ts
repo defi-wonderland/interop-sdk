@@ -11,7 +11,7 @@ import {
     MissingInteroperableName,
     ParseInteropAddress,
 } from "../internal.js";
-import { toBinary } from "../text/index.js";
+import { toAddress } from "../text/index.js";
 import { parseInteropNameString } from "./parseInteropNameString.js";
 import { resolveChain } from "./resolveChain.js";
 import { resolveAddress } from "./resolveENS.js";
@@ -39,7 +39,7 @@ export interface ParsedInteroperableNameResult {
  * @returns The parsed result with structured text (CAIP-350 encoded fields), binary address, and metadata
  * @throws An error if the parameters are invalid
  */
-export const parseInteroperableName = async (
+export const parseName = async (
     input: string | ParsedInteropNameComponents,
 ): Promise<ParsedInteroperableNameResult> => {
     // If string, parse it first; otherwise use parsed components directly
@@ -102,7 +102,7 @@ export const parseInteroperableName = async (
     const validatedText = validated.data;
 
     // Step 5: Convert text to binary (text already contains resolved address)
-    const binaryAddress: InteroperableAddress = toBinary(validatedText);
+    const binaryAddress: InteroperableAddress = toAddress(validatedText);
 
     // Step 6: Calculate checksum from binary address (always generate, even if not provided)
     const calculatedChecksum = calculateChecksum(binaryAddress);
@@ -156,7 +156,7 @@ export const parseInteroperableName = async (
  * // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C"
  * ```
  */
-export const formatInteroperableName = (
+export const formatName = (
     text: InteroperableAddressText,
     checksum: Checksum,
 ): InteroperableName => {

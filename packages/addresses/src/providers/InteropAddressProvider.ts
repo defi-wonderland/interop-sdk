@@ -12,16 +12,12 @@ import type {
     InteroperableAddressText,
     InteroperableName,
 } from "../types/interopAddress.js";
-import {
-    calculateChecksum,
-    decodeInteroperableAddress,
-    encodeInteroperableAddress,
-} from "../binary/index.js";
+import { calculateChecksum, decodeAddress, encodeAddress } from "../binary/index.js";
 import { ChainTypeName } from "../constants/interopAddress.js";
 import { isBinaryInteropAddress, isInteropAddress, isInteroperableName } from "../internal.js";
-import { formatInteroperableName, parseInteroperableName } from "../name/index.js";
+import { formatName, parseName } from "../name/index.js";
 import { addressToText, chainReferenceToText } from "../text/caip350.js";
-import { toBinary, toText } from "../text/index.js";
+import { toAddress, toAddressText } from "../text/index.js";
 
 export class InteropAddressProvider {
     private constructor() {} // prevent instantiation
@@ -42,8 +38,8 @@ export class InteropAddressProvider {
         name: string | ParsedInteropNameComponents,
         opts?: { format?: T },
     ): Promise<FormatResult<T>> {
-        const result = await parseInteroperableName(name);
-        return encodeInteroperableAddress(result.address, opts);
+        const result = await parseName(name);
+        return encodeAddress(result.address, opts);
     }
 
     /**
@@ -57,11 +53,11 @@ export class InteropAddressProvider {
      * ```
      */
     public static binaryToName(binaryAddress: Hex | Uint8Array): InteroperableName {
-        const addr = decodeInteroperableAddress(binaryAddress);
-        const text = toText(addr);
+        const addr = decodeAddress(binaryAddress);
+        const text = toAddressText(addr);
         // calculateChecksum already validates through ChecksumSchema internally
         const checksum = calculateChecksum(addr);
-        return formatInteroperableName(text, checksum);
+        return formatName(text, checksum);
     }
 
     /**
@@ -72,9 +68,9 @@ export class InteropAddressProvider {
     public static async getChainId(address: string): Promise<EncodedChainReference<ChainTypeName>> {
         let interopAddress: InteroperableAddress;
         if (isBinaryInteropAddress(address as BinaryAddress)) {
-            interopAddress = decodeInteroperableAddress(address as BinaryAddress);
+            interopAddress = decodeAddress(address as BinaryAddress);
         } else {
-            const result: ParsedInteroperableNameResult = await parseInteroperableName(
+            const result: ParsedInteroperableNameResult = await parseName(
                 address as InteroperableName,
             );
             interopAddress = result.address;
@@ -94,9 +90,9 @@ export class InteropAddressProvider {
     public static async getAddress(address: string): Promise<EncodedAddress<ChainTypeName>> {
         let interopAddress: InteroperableAddress;
         if (isBinaryInteropAddress(address as BinaryAddress)) {
-            interopAddress = decodeInteroperableAddress(address as BinaryAddress);
+            interopAddress = decodeAddress(address as BinaryAddress);
         } else {
-            const result: ParsedInteroperableNameResult = await parseInteroperableName(
+            const result: ParsedInteroperableNameResult = await parseName(
                 address as InteroperableName,
             );
             interopAddress = result.address;
@@ -110,7 +106,7 @@ export class InteropAddressProvider {
 
     /**
      * Converts InteroperableAddressText to a binary address.
-     * This is a synchronous convenience method that chains toBinary and encodeInteroperableAddress.
+     * This is a synchronous convenience method that chains toAddress and encodeAddress.
      * Use this when you already have structured data with CAIP-350 text-encoded fields and don't need resolution (ENS, chain labels).
      *
      * @param text - Structured object with fields using CAIP-350 text encoding rules (per chainType)
@@ -118,7 +114,7 @@ export class InteropAddressProvider {
      * @returns The binary address in the specified format
      * @example
      * ```ts
-     * const binaryAddress = InteropAddressProvider.textToBinary({
+     * const binaryAddress = InteropAddressProvider.addressTextToBinary({
      *   version: 1,
      *   chainType: "eip155",
      *   chainReference: "1",
@@ -126,28 +122,28 @@ export class InteropAddressProvider {
      * });
      * ```
      */
-    public static textToBinary<T extends "hex" | "bytes" | undefined = undefined>(
+    public static addressTextToBinary<T extends "hex" | "bytes" | undefined = undefined>(
         text: InteroperableAddressText,
         opts?: { format?: T },
     ): FormatResult<T> {
-        const binary = toBinary(text);
-        return encodeInteroperableAddress(binary, opts);
+        const binary = toAddress(text);
+        return encodeAddress(binary, opts);
     }
 
     /**
      * Converts a binary address to InteroperableAddressText.
-     * This is a synchronous convenience method that wraps the text layer's toText function.
+     * This is a synchronous convenience method that wraps the text layer's toAddressText function.
      *
      * @param binaryAddress - The binary address to convert
      * @returns Structured object with fields using CAIP-350 text encoding rules (per chainType)
      * @example
      * ```ts
-     * const text = InteropAddressProvider.binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+     * const text = InteropAddressProvider.binaryToAddressText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
      * ```
      */
-    public static binaryToText(binaryAddress: Hex | Uint8Array): InteroperableAddressText {
-        const addr = decodeInteroperableAddress(binaryAddress);
-        return toText(addr);
+    public static binaryToAddressText(binaryAddress: Hex | Uint8Array): InteroperableAddressText {
+        const addr = decodeAddress(binaryAddress);
+        return toAddressText(addr);
     }
 
     /**
@@ -161,7 +157,7 @@ export class InteropAddressProvider {
      * ```
      */
     public static async computeChecksum(interoperableName: string): Promise<Checksum> {
-        const result = await parseInteroperableName(interoperableName);
+        const result = await parseName(interoperableName);
         // calculateChecksum already validates through ChecksumSchema internally
         return calculateChecksum(result.address);
     }
@@ -169,7 +165,7 @@ export class InteropAddressProvider {
     /**
      * Checks if an address is a valid interop address
      * @param address - The address to check, can be an interoperable name or a binary address
-     * @param options - The options to pass to the parseInteroperableName function
+     * @param options - The options to pass to the parseName function
      *        - validateChecksumFlag: Whether to validate the checksum of the address
      * @returns boolean - true if the address is a valid interop address, false otherwise
      * @example
@@ -187,7 +183,7 @@ export class InteropAddressProvider {
     /**
      * Checks if an interoperable name is a valid interop address
      * @param interoperableName - The interoperable name to check
-     * @param options - The options to pass to the parseInteroperableName function
+     * @param options - The options to pass to the parseName function
      *        - validateChecksumFlag: Whether to validate the checksum of the address
      * @returns boolean - true if the address is a valid interop address, false otherwise
      * @example
@@ -246,7 +242,7 @@ export const binaryToName = InteropAddressProvider.binaryToName;
 
 /**
  * Converts InteroperableAddressText to a binary address.
- * This is a synchronous convenience method that chains toBinary and encodeInteroperableAddress.
+ * This is a synchronous convenience method that chains toAddress and encodeAddress.
  * Use this when you already have structured data with CAIP-350 text-encoded fields and don't need resolution (ENS, chain labels).
  *
  * @param text - Structured object with fields using CAIP-350 text encoding rules (per chainType)
@@ -262,25 +258,25 @@ export const binaryToName = InteropAddressProvider.binaryToName;
  * });
  * ```
  */
-export function textToBinary<T extends "hex" | "bytes" | undefined = undefined>(
+export function addressTextToBinary<T extends "hex" | "bytes" | undefined = undefined>(
     text: InteroperableAddressText,
     opts?: { format?: T },
 ): FormatResult<T> {
-    return InteropAddressProvider.textToBinary(text, opts);
+    return InteropAddressProvider.addressTextToBinary(text, opts);
 }
 
 /**
  * Converts a binary address to InteroperableAddressText.
- * This is a synchronous convenience method that wraps the text layer's toText function.
+ * This is a synchronous convenience method that wraps the text layer's toAddressText function.
  *
  * @param binaryAddress - The binary address to convert
  * @returns Structured object with fields using CAIP-350 text encoding rules (per chainType)
  * @example
  * ```ts
- * const text = binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+ * const text = binaryToAddressText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
  * ```
  */
-export const binaryToText = InteropAddressProvider.binaryToText;
+export const binaryToAddressText = InteropAddressProvider.binaryToAddressText;
 
 /**
  * Get the chain ID from a binary address or interoperable name.
@@ -325,7 +321,7 @@ export const computeChecksum = InteropAddressProvider.computeChecksum;
  * Checks if an address is a valid interop address.
  *
  * @param address - The address to check, can be an interoperable name or a binary address
- * @param options - The options to pass to the parseInteroperableName function
+ * @param options - The options to pass to the parseName function
  * @param options.validateChecksumFlag - Whether to validate the checksum of the address
  * @returns true if the address is a valid interop address, false otherwise
  * @example
@@ -339,7 +335,7 @@ export const isValidInteropAddress = InteropAddressProvider.isValidInteropAddres
  * Checks if an interoperable name is a valid interop address.
  *
  * @param interoperableName - The interoperable name to check
- * @param options - The options to pass to the parseInteroperableName function
+ * @param options - The options to pass to the parseName function
  * @param options.validateChecksumFlag - Whether to validate the checksum of the address
  * @returns true if the address is a valid interop address, false otherwise
  * @example
@@ -362,14 +358,10 @@ export const isValidInteroperableName = InteropAddressProvider.isValidInteropera
 export const isValidBinaryAddress = InteropAddressProvider.isValidBinaryAddress;
 
 // Binary layer functions - re-exported for direct use
-export {
-    calculateChecksum,
-    decodeInteroperableAddress,
-    encodeInteroperableAddress,
-} from "../binary/index.js";
+export { calculateChecksum, decodeAddress, encodeAddress } from "../binary/index.js";
 
 // Text layer functions - re-exported for direct use
-export { toText, toBinary } from "../text/index.js";
+export { toAddressText, toAddress } from "../text/index.js";
 
 // Name layer functions - re-exported for direct use
-export { parseInteroperableName, formatInteroperableName } from "../name/index.js";
+export { parseName, formatName } from "../name/index.js";

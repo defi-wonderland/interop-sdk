@@ -139,12 +139,12 @@ const name = binaryToName("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96
 // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C"
 ```
 
-#### `textToBinary`
+#### `addressTextToBinary`
 
 Converts structured object with CAIP-350 text-encoded fields to binary (synchronous).
 
 ```typescript
-textToBinary(
+addressTextToBinary(
   text: InteroperableAddressText,
   opts?: { format?: "hex" | "bytes" }
 ): Hex | Uint8Array
@@ -153,7 +153,7 @@ textToBinary(
 **Example:**
 
 ```typescript
-import { textToBinary } from "@wonderland/interop-addresses";
+import { addressTextToBinary } from "@wonderland/interop-addresses";
 
 const text = {
     version: 1,
@@ -161,23 +161,23 @@ const text = {
     chainReference: "1", // Decimal string per CAIP-350
     address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", // Hex with EIP-55 checksum per CAIP-350
 };
-const binary = textToBinary(text, { format: "hex" });
+const binary = addressTextToBinary(text, { format: "hex" });
 ```
 
-#### `binaryToText`
+#### `binaryToAddressText`
 
 Converts binary to structured object with CAIP-350 text-encoded fields (synchronous).
 
 ```typescript
-binaryToText(binaryAddress: Hex | Uint8Array): InteroperableAddressText
+binaryToAddressText(binaryAddress: Hex | Uint8Array): InteroperableAddressText
 ```
 
 **Example:**
 
 ```typescript
-import { binaryToText } from "@wonderland/interop-addresses";
+import { binaryToAddressText } from "@wonderland/interop-addresses";
 
-const text = binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+const text = binaryToAddressText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
 // Returns: { version: 1, chainType: "eip155", chainReference: "1", address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" }
 ```
 
@@ -201,20 +201,20 @@ const isValid = isValidBinaryAddress("0x00010000010114d8da6bf26964af9d7eed9e03e5
 
 ### Binary Layer
 
-#### `decodeInteroperableAddress`
+#### `decodeAddress`
 
 Decodes a binary address into an `InteroperableAddress` object.
 
 ```typescript
-decodeInteroperableAddress(value: Uint8Array | Hex): InteroperableAddress
+decodeAddress(value: Uint8Array | Hex): InteroperableAddress
 ```
 
-#### `encodeInteroperableAddress`
+#### `encodeAddress`
 
 Encodes an `InteroperableAddress` object to binary format.
 
 ```typescript
-encodeInteroperableAddress(
+encodeAddress(
   addr: InteroperableAddress,
   opts?: { format?: "hex" | "bytes" }
 ): Hex | Uint8Array
@@ -250,30 +250,30 @@ validateChecksum(
 
 ### Text Layer
 
-#### `toText`
+#### `toAddressText`
 
 Converts a binary address to a structured object with CAIP-350 text-encoded fields.
 
 ```typescript
-toText(addr: InteroperableAddress): InteroperableAddressText
+toAddressText(addr: InteroperableAddress): InteroperableAddressText
 ```
 
-#### `toBinary`
+#### `toAddress`
 
 Converts structured object with CAIP-350 text-encoded fields to a binary address.
 
 ```typescript
-toBinary(text: InteroperableAddressText): InteroperableAddress
+toAddress(text: InteroperableAddressText): InteroperableAddress
 ```
 
 ### Name Layer
 
-#### `parseInteroperableName`
+#### `parseName`
 
 Parses an interoperable name with full metadata.
 
 ```typescript
-parseInteroperableName(
+parseName(
   input: string | ParsedInteropNameComponents
 ): Promise<ParsedInteroperableNameResult>
 ```
@@ -297,12 +297,12 @@ parseInteroperableName(
 }
 ```
 
-#### `formatInteroperableName`
+#### `formatName`
 
 Formats structured object with CAIP-350 text-encoded fields and checksum into an interoperable name.
 
 ```typescript
-formatInteroperableName(
+formatName(
   text: InteroperableAddressText,
   checksum: Checksum
 ): InteroperableName
@@ -360,14 +360,15 @@ All methods are exported as individual functions for modular usage and tree-shak
 
 ```typescript
 import {
+    addressTextToBinary,
+    binaryToAddressText,
     binaryToName,
-    binaryToText,
     calculateChecksum,
     computeChecksum,
     // Binary layer
-    decodeInteroperableAddress,
-    encodeInteroperableAddress,
-    formatInteroperableName,
+    decodeAddress,
+    encodeAddress,
+    formatName,
     getAddress,
     getChainId,
     isValidBinaryAddress,
@@ -378,14 +379,13 @@ import {
     // High-level convenience methods
     nameToBinary,
     // Name layer
-    parseInteroperableName,
+    parseName,
     resolveAddress,
     resolveChain,
     shortnameToChainId,
-    textToBinary,
-    toBinary,
+    toAddress,
     // Text layer
-    toText,
+    toAddressText,
     validateChecksum,
     validateInteroperableAddress,
 } from "@wonderland/interop-addresses";
@@ -446,7 +446,7 @@ The raw parsed components from an Interoperable Name string:
 }
 ```
 
-This type represents the raw components extracted from parsing an interoperable name string. It can be used directly as input to `parseInteroperableName` or `nameToBinary` instead of a string.
+This type represents the raw components extracted from parsing an interoperable name string. It can be used directly as input to `parseName` or `nameToBinary` instead of a string.
 
 **Example:**
 
@@ -464,7 +464,7 @@ const binary = await nameToBinary(parsed, { format: "hex" });
 
 ### `ParsedInteroperableNameResult`
 
-The result from `parseInteroperableName`:
+The result from `parseName`:
 
 ```typescript
 {

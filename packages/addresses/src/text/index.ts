@@ -34,12 +34,12 @@ import {
  * @throws {UnsupportedChainType} If the chain type is not supported
  * @example
  * ```ts
- * const addr = decodeInteroperableAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
- * const text = toText(addr);
+ * const addr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+ * const text = toAddressText(addr);
  * // Returns: { version: 1, chainType: "eip155", chainReference: "1", address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" }
  * ```
  */
-export const toText = (addr: InteroperableAddress): InteroperableAddressText => {
+export const toAddressText = (addr: InteroperableAddress): InteroperableAddressText => {
     const validated: InteroperableAddress = validateInteroperableAddress(addr);
 
     const chainTypeHex = toHex(validated.chainType) as ChainTypeValue;
@@ -88,10 +88,10 @@ export const toText = (addr: InteroperableAddress): InteroperableAddressText => 
  *   chainReference: "1",
  *   address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
  * };
- * const addr = toBinary(text);
+ * const addr = toAddress(text);
  * ```
  */
-export const toBinary = (text: InteroperableAddressText): InteroperableAddress => {
+export const toAddress = (text: InteroperableAddressText): InteroperableAddress => {
     const { version, chainType, chainReference, address } = text;
 
     if (!isValidChainType(chainType)) {

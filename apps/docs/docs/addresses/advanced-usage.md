@@ -13,17 +13,17 @@ Pure binary encoding/decoding - synchronous, no dependencies:
 ```typescript
 import {
     calculateChecksum,
-    decodeInteroperableAddress,
-    encodeInteroperableAddress,
+    decodeAddress,
+    encodeAddress,
     validateChecksum,
     validateInteroperableAddress,
 } from "@wonderland/interop-addresses";
 
 // Decode binary address
-const addr = decodeInteroperableAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
+const addr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
 
 // Encode to binary
-const hex = encodeInteroperableAddress(addr, { format: "hex" });
+const hex = encodeAddress(addr, { format: "hex" });
 
 // Calculate checksum
 const checksum = calculateChecksum(addr);
@@ -40,20 +40,27 @@ validateChecksum(addr, checksum);
 Structured objects with fields using CAIP-350 text serialization rules (per chainType) - synchronous conversion:
 
 ```typescript
-import { binaryToText, textToBinary, toBinary, toText } from "@wonderland/interop-addresses";
+import {
+    addressTextToBinary,
+    binaryToAddressText,
+    toAddress,
+    toAddressText,
+} from "@wonderland/interop-addresses";
 
 // Convert binary to structured object with CAIP-350 text-encoded fields
-const addr = decodeInteroperableAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
-const text = toText(addr);
+const addr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
+const text = toAddressText(addr);
 // Returns: { version: 1, chainType: "eip155", chainReference: "1", address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" }
 // Fields use CAIP-350 encoding rules (per chainType): for eip155, chainReference as decimal string, address as hex with EIP-55 checksum
 
 // Convert structured object with CAIP-350 text-encoded fields to binary
-const binary = toBinary(text);
+const binary = toAddress(text);
 
 // Or use convenience methods
-const binaryFromText = textToBinary(text, { format: "hex" });
-const textFromBinary = binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
+const binaryFromText = addressTextToBinary(text, { format: "hex" });
+const textFromBinary = binaryToAddressText(
+    "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045",
+);
 ```
 
 ### Name Layer (ERC-7828)
@@ -61,15 +68,10 @@ const textFromBinary = binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53
 Human-readable names with ENS resolution - async operations:
 
 ```typescript
-import {
-    binaryToName,
-    formatInteroperableName,
-    nameToBinary,
-    parseInteroperableName,
-} from "@wonderland/interop-addresses";
+import { binaryToName, formatName, nameToBinary, parseName } from "@wonderland/interop-addresses";
 
 // Parse with full metadata
-const result = await parseInteroperableName("vitalik.eth@eip155:1#4CA88C9C");
+const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
 // result.name - original parsed components
 // result.text - structured object with CAIP-350 text-encoded fields
 // result.address - binary address
@@ -78,7 +80,7 @@ const result = await parseInteroperableName("vitalik.eth@eip155:1#4CA88C9C");
 // result.meta.isChainLabel - whether chain reference was a label
 
 // Format text to name
-const name = formatInteroperableName(result.text, result.meta.checksum);
+const name = formatName(result.text, result.meta.checksum);
 
 // Simple conversions
 const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "hex" });
@@ -90,14 +92,14 @@ const nameFromBinary = binaryToName("0x00010000010114d8da6bf26964af9d7eed9e03e53
 Checksums are always calculated from the binary address, even if not provided:
 
 ```typescript
-import { computeChecksum, parseInteroperableName } from "@wonderland/interop-addresses";
+import { computeChecksum, parseName } from "@wonderland/interop-addresses";
 
 // Compute checksum from name
 const checksum = await computeChecksum("vitalik.eth@eip155:1");
 // Returns: "4CA88C9C"
 
 // Parse with checksum validation
-const result = await parseInteroperableName("vitalik.eth@eip155:1#4CA88C9C");
+const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
 // result.meta.checksum - always calculated
 // result.meta.checksumMismatch - present if provided checksum didn't match
 ```
@@ -169,7 +171,7 @@ import {
 } from "@wonderland/interop-addresses";
 
 try {
-    const result = await parseInteroperableName("invalid.eth@eip155:1");
+    const result = await parseName("invalid.eth@eip155:1");
 } catch (error) {
     if (error instanceof InvalidAddress) {
         // Handle invalid address error
@@ -193,36 +195,36 @@ try {
 
 ```typescript
 import {
-    binaryToText,
+    addressTextToBinary,
+    binaryToAddressText,
     calculateChecksum,
-    formatInteroperableName,
-    parseInteroperableName,
-    textToBinary,
+    formatName,
+    parseName,
 } from "@wonderland/interop-addresses";
 
 // Start with name
 const name = "vitalik.eth@eip155:1#4CA88C9C";
 
 // Parse to get text and binary
-const parsed = await parseInteroperableName(name);
+const parsed = await parseName(name);
 const text = parsed.text;
 const binary = parsed.address;
 
 // Convert binary back to text
-const textFromBinary = binaryToText(encodeInteroperableAddress(binary, { format: "hex" }));
+const textFromBinary = binaryToAddressText(encodeAddress(binary, { format: "hex" }));
 
 // Convert text back to binary
-const binaryFromText = textToBinary(textFromBinary);
+const binaryFromText = addressTextToBinary(textFromBinary);
 
 // Format back to name
 const checksum = calculateChecksum(binaryFromText);
-const nameFromText = formatInteroperableName(textFromBinary, checksum);
+const nameFromText = formatName(textFromBinary, checksum);
 ```
 
 ### Text → Binary → Text (Synchronous)
 
 ```typescript
-import { binaryToText, textToBinary } from "@wonderland/interop-addresses";
+import { addressTextToBinary, binaryToAddressText } from "@wonderland/interop-addresses";
 
 const text = {
     version: 1,
@@ -232,16 +234,16 @@ const text = {
 };
 
 // Convert to binary
-const binary = textToBinary(text, { format: "hex" });
+const binary = addressTextToBinary(text, { format: "hex" });
 
 // Convert back to text
-const textRoundTrip = binaryToText(binary);
+const textRoundTrip = binaryToAddressText(binary);
 // textRoundTrip should equal text
 ```
 
 ## Best Practices
 
-1. **Use synchronous methods when possible**: If you already have structured data with CAIP-350 text-encoded fields (per chainType), use `textToBinary` instead of `nameToBinary` to avoid async overhead.
+1. **Use synchronous methods when possible**: If you already have structured data with CAIP-350 text-encoded fields (per chainType), use `addressTextToBinary` instead of `nameToBinary` to avoid async overhead.
 
 2. **Always validate addresses**: Use validation methods before using addresses in production code.
 

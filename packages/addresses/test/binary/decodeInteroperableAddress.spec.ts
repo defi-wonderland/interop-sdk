@@ -1,11 +1,11 @@
 import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { decodeInteroperableAddress } from "../../src/binary/index.js";
+import { decodeAddress } from "../../src/binary/index.js";
 import { InvalidBinaryInteropAddress } from "../../src/internal.js";
 
 describe("erc7930", () => {
-    describe("decodeInteroperableAddress", () => {
+    describe("decodeAddress", () => {
         it("parse ethereum binary interop address", () => {
             const binaryAddress = "0x00010000010114D8DA6BF26964AF9D7EED9E03E53415D37AA96045";
             /*    0x00010000010114D8DA6BF26964AF9D7EED9E03E53415D37AA96045
@@ -17,7 +17,7 @@ describe("erc7930", () => {
                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Address:              20 bytes of ethereum address
             */
 
-            const interopAddress = decodeInteroperableAddress(binaryAddress);
+            const interopAddress = decodeAddress(binaryAddress);
 
             expect(interopAddress.version).toEqual(1);
             expect(interopAddress.chainType).toEqual(fromHex("0x0000", "bytes"));
@@ -39,7 +39,7 @@ describe("erc7930", () => {
                                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--- Address:              32 bytes of solana address
             */
 
-            const interopAddress = decodeInteroperableAddress(binaryAddress);
+            const interopAddress = decodeAddress(binaryAddress);
 
             expect(interopAddress.version).toEqual(1);
             expect(interopAddress.chainType).toEqual(fromHex("0x0002", "bytes"));
@@ -67,7 +67,7 @@ describe("erc7930", () => {
                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Address:              20 bytes of ethereum address
             */
 
-            const interopAddress = decodeInteroperableAddress(binaryAddress);
+            const interopAddress = decodeAddress(binaryAddress);
 
             expect(interopAddress.version).toEqual(1);
             expect(interopAddress.chainType).toEqual(fromHex("0x0000", "bytes"));
@@ -88,7 +88,7 @@ describe("erc7930", () => {
                                                                                             ^^ AddressLength:        zero, indicating no address
             */
 
-            const interopAddress = decodeInteroperableAddress(binaryAddress);
+            const interopAddress = decodeAddress(binaryAddress);
 
             expect(interopAddress.version).toEqual(1);
             expect(interopAddress.chainType).toEqual(fromHex("0x0002", "bytes"));
@@ -104,7 +104,7 @@ describe("erc7930", () => {
         it("throws if version is not there", () => {
             const binaryAddress = "0x";
 
-            expect(() => decodeInteroperableAddress(binaryAddress)).toThrow(
+            expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress("Invalid version length, expected: 2, got: 0"),
             );
         });
@@ -112,7 +112,7 @@ describe("erc7930", () => {
         it("throws if version has length less than 2 bytes", () => {
             const binaryAddress = "0x01";
 
-            expect(() => decodeInteroperableAddress(binaryAddress)).toThrow(
+            expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress("Invalid version length, expected: 2, got: 1"),
             );
         });
@@ -120,7 +120,7 @@ describe("erc7930", () => {
         it("throws if chain type is not there", () => {
             const binaryAddress = "0x0001";
 
-            expect(() => decodeInteroperableAddress(binaryAddress)).toThrow(
+            expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress("Invalid chain type length, expected: 2, got: 0"),
             );
         });
@@ -128,7 +128,7 @@ describe("erc7930", () => {
         it("throws if chain type has length less than 1 bytes", () => {
             const binaryAddress = "0x00011";
 
-            expect(() => decodeInteroperableAddress(binaryAddress)).toThrow(
+            expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress("Invalid chain type length, expected: 2, got: 1"),
             );
         });
@@ -136,7 +136,7 @@ describe("erc7930", () => {
         it("throws if chain reference length is not there", () => {
             const binaryAddress = "0x00010000";
 
-            expect(() => decodeInteroperableAddress(binaryAddress)).toThrow(
+            expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress(
                     "Invalid chain reference length, expected: 1, got: 0",
                 ),
@@ -146,7 +146,7 @@ describe("erc7930", () => {
         it("throws if chain reference is not what chain type length indicates", () => {
             const binaryAddress = "0x000100000201";
 
-            expect(() => decodeInteroperableAddress(binaryAddress)).toThrow(
+            expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress(
                     "Invalid chain reference length, expected: 2, got: 1",
                 ),
@@ -156,7 +156,7 @@ describe("erc7930", () => {
         it("throws if address length is not there", () => {
             const binaryAddress = "0x00010000020100";
 
-            expect(() => decodeInteroperableAddress(binaryAddress)).toThrow(
+            expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress("Invalid address length, expected: 1, got: 0"),
             );
         });
@@ -164,7 +164,7 @@ describe("erc7930", () => {
         it("throws if address is not what address length indicates", () => {
             const binaryAddress = "0x000100000201000200";
 
-            expect(() => decodeInteroperableAddress(binaryAddress)).toThrow(
+            expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress("Invalid address length, expected: 2, got: 1"),
             );
         });

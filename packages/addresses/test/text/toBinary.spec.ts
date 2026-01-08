@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import type { InteroperableAddressText } from "../../src/types/interopAddress.js";
 import { InvalidChainNamespace } from "../../src/internal.js";
-import { toBinary, toText } from "../../src/text/index.js";
+import { toAddress, toAddressText } from "../../src/text/index.js";
 
-describe("toBinary", () => {
+describe("toAddress", () => {
     it("converts an EVM mainnet InteroperableAddressText to InteroperableAddress", () => {
         const text: InteroperableAddressText = {
             version: 1,
@@ -14,7 +14,7 @@ describe("toBinary", () => {
             address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
         };
 
-        const interopAddress = toBinary(text);
+        const interopAddress = toAddress(text);
 
         expect(interopAddress.version).toBe(1);
         expect(interopAddress.chainType).toEqual(fromHex("0x0000", "bytes"));
@@ -32,7 +32,7 @@ describe("toBinary", () => {
             address: "MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2",
         };
 
-        const interopAddress = toBinary(text);
+        const interopAddress = toAddress(text);
 
         expect(interopAddress.version).toBe(1);
         expect(interopAddress.chainType).toEqual(fromHex("0x0002", "bytes"));
@@ -51,7 +51,7 @@ describe("toBinary", () => {
             address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
         };
 
-        const interopAddress = toBinary(text);
+        const interopAddress = toAddress(text);
 
         expect(interopAddress.version).toBe(1);
         expect(interopAddress.chainType).toEqual(fromHex("0x0000", "bytes"));
@@ -68,7 +68,7 @@ describe("toBinary", () => {
             chainReference: "1",
         };
 
-        const interopAddress = toBinary(text);
+        const interopAddress = toAddress(text);
 
         expect(interopAddress.version).toBe(1);
         expect(interopAddress.chainType).toEqual(fromHex("0x0000", "bytes"));
@@ -82,7 +82,7 @@ describe("toBinary", () => {
             chainType: "eip155",
         };
 
-        const interopAddress = toBinary(text);
+        const interopAddress = toAddress(text);
 
         expect(interopAddress.version).toBe(1);
         expect(interopAddress.chainType).toEqual(fromHex("0x0000", "bytes"));
@@ -98,7 +98,7 @@ describe("toBinary", () => {
             address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
         };
 
-        const interopAddress = toBinary(text);
+        const interopAddress = toAddress(text);
 
         expect(interopAddress.version).toBe(1);
         expect(interopAddress.chainType).toEqual(fromHex("0x0000", "bytes"));
@@ -116,7 +116,7 @@ describe("toBinary", () => {
             address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
         };
 
-        const interopAddress = toBinary(text);
+        const interopAddress = toAddress(text);
 
         expect(interopAddress.chainReference).toEqual(fromHex("0x01", "bytes"));
     });
@@ -129,7 +129,7 @@ describe("toBinary", () => {
             address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
         };
 
-        expect(() => toBinary(text)).toThrow(InvalidChainNamespace);
+        expect(() => toAddress(text)).toThrow(InvalidChainNamespace);
     });
 
     it("round-trips with toText", () => {
@@ -140,8 +140,8 @@ describe("toBinary", () => {
             address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
         };
 
-        const interopAddress = toBinary(originalText);
-        const roundTripText = toText(interopAddress);
+        const interopAddress = toAddress(originalText);
+        const roundTripText = toAddressText(interopAddress);
 
         expect(roundTripText).toEqual(originalText);
     });

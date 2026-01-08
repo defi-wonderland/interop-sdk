@@ -101,7 +101,7 @@ export function AdvancedDisplay({ parsedResult }: AdvancedDisplayProps) {
   return (
     <FormatDisplay
       title='Advanced: Text & Meta Fields'
-      description='Raw text representation (CAIP-350) and metadata from parseInteroperableName'
+      description='Raw text representation (CAIP-350) and metadata from parseName'
       result={parsedResult}
       fields={visibleFields}
       hoveredPart={null}

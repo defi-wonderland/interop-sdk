@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { Checksum } from "../../src/types/checksum.js";
 import type { InteroperableAddressText } from "../../src/types/interopAddress.js";
-import { formatInteroperableName } from "../../src/name/index.js";
+import { formatName } from "../../src/name/index.js";
 
-describe("formatInteroperableName", () => {
+describe("formatName", () => {
     it("formats a complete interoperable name", () => {
         const text: InteroperableAddressText = {
             version: 1,
@@ -14,7 +14,7 @@ describe("formatInteroperableName", () => {
         };
         const checksum = "4CA88C9C" as Checksum;
 
-        const name = formatInteroperableName(text, checksum);
+        const name = formatName(text, checksum);
 
         expect(name).toBe("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C");
     });
@@ -28,7 +28,7 @@ describe("formatInteroperableName", () => {
         };
         const checksum = "88835C11" as Checksum;
 
-        const name = formatInteroperableName(text, checksum);
+        const name = formatName(text, checksum);
 
         expect(name).toBe(
             "MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2@solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d#88835C11",
@@ -43,7 +43,7 @@ describe("formatInteroperableName", () => {
         };
         const checksum = "F54D4FBF" as Checksum;
 
-        const name = formatInteroperableName(text, checksum);
+        const name = formatName(text, checksum);
 
         expect(name).toBe("@eip155:1#F54D4FBF");
     });
@@ -56,7 +56,7 @@ describe("formatInteroperableName", () => {
         };
         const checksum = "4CA88C9C" as Checksum;
 
-        const name = formatInteroperableName(text, checksum);
+        const name = formatName(text, checksum);
 
         expect(name).toBe("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:#4CA88C9C");
     });
@@ -68,7 +68,7 @@ describe("formatInteroperableName", () => {
         };
         const checksum = "F40BB840" as Checksum;
 
-        const name = formatInteroperableName(text, checksum);
+        const name = formatName(text, checksum);
 
         expect(name).toBe("@solana:#F40BB840");
     });
@@ -82,7 +82,7 @@ describe("formatInteroperableName", () => {
         };
         const checksum = "17DE0709" as Checksum;
 
-        const name = formatInteroperableName(text, checksum);
+        const name = formatName(text, checksum);
 
         expect(name).toBe("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:8453#17DE0709");
     });
@@ -96,7 +96,7 @@ describe("formatInteroperableName", () => {
         };
         const checksum = "4CA88C9C" as Checksum;
 
-        const name = formatInteroperableName(text, checksum);
+        const name = formatName(text, checksum);
 
         expect(name).toBe("vitalik.eth@eip155:1#4CA88C9C");
     });

@@ -1,5 +1,5 @@
 import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
-import { getAddress, getChainId, textToBinary } from "@wonderland/interop-addresses";
+import { addressTextToBinary, getAddress, getChainId } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import {
     AbiEvent,
@@ -118,7 +118,7 @@ export class AcrossProvider extends CrossChainProvider {
      * @returns The interop address
      */
     private generateInteropAddress(address: Address, chain: number): string {
-        return textToBinary(
+        return addressTextToBinary(
             {
                 version: 1,
                 chainType: "eip155",

@@ -5,7 +5,7 @@ import {
     InvalidChainNamespace,
     MissingInteroperableName,
 } from "../../src/internal.js";
-import { parseInteroperableName } from "../../src/name/index.js";
+import { parseName } from "../../src/name/index.js";
 
 const { mockShortnameToChainId } = vi.hoisted(() => {
     const mockShortnameToChainId = vi.fn();
@@ -27,7 +27,7 @@ vi.mock("viem", async () => {
     };
 });
 
-describe("parseInteroperableName", () => {
+describe("parseName", () => {
     beforeEach(() => {
         mockGetEnsAddress.mockClear();
         mockShortnameToChainId.mockClear();
@@ -36,7 +36,7 @@ describe("parseInteroperableName", () => {
     it("parses a valid EVM address with checksum", async () => {
         const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C";
 
-        const result = await parseInteroperableName(name);
+        const result = await parseName(name);
 
         expect(result.text).toEqual({
             version: 1,
@@ -52,7 +52,7 @@ describe("parseInteroperableName", () => {
     it("parses a valid EVM address without checksum", async () => {
         const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1";
 
-        const result = await parseInteroperableName(name);
+        const result = await parseName(name);
 
         expect(result.text).toEqual({
             version: 1,
@@ -72,7 +72,7 @@ describe("parseInteroperableName", () => {
         const name =
             "MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2@solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d#88835C11";
 
-        const result = await parseInteroperableName(name);
+        const result = await parseName(name);
 
         expect(result.text).toEqual({
             version: 1,
@@ -88,7 +88,7 @@ describe("parseInteroperableName", () => {
     it("parses address without chain reference", async () => {
         const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155";
 
-        const result = await parseInteroperableName(name);
+        const result = await parseName(name);
 
         expect(result.text).toEqual({
             version: 1,
@@ -101,7 +101,7 @@ describe("parseInteroperableName", () => {
     it("parses address without address field", async () => {
         const name = "@eip155:1#F54D4FBF";
 
-        const result = await parseInteroperableName(name);
+        const result = await parseName(name);
 
         expect(result.text).toEqual({
             version: 1,
@@ -114,7 +114,7 @@ describe("parseInteroperableName", () => {
     it("preserves chain reference when both chainType and chainReference are provided", async () => {
         const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C";
 
-        const result = await parseInteroperableName(name);
+        const result = await parseName(name);
 
         // When both chainType and chainReference are provided, no resolution occurs
         expect(result.text.chainReference).toBe("1");
@@ -125,7 +125,7 @@ describe("parseInteroperableName", () => {
         mockShortnameToChainId.mockResolvedValue(1);
         const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth#4CA88C9C";
 
-        const result = await parseInteroperableName(name);
+        const result = await parseName(name);
 
         // When only chainReference is provided, it should be resolved to namespace/reference
         expect(result.text.chainType).toBe("eip155");
@@ -138,7 +138,7 @@ describe("parseInteroperableName", () => {
         mockShortnameToChainId.mockResolvedValue(42161);
         const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@arbitrum#4CA88C9C";
 
-        const result = await parseInteroperableName(name);
+        const result = await parseName(name);
 
         // When only chainReference is provided (no chainType), isChainLabel should be true
         // because the chainReference needs to be resolved to a chainType
@@ -151,14 +151,14 @@ describe("parseInteroperableName", () => {
     });
 
     it("throws MissingInteroperableName for empty string", async () => {
-        await expect(parseInteroperableName("")).rejects.toThrow(MissingInteroperableName);
-        await expect(parseInteroperableName("   ")).rejects.toThrow(MissingInteroperableName);
+        await expect(parseName("")).rejects.toThrow(MissingInteroperableName);
+        await expect(parseName("   ")).rejects.toThrow(MissingInteroperableName);
     });
 
     it("throws InvalidChainNamespace for invalid chain type", async () => {
         const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@invalid:1#4CA88C9C";
 
-        await expect(parseInteroperableName(name)).rejects.toThrow(InvalidChainNamespace);
+        await expect(parseName(name)).rejects.toThrow(InvalidChainNamespace);
     });
 
     it("throws InvalidChainIdentifier for invalid chain reference", async () => {
@@ -167,14 +167,14 @@ describe("parseInteroperableName", () => {
         mockShortnameToChainId.mockResolvedValue(null);
         const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:not-a-number#4CA88C9C";
 
-        await expect(parseInteroperableName(name)).rejects.toThrow(InvalidChainIdentifier);
+        await expect(parseName(name)).rejects.toThrow(InvalidChainIdentifier);
     });
 
     it("throws error for invalid checksum format", async () => {
         const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#INVALID";
 
         // The error message comes from the parsing layer, not the schema validation
-        await expect(parseInteroperableName(name)).rejects.toThrow();
+        await expect(parseName(name)).rejects.toThrow();
     });
 
     it("handles ENS names and marks isENS", async () => {
@@ -182,7 +182,7 @@ describe("parseInteroperableName", () => {
         mockGetEnsAddress.mockResolvedValue(resolvedAddress);
         const name = "vitalik.eth@eip155:1#4CA88C9C";
 
-        const result = await parseInteroperableName(name);
+        const result = await parseName(name);
 
         // Resolved address is used in both text and binary fields
         expect(result.text.address).toBe(resolvedAddress);
@@ -194,7 +194,7 @@ describe("parseInteroperableName", () => {
     it("throws error when only namespace is provided (no address or chain reference)", async () => {
         const name = "@eip155";
 
-        await expect(parseInteroperableName(name)).rejects.toThrow(
+        await expect(parseName(name)).rejects.toThrow(
             "InteroperableAddressText must have at least one of chainReference or address",
         );
     });
