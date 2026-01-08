@@ -1,9 +1,9 @@
 import {
-  nameToBinary,
+  encodeInteroperableAddress,
   parseInteroperableName,
   type ParsedInteroperableNameResult,
 } from '@wonderland/interop-addresses';
-import { parseBinaryForDisplay } from './demo-helpers';
+import { parseInteroperableAddressForDisplay } from './demo-helpers';
 import type { ParsedBinary, ParsedHumanReadable } from './demo-helpers';
 
 export interface ConversionResult {
@@ -15,19 +15,9 @@ export interface ConversionResult {
 }
 
 export async function convertFromReadable(interoperableName: string): Promise<ConversionResult> {
-  const binaryResult = await nameToBinary(interoperableName, { format: 'hex' });
-  // Ensure binary is a hex string for display
-  const binary =
-    typeof binaryResult === 'string'
-      ? binaryResult
-      : `0x${Array.from(binaryResult)
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('')}`;
-
-  const [parsed, binaryParts] = await Promise.all([
-    parseInteroperableName(interoperableName),
-    Promise.resolve(parseBinaryForDisplay(binary)),
-  ]);
+  const parsed = await parseInteroperableName(interoperableName);
+  const binary = encodeInteroperableAddress(parsed.address, { format: 'hex' });
+  const binaryParts = parseInteroperableAddressForDisplay(parsed.address);
 
   // Map parseInteroperableName result to ParsedHumanReadable format
   const humanParts: ParsedHumanReadable = {

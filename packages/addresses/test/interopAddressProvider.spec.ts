@@ -60,7 +60,7 @@ describe("InteropAddressProvider", () => {
     });
 
     describe("nameToBinary with ParsedInteropNameComponents", () => {
-        it("builds a binary InteropAddress from ParsedInteropNameComponents", async () => {
+        it("builds a binary InteroperableAddress from ParsedInteropNameComponents", async () => {
             const parsed = {
                 address: "0xd8da6bf26964af9d7eed9e03e53415d37aa96045",
                 chainType: "eip155",
@@ -73,7 +73,7 @@ describe("InteropAddressProvider", () => {
     });
 
     describe("textToBinary", () => {
-        it("builds a binary InteropAddress from InteroperableAddressText (synchronous)", () => {
+        it("builds a binary InteroperableAddress from InteroperableAddressText (synchronous)", () => {
             const text: InteroperableAddressText = {
                 version: 1,
                 chainType: "eip155",
@@ -84,7 +84,7 @@ describe("InteropAddressProvider", () => {
             expect(interopAddress).toBe("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
         });
 
-        it("builds a binary InteropAddress with bytes format", () => {
+        it("builds a binary InteroperableAddress with bytes format", () => {
             const text: InteroperableAddressText = {
                 version: 1,
                 chainType: "eip155",
@@ -96,7 +96,7 @@ describe("InteropAddressProvider", () => {
             expect(interopAddress.length).toBeGreaterThan(0);
         });
 
-        it("builds a binary InteropAddress without address (chain reference only)", () => {
+        it("builds a binary InteroperableAddress without address (chain reference only)", () => {
             const text: InteroperableAddressText = {
                 version: 1,
                 chainType: "eip155",
@@ -107,7 +107,7 @@ describe("InteropAddressProvider", () => {
             expect(interopAddress).toBe("0x00010000010100");
         });
 
-        it("builds a binary InteropAddress without chain reference (address only)", () => {
+        it("builds a binary InteroperableAddress without chain reference (address only)", () => {
             const text: InteroperableAddressText = {
                 version: 1,
                 chainType: "eip155",
@@ -117,7 +117,7 @@ describe("InteropAddressProvider", () => {
             expect(interopAddress).toBe("0x000100000014d8da6bf26964af9d7eed9e03e53415d37aa96045");
         });
 
-        it("builds a binary InteropAddress for Solana", () => {
+        it("builds a binary InteroperableAddress for Solana", () => {
             const text: InteroperableAddressText = {
                 version: 1,
                 chainType: "solana",

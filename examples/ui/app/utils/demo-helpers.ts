@@ -1,5 +1,5 @@
-import { decodeInteroperableAddress } from '@wonderland/interop-addresses';
 import { toHex } from 'viem';
+import type { InteroperableAddress } from '@wonderland/interop-addresses';
 
 export interface ParsedBinary {
   version: string;
@@ -18,13 +18,10 @@ export interface ParsedHumanReadable {
 }
 
 /**
- * Parses a binary hex string into display components using the addresses package.
- * Uses decodeInteroperableAddress to parse the binary format, then formats for display.
+ * Parses an InteroperableAddress object into display components.
+ * Formats the binary address structure for display purposes.
  */
-export function parseBinaryForDisplay(binaryHex: string): ParsedBinary {
-  // Decode using the package function (ensure it's a Hex type)
-  const interopAddress = decodeInteroperableAddress(binaryHex as `0x${string}`);
-
+export function parseInteroperableAddressForDisplay(interopAddress: InteroperableAddress): ParsedBinary {
   // Format version (2 bytes)
   const versionHex = toHex(interopAddress.version, { size: 2 }).slice(2);
 

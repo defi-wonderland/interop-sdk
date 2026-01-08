@@ -1,7 +1,7 @@
 export * from "./providers/index.js";
 
 export type {
-    InteropAddress,
+    InteroperableAddress,
     BinaryAddress,
     InteroperableName,
     InteroperableAddressText,

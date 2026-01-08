@@ -1,4 +1,4 @@
-import type { InteropAddress } from "../internal.js";
+import type { InteroperableAddress } from "../internal.js";
 import type { ParsedInteropNameComponents } from "./parseInteropNameString.js";
 import type { ResolvedAddress } from "./resolveENS.js";
 import { calculateChecksum } from "../binary/index.js";
@@ -19,7 +19,7 @@ import { resolveAddress } from "./resolveENS.js";
 export interface ParsedInteroperableNameResult {
     name: ParsedInteropNameComponents;
     text: InteroperableAddressText;
-    address: InteropAddress;
+    address: InteroperableAddress;
     meta: {
         checksum?: Checksum;
         isENS: boolean;
@@ -102,7 +102,7 @@ export const parseInteroperableName = async (
     const validatedText = validated.data;
 
     // Step 5: Convert text to binary (text already contains resolved address)
-    const binaryAddress: InteropAddress = toBinary(validatedText);
+    const binaryAddress: InteroperableAddress = toBinary(validatedText);
 
     // Step 6: Calculate checksum from binary address (always generate, even if not provided)
     const calculatedChecksum = calculateChecksum(binaryAddress);

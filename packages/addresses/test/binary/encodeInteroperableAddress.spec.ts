@@ -1,7 +1,7 @@
 import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
-import type { InteropAddress } from "../../src/types/interopAddress.js";
+import type { InteroperableAddress } from "../../src/types/interopAddress.js";
 import { encodeInteroperableAddress } from "../../src/binary/index.js";
 import { ParseInteropAddress } from "../../src/internal.js";
 
@@ -112,7 +112,7 @@ describe("erc7930", () => {
                 chainType: fromHex("0x0000", "bytes"),
                 chainReference: fromHex("0x", "bytes"),
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
-            } as unknown as InteropAddress;
+            } as unknown as InteroperableAddress;
 
             expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).toThrow(
                 ParseInteropAddress,
@@ -124,7 +124,7 @@ describe("erc7930", () => {
                 version: 1,
                 chainReference: fromHex("0x", "bytes"),
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
-            } as unknown as InteropAddress;
+            } as unknown as InteroperableAddress;
 
             expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).toThrow(
                 ParseInteropAddress,
@@ -137,7 +137,7 @@ describe("erc7930", () => {
                 chainType: fromHex("0x100000", "bytes"),
                 chainReference: fromHex("0x", "bytes"),
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
-            } as unknown as InteropAddress;
+            } as unknown as InteroperableAddress;
 
             expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).toThrow(
                 ParseInteropAddress,
@@ -164,7 +164,7 @@ describe("erc7930", () => {
                 version: 1,
                 chainType: fromHex("0x0000", "bytes"),
                 address: fromHex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045", "bytes"),
-            } as unknown as InteropAddress;
+            } as unknown as InteroperableAddress;
 
             expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).toThrow(
                 ParseInteropAddress,
@@ -176,7 +176,7 @@ describe("erc7930", () => {
                 version: 1,
                 chainType: fromHex("0x0000", "bytes"),
                 chainReference: fromHex("0x", "bytes"),
-            } as unknown as InteropAddress;
+            } as unknown as InteroperableAddress;
 
             expect(() => encodeInteroperableAddress(interopAddress, { format: "hex" })).toThrow(
                 ParseInteropAddress,

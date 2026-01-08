@@ -263,7 +263,7 @@ The result from `parseInteroperableName`:
 {
   name: ParsedInteropNameComponents;      // Original parsed components
   text: InteroperableAddressText;         // Structured object with CAIP-350 text-encoded fields
-  address: InteroperableAddress;          // Binary address
+  address: InteroperableAddress;          // Structured Interoperable Address object with binary fields)
   meta: {
     checksum: Checksum;                    // Calculated checksum (always present)
     checksumMismatch?: {                   // Present if provided checksum didn't match

@@ -1,5 +1,6 @@
 import { Hex } from "viem";
 
+import type { FormatResult } from "../binary/index.js";
 import type { ParseInteroperableNameOptions } from "../internal.js";
 import type { ParsedInteroperableNameResult } from "../name/index.js";
 import type { ParsedInteropNameComponents } from "../name/parseInteropNameString.js";
@@ -37,12 +38,12 @@ export class InteropAddressProvider {
      * const binaryAddress = await InteropAddressProvider.nameToBinary("alice.eth@eip155:1#ABCD1234");
      * ```
      */
-    public static async nameToBinary(
+    public static async nameToBinary<T extends "hex" | "bytes" | undefined = undefined>(
         name: string | ParsedInteropNameComponents,
-        opts: { format?: "hex" | "bytes" } = {},
-    ): Promise<Hex | Uint8Array> {
+        opts?: { format?: T },
+    ): Promise<FormatResult<T>> {
         const result = await parseInteroperableName(name);
-        return encodeInteroperableAddress(result.address, opts) as Hex | Uint8Array;
+        return encodeInteroperableAddress(result.address, opts);
     }
 
     /**
@@ -125,12 +126,12 @@ export class InteropAddressProvider {
      * });
      * ```
      */
-    public static textToBinary(
+    public static textToBinary<T extends "hex" | "bytes" | undefined = undefined>(
         text: InteroperableAddressText,
-        opts: { format?: "hex" | "bytes" } = {},
-    ): Hex | Uint8Array {
+        opts?: { format?: T },
+    ): FormatResult<T> {
         const binary = toBinary(text);
-        return encodeInteroperableAddress(binary, opts) as Hex | Uint8Array;
+        return encodeInteroperableAddress(binary, opts);
     }
 
     /**
@@ -224,7 +225,12 @@ export class InteropAddressProvider {
  * const binaryAddress = await nameToBinary("alice.eth@eip155:1#ABCD1234");
  * ```
  */
-export const nameToBinary = InteropAddressProvider.nameToBinary;
+export async function nameToBinary<T extends "hex" | "bytes" | undefined = undefined>(
+    name: string | ParsedInteropNameComponents,
+    opts?: { format?: T },
+): Promise<FormatResult<T>> {
+    return InteropAddressProvider.nameToBinary(name, opts);
+}
 
 /**
  * Converts a binary address to an interoperable name.
@@ -256,7 +262,12 @@ export const binaryToName = InteropAddressProvider.binaryToName;
  * });
  * ```
  */
-export const textToBinary = InteropAddressProvider.textToBinary;
+export function textToBinary<T extends "hex" | "bytes" | undefined = undefined>(
+    text: InteroperableAddressText,
+    opts?: { format?: T },
+): FormatResult<T> {
+    return InteropAddressProvider.textToBinary(text, opts);
+}
 
 /**
  * Converts a binary address to InteroperableAddressText.

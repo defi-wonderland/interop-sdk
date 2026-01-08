@@ -1,10 +1,12 @@
+import { decodeInteroperableAddress } from '@wonderland/interop-addresses';
 import { describe, expect, it } from 'vitest';
-import { parseBinaryForDisplay } from './demo-helpers';
+import { parseInteroperableAddressForDisplay } from './demo-helpers';
 
-describe('parseBinaryForDisplay', () => {
-  it('parses a binary hex string into display components', () => {
+describe('parseInteroperableAddressForDisplay', () => {
+  it('parses an InteroperableAddress object into display components', () => {
     const binaryHex = '0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045';
-    const result = parseBinaryForDisplay(binaryHex);
+    const interopAddress = decodeInteroperableAddress(binaryHex);
+    const result = parseInteroperableAddressForDisplay(interopAddress);
 
     expect(result.version).toBe('0001');
     expect(result.chainTypeHex).toBe('0001');

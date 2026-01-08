@@ -8,16 +8,10 @@ import { interoperableAddressSchema } from "../schemas/interoperableAddress.sche
  *
  * NOTE:
  * - This is the canonical binary representation used throughout the addresses package.
- * - It intentionally mirrors the existing `InteropAddress` zod schema so we can
+ * - It intentionally mirrors the existing zod schema so we can
  *   maintain a single source of truth for validation/layout.
  */
 export type InteroperableAddress = z.infer<typeof interoperableAddressSchema>;
-
-/**
- * Backwards-compatible alias for older naming.
- * New code should prefer `InteroperableAddress`.
- */
-export type InteropAddress = InteroperableAddress;
 
 export type ChainType = InteroperableAddress["chainType"];
 

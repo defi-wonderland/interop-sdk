@@ -20,6 +20,12 @@ import { interoperableAddressSchema } from "../schemas/interoperableAddress.sche
 
 type EncodeFormat = "hex" | "bytes";
 
+export type FormatResult<T extends EncodeFormat | undefined> = T extends "hex"
+    ? Hex
+    : T extends "bytes"
+      ? Uint8Array
+      : Hex | Uint8Array;
+
 /**
  * Extracts the version from a binary interop address.
  * From position 0 with length 2.
@@ -178,11 +184,11 @@ export const decodeInteroperableAddress = (value: Uint8Array | Hex): Interoperab
  * - addressLength:        1 byte
  * - address:              M bytes
  */
-export const encodeInteroperableAddress = (
+export const encodeInteroperableAddress = <T extends EncodeFormat | undefined = undefined>(
     addr: InteroperableAddress,
-    opts: { format?: EncodeFormat } = {},
-): Hex | Uint8Array => {
-    const { format = "hex" } = opts;
+    opts?: { format?: T },
+): FormatResult<T> => {
+    const { format = "hex" } = opts ?? {};
 
     const validated = validateInteroperableAddress(addr);
 
@@ -207,10 +213,10 @@ export const encodeInteroperableAddress = (
     ]);
 
     if (format === "bytes") {
-        return bytes;
+        return bytes as FormatResult<T>;
     }
 
-    return fromBytes(bytes, "hex");
+    return fromBytes(bytes, "hex") as FormatResult<T>;
 };
 
 /**
