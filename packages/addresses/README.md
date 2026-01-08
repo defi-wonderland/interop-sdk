@@ -2,7 +2,7 @@
 
 A TypeScript library for handling interoperable blockchain addresses across different networks.
 
-This package provides methods to convert between human-readable addresses and their binary string representation, both following the [ERC-7930](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365) and [ERC-7828](https://ethereum-magicians.org/t/erc-7828-chain-specific-addresses-using-ens/21930) standards. For backward compatibility with existing smart contracts, the package includes utilities to extract individual components (chainId and address) from the binary representation, allowing seamless integration with systems that haven't yet adopted the interop address format.
+This package provides methods to convert between interoperable names (ERC-7828), structured text (CAIP-350), and binary addresses (EIP-7930), following a clean three-layer architecture.
 
 ## Installation
 
@@ -10,56 +10,287 @@ This package provides methods to convert between human-readable addresses and th
 pnpm add @wonderland/interop-addresses
 ```
 
+## Architecture
+
+The package follows a three-layer architecture:
+
+### 1. Binary Core Layer (EIP-7930)
+
+Pure binary encoding/decoding of interoperable addresses. Synchronous, no dependencies on other layers.
+
+**Key Functions:**
+
+-   `decodeInteroperableAddress(value: Uint8Array | Hex): InteroperableAddress`
+-   `encodeInteroperableAddress(addr: InteroperableAddress, opts?: { format?: "hex" | "bytes" }): Hex | Uint8Array`
+-   `calculateChecksum(addr: InteroperableAddress): Checksum`
+-   `validateInteroperableAddress(addr: InteroperableAddress): InteroperableAddress`
+-   `validateChecksum(addr: InteroperableAddress, checksum: Checksum, options?: ValidateChecksumOptions): void`
+
+### 2. Text Layer (CAIP-350)
+
+Structured text representation. Synchronous conversion between binary and structured text.
+
+**Key Functions:**
+
+-   `toText(addr: InteroperableAddress): InteroperableAddressText` (Binary → Text)
+-   `toBinary(text: InteroperableAddressText): InteroperableAddress` (Text → Binary)
+
+### 3. Name Layer (ERC-7828)
+
+Human-readable names with ENS resolution. Async operations for resolution.
+
+**Key Functions:**
+
+-   `parseInteroperableName(input: string | ParsedInteropNameComponents): Promise<ParsedInteroperableNameResult>` (Name → Text + Binary)
+-   `formatInteroperableName(text: InteroperableAddressText, checksum: Checksum): InteroperableName` (Text → Name)
+
 ## Usage
 
+### High-Level Convenience Methods
+
+The `InteropAddressProvider` class provides convenient async methods for common operations:
+
 ```typescript
-// Using the Provider
-// Or just importing the method
-import { humanReadableToBinary, InteropAddressProvider } from "@wonderland/interop-addresses";
+import {
+    binaryToName,
+    binaryToText,
+    nameToBinary,
+    textToBinary,
+} from "@wonderland/interop-addresses";
 
-// With checksum (recommended for sharing)
-const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
-const binaryAddress = await InteropAddressProvider.humanReadableToBinary(humanReadableAddress);
+// Convert name to binary (async - may resolve ENS)
+const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "hex" });
 
-const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
-const binaryAddress = await humanReadableToBinary(humanReadableAddress);
+// Convert binary to name (synchronous)
+const name = binaryToName("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+
+// Convert text to binary (synchronous)
+const text: InteroperableAddressText = {
+    version: 1,
+    chainType: "eip155",
+    chainReference: "1",
+    address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+};
+const binaryFromText = textToBinary(text, { format: "hex" });
+
+// Convert binary to text (synchronous)
+const textFromBinary = binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
 ```
 
-## API
+### Direct Layer Functions
 
-### [InteropAddressProvider](./src/providers/InteropAddressProvider.ts)
+You can also use the layer functions directly for more control:
 
-Available methods
+```typescript
+import {
+    calculateChecksum,
+    decodeInteroperableAddress,
+    encodeInteroperableAddress,
+    formatInteroperableName,
+    parseInteroperableName,
+    toBinary,
+    toText,
+} from "@wonderland/interop-addresses";
 
--   `humanReadableToBinary(humanReadableAddress: string): Promise<BinaryAddress>`
--   `binaryToHumanReadable(binaryAddress: Hex): HumanReadableAddress`
--   `getChainId(humanReadableAddress | binaryAddress): Promise<EncodedChainReference<ChainTypeName>>`
--   `getAddress(humanReadableAddress | binaryAddress): Promise<EncodedAddress<ChainTypeName>>`
--   `buildFromPayload(payload: InteropAddressFields): BinaryAddress`
--   `computeChecksum(humanReadableAddress: string): Promise<Checksum>`
+// Parse name with full result (includes metadata)
+const result = await parseInteroperableName("vitalik.eth@eip155:1#4CA88C9C");
+// result.name - original parsed components
+// result.text - CAIP-350 text representation
+// result.address - binary address (InteroperableAddress)
+// result.meta.checksum - calculated checksum
+// result.meta.checksumMismatch - if provided checksum didn't match
+// result.meta.isENS - whether address was ENS
+// result.meta.isChainLabel - whether chain reference was a label
 
-All methods are also exported as individual functions to allow maximum modularity and tree-shaking
+// Convert binary to text
+const addr = decodeInteroperableAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+const text = toText(addr);
 
-## References
+// Convert text to binary
+const binary = toBinary(text);
+const hex = encodeInteroperableAddress(binary, { format: "hex" });
+```
 
--   [ERC-7930: Interoperable Addresses - Fellowship of Ethereum Magicians](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365)
--   [ERC-7828: Interoperable Names using ENS](https://ethereum-magicians.org/t/erc-7828-chain-specific-addresses-using-ens/21930)
+### Extracting Components
+
+```typescript
+import { getAddress, getChainId } from "@wonderland/interop-addresses";
+
+// Get address from binary or name
+const address = await getAddress("vitalik.eth@eip155:1#4CA88C9C");
+// Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+
+// Get chain ID from binary or name
+const chainId = await getChainId("vitalik.eth@eip155:1#4CA88C9C");
+// Returns: "1"
+```
+
+## API Reference
+
+### High-Level Methods (InteropAddressProvider)
+
+All methods are available as static methods on `InteropAddressProvider` or as standalone exported functions.
+
+#### Async Methods (Name Layer)
+
+-   `nameToBinary(name: string | ParsedInteropNameComponents, opts?: { format?: "hex" | "bytes" }): Promise<Hex | Uint8Array>`
+
+    -   Converts an interoperable name to binary. May resolve ENS names or chain labels.
+
+-   `getAddress(address: string): Promise<EncodedAddress<ChainTypeName>>`
+
+    -   Extracts the address component from a binary address or interoperable name.
+
+-   `getChainId(address: string): Promise<EncodedChainReference<ChainTypeName>>`
+
+    -   Extracts the chain reference from a binary address or interoperable name.
+
+-   `computeChecksum(interoperableName: string): Promise<Checksum>`
+
+    -   Computes the checksum for an interoperable name.
+
+-   `isValidInteropAddress(address: string, options?: ParseInteroperableNameOptions): Promise<boolean>`
+
+    -   Validates if an address (binary or name) is a valid interop address.
+
+-   `isValidInteroperableName(interoperableName: string, options?: ParseInteroperableNameOptions): Promise<boolean>`
+    -   Validates if an interoperable name is valid.
+
+#### Synchronous Methods
+
+-   `binaryToName(binaryAddress: Hex | Uint8Array): InteroperableName`
+
+    -   Converts a binary address to an interoperable name (synchronous).
+
+-   `textToBinary(text: InteroperableAddressText, opts?: { format?: "hex" | "bytes" }): Hex | Uint8Array`
+
+    -   Converts structured text to binary (synchronous).
+
+-   `binaryToText(binaryAddress: Hex | Uint8Array): InteroperableAddressText`
+
+    -   Converts binary to structured text (synchronous).
+
+-   `isValidBinaryAddress(binaryAddress: Hex): boolean`
+    -   Checks if a binary address is valid (synchronous).
+
+### Direct Layer Functions
+
+#### Binary Layer
+
+-   `decodeInteroperableAddress(value: Uint8Array | Hex): InteroperableAddress`
+-   `encodeInteroperableAddress(addr: InteroperableAddress, opts?: { format?: "hex" | "bytes" }): Hex | Uint8Array`
+-   `calculateChecksum(addr: InteroperableAddress): Checksum`
+-   `validateInteroperableAddress(addr: InteroperableAddress): InteroperableAddress`
+-   `validateChecksum(addr: InteroperableAddress, checksum: Checksum, options?: ValidateChecksumOptions): void`
+
+#### Text Layer
+
+-   `toText(addr: InteroperableAddress): InteroperableAddressText`
+-   `toBinary(text: InteroperableAddressText): InteroperableAddress`
+
+#### Name Layer
+
+-   `parseInteroperableName(input: string | ParsedInteropNameComponents): Promise<ParsedInteroperableNameResult>`
+-   `formatInteroperableName(text: InteroperableAddressText, checksum: Checksum): InteroperableName`
+-   `isValidChain(chainType: ChainTypeName, chainReference: string): boolean`
+-   `isValidChainType(chainType: string): chainType is ChainTypeName`
+-   `resolveAddress(address: string, chainNamespace: ChainTypeName, chainReference: string | undefined): Promise<ResolvedAddress>`
+-   `resolveChainReference(chainReference: string): Promise<{ chainType: ChainTypeName; chainReference: string } | null>`
+-   `shortnameToChainId(shortname: string): number | null`
+
+## Types
+
+### InteroperableAddress
+
+The canonical binary representation (EIP-7930 object):
+
+```typescript
+{
+    version: number;
+    chainType: Uint8Array;
+    chainReference: Uint8Array;
+    address: Uint8Array;
+}
+```
+
+### InteroperableAddressText
+
+The CAIP-350 structured text representation:
+
+```typescript
+{
+  version: number;
+  chainType: ChainTypeName; // e.g., "eip155"
+  chainReference?: string;   // e.g., "1"
+  address?: string;          // e.g., "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+}
+```
+
+### InteroperableName
+
+The ERC-7828-style human-readable name string:
+
+```typescript
+type InteroperableName = string; // e.g., "vitalik.eth@eip155:1#4CA88C9C"
+```
+
+### ParsedInteropNameComponents
+
+The raw parsed components from an Interoperable Name string:
+
+```typescript
+{
+    address: string;
+    chainType: string | undefined;
+    chainReference: string;
+    checksum: string | undefined;
+}
+```
+
+This type represents the raw components extracted from parsing an interoperable name string. It can be used directly as input to `parseInteroperableName` or `nameToBinary` instead of a string.
+
+### ParsedInteroperableNameResult
+
+The result from `parseInteroperableName`:
+
+```typescript
+{
+  name: ParsedInteropNameComponents;      // Original parsed components
+  text: InteroperableAddressText;         // CAIP-350 text representation
+  address: InteroperableAddress;          // Binary address
+  meta: {
+    checksum: Checksum;                    // Calculated checksum (always present)
+    checksumMismatch?: {                   // Present if provided checksum didn't match
+      provided: Checksum;
+      calculated: Checksum;
+    };
+    isENS: boolean;                        // Whether address was resolved via ENS
+    isChainLabel: boolean;                 // Whether chain reference was a label
+  };
+}
+```
+
+## Checksum Handling
+
+-   **Always Calculated**: Checksums are always calculated from the binary address, even if not provided in the name.
+-   **Mismatch Detection**: If a checksum is provided in the name but doesn't match the calculated checksum, it's stored in `meta.checksumMismatch` but doesn't throw an error.
+-   **Validation**: Use `validateChecksum` from the binary layer to explicitly validate checksums.
 
 ## ERC Compliance
 
 This package implements:
 
-### ERC-7930 (Interoperable Addresses)
+### EIP-7930 (Interoperable Addresses)
 
 -   ✅ Binary format with version, chain type, chain reference, and address
--   ✅ Human-readable format: `<address>@<namespace>:<reference>#<checksum>`
+-   ✅ Structured text format (CAIP-350): `<address>@<chainType>:<chainReference>`
 -   ✅ Checksum calculation (first 4 bytes of keccak256 hash)
 -   ✅ Support for zero-length addresses and chain references
 -   ✅ Versioning support
 
 ### ERC-7828 (Interoperable Names using ENS)
 
--   ✅ Optional checksums (required when sharing, optional when receiving)
+-   ✅ Human-readable name format: `<address>@<chainType>:<chainReference>#<checksum>`
 -   ✅ ENS name resolution for addresses (e.g., `alice.eth@eip155:1`)
 -   ✅ Validation: ENS names MUST include chain reference
 -   ✅ Context-aware error handling for ENS vs raw addresses
@@ -71,13 +302,11 @@ This package implements:
 -   ⏳ Reverse chain name lookup via ENS
 -   ⏳ Chain discovery via ENS registry (`chainCount`, `getChainAtIndex`)
 
-## Local development
+## Local Development
 
-1. Install dependencies running `pnpm install`
+1. Install dependencies: `pnpm install`
 
 ### Available Scripts
-
-Available scripts that can be run using `pnpm`:
 
 | Script        | Description                                             |
 | ------------- | ------------------------------------------------------- |
@@ -90,3 +319,9 @@ Available scripts that can be run using `pnpm`:
 | `format:fix`  | Run formatter and automatically fix issues              |
 | `test`        | Run tests using vitest                                  |
 | `test:cov`    | Run tests with coverage report                          |
+
+## References
+
+-   [EIP-7930: Interoperable Addresses](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365)
+-   [ERC-7828: Interoperable Names using ENS](https://ethereum-magicians.org/t/erc-7828-chain-specific-addresses-using-ens/21930)
+-   [CAIP-350: Interoperable Addresses](https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-350.md)

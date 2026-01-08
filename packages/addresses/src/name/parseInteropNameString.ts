@@ -6,7 +6,7 @@ import { isValidChainType } from "./isValidChain.js";
  */
 export interface ParsedInteropNameComponents {
     address: string;
-    chainNamespace: string | undefined;
+    chainType: string | undefined;
     chainReference: string;
     checksum: string | undefined;
 }
@@ -38,22 +38,22 @@ export function parseInteropNameString(value: string): ParsedInteropNameComponen
         throw new InvalidInteroperableName(value);
     }
 
-    let chainNamespace: string | undefined = match.groups.namespace || undefined;
+    let chainType: string | undefined = match.groups.namespace || undefined;
     let chainReference: string = match.groups.chain || "";
 
     // If there's a chain but no namespace, check if chain is a valid chain type
-    if (!chainNamespace && chainReference) {
+    if (!chainType && chainReference) {
         if (isValidChainType(chainReference)) {
             // Chain value is a valid chain type, treat it as namespace-only
-            chainNamespace = chainReference;
+            chainType = chainReference;
             chainReference = "";
         }
-        // Otherwise, keep chainReference as is (chainNamespace remains undefined)
+        // Otherwise, keep chainReference as is (chainType remains undefined)
     }
 
     return {
         address: match.groups.address || "",
-        chainNamespace,
+        chainType,
         chainReference,
         checksum: match.groups.checksum || undefined,
     };

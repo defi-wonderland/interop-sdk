@@ -35,7 +35,20 @@ const shortnameToChainIdMap: Promise<Record<string, number>> =
         ? fetchShortnameToChainId()
         : Promise.resolve(DEFAULT_CHAIN_SHORTNAME_MAP);
 
-// TODO: try to remove await for this function
+/**
+ * Resolves a chain shortname to its chain ID.
+ *
+ * Fetches the shortname to chain ID mapping from chainid.network API.
+ * Falls back to a default map if the API call fails.
+ *
+ * @param shortName - The chain shortname (e.g., "eth", "base", "polygon")
+ * @returns The chain ID if found, undefined otherwise
+ * @example
+ * ```ts
+ * const chainId = await shortnameToChainId("eth");
+ * // Returns: 1
+ * ```
+ */
 export const shortnameToChainId = async (shortName: string): Promise<number | undefined> => {
     return (await shortnameToChainIdMap)[shortName];
 };

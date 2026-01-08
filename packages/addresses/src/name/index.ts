@@ -56,9 +56,9 @@ export const parseInteroperableName = async (
             : input;
 
     // Step 1: Validate name components
-    // Validate chainNamespace if provided
-    if (parsed.chainNamespace && !isValidChainType(parsed.chainNamespace)) {
-        throw new InvalidChainNamespace(parsed.chainNamespace);
+    // Validate chainType if provided
+    if (parsed.chainType && !isValidChainType(parsed.chainType)) {
+        throw new InvalidChainNamespace(parsed.chainType);
     }
 
     // Track metadata flags
@@ -68,18 +68,18 @@ export const parseInteroperableName = async (
     let resolvedChainNamespace: ChainTypeName | undefined;
     let resolvedChainRef: string | undefined;
 
-    if (parsed.chainNamespace && parsed.chainReference) {
+    if (parsed.chainType && parsed.chainReference) {
         // We have both chainType and chainReference - use them directly, no resolution needed
-        resolvedChainNamespace = parsed.chainNamespace as ChainTypeName;
+        resolvedChainNamespace = parsed.chainType as ChainTypeName;
         resolvedChainRef = parsed.chainReference;
 
         // Validate the chain reference
         if (!isValidChain(resolvedChainNamespace, resolvedChainRef)) {
             throw new InvalidChainIdentifier(resolvedChainRef);
         }
-    } else if (parsed.chainNamespace) {
+    } else if (parsed.chainType) {
         // We have chainType but no chainReference
-        resolvedChainNamespace = parsed.chainNamespace as ChainTypeName;
+        resolvedChainNamespace = parsed.chainType as ChainTypeName;
     } else if (parsed.chainReference) {
         // We have chainReference but no chainType - resolve it (shortname to namespace/reference)
         const resolved = await resolveChainReference(parsed.chainReference);
@@ -174,7 +174,20 @@ export const parseInteroperableName = async (
  * Formats a CAIP-350 text representation and checksum into an interoperable
  * name string.
  *
- * Example: `${address}@${chainType}:${chainReference}#${checksum}`
+ * @param text - The CAIP-350 structured text representation
+ * @param checksum - The checksum to include in the formatted name
+ * @returns The interoperable name string in the format: `${address}@${chainType}:${chainReference}#${checksum}`
+ * @example
+ * ```ts
+ * const text: InteroperableAddressText = {
+ *   version: 1,
+ *   chainType: "eip155",
+ *   chainReference: "1",
+ *   address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+ * };
+ * const name = formatInteroperableName(text, "4CA88C9C");
+ * // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C"
+ * ```
  */
 export const formatInteroperableName = (
     text: InteroperableAddressText,

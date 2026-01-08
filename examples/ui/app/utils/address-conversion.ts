@@ -32,7 +32,7 @@ export async function convertFromReadable(interoperableName: string): Promise<Co
   // Map parseInteroperableName result to ParsedHumanReadable format
   const humanParts: ParsedHumanReadable = {
     name: parsed.name.address || '',
-    chainType: parsed.name.chainNamespace || '',
+    chainType: parsed.name.chainType || '',
     chainReference: parsed.name.chainReference || '',
     checksum: parsed.name.checksum || '',
   };

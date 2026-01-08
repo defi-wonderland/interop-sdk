@@ -23,6 +23,19 @@ import {
 /**
  * Converts a binary interoperable address object into its CAIP-350
  * structured text representation.
+ *
+ * This is a synchronous function that converts the binary EIP-7930 format
+ * to the structured text format used by CAIP-350.
+ *
+ * @param addr - The binary interoperable address to convert
+ * @returns The CAIP-350 structured text representation
+ * @throws {UnsupportedChainType} If the chain type is not supported
+ * @example
+ * ```ts
+ * const addr = decodeInteroperableAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+ * const text = toText(addr);
+ * // Returns: { version: 1, chainType: "eip155", chainReference: "1", address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" }
+ * ```
  */
 export const toText = (addr: InteroperableAddress): InteroperableAddressText => {
     const validated: InteroperableAddress = validateInteroperableAddress(addr);
@@ -56,6 +69,23 @@ export const toText = (addr: InteroperableAddress): InteroperableAddressText => 
 /**
  * Converts a CAIP-350 structured text representation into the
  * binary interoperable address object.
+ *
+ * This is a synchronous function that converts the structured text format
+ * to the binary EIP-7930 format.
+ *
+ * @param text - The CAIP-350 structured text representation
+ * @returns The binary interoperable address object
+ * @throws {InvalidChainNamespace} If the chain type is invalid
+ * @example
+ * ```ts
+ * const text: InteroperableAddressText = {
+ *   version: 1,
+ *   chainType: "eip155",
+ *   chainReference: "1",
+ *   address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+ * };
+ * const addr = toBinary(text);
+ * ```
  */
 export const toBinary = (text: InteroperableAddressText): InteroperableAddress => {
     const { version, chainType, chainReference, address } = text;

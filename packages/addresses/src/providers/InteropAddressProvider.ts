@@ -212,15 +212,142 @@ export class InteropAddressProvider {
 }
 
 // High-level convenience methods
+/**
+ * Converts an interoperable name to a binary address.
+ * This is async because it may need to resolve ENS names or chain labels.
+ *
+ * @param name - Either an interoperable name string or raw components from parseInteropNameString
+ * @param opts - Options for encoding format (hex or bytes)
+ * @returns The binary address in the specified format
+ * @example
+ * ```ts
+ * const binaryAddress = await nameToBinary("alice.eth@eip155:1#ABCD1234");
+ * ```
+ */
 export const nameToBinary = InteropAddressProvider.nameToBinary;
+
+/**
+ * Converts a binary address to an interoperable name.
+ *
+ * @param binaryAddress - The binary address to convert
+ * @returns The interoperable name string
+ * @example
+ * ```ts
+ * const interoperableName = binaryToName("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+ * ```
+ */
 export const binaryToName = InteropAddressProvider.binaryToName;
+
+/**
+ * Converts InteroperableAddressText to a binary address.
+ * This is a synchronous convenience method that chains toBinary and encodeInteroperableAddress.
+ * Use this when you already have structured text data and don't need resolution (ENS, chain labels).
+ *
+ * @param text - The CAIP-350 structured text representation
+ * @param opts - Options for encoding format (hex or bytes)
+ * @returns The binary address in the specified format
+ * @example
+ * ```ts
+ * const binaryAddress = textToBinary({
+ *   version: 1,
+ *   chainType: "eip155",
+ *   chainReference: "1",
+ *   address: "0x1"
+ * });
+ * ```
+ */
 export const textToBinary = InteropAddressProvider.textToBinary;
+
+/**
+ * Converts a binary address to InteroperableAddressText.
+ * This is a synchronous convenience method that wraps the text layer's toText function.
+ *
+ * @param binaryAddress - The binary address to convert
+ * @returns The CAIP-350 structured text representation
+ * @example
+ * ```ts
+ * const text = binaryToText("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+ * ```
+ */
 export const binaryToText = InteropAddressProvider.binaryToText;
+
+/**
+ * Get the chain ID from a binary address or interoperable name.
+ *
+ * @param address - The binary address or interoperable name to get the chain ID from
+ * @returns The chain ID in the format of the chain type
+ * @example
+ * ```ts
+ * const chainId = await getChainId("vitalik.eth@eip155:1#4CA88C9C");
+ * // Returns: "1"
+ * ```
+ */
 export const getChainId = InteropAddressProvider.getChainId;
+
+/**
+ * Get the address from a binary address or interoperable name.
+ *
+ * @param address - The binary address or interoperable name to get the address from
+ * @returns The address in the format of the chain type
+ * @example
+ * ```ts
+ * const address = await getAddress("vitalik.eth@eip155:1#4CA88C9C");
+ * // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+ * ```
+ */
 export const getAddress = InteropAddressProvider.getAddress;
+
+/**
+ * Computes the checksum of an interoperable name.
+ *
+ * @param interoperableName - The interoperable name to compute the checksum of
+ * @returns The checksum
+ * @throws {Error} If the interoperable name is invalid
+ * @example
+ * ```ts
+ * const checksum = await computeChecksum("alice.eth@eip155:1");
+ * ```
+ */
 export const computeChecksum = InteropAddressProvider.computeChecksum;
+
+/**
+ * Checks if an address is a valid interop address.
+ *
+ * @param address - The address to check, can be an interoperable name or a binary address
+ * @param options - The options to pass to the parseInteroperableName function
+ * @param options.validateChecksumFlag - Whether to validate the checksum of the address
+ * @returns true if the address is a valid interop address, false otherwise
+ * @example
+ * ```ts
+ * const isValid = await isValidInteropAddress("alice.eth@eip155:1#ABCD1234", { validateChecksumFlag: true });
+ * ```
+ */
 export const isValidInteropAddress = InteropAddressProvider.isValidInteropAddress;
+
+/**
+ * Checks if an interoperable name is a valid interop address.
+ *
+ * @param interoperableName - The interoperable name to check
+ * @param options - The options to pass to the parseInteroperableName function
+ * @param options.validateChecksumFlag - Whether to validate the checksum of the address
+ * @returns true if the address is a valid interop address, false otherwise
+ * @example
+ * ```ts
+ * const isValid = await isValidInteroperableName("alice.eth@eip155:1#ABCD1234", { validateChecksumFlag: true });
+ * ```
+ */
 export const isValidInteroperableName = InteropAddressProvider.isValidInteroperableName;
+
+/**
+ * Checks if a binary address is a valid interop address.
+ *
+ * @param binaryAddress - The binary address to check
+ * @returns true if the address is a valid interop address, false otherwise
+ * @example
+ * ```ts
+ * const isValid = isValidBinaryAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+ * ```
+ */
 export const isValidBinaryAddress = InteropAddressProvider.isValidBinaryAddress;
 
 // Binary layer functions - re-exported for direct use
