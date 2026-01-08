@@ -36,7 +36,7 @@ export function ProgressView({ state }: { state: OrderExecutionState }) {
                       : stepStatus === 'complete'
                         ? 'text-accent'
                         : stepStatus === 'error'
-                          ? 'text-red-500'
+                          ? 'text-error'
                           : 'text-text-tertiary'
                   }`}
                 >

@@ -133,6 +133,7 @@ export default function CrossChainPage() {
                     outputTokenAddress={selectedOutputToken}
                     selectedQuoteId={selectedQuote?.quoteId}
                     executionStatus={EXECUTION_STATUS.IDLE}
+                    isLoading={isLoading}
                     onSelectQuote={handleSelectQuote}
                     onExecuteQuote={handleExecuteQuote}
                   />
