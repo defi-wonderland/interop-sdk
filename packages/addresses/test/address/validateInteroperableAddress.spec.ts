@@ -160,7 +160,7 @@ describe("validateInteroperableAddress", () => {
                 expect(error).toBeInstanceOf(InvalidInteroperableAddress);
                 if (error instanceof InvalidInteroperableAddress) {
                     const message = error.zodError.issues[0]?.message || error.message;
-                    expect(message).toContain('Invalid address for chain type "eip155"');
+                    expect(message).toBe("EVM address must be a valid Ethereum address");
                 }
             }
         });
@@ -183,7 +183,7 @@ describe("validateInteroperableAddress", () => {
                 expect(error).toBeInstanceOf(InvalidInteroperableAddress);
                 if (error instanceof InvalidInteroperableAddress) {
                     const message = error.zodError.issues[0]?.message || error.message;
-                    expect(message).toContain('Invalid address for chain type "solana"');
+                    expect(message).toContain("Invalid Solana address:");
                 }
             }
         });
@@ -206,7 +206,7 @@ describe("validateInteroperableAddress", () => {
                 expect(error).toBeInstanceOf(InvalidInteroperableAddress);
                 if (error instanceof InvalidInteroperableAddress) {
                     const message = error.zodError.issues[0]?.message || error.message;
-                    expect(message).toContain('Invalid chain reference for chain type "eip155"');
+                    expect(message).toBe("Invalid chain identifier: not-a-number");
                 }
             }
         });
@@ -229,7 +229,7 @@ describe("validateInteroperableAddress", () => {
                 expect(error).toBeInstanceOf(InvalidInteroperableAddress);
                 if (error instanceof InvalidInteroperableAddress) {
                     const message = error.zodError.issues[0]?.message || error.message;
-                    expect(message).toContain('Invalid chain reference for chain type "eip155"');
+                    expect(message).toBe("Invalid chain identifier: 0");
                 }
             }
         });
@@ -252,7 +252,7 @@ describe("validateInteroperableAddress", () => {
                 expect(error).toBeInstanceOf(InvalidInteroperableAddress);
                 if (error instanceof InvalidInteroperableAddress) {
                     const message = error.zodError.issues[0]?.message || error.message;
-                    expect(message).toContain('Invalid chain reference for chain type "solana"');
+                    expect(message).toBe("Invalid chain identifier: not-a-valid-base58-string");
                 }
             }
         });

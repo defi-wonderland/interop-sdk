@@ -120,8 +120,15 @@ export const resolveAddress = async (
                     resolvedAddress = resolved;
                 }
             } catch (error) {
-                // If resolution fails, return the original address
-                // This allows the caller to handle the error or use the original value
+                // Re-throw ENS errors (ENSLookupFailed, ENSNotFound) so they can be handled properly
+                // Don't silently catch these - they should bubble up
+                if (error instanceof ENSNotFound || error instanceof ENSLookupFailed) {
+                    throw error;
+                }
+                // For other errors, re-throw as ENSLookupFailed
+                throw new ENSLookupFailed(
+                    "Unexpected error, please try again or check your connection",
+                );
             }
         }
     }

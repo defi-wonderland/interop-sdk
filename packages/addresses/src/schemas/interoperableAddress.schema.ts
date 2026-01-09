@@ -75,16 +75,31 @@ export const interoperableAddressTextSchema = z
     .refine(
         (data) => isValidChainReferenceForType(data.chainType, data.chainReference),
         (data) => ({
-            message: `Invalid chain reference for chain type "${data.chainType}": ${data.chainReference}`,
+            message: `Invalid chain identifier: ${data.chainReference}`,
             path: ["chainReference"],
         }),
     )
     .refine(
         (data) => isValidAddressForType(data.chainType, data.address),
-        (data) => ({
-            message: `Invalid address for chain type "${data.chainType}": ${data.address}`,
-            path: ["address"],
-        }),
+        (data) => {
+            // Provide chain-type-specific error messages
+            if (data.chainType === "eip155") {
+                return {
+                    message: "EVM address must be a valid Ethereum address",
+                    path: ["address"],
+                };
+            }
+            if (data.chainType === "solana") {
+                return {
+                    message: `Invalid Solana address: ${data.address}`,
+                    path: ["address"],
+                };
+            }
+            return {
+                message: `Invalid address for chain type "${data.chainType}": ${data.address}`,
+                path: ["address"],
+            };
+        },
     );
 
 /**
