@@ -87,7 +87,7 @@ export interface ResolvedAddress {
  * Also validates that ENS names have a chain reference.
  *
  * @param address - The address to resolve (can be a regular address or ENS name)
- * @param chainNamespace - The chain namespace (e.g., "eip155")
+ * @param chainType - The chain type (e.g., "eip155")
  * @param chainReference - The chain reference (chain ID as string)
  * @returns The resolved address and whether it was an ENS name
  * @throws {InvalidInteroperableName} If an ENS name is provided without a chain reference
@@ -96,7 +96,7 @@ export interface ResolvedAddress {
  */
 export const resolveAddress = async (
     address: string,
-    chainNamespace: ChainTypeName,
+    chainType: ChainTypeName,
     chainReference: string | undefined,
 ): Promise<ResolvedAddress> => {
     const isENS = isENSName(address);
@@ -105,7 +105,7 @@ export const resolveAddress = async (
     if (isENS && !chainReference) {
         throw new InvalidInteroperableName(
             `ENS names require a specific chain reference (e.g., @eip155:1 or @ethereum). ` +
-                `Use @<namespace>:<reference> format.`,
+                `Use @<chainType>:<reference> format.`,
         );
     }
 
@@ -113,7 +113,7 @@ export const resolveAddress = async (
 
     if (isENS) {
         // Only resolve ENS names for EIP-155 chains
-        if (chainNamespace === "eip155" && chainReference) {
+        if (chainType === "eip155" && chainReference) {
             try {
                 const resolved = await resolveENSName(address, chainReference);
                 if (resolved) {

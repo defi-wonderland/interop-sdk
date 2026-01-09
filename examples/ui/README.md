@@ -43,9 +43,9 @@ pnpm test:e2e
 - **Theme Support**: Light and dark themes for comfortable viewing
 
 ### Format Support
-- **Human-Readable (ERC-7930)**: `0xAddress@namespace:chainRef#checksum`
+- **Human-Readable (ERC-7930)**: `0xAddress@chainType:chainRef#checksum`
 - **Binary (ERC-7828)**: Compact byte representation for on-chain efficiency
-- **EVM Chains**: Supports eip155 namespace for Ethereum and EVM-compatible chains ([CAIP-2 spec](https://chainagnostic.org/CAIPs/caip-2))
+- **EVM Chains**: Supports eip155 chain type for Ethereum and EVM-compatible chains ([CAIP-2 spec](https://chainagnostic.org/CAIPs/caip-2))
 - **ENS Names**: Full support for ENS resolution (e.g., `vitalik.eth@eip155:1#checksum`)
 
 ## Tech Stack

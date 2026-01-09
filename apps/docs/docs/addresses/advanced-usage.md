@@ -180,7 +180,7 @@ import {
     ENSLookupFailed,
     ENSNotFound,
     InvalidAddress,
-    InvalidChainNamespace,
+    InvalidChainType,
     InvalidInteroperableAddress,
     InvalidInteroperableName,
     UnsupportedChainType,
@@ -199,8 +199,8 @@ try {
         // Handle ENS lookup failure
     } else if (error instanceof InvalidInteroperableName) {
         // Handle invalid interoperable name format
-    } else if (error instanceof InvalidChainNamespace) {
-        // Handle invalid chain namespace
+    } else if (error instanceof InvalidChainType) {
+        // Handle invalid chain type
     } else if (error instanceof InvalidInteroperableAddress) {
         // Handle invalid interoperable address structure (validation error)
         // Thrown by validateInteroperableAddress, encodeAddress, toBinaryRepresentation, formatName

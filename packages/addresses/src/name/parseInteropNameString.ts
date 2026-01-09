@@ -15,7 +15,7 @@ const INTEROP_NAME_REGEX = new RegExp(
     "^" +
         "(?<address>[.\\-:_%a-zA-Z0-9]*)" + // Address part
         "@" + // Separator
-        "(?:(?<namespace>[-a-z0-9]{3,8}):)?" + // Namespace with :
+        "(?:(?<chainType>[-a-z0-9]{3,8}):)?" + // Chain type with :
         "(?<chain>[\\-_a-zA-Z0-9]*)?" + // Chain reference
         "(?:#(?<checksum>[A-F0-9]{8}))?" + // Checksum with #
         "$",
@@ -24,8 +24,8 @@ const INTEROP_NAME_REGEX = new RegExp(
 /**
  * Parses an Interoperable Name string into raw components using regex
  *
- * If there is a <chain> but no <namespace>, checks if the <chain> is a valid chain type.
- * If it is, returns it as the namespace (with chain empty). Otherwise, returns it as chainReference.
+ * If there is a <chain> but no <chainType>, checks if the <chain> is a valid chain type.
+ * If it is, returns it as the chainType (with chain empty). Otherwise, returns it as chainReference.
  *
  * @param value - The Interoperable Name string (e.g., "alice.eth@eip155:1#ABCD1234")
  * @returns Raw components extracted from the string
@@ -38,13 +38,13 @@ export function parseInteropNameString(value: string): ParsedInteropNameComponen
         throw new InvalidInteroperableName(value);
     }
 
-    let chainType: string | undefined = match.groups.namespace || undefined;
+    let chainType: string | undefined = match.groups.chainType || undefined;
     let chainReference: string = match.groups.chain || "";
 
-    // If there's a chain but no namespace, check if chain is a valid chain type
+    // If there's a chain but no chainType, check if chain is a valid chain type
     if (!chainType && chainReference) {
         if (isValidChainType(chainReference)) {
-            // Chain value is a valid chain type, treat it as namespace-only
+            // Chain value is a valid chain type, treat it as chainType-only
             chainType = chainReference;
             chainReference = "";
         }

@@ -1,5 +1,5 @@
 import { ChainTypeName, ChainTypeName as ChainTypeNameEnum } from "../constants/interopAddress.js";
-import { InvalidChainIdentifier, InvalidChainNamespace } from "../internal.js";
+import { InvalidChainIdentifier, InvalidChainType } from "../internal.js";
 import { isValidChain, isValidChainType } from "./isValidChain.js";
 import { shortnameToChainId } from "./shortnameToChainId.js";
 
@@ -23,7 +23,7 @@ export interface ResolvedChain {
  *
  * @param input - Object with optional chainType and chainReference
  * @returns Resolved chain with chainType (always) and chainReference (if available)
- * @throws {InvalidChainNamespace} If chainType is invalid
+ * @throws {InvalidChainType} If chainType is invalid
  * @throws {InvalidChainIdentifier} If chainReference can't be resolved or chain combination is invalid
  */
 export const resolveChain = async (input: ResolveChainInput): Promise<ResolvedChain> => {
@@ -33,7 +33,7 @@ export const resolveChain = async (input: ResolveChainInput): Promise<ResolvedCh
     if (chainType && chainReference) {
         // Validate chainType
         if (!isValidChainType(chainType)) {
-            throw new InvalidChainNamespace(chainType);
+            throw new InvalidChainType(chainType);
         }
 
         const resolvedChainType = chainType as ChainTypeName;
@@ -53,7 +53,7 @@ export const resolveChain = async (input: ResolveChainInput): Promise<ResolvedCh
     if (chainType) {
         // Validate chainType
         if (!isValidChainType(chainType)) {
-            throw new InvalidChainNamespace(chainType);
+            throw new InvalidChainType(chainType);
         }
 
         return {
@@ -78,5 +78,5 @@ export const resolveChain = async (input: ResolveChainInput): Promise<ResolvedCh
     }
 
     // Case 4: Neither provided - error
-    throw new InvalidChainNamespace("Chain type is required to build InteroperableAddress");
+    throw new InvalidChainType("Chain type is required to build InteroperableAddress");
 };

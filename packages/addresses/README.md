@@ -214,7 +214,7 @@ All methods are available as static methods on `InteropAddressProvider` or as st
 -   `formatName(addr: InteroperableAddress, opts?: { includeChecksum?: boolean }): InteroperableName` - Formats address to name (accepts either representation, calculates checksum automatically)
 -   `isValidChain(chainType: ChainTypeName, chainReference: string): boolean`
 -   `isValidChainType(chainType: string): chainType is ChainTypeName`
--   `resolveAddress(address: string, chainNamespace: ChainTypeName, chainReference: string | undefined): Promise<ResolvedAddress>`
+-   `resolveAddress(address: string, chainType: ChainTypeName, chainReference: string | undefined): Promise<ResolvedAddress>`
 -   `resolveChain(input: { chainType?: string; chainReference?: string }): Promise<ResolvedChain>`
 -   `shortnameToChainId(shortname: string): number | null`
 

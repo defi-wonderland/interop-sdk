@@ -401,7 +401,7 @@ Resolves an address, handling ENS names if applicable.
 ```typescript
 resolveAddress(
   address: string,
-  chainNamespace: ChainTypeName,
+  chainType: ChainTypeName,
   chainReference: string | undefined
 ): Promise<ResolvedAddress>
 ```

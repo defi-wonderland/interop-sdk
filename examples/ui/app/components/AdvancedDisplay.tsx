@@ -36,7 +36,7 @@ const fields: FieldConfig<AdvancedFieldKey, ParsedInteroperableNameResult>[] = [
       const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
       return textAddr.chainType || <span className='text-text-tertiary italic'>(not set)</span>;
     },
-    description: 'Chain namespace (e.g., eip155, solana)',
+    description: 'Chain type (e.g., eip155, solana)',
   },
   {
     key: 'text-chainReference',

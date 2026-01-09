@@ -41,10 +41,10 @@ describe("isInteropAddress", () => {
         // Missing chain reference (valid per ERC-7930 for raw addresses)
         testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155", true);
 
-        // Invalid EVM address (too short) with otherwise valid namespace/reference
+        // Invalid EVM address (too short) with otherwise valid chainType/reference
         testAddress("0x1234@eip155:1", false);
 
-        // Missing chain namespace
+        // Missing chain type
         testAddress("0xd8dA6BF26964aF9D7eEd9e03E53415D37@:1#4CA88C9C", false);
 
         testAddress("@eip155:1#F54D4FBF", true);
@@ -71,7 +71,7 @@ describe("isInteropAddress", () => {
             true,
         );
 
-        // Missing chain namespace
+        // Missing chain type
         testAddress("0x0001", false);
 
         // Missing chain reference

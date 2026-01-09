@@ -20,7 +20,7 @@ const fields: FieldConfig<BinaryPartKey, AddressResult>[] = [
     label: 'Chain Type',
     getValue: (r) => r.chainTypeHex,
     getDisplayValue: (r) => r.chainTypeHex,
-    description: 'Encoded namespace (eip155 for EVM chains)',
+    description: 'Encoded chain type (eip155 for EVM chains)',
   },
   {
     key: BinaryPartKey.CHAIN_REF_LENGTH,

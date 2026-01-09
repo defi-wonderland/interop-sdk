@@ -5,7 +5,7 @@ export * from "./InvalidConversionType.exception.js";
 export * from "./InvalidInteroperableName.exception.js";
 export * from "./InvalidChainIdentifier.exception.js";
 export * from "./MissingInteroperableName.exception.js";
-export * from "./InvalidChainNamespace.exception.js";
+export * from "./InvalidChainType.exception.js";
 export * from "./invalidAddress.exception.js";
 export * from "./invalidChainReference.exception.js";
 export * from "./invalidBinaryInteropAddress.exception.js";

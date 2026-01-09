@@ -11,7 +11,7 @@ describe("erc7930", () => {
             const binaryAddress = "0x00010000010114D8DA6BF26964AF9D7EED9E03E53415D37AA96045";
             /*    0x00010000010114D8DA6BF26964AF9D7EED9E03E53415D37AA96045
                     ^^^^-------------------------------------------------- Version:              decimal 1
-                        ^^^^---------------------------------------------- ChainType:            2 bytes of CAIP namespace
+                        ^^^^---------------------------------------------- ChainType:            2 bytes of chain type
                             ^^-------------------------------------------- ChainReferenceLength: decimal 1
                               ^^------------------------------------------ ChainReference:       1 byte to store uint8(1)
                                 ^^---------------------------------------- AddressLength:        decimal 20

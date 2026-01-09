@@ -40,13 +40,13 @@ import {
  */
 export const chainReferenceToText = (chainReference: Uint8Array, chainType: Uint8Array): string => {
     const chainTypeHex = toHex(chainType) as ChainTypeValue;
-    const namespace = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex];
+    const chainTypeName = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex];
 
-    if (!namespace) {
+    if (!chainTypeName) {
         throw new UnsupportedChainType(chainTypeHex);
     }
 
-    switch (namespace) {
+    switch (chainTypeName) {
         case ChainTypeName.EIP155: {
             const asNumber = bytesToNumber(chainReference);
             return asNumber.toString(10);
@@ -65,7 +65,7 @@ export const chainReferenceToText = (chainReference: Uint8Array, chainType: Uint
  * For Solana chains, decodes from base58-encoded string.
  *
  * @param chainReference - The text representation of the chain reference
- * @param chainNamespace - The chain namespace (e.g., "eip155", "solana")
+ * @param chainType - The chain type (e.g., "eip155", "solana")
  * @returns The binary chain reference bytes
  * @throws {UnsupportedChainType} If the chain type is not supported
  * @example
@@ -76,15 +76,15 @@ export const chainReferenceToText = (chainReference: Uint8Array, chainType: Uint
  */
 export const chainReferenceToBinary = (
     chainReference: string,
-    chainNamespace: ChainTypeName,
+    chainType: ChainTypeName,
 ): Uint8Array => {
-    switch (chainNamespace) {
+    switch (chainType) {
         case ChainTypeName.EIP155:
             return convertToBytes(chainReference, "decimal");
         case ChainTypeName.SOLANA:
             return convertToBytes(chainReference, "base58");
         default:
-            throw new UnsupportedChainType(chainNamespace);
+            throw new UnsupportedChainType(chainType);
     }
 };
 
@@ -111,13 +111,13 @@ export const addressToText = (
     chainType: Uint8Array,
 ): EncodedAddress<ChainTypeName> | string => {
     const chainTypeHex = toHex(chainType) as ChainTypeValue;
-    const namespace = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex];
+    const chainTypeName = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex];
 
-    if (!namespace) {
+    if (!chainTypeName) {
         throw new UnsupportedChainType(chainTypeHex);
     }
 
-    switch (namespace) {
+    switch (chainTypeName) {
         case ChainTypeName.EIP155:
             // EIP-55 checksum address
             return getAddress(toHex(address)) as EncodedAddress<ChainTypeName>;
@@ -135,7 +135,7 @@ export const addressToText = (
  * For Solana chains, decodes from base58-encoded string.
  *
  * @param address - The text representation of the address
- * @param chainNamespace - The chain namespace (e.g., "eip155", "solana")
+ * @param chainType - The chain type (e.g., "eip155", "solana")
  * @returns The binary address bytes
  * @throws {InvalidAddress} If the address format is invalid for the chain type
  * @throws {UnsupportedChainType} If the chain type is not supported
@@ -145,13 +145,13 @@ export const addressToText = (
  * // Returns: Uint8Array with the address bytes
  * ```
  */
-export const addressToBinary = (address: string, chainNamespace: ChainTypeName): Uint8Array => {
+export const addressToBinary = (address: string, chainType: ChainTypeName): Uint8Array => {
     // Empty address is allowed by the interoperable address spec.
     if (!address) {
         return new Uint8Array();
     }
 
-    switch (chainNamespace) {
+    switch (chainType) {
         case ChainTypeName.EIP155: {
             if (!isAddress(address, { strict: false })) {
                 throw new InvalidAddress("EVM address must be a valid Ethereum address");
@@ -167,6 +167,6 @@ export const addressToBinary = (address: string, chainNamespace: ChainTypeName):
             return decoded;
         }
         default:
-            throw new UnsupportedChainType(chainNamespace);
+            throw new UnsupportedChainType(chainType);
     }
 };

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     InvalidChainIdentifier,
-    InvalidChainNamespace,
+    InvalidChainType,
     MissingInteroperableName,
 } from "../../src/internal.js";
 import { parseName } from "../../src/name/index.js";
@@ -137,7 +137,7 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        // When only chainReference is provided, it should be resolved to namespace/reference
+        // When only chainReference is provided, it should be resolved to chainType/reference
         if (isTextAddress(result.address)) {
             expect(result.address.chainType).toBe("eip155");
             expect(result.address.chainReference).toBe("1");
@@ -169,10 +169,10 @@ describe("parseName", () => {
         await expect(parseName("   ")).rejects.toThrow(MissingInteroperableName);
     });
 
-    it("throws InvalidChainNamespace for invalid chain type", async () => {
+    it("throws InvalidChainType for invalid chain type", async () => {
         const name = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@invalid:1#4CA88C9C";
 
-        await expect(parseName(name)).rejects.toThrow(InvalidChainNamespace);
+        await expect(parseName(name)).rejects.toThrow(InvalidChainType);
     });
 
     it("throws InvalidChainIdentifier for invalid chain reference", async () => {
@@ -207,7 +207,7 @@ describe("parseName", () => {
         expect(result.meta.isChainLabel).toBe(false);
     });
 
-    it("throws error when only namespace is provided (no address or chain reference)", async () => {
+    it("throws error when only chainType is provided (no address or chain reference)", async () => {
         const name = "@eip155";
 
         await expect(parseName(name)).rejects.toThrow(
