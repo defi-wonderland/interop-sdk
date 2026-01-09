@@ -5,7 +5,7 @@ import { isValidChainType } from "./isValidChain.js";
  * Parsed components from an Interoperable Name string
  */
 export interface ParsedInteropNameComponents {
-    address: string;
+    address?: string;
     chainType: string | undefined;
     chainReference: string;
     checksum: string | undefined;
@@ -52,7 +52,7 @@ export function parseInteropNameString(value: string): ParsedInteropNameComponen
     }
 
     return {
-        address: match.groups.address || "",
+        address: match.groups.address || undefined,
         chainType,
         chainReference,
         checksum: match.groups.checksum || undefined,

@@ -20,7 +20,7 @@ Discriminated union address representation - either binary or text, but not both
 
 **Key Functions:**
 
--   `decodeAddress(value: Uint8Array | Hex, opts?: { representation?: "binary" | "text" }): InteroperableAddress` - Decodes binary to address (defaults to "text" representation)
+-   `decodeAddress(value: Uint8Array | Hex, opts?: { representation?: "binary" | "text" }): InteroperableAddress` - Decodes binary to address (defaults to "text" representation). TypeScript overloads ensure that `representation: "binary"` returns `InteroperableAddressBinary`, otherwise `InteroperableAddressText`.
 -   `encodeAddress(addr: InteroperableAddress, opts?: { format?: "hex" | "bytes" }): Hex | Uint8Array` - Encodes address to binary (accepts either representation)
 -   `toBinaryRepresentation(addr: InteroperableAddress): InteroperableAddress` - Converts text representation to binary
 -   `toTextRepresentation(addr: InteroperableAddress): InteroperableAddress` - Converts binary representation to text
@@ -34,7 +34,7 @@ Human-readable names with ENS resolution. Async operations for resolution.
 
 **Key Functions:**
 
--   `parseName(input: string | ParsedInteropNameComponents, opts?: { representation?: "binary" | "text" }): Promise<ParsedInteroperableNameResult>` (Name → Address, defaults to "text" representation)
+-   `parseName(input: string | ParsedInteropNameComponents, opts?: { representation?: "binary" | "text" }): Promise<ParsedInteroperableNameResult>` (Name → Address, defaults to "text" representation). TypeScript overloads ensure that `representation: "binary"` returns `ParsedInteroperableNameResult<InteroperableAddressBinary>`, otherwise `ParsedInteroperableNameResult<InteroperableAddressText>`.
 -   `formatName(addr: InteroperableAddress, opts?: { includeChecksum?: boolean }): InteroperableName` (Address → Name, accepts either representation, calculates checksum automatically)
 
 ## Usage
@@ -285,7 +285,7 @@ The raw parsed components from an Interoperable Name string:
 
 ```typescript
 {
-    address: string;
+    address?: string;
     chainType: string | undefined;
     chainReference: string;
     checksum: string | undefined;

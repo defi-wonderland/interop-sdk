@@ -164,10 +164,17 @@ const isValid = isValidBinaryAddress("0x00010000010114d8da6bf26964af9d7eed9e03e5
 Decodes a binary address into an `InteroperableAddress` object. Defaults to text representation.
 
 ```typescript
+// Binary output
 decodeAddress(
   value: Uint8Array | Hex,
-  opts?: { representation?: "binary" | "text" }
-): InteroperableAddress
+  opts: { representation: "binary" }
+): InteroperableAddressBinary;
+
+// Text output (default)
+decodeAddress(
+  value: Uint8Array | Hex,
+  opts?: { representation?: "text" }
+): InteroperableAddressText;
 ```
 
 **Returns:** Address in the specified representation (defaults to "text"):
@@ -291,10 +298,17 @@ validateChecksum(
 Parses an interoperable name with full metadata. Defaults to text representation.
 
 ```typescript
+// Binary output
 parseName(
   input: string | ParsedInteropNameComponents,
-  opts?: { representation?: "binary" | "text" }
-): Promise<ParsedInteroperableNameResult>
+  opts: { representation: "binary" }
+): Promise<ParsedInteroperableNameResult<InteroperableAddressBinary>>;
+
+// Text output (default)
+parseName(
+  input: string | ParsedInteropNameComponents,
+  opts?: { representation?: "text" }
+): Promise<ParsedInteroperableNameResult<InteroperableAddressText>>;
 ```
 
 **Returns:**
@@ -510,7 +524,7 @@ The raw parsed components from an Interoperable Name string:
 
 ```typescript
 {
-    address: string;
+    address?: string;
     chainType: string | undefined;
     chainReference: string;
     checksum: string | undefined;

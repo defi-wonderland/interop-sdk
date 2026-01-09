@@ -107,13 +107,19 @@ console.log(chainId); // "8453"
 If you already have a binary address, you can extract components synchronously:
 
 ```typescript
-import { binaryToAddressText } from "@wonderland/interop-addresses";
+import { decodeAddress, isTextAddress } from "@wonderland/interop-addresses";
 
 const binaryAddress = "0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045";
 
 // Convert to structured object with CAIP-350 text-encoded fields (synchronous)
-const text = binaryToAddressText(binaryAddress);
-console.log(text);
+// Defaults to the text representation.
+const addr = decodeAddress(binaryAddress);
+
+if (!isTextAddress(addr)) {
+    throw new Error("Expected text representation from decodeAddress");
+}
+
+console.log(addr);
 // {
 //   version: 1,
 //   chainType: "eip155",
@@ -127,7 +133,7 @@ console.log(text);
 Here's a complete example showing the recommended workflow:
 
 ```typescript
-import { parseName, validateChecksum } from "@wonderland/interop-addresses";
+import { isTextAddress, parseName, validateChecksum } from "@wonderland/interop-addresses";
 
 async function processInteropAddress(interopAddress: string) {
     try {
@@ -139,9 +145,13 @@ async function processInteropAddress(interopAddress: string) {
             throw new Error("Checksum mismatch - address may have been tampered with");
         }
 
-        // Use the extracted components
-        const address = result.address.address?.text!;
-        const chainId = result.address.chainReference?.text!;
+        // Use the extracted components (default representation is text)
+        if (!isTextAddress(result.address)) {
+            throw new Error("Expected text representation");
+        }
+
+        const address = result.address.address!;
+        const chainId = result.address.chainReference!;
 
         // Now you can use these with your smart contract
         console.log(`Address: ${address}`);
