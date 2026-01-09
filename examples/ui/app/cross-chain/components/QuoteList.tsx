@@ -1,6 +1,6 @@
 'use client';
 
-import { EXECUTION_STATUS, type IntentExecutionStatus } from '../types/execution';
+import { EXECUTION_STATUS, type OrderExecutionStatus } from '../types/execution';
 import { ErrorList } from './ErrorList';
 import { QuoteCard } from './QuoteCard';
 import { SwapIcon, BoltIcon, ClockIcon } from './icons';
@@ -17,7 +17,7 @@ interface QuoteListProps {
   inputTokenAddress: string;
   outputTokenAddress: string;
   selectedQuoteId?: string;
-  executionStatus?: IntentExecutionStatus;
+  executionStatus?: OrderExecutionStatus;
   isLoading?: boolean;
   onSelectQuote?: (quote: ExecutableQuote) => void;
   onExecuteQuote?: (quote: ExecutableQuote) => void;

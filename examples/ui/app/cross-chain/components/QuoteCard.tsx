@@ -1,7 +1,7 @@
 'use client';
 
 import { NOT_AVAILABLE } from '../constants';
-import { EXECUTION_STATUS, type IntentExecutionStatus } from '../types/execution';
+import { EXECUTION_STATUS, type OrderExecutionStatus } from '../types/execution';
 import { formatQuoteData } from '../utils/quoteFormatter';
 import { Tooltip } from './Tooltip';
 import { SpinnerIcon, CheckIcon, CloseIcon, BoltIcon, ClockIcon, QuestionIcon } from './icons';
@@ -12,7 +12,7 @@ interface QuoteCardProps {
   inputTokenAddress: string;
   outputTokenAddress: string;
   isSelected?: boolean;
-  executionStatus?: IntentExecutionStatus;
+  executionStatus?: OrderExecutionStatus;
   hideExecuteButton?: boolean;
   onSelect?: (quote: ExecutableQuote) => void;
   onExecute?: (quote: ExecutableQuote) => void;
@@ -99,7 +99,7 @@ export function QuoteCard({
             <span>Pending...</span>
           </>
         );
-      case EXECUTION_STATUS.FILLED:
+      case EXECUTION_STATUS.COMPLETED:
         return (
           <>
             <CheckIcon />
@@ -129,7 +129,7 @@ export function QuoteCard({
     executionStatus === EXECUTION_STATUS.SUBMITTING ||
     executionStatus === EXECUTION_STATUS.CONFIRMING;
 
-  const isFinished = executionStatus === EXECUTION_STATUS.FILLED || executionStatus === EXECUTION_STATUS.ERROR;
+  const isFinished = executionStatus === EXECUTION_STATUS.COMPLETED || executionStatus === EXECUTION_STATUS.ERROR;
 
   // Button styling: darker when loading, normal otherwise (no green for success)
   const executeButtonClasses = isExecuting

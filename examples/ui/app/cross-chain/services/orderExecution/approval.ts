@@ -1,5 +1,5 @@
 import { erc20Abi, type Address, type PublicClient } from 'viem';
-import { EXECUTION_STATUS, type IntentExecutionState } from '../../types/execution';
+import { EXECUTION_STATUS, type OrderExecutionState } from '../../types/execution';
 import { waitForReceiptWithRetry } from '../../utils/transactionReceipt';
 import type { ConfiguredWalletClient } from './chainSetup';
 
@@ -10,7 +10,7 @@ export async function handleTokenApproval(
   inputTokenAddress: Address,
   spenderAddress: Address,
   inputAmount: bigint,
-  onStateChange: (state: IntentExecutionState) => void,
+  onStateChange: (state: OrderExecutionState) => void,
 ): Promise<void> {
   onStateChange({ status: EXECUTION_STATUS.CHECKING_APPROVAL, message: 'Checking token allowance...' });
 

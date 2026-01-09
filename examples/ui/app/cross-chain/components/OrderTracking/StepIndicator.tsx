@@ -1,5 +1,5 @@
 import { SpinnerIcon, CheckIcon, CloseIcon } from '../icons';
-import type { StepStatus } from '../../utils/intentTrackingHelpers';
+import type { StepStatus } from '../../utils/orderTrackingHelpers';
 
 export function StepIndicator({ status }: { status: StepStatus }) {
   const baseClasses = 'w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all';

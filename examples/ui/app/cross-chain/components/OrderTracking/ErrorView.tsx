@@ -1,10 +1,20 @@
 import { getChainConfig, getExplorerTxUrl } from '../../constants/chains';
 import { EXECUTION_STATUS } from '../../types/execution';
 import { CloseIcon, ExternalLinkIcon } from '../icons';
-import type { IntentTrackingProps } from './types';
+import type { OrderTrackingProps } from './types';
 
-export function ErrorView({ state, onReset }: IntentTrackingProps) {
-  const isExpired = state.status === EXECUTION_STATUS.EXPIRED;
+function getErrorTitle(status: string): string {
+  switch (status) {
+    case EXECUTION_STATUS.EXPIRED:
+      return 'Order Expired';
+    case EXECUTION_STATUS.FAILED:
+      return 'Order Failed';
+    default:
+      return 'Order Error';
+  }
+}
+
+export function ErrorView({ state, onReset }: OrderTrackingProps) {
   const originChain = getChainConfig(state.originChainId);
   const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
 
@@ -16,7 +26,7 @@ export function ErrorView({ state, onReset }: IntentTrackingProps) {
           <CloseIcon className='w-6 h-6' />
         </div>
         <div>
-          <h3 className='text-lg font-semibold text-error'>{isExpired ? 'Intent Expired' : 'Intent Failed'}</h3>
+          <h3 className='text-lg font-semibold text-error'>{getErrorTitle(state.status)}</h3>
           <p className='text-sm text-text-secondary'>{state.message}</p>
         </div>
       </div>

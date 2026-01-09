@@ -1,8 +1,8 @@
 import { getChainConfig, getExplorerTxUrl } from '../../constants/chains';
 import { CheckIcon, ExternalLinkIcon } from '../icons';
-import type { IntentTrackingProps } from './types';
+import type { OrderTrackingProps } from './types';
 
-export function SuccessView({ state, onReset }: IntentTrackingProps) {
+export function SuccessView({ state, onReset }: OrderTrackingProps) {
   const originChain = getChainConfig(state.originChainId);
   const destinationChain = getChainConfig(state.destinationChainId);
   const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
@@ -16,7 +16,7 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
           <CheckIcon className='w-5 h-5 sm:w-6 sm:h-6 text-white' />
         </div>
         <div className='min-w-0'>
-          <h3 className='text-base sm:text-lg font-semibold text-accent'>Intent Filled Successfully!</h3>
+          <h3 className='text-base sm:text-lg font-semibold text-accent'>Order Filled Successfully!</h3>
           <p className='text-xs sm:text-sm text-text-secondary break-words'>{state.message}</p>
         </div>
       </div>
@@ -72,7 +72,7 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
       {/* Raw fill event data */}
       <details className='mb-4'>
         <summary className='cursor-pointer text-xs text-text-tertiary hover:text-text-secondary transition-colors'>
-          View raw intent data
+          View raw order data
         </summary>
         <div className='mt-2 p-3 rounded-lg bg-surface-secondary border border-border font-mono text-xs overflow-x-auto'>
           <pre className='text-text-secondary whitespace-pre-wrap break-all'>
@@ -97,7 +97,7 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
           onClick={onReset}
           className='w-full py-3 px-4 text-sm font-medium rounded-lg bg-accent hover:bg-accent/90 text-white transition-colors'
         >
-          Start New Intent
+          Start New Order
         </button>
       )}
     </div>

@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { Footer, Navigation } from '../components';
 import {
-  IntentTracking,
+  OrderTracking,
   QuoteCard,
   QuoteDetails,
   QuoteList,
@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   type ToastType,
 } from './components';
-import { useIntentExecution } from './hooks';
+import { useOrderExecution } from './hooks';
 import { useQuotes } from './hooks/useQuotes';
 import { EXECUTION_STATUS } from './types/execution';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
@@ -25,7 +25,7 @@ interface ToastState {
 
 export default function CrossChainPage() {
   const { quotes, errors, isLoading, fetchQuotes, clearQuotes } = useQuotes();
-  const { state: executionState, execute, reset: resetExecution } = useIntentExecution();
+  const { state: executionState, execute, reset: resetExecution } = useOrderExecution();
 
   const [selectedInputToken, setSelectedInputToken] = useState<string>('');
   const [selectedOutputToken, setSelectedOutputToken] = useState<string>('');
@@ -122,7 +122,7 @@ export default function CrossChainPage() {
                         hideExecuteButton={true}
                       />
                     </div>
-                    <IntentTracking state={executionState} onReset={handleReset} />
+                    <OrderTracking state={executionState} onReset={handleReset} />
                   </>
                 ) : (
                   // Normal quote list

@@ -6,20 +6,20 @@ import {
   ensureCorrectChain,
   handleTokenApproval,
   submitBridgeTransaction,
-  trackIntent,
-} from '../services/intentExecution';
+  trackOrder,
+} from '../services/orderExecution';
 import {
   EXECUTION_STATUS,
   type ExecuteResult,
-  type IntentExecutionState,
-  type IntentExecutionStatus,
+  type OrderExecutionState,
+  type OrderExecutionStatus,
 } from '../types/execution';
 import { isUserRejectionError, parseError } from '../utils/errorMessages';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address, Hex } from 'viem';
 
-interface UseIntentExecutionReturn {
-  state: IntentExecutionState;
+interface UseOrderExecutionReturn {
+  state: OrderExecutionState;
   execute: (
     quote: ExecutableQuote,
     inputTokenAddress: Address,
@@ -33,23 +33,17 @@ interface UseIntentExecutionReturn {
   isComplete: boolean;
 }
 
-const INITIAL_STATE: IntentExecutionState = {
+const INITIAL_STATE: OrderExecutionState = {
   status: EXECUTION_STATUS.IDLE,
   message: '',
 };
 
-/**
- * Hook that handles the complete intent execution flow:
- * 1. Token approval (if needed)
- * 2. Bridge transaction submission
- * 3. Intent tracking via SDK until filled/expired
- */
-export function useIntentExecution(): UseIntentExecutionReturn {
+export function useOrderExecution(): UseOrderExecutionReturn {
   const { address, isConnected, chainId: walletChainId } = useAccount();
   const config = useConfig();
   const { switchChainAsync } = useSwitchChain();
 
-  const [state, setState] = useState<IntentExecutionState>(INITIAL_STATE);
+  const [state, setState] = useState<OrderExecutionState>(INITIAL_STATE);
   const abortControllerRef = useRef<AbortController | null>(null);
   const expectedWalletChainIdRef = useRef<number | null>(null);
 
@@ -71,15 +65,20 @@ export function useIntentExecution(): UseIntentExecutionReturn {
       EXECUTION_STATUS.APPROVING,
       EXECUTION_STATUS.SUBMITTING,
       EXECUTION_STATUS.CONFIRMING,
-    ] as IntentExecutionStatus[]
+    ] as OrderExecutionStatus[]
   ).includes(state.status);
 
-  const isTracking = (
-    [EXECUTION_STATUS.OPENING, EXECUTION_STATUS.OPENED, EXECUTION_STATUS.FILLING] as IntentExecutionStatus[]
-  ).includes(state.status);
+  const isTracking = ([EXECUTION_STATUS.PENDING, EXECUTION_STATUS.FILLING] as OrderExecutionStatus[]).includes(
+    state.status,
+  );
 
   const isComplete = (
-    [EXECUTION_STATUS.FILLED, EXECUTION_STATUS.EXPIRED, EXECUTION_STATUS.ERROR] as IntentExecutionStatus[]
+    [
+      EXECUTION_STATUS.COMPLETED,
+      EXECUTION_STATUS.EXPIRED,
+      EXECUTION_STATUS.FAILED,
+      EXECUTION_STATUS.ERROR,
+    ] as OrderExecutionStatus[]
   ).includes(state.status);
 
   const execute = useCallback(
@@ -161,7 +160,7 @@ export function useIntentExecution(): UseIntentExecutionReturn {
           throw new Error('Quote missing provider identifier');
         }
 
-        await trackIntent(
+        await trackOrder(
           providerId,
           txHash,
           originChainId,

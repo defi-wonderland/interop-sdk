@@ -1,5 +1,5 @@
 import { getPublicClient, getWalletClient } from 'wagmi/actions';
-import { EXECUTION_STATUS, type IntentExecutionState } from '../../types/execution';
+import { EXECUTION_STATUS, type OrderExecutionState } from '../../types/execution';
 import type { Account, Chain, PublicClient, Transport, WalletClient } from 'viem';
 import type { Config } from 'wagmi';
 
@@ -15,7 +15,7 @@ export async function ensureCorrectChain(
   currentChainId: number | undefined,
   targetChainId: number,
   switchChainAsync: (args: { chainId: number }) => Promise<unknown>,
-  onStateChange: (state: IntentExecutionState) => void,
+  onStateChange: (state: OrderExecutionState) => void,
 ): Promise<ChainClients> {
   if (currentChainId !== targetChainId) {
     onStateChange({
