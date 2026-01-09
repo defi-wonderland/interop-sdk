@@ -17,12 +17,10 @@ import {
     ChecksumSchema,
     convertToBytes,
     InvalidBinaryInteropAddress,
-    InvalidChainNamespace,
     InvalidChecksum,
-    ParseInteropAddress,
+    InvalidInteroperableAddress,
     UnsupportedChainType,
 } from "../internal.js";
-import { isValidChainType } from "../name/isValidChain.js";
 import { interoperableAddressSchema } from "../schemas/interoperableAddress.schema.js";
 import { isTextAddress } from "../types/interopAddress.js";
 import {
@@ -194,10 +192,52 @@ export function decodeAddress(
     const bytes = typeof value === "string" ? fromHex(value, "bytes") : value;
     const representation = opts?.representation ?? "text";
 
+    // Validate minimum envelope structure length
+    // Minimum: version (2) + chainType (2) + chainReferenceLength (1) + addressLength (1) = 6 bytes
+    const MINIMUM_ENVELOPE_LENGTH = 6;
+    if (bytes.length < MINIMUM_ENVELOPE_LENGTH) {
+        throw new InvalidBinaryInteropAddress(
+            `Invalid binary address length: expected at least ${MINIMUM_ENVELOPE_LENGTH} bytes, got ${bytes.length}`,
+        );
+    }
+
     const version = parseVersion(bytes);
+
+    // Validate version value (currently only version 1 is supported)
+    if (version !== 1) {
+        throw new InvalidBinaryInteropAddress(`Unsupported version: expected 1, got ${version}`);
+    }
+
     const chainTypeBinary = parseChainType(bytes);
+
+    // Validate chainReferenceLength bounds before parsing (prevents allocating huge arrays)
+    // The parse functions will validate the actual data exists
+    const chainReferenceLength = parseChainReferenceLength(bytes);
+    if (chainReferenceLength > 32) {
+        throw new InvalidBinaryInteropAddress(
+            `Invalid chain reference length: expected <= 32 bytes, got ${chainReferenceLength}`,
+        );
+    }
+
     const chainReferenceBinary = parseChainReference(bytes);
+
+    // Validate addressLength bounds before parsing (prevents allocating huge arrays)
+    // The parse functions will validate the actual data exists
+    const addressLength = parseAddressLength(bytes);
+    if (addressLength > 255) {
+        throw new InvalidBinaryInteropAddress(
+            `Invalid address length: expected <= 255 bytes, got ${addressLength}`,
+        );
+    }
+
     const addressBinary = parseAddress(bytes);
+
+    // Validate that at least one of chainReference or address is present
+    if (chainReferenceBinary.length === 0 && addressBinary.length === 0) {
+        throw new InvalidBinaryInteropAddress(
+            "At least one of chainReference or address must be provided",
+        );
+    }
 
     // If binary representation requested, return directly
     if (representation === "binary") {
@@ -276,26 +316,24 @@ export const encodeAddress = <T extends EncodeFormat | undefined = undefined>(
 ): FormatResult<T> => {
     const { format = "hex" } = opts ?? {};
 
-    // Convert to binary if needed
-    const binaryAddr = isTextAddress(addr) ? toBinaryRepresentation(addr) : addr;
-    const validated = validateInteroperableAddress(binaryAddr);
+    // Validate input (handles both binary and text representations)
+    const validated = validateInteroperableAddress(addr);
 
-    // At this point, validated is guaranteed to be binary variant
-    if (!(validated.chainType instanceof Uint8Array)) {
+    // Convert to binary if needed
+    const binaryAddr = isTextAddress(validated) ? toBinaryRepresentation(validated) : validated;
+
+    // At this point, binaryAddr is guaranteed to be binary variant
+    if (!(binaryAddr.chainType instanceof Uint8Array)) {
         throw new Error("Internal error: expected binary representation after conversion");
     }
 
-    const versionBytes = toBytes(validated.version, { size: BINARY_LENGTHS.VERSION });
-    const chainTypeBytes = validated.chainType;
-    const chainReferenceBytes =
-        validated.chainReference instanceof Uint8Array
-            ? validated.chainReference
-            : new Uint8Array();
+    const versionBytes = toBytes(binaryAddr.version, { size: BINARY_LENGTHS.VERSION });
+    const chainTypeBytes = binaryAddr.chainType;
+    const chainReferenceBytes = binaryAddr.chainReference ?? new Uint8Array();
     const chainReferenceLengthBytes = toBytes(chainReferenceBytes.length, {
         size: BINARY_LENGTHS.CHAIN_REFERENCE_LENGTH,
     });
-    const addressBytes =
-        validated.address instanceof Uint8Array ? validated.address : new Uint8Array();
+    const addressBytes = binaryAddr.address ?? new Uint8Array();
     const addressLengthBytes = toBytes(addressBytes.length, {
         size: BINARY_LENGTHS.ADDRESS_LENGTH,
     });
@@ -334,7 +372,7 @@ export const encodeAddress = <T extends EncodeFormat | undefined = undefined>(
  *
  * @param addr - InteroperableAddress with text representation
  * @returns InteroperableAddress with binary representation
- * @throws {InvalidChainNamespace} If the chain type is invalid
+ * @throws {InvalidInteroperableAddress} If the address is invalid
  * @example
  * ```ts
  * const textAddr = {
@@ -347,16 +385,15 @@ export const encodeAddress = <T extends EncodeFormat | undefined = undefined>(
  * ```
  */
 export function toBinaryRepresentation(addr: InteroperableAddress): InteroperableAddressBinary {
-    if (!isTextAddress(addr)) {
-        // Already binary, return as-is
-        return addr;
+    // Validate input first (handles both binary and text representations)
+    const validated = validateInteroperableAddress(addr);
+
+    if (!isTextAddress(validated)) {
+        // Already binary, return validated (may have normalized chainType)
+        return validated;
     }
 
-    const { version, chainType, chainReference, address } = addr;
-
-    if (!isValidChainType(chainType)) {
-        throw new InvalidChainNamespace(chainType);
-    }
+    const { version, chainType, chainReference, address } = validated;
 
     const chainTypeValue = CHAIN_TYPE[chainType];
     const chainTypeBytes: Uint8Array = convertToBytes(chainTypeValue, "hex");
@@ -437,63 +474,24 @@ export function toTextRepresentation(addr: InteroperableAddress): InteroperableA
 }
 
 /**
- * Converts a structured object with CAIP-350 text-encoded fields into the
- * unified interoperable address object.
- *
- * This is a synchronous function that converts fields encoded using CAIP-350
- * text serialization rules (per chainType) to the unified format with both
- * binary and text representations.
- *
- * @param text - Structured object with fields using CAIP-350 text encoding rules (per chainType)
- * @returns Unified InteroperableAddress with both binary and text representations
- * @throws {InvalidChainNamespace} If the chain type is invalid
- * @example
- * ```ts
- * const text: InteroperableAddressText = {
- *   version: 1,
- *   chainType: "eip155",
- *   chainReference: "1",
- *   address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
- * };
- * const addr = textToAddress(text);
- * ```
- */
-/**
- * @deprecated Use `toBinaryRepresentation()` instead. This function will be removed in a future version.
- */
-export const textToAddress = (text: {
-    version: number;
-    chainType: "eip155" | "solana";
-    chainReference?: string;
-    address?: string;
-}): InteroperableAddress => {
-    // Convert text input to text variant, then to binary
-    const textAddr: InteroperableAddress = {
-        version: text.version,
-        chainType: text.chainType,
-        chainReference: text.chainReference,
-        address: text.address,
-    };
-    return toBinaryRepresentation(textAddr);
-};
-
-/**
  * Calculates a checksum for an `InteroperableAddress` as per ERC-7930.
  *
  * Accepts either binary or text representation and converts internally if needed.
  *
  * Implementation:
  * - Encode to hex using the canonical binary layout
- * - Drop the first 3 bytes (version + first chainType byte) as in the
- *   current implementation (slice(6) on the hex string)
- * - Compute keccak256 and take the first 8 hex characters, uppercased
+ * - Hash the concatenation of: ChainType + ChainReferenceLength + ChainReference + AddressLength + Address
+ *   (Version field is excluded - slice(6) removes "0x" prefix + version (2 bytes = 4 hex chars))
+ * - Compute keccak256 hash
+ * - Take the first 4 bytes (8 hex characters) of the hash
+ * - Return as uppercase hexadecimal string (RFC 4648 Base 16 Alphabet [0-9A-F])
  *
  * The checksum is validated through ChecksumSchema.safeParse(), which returns a result.
  * If validation fails, we throw a specific error. Since we generate the checksum from
  * a hash, it will always be valid, but we validate for type safety.
  *
  * @param addr - The interoperable address (binary or text representation)
- * @returns The calculated checksum
+ * @returns The calculated checksum (8-character uppercase hex string)
  * @throws {Error} If the calculated checksum string doesn't match the schema (should never happen)
  */
 export const calculateChecksum = (addr: InteroperableAddress): Checksum => {
@@ -523,14 +521,14 @@ export const calculateChecksum = (addr: InteroperableAddress): Checksum => {
  *
  * @param interopAddress - The interoperable address to validate (binary or text representation)
  * @returns The validated interoperable address
- * @throws {ParseInteropAddress} If the address doesn't match the schema
+ * @throws {InvalidInteroperableAddress} If the address doesn't match the schema
  */
 export const validateInteroperableAddress = (
     interopAddress: InteroperableAddress,
 ): InteroperableAddress => {
     const result = interoperableAddressSchema.safeParse(interopAddress);
     if (!result.success) {
-        throw new ParseInteropAddress(result.error);
+        throw new InvalidInteroperableAddress(result.error);
     }
 
     // After success check and throw, result.data is properly typed as InteroperableAddress

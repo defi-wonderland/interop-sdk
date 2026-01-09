@@ -9,14 +9,15 @@ import {
     calculateChecksum,
     toBinaryRepresentation,
     toTextRepresentation,
+    validateInteroperableAddress,
 } from "../address/index.js";
 import {
     Checksum,
     interoperableAddressTextSchema,
     InteroperableName,
     InvalidChainIdentifier,
+    InvalidInteroperableAddress,
     MissingInteroperableName,
-    ParseInteropAddress,
 } from "../internal.js";
 import { isTextAddress } from "../types/interopAddress.js";
 import { parseInteropNameString } from "./parseInteropNameString.js";
@@ -124,7 +125,7 @@ export async function parseName(
     // Step 4: Validate with Zod
     const validated = interoperableAddressTextSchema.safeParse(textAddr);
     if (!validated.success) {
-        throw new ParseInteropAddress(validated.error);
+        throw new InvalidInteroperableAddress(validated.error);
     }
 
     const validatedText = validated.data;
@@ -199,16 +200,19 @@ export const formatName = (
 ): InteroperableName => {
     const includeChecksum = opts?.includeChecksum ?? true;
 
+    // Validate input first (handles both binary and text representations)
+    const validated = validateInteroperableAddress(addr);
+
     // Convert to text if needed
-    const textAddr = isTextAddress(addr) ? addr : toTextRepresentation(addr);
+    const textAddr = isTextAddress(validated) ? validated : toTextRepresentation(validated);
 
     const address = textAddr.address ?? "";
     const chainType = textAddr.chainType;
     const chainReference = textAddr.chainReference ?? "";
 
     if (includeChecksum) {
-        // Calculate checksum from the original address (may be binary or text)
-        const calculatedChecksum = calculateChecksum(addr);
+        // Calculate checksum from the validated address (may be binary or text)
+        const calculatedChecksum = calculateChecksum(validated);
         return `${address}@${chainType}:${chainReference}#${calculatedChecksum}` as InteroperableName;
     }
 

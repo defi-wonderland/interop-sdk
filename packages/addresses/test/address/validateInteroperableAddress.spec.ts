@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { InteroperableAddress } from "../../src/types/interopAddress.js";
 import { validateInteroperableAddress } from "../../src/address/index.js";
-import { ParseInteropAddress } from "../../src/internal.js";
+import { InvalidInteroperableAddress } from "../../src/internal.js";
 
 describe("validateInteroperableAddress", () => {
     it("validates a valid EVM address (binary representation)", () => {
@@ -111,7 +111,7 @@ describe("validateInteroperableAddress", () => {
         }
     });
 
-    it("throws ParseInteropAddress for invalid version", () => {
+    it("throws InvalidInteroperableAddress for invalid version", () => {
         const interopAddress = {
             version: 0, // Invalid: must be positive
             chainType: fromHex("0x0000", "bytes"),
@@ -119,10 +119,12 @@ describe("validateInteroperableAddress", () => {
             address: fromHex("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", "bytes"),
         } as InteroperableAddress;
 
-        expect(() => validateInteroperableAddress(interopAddress)).toThrow(ParseInteropAddress);
+        expect(() => validateInteroperableAddress(interopAddress)).toThrow(
+            InvalidInteroperableAddress,
+        );
     });
 
-    it("throws ParseInteropAddress for chainType that cannot be normalized to 2 bytes", () => {
+    it("throws InvalidInteroperableAddress for chainType that cannot be normalized to 2 bytes", () => {
         // Create a Uint8Array with more than 2 bytes (after trimming)
         // Use non-zero bytes so trim doesn't make it empty
         const largeChainType = new Uint8Array(33); // 33 bytes > 2 bytes
@@ -134,6 +136,151 @@ describe("validateInteroperableAddress", () => {
             address: fromHex("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045", "bytes"),
         } as InteroperableAddress;
 
-        expect(() => validateInteroperableAddress(interopAddress)).toThrow(ParseInteropAddress);
+        expect(() => validateInteroperableAddress(interopAddress)).toThrow(
+            InvalidInteroperableAddress,
+        );
+    });
+
+    describe("chain-type-specific validation for text representation", () => {
+        it("validates eip155 address format", () => {
+            const invalidAddress = {
+                version: 1,
+                chainType: "eip155" as const,
+                chainReference: "1",
+                address: "not-a-valid-address",
+            };
+
+            expect(() => validateInteroperableAddress(invalidAddress)).toThrow(
+                InvalidInteroperableAddress,
+            );
+            try {
+                validateInteroperableAddress(invalidAddress);
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(InvalidInteroperableAddress);
+                if (error instanceof InvalidInteroperableAddress) {
+                    const message = error.zodError.issues[0]?.message || error.message;
+                    expect(message).toContain('Invalid address for chain type "eip155"');
+                }
+            }
+        });
+
+        it("validates solana address format", () => {
+            const invalidAddress = {
+                version: 1,
+                chainType: "solana" as const,
+                chainReference: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+                address: "not-a-valid-base58-address",
+            };
+
+            expect(() => validateInteroperableAddress(invalidAddress)).toThrow(
+                InvalidInteroperableAddress,
+            );
+            try {
+                validateInteroperableAddress(invalidAddress);
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(InvalidInteroperableAddress);
+                if (error instanceof InvalidInteroperableAddress) {
+                    const message = error.zodError.issues[0]?.message || error.message;
+                    expect(message).toContain('Invalid address for chain type "solana"');
+                }
+            }
+        });
+
+        it("validates eip155 chain reference format", () => {
+            const invalidAddress = {
+                version: 1,
+                chainType: "eip155" as const,
+                chainReference: "not-a-number",
+                address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            };
+
+            expect(() => validateInteroperableAddress(invalidAddress)).toThrow(
+                InvalidInteroperableAddress,
+            );
+            try {
+                validateInteroperableAddress(invalidAddress);
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(InvalidInteroperableAddress);
+                if (error instanceof InvalidInteroperableAddress) {
+                    const message = error.zodError.issues[0]?.message || error.message;
+                    expect(message).toContain('Invalid chain reference for chain type "eip155"');
+                }
+            }
+        });
+
+        it("validates eip155 chain reference is positive", () => {
+            const invalidAddress = {
+                version: 1,
+                chainType: "eip155" as const,
+                chainReference: "0",
+                address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            };
+
+            expect(() => validateInteroperableAddress(invalidAddress)).toThrow(
+                InvalidInteroperableAddress,
+            );
+            try {
+                validateInteroperableAddress(invalidAddress);
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(InvalidInteroperableAddress);
+                if (error instanceof InvalidInteroperableAddress) {
+                    const message = error.zodError.issues[0]?.message || error.message;
+                    expect(message).toContain('Invalid chain reference for chain type "eip155"');
+                }
+            }
+        });
+
+        it("validates solana chain reference format", () => {
+            const invalidAddress = {
+                version: 1,
+                chainType: "solana" as const,
+                chainReference: "not-a-valid-base58-string",
+                address: "11111111111111111111111111111111",
+            };
+
+            expect(() => validateInteroperableAddress(invalidAddress)).toThrow(
+                InvalidInteroperableAddress,
+            );
+            try {
+                validateInteroperableAddress(invalidAddress);
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(InvalidInteroperableAddress);
+                if (error instanceof InvalidInteroperableAddress) {
+                    const message = error.zodError.issues[0]?.message || error.message;
+                    expect(message).toContain('Invalid chain reference for chain type "solana"');
+                }
+            }
+        });
+
+        it("accepts valid eip155 address and chain reference", () => {
+            const validAddress = {
+                version: 1,
+                chainType: "eip155" as const,
+                chainReference: "1",
+                address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            };
+
+            expect(() => validateInteroperableAddress(validAddress)).not.toThrow();
+            const result = validateInteroperableAddress(validAddress);
+            expect(result).toEqual(validAddress);
+        });
+
+        it("accepts valid solana address and chain reference", () => {
+            const validAddress = {
+                version: 1,
+                chainType: "solana" as const,
+                chainReference: "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+                address: "11111111111111111111111111111111",
+            };
+
+            expect(() => validateInteroperableAddress(validAddress)).not.toThrow();
+            const result = validateInteroperableAddress(validAddress);
+            expect(result).toEqual(validAddress);
+        });
     });
 });

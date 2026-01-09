@@ -2,7 +2,7 @@ import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
 import { decodeAddress, encodeAddress, toBinaryRepresentation } from "../../src/address/index.js";
-import { InvalidChainNamespace } from "../../src/internal.js";
+import { InvalidInteroperableAddress } from "../../src/internal.js";
 import { isBinaryAddress, isTextAddress } from "../../src/types/interopAddress.js";
 
 describe("toBinaryRepresentation", () => {
@@ -131,7 +131,7 @@ describe("toBinaryRepresentation", () => {
         }
     });
 
-    it("throws InvalidChainNamespace for invalid chain type", () => {
+    it("throws InvalidInteroperableAddress for invalid chain type", () => {
         const text = {
             version: 1,
             chainType: "invalid" as "eip155",
@@ -139,7 +139,7 @@ describe("toBinaryRepresentation", () => {
             address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
         };
 
-        expect(() => toBinaryRepresentation(text)).toThrow(InvalidChainNamespace);
+        expect(() => toBinaryRepresentation(text)).toThrow(InvalidInteroperableAddress);
     });
 
     it("returns binary address unchanged if already binary", () => {
@@ -152,7 +152,8 @@ describe("toBinaryRepresentation", () => {
 
         const result = toBinaryRepresentation(binaryAddr);
 
-        expect(result).toBe(binaryAddr);
+        // Validation may normalize chainType, so check deep equality instead of reference equality
+        expect(result).toStrictEqual(binaryAddr);
         expect(isBinaryAddress(result)).toBe(true);
     });
 

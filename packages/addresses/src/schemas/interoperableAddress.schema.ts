@@ -1,5 +1,62 @@
-import { pad, trim } from "viem";
+import bs58 from "bs58";
+import { isAddress, pad, trim } from "viem";
 import { z } from "zod";
+
+/**
+ * Validates that a chain reference is valid for the given chain type.
+ */
+const isValidChainReferenceForType = (
+    chainType: "eip155" | "solana",
+    chainReference: string | undefined,
+): boolean => {
+    if (!chainReference) {
+        return true; // Optional field
+    }
+
+    switch (chainType) {
+        case "eip155": {
+            const chainId = Number(chainReference);
+            return Number.isInteger(chainId) && chainId > 0;
+        }
+        case "solana": {
+            try {
+                const decoded = bs58.decode(chainReference);
+                return decoded.length > 0 && decoded.length <= 32;
+            } catch {
+                return false;
+            }
+        }
+        default:
+            return false;
+    }
+};
+
+/**
+ * Validates that an address is valid for the given chain type.
+ */
+const isValidAddressForType = (
+    chainType: "eip155" | "solana",
+    address: string | undefined,
+): boolean => {
+    if (!address) {
+        return true; // Optional field
+    }
+
+    switch (chainType) {
+        case "eip155":
+            return isAddress(address, { strict: false });
+        case "solana": {
+            try {
+                const decoded = bs58.decodeUnsafe(address);
+                return decoded !== undefined && decoded.length > 0;
+            } catch {
+                return false;
+            }
+        }
+        default:
+            return false;
+    }
+};
 
 /**
  * Schema for validating text representation of InteroperableAddress.
@@ -14,7 +71,21 @@ export const interoperableAddressTextSchema = z
     })
     .refine((data) => data.chainReference !== undefined || data.address !== undefined, {
         message: "At least one of chainReference or address must be provided",
-    });
+    })
+    .refine(
+        (data) => isValidChainReferenceForType(data.chainType, data.chainReference),
+        (data) => ({
+            message: `Invalid chain reference for chain type "${data.chainType}": ${data.chainReference}`,
+            path: ["chainReference"],
+        }),
+    )
+    .refine(
+        (data) => isValidAddressForType(data.chainType, data.address),
+        (data) => ({
+            message: `Invalid address for chain type "${data.chainType}": ${data.address}`,
+            path: ["address"],
+        }),
+    );
 
 /**
  * Schema for validating binary representation of InteroperableAddress.

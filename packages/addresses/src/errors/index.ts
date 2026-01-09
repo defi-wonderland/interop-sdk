@@ -9,7 +9,7 @@ export * from "./InvalidChainNamespace.exception.js";
 export * from "./invalidAddress.exception.js";
 export * from "./invalidChainReference.exception.js";
 export * from "./invalidBinaryInteropAddress.exception.js";
-export * from "./parseInteropAddress.exception.js";
+export * from "./invalidInteroperableAddress.exception.js";
 export * from "./ENSNotFound.exception.js";
 export * from "./ENSLookupFailed.exception.js";
 export * from "./AddressResolutionFailed.exception.js";

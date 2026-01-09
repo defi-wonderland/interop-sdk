@@ -191,7 +191,7 @@ const binaryAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415
 
 #### `encodeAddress`
 
-Encodes an `InteroperableAddress` object to binary format. Accepts either binary or text representation and converts automatically.
+Encodes an `InteroperableAddress` object to binary format. Accepts either binary or text representation and converts automatically. Validates the input before encoding.
 
 ```typescript
 encodeAddress(
@@ -199,6 +199,10 @@ encodeAddress(
   opts?: { format?: "hex" | "bytes" }
 ): Hex | Uint8Array
 ```
+
+**Throws:**
+
+-   `InvalidInteroperableAddress` - If the address doesn't match the schema
 
 **Example:**
 
@@ -214,11 +218,15 @@ const hex2 = encodeAddress(binaryAddr, { format: "hex" });
 
 #### `toBinaryRepresentation`
 
-Converts a text representation to a binary representation.
+Converts a text representation to a binary representation. Validates the input before converting.
 
 ```typescript
 toBinaryRepresentation(addr: InteroperableAddress): InteroperableAddress
 ```
+
+**Throws:**
+
+-   `InvalidInteroperableAddress` - If the address doesn't match the schema
 
 **Example:**
 
@@ -259,6 +267,10 @@ Validates an `InteroperableAddress` structure. Accepts either representation.
 ```typescript
 validateInteroperableAddress(addr: InteroperableAddress): InteroperableAddress
 ```
+
+**Throws:**
+
+-   `InvalidInteroperableAddress` - If the address doesn't match the schema (invalid version, chainType, chainReference, or address format)
 
 #### `validateChecksum`
 
@@ -320,7 +332,7 @@ if (isTextAddress(result.address)) {
 
 #### `formatName`
 
-Formats an `InteroperableAddress` into an interoperable name. Accepts either representation and converts automatically. Calculates the checksum internally.
+Formats an `InteroperableAddress` into an interoperable name. Accepts either representation and converts automatically. Validates the input and calculates the checksum internally.
 
 ```typescript
 formatName(
@@ -328,6 +340,10 @@ formatName(
   opts?: { includeChecksum?: boolean }
 ): InteroperableName
 ```
+
+**Throws:**
+
+-   `InvalidInteroperableAddress` - If the address doesn't match the schema
 
 **Example:**
 

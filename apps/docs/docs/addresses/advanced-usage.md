@@ -181,6 +181,7 @@ import {
     ENSNotFound,
     InvalidAddress,
     InvalidChainNamespace,
+    InvalidInteroperableAddress,
     InvalidInteroperableName,
     UnsupportedChainType,
 } from "@wonderland/interop-addresses";
@@ -200,6 +201,9 @@ try {
         // Handle invalid interoperable name format
     } else if (error instanceof InvalidChainNamespace) {
         // Handle invalid chain namespace
+    } else if (error instanceof InvalidInteroperableAddress) {
+        // Handle invalid interoperable address structure (validation error)
+        // Thrown by validateInteroperableAddress, encodeAddress, toBinaryRepresentation, formatName
     }
 }
 ```

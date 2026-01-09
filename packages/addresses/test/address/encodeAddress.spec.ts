@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { InteroperableAddress } from "../../src/types/interopAddress.js";
 import { encodeAddress } from "../../src/address/index.js";
-import { ParseInteropAddress } from "../../src/internal.js";
+import { InvalidInteroperableAddress } from "../../src/internal.js";
 
 describe("erc7930", () => {
     describe("encodeAddress", () => {
@@ -127,7 +127,7 @@ describe("erc7930", () => {
             } as unknown as InteroperableAddress;
 
             expect(() => encodeAddress(interopAddress, { format: "hex" })).toThrow(
-                ParseInteropAddress,
+                InvalidInteroperableAddress,
             );
         });
 
@@ -138,7 +138,7 @@ describe("erc7930", () => {
             } as unknown as InteroperableAddress;
 
             expect(() => encodeAddress(interopAddress, { format: "hex" })).toThrow(
-                ParseInteropAddress,
+                InvalidInteroperableAddress,
             );
         });
 
@@ -150,7 +150,7 @@ describe("erc7930", () => {
             } as unknown as InteroperableAddress;
 
             expect(() => encodeAddress(interopAddress, { format: "hex" })).toThrow(
-                ParseInteropAddress,
+                InvalidInteroperableAddress,
             );
         });
 
@@ -176,7 +176,7 @@ describe("erc7930", () => {
             } as unknown as InteroperableAddress;
 
             expect(() => encodeAddress(interopAddress, { format: "hex" })).toThrow(
-                ParseInteropAddress,
+                InvalidInteroperableAddress,
             );
         });
 
@@ -188,7 +188,7 @@ describe("erc7930", () => {
             };
 
             expect(() => encodeAddress(interopAddress, { format: "hex" })).not.toThrow(
-                ParseInteropAddress,
+                InvalidInteroperableAddress,
             );
         });
 
@@ -200,7 +200,7 @@ describe("erc7930", () => {
             };
 
             expect(() => encodeAddress(interopAddress, { format: "hex" })).not.toThrow(
-                ParseInteropAddress,
+                InvalidInteroperableAddress,
             );
         });
     });

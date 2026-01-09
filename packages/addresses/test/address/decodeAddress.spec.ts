@@ -106,49 +106,57 @@ describe("erc7930", () => {
         });
 
         it("throws if version is not there", () => {
-            const binaryAddress = "0x";
+            const binaryAddress = "0x"; // 0 bytes, minimum is 6
 
             expect(() => decodeAddress(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid version length, expected: 2, got: 0"),
+                new InvalidBinaryInteropAddress(
+                    "Invalid binary address length: expected at least 6 bytes, got 0",
+                ),
             );
         });
 
         it("throws if version has length less than 2 bytes", () => {
-            const binaryAddress = "0x01";
+            const binaryAddress = "0x01"; // 1 byte, minimum is 6
 
             expect(() => decodeAddress(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid version length, expected: 2, got: 1"),
+                new InvalidBinaryInteropAddress(
+                    "Invalid binary address length: expected at least 6 bytes, got 1",
+                ),
             );
         });
 
         it("throws if chain type is not there", () => {
-            const binaryAddress = "0x0001";
+            const binaryAddress = "0x0001"; // 2 bytes, minimum is 6
 
             expect(() => decodeAddress(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid chain type length, expected: 2, got: 0"),
+                new InvalidBinaryInteropAddress(
+                    "Invalid binary address length: expected at least 6 bytes, got 2",
+                ),
             );
         });
 
         it("throws if chain type has length less than 1 bytes", () => {
-            const binaryAddress = "0x00011";
+            const binaryAddress = "0x00011"; // 3 bytes, minimum is 6
 
             expect(() => decodeAddress(binaryAddress)).toThrow(
-                new InvalidBinaryInteropAddress("Invalid chain type length, expected: 2, got: 1"),
+                new InvalidBinaryInteropAddress(
+                    "Invalid binary address length: expected at least 6 bytes, got 3",
+                ),
             );
         });
 
         it("throws if chain reference length is not there", () => {
-            const binaryAddress = "0x00010000";
+            const binaryAddress = "0x00010000"; // 4 bytes, minimum is 6
 
             expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress(
-                    "Invalid chain reference length, expected: 1, got: 0",
+                    "Invalid binary address length: expected at least 6 bytes, got 4",
                 ),
             );
         });
 
         it("throws if chain reference is not what chain type length indicates", () => {
-            const binaryAddress = "0x000100000201";
+            const binaryAddress = "0x000100000201"; // 6 bytes: version(2) + chainType(2) + chainRefLen(1=2) + chainRef(1) but needs 2
 
             expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress(
@@ -157,8 +165,8 @@ describe("erc7930", () => {
             );
         });
 
-        it("throws if address length is not there", () => {
-            const binaryAddress = "0x00010000020100";
+        it("throws if address length field is missing", () => {
+            const binaryAddress = "0x00010000020100"; // 7 bytes: version(2) + chainType(2) + chainRefLen(1) + chainRef(2) = 7, missing addressLen
 
             expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress("Invalid address length, expected: 1, got: 0"),
@@ -166,10 +174,61 @@ describe("erc7930", () => {
         });
 
         it("throws if address is not what address length indicates", () => {
-            const binaryAddress = "0x000100000201000200";
+            const binaryAddress = "0x000100000201000200"; // 9 bytes: version(2) + chainType(2) + chainRefLen(1) + chainRef(2) + addrLen(1=2) + addr(1) but needs 2
 
             expect(() => decodeAddress(binaryAddress)).toThrow(
                 new InvalidBinaryInteropAddress("Invalid address length, expected: 2, got: 1"),
+            );
+        });
+
+        it("throws if version is not 1", () => {
+            const binaryAddress = "0x00020000010114D8DA6BF26964AF9D7EED9E03E53415D37AA96045"; // version 2
+
+            expect(() => decodeAddress(binaryAddress)).toThrow(
+                new InvalidBinaryInteropAddress("Unsupported version: expected 1, got 2"),
+            );
+        });
+
+        it("throws if chain reference length exceeds 32 bytes", () => {
+            // Create an address with chainReferenceLength = 33 (0x21)
+            const binaryAddress = ("0x0001000021" +
+                "00".repeat(33) +
+                "00" +
+                "00".repeat(20)) as `0x${string}`;
+
+            expect(() => decodeAddress(binaryAddress)).toThrow(
+                new InvalidBinaryInteropAddress(
+                    "Invalid chain reference length: expected <= 32 bytes, got 33",
+                ),
+            );
+        });
+
+        it("accepts maximum valid address length (255 bytes) in binary representation", () => {
+            // Test that the maximum valid address length (255 bytes) works
+            // addressLength is 1 byte, so max is 255 (0xFF)
+            // Use binary representation to avoid text conversion validation issues
+            const chainRef = "00"; // 1 byte chain ref
+            const addressData = "00".repeat(255); // 255 bytes of address data
+            const binaryAddress = ("0x0001000001" + chainRef + "ff" + addressData) as `0x${string}`; // version(2) + chainType(2) + chainRefLen(1=1) + chainRef(1) + addrLen(1=255) + addr(255)
+
+            // Should succeed - 255 is the maximum valid length
+            const result = decodeAddress(binaryAddress, { representation: "binary" });
+            expect(result.version).toBe(1);
+            if (result.chainType instanceof Uint8Array) {
+                expect(result.address?.length).toBe(255);
+            }
+            // Note: The validation check for addressLength > 255 is defensive but can't be tested
+            // since addressLength is a 1-byte field (max 255)
+        });
+
+        it("throws if both chain reference and address are empty", () => {
+            // Create an address with both chainReferenceLength = 0 and addressLength = 0
+            const binaryAddress = "0x000100000000"; // version(2) + chainType(2) + chainRefLen(1=0) + addrLen(1=0)
+
+            expect(() => decodeAddress(binaryAddress)).toThrow(
+                new InvalidBinaryInteropAddress(
+                    "At least one of chainReference or address must be provided",
+                ),
             );
         });
 
