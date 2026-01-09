@@ -40,7 +40,7 @@ test.describe('"From text" tab - Input validations', () => {
     await page.getByRole('textbox', { name: 'Interoperable Name' }).fill(invalidAddress);
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByText(`Invalid interoperable name: ${invalidAddress}`)).toBeVisible();
+    await expect(page.getByText('ENS names require a specific chain reference (e.g., @eip155:1 or @ethereum). Use @<chainType>:<reference> format.')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
   });
 
@@ -49,7 +49,7 @@ test.describe('"From text" tab - Input validations', () => {
     await page.getByRole('textbox', { name: 'Interoperable Name' }).fill(`vitalik.eth@${invalidChainIdentifier}`);
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByText(`Invalid chain identifier: ${invalidChainIdentifier}`)).toBeVisible();
+    await expect(page.getByText(`Invalid chain identifier: Chain reference "${invalidChainIdentifier}" could not be resolved to a valid chain type`)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
   });
 
