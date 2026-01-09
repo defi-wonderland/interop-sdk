@@ -1,11 +1,11 @@
 /**
  * Unified Interoperable Address Examples
- * Format: address@chainNamespace:chainReference#CHECKSUM
+ * Format: address@chainType:chainReference#CHECKSUM
  *
  * Note: These examples showcase different capabilities:
  * - Hex addresses and ENS name resolution
  * - Numeric chain IDs and chain shortnames
- * - Explicit namespace or implicit (defaults to eip155)
+ * - Explicit chain type or implicit (defaults to eip155)
  * - Checksum is optional but recommended for validation
  */
 

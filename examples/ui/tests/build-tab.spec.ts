@@ -15,7 +15,7 @@ test.describe('Build tab - Convert address', () => {
 
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
   });
 
@@ -31,7 +31,7 @@ test.describe('Build tab - Convert address', () => {
       await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled();
       await page.getByRole('button', { name: 'Convert' }).click();
 
-      await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
     }
   });
@@ -106,7 +106,7 @@ test.describe('Build tab - Address input validations', () => {
     await page.getByText('Ethereum Mainnet').last().click();
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByText(`Invalid human readable address: ${invalidCharactersAddress}`)).toBeVisible();
+    await expect(page.getByText(`Invalid interoperable name: ${invalidCharactersAddress}`)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).not.toBeVisible();
   });
 });

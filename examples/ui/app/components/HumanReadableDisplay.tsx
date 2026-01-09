@@ -73,8 +73,8 @@ export function HumanReadableDisplay({
 
   return (
     <FormatDisplay
-      title='Human-Readable Format'
-      description='A human-friendly format for cross-chain addresses with checksum validation'
+      title='Interoperable Name Format'
+      description='A human-friendly interoperable name format for cross-chain addresses with checksum validation (ERC-7828)'
       result={result}
       fields={visibleFields}
       hoveredPart={hoveredPart}
