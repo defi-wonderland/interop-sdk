@@ -1,4 +1,4 @@
-import { OrderStatus } from '@wonderland/interop-cross-chain';
+import { OrderStatusOrExpired } from '@wonderland/interop-cross-chain';
 import { TIMEOUT_MS } from '../../constants';
 import { EXECUTION_STATUS, type OrderExecutionState } from '../../types/execution';
 import { crossChainExecutor } from '../sdk';
@@ -39,7 +39,9 @@ export async function trackOrder(
       onStateChange(mapOrderUpdateToState(update, txHash, originChainId, destinationChainId));
 
       const isTerminal =
-        update.status === OrderStatus.Finalized || update.status === OrderStatus.Failed || update.status === 'expired';
+        update.status === OrderStatusOrExpired.Finalized ||
+        update.status === OrderStatusOrExpired.Failed ||
+        update.status === OrderStatusOrExpired.Expired;
       if (isTerminal) {
         break;
       }

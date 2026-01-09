@@ -1,13 +1,13 @@
-import { OrderStatus, type OrderTrackingUpdate } from '@wonderland/interop-cross-chain';
+import { OrderStatusOrExpired, type OrderTrackingUpdate } from '@wonderland/interop-cross-chain';
 import { EXECUTION_STATUS, type OrderExecutionState, type OrderExecutionStatus } from '../../types/execution';
 import type { Hex } from 'viem';
 
 const SDK_TO_UI_STATUS: Record<string, OrderExecutionStatus> = {
-  [OrderStatus.Pending]: EXECUTION_STATUS.PENDING,
-  [OrderStatus.Executing]: EXECUTION_STATUS.FILLING,
-  [OrderStatus.Finalized]: EXECUTION_STATUS.COMPLETED,
-  [OrderStatus.Failed]: EXECUTION_STATUS.FAILED,
-  expired: EXECUTION_STATUS.EXPIRED,
+  [OrderStatusOrExpired.Pending]: EXECUTION_STATUS.PENDING,
+  [OrderStatusOrExpired.Executing]: EXECUTION_STATUS.FILLING,
+  [OrderStatusOrExpired.Finalized]: EXECUTION_STATUS.COMPLETED,
+  [OrderStatusOrExpired.Failed]: EXECUTION_STATUS.FAILED,
+  [OrderStatusOrExpired.Expired]: EXECUTION_STATUS.EXPIRED,
 };
 
 function mapSdkStatusToUi(sdkStatus: string): OrderExecutionStatus {

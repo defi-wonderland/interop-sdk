@@ -12,6 +12,7 @@ import {
     SortingStrategy,
     WatchOrderParams,
 } from "../internal.js";
+import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
 
 type GetQuotesError = {
     errorMsg: string;
@@ -31,13 +32,14 @@ interface ProviderExecutorConfig {
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
+const getDefaultSortingStrategy = (): SortingStrategy => new BestOutputStrategy();
 
 /**
  * A service that get quotes in batches and executes cross-chain actions
  */
 class ProviderExecutor {
     private readonly providers: Record<string, CrossChainProvider>;
-    private readonly sortingStrategy?: SortingStrategy;
+    private readonly sortingStrategy: SortingStrategy;
     private readonly timeoutMs: number;
     private readonly trackerFactory: OrderTrackerFactory;
     private readonly trackerCache: Map<string, OrderTracker> = new Map();
@@ -56,7 +58,7 @@ class ProviderExecutor {
             },
             {} as Record<string, CrossChainProvider>,
         );
-        this.sortingStrategy = sortingStrategy;
+        this.sortingStrategy = sortingStrategy ?? getDefaultSortingStrategy();
         this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
         this.trackerFactory = trackerFactory ?? new OrderTrackerFactory();
     }
@@ -109,14 +111,10 @@ class ProviderExecutor {
 
         const response = this.splitQuotesAndErrors(resultQuotes);
 
-        if (this.sortingStrategy) {
-            return {
-                quotes: this.sortingStrategy.sort(response.quotes),
-                errors: response.errors,
-            };
-        }
-
-        return response;
+        return {
+            quotes: this.sortingStrategy.sort(response.quotes),
+            errors: response.errors,
+        };
     }
 
     /**
