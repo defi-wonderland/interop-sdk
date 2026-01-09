@@ -5,7 +5,6 @@ import {
     FillWatcher,
     getChainById,
     OpenedIntentParser,
-    OrderStatus,
     OrderStatusOrExpired,
     OrderTrackingInfo,
     OrderTrackingUpdate,
@@ -30,7 +29,7 @@ export class OrderTracker extends EventEmitter {
             const isReverted = await this.checkOriginTxReverted(txHash, originChainId);
             if (isReverted) {
                 return {
-                    status: OrderStatus.Failed,
+                    status: OrderStatusOrExpired.Failed,
                     orderId: "0x" as Hex,
                     openTxHash: txHash,
                     user: "0x" as Hex,
@@ -56,13 +55,13 @@ export class OrderTracker extends EventEmitter {
 
         let status: OrderStatusOrExpired;
         if (fillEvent) {
-            status = OrderStatus.Finalized;
+            status = OrderStatusOrExpired.Finalized;
         } else {
             const now = Math.floor(Date.now() / 1000);
             if (now > openedIntent.fillDeadline) {
-                status = "expired";
+                status = OrderStatusOrExpired.Expired;
             } else {
-                status = OrderStatus.Pending;
+                status = OrderStatusOrExpired.Pending;
             }
         }
 
@@ -110,7 +109,7 @@ export class OrderTracker extends EventEmitter {
         const startTime = Date.now();
 
         yield {
-            status: OrderStatus.Pending,
+            status: OrderStatusOrExpired.Pending,
             openTxHash: txHash,
             timestamp: Math.floor(Date.now() / 1000),
             message: "Parsing order from transaction...",
@@ -120,7 +119,7 @@ export class OrderTracker extends EventEmitter {
             const isReverted = await this.checkOriginTxReverted(txHash, originChainId);
             if (isReverted) {
                 yield {
-                    status: OrderStatus.Failed,
+                    status: OrderStatusOrExpired.Failed,
                     openTxHash: txHash,
                     timestamp: Math.floor(Date.now() / 1000),
                     message: "Origin transaction reverted",
@@ -132,7 +131,7 @@ export class OrderTracker extends EventEmitter {
         const openedIntent = await this.openedIntentParser.getOpenedIntent(txHash, originChainId);
 
         yield {
-            status: OrderStatus.Pending,
+            status: OrderStatusOrExpired.Pending,
             orderId: openedIntent.orderId,
             openTxHash: txHash,
             timestamp: Math.floor(Date.now() / 1000),
@@ -144,7 +143,7 @@ export class OrderTracker extends EventEmitter {
 
         if (nowSeconds > fillDeadline + OrderTracker.GRACE_PERIOD_SECONDS) {
             yield {
-                status: "expired",
+                status: OrderStatusOrExpired.Expired,
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 timestamp: Math.floor(Date.now() / 1000),
@@ -159,7 +158,7 @@ export class OrderTracker extends EventEmitter {
         if (remainingTimeout === 0) {
             const deadlineDate = new Date(fillDeadline * 1000).toISOString();
             yield {
-                status: OrderStatus.Pending,
+                status: OrderStatusOrExpired.Pending,
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 timestamp: Math.floor(Date.now() / 1000),
@@ -169,7 +168,7 @@ export class OrderTracker extends EventEmitter {
         }
 
         yield {
-            status: OrderStatus.Pending,
+            status: OrderStatusOrExpired.Pending,
             orderId: openedIntent.orderId,
             openTxHash: txHash,
             timestamp: Math.floor(Date.now() / 1000),
@@ -187,18 +186,18 @@ export class OrderTracker extends EventEmitter {
             remainingTimeout,
         );
 
-        if (fillResult.status === "finalized") {
+        if (fillResult.status === OrderStatusOrExpired.Finalized) {
             yield {
-                status: OrderStatus.Finalized,
+                status: OrderStatusOrExpired.Finalized,
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 fillTxHash: fillResult.fillTxHash,
                 timestamp: Math.floor(Date.now() / 1000),
                 message: `Order completed in block ${fillResult.blockNumber}`,
             };
-        } else if (fillResult.status === "expired") {
+        } else if (fillResult.status === OrderStatusOrExpired.Expired) {
             yield {
-                status: "expired",
+                status: OrderStatusOrExpired.Expired,
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 timestamp: Math.floor(Date.now() / 1000),
@@ -207,7 +206,7 @@ export class OrderTracker extends EventEmitter {
         } else {
             const deadlineDate = new Date(fillDeadline * 1000).toISOString();
             yield {
-                status: OrderStatus.Pending,
+                status: OrderStatusOrExpired.Pending,
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 timestamp: Math.floor(Date.now() / 1000),
@@ -245,10 +244,10 @@ export class OrderTracker extends EventEmitter {
                 this.emit(update.status, update);
 
                 if (
-                    update.status === OrderStatus.Finalized ||
-                    update.status === "expired" ||
-                    update.status === OrderStatus.Failed ||
-                    update.status === OrderStatus.Refunded
+                    update.status === OrderStatusOrExpired.Finalized ||
+                    update.status === OrderStatusOrExpired.Expired ||
+                    update.status === OrderStatusOrExpired.Failed ||
+                    update.status === OrderStatusOrExpired.Refunded
                 ) {
                     break;
                 }
@@ -288,14 +287,14 @@ export class OrderTracker extends EventEmitter {
         },
         timeout: number,
     ): Promise<
-        | { status: "finalized"; fillTxHash: Hex; blockNumber: bigint }
-        | { status: "expired" }
-        | { status: "timeout" }
+        | { status: typeof OrderStatusOrExpired.Finalized; fillTxHash: Hex; blockNumber: bigint }
+        | { status: typeof OrderStatusOrExpired.Expired }
+        | { status: typeof OrderStatusOrExpired.Pending }
     > {
         try {
             const fillEvent = await this.fillWatcher.waitForFill(fillParams, timeout);
             return {
-                status: "finalized",
+                status: OrderStatusOrExpired.Finalized,
                 fillTxHash: fillEvent.fillTxHash,
                 blockNumber: fillEvent.blockNumber,
             };
@@ -304,7 +303,9 @@ export class OrderTracker extends EventEmitter {
                 const nowSeconds = Math.floor(Date.now() / 1000);
                 const isExpired = nowSeconds > fillParams.fillDeadline;
 
-                return isExpired ? { status: "expired" } : { status: "timeout" };
+                return isExpired
+                    ? { status: OrderStatusOrExpired.Expired }
+                    : { status: OrderStatusOrExpired.Pending };
             }
             throw error;
         }
