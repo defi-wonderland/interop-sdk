@@ -4,12 +4,9 @@
  */
 export class InvalidInteroperableName extends Error {
     constructor(messageOrAddress: string) {
-        // If the message is already formatted (contains "Invalid" or "ENS names require"), use it as-is
+        // If the message is already formatted (starts with "Invalid"), use it as-is
         // Otherwise, format it as "Invalid interoperable name: {address}"
-        if (
-            messageOrAddress.includes("Invalid") ||
-            messageOrAddress.includes("ENS names require")
-        ) {
+        if (messageOrAddress.startsWith("Invalid")) {
             super(messageOrAddress);
         } else {
             super(`Invalid interoperable name: ${messageOrAddress}`);
