@@ -179,7 +179,7 @@ const parseAddress = (binaryAddress: Uint8Array): Uint8Array => {
  */
 export function decodeAddress(
     value: Uint8Array | Hex,
-    opts?: { representation: "binary" },
+    opts: { representation: "binary" },
 ): InteroperableAddressBinary;
 export function decodeAddress(
     value: Uint8Array | Hex,

@@ -1,5 +1,5 @@
 import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
-import { encodeAddress, getAddress, getChainId } from "@wonderland/interop-addresses";
+import { decodeAddress, encodeAddress } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import {
     AbiEvent,
@@ -99,15 +99,20 @@ export class AcrossProvider extends CrossChainProvider {
 
     /**
      * Parse an interop address to a viem address and chain id
-     * @param address - The interop address to parse
+     * @param address - The binary interop address (hex string) to parse
      * @returns The viem address and chain id
      */
-    private async parseInteropAddress(
-        address: string,
-    ): Promise<{ address: Address; chain: number }> {
+    private parseInteropAddress(address: string): { address: Address; chain: number } {
+        const decoded = decodeAddress(address as Hex);
+        if (!decoded.address) {
+            throw new Error("Address field is required");
+        }
+        if (!decoded.chainReference) {
+            throw new Error("Chain reference is required");
+        }
         return {
-            address: (await getAddress(address)) as Address,
-            chain: (await getChainId(address)) as number,
+            address: decoded.address as Address,
+            chain: Number(decoded.chainReference),
         };
     }
 
@@ -182,11 +187,11 @@ export class AcrossProvider extends CrossChainProvider {
         params: AcrossOIFGetQuoteParams,
     ): Promise<AcrossGetQuoteParams> {
         try {
-            const userParsed = await this.parseInteropAddress(params.user);
+            const userParsed = this.parseInteropAddress(params.user);
 
             const { inputs, outputs } = params.intent;
-            const inputParsed = await this.parseInteropAddress(inputs[0].asset);
-            const outputParsed = await this.parseInteropAddress(outputs[0].asset);
+            const inputParsed = this.parseInteropAddress(inputs[0].asset);
+            const outputParsed = this.parseInteropAddress(outputs[0].asset);
             const swapType = params.intent.swapType || "exact-input";
             const amount = swapType === "exact-input" ? inputs[0].amount : outputs[0].amount;
 
