@@ -1,5 +1,7 @@
 import { Address, Hex } from "viem";
 
+import { OrderStatus } from "./oif.js";
+
 /**
  * Opened cross-chain intent parsed from an EIP-7683 Open event.
  *
@@ -59,22 +61,18 @@ export interface FillEvent {
     recipient: Address;
 }
 
-/**
- * Intent lifecycle status
- * - opening: Parsing the transaction and Open event
- * - opened: Intent successfully opened and parsed
- * - filling: Waiting for relayer to fill on destination chain
- * - filled: Successfully filled on destination chain
- * - expired: Fill deadline passed without being filled
- */
-export type IntentStatus = "opening" | "opened" | "filling" | "filled" | "expired";
+export const OrderStatusOrExpired = {
+    ...OrderStatus,
+    Expired: "expired",
+} as const;
+
+export type OrderStatusOrExpired = (typeof OrderStatusOrExpired)[keyof typeof OrderStatusOrExpired];
 
 /**
- * Complete intent status information
+ * Complete order tracking information
  */
-export interface IntentStatusInfo {
-    /** Current status of the intent */
-    status: IntentStatus;
+export interface OrderTrackingInfo {
+    status: OrderStatusOrExpired;
     /** Order ID */
     orderId: Hex;
     /** Transaction hash where order was opened */
@@ -93,22 +91,21 @@ export interface IntentStatusInfo {
     inputAmount: bigint;
     /** Output token amount from minReceived[0] */
     outputAmount: bigint;
-    /** Fill event data (present when status is 'filled') */
+    /** Fill event data (present when status is 'completed' or 'filled') */
     fillEvent?: FillEvent;
 }
 
 /**
- * Intent update streamed during tracking
- * Used by async generator for real-time updates
+ * Order update streamed during tracking.
+ * Used by async generator for real-time updates.
  */
-export interface IntentUpdate {
-    /** Current status */
-    status: IntentStatus;
-    /** Order ID (available after intent is parsed) */
+export interface OrderTrackingUpdate {
+    status: OrderStatusOrExpired;
+    /** Order ID (available after order is parsed) */
     orderId?: Hex;
     /** Transaction hash where order was opened */
     openTxHash: Hex;
-    /** Fill transaction hash (available when filled) */
+    /** Fill transaction hash (available when completed) */
     fillTxHash?: Hex;
     /** Timestamp of the update (Unix timestamp in seconds) */
     timestamp: number;
@@ -117,9 +114,9 @@ export interface IntentUpdate {
 }
 
 /**
- * Parameters for watching an intent
+ * Parameters for watching an order
  */
-export interface WatchIntentParams {
+export interface WatchOrderParams {
     /** Transaction hash where the order was opened */
     txHash: Hex;
     /** Origin chain ID */
@@ -149,9 +146,9 @@ export interface GetFillParams {
 }
 
 /**
- * Parameters for tracking an existing transaction (power user method)
+ * Parameters for tracking an existing order (power user method)
  */
-export interface TrackingParams {
+export interface OrderTrackingParams {
     /** Transaction hash to track */
     txHash: Hex;
     /** Protocol name (e.g., 'across') */
