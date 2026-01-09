@@ -7,10 +7,10 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('"From text" tab - Convert address', () => {
   test('Convert address', async ({ page }) => {
-    await page.getByRole('textbox', { name: 'Human-Readable Address' }).fill('vitalik.eth@eth');
+    await page.getByRole('textbox', { name: 'Interoperable Name' }).fill('vitalik.eth@eth');
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
   });
 
@@ -24,7 +24,7 @@ test.describe('"From text" tab - Convert address', () => {
       await page.getByRole('button', { name: locator }).click();
       await page.getByRole('button', { name: 'Convert' }).click();
 
-      await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
     }
   });
@@ -37,27 +37,27 @@ test.describe('"From text" tab - Input validations', () => {
 
   test('Shows error for missing chain reference', async ({ page }) => {
     const invalidAddress = 'vitalik.eth';
-    await page.getByRole('textbox', { name: 'Human-Readable Address' }).fill(invalidAddress);
+    await page.getByRole('textbox', { name: 'Interoperable Name' }).fill(invalidAddress);
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByText(`Invalid human readable address: ${invalidAddress}`)).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).not.toBeVisible();
+    await expect(page.getByText(`Invalid interoperable name: ${invalidAddress}`)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
   });
 
   test('Shows error for invalid chain identifier', async ({ page }) => {
     const invalidChainIdentifier = 'invalidchain';
-    await page.getByRole('textbox', { name: 'Human-Readable Address' }).fill(`vitalik.eth@${invalidChainIdentifier}`);
+    await page.getByRole('textbox', { name: 'Interoperable Name' }).fill(`vitalik.eth@${invalidChainIdentifier}`);
     await page.getByRole('button', { name: 'Convert' }).click();
 
     await expect(page.getByText(`Invalid chain identifier: ${invalidChainIdentifier}`)).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
   });
 
   test('Shows error for invalid address format', async ({ page }) => {
-    await page.getByRole('textbox', { name: 'Human-Readable Address' }).fill('0x123@eth');
+    await page.getByRole('textbox', { name: 'Interoperable Name' }).fill('0x123@eth');
     await page.getByRole('button', { name: 'Convert' }).click();
 
     await expect(page.getByText('EVM address must be a valid Ethereum address')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Human-Readable Format' })).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
   });
 });

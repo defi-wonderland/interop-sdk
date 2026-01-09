@@ -18,7 +18,7 @@ test.describe('Error handling', () => {
       return route.continue();
     });
 
-    await page.getByRole('textbox', { name: 'Human-Readable Address' }).fill('vitalik.eth@eth');
+    await page.getByRole('textbox', { name: 'Interoperable Name' }).fill('vitalik.eth@eth');
     await page.getByRole('button', { name: 'Convert' }).click();
 
     const errorContainer = page.getByTestId('error-container');
