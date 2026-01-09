@@ -104,7 +104,7 @@ export const resolveAddress = async (
     // Validate ENS requirement: ENS names must have chain reference
     if (isENS && !chainReference) {
         throw new InvalidInteroperableName(
-            `ENS names require a specific chain reference (e.g., @eip155:1 or @ethereum). ` +
+            `ENS names require a specific chain reference (e.g., @eip155:1). ` +
                 `Use @<chainType>:<reference> format.`,
         );
     }
