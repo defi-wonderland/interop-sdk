@@ -149,6 +149,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
             onChange={(e) => setRecipient(e.target.value)}
             placeholder='0x... or alice.eth@chain'
             autoComplete='off'
+            data-1p-ignore
             disabled={isDisabled}
             className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
