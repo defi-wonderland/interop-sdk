@@ -1,4 +1,4 @@
-import { EXECUTION_STATUS, type IntentExecutionState } from '../../types/execution';
+import { EXECUTION_STATUS, type OrderExecutionState } from '../../types/execution';
 import { waitForReceiptWithRetry } from '../../utils/transactionReceipt';
 import type { ConfiguredWalletClient } from './chainSetup';
 import type { Address, Hex, PublicClient } from 'viem';
@@ -8,7 +8,7 @@ export async function submitBridgeTransaction(
   walletClient: ConfiguredWalletClient,
   to: Address,
   data: Hex,
-  onStateChange: (state: IntentExecutionState) => void,
+  onStateChange: (state: OrderExecutionState) => void,
 ): Promise<Hex> {
   onStateChange({
     status: EXECUTION_STATUS.SUBMITTING,

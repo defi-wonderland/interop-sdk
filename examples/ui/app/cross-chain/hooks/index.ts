@@ -1,8 +1,8 @@
 export { useQuotes } from './useQuotes';
-export { useIntentExecution } from './useIntentExecution';
+export { useOrderExecution } from './useOrderExecution';
 export {
   EXECUTION_STATUS,
-  type IntentExecutionStatus,
-  type IntentExecutionState,
+  type OrderExecutionStatus,
+  type OrderExecutionState,
   type ExecuteResult,
 } from '../types/execution';

@@ -1,18 +1,17 @@
-import { INTENT_STEPS, getStepStatus } from '../../utils/intentTrackingHelpers';
+import { ORDER_STEPS, getStepStatus } from '../../utils/orderTrackingHelpers';
 import { ExternalLinkIcon } from '../icons';
 import { StepIndicator } from './StepIndicator';
-import type { IntentExecutionState } from '../../types/execution';
+import type { OrderExecutionState } from '../../types/execution';
 
-export function ProgressView({ state }: { state: IntentExecutionState }) {
+export function ProgressView({ state }: { state: OrderExecutionState }) {
   return (
     <div className='p-4 rounded-xl border border-border bg-surface'>
-      <h3 className='text-sm font-semibold text-text-primary mb-4'>Intent Progress</h3>
+      <h3 className='text-sm font-semibold text-text-primary mb-4'>Order Progress</h3>
 
-      {/* Progress stepper */}
       <div className='space-y-3'>
-        {INTENT_STEPS.map((step, index) => {
+        {ORDER_STEPS.map((step, index) => {
           const stepStatus = getStepStatus(step.statuses, state.status, index);
-          const isLast = index === INTENT_STEPS.length - 1;
+          const isLast = index === ORDER_STEPS.length - 1;
 
           return (
             <div key={step.id} className='flex items-start gap-3'>
