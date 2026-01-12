@@ -150,6 +150,8 @@ export const ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE =
 /**
  * SpokePool.deposit function ABI (V3 with bytes32 for multi-chain support)
  * Selector: 0xad5425c6
+ *
+ * @see https://etherscan.io/address/0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5#code (Mainnet SpokePool)
  */
 export const ACROSS_SPOKE_POOL_DEPOSIT_ABI = [
     {
@@ -177,6 +179,8 @@ export const ACROSS_SPOKE_POOL_DEPOSIT_ABI = [
 /**
  * SpokePoolPeriphery.swapAndBridge function ABI
  * Selector: 0x110560ad
+ *
+ * @see https://etherscan.io/address/0x89415a82d909a7238d69094C3Dd1dCC1aCbDa85C#code (Mainnet SpokePoolPeriphery)
  */
 export const ACROSS_SPOKE_POOL_PERIPHERY_SWAP_AND_BRIDGE_ABI = [
     {
@@ -245,5 +249,55 @@ export const ACROSS_SPOKE_POOL_PERIPHERY_SWAP_AND_BRIDGE_ABI = [
         outputs: [],
         stateMutability: "payable",
         type: "function",
+    },
+] as const;
+
+/**
+ * MulticallHandler.Instructions struct ABI for decoding message bytes
+ * Used to extract the actual recipient from swapAndBridge messages
+ *
+ * The message in swapAndBridge contains encoded Instructions that specify
+ * what to do with the bridged tokens on the destination chain.
+ *
+ * @see https://github.com/across-protocol/contracts/blob/master/contracts/handlers/MulticallHandler.sol
+ * @see https://optimistic.etherscan.io/address/0x0f7AE28dE1C8532170AD4EE566b5801485C13A0E#code (Optimism MulticallHandler)
+ */
+export const ACROSS_MULTICALL_HANDLER_INSTRUCTIONS_ABI = [
+    {
+        type: "tuple",
+        components: [
+            {
+                type: "tuple[]",
+                name: "calls",
+                components: [
+                    { type: "address", name: "target" },
+                    { type: "bytes", name: "callData" },
+                    { type: "uint256", name: "value" },
+                ],
+            },
+            { type: "address", name: "fallbackRecipient" },
+        ],
+    },
+] as const;
+
+/**
+ * MulticallHandler.drainLeftoverTokens function ABI
+ * Selector: 0xef8738d3
+ *
+ * Called on destination chain to transfer bridged tokens to the final recipient.
+ * The Across API includes these calls in the message to route tokens to the user.
+ *
+ * @see https://github.com/across-protocol/contracts/blob/master/contracts/handlers/MulticallHandler.sol
+ */
+export const ACROSS_DRAIN_LEFTOVER_TOKENS_ABI = [
+    {
+        type: "function",
+        name: "drainLeftoverTokens",
+        inputs: [
+            { type: "address", name: "token" },
+            { type: "address", name: "destination" },
+        ],
+        outputs: [],
+        stateMutability: "nonpayable",
     },
 ] as const;
