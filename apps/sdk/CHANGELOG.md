@@ -1,5 +1,16 @@
 # @defi-wonderland/interop
 
+## 0.2.1
+
+### Patch Changes
+
+-   0652fb1: fix: chain namespace is required if the chain identifier is an integer
+-   d55b308: make formatAddress synchronous (remove ENS option which is unused in the package)
+-   Updated dependencies [0652fb1]
+-   Updated dependencies [d55b308]
+    -   @wonderland/interop-addresses@0.2.1
+    -   @wonderland/interop-cross-chain@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
