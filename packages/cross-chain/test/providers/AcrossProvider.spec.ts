@@ -1,49 +1,39 @@
 import type viem from "viem";
 import { buildFromPayload } from "@wonderland/interop-addresses";
 import axios from "axios";
-import { Address, createPublicClient, PublicClient } from "viem";
+import { createPublicClient, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AcrossProvider } from "../../src/external.js";
 import { getMockedAcrossApiResponse } from "../mocks/acrossApi.js";
+import { CHAIN_IDS, TEST_ADDRESSES, TEST_AMOUNTS, TESTNET_TOKENS } from "../mocks/fixtures.js";
 
 const MOCK_API_URL = "https://mocked.accross.url/api";
 
-// Common addresses for testing
-const COMMON_USER_ADDRESS = "0x0000000000000000000000000000000000000001" as Address;
-const COMMON_RECEIVER_ADDRESS = "0x0000000000000000000000000000000000000002" as Address;
-const INPUT_TOKEN_ADDRESS = "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14" as Address;
-const OUTPUT_TOKEN_ADDRESS = "0x4200000000000000000000000000000000000006" as Address;
-const INPUT_CHAIN_ID = 11155111; // Sepolia
-const OUTPUT_CHAIN_ID = 84532; // Base Sepolia
-
-// Convert to interop addresses
+// Build interop addresses for testnet scenario
 const USER_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
-    chainReference: `0x${INPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: COMMON_USER_ADDRESS,
+    chainReference: `0x${CHAIN_IDS.SEPOLIA.toString(16).padStart(6, "0")}`,
+    address: TEST_ADDRESSES.USER,
 });
-
 const RECEIVER_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
-    chainReference: `0x${OUTPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: COMMON_RECEIVER_ADDRESS,
+    chainReference: `0x${CHAIN_IDS.BASE_SEPOLIA.toString(16).padStart(6, "0")}`,
+    address: TEST_ADDRESSES.RECEIVER,
 });
-
 const INPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
-    chainReference: `0x${INPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: INPUT_TOKEN_ADDRESS,
+    chainReference: `0x${CHAIN_IDS.SEPOLIA.toString(16).padStart(6, "0")}`,
+    address: TESTNET_TOKENS.WETH_SEPOLIA,
 });
-
 const OUTPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
     version: 1,
     chainType: "eip155",
-    chainReference: `0x${OUTPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: OUTPUT_TOKEN_ADDRESS,
+    chainReference: `0x${CHAIN_IDS.BASE_SEPOLIA.toString(16).padStart(6, "0")}`,
+    address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
 });
 
 vi.mock("axios");
@@ -82,7 +72,7 @@ describe("AcrossProvider", () => {
                         {
                             user: USER_INTEROP_ADDRESS,
                             asset: INPUT_TOKEN_INTEROP_ADDRESS,
-                            amount: "1000000000000000000",
+                            amount: TEST_AMOUNTS.ONE_ETHER.toString(),
                         },
                     ],
                     outputs: [
@@ -99,12 +89,12 @@ describe("AcrossProvider", () => {
             expect(axios.get).toHaveBeenCalledWith(`${MOCK_API_URL}/swap/approval`, {
                 params: {
                     tradeType: "exactInput",
-                    inputToken: INPUT_TOKEN_ADDRESS,
-                    outputToken: OUTPUT_TOKEN_ADDRESS,
-                    amount: "1000000000000000000",
-                    originChainId: INPUT_CHAIN_ID.toString(),
-                    destinationChainId: OUTPUT_CHAIN_ID.toString(),
-                    depositor: COMMON_USER_ADDRESS,
+                    inputToken: TESTNET_TOKENS.WETH_SEPOLIA,
+                    outputToken: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                    amount: TEST_AMOUNTS.ONE_ETHER.toString(),
+                    originChainId: CHAIN_IDS.SEPOLIA.toString(),
+                    destinationChainId: CHAIN_IDS.BASE_SEPOLIA.toString(),
+                    depositor: TEST_ADDRESSES.USER,
                 },
             });
         });
@@ -124,7 +114,7 @@ describe("AcrossProvider", () => {
                         {
                             receiver: RECEIVER_INTEROP_ADDRESS,
                             asset: OUTPUT_TOKEN_INTEROP_ADDRESS,
-                            amount: "1000000000000000000",
+                            amount: TEST_AMOUNTS.ONE_ETHER.toString(),
                         },
                     ],
                     swapType: "exact-output",
@@ -135,12 +125,12 @@ describe("AcrossProvider", () => {
             expect(axios.get).toHaveBeenCalledWith(`${MOCK_API_URL}/swap/approval`, {
                 params: {
                     tradeType: "exactOutput",
-                    inputToken: INPUT_TOKEN_ADDRESS,
-                    outputToken: OUTPUT_TOKEN_ADDRESS,
-                    amount: "1000000000000000000",
-                    originChainId: INPUT_CHAIN_ID.toString(),
-                    destinationChainId: OUTPUT_CHAIN_ID.toString(),
-                    depositor: COMMON_USER_ADDRESS,
+                    inputToken: TESTNET_TOKENS.WETH_SEPOLIA,
+                    outputToken: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                    amount: TEST_AMOUNTS.ONE_ETHER.toString(),
+                    originChainId: CHAIN_IDS.SEPOLIA.toString(),
+                    destinationChainId: CHAIN_IDS.BASE_SEPOLIA.toString(),
+                    depositor: TEST_ADDRESSES.USER,
                 },
             });
         });

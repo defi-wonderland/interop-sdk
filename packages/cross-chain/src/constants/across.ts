@@ -146,3 +146,104 @@ export const ACROSS_V3_FUNDS_DEPOSITED_ABI = [
  */
 export const ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE =
     "0x32ed1a409ef04c7b0227189c3a103dc5ac10e775a15b785dcc510201f7c25ad3" as const;
+
+/**
+ * SpokePool.deposit function ABI (V3 with bytes32 for multi-chain support)
+ * Selector: 0xad5425c6
+ */
+export const ACROSS_SPOKE_POOL_DEPOSIT_ABI = [
+    {
+        inputs: [
+            { internalType: "bytes32", name: "depositor", type: "bytes32" },
+            { internalType: "bytes32", name: "recipient", type: "bytes32" },
+            { internalType: "bytes32", name: "inputToken", type: "bytes32" },
+            { internalType: "bytes32", name: "outputToken", type: "bytes32" },
+            { internalType: "uint256", name: "inputAmount", type: "uint256" },
+            { internalType: "uint256", name: "outputAmount", type: "uint256" },
+            { internalType: "uint256", name: "destinationChainId", type: "uint256" },
+            { internalType: "bytes32", name: "exclusiveRelayer", type: "bytes32" },
+            { internalType: "uint32", name: "quoteTimestamp", type: "uint32" },
+            { internalType: "uint32", name: "fillDeadline", type: "uint32" },
+            { internalType: "uint32", name: "exclusivityParameter", type: "uint32" },
+            { internalType: "bytes", name: "message", type: "bytes" },
+        ],
+        name: "deposit",
+        outputs: [],
+        stateMutability: "payable",
+        type: "function",
+    },
+] as const;
+
+/**
+ * SpokePoolPeriphery.swapAndBridge function ABI
+ * Selector: 0x110560ad
+ */
+export const ACROSS_SPOKE_POOL_PERIPHERY_SWAP_AND_BRIDGE_ABI = [
+    {
+        inputs: [
+            {
+                components: [
+                    {
+                        components: [
+                            { internalType: "uint256", name: "amount", type: "uint256" },
+                            { internalType: "address", name: "recipient", type: "address" },
+                        ],
+                        internalType: "struct SpokePoolPeripheryInterface.Fees",
+                        name: "submissionFees",
+                        type: "tuple",
+                    },
+                    {
+                        components: [
+                            { internalType: "address", name: "inputToken", type: "address" },
+                            { internalType: "bytes32", name: "outputToken", type: "bytes32" },
+                            { internalType: "uint256", name: "outputAmount", type: "uint256" },
+                            { internalType: "address", name: "depositor", type: "address" },
+                            { internalType: "bytes32", name: "recipient", type: "bytes32" },
+                            {
+                                internalType: "uint256",
+                                name: "destinationChainId",
+                                type: "uint256",
+                            },
+                            { internalType: "bytes32", name: "exclusiveRelayer", type: "bytes32" },
+                            { internalType: "uint32", name: "quoteTimestamp", type: "uint32" },
+                            { internalType: "uint32", name: "fillDeadline", type: "uint32" },
+                            {
+                                internalType: "uint32",
+                                name: "exclusivityParameter",
+                                type: "uint32",
+                            },
+                            { internalType: "bytes", name: "message", type: "bytes" },
+                        ],
+                        internalType: "struct SpokePoolPeripheryInterface.BaseDepositData",
+                        name: "depositData",
+                        type: "tuple",
+                    },
+                    { internalType: "address", name: "swapToken", type: "address" },
+                    { internalType: "address", name: "exchange", type: "address" },
+                    {
+                        internalType: "enum SpokePoolPeripheryInterface.TransferType",
+                        name: "transferType",
+                        type: "uint8",
+                    },
+                    { internalType: "uint256", name: "swapTokenAmount", type: "uint256" },
+                    {
+                        internalType: "uint256",
+                        name: "minExpectedInputTokenAmount",
+                        type: "uint256",
+                    },
+                    { internalType: "bytes", name: "routerCalldata", type: "bytes" },
+                    { internalType: "bool", name: "enableProportionalAdjustment", type: "bool" },
+                    { internalType: "address", name: "spokePool", type: "address" },
+                    { internalType: "uint256", name: "nonce", type: "uint256" },
+                ],
+                internalType: "struct SpokePoolPeripheryInterface.SwapAndDepositData",
+                name: "swapAndDepositData",
+                type: "tuple",
+            },
+        ],
+        name: "swapAndBridge",
+        outputs: [],
+        stateMutability: "payable",
+        type: "function",
+    },
+] as const;

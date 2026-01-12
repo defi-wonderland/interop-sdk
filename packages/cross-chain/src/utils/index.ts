@@ -1,3 +1,4 @@
+export * from "./acrossCalldataDecoder.js";
 export * from "./addressHelpers.js";
 export * from "./chainHelpers.js";
 export * from "./eventDataParser.js";
