@@ -62,7 +62,7 @@ const resolveENSName = async (ensName: string, chainReference: string): Promise<
         if (error instanceof ENSNotFound) {
             throw error;
         }
-        throw new ENSLookupFailed(error instanceof Error ? error.message : String(error));
+        throw new ENSLookupFailed("Unexpected error, please try again or check your connection");
     }
 };
 

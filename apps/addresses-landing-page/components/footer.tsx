@@ -7,6 +7,14 @@ export function Footer() {
                         <h3 className="font-semibold mb-4 text-foreground">Specifications</h3>
                         <div className="space-y-2 text-muted-foreground">
                             <a
+                                href="https://chainagnostic.org/CAIPs/caip-350"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block hover:text-foreground transition-colors"
+                            >
+                                CAIP-350
+                            </a>
+                            <a
                                 href="https://eips.ethereum.org/EIPS/eip-7930"
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -29,7 +37,7 @@ export function Footer() {
                         <h3 className="font-semibold mb-4 text-foreground">Resources</h3>
                         <div className="space-y-2 text-muted-foreground">
                             <a
-                                href="https://interop.wonderland.xyz"
+                                href="https://interop.wonderland.xyz/addresses"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="block hover:text-foreground transition-colors"
@@ -43,7 +51,7 @@ export function Footer() {
                                 SDK
                             </a>
                             <a
-                                href="https://github.com/defi-wonderland/interop-sdk/tree/main/packages/addresses#readme"
+                                href="https://docs.interop.wonderland.xyz/"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="block hover:text-foreground transition-colors"

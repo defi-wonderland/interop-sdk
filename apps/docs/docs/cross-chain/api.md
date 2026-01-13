@@ -8,19 +8,21 @@ A set of classes and utilities for handling cross-chain operations through vario
 
 #### Methods
 
--   **createCrossChainProvider**(protocolName: string, config: ProviderConfig, dependencies: Dependencies): [CrossChainProvider](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/interfaces/crossChainProvider.interface.ts#L84)
+-   **createCrossChainProvider**(protocolName: string, config: ProviderConfig, dependencies: Dependencies): CrossChainProvider
 
     Creates a provider instance for a supported cross-chain protocol.
 
     ```typescript
+    import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+
     const provider = createCrossChainProvider(
         "across",
-        { apiUrl: "https://..." }, // Provider config
-        {}, // Dependencies
+        { apiUrl: "https://testnet.across.to/api" },
+        {},
     );
     ```
 
-#### [CrossChainProvider Class](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/interfaces/crossChainProvider.interface.ts#L84)
+#### CrossChainProvider Class
 
 An abstract class that defines the interface for cross-chain protocol providers.
 
@@ -32,36 +34,56 @@ An abstract class that defines the interface for cross-chain protocol providers.
     const protocolName = provider.getProtocolName(); // e.g., "across"
     ```
 
--   **getQuote**(action: CrossChainAction, params: QuoteParams): Promise\<[Quote](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/interfaces/crossChainProvider.interface.ts#L79)\>
+-   **getProviderId**(): string
 
-    Fetches a quote for a cross-chain operation.
+    Returns the unique provider instance ID.
 
     ```typescript
-    const quote = await provider.getQuote("crossChainTransfer", {
-        sender: "0x...",
-        recipient: "0x...",
-        inputTokenAddress: "0x...",
-        outputTokenAddress: "0x...",
-        inputAmount: "1000000000000000000",
-        inputChainId: 11155111,
-        outputChainId: 84532,
+    const providerId = provider.getProviderId(); // e.g., "across-1"
+    ```
+
+-   **getQuotes**(params: GetQuoteRequest): Promise\<ExecutableQuote[]\>
+
+    Fetches quotes for a cross-chain operation.
+
+    ```typescript
+    const quotes = await provider.getQuotes({
+        user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
+        intent: {
+            intentType: "oif-swap",
+            inputs: [
+                {
+                    user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
+                    asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
+                    amount: "1000000000000000000",
+                },
+            ],
+            outputs: [
+                {
+                    receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
+                    asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
+                },
+            ],
+            swapType: "exact-input",
+        },
+        supportedTypes: ["across"],
     });
     ```
 
--   **simulateOpen**(openParams: OpenParams): Promise\<TransactionRequest[]\>
+-   **submitSignedOrder**(quote: ExecutableQuote, signature: Hex): Promise\<PostOrderResponse\>
 
-    Simulates the open transaction for a given quote. This method validates parameters before simulating.
+    Submits a signed order for gasless execution.
 
     ```typescript
-    const txs = await provider.simulateOpen(quote.openParams);
+    const response = await provider.submitSignedOrder(quote, signature);
     ```
 
--   **validateOpenParams**(openParams: OpenParams): Promise\<boolean\>
+-   **getTrackingConfig**(): TrackingConfig
 
-    Validates the parameters for opening a cross-chain transaction.
+    Returns protocol-specific tracking configuration for intent monitoring.
 
     ```typescript
-    const txs = await provider.simulateOpen(quote.openParams);
+    const config = provider.getTrackingConfig();
     ```
 
 ### Provider Executor
@@ -70,78 +92,108 @@ A utility for managing multiple cross-chain providers and executing operations a
 
 #### Methods
 
--   **createProviderExecutor**(providers: CrossChainProvider[], dependencies: Dependencies): [ProviderExecutor](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/providerExecutor.ts#L28)
+-   **createProviderExecutor**(config: ProviderExecutorConfig): ProviderExecutor
 
     Creates an executor instance for managing multiple providers.
 
     ```typescript
-    const executor = createProviderExecutor(
-        [
-            acrossProvider,
-            // other providers
-        ],
-        {},
-    );
+    import { createProviderExecutor } from "@wonderland/interop-cross-chain";
+
+    const executor = createProviderExecutor({
+        providers: [acrossProvider],
+        sortingStrategy: SortingStrategyFactory.createStrategy("bestOutput"), // optional
+        timeoutMs: 15000, // optional
+        trackerFactory: new IntentTrackerFactory({ rpcUrls }), // optional
+    });
     ```
 
-#### [ProviderExecutor Class](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/providerExecutor.ts#L28)
+#### ProviderExecutor Class
 
 A class that manages multiple cross-chain providers and coordinates their operations.
 
--   **getQuotes**(action: CrossChainAction, params: QuoteParams): Promise\<[Quote\[\]](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/interfaces/crossChainProvider.interface.ts#L79)\>
+-   **getQuotes**(params: GetQuoteRequest): Promise\<GetQuotesResponse\>
 
     Retrieves quotes from all available providers for a given operation.
 
     ```typescript
-    const quotes = await executor.getQuotes("crossChainTransfer", {
-        sender: "0x...",
-        recipient: "0x...",
-        inputTokenAddress: "0x...",
-        outputTokenAddress: "0x...",
-        inputAmount: "1000000000000000000",
-        inputChainId: 11155111,
-        outputChainId: 84532,
-    });
-    ```
-
-### Quote Aggregator
-
-A utility for fetching and comparing quotes from multiple providers with sorting and timeout handling.
-
-#### Methods
-
--   **createQuoteAggregator**(providers?: SupportedProtocols[]): [QuoteAggregator](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/quoteAggregator.ts#L23)
-
-    Creates a quote aggregator instance.
-
-    ```typescript
-    const aggregator = createQuoteAggregator(["across"]);
-    ```
-
-#### [QuoteAggregator Class](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/quoteAggregator.ts#L23)
-
-A class that fetches quotes from multiple providers in parallel and sorts them by specified criteria.
-
--   **getQuotes**(params: GetQuotesParams): Promise\<QuoteResult[]\>
-
-    Fetches quotes from all configured providers with optional sorting and timeout.
-
-    ```typescript
-    const results = await aggregator.getQuotes({
-        action: "crossChainTransfer",
-        params: {
-            sender: "0x...",
-            recipient: "0x...",
-            inputTokenAddress: "0x...",
-            outputTokenAddress: "0x...",
-            inputAmount: "1000000000000000000",
-            inputChainId: 11155111,
-            outputChainId: 84532,
+    const response = await executor.getQuotes({
+        user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
+        intent: {
+            intentType: "oif-swap",
+            inputs: [
+                {
+                    user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
+                    asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
+                    amount: "1000000000000000000",
+                },
+            ],
+            outputs: [
+                {
+                    receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
+                    asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
+                },
+            ],
+            swapType: "exact-input",
         },
-        sorting: SortingCriteria.BEST_OUTPUT, // Optional
-        timeout: 10000, // Optional, in milliseconds
+        supportedTypes: ["across"],
     });
+
+    // Handle results
+    if (response.quotes.length > 0) {
+        const bestQuote = response.quotes[0];
+    }
+    response.errors.forEach((error) => console.error(error.errorMsg));
     ```
+
+-   **track**(params: TrackParams): IntentTracker
+
+    Starts tracking an executed transaction with real-time events.
+
+    ```typescript
+    const tracker = executor.track({
+        txHash: hash,
+        providerId: quote.provider,
+        originChainId: 11155111,
+        destinationChainId: 84532,
+        timeout: 300000,
+    });
+
+    tracker.on("filled", (update) => console.log("Filled!", update.fillTxHash));
+    ```
+
+-   **getIntentStatus**(params: GetIntentStatusParams): Promise\<IntentStatusInfo\>
+
+    Gets the current status of an intent without watching.
+
+    ```typescript
+    const status = await executor.getIntentStatus({
+        txHash: "0x...",
+        providerId: "across",
+        originChainId: 11155111,
+    });
+    console.log(status.status); // 'opening' | 'opened' | 'filling' | 'filled' | 'expired'
+    ```
+
+### Sorting Strategies
+
+#### SortingStrategyFactory
+
+A factory for creating quote sorting strategies.
+
+-   **createStrategy**(type: string): SortingStrategy
+
+    Creates a sorting strategy instance.
+
+    ```typescript
+    import { SortingStrategyFactory } from "@wonderland/interop-cross-chain";
+
+    const strategy = SortingStrategyFactory.createStrategy("bestOutput");
+    ```
+
+    Available strategies:
+
+    -   `bestOutput` - Sorts quotes by highest output amount
+    -   `lowerEta` - Sorts quotes by lowest estimated time of arrival
 
 ### Intent Tracker
 
@@ -149,15 +201,22 @@ A utility for tracking cross-chain intents from initiation to completion (EIP-76
 
 #### Methods
 
--   **createIntentTracker**(protocol: "across", config?: IntentTrackerConfig): [IntentTracker](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/IntentTracker.ts#L19)
+-   **createIntentTracker**(provider: CrossChainProvider, config: IntentTrackerConfig): IntentTracker
 
-    Creates an intent tracker instance for a specific protocol.
+    Creates an intent tracker instance for a specific provider.
 
     ```typescript
-    const tracker = createIntentTracker("across");
+    import { createIntentTracker } from "@wonderland/interop-cross-chain";
+
+    const tracker = createIntentTracker(acrossProvider, {
+        rpcUrls: {
+            11155111: "https://sepolia.infura.io/v3/YOUR_API_KEY",
+            84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY",
+        },
+    });
     ```
 
-#### [IntentTracker Class](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/IntentTracker.ts#L19)
+#### IntentTracker Class
 
 A class that tracks cross-chain intents through their lifecycle.
 
@@ -177,7 +236,7 @@ A class that tracks cross-chain intents through their lifecycle.
     }
     ```
 
--   **getIntentStatus**(txHash: string, originChainId: number): Promise\<IntentStatusInfo\>
+-   **getIntentStatus**(txHash: Hex, originChainId: number): Promise\<IntentStatusInfo\>
 
     Gets the current status of an intent without watching.
 
@@ -186,26 +245,74 @@ A class that tracks cross-chain intents through their lifecycle.
     console.log(status.status); // 'opening' | 'opened' | 'filling' | 'filled' | 'expired'
     ```
 
-### Param Parsers
+### Types
 
-Utilities for parsing and validating parameters used in cross-chain operations.
-
-#### [InteropAddressParamsParser](https://github.com/defi-wonderland/interop-sdk/blob/01f1d90f74ab4a36ed9a71d54099e822ad984094/packages/cross-chain/src/services/InteropAddressParamsParser.ts#L50)
-
-A utility class for parsing interoperable addresses used in cross-chain operations.
+#### ExecutableQuote
 
 ```typescript
-const parser = new InteropAddressParamsParser();
-const parsedParams = await parser.parseGetQuoteParams("crossChainTransfer", {
-    sender: "alice.eth@eip155:1#ABCD1234",
-    recipient: "0x...",
-    amount: "1000000000000000000",
-    inputTokenAddress: "0x...",
-    outputTokenAddress: "0x...",
-});
+interface ExecutableQuote {
+    order: Quote["order"];
+    provider?: string;
+    preparedTransaction?: PrepareTransactionRequestReturnType;
+}
+```
+
+#### GetQuotesResponse
+
+```typescript
+interface GetQuotesResponse {
+    quotes: ExecutableQuote[];
+    errors: ProviderError[];
+}
+```
+
+#### IntentStatusInfo
+
+```typescript
+interface IntentStatusInfo {
+    status: "opening" | "opened" | "filling" | "filled" | "expired";
+    orderId: Hex;
+    openTxHash: Hex;
+    user: Address;
+    originChainId: number;
+    destinationChainId: number;
+    fillDeadline: number;
+    depositId: bigint;
+    inputAmount: bigint;
+    outputAmount: bigint;
+    fillEvent?: FillEvent;
+}
+```
+
+#### IntentUpdate
+
+```typescript
+interface IntentUpdate {
+    status: "opening" | "opened" | "filling" | "filled" | "expired";
+    orderId?: Hex;
+    openTxHash: Hex;
+    fillTxHash?: Hex;
+    timestamp: number;
+    message: string;
+}
+```
+
+#### FillEvent
+
+```typescript
+interface FillEvent {
+    fillTxHash: Hex;
+    blockNumber: bigint;
+    timestamp: number;
+    originChainId: number;
+    depositId: bigint;
+    relayer: Address;
+    recipient: Address;
+}
 ```
 
 ## References
 
 -   [Cross-chain Protocol Standards](https://github.com/ethereum/ercs/blob/master/ERCS/erc-5164.md)
--   [EIP-7683: Open Intent Framework](https://www.erc7683.org/)
+-   [EIP-7683: Cross Chain Intents](https://www.erc7683.org/)
+-   [Open Intents Framework](https://github.com/openintentsframework)
