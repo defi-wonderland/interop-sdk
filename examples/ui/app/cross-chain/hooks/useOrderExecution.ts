@@ -77,6 +77,7 @@ export function useOrderExecution(): UseOrderExecutionReturn {
       EXECUTION_STATUS.COMPLETED,
       EXECUTION_STATUS.EXPIRED,
       EXECUTION_STATUS.FAILED,
+      EXECUTION_STATUS.TIMEOUT,
       EXECUTION_STATUS.ERROR,
     ] as OrderExecutionStatus[]
   ).includes(state.status);

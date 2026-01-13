@@ -85,3 +85,34 @@ export function truncateAddress(address: string): string {
   if (address.length <= 10) return address;
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
+
+/**
+ * Formats a date to a human-readable string
+ * @param date - Date object or ISO string
+ * @returns Formatted date string (e.g., "Jan 13, 2026 at 8:17 PM")
+ */
+export function formatDate(date: Date | string): string {
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(dateObj);
+  } catch {
+    return String(date);
+  }
+}
+
+/**
+ * Replaces ISO timestamps in a message with human-readable dates
+ * @param message - Message that may contain ISO timestamp strings
+ * @returns Message with ISO timestamps replaced by human-readable dates
+ */
+export function formatMessageWithDate(message: string): string {
+  const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z/g;
+  return message.replace(isoDateRegex, (isoDate) => formatDate(isoDate));
+}

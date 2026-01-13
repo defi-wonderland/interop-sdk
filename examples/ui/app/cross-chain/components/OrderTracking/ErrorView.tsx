@@ -1,5 +1,6 @@
 import { getChainConfig, getExplorerTxUrl } from '../../constants/chains';
 import { EXECUTION_STATUS } from '../../types/execution';
+import { formatMessageWithDate } from '../../utils/formatting';
 import { CloseIcon, ExternalLinkIcon } from '../icons';
 import type { OrderTrackingProps } from './types';
 
@@ -9,6 +10,8 @@ function getErrorTitle(status: string): string {
       return 'Order Expired';
     case EXECUTION_STATUS.FAILED:
       return 'Order Failed';
+    case EXECUTION_STATUS.TIMEOUT:
+      return 'Tracking Timeout';
     default:
       return 'Order Error';
   }
@@ -17,17 +20,30 @@ function getErrorTitle(status: string): string {
 export function ErrorView({ state, onReset }: OrderTrackingProps) {
   const originChain = getChainConfig(state.originChainId);
   const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
+  const isTimeout = state.status === EXECUTION_STATUS.TIMEOUT;
+  const borderColor = isTimeout ? 'border-amber-500/30' : 'border-error/30';
+  const bgColor = isTimeout ? 'bg-amber-500/5' : 'bg-error/5';
+  const iconBg = isTimeout ? 'bg-amber-500' : 'bg-error';
+  const textColor = isTimeout ? 'text-amber-600' : 'text-error';
+  const linkBg = isTimeout
+    ? 'bg-amber-500/10 border-amber-500/30 hover:border-amber-500/50'
+    : 'bg-error/10 border-error/30 hover:border-error/50';
+  const linkText = isTimeout ? 'text-amber-600/80' : 'text-error/80';
+  const linkHoverText = isTimeout
+    ? 'text-amber-600/70 group-hover:text-amber-600'
+    : 'text-error/70 group-hover:text-error';
+  const buttonBorder = isTimeout ? 'border-amber-500/50 hover:bg-amber-500/10' : 'border-error/50 hover:bg-error/10';
 
   return (
-    <div className='p-6 rounded-xl border border-error/30 bg-error/5'>
-      {/* Error header */}
+    <div className={`p-6 rounded-xl border ${borderColor} ${bgColor}`}>
+      {/* Error/Warning header */}
       <div className='flex items-center gap-3 mb-4'>
-        <div className='w-12 h-12 rounded-full bg-error flex items-center justify-center text-white'>
+        <div className={`w-12 h-12 rounded-full ${iconBg} flex items-center justify-center text-white shrink-0`}>
           <CloseIcon className='w-6 h-6' />
         </div>
         <div>
-          <h3 className='text-lg font-semibold text-error'>{getErrorTitle(state.status)}</h3>
-          <p className='text-sm text-text-secondary'>{state.message}</p>
+          <h3 className={`text-lg font-semibold ${textColor}`}>{getErrorTitle(state.status)}</h3>
+          <p className='text-sm text-text-secondary'>{formatMessageWithDate(state.message)}</p>
         </div>
       </div>
 
@@ -37,13 +53,13 @@ export function ErrorView({ state, onReset }: OrderTrackingProps) {
           href={originTxUrl}
           target='_blank'
           rel='noopener noreferrer'
-          className='flex items-center justify-between p-3 rounded-lg bg-error/10 border border-error/30 hover:border-error/50 transition-colors group mb-4'
+          className={`flex items-center justify-between p-3 rounded-lg ${linkBg} transition-colors group mb-4`}
         >
           <div className='flex items-center gap-2'>
-            <div className='w-2 h-2 rounded-full bg-error' />
-            <span className='text-sm text-error/80'>Origin Transaction ({originChain?.name ?? 'Unknown'})</span>
+            <div className={`w-2 h-2 rounded-full ${iconBg}`} />
+            <span className={`text-sm ${linkText}`}>Origin Transaction ({originChain?.name ?? 'Unknown'})</span>
           </div>
-          <div className='flex items-center gap-2 text-error/70 group-hover:text-error'>
+          <div className={`flex items-center gap-2 ${linkHoverText}`}>
             <span className='text-xs font-mono'>
               {state.txHash.slice(0, 10)}...{state.txHash.slice(-8)}
             </span>
@@ -57,9 +73,9 @@ export function ErrorView({ state, onReset }: OrderTrackingProps) {
         <button
           type='button'
           onClick={onReset}
-          className='w-full py-3 px-4 text-sm font-medium rounded-lg border border-error/50 hover:bg-error/10 text-error transition-colors'
+          className={`w-full py-3 px-4 text-sm font-medium rounded-lg border ${buttonBorder} ${textColor} transition-colors`}
         >
-          Try Again
+          {isTimeout ? 'Check Status' : 'Try Again'}
         </button>
       )}
     </div>

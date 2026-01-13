@@ -12,12 +12,13 @@ export function OrderTracking({ state, onReset }: OrderTrackingProps) {
     state.status === EXECUTION_STATUS.ERROR ||
     state.status === EXECUTION_STATUS.EXPIRED ||
     state.status === EXECUTION_STATUS.FAILED;
+  const isTimeout = state.status === EXECUTION_STATUS.TIMEOUT;
 
   if (isComplete) {
     return <SuccessView state={state} onReset={onReset} />;
   }
 
-  if (isError) {
+  if (isError || isTimeout) {
     return <ErrorView state={state} onReset={onReset} />;
   }
 

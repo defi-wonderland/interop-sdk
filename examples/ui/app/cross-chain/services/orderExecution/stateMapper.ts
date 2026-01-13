@@ -1,21 +1,23 @@
-import { OrderStatusOrExpired, type OrderTrackingUpdate } from '@wonderland/interop-cross-chain';
+import { OrderFailureReason, OrderStatus, type OrderTrackingUpdate } from '@wonderland/interop-cross-chain';
 import { EXECUTION_STATUS, type OrderExecutionState, type OrderExecutionStatus } from '../../types/execution';
 import type { Hex } from 'viem';
 
 const SDK_TO_UI_STATUS: Record<string, OrderExecutionStatus> = {
-  [OrderStatusOrExpired.Pending]: EXECUTION_STATUS.PENDING,
-  [OrderStatusOrExpired.Executing]: EXECUTION_STATUS.FILLING,
-  [OrderStatusOrExpired.Finalized]: EXECUTION_STATUS.COMPLETED,
-  [OrderStatusOrExpired.Failed]: EXECUTION_STATUS.FAILED,
-  [OrderStatusOrExpired.Expired]: EXECUTION_STATUS.EXPIRED,
+  [OrderStatus.Pending]: EXECUTION_STATUS.PENDING,
+  [OrderStatus.Executing]: EXECUTION_STATUS.FILLING,
+  [OrderStatus.Finalized]: EXECUTION_STATUS.COMPLETED,
+  [OrderStatus.Failed]: EXECUTION_STATUS.FAILED,
 };
 
-function mapSdkStatusToUi(sdkStatus: string): OrderExecutionStatus {
+function mapSdkStatusToUi(sdkStatus: string, failureReason?: string): OrderExecutionStatus {
+  if (sdkStatus === OrderStatus.Failed && failureReason === OrderFailureReason.DeadlineExceeded) {
+    return EXECUTION_STATUS.EXPIRED;
+  }
   return SDK_TO_UI_STATUS[sdkStatus] ?? (sdkStatus as OrderExecutionStatus);
 }
 
 function customizeMessage(update: OrderTrackingUpdate, uiStatus: OrderExecutionStatus): string {
-  const { message } = update;
+  const { message, failureReason } = update;
 
   switch (uiStatus) {
     case EXECUTION_STATUS.FILLING:
@@ -36,7 +38,13 @@ function customizeMessage(update: OrderTrackingUpdate, uiStatus: OrderExecutionS
       return message;
 
     case EXECUTION_STATUS.FAILED:
+      if (failureReason === OrderFailureReason.DeadlineExceeded) {
+        return message || 'Order deadline exceeded';
+      }
       return message || 'Order execution failed';
+
+    case EXECUTION_STATUS.EXPIRED:
+      return message || 'Order deadline exceeded';
 
     default:
       return message;
@@ -49,7 +57,7 @@ export function mapOrderUpdateToState(
   originChainId: number,
   destinationChainId: number,
 ): OrderExecutionState {
-  const uiStatus = mapSdkStatusToUi(update.status);
+  const uiStatus = mapSdkStatusToUi(update.status, update.failureReason);
   return {
     status: uiStatus,
     message: customizeMessage(update, uiStatus),

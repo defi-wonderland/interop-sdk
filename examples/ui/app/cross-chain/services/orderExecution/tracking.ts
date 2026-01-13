@@ -1,4 +1,4 @@
-import { OrderStatusOrExpired } from '@wonderland/interop-cross-chain';
+import { OrderStatus, OrderTrackerYieldType } from '@wonderland/interop-cross-chain';
 import { TIMEOUT_MS } from '../../constants';
 import { EXECUTION_STATUS, type OrderExecutionState } from '../../types/execution';
 import { crossChainExecutor } from '../sdk';
@@ -27,22 +27,37 @@ export async function trackOrder(
 
   const tracker = crossChainExecutor.prepareTracking(providerId);
 
+  // TODO: Remove this - forcing timeout for UI testing
+  const FORCE_TIMEOUT = true;
+  const timeout = FORCE_TIMEOUT ? 100 : TIMEOUT_MS.INTENT_TRACKING_TIMEOUT;
+
   try {
-    for await (const update of tracker.watchOrder({
+    for await (const item of tracker.watchOrder({
       txHash,
       originChainId,
       destinationChainId,
-      timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
+      timeout,
     })) {
       if (abortSignal?.aborted) return;
 
-      onStateChange(mapOrderUpdateToState(update, txHash, originChainId, destinationChainId));
+      if (item.type === OrderTrackerYieldType.Update) {
+        onStateChange(mapOrderUpdateToState(item.update, txHash, originChainId, destinationChainId));
 
-      const isTerminal =
-        update.status === OrderStatusOrExpired.Finalized ||
-        update.status === OrderStatusOrExpired.Failed ||
-        update.status === OrderStatusOrExpired.Expired;
-      if (isTerminal) {
+        const isTerminal =
+          item.update.status === OrderStatus.Finalized ||
+          item.update.status === OrderStatus.Failed ||
+          item.update.status === OrderStatus.Refunded;
+        if (isTerminal) {
+          break;
+        }
+      } else {
+        onStateChange({
+          status: EXECUTION_STATUS.TIMEOUT,
+          message: item.payload.message,
+          txHash,
+          originChainId,
+          destinationChainId,
+        });
         break;
       }
     }

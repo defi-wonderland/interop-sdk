@@ -17,6 +17,7 @@ export const EXECUTION_STATUS = {
   COMPLETED: 'completed',
   FAILED: 'failed',
   EXPIRED: 'expired',
+  TIMEOUT: 'timeout',
   ERROR: 'error',
 } as const;
 
