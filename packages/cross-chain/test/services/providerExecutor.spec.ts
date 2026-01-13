@@ -13,7 +13,7 @@ import {
 import {
     CrossChainProvider,
     ExecutableQuote,
-    OrderStatusOrExpired,
+    OrderStatus,
     ProviderGetQuoteFailure,
 } from "../../src/internal.js";
 import { createMockFillEvent } from "../mocks/orderTracking.js";
@@ -233,7 +233,7 @@ describe("ProviderExecutor", () => {
                 });
 
                 const mockStatus = {
-                    status: OrderStatusOrExpired.Finalized,
+                    status: OrderStatus.Finalized,
                     orderId: "0xabc123" as Hex,
                     openTxHash: "0xdef456" as Hex,
                     user: USER_ADDRESS,
@@ -283,7 +283,7 @@ describe("ProviderExecutor", () => {
 
                 const tracker1 = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
                 const getOrderStatusSpy = vi.spyOn(tracker1, "getOrderStatus").mockResolvedValue({
-                    status: OrderStatusOrExpired.Pending,
+                    status: OrderStatus.Pending,
                     orderId: "0xorder1" as Hex,
                     openTxHash: "0xtx1" as Hex,
                     user: USER_ADDRESS,
