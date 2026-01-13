@@ -22,7 +22,13 @@ export async function trackIntent(
   abortSignal: AbortSignal | undefined,
   onStateChange: (state: IntentExecutionState) => void,
 ): Promise<void> {
-  onStateChange({ status: EXECUTION_STATUS.OPENING, message: 'Transaction confirmed! Parsing intent...', txHash });
+  onStateChange({
+    status: EXECUTION_STATUS.OPENING,
+    message: 'Transaction confirmed! Parsing intent...',
+    txHash,
+    originChainId,
+    destinationChainId,
+  });
 
   const tracker = crossChainExecutor.prepareTracking(providerId);
 
