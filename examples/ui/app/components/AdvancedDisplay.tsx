@@ -20,20 +20,24 @@ const fields: FieldConfig<AdvancedFieldKey, ParsedInteroperableNameResult>[] = [
   {
     key: 'text-version',
     label: 'Text: Version',
-    getValue: (r) => r.address.version?.toString() || null,
+    getValue: (r) => r.interoperableAddress.version?.toString() || null,
     getDisplayValue: (r) =>
-      r.address.version?.toString() || <span className='text-text-tertiary italic'>(not set)</span>,
+      r.interoperableAddress.version?.toString() || <span className='text-text-tertiary italic'>(not set)</span>,
     description: 'CAIP-350 text format version',
   },
   {
     key: 'text-chainType',
     label: 'Text: Chain Type',
     getValue: (r) => {
-      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      const textAddr = isTextAddress(r.interoperableAddress)
+        ? r.interoperableAddress
+        : toTextRepresentation(r.interoperableAddress);
       return textAddr.chainType || null;
     },
     getDisplayValue: (r) => {
-      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      const textAddr = isTextAddress(r.interoperableAddress)
+        ? r.interoperableAddress
+        : toTextRepresentation(r.interoperableAddress);
       return textAddr.chainType || <span className='text-text-tertiary italic'>(not set)</span>;
     },
     description: 'Chain type (e.g., eip155, solana)',
@@ -42,11 +46,15 @@ const fields: FieldConfig<AdvancedFieldKey, ParsedInteroperableNameResult>[] = [
     key: 'text-chainReference',
     label: 'Text: Chain Reference',
     getValue: (r) => {
-      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      const textAddr = isTextAddress(r.interoperableAddress)
+        ? r.interoperableAddress
+        : toTextRepresentation(r.interoperableAddress);
       return textAddr.chainReference || null;
     },
     getDisplayValue: (r) => {
-      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      const textAddr = isTextAddress(r.interoperableAddress)
+        ? r.interoperableAddress
+        : toTextRepresentation(r.interoperableAddress);
       return textAddr.chainReference || <span className='text-text-tertiary italic'>(not set)</span>;
     },
     description: 'Chain identifier (numeric ID or label)',
@@ -55,11 +63,15 @@ const fields: FieldConfig<AdvancedFieldKey, ParsedInteroperableNameResult>[] = [
     key: 'text-address',
     label: 'Text: Address',
     getValue: (r) => {
-      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      const textAddr = isTextAddress(r.interoperableAddress)
+        ? r.interoperableAddress
+        : toTextRepresentation(r.interoperableAddress);
       return textAddr.address || null;
     },
     getDisplayValue: (r) => {
-      const textAddr = isTextAddress(r.address) ? r.address : toTextRepresentation(r.address);
+      const textAddr = isTextAddress(r.interoperableAddress)
+        ? r.interoperableAddress
+        : toTextRepresentation(r.interoperableAddress);
       return textAddr.address || <span className='text-text-tertiary italic'>(not set)</span>;
     },
     description: 'Resolved address (hex or ENS name)',

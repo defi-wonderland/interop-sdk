@@ -80,11 +80,11 @@ import {
 // Parse with full metadata (defaults to text representation)
 const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
 // result.name - original parsed components
-// result.address - address in text representation (default)
+// result.interoperableAddress - address in text representation (default)
 //   - Use isTextAddress() to access text fields
-//   - result.address.chainType - "eip155" (string)
-//   - result.address.chainReference - "1" (string)
-//   - result.address.address - "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (string)
+//   - result.interoperableAddress.chainType - "eip155" (string)
+//   - result.interoperableAddress.chainReference - "1" (string)
+//   - result.interoperableAddress.address - "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (string)
 // result.meta.checksum - calculated checksum
 // result.meta.isENS - whether address was ENS
 // result.meta.isChainLabel - whether chain reference was a label
@@ -95,7 +95,7 @@ const resultBinary = await parseName("vitalik.eth@eip155:1#4CA88C9C", {
 });
 
 // Format to name (accepts either representation, auto-converts, calculates checksum)
-const name = formatName(result.address);
+const name = formatName(result.interoperableAddress);
 
 // Simple conversions
 const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "hex" });

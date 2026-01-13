@@ -21,11 +21,11 @@ export const isInteroperableName = async (
     options: ParseInteroperableNameOptions = {},
 ): Promise<boolean> => {
     try {
-        const { address, meta } = await parseName(interoperableName);
+        const { interoperableAddress, meta } = await parseName(interoperableName);
 
         if (options.validateChecksumFlag && meta.checksum) {
             // checksum is already validated through schema in parseInteroperableName
-            validateChecksum(address, meta.checksum, {
+            validateChecksum(interoperableAddress, meta.checksum, {
                 isENSName: meta.isENS,
             });
         }

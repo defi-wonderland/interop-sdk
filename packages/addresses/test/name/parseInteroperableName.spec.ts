@@ -39,12 +39,14 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        expect(result.address.version).toBe(1);
-        expect(isTextAddress(result.address)).toBe(true);
-        if (isTextAddress(result.address)) {
-            expect(result.address.chainType).toBe("eip155");
-            expect(result.address.chainReference).toBe("1");
-            expect(result.address.address).toBe("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+        expect(result.interoperableAddress.version).toBe(1);
+        expect(isTextAddress(result.interoperableAddress)).toBe(true);
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.chainType).toBe("eip155");
+            expect(result.interoperableAddress.chainReference).toBe("1");
+            expect(result.interoperableAddress.address).toBe(
+                "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            );
         }
         expect(result.meta.checksum).toBe("4CA88C9C");
         expect(result.meta.isENS).toBe(false);
@@ -56,12 +58,14 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        expect(result.address.version).toBe(1);
-        expect(isTextAddress(result.address)).toBe(true);
-        if (isTextAddress(result.address)) {
-            expect(result.address.chainType).toBe("eip155");
-            expect(result.address.chainReference).toBe("1");
-            expect(result.address.address).toBe("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+        expect(result.interoperableAddress.version).toBe(1);
+        expect(isTextAddress(result.interoperableAddress)).toBe(true);
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.chainType).toBe("eip155");
+            expect(result.interoperableAddress.chainReference).toBe("1");
+            expect(result.interoperableAddress.address).toBe(
+                "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            );
         }
         // Checksum is always calculated, even if not provided
         expect(result.meta.checksum).toBeDefined();
@@ -77,14 +81,16 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        expect(result.address.version).toBe(1);
-        expect(isTextAddress(result.address)).toBe(true);
-        if (isTextAddress(result.address)) {
-            expect(result.address.chainType).toBe("solana");
-            expect(result.address.chainReference).toBe(
+        expect(result.interoperableAddress.version).toBe(1);
+        expect(isTextAddress(result.interoperableAddress)).toBe(true);
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.chainType).toBe("solana");
+            expect(result.interoperableAddress.chainReference).toBe(
                 "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
             );
-            expect(result.address.address).toBe("MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2");
+            expect(result.interoperableAddress.address).toBe(
+                "MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2",
+            );
         }
         expect(result.meta.checksum).toBe("88835C11");
         expect(result.meta.isENS).toBe(false);
@@ -96,12 +102,14 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        expect(result.address.version).toBe(1);
-        expect(isTextAddress(result.address)).toBe(true);
-        if (isTextAddress(result.address)) {
-            expect(result.address.chainType).toBe("eip155");
-            expect(result.address.address).toBe("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
-            expect(result.address.chainReference).toBeUndefined();
+        expect(result.interoperableAddress.version).toBe(1);
+        expect(isTextAddress(result.interoperableAddress)).toBe(true);
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.chainType).toBe("eip155");
+            expect(result.interoperableAddress.address).toBe(
+                "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+            );
+            expect(result.interoperableAddress.chainReference).toBeUndefined();
         }
     });
 
@@ -110,12 +118,12 @@ describe("parseName", () => {
 
         const result = await parseName(name);
 
-        expect(result.address.version).toBe(1);
-        expect(isTextAddress(result.address)).toBe(true);
-        if (isTextAddress(result.address)) {
-            expect(result.address.chainType).toBe("eip155");
-            expect(result.address.chainReference).toBe("1");
-            expect(result.address.address).toBeUndefined();
+        expect(result.interoperableAddress.version).toBe(1);
+        expect(isTextAddress(result.interoperableAddress)).toBe(true);
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.chainType).toBe("eip155");
+            expect(result.interoperableAddress.chainReference).toBe("1");
+            expect(result.interoperableAddress.address).toBeUndefined();
         }
     });
 
@@ -125,8 +133,8 @@ describe("parseName", () => {
         const result = await parseName(name);
 
         // When both chainType and chainReference are provided, no resolution occurs
-        if (isTextAddress(result.address)) {
-            expect(result.address.chainReference).toBe("1");
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.chainReference).toBe("1");
         }
         expect(result.meta.isChainLabel).toBe(false); // "1" is numeric, not a label
     });
@@ -138,9 +146,9 @@ describe("parseName", () => {
         const result = await parseName(name);
 
         // When only chainReference is provided, it should be resolved to chainType/reference
-        if (isTextAddress(result.address)) {
-            expect(result.address.chainType).toBe("eip155");
-            expect(result.address.chainReference).toBe("1");
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.chainType).toBe("eip155");
+            expect(result.interoperableAddress.chainReference).toBe("1");
         }
         expect(result.meta.isChainLabel).toBe(true); // "eth" is a chain label
         expect(mockShortnameToChainId).toHaveBeenCalledWith("eth");
@@ -157,9 +165,9 @@ describe("parseName", () => {
         expect(result.meta.isChainLabel).toBe(true);
         expect(result.name.chainType).toBeUndefined(); // Original parsed name has no chainType
         expect(result.name.chainReference).toBe("arbitrum"); // Original parsed name has the label
-        if (isTextAddress(result.address)) {
-            expect(result.address.chainType).toBe("eip155"); // Resolved chainType
-            expect(result.address.chainReference).toBe("42161"); // Resolved chainReference
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.chainType).toBe("eip155"); // Resolved chainType
+            expect(result.interoperableAddress.chainReference).toBe("42161"); // Resolved chainReference
         }
         expect(mockShortnameToChainId).toHaveBeenCalledWith("arbitrum");
     });
@@ -199,8 +207,8 @@ describe("parseName", () => {
         const result = await parseName(name);
 
         // Resolved address is used in address
-        if (isTextAddress(result.address)) {
-            expect(result.address.address).toBe(resolvedAddress);
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.address).toBe(resolvedAddress);
         }
         expect(result.name.address).toBe("vitalik.eth"); // Original is preserved in name field
         expect(result.meta.isENS).toBe(true);
@@ -220,11 +228,11 @@ describe("parseName", () => {
 
         const result = await parseName(name, { representation: "binary" });
 
-        expect(result.address.version).toBe(1);
-        expect(result.address.chainType instanceof Uint8Array).toBe(true);
-        if (result.address.chainType instanceof Uint8Array) {
-            expect(result.address.chainReference instanceof Uint8Array).toBe(true);
-            expect(result.address.address instanceof Uint8Array).toBe(true);
+        expect(result.interoperableAddress.version).toBe(1);
+        expect(result.interoperableAddress.chainType instanceof Uint8Array).toBe(true);
+        if (result.interoperableAddress.chainType instanceof Uint8Array) {
+            expect(result.interoperableAddress.chainReference instanceof Uint8Array).toBe(true);
+            expect(result.interoperableAddress.address instanceof Uint8Array).toBe(true);
         }
     });
 });

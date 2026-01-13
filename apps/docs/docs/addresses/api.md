@@ -336,11 +336,11 @@ import { isTextAddress } from "@wonderland/interop-addresses";
 
 const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
 
-if (isTextAddress(result.address)) {
+if (isTextAddress(result.interoperableAddress)) {
     // Access text fields directly
-    console.log(result.address.chainType); // "eip155"
-    console.log(result.address.chainReference); // "1"
-    console.log(result.address.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+    console.log(result.interoperableAddress.chainType); // "eip155"
+    console.log(result.interoperableAddress.chainReference); // "1"
+    console.log(result.interoperableAddress.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 }
 ```
 
@@ -554,7 +554,7 @@ The result from `parseName`:
 ```typescript
 {
   name: ParsedInteropNameComponents;
-  address: InteroperableAddress;  // Address in specified representation (defaults to "text")
+  interoperableAddress: InteroperableAddress;  // Address in specified representation (defaults to "text")
   meta: {
     checksum: Checksum;
     checksumMismatch?: { provided: Checksum; calculated: Checksum };
@@ -564,18 +564,18 @@ The result from `parseName`:
 }
 ```
 
-The `address` field contains the `InteroperableAddress` type in the requested representation (defaults to "text"). Use type guards to access fields:
+The `interoperableAddress` field contains the `InteroperableAddress` type in the requested representation (defaults to "text"). Use type guards to access fields:
 
 ```typescript
 import { isTextAddress } from "@wonderland/interop-addresses";
 
 const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
 
-if (isTextAddress(result.address)) {
+if (isTextAddress(result.interoperableAddress)) {
     // Access text fields directly
-    console.log(result.address.chainType); // "eip155"
-    console.log(result.address.chainReference); // "1"
-    console.log(result.address.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+    console.log(result.interoperableAddress.chainType); // "eip155"
+    console.log(result.interoperableAddress.chainReference); // "1"
+    console.log(result.interoperableAddress.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 }
 ```
 

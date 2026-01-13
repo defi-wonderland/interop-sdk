@@ -49,7 +49,7 @@ export class InteropAddressProvider {
         opts?: { format?: T },
     ): Promise<FormatResult<T>> {
         const result = await parseName(name);
-        return encodeAddress(result.address, opts);
+        return encodeAddress(result.interoperableAddress, opts);
     }
 
     /**
@@ -81,7 +81,7 @@ export class InteropAddressProvider {
             const result: ParsedInteroperableNameResult = await parseName(
                 address as InteroperableName,
             );
-            interopAddress = result.address;
+            interopAddress = result.interoperableAddress;
         }
 
         // Extract text field - address is guaranteed to be text variant
@@ -104,7 +104,7 @@ export class InteropAddressProvider {
             const result: ParsedInteroperableNameResult = await parseName(
                 address as InteroperableName,
             );
-            interopAddress = result.address;
+            interopAddress = result.interoperableAddress;
         }
 
         // Extract text field - address is guaranteed to be text variant
@@ -127,7 +127,7 @@ export class InteropAddressProvider {
     public static async computeChecksum(interoperableName: string): Promise<Checksum> {
         const result = await parseName(interoperableName);
         // calculateChecksum already validates through ChecksumSchema internally
-        return calculateChecksum(result.address);
+        return calculateChecksum(result.interoperableAddress);
     }
 
     /**

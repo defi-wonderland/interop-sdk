@@ -43,9 +43,9 @@ const interoperableName = "vitalik.eth@base#4CA88C9C";
 const result = await parseName(interoperableName);
 
 // Use type guard to access text fields
-if (isTextAddress(result.address)) {
-    console.log(result.address.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
-    console.log(result.address.chainReference); // "8453" (Base chain ID)
+if (isTextAddress(result.interoperableAddress)) {
+    console.log(result.interoperableAddress.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+    console.log(result.interoperableAddress.chainReference); // "8453" (Base chain ID)
 }
 console.log(result.meta.checksum); // "4CA88C9C"
 console.log(result.meta.isENS); // true
@@ -75,7 +75,7 @@ if (result.meta.checksumMismatch) {
 
 // Or explicitly validate the checksum
 try {
-    validateChecksum(result.address, result.meta.checksum, {
+    validateChecksum(result.interoperableAddress, result.meta.checksum, {
         isENSName: result.meta.isENS,
     });
     console.log("Checksum is valid!");
@@ -146,12 +146,12 @@ async function processInteropAddress(interopAddress: string) {
         }
 
         // Use the extracted components (default representation is text)
-        if (!isTextAddress(result.address)) {
+        if (!isTextAddress(result.interoperableAddress)) {
             throw new Error("Expected text representation");
         }
 
-        const address = result.address.address!;
-        const chainId = result.address.chainReference!;
+        const address = result.interoperableAddress.address!;
+        const chainId = result.interoperableAddress.chainReference!;
 
         // Now you can use these with your smart contract
         console.log(`Address: ${address}`);

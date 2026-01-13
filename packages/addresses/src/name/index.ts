@@ -28,7 +28,7 @@ export interface ParsedInteroperableNameResult<
     T extends InteroperableAddress = InteroperableAddress,
 > {
     name: ParsedInteropNameComponents;
-    address: T;
+    interoperableAddress: T;
     meta: {
         checksum?: Checksum;
         isENS: boolean;
@@ -160,7 +160,7 @@ export async function parseName(
 
     return {
         name: parsed,
-        address,
+        interoperableAddress: address,
         meta: {
             checksum,
             ...(checksumMismatch && { checksumMismatch }),
