@@ -1,24 +1,6 @@
 import { getAddress, Hex } from "viem";
 import { arbitrumSepolia, baseSepolia, sepolia } from "viem/chains";
 
-export const ACROSS_ORDER_DATA_ABI = [
-    {
-        type: "tuple",
-        components: [
-            { type: "address", name: "inputToken" },
-            { type: "uint256", name: "inputAmount" },
-            { type: "address", name: "outputToken" },
-            { type: "uint256", name: "outputAmount" },
-            { type: "uint256", name: "destinationChainId" },
-            { type: "bytes32", name: "recipient" },
-            { type: "address", name: "exclusiveRelayer" },
-            { type: "uint256", name: "depositNonce" },
-            { type: "uint32", name: "exclusivityParameter" },
-            { type: "bytes", name: "message" },
-        ],
-    },
-];
-
 export const ACROSS_ORDER_DATA_TYPE =
     "0x9df4b782e7bbc178b3b93bfe8aafb909e84e39484d7f3c59f400f1b4691f85e2";
 
@@ -115,33 +97,6 @@ export const ACROSS_FILLED_RELAY_SIGNATURE =
     "0x44b559f101f8fbcc8a0ea43fa91a05a729a5ea6e14a7c75aa750374690137208" as const;
 
 /**
- * V3FundsDeposited event ABI for Across V3
- * Emitted when a user deposits funds to initiate a cross-chain transfer
- */
-export const ACROSS_V3_FUNDS_DEPOSITED_ABI = [
-    {
-        anonymous: false,
-        type: "event",
-        name: "V3FundsDeposited",
-        inputs: [
-            { indexed: false, internalType: "address", name: "inputToken", type: "address" },
-            { indexed: false, internalType: "address", name: "outputToken", type: "address" },
-            { indexed: false, internalType: "uint256", name: "inputAmount", type: "uint256" },
-            { indexed: false, internalType: "uint256", name: "outputAmount", type: "uint256" },
-            { indexed: true, internalType: "uint256", name: "destinationChainId", type: "uint256" },
-            { indexed: true, internalType: "uint32", name: "depositId", type: "uint32" },
-            { indexed: false, internalType: "uint32", name: "quoteTimestamp", type: "uint32" },
-            { indexed: false, internalType: "uint32", name: "fillDeadline", type: "uint32" },
-            { indexed: false, internalType: "uint32", name: "exclusivityDeadline", type: "uint32" },
-            { indexed: true, internalType: "address", name: "depositor", type: "address" },
-            { indexed: false, internalType: "address", name: "recipient", type: "address" },
-            { indexed: false, internalType: "address", name: "exclusiveRelayer", type: "address" },
-            { indexed: false, internalType: "bytes", name: "message", type: "bytes" },
-        ],
-    },
-] as const;
-
-/**
  * Event signature for V3FundsDeposited event
  */
 export const ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE =
@@ -173,131 +128,5 @@ export const ACROSS_SPOKE_POOL_DEPOSIT_ABI = [
         outputs: [],
         stateMutability: "payable",
         type: "function",
-    },
-] as const;
-
-/**
- * SpokePoolPeriphery.swapAndBridge function ABI
- * Selector: 0x110560ad
- *
- * @see https://etherscan.io/address/0x89415a82d909a7238d69094C3Dd1dCC1aCbDa85C#code (Mainnet SpokePoolPeriphery)
- */
-export const ACROSS_SPOKE_POOL_PERIPHERY_SWAP_AND_BRIDGE_ABI = [
-    {
-        inputs: [
-            {
-                components: [
-                    {
-                        components: [
-                            { internalType: "uint256", name: "amount", type: "uint256" },
-                            { internalType: "address", name: "recipient", type: "address" },
-                        ],
-                        internalType: "struct SpokePoolPeripheryInterface.Fees",
-                        name: "submissionFees",
-                        type: "tuple",
-                    },
-                    {
-                        components: [
-                            { internalType: "address", name: "inputToken", type: "address" },
-                            { internalType: "bytes32", name: "outputToken", type: "bytes32" },
-                            { internalType: "uint256", name: "outputAmount", type: "uint256" },
-                            { internalType: "address", name: "depositor", type: "address" },
-                            { internalType: "bytes32", name: "recipient", type: "bytes32" },
-                            {
-                                internalType: "uint256",
-                                name: "destinationChainId",
-                                type: "uint256",
-                            },
-                            { internalType: "bytes32", name: "exclusiveRelayer", type: "bytes32" },
-                            { internalType: "uint32", name: "quoteTimestamp", type: "uint32" },
-                            { internalType: "uint32", name: "fillDeadline", type: "uint32" },
-                            {
-                                internalType: "uint32",
-                                name: "exclusivityParameter",
-                                type: "uint32",
-                            },
-                            { internalType: "bytes", name: "message", type: "bytes" },
-                        ],
-                        internalType: "struct SpokePoolPeripheryInterface.BaseDepositData",
-                        name: "depositData",
-                        type: "tuple",
-                    },
-                    { internalType: "address", name: "swapToken", type: "address" },
-                    { internalType: "address", name: "exchange", type: "address" },
-                    {
-                        internalType: "enum SpokePoolPeripheryInterface.TransferType",
-                        name: "transferType",
-                        type: "uint8",
-                    },
-                    { internalType: "uint256", name: "swapTokenAmount", type: "uint256" },
-                    {
-                        internalType: "uint256",
-                        name: "minExpectedInputTokenAmount",
-                        type: "uint256",
-                    },
-                    { internalType: "bytes", name: "routerCalldata", type: "bytes" },
-                    { internalType: "bool", name: "enableProportionalAdjustment", type: "bool" },
-                    { internalType: "address", name: "spokePool", type: "address" },
-                    { internalType: "uint256", name: "nonce", type: "uint256" },
-                ],
-                internalType: "struct SpokePoolPeripheryInterface.SwapAndDepositData",
-                name: "swapAndDepositData",
-                type: "tuple",
-            },
-        ],
-        name: "swapAndBridge",
-        outputs: [],
-        stateMutability: "payable",
-        type: "function",
-    },
-] as const;
-
-/**
- * MulticallHandler.Instructions struct ABI for decoding message bytes
- * Used to extract the actual recipient from swapAndBridge messages
- *
- * The message in swapAndBridge contains encoded Instructions that specify
- * what to do with the bridged tokens on the destination chain.
- *
- * @see https://github.com/across-protocol/contracts/blob/master/contracts/handlers/MulticallHandler.sol
- * @see https://optimistic.etherscan.io/address/0x0f7AE28dE1C8532170AD4EE566b5801485C13A0E#code (Optimism MulticallHandler)
- */
-export const ACROSS_MULTICALL_HANDLER_INSTRUCTIONS_ABI = [
-    {
-        type: "tuple",
-        components: [
-            {
-                type: "tuple[]",
-                name: "calls",
-                components: [
-                    { type: "address", name: "target" },
-                    { type: "bytes", name: "callData" },
-                    { type: "uint256", name: "value" },
-                ],
-            },
-            { type: "address", name: "fallbackRecipient" },
-        ],
-    },
-] as const;
-
-/**
- * MulticallHandler.drainLeftoverTokens function ABI
- * Selector: 0xef8738d3
- *
- * Called on destination chain to transfer bridged tokens to the final recipient.
- * The Across API includes these calls in the message to route tokens to the user.
- *
- * @see https://github.com/across-protocol/contracts/blob/master/contracts/handlers/MulticallHandler.sol
- */
-export const ACROSS_DRAIN_LEFTOVER_TOKENS_ABI = [
-    {
-        type: "function",
-        name: "drainLeftoverTokens",
-        inputs: [
-            { type: "address", name: "token" },
-            { type: "address", name: "destination" },
-        ],
-        outputs: [],
-        stateMutability: "nonpayable",
     },
 ] as const;
