@@ -95,6 +95,7 @@ describe("AcrossProvider", () => {
                     originChainId: CHAIN_IDS.SEPOLIA.toString(),
                     destinationChainId: CHAIN_IDS.BASE_SEPOLIA.toString(),
                     depositor: TEST_ADDRESSES.USER,
+                    recipient: TEST_ADDRESSES.RECEIVER,
                 },
             });
         });
@@ -131,6 +132,7 @@ describe("AcrossProvider", () => {
                     originChainId: CHAIN_IDS.SEPOLIA.toString(),
                     destinationChainId: CHAIN_IDS.BASE_SEPOLIA.toString(),
                     depositor: TEST_ADDRESSES.USER,
+                    recipient: TEST_ADDRESSES.RECEIVER,
                 },
             });
         });
