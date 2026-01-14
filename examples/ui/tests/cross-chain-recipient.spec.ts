@@ -7,7 +7,8 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('Recipient address input', () => {
   test('auto-fills with connected address on load', async ({ page }) => {
-    const value = await page.getByLabel('Recipient Address').inputValue();
+    const recipientInput = page.getByLabel('Recipient Address');
+    const value = await recipientInput.inputValue();
     expect(isAddress(value)).toBe(true);
   });
 
@@ -15,7 +16,6 @@ test.describe('Recipient address input', () => {
     const recipientInput = page.getByLabel('Recipient Address');
 
     await recipientInput.clear();
-    await page.waitForTimeout(200);
 
     await expect(recipientInput).toHaveValue('');
   });
@@ -29,7 +29,6 @@ test.describe('Recipient address input', () => {
     await expect(recipientInput).toHaveValue(customRecipient);
 
     await recipientInput.blur();
-    await page.waitForTimeout(200);
     await expect(recipientInput).toHaveValue(customRecipient);
   });
 });
