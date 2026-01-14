@@ -36,6 +36,8 @@ jobs:
 
             - name: Run Playwright tests
               run: pnpm exec playwright test
+              env:
+                  NEXT_PUBLIC_E2E: "true"
 
             - uses: actions/upload-artifact@v4
               if: always()

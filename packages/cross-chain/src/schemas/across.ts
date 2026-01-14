@@ -26,6 +26,7 @@ export const AcrossGetQuoteParamsSchema = z.object({
     originChainId: z.number().transform((data) => data.toString()),
     destinationChainId: z.number().transform((data) => data.toString()),
     depositor: HexAddressSchema,
+    recipient: HexAddressSchema,
 });
 
 export const TokenSchema = z.object({

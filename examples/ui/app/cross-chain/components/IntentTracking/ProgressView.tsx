@@ -1,9 +1,12 @@
+import { getExplorerTxUrl } from '../../constants/chains';
 import { INTENT_STEPS, getStepStatus } from '../../utils/intentTrackingHelpers';
 import { ExternalLinkIcon } from '../icons';
 import { StepIndicator } from './StepIndicator';
 import type { IntentExecutionState } from '../../types/execution';
 
 export function ProgressView({ state }: { state: IntentExecutionState }) {
+  const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
+
   return (
     <div className='p-4 rounded-xl border border-border bg-surface'>
       <h3 className='text-sm font-semibold text-text-primary mb-4'>Intent Progress</h3>
@@ -53,10 +56,10 @@ export function ProgressView({ state }: { state: IntentExecutionState }) {
       </div>
 
       {/* Transaction link during progress */}
-      {state.txHash && (
+      {originTxUrl && (
         <div className='mt-4 pt-3 border-t border-border'>
           <a
-            href={`https://sepolia.etherscan.io/tx/${state.txHash}`}
+            href={originTxUrl}
             target='_blank'
             rel='noopener noreferrer'
             className='text-xs text-accent hover:underline flex items-center gap-1'

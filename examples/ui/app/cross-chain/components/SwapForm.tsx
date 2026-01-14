@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { parseUnits } from 'viem';
 import { useAccount, useBalance } from 'wagmi';
 import {
@@ -37,6 +37,7 @@ function getDefaultToken(chainId: number): string {
 export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: SwapFormProps) {
   const { address: connectedAddress, isConnected } = useAccount();
   const [recipient, setRecipient] = useState('');
+  const hasAutoFilledRef = useRef(false);
   const [inputChainId, setInputChainId] = useState<number>(DEFAULT_INPUT_CHAIN_ID);
   const [outputChainId, setOutputChainId] = useState<number>(DEFAULT_OUTPUT_CHAIN_ID);
   const [inputTokenAddress, setInputTokenAddress] = useState(() => getDefaultToken(DEFAULT_INPUT_CHAIN_ID));
@@ -68,10 +69,14 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
   const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.value);
 
   useEffect(() => {
-    if (isConnected && connectedAddress && !recipient) {
+    if (isConnected && connectedAddress && !hasAutoFilledRef.current) {
       setRecipient(connectedAddress);
+      hasAutoFilledRef.current = true;
     }
-  }, [isConnected, connectedAddress, recipient]);
+    if (!isConnected) {
+      hasAutoFilledRef.current = false;
+    }
+  }, [isConnected, connectedAddress]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
