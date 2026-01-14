@@ -21,10 +21,13 @@ export default defineConfig({
 
   webServer: [
     {
-      command: "pnpm dev",
-      url: "http://localhost:3000",
+      command: 'NEXT_PUBLIC_E2E=true pnpm dev',
+      url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
+      env: {
+        NEXT_PUBLIC_E2E: 'true',
+      },
     },
   ],
 });

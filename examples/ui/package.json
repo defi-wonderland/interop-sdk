@@ -37,6 +37,7 @@
     "wagmi": "2.14.11"
   },
   "devDependencies": {
+    "@wonderland/walletless": "1.1.0",
     "@eslint/compat": "2.0.0",
     "@eslint/eslintrc": "3.3.3",
     "@eslint/js": "9.39.2",
