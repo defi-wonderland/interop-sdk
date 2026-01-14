@@ -18,6 +18,8 @@ The package follows a clean two-layer architecture:
 
 Discriminated union address representation - either binary or text, but not both. Functions automatically convert between representations as needed. Synchronous encoding/decoding operations.
 
+> **Note on "binary" terminology**: In the ERC-7930 context, "binary" refers to the serialized format (as opposed to the text format with CAIP-350 encoding). In JavaScript, the binary format can be represented as either a hex string (`Hex`, the default) or `Uint8Array` bytes. The default hex string format aligns with common JavaScript ecosystem conventions (viem, ethers, JSON-RPC), where addresses are typically represented as hex strings rather than raw bytes.
+
 **Key Functions:**
 
 -   `decodeAddress(value: Uint8Array | Hex, opts?: { representation?: "binary" | "text" }): InteroperableAddress` - Decodes binary to address (defaults to "text" representation). TypeScript overloads ensure that `representation: "binary"` returns `InteroperableAddressBinary`, otherwise `InteroperableAddressText`.

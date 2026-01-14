@@ -200,6 +200,8 @@ const binaryAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415
 
 Encodes an `InteroperableAddress` object to binary format. Accepts either binary or text representation and converts automatically. Validates the input before encoding.
 
+> **Note**: "Binary format" here refers to the ERC-7930 serialization format, not the JavaScript type. The encoded result can be either a hex string (`Hex`, default) or `Uint8Array` bytes, depending on the `format` option.
+
 ```typescript
 encodeAddress(
   addr: InteroperableAddress,

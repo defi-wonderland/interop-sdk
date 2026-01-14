@@ -119,6 +119,7 @@ The package supports three main address representations:
     - Serialized form of InteroperableAddress
     - Used for storage and transmission
     - Synchronous operations
+    - **Note**: In ERC-7930 context, "binary" refers to the serialization format (not the JavaScript type). The binary format can be represented as either a hex string (`Hex`, the default) or `Uint8Array` bytes. The default hex format aligns with JavaScript ecosystem conventions (viem, ethers, JSON-RPC).
 
 ```mermaid
 graph TD
