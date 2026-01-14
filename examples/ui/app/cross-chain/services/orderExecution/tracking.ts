@@ -27,16 +27,12 @@ export async function trackOrder(
 
   const tracker = crossChainExecutor.prepareTracking(providerId);
 
-  // TODO: Remove this - forcing timeout for UI testing
-  const FORCE_TIMEOUT = true;
-  const timeout = FORCE_TIMEOUT ? 100 : TIMEOUT_MS.INTENT_TRACKING_TIMEOUT;
-
   try {
     for await (const item of tracker.watchOrder({
       txHash,
       originChainId,
       destinationChainId,
-      timeout,
+      timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
     })) {
       if (abortSignal?.aborted) return;
 
