@@ -6,7 +6,6 @@ import type { ParsedInteroperableNameResult } from "../name/index.js";
 import type { ParsedInteropNameComponents } from "../name/parseInteropNameString.js";
 import type { BinaryAddress } from "../types/binaryAddress.js";
 import type { Checksum } from "../types/checksum.js";
-import type { EncodedAddress, EncodedChainReference } from "../types/encodings.js";
 import type {
     InteroperableAddress,
     InteroperableAddressBinary,
@@ -22,8 +21,12 @@ import {
     validateChecksum,
     validateInteroperableAddress,
 } from "../address/index.js";
-import { ChainTypeName } from "../constants/interopAddress.js";
-import { isBinaryInteropAddress, isInteropAddress, isInteroperableName } from "../internal.js";
+import {
+    FieldNotPresent,
+    isBinaryInteropAddress,
+    isInteropAddress,
+    isInteroperableName,
+} from "../internal.js";
 import { formatName, parseName } from "../name/index.js";
 import { isBinaryAddress, isTextAddress } from "../types/interopAddress.js";
 
@@ -71,9 +74,9 @@ export class InteropAddressProvider {
     /**
      * Get the chain ID from a binary address or interoperable name
      * @param address - The binary address or interoperable name to get the chain ID from
-     * @returns The chain ID in the format of the chain type
+     * @returns The chain ID in the format of the chain type as a string
      */
-    public static async getChainId(address: string): Promise<EncodedChainReference<ChainTypeName>> {
+    public static async getChainId(address: string): Promise<string> {
         let interopAddress: InteroperableAddress;
         if (isBinaryInteropAddress(address as BinaryAddress)) {
             interopAddress = decodeAddress(address as BinaryAddress, { representation: "text" });
@@ -88,15 +91,21 @@ export class InteropAddressProvider {
         if (!isTextAddress(interopAddress)) {
             throw new Error("Internal error: expected text representation");
         }
-        return (interopAddress.chainReference ?? "") as EncodedChainReference<ChainTypeName>;
+
+        if (!interopAddress.chainReference) {
+            throw new FieldNotPresent("chainReference");
+        }
+
+        // Always return the chain reference as a string (CAIP-350 text encoding)
+        return interopAddress.chainReference;
     }
 
     /**
      * Get the address from a binary address or interoperable name.
      * @param address - The binary address or interoperable name to get the address from.
-     * @returns The address in the format of the chain type.
+     * @returns The address in the format of the chain type as a string.
      */
-    public static async getAddress(address: string): Promise<EncodedAddress<ChainTypeName>> {
+    public static async getAddress(address: string): Promise<string> {
         let interopAddress: InteroperableAddress;
         if (isBinaryInteropAddress(address as BinaryAddress)) {
             interopAddress = decodeAddress(address as BinaryAddress, { representation: "text" });
@@ -111,7 +120,13 @@ export class InteropAddressProvider {
         if (!isTextAddress(interopAddress)) {
             throw new Error("Internal error: expected text representation");
         }
-        return (interopAddress.address ?? "") as EncodedAddress<ChainTypeName>;
+
+        if (!interopAddress.address) {
+            throw new FieldNotPresent("address");
+        }
+
+        // Always return the address as a string (CAIP-350 text encoding)
+        return interopAddress.address;
     }
 
     /**

@@ -6,7 +6,6 @@ import {
     ChainTypeName,
     ChainTypeValue,
     convertToBytes,
-    EncodedAddress,
     InvalidAddress,
     UnsupportedChainType,
 } from "../internal.js";
@@ -106,10 +105,7 @@ export const chainReferenceToBinary = (
  * // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
  * ```
  */
-export const addressToText = (
-    address: Uint8Array,
-    chainType: Uint8Array,
-): EncodedAddress<ChainTypeName> | string => {
+export const addressToText = (address: Uint8Array, chainType: Uint8Array): string => {
     const chainTypeHex = toHex(chainType) as ChainTypeValue;
     const chainTypeName = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex];
 
@@ -120,9 +116,9 @@ export const addressToText = (
     switch (chainTypeName) {
         case ChainTypeName.EIP155:
             // EIP-55 checksum address
-            return getAddress(toHex(address)) as EncodedAddress<ChainTypeName>;
+            return getAddress(toHex(address));
         case ChainTypeName.SOLANA:
-            return bs58.encode(address) as EncodedAddress<ChainTypeName>;
+            return bs58.encode(address);
         default:
             throw new UnsupportedChainType(chainTypeHex);
     }

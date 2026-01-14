@@ -34,7 +34,7 @@ const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "he
 Extracts the address component from a binary address or interoperable name.
 
 ```typescript
-getAddress(address: string): Promise<EncodedAddress<ChainTypeName>>
+getAddress(address: string): Promise<string>
 ```
 
 **Example:**
@@ -51,7 +51,7 @@ const address = await getAddress("vitalik.eth@eip155:1#4CA88C9C");
 Extracts the chain reference from a binary address or interoperable name.
 
 ```typescript
-getChainId(address: string): Promise<EncodedChainReference<ChainTypeName>>
+getChainId(address: string): Promise<string>
 ```
 
 **Example:**

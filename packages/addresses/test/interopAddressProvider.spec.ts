@@ -172,6 +172,14 @@ describe("InteropAddressProvider", () => {
 
             expect(result).toBe(expected);
         });
+
+        it("throws FieldNotPresent when chainReference is undefined", async () => {
+            const { FieldNotPresent } = await import("../src/internal.js");
+            const addressWithoutChainRef = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155";
+
+            await expect(getChainId(addressWithoutChainRef)).rejects.toThrow(FieldNotPresent);
+            await expect(getChainId(addressWithoutChainRef)).rejects.toThrow("chainReference");
+        });
     });
 
     describe("getAddress", () => {
@@ -211,6 +219,14 @@ describe("InteropAddressProvider", () => {
             const result = await getAddress(interoperableName);
 
             expect(result).toBe(expected);
+        });
+
+        it("throws FieldNotPresent when address is undefined", async () => {
+            const { FieldNotPresent } = await import("../src/internal.js");
+            const addressWithoutAddress = "@eip155:1#F54D4FBF";
+
+            await expect(getAddress(addressWithoutAddress)).rejects.toThrow(FieldNotPresent);
+            await expect(getAddress(addressWithoutAddress)).rejects.toThrow("address");
         });
     });
 });

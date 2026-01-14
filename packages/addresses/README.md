@@ -168,13 +168,13 @@ All methods are available as static methods on `InteropAddressProvider` or as st
 
     -   Converts an interoperable name to binary. May resolve ENS names or chain labels.
 
--   `getAddress(address: string): Promise<EncodedAddress<ChainTypeName>>`
+-   `getAddress(address: string): Promise<string>`
 
-    -   Extracts the address component from a binary address or interoperable name.
+    -   Extracts the address component from a binary address or interoperable name as a CAIP-350-encoded string.
 
--   `getChainId(address: string): Promise<EncodedChainReference<ChainTypeName>>`
+-   `getChainId(address: string): Promise<string>`
 
-    -   Extracts the chain reference from a binary address or interoperable name.
+    -   Extracts the chain reference from a binary address or interoperable name as a CAIP-350-encoded string.
 
 -   `computeChecksum(interoperableName: string): Promise<Checksum>`
 
