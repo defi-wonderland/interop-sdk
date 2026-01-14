@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.e2e' });
 
 export default defineConfig({
   testDir: './tests',
@@ -19,15 +22,10 @@ export default defineConfig({
     },
   ],
 
-  webServer: [
-    {
-      command: 'NEXT_PUBLIC_E2E=true pnpm dev',
-      url: 'http://localhost:3000',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-      env: {
-        NEXT_PUBLIC_E2E: 'true',
-      },
-    },
-  ],
+  webServer: {
+    command: 'pnpm build && pnpm start',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+  },
 });

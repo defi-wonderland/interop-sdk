@@ -376,6 +376,9 @@ importers:
             "@wonderland/walletless":
                 specifier: 1.1.0
                 version: 1.1.0(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))
+            dotenv:
+                specifier: 16.4.7
+                version: 16.4.7
             eslint:
                 specifier: 9.39.2
                 version: 9.39.2(jiti@2.6.1)
@@ -6978,6 +6981,7 @@ packages:
             {
                 integrity: sha512-d3V5Be7AqLrvzcdMZSBS8DmGDRdqnyLk1DWmRKAGgR6ieUWykhhUKlvfeoZtvJrIXrY7rUGYpH1X41UtFkW5Pw==,
             }
+        deprecated: "Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases"
 
     "@walletconnect/utils@2.17.0":
         resolution:
@@ -9466,6 +9470,13 @@ packages:
                 integrity: sha512-tE7ztYzXHIeyvc7N+hR3oi7FIbf/NIjVP9hmAt3yMXzrQ072/fpjGLx2GxNxGxUl5V73MEqYzioOMoVhGMJ5cA==,
             }
         engines: { node: ">=10" }
+
+    dotenv@16.4.7:
+        resolution:
+            {
+                integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==,
+            }
+        engines: { node: ">=12" }
 
     dunder-proto@1.0.1:
         resolution:
@@ -25980,6 +25991,8 @@ snapshots:
     dot-prop@6.0.1:
         dependencies:
             is-obj: 2.0.0
+
+    dotenv@16.4.7: {}
 
     dunder-proto@1.0.1:
         dependencies:
