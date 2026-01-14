@@ -1,24 +1,6 @@
 import { getAddress, Hex } from "viem";
 import { arbitrumSepolia, baseSepolia, sepolia } from "viem/chains";
 
-export const ACROSS_ORDER_DATA_ABI = [
-    {
-        type: "tuple",
-        components: [
-            { type: "address", name: "inputToken" },
-            { type: "uint256", name: "inputAmount" },
-            { type: "address", name: "outputToken" },
-            { type: "uint256", name: "outputAmount" },
-            { type: "uint256", name: "destinationChainId" },
-            { type: "bytes32", name: "recipient" },
-            { type: "address", name: "exclusiveRelayer" },
-            { type: "uint256", name: "depositNonce" },
-            { type: "uint32", name: "exclusivityParameter" },
-            { type: "bytes", name: "message" },
-        ],
-    },
-];
-
 export const ACROSS_ORDER_DATA_TYPE =
     "0x9df4b782e7bbc178b3b93bfe8aafb909e84e39484d7f3c59f400f1b4691f85e2";
 
@@ -115,34 +97,36 @@ export const ACROSS_FILLED_RELAY_SIGNATURE =
     "0x44b559f101f8fbcc8a0ea43fa91a05a729a5ea6e14a7c75aa750374690137208" as const;
 
 /**
- * V3FundsDeposited event ABI for Across V3
- * Emitted when a user deposits funds to initiate a cross-chain transfer
- */
-export const ACROSS_V3_FUNDS_DEPOSITED_ABI = [
-    {
-        anonymous: false,
-        type: "event",
-        name: "V3FundsDeposited",
-        inputs: [
-            { indexed: false, internalType: "address", name: "inputToken", type: "address" },
-            { indexed: false, internalType: "address", name: "outputToken", type: "address" },
-            { indexed: false, internalType: "uint256", name: "inputAmount", type: "uint256" },
-            { indexed: false, internalType: "uint256", name: "outputAmount", type: "uint256" },
-            { indexed: true, internalType: "uint256", name: "destinationChainId", type: "uint256" },
-            { indexed: true, internalType: "uint32", name: "depositId", type: "uint32" },
-            { indexed: false, internalType: "uint32", name: "quoteTimestamp", type: "uint32" },
-            { indexed: false, internalType: "uint32", name: "fillDeadline", type: "uint32" },
-            { indexed: false, internalType: "uint32", name: "exclusivityDeadline", type: "uint32" },
-            { indexed: true, internalType: "address", name: "depositor", type: "address" },
-            { indexed: false, internalType: "address", name: "recipient", type: "address" },
-            { indexed: false, internalType: "address", name: "exclusiveRelayer", type: "address" },
-            { indexed: false, internalType: "bytes", name: "message", type: "bytes" },
-        ],
-    },
-] as const;
-
-/**
  * Event signature for V3FundsDeposited event
  */
 export const ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE =
     "0x32ed1a409ef04c7b0227189c3a103dc5ac10e775a15b785dcc510201f7c25ad3" as const;
+
+/**
+ * SpokePool.deposit function ABI (V3 with bytes32 for multi-chain support)
+ * Selector: 0xad5425c6
+ *
+ * @see https://etherscan.io/address/0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5#code (Mainnet SpokePool)
+ */
+export const ACROSS_SPOKE_POOL_DEPOSIT_ABI = [
+    {
+        inputs: [
+            { internalType: "bytes32", name: "depositor", type: "bytes32" },
+            { internalType: "bytes32", name: "recipient", type: "bytes32" },
+            { internalType: "bytes32", name: "inputToken", type: "bytes32" },
+            { internalType: "bytes32", name: "outputToken", type: "bytes32" },
+            { internalType: "uint256", name: "inputAmount", type: "uint256" },
+            { internalType: "uint256", name: "outputAmount", type: "uint256" },
+            { internalType: "uint256", name: "destinationChainId", type: "uint256" },
+            { internalType: "bytes32", name: "exclusiveRelayer", type: "bytes32" },
+            { internalType: "uint32", name: "quoteTimestamp", type: "uint32" },
+            { internalType: "uint32", name: "fillDeadline", type: "uint32" },
+            { internalType: "uint32", name: "exclusivityParameter", type: "uint32" },
+            { internalType: "bytes", name: "message", type: "bytes" },
+        ],
+        name: "deposit",
+        outputs: [],
+        stateMutability: "payable",
+        type: "function",
+    },
+] as const;

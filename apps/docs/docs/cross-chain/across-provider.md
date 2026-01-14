@@ -81,6 +81,16 @@ if (quote.preparedTransaction) {
 -   Transaction simulation
 -   Intent tracking support
 -   EIP-7683 Open Intent Framework integration
+-   Payload validation for simple bridges
+
+## Payload Validation
+
+The provider validates that calldata from the solver API matches the user's intent:
+
+| Operation                           | Validation                                                    |
+| ----------------------------------- | ------------------------------------------------------------- |
+| Simple bridge (same token)          | Full validation (depositor, recipient, tokens, amount, chain) |
+| Cross-chain swap (different tokens) | Coming soon                                                   |
 
 ## Next Step
 

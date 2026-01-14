@@ -1,7 +1,7 @@
 import type { Order, Quote } from "@openintentsframework/oif-specs";
 import type { Address, PrepareTransactionRequestReturnType } from "viem";
 
-interface AcrossOrder {
+export interface AcrossOrder {
     type: "across";
     payload: {
         simulationSuccess: boolean;

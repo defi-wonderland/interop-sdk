@@ -58,3 +58,6 @@ lcov.info
 
 # cursor
 .cursor
+
+# claude
+.claude/

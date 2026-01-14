@@ -194,6 +194,10 @@ const spender = quote.order.payload.message.spender;
 const { spender, token, required } = quote.order.checks.allowances[0];
 ```
 
+## Payload Validation
+
+The SDK validates that calldata from solver APIs matches the user's intent. For Across, simple same-token bridges are fully validated (depositor, recipient, tokens, amount, chain). Cross-chain swap validation is coming soon.
+
 ## References
 
 -   [Open Intents Framework](https://docs.openintents.xyz/) - OIF API specification and documentation

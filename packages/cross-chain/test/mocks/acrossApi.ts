@@ -1,6 +1,5 @@
-import { Address } from "viem";
-
 import { AcrossGetQuoteResponse } from "../../src/internal.js";
+import { ACROSS_CONTRACTS, CHAIN_IDS, TEST_AMOUNTS, TESTNET_TOKENS } from "./fixtures.js";
 
 export const getMockedAcrossApiResponse = (
     override?: Partial<AcrossGetQuoteResponse>,
@@ -8,20 +7,20 @@ export const getMockedAcrossApiResponse = (
     return {
         id: "test-quote-id",
         inputToken: {
-            address: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14" as Address,
-            chainId: 11155111,
+            address: TESTNET_TOKENS.WETH_SEPOLIA,
+            chainId: CHAIN_IDS.SEPOLIA,
             decimals: 18,
             symbol: "WETH",
             name: "Wrapped Ether",
         },
         outputToken: {
-            address: "0x4200000000000000000000000000000000000006" as Address,
-            chainId: 84532,
+            address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+            chainId: CHAIN_IDS.BASE_SEPOLIA,
             decimals: 18,
             symbol: "WETH",
             name: "Wrapped Ether",
         },
-        inputAmount: "1000000000000000000",
+        inputAmount: TEST_AMOUNTS.ONE_ETHER.toString(),
         expectedOutputAmount: "990000000000000000",
         minOutputAmount: "980000000000000000",
         fees: {
@@ -33,8 +32,8 @@ export const getMockedAcrossApiResponse = (
         },
         swapTx: {
             simulationSuccess: true,
-            chainId: 11155111,
-            to: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5" as Address,
+            chainId: CHAIN_IDS.SEPOLIA,
+            to: ACROSS_CONTRACTS.SPOKE_POOL_SEPOLIA,
             data: "0x1234567890abcdef",
             gas: "250000",
             maxFeePerGas: "100000000000",
