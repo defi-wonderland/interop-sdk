@@ -31,7 +31,7 @@ test.describe('"From text" tab - Convert address', () => {
 });
 
 test.describe('"From text" tab - Input validations', () => {
-  test('Convert button is disabled when Human-Readable Address input is empty', async ({ page }) => {
+  test('Convert button is disabled when Interoperable Name input is empty', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Convert' })).toBeDisabled();
   });
 

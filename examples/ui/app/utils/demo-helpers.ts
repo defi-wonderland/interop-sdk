@@ -11,7 +11,7 @@ export interface ParsedBinary {
   addressHex: string;
 }
 
-export interface ParsedHumanReadable {
+export interface ParsedInteroperableName {
   name: string;
   chainType: string;
   chainReference: string;

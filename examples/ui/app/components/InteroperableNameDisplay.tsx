@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { HumanReadablePartKey, type AddressResult, type HumanReadablePart } from '../types';
+import { InteroperableNamePartKey, type AddressResult, type InteroperableNamePart } from '../types';
 import { formatChainReference } from '../utils/chain-names';
 import { FormatDisplay, type FieldConfig } from './FormatDisplay';
 import { HoverableFields } from './HoverableField';
 
-interface HumanReadableDisplayProps {
+interface InteroperableNameDisplayProps {
   result: AddressResult;
-  hoveredPart: HumanReadablePart;
-  setHoveredPart: (part: HumanReadablePart) => void;
+  hoveredPart: InteroperableNamePart;
+  setHoveredPart: (part: InteroperableNamePart) => void;
   copied: boolean;
   onCopy: () => void;
 }
@@ -22,30 +22,32 @@ function ChainReferenceDisplay({ chainReference, fullAddress }: { chainReference
   return <>{formatted}</>;
 }
 
-const fields: FieldConfig<HumanReadablePartKey, AddressResult>[] = [
+const fields: FieldConfig<InteroperableNamePartKey, AddressResult>[] = [
   {
-    key: HumanReadablePartKey.NAME,
+    key: InteroperableNamePartKey.NAME,
     label: 'Address',
     getValue: (r) => r.name,
     getDisplayValue: (r) => r.name,
     description: 'Hex address (0x...) or ENS name (e.g., vitalik.eth)',
   },
   {
-    key: HumanReadablePartKey.CHAIN_TYPE,
+    key: InteroperableNamePartKey.CHAIN_TYPE,
     label: 'Chain Type',
     getValue: (r) => r.chainType,
     getDisplayValue: (r) => r.chainType,
     description: 'Namespace identifier (eip155 for EVM chains)',
   },
   {
-    key: HumanReadablePartKey.CHAIN_REF,
+    key: InteroperableNamePartKey.CHAIN_REF,
     label: 'Chain Reference',
     getValue: (r) => r.chainReference,
-    getDisplayValue: (r) => <ChainReferenceDisplay chainReference={r.chainReference} fullAddress={r.humanReadable} />,
+    getDisplayValue: (r) => (
+      <ChainReferenceDisplay chainReference={r.chainReference} fullAddress={r.interoperableName} />
+    ),
     description: 'Chain identifier (numeric ID or shortname)',
   },
   {
-    key: HumanReadablePartKey.CHECKSUM,
+    key: InteroperableNamePartKey.CHECKSUM,
     label: 'Checksum',
     getValue: (r) => r.checksum,
     getDisplayValue: (r) => r.checksum,
@@ -53,13 +55,13 @@ const fields: FieldConfig<HumanReadablePartKey, AddressResult>[] = [
   },
 ];
 
-export function HumanReadableDisplay({
+export function InteroperableNameDisplay({
   result,
   hoveredPart,
   setHoveredPart,
   copied,
   onCopy,
-}: HumanReadableDisplayProps) {
+}: InteroperableNameDisplayProps) {
   const visibleFields = fields.filter((f) => !!f.getValue(result));
 
   const renderInline = () => {

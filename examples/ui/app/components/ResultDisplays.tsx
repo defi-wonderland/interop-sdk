@@ -3,8 +3,8 @@
 import { AdvancedDisplay } from './AdvancedDisplay';
 import { BinaryFormatDisplay } from './BinaryFormatDisplay';
 import { DisplaySkeleton } from './DisplaySkeleton';
-import { HumanReadableDisplay } from './HumanReadableDisplay';
-import type { AddressResult, BinaryPart, HumanReadablePart } from '../types';
+import { InteroperableNameDisplay } from './InteroperableNameDisplay';
+import type { AddressResult, BinaryPart, InteroperableNamePart } from '../types';
 import type { ParsedInteroperableNameResult } from '@wonderland/interop-addresses';
 
 interface ResultDisplaysProps {
@@ -14,8 +14,8 @@ interface ResultDisplaysProps {
   parsedResult: ParsedInteroperableNameResult | null;
   isStale: boolean;
   onRefresh: () => void;
-  hoveredHuman: HumanReadablePart;
-  setHoveredHuman: (part: HumanReadablePart) => void;
+  hoveredName: InteroperableNamePart;
+  setHoveredName: (part: InteroperableNamePart) => void;
   hoveredBinary: BinaryPart;
   setHoveredBinary: (part: BinaryPart) => void;
   copied: boolean;
@@ -33,8 +33,8 @@ export function ResultDisplays({
   parsedResult,
   isStale,
   onRefresh,
-  hoveredHuman,
-  setHoveredHuman,
+  hoveredName,
+  setHoveredName,
   hoveredBinary,
   setHoveredBinary,
   copied,
@@ -81,10 +81,10 @@ export function ResultDisplays({
           </button>
         </div>
       )}
-      <HumanReadableDisplay
+      <InteroperableNameDisplay
         result={result}
-        hoveredPart={hoveredHuman}
-        setHoveredPart={setHoveredHuman}
+        hoveredPart={hoveredName}
+        setHoveredPart={setHoveredName}
         copied={copied}
         onCopy={onCopy}
       />

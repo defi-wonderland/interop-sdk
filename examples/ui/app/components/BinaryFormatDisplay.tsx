@@ -83,7 +83,7 @@ export function BinaryFormatDisplay({ result, hoveredPart, setHoveredPart }: Bin
   return (
     <FormatDisplay
       title='Binary Format'
-      description='Compact binary representation for efficient on-chain storage and processing'
+      description='Compact binary representation for efficient on-chain storage and processing (ERC-7930)'
       result={result}
       fields={fields}
       hoveredPart={hoveredPart}

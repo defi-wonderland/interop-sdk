@@ -227,7 +227,7 @@ const name = "vitalik.eth@eip155:1#4CA88C9C";
 
 // Parse to get text address (default)
 const parsed = await parseName(name);
-const textAddr = parsed.address;
+const textAddr = parsed.interoperableAddress;
 
 // Verify it's text representation
 if (!isTextAddress(textAddr)) {

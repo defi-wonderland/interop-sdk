@@ -11,7 +11,7 @@
 
 export const EXAMPLES = [
   {
-    humanReadable: 'vitalik.eth@eth',
+    interoperableName: 'vitalik.eth@eth',
     address: 'vitalik.eth',
     chainReference: 'eth',
     description: 'vitalik.eth (Ethereum Mainnet)',
@@ -19,7 +19,7 @@ export const EXAMPLES = [
     showInReadableMode: true,
   },
   {
-    humanReadable: 'nick.eth@arb1',
+    interoperableName: 'nick.eth@arb1',
     address: 'nick.eth',
     chainReference: 'arb1',
     description: 'nick.eth (Arbitrum One)',
@@ -27,7 +27,7 @@ export const EXAMPLES = [
     showInReadableMode: true,
   },
   {
-    humanReadable: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@eip155:8453',
+    interoperableName: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@eip155:8453',
     address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     chainReference: '8453',
     description: '0x8335...A02913 (Base)',
@@ -35,7 +35,7 @@ export const EXAMPLES = [
     showInReadableMode: true,
   },
   {
-    humanReadable: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@base',
+    interoperableName: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@base',
     address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     chainReference: 'base',
     description: '0x8335...A02913 (Base)',

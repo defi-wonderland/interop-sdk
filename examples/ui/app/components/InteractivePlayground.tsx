@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { InputMode, type HumanReadablePart, type BinaryPart, type AddressResult } from '../types';
+import { InputMode, type InteroperableNamePart, type BinaryPart, type AddressResult } from '../types';
 import { convertFromReadable } from '../utils/address-conversion';
 import { InputSection } from './InputSection';
 import { ResultDisplays } from './ResultDisplays';
@@ -16,7 +16,7 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
   const [readableName, setReadableName] = useState('');
   const [address, setAddress] = useState('');
   const [chainReference, setChainReference] = useState('');
-  const [hoveredHuman, setHoveredHuman] = useState<HumanReadablePart>(null);
+  const [hoveredName, setHoveredName] = useState<InteroperableNamePart>(null);
   const [hoveredBinary, setHoveredBinary] = useState<BinaryPart>(null);
   const [copied, setCopied] = useState(false);
   const [readableResult, setReadableResult] = useState<AddressResult | null>(null);
@@ -36,8 +36,8 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
 
   const updateReadableResult = (conversionResult: Awaited<ReturnType<typeof convertFromReadable>>) => {
     setReadableResult({
-      ...conversionResult.humanParts,
-      humanReadable: conversionResult.humanReadable,
+      ...conversionResult.nameParts,
+      interoperableName: conversionResult.interoperableName,
       binary: conversionResult.binary,
       ...conversionResult.binaryParts,
     });
@@ -47,8 +47,8 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
 
   const updateBuildResult = (conversionResult: Awaited<ReturnType<typeof convertFromReadable>>) => {
     setBuildResult({
-      ...conversionResult.humanParts,
-      humanReadable: conversionResult.humanReadable,
+      ...conversionResult.nameParts,
+      interoperableName: conversionResult.interoperableName,
       binary: conversionResult.binary,
       ...conversionResult.binaryParts,
     });
@@ -97,7 +97,7 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
 
     if (!activeResult) return;
     try {
-      await navigator.clipboard.writeText(activeResult.humanReadable);
+      await navigator.clipboard.writeText(activeResult.interoperableName);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -144,8 +144,8 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
         parsedResult={activeParsedResult}
         isStale={isStale}
         onRefresh={handleConvert}
-        hoveredHuman={hoveredHuman}
-        setHoveredHuman={setHoveredHuman}
+        hoveredName={hoveredName}
+        setHoveredName={setHoveredName}
         hoveredBinary={hoveredBinary}
         setHoveredBinary={setHoveredBinary}
         copied={copied}

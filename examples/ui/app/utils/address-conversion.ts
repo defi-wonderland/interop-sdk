@@ -1,22 +1,22 @@
 import { encodeAddress, parseName, type ParsedInteroperableNameResult } from '@wonderland/interop-addresses';
 import { parseInteroperableAddressForDisplay } from './demo-helpers';
-import type { ParsedBinary, ParsedHumanReadable } from './demo-helpers';
+import type { ParsedBinary, ParsedInteroperableName } from './demo-helpers';
 
 export interface ConversionResult {
-  humanReadable: string;
+  interoperableName: string;
   binary: string;
-  humanParts: ParsedHumanReadable;
+  nameParts: ParsedInteroperableName;
   binaryParts: ParsedBinary;
   parsedResult: ParsedInteroperableNameResult;
 }
 
 export async function convertFromReadable(interoperableName: string): Promise<ConversionResult> {
   const parsed = await parseName(interoperableName);
-  const binary = encodeAddress(parsed.address, { format: 'hex' });
-  const binaryParts = parseInteroperableAddressForDisplay(parsed.address);
+  const binary = encodeAddress(parsed.interoperableAddress, { format: 'hex' });
+  const binaryParts = parseInteroperableAddressForDisplay(parsed.interoperableAddress);
 
-  // Map parseName result to ParsedHumanReadable format
-  const humanParts: ParsedHumanReadable = {
+  // Map parseName result to ParsedInteroperableName format
+  const nameParts: ParsedInteroperableName = {
     name: parsed.name.address || '',
     chainType: parsed.name.chainType || '',
     chainReference: parsed.name.chainReference || '',
@@ -24,9 +24,9 @@ export async function convertFromReadable(interoperableName: string): Promise<Co
   };
 
   return {
-    humanReadable: interoperableName,
+    interoperableName,
     binary,
-    humanParts,
+    nameParts,
     binaryParts,
     parsedResult: parsed,
   };

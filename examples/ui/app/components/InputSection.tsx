@@ -41,10 +41,10 @@ export function InputSection({
 
   const readableModeExamples = React.useMemo(
     () =>
-      EXAMPLES.filter((example) => example.showInReadableMode).map(({ humanReadable, description }) => ({
-        key: humanReadable,
+      EXAMPLES.filter((example) => example.showInReadableMode).map(({ interoperableName, description }) => ({
+        key: interoperableName,
         description,
-        onClick: () => onExampleClick(humanReadable),
+        onClick: () => onExampleClick(interoperableName),
       })),
     [onExampleClick],
   );
