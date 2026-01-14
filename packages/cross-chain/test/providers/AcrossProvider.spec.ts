@@ -105,6 +105,7 @@ describe("AcrossProvider", () => {
                     originChainId: INPUT_CHAIN_ID.toString(),
                     destinationChainId: OUTPUT_CHAIN_ID.toString(),
                     depositor: COMMON_USER_ADDRESS,
+                    recipient: COMMON_RECEIVER_ADDRESS,
                 },
             });
         });
@@ -141,6 +142,7 @@ describe("AcrossProvider", () => {
                     originChainId: INPUT_CHAIN_ID.toString(),
                     destinationChainId: OUTPUT_CHAIN_ID.toString(),
                     depositor: COMMON_USER_ADDRESS,
+                    recipient: COMMON_RECEIVER_ADDRESS,
                 },
             });
         });
