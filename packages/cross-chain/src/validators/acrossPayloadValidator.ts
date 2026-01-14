@@ -5,7 +5,12 @@ import { isAddressEqual } from "viem";
 
 import { decodeAcrossCalldata, DecodedAcrossParams } from "../utils/acrossCalldataDecoder.js";
 
-/** Validates Across calldata matches user intent */
+/**
+ * Validates Across calldata matches user intent.
+ *
+ * Only validates simple same-token bridges (deposit without message).
+ * Complex operations (swaps, DeFi actions) return true - we can't validate them.
+ */
 export async function validateAcrossPayload(
     userIntent: GetQuoteRequest,
     data: Hex,
@@ -13,7 +18,12 @@ export async function validateAcrossPayload(
     if (!data) return false;
 
     const decodeResult = decodeAcrossCalldata(data);
-    if (!decodeResult.success) return false;
+
+    if (!decodeResult.success) {
+        // "unsupported" = can't validate, allow through
+        // "invalid" = malformed data, reject
+        return decodeResult.reason === "unsupported";
+    }
 
     return validateDecodedParams(userIntent, decodeResult.params);
 }
@@ -33,24 +43,17 @@ async function validateDecodedParams(
         destinationChain: BigInt(await getChainId(output.asset)),
         depositor: (await getAddress(input.user)) as Address,
         inputToken: (await getAddress(input.asset)) as Address,
-        outputAmount: output.amount !== undefined ? BigInt(output.amount) : undefined,
         inputAmount: input.amount !== undefined ? BigInt(input.amount) : undefined,
     };
 
-    // Validate mandatory fields
+    // Validate all fields for simple bridges
     if (!isAddressEqual(calldata.recipient as Address, trusted.recipient)) return false;
     if (!isAddressEqual(calldata.outputToken as Address, trusted.outputToken)) return false;
     if (calldata.destinationChainId !== trusted.destinationChain) return false;
     if (!isAddressEqual(calldata.depositor as Address, trusted.depositor)) return false;
+    if (!isAddressEqual(calldata.inputToken as Address, trusted.inputToken)) return false;
 
-    // Validate optional fields
-    if (calldata.inputToken !== undefined) {
-        if (!isAddressEqual(calldata.inputToken as Address, trusted.inputToken)) return false;
-    }
-    if (trusted.outputAmount !== undefined) {
-        if (calldata.outputAmount !== trusted.outputAmount) return false;
-    }
-    if (calldata.inputAmount !== undefined && trusted.inputAmount !== undefined) {
+    if (trusted.inputAmount !== undefined) {
         if (calldata.inputAmount !== trusted.inputAmount) return false;
     }
 
