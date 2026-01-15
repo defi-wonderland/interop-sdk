@@ -1,18 +1,21 @@
 'use client';
 
+import { AdvancedDisplay } from './AdvancedDisplay';
 import { BinaryFormatDisplay } from './BinaryFormatDisplay';
 import { DisplaySkeleton } from './DisplaySkeleton';
-import { HumanReadableDisplay } from './HumanReadableDisplay';
-import type { AddressResult, BinaryPart, HumanReadablePart } from '../types';
+import { InteroperableNameDisplay } from './InteroperableNameDisplay';
+import type { AddressResult, BinaryPart, InteroperableNamePart } from '../types';
+import type { ParsedInteroperableNameResult } from '@wonderland/interop-addresses';
 
 interface ResultDisplaysProps {
   isLoading: boolean;
   error: string;
   result: AddressResult | null;
+  parsedResult: ParsedInteroperableNameResult | null;
   isStale: boolean;
   onRefresh: () => void;
-  hoveredHuman: HumanReadablePart;
-  setHoveredHuman: (part: HumanReadablePart) => void;
+  hoveredName: InteroperableNamePart;
+  setHoveredName: (part: InteroperableNamePart) => void;
   hoveredBinary: BinaryPart;
   setHoveredBinary: (part: BinaryPart) => void;
   copied: boolean;
@@ -27,10 +30,11 @@ export function ResultDisplays({
   isLoading,
   error,
   result,
+  parsedResult,
   isStale,
   onRefresh,
-  hoveredHuman,
-  setHoveredHuman,
+  hoveredName,
+  setHoveredName,
   hoveredBinary,
   setHoveredBinary,
   copied,
@@ -38,7 +42,10 @@ export function ResultDisplays({
 }: ResultDisplaysProps) {
   if (error) {
     return (
-      <div className='backdrop-blur-xl bg-error-light/80 border border-error/30 rounded-2xl p-4 shadow-lg'>
+      <div
+        data-testid='error-container'
+        className='backdrop-blur-xl bg-error-light/80 border border-error/30 rounded-2xl p-4 shadow-lg break-words'
+      >
         <p className='text-sm text-error font-medium'>{error}</p>
       </div>
     );
@@ -74,14 +81,15 @@ export function ResultDisplays({
           </button>
         </div>
       )}
-      <HumanReadableDisplay
+      <InteroperableNameDisplay
         result={result}
-        hoveredPart={hoveredHuman}
-        setHoveredPart={setHoveredHuman}
+        hoveredPart={hoveredName}
+        setHoveredPart={setHoveredName}
         copied={copied}
         onCopy={onCopy}
       />
       <BinaryFormatDisplay result={result} hoveredPart={hoveredBinary} setHoveredPart={setHoveredBinary} />
+      {parsedResult && <AdvancedDisplay parsedResult={parsedResult} />}
     </ResultsContainer>
   );
 }

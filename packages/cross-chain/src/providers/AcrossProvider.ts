@@ -1,5 +1,5 @@
 import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
-import { buildFromPayload, getAddress, getChainId } from "@wonderland/interop-addresses";
+import { decodeAddress, encodeAddress } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import {
     AbiEvent,
@@ -11,7 +11,6 @@ import {
     Log,
     PrepareTransactionRequestReturnType,
     PublicClient,
-    toHex,
 } from "viem";
 import { ZodError } from "zod";
 
@@ -100,15 +99,20 @@ export class AcrossProvider extends CrossChainProvider {
 
     /**
      * Parse an interop address to a viem address and chain id
-     * @param address - The interop address to parse
+     * @param address - The binary interop address (hex string) to parse
      * @returns The viem address and chain id
      */
-    private async parseInteropAddress(
-        address: string,
-    ): Promise<{ address: Address; chain: number }> {
+    private parseInteropAddress(address: string): { address: Address; chain: number } {
+        const decoded = decodeAddress(address as Hex);
+        if (!decoded.address) {
+            throw new Error("Address field is required");
+        }
+        if (!decoded.chainReference) {
+            throw new Error("Chain reference is required");
+        }
         return {
-            address: (await getAddress(address)) as Address,
-            chain: (await getChainId(address)) as number,
+            address: decoded.address as Address,
+            chain: Number(decoded.chainReference),
         };
     }
 
@@ -118,13 +122,16 @@ export class AcrossProvider extends CrossChainProvider {
      * @param chain - The chain id
      * @returns The interop address
      */
-    private generateInteropAddress(address: Address, chain: number): Promise<string> {
-        return buildFromPayload({
-            version: 1,
-            chainType: "eip155",
-            chainReference: toHex(chain),
-            address,
-        });
+    private generateInteropAddress(address: Address, chain: number): string {
+        return encodeAddress(
+            {
+                version: 1,
+                chainType: "eip155",
+                chainReference: chain.toString(),
+                address,
+            },
+            { format: "hex" },
+        ) as string;
     }
 
     /**
@@ -180,11 +187,12 @@ export class AcrossProvider extends CrossChainProvider {
         params: AcrossOIFGetQuoteParams,
     ): Promise<AcrossGetQuoteParams> {
         try {
-            const userParsed = await this.parseInteropAddress(params.user);
+            const userParsed = this.parseInteropAddress(params.user);
 
             const { inputs, outputs } = params.intent;
             const inputParsed = await this.parseInteropAddress(inputs[0].asset);
             const outputParsed = await this.parseInteropAddress(outputs[0].asset);
+            const recipientParsed = await this.parseInteropAddress(outputs[0].receiver);
             const swapType = params.intent.swapType || "exact-input";
             const amount = swapType === "exact-input" ? inputs[0].amount : outputs[0].amount;
 
@@ -196,6 +204,7 @@ export class AcrossProvider extends CrossChainProvider {
                 originChainId: inputParsed.chain,
                 destinationChainId: outputParsed.chain,
                 depositor: userParsed.address,
+                recipient: recipientParsed.address,
             });
         } catch (error) {
             if (error instanceof ZodError) {
@@ -229,7 +238,7 @@ export class AcrossProvider extends CrossChainProvider {
                 inputs: [
                     {
                         user: inputs[0].user,
-                        asset: await this.generateInteropAddress(
+                        asset: this.generateInteropAddress(
                             response.inputToken.address,
                             response.inputToken.chainId,
                         ),
@@ -239,7 +248,7 @@ export class AcrossProvider extends CrossChainProvider {
                 outputs: [
                     {
                         receiver: outputs[0].receiver,
-                        asset: await this.generateInteropAddress(
+                        asset: this.generateInteropAddress(
                             response.outputToken.address,
                             response.outputToken.chainId,
                         ),
