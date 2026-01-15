@@ -21,18 +21,16 @@ export function ErrorView({ state, onReset }: OrderTrackingProps) {
   const originChain = getChainConfig(state.originChainId);
   const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
   const isTimeout = state.status === EXECUTION_STATUS.TIMEOUT;
-  const borderColor = isTimeout ? 'border-amber-500/30' : 'border-error/30';
-  const bgColor = isTimeout ? 'bg-amber-500/5' : 'bg-error/5';
-  const iconBg = isTimeout ? 'bg-amber-500' : 'bg-error';
-  const textColor = isTimeout ? 'text-amber-600' : 'text-error';
+  const borderColor = isTimeout ? 'border-warning/30' : 'border-error/30';
+  const bgColor = isTimeout ? 'bg-warning/5' : 'bg-error/5';
+  const iconBg = isTimeout ? 'bg-warning' : 'bg-error';
+  const textColor = isTimeout ? 'text-warning' : 'text-error';
   const linkBg = isTimeout
-    ? 'bg-amber-500/10 border-amber-500/30 hover:border-amber-500/50'
+    ? 'bg-warning/10 border-warning/30 hover:border-warning/50'
     : 'bg-error/10 border-error/30 hover:border-error/50';
-  const linkText = isTimeout ? 'text-amber-600/80' : 'text-error/80';
-  const linkHoverText = isTimeout
-    ? 'text-amber-600/70 group-hover:text-amber-600'
-    : 'text-error/70 group-hover:text-error';
-  const buttonBorder = isTimeout ? 'border-amber-500/50 hover:bg-amber-500/10' : 'border-error/50 hover:bg-error/10';
+  const linkText = isTimeout ? 'text-warning/80' : 'text-error/80';
+  const linkHoverText = isTimeout ? 'text-warning/70 group-hover:text-warning' : 'text-error/70 group-hover:text-error';
+  const buttonBorder = isTimeout ? 'border-warning/50 hover:bg-warning/10' : 'border-error/50 hover:bg-error/10';
 
   return (
     <div className={`p-6 rounded-xl border ${borderColor} ${bgColor}`}>
