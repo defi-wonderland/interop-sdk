@@ -7,6 +7,7 @@ import {
     OpenedIntentParser,
     OrderFailureReason,
     OrderStatus,
+    OrderTrackerEvent,
     OrderTrackerEvents,
     OrderTrackerYield,
     OrderTrackerYieldType,
@@ -63,23 +64,21 @@ export class OrderTracker extends EventEmitter {
     }
 
     async getOrderStatus(txHash: Hex, originChainId: number): Promise<OrderTrackingInfo> {
-        if (this.clientManager) {
-            const isReverted = await this.checkOriginTxReverted(txHash, originChainId);
-            if (isReverted) {
-                return {
-                    status: OrderStatus.Failed,
-                    orderId: "0x" as Hex,
-                    openTxHash: txHash,
-                    user: "0x" as Hex,
-                    originChainId,
-                    destinationChainId: 0,
-                    fillDeadline: 0,
-                    depositId: 0n,
-                    inputAmount: 0n,
-                    outputAmount: 0n,
-                    failureReason: OrderFailureReason.OriginTxReverted,
-                };
-            }
+        const isReverted = await this.checkOriginTxReverted(txHash, originChainId);
+        if (isReverted) {
+            return {
+                status: OrderStatus.Failed,
+                orderId: "0x" as Hex,
+                openTxHash: txHash,
+                user: "0x" as Hex,
+                originChainId,
+                destinationChainId: 0,
+                fillDeadline: 0,
+                depositId: 0n,
+                inputAmount: 0n,
+                outputAmount: 0n,
+                failureReason: OrderFailureReason.OriginTxReverted,
+            };
         }
 
         const openedIntent = await this.openedIntentParser.getOpenedIntent(txHash, originChainId);
@@ -92,20 +91,10 @@ export class OrderTracker extends EventEmitter {
             fillDeadline: openedIntent.fillDeadline,
         });
 
-        let status: OrderStatus;
-        let failureReason: OrderFailureReason | undefined;
-
-        if (fillEvent) {
-            status = OrderStatus.Finalized;
-        } else {
-            const now = Math.floor(Date.now() / 1000);
-            if (now > openedIntent.fillDeadline) {
-                status = OrderStatus.Failed;
-                failureReason = OrderFailureReason.DeadlineExceeded;
-            } else {
-                status = OrderStatus.Pending;
-            }
-        }
+        const { status, failureReason } = this.determineOrderStatus(
+            fillEvent,
+            openedIntent.fillDeadline,
+        );
 
         return {
             status,
@@ -121,6 +110,25 @@ export class OrderTracker extends EventEmitter {
             fillEvent: fillEvent || undefined,
             failureReason,
         };
+    }
+
+    private determineOrderStatus(
+        fillEvent: unknown,
+        fillDeadline: number,
+    ): { status: OrderStatus; failureReason?: OrderFailureReason } {
+        if (fillEvent) {
+            return { status: OrderStatus.Finalized };
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        if (now > fillDeadline) {
+            return {
+                status: OrderStatus.Failed,
+                failureReason: OrderFailureReason.DeadlineExceeded,
+            };
+        }
+
+        return { status: OrderStatus.Pending };
     }
 
     /**
@@ -154,56 +162,51 @@ export class OrderTracker extends EventEmitter {
 
         const startTime = Date.now();
 
-        let lastUpdate: OrderTrackingUpdate = {
+        let lastUpdate: OrderTrackingUpdate = this.createUpdate({
             status: OrderStatus.Pending,
             openTxHash: txHash,
-            timestamp: Math.floor(Date.now() / 1000),
             message: "Parsing order from transaction...",
-        };
+        });
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
 
-        if (this.clientManager) {
-            const isReverted = await this.checkOriginTxReverted(txHash, originChainId);
-            if (isReverted) {
-                yield {
-                    type: OrderTrackerYieldType.Update,
-                    update: {
-                        status: OrderStatus.Failed,
-                        openTxHash: txHash,
-                        timestamp: Math.floor(Date.now() / 1000),
-                        message: "Origin transaction reverted",
-                        failureReason: OrderFailureReason.OriginTxReverted,
-                    },
-                };
-                return;
-            }
+        const isReverted = await this.checkOriginTxReverted(txHash, originChainId);
+        if (isReverted) {
+            yield {
+                type: OrderTrackerYieldType.Update,
+                update: this.createUpdate({
+                    status: OrderStatus.Failed,
+                    openTxHash: txHash,
+                    message: "Origin transaction reverted",
+                    failureReason: OrderFailureReason.OriginTxReverted,
+                }),
+            };
+            return;
         }
 
         const openedIntent = await this.openedIntentParser.getOpenedIntent(txHash, originChainId);
 
-        lastUpdate = {
+        lastUpdate = this.createUpdate({
             status: OrderStatus.Pending,
             orderId: openedIntent.orderId,
             openTxHash: txHash,
-            timestamp: Math.floor(Date.now() / 1000),
             message: `Order parsed with orderId ${openedIntent.orderId.slice(0, 10)}...`,
-        };
+        });
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
 
         const nowSeconds = Math.floor(Date.now() / 1000);
         const fillDeadline = openedIntent.fillDeadline;
+        const isDeadlineExceeded = nowSeconds > fillDeadline + OrderTracker.GRACE_PERIOD_SECONDS;
 
-        if (nowSeconds > fillDeadline + OrderTracker.GRACE_PERIOD_SECONDS) {
+        if (isDeadlineExceeded) {
             yield {
                 type: OrderTrackerYieldType.Update,
-                update: {
+                update: this.createUpdate({
                     status: OrderStatus.Failed,
                     orderId: openedIntent.orderId,
                     openTxHash: txHash,
-                    timestamp: Math.floor(Date.now() / 1000),
                     message: "Deadline exceeded before watching started",
                     failureReason: OrderFailureReason.DeadlineExceeded,
-                },
+                }),
             };
             return;
         }
@@ -212,25 +215,20 @@ export class OrderTracker extends EventEmitter {
         const remainingTimeout = Math.max(0, timeout - elapsedTime);
 
         if (remainingTimeout === 0) {
-            const deadlineDate = new Date(fillDeadline * 1000).toISOString();
-            yield {
-                type: OrderTrackerYieldType.Timeout,
-                payload: {
-                    lastUpdate,
-                    timestamp: Math.floor(Date.now() / 1000),
-                    message: `Timeout expired during order setup. Order may still finalize before deadline at ${deadlineDate}`,
-                },
-            };
+            yield this.createTimeoutYield(
+                lastUpdate,
+                fillDeadline,
+                "Timeout expired during order setup",
+            );
             return;
         }
 
-        lastUpdate = {
+        lastUpdate = this.createUpdate({
             status: OrderStatus.Pending,
             orderId: openedIntent.orderId,
             openTxHash: txHash,
-            timestamp: Math.floor(Date.now() / 1000),
             message: "Waiting for solver to fill order...",
-        };
+        });
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
 
         const fillResult = await this.waitForFillWithTimeout(
@@ -244,41 +242,49 @@ export class OrderTracker extends EventEmitter {
             remainingTimeout,
         );
 
+        yield this.createFillResultYield(
+            fillResult,
+            openedIntent.orderId,
+            txHash,
+            lastUpdate,
+            fillDeadline,
+        );
+    }
+
+    private createFillResultYield(
+        fillResult: Awaited<ReturnType<typeof this.waitForFillWithTimeout>>,
+        orderId: Hex,
+        txHash: Hex,
+        lastUpdate: OrderTrackingUpdate,
+        fillDeadline: number,
+    ): OrderTrackerYield {
         if (fillResult.status === FillResultStatus.Finalized) {
-            yield {
+            return {
                 type: OrderTrackerYieldType.Update,
-                update: {
+                update: this.createUpdate({
                     status: OrderStatus.Finalized,
-                    orderId: openedIntent.orderId,
+                    orderId,
                     openTxHash: txHash,
                     fillTxHash: fillResult.fillTxHash,
-                    timestamp: Math.floor(Date.now() / 1000),
                     message: `Order completed in block ${fillResult.blockNumber}`,
-                },
-            };
-        } else if (fillResult.status === FillResultStatus.DeadlineExceeded) {
-            yield {
-                type: OrderTrackerYieldType.Update,
-                update: {
-                    status: OrderStatus.Failed,
-                    orderId: openedIntent.orderId,
-                    openTxHash: txHash,
-                    timestamp: Math.floor(Date.now() / 1000),
-                    message: "Deadline exceeded before fill",
-                    failureReason: OrderFailureReason.DeadlineExceeded,
-                },
-            };
-        } else {
-            const deadlineDate = new Date(fillDeadline * 1000).toISOString();
-            yield {
-                type: OrderTrackerYieldType.Timeout,
-                payload: {
-                    lastUpdate,
-                    timestamp: Math.floor(Date.now() / 1000),
-                    message: `Stopped watching after timeout. Order may still finalize before deadline at ${deadlineDate}`,
-                },
+                }),
             };
         }
+
+        if (fillResult.status === FillResultStatus.DeadlineExceeded) {
+            return {
+                type: OrderTrackerYieldType.Update,
+                update: this.createUpdate({
+                    status: OrderStatus.Failed,
+                    orderId,
+                    openTxHash: txHash,
+                    message: "Deadline exceeded before fill",
+                    failureReason: OrderFailureReason.DeadlineExceeded,
+                }),
+            };
+        }
+
+        return this.createTimeoutYield(lastUpdate, fillDeadline, "Stopped watching after timeout");
     }
 
     /**
@@ -307,29 +313,57 @@ export class OrderTracker extends EventEmitter {
      */
     async startTracking(params: WatchOrderParams): Promise<OrderTrackingInfo> {
         try {
-            for await (const item of this.watchOrder(params)) {
-                if (item.type === OrderTrackerYieldType.Update) {
-                    this.emit(item.update.status, item.update);
-
-                    if (
-                        item.update.status === OrderStatus.Finalized ||
-                        item.update.status === OrderStatus.Failed ||
-                        item.update.status === OrderStatus.Refunded
-                    ) {
-                        break;
-                    }
-                } else {
-                    this.emit("timeout", item.payload);
-                    break;
-                }
-            }
-
+            await this.processWatchUpdates(params);
             return await this.getOrderStatus(params.txHash, params.originChainId);
         } catch (error) {
             const err = error instanceof Error ? error : new Error(String(error));
-            this.emit("error", err);
+            this.emit(OrderTrackerEvent.Error, err);
             throw error;
         }
+    }
+
+    private async processWatchUpdates(params: WatchOrderParams): Promise<void> {
+        const terminalStatuses = new Set([
+            OrderStatus.Finalized,
+            OrderStatus.Failed,
+            OrderStatus.Refunded,
+        ]);
+
+        for await (const item of this.watchOrder(params)) {
+            if (item.type === OrderTrackerYieldType.Timeout) {
+                this.emit(OrderTrackerEvent.Timeout, item.payload);
+                return;
+            }
+
+            this.emit(item.update.status, item.update);
+
+            if (terminalStatuses.has(item.update.status)) {
+                return;
+            }
+        }
+    }
+
+    private createUpdate(params: Omit<OrderTrackingUpdate, "timestamp">): OrderTrackingUpdate {
+        return {
+            ...params,
+            timestamp: Math.floor(Date.now() / 1000),
+        };
+    }
+
+    private createTimeoutYield(
+        lastUpdate: OrderTrackingUpdate,
+        fillDeadline: number,
+        reason: string,
+    ): OrderTrackerYield {
+        const deadlineDate = new Date(fillDeadline * 1000).toISOString();
+        return {
+            type: OrderTrackerYieldType.Timeout,
+            payload: {
+                lastUpdate,
+                timestamp: Math.floor(Date.now() / 1000),
+                message: `${reason}. Order may still finalize before deadline at ${deadlineDate}`,
+            },
+        };
     }
 
     private async checkOriginTxReverted(txHash: Hex, chainId: number): Promise<boolean> {

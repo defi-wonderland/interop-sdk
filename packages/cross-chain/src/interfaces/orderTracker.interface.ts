@@ -2,6 +2,16 @@ import type { OrderStatus } from "../types/oif.js";
 import type { OrderTrackerTimeoutPayload, OrderTrackingUpdate } from "../types/orderTracking.js";
 
 /**
+ * Event names for non-status events emitted by OrderTracker.
+ */
+export const OrderTrackerEvent = {
+    Timeout: "timeout",
+    Error: "error",
+} as const;
+
+export type OrderTrackerEvent = (typeof OrderTrackerEvent)[keyof typeof OrderTrackerEvent];
+
+/**
  * Event map for OrderTracker events.
  * - OrderStatus events: emitted for each status update
  * - timeout: emitted when tracking stops due to SDK timeout (order may still finalize)
@@ -11,6 +21,6 @@ import type { OrderTrackerTimeoutPayload, OrderTrackingUpdate } from "../types/o
 export type OrderTrackerEvents = {
     [K in OrderStatus]: (update: OrderTrackingUpdate) => void;
 } & {
-    timeout: (payload: OrderTrackerTimeoutPayload) => void;
-    error: (error: Error) => void;
+    [OrderTrackerEvent.Timeout]: (payload: OrderTrackerTimeoutPayload) => void;
+    [OrderTrackerEvent.Error]: (error: Error) => void;
 };

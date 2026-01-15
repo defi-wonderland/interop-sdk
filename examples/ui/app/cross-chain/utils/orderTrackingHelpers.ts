@@ -41,7 +41,6 @@ export function getStateLabel(state: BridgeState): string {
         case WALLET_ACTION.CONFIRMING:
           return 'Confirming';
       }
-      break;
     case STEP.TRACKING:
       // Display SDK OrderStatus directly
       return formatOrderStatus(state.update.status);
