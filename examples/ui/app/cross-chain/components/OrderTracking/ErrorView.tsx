@@ -1,26 +1,25 @@
 import { getChainConfig, getExplorerTxUrl } from '../../constants/chains';
-import { EXECUTION_STATUS } from '../../types/execution';
+import { STEP } from '../../types/execution';
 import { formatMessageWithDate } from '../../utils/formatting';
 import { CloseIcon, ExternalLinkIcon } from '../icons';
-import type { OrderTrackingProps } from './types';
+import type { ErrorViewProps } from './types';
 
-function getErrorTitle(status: string): string {
-  switch (status) {
-    case EXECUTION_STATUS.EXPIRED:
-      return 'Order Expired';
-    case EXECUTION_STATUS.FAILED:
-      return 'Order Failed';
-    case EXECUTION_STATUS.TIMEOUT:
-      return 'Tracking Timeout';
-    default:
-      return 'Order Error';
-  }
+function getErrorTitle(step: typeof STEP.TIMEOUT | typeof STEP.ERROR): string {
+  return step === STEP.TIMEOUT ? 'Tracking Timeout' : 'Order Error';
 }
 
-export function ErrorView({ state, onReset }: OrderTrackingProps) {
-  const originChain = getChainConfig(state.originChainId);
-  const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
-  const isTimeout = state.status === EXECUTION_STATUS.TIMEOUT;
+function getMessage(state: ErrorViewProps['state']): string {
+  if (state.step === STEP.TIMEOUT) {
+    return state.timeout.message;
+  }
+  return state.message;
+}
+
+export function ErrorView({ state, onReset }: ErrorViewProps) {
+  const originChainId = 'originChainId' in state ? state.originChainId : undefined;
+  const originChain = getChainConfig(originChainId);
+  const originTxUrl = getExplorerTxUrl(originChainId, state.txHash);
+  const isTimeout = state.step === STEP.TIMEOUT;
   const borderColor = isTimeout ? 'border-warning/30' : 'border-error/30';
   const bgColor = isTimeout ? 'bg-warning/5' : 'bg-error/5';
   const iconBg = isTimeout ? 'bg-warning' : 'bg-error';
@@ -40,8 +39,8 @@ export function ErrorView({ state, onReset }: OrderTrackingProps) {
           <CloseIcon className='w-6 h-6' />
         </div>
         <div>
-          <h3 className={`text-lg font-semibold ${textColor}`}>{getErrorTitle(state.status)}</h3>
-          <p className='text-sm text-text-secondary'>{formatMessageWithDate(state.message)}</p>
+          <h3 className={`text-lg font-semibold ${textColor}`}>{getErrorTitle(state.step)}</h3>
+          <p className='text-sm text-text-secondary'>{formatMessageWithDate(getMessage(state))}</p>
         </div>
       </div>
 

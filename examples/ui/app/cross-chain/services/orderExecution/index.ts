@@ -2,4 +2,3 @@ export { ensureCorrectChain, type ChainClients, type ConfiguredWalletClient } fr
 export { handleTokenApproval } from './approval';
 export { submitBridgeTransaction } from './bridge';
 export { trackOrder, TrackingError } from './tracking';
-export { mapOrderUpdateToState } from './stateMapper';

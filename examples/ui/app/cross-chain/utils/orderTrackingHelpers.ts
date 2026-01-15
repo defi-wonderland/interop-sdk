@@ -1,72 +1,92 @@
-import { EXECUTION_STATUS, type OrderExecutionStatus } from '../types/execution';
+import { OrderStatus } from '@wonderland/interop-cross-chain';
+import { STEP, WALLET_ACTION, type BridgeState } from '../types/execution';
 
 /**
- * Visual steps for the order execution flow (OIF-aligned)
+ * Check if wallet action belongs to approval phase
  */
-export const ORDER_STEPS = [
-  {
-    id: 'approval',
-    label: 'Approval',
-    statuses: [
-      EXECUTION_STATUS.SWITCHING_NETWORK,
-      EXECUTION_STATUS.CHECKING_APPROVAL,
-      EXECUTION_STATUS.APPROVING,
-    ] as OrderExecutionStatus[],
-  },
-  {
-    id: 'submit',
-    label: 'Submit',
-    statuses: [EXECUTION_STATUS.SUBMITTING, EXECUTION_STATUS.CONFIRMING] as OrderExecutionStatus[],
-  },
-  {
-    id: 'pending',
-    label: 'Pending',
-    statuses: [EXECUTION_STATUS.PENDING] as OrderExecutionStatus[],
-  },
-  {
-    id: 'filling',
-    label: 'Filling',
-    statuses: [EXECUTION_STATUS.FILLING] as OrderExecutionStatus[],
-  },
-] as const;
-
-export type OrderStep = (typeof ORDER_STEPS)[number];
-export type StepStatus = 'pending' | 'active' | 'complete' | 'error';
+export function isApprovalPhase(state: BridgeState): boolean {
+  return (
+    state.step === STEP.WALLET &&
+    (state.action === WALLET_ACTION.SWITCHING ||
+      state.action === WALLET_ACTION.CHECKING ||
+      state.action === WALLET_ACTION.APPROVING)
+  );
+}
 
 /**
- * Get step status based on current execution status
+ * Check if wallet action belongs to submit phase
  */
-export function getStepStatus(
-  stepStatuses: readonly OrderExecutionStatus[],
-  currentStatus: OrderExecutionStatus,
-  stepIndex: number,
-): StepStatus {
-  if (currentStatus === EXECUTION_STATUS.ERROR || currentStatus === EXECUTION_STATUS.FAILED) {
-    const currentStepIndex = ORDER_STEPS.findIndex((s) => s.statuses.includes(currentStatus));
-    if (stepIndex === currentStepIndex || (currentStepIndex === -1 && stepIndex === 0)) {
-      return 'error';
+export function isSubmitPhase(state: BridgeState): boolean {
+  return (
+    state.step === STEP.WALLET &&
+    (state.action === WALLET_ACTION.SUBMITTING || state.action === WALLET_ACTION.CONFIRMING)
+  );
+}
+
+/**
+ * Get display label for current state - uses SDK OrderStatus directly when tracking
+ */
+export function getStateLabel(state: BridgeState): string {
+  switch (state.step) {
+    case STEP.WALLET:
+      switch (state.action) {
+        case WALLET_ACTION.SWITCHING:
+          return 'Switching Network';
+        case WALLET_ACTION.CHECKING:
+          return 'Checking Approval';
+        case WALLET_ACTION.APPROVING:
+          return 'Approving';
+        case WALLET_ACTION.SUBMITTING:
+          return 'Submitting';
+        case WALLET_ACTION.CONFIRMING:
+          return 'Confirming';
+      }
+      break;
+    case STEP.TRACKING:
+      // Display SDK OrderStatus directly
+      return formatOrderStatus(state.update.status);
+    case STEP.DONE:
+      return formatOrderStatus(OrderStatus.Finalized);
+    case STEP.TIMEOUT:
+      return 'Timeout';
+    case STEP.ERROR:
+      return 'Error';
+    default:
+      return '';
+  }
+}
+
+/**
+ * Get progress message for current state
+ */
+export function getProgressMessage(state: BridgeState): string | undefined {
+  if (state.step === STEP.WALLET) {
+    switch (state.action) {
+      case WALLET_ACTION.SWITCHING:
+        return 'Please switch to the origin chain in your wallet...';
+      case WALLET_ACTION.CHECKING:
+        return 'Checking token allowance...';
+      case WALLET_ACTION.APPROVING:
+        return state.txHash
+          ? 'Waiting for approval confirmation...'
+          : 'Please approve token spending in your wallet...';
+      case WALLET_ACTION.SUBMITTING:
+        return 'Please confirm the bridge transaction in your wallet...';
+      case WALLET_ACTION.CONFIRMING:
+        return 'Waiting for transaction confirmation...';
     }
   }
 
-  if (currentStatus === EXECUTION_STATUS.EXPIRED && stepStatuses.includes(EXECUTION_STATUS.FILLING)) {
-    return 'error';
+  if (state.step === STEP.TRACKING) {
+    return state.update.message;
   }
 
-  if (stepStatuses.includes(currentStatus)) {
-    return 'active';
-  }
+  return undefined;
+}
 
-  const currentStepIndex = ORDER_STEPS.findIndex(
-    (s) =>
-      s.statuses.includes(currentStatus) ||
-      currentStatus === EXECUTION_STATUS.COMPLETED ||
-      currentStatus === EXECUTION_STATUS.EXPIRED ||
-      currentStatus === EXECUTION_STATUS.FAILED,
-  );
-
-  if (currentStepIndex > stepIndex) {
-    return 'complete';
-  }
-
-  return 'pending';
+/**
+ * Format OrderStatus enum value for display (capitalize)
+ */
+function formatOrderStatus(status: OrderStatus): string {
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }

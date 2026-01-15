@@ -1,5 +1,5 @@
 import { getPublicClient, getWalletClient } from 'wagmi/actions';
-import { EXECUTION_STATUS, type OrderExecutionState } from '../../types/execution';
+import { STEP, WALLET_ACTION, type BridgeState } from '../../types/execution';
 import type { Account, Chain, PublicClient, Transport, WalletClient } from 'viem';
 import type { Config } from 'wagmi';
 
@@ -15,13 +15,10 @@ export async function ensureCorrectChain(
   currentChainId: number | undefined,
   targetChainId: number,
   switchChainAsync: (args: { chainId: number }) => Promise<unknown>,
-  onStateChange: (state: OrderExecutionState) => void,
+  onStateChange: (state: BridgeState) => void,
 ): Promise<ChainClients> {
   if (currentChainId !== targetChainId) {
-    onStateChange({
-      status: EXECUTION_STATUS.SWITCHING_NETWORK,
-      message: 'Please switch to the origin chain in your wallet...',
-    });
+    onStateChange({ step: STEP.WALLET, action: WALLET_ACTION.SWITCHING });
     await switchChainAsync({ chainId: targetChainId });
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
