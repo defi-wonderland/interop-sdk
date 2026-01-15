@@ -1,6 +1,6 @@
 import { Hex } from "viem";
 
-import { ChainTypeName } from "../internal.js";
+import { ChainTypeName } from "../constants/interopAddress.js";
 
 type Brand<K, T> = K & { __brand: T };
 

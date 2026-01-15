@@ -1,3 +1,7 @@
+import { isBinaryAddress, toBinaryRepresentation } from '@wonderland/interop-addresses';
+import { toHex } from 'viem';
+import type { InteroperableAddress } from '@wonderland/interop-addresses';
+
 export interface ParsedBinary {
   version: string;
   chainTypeHex: string;
@@ -7,62 +11,45 @@ export interface ParsedBinary {
   addressHex: string;
 }
 
-export interface ParsedHumanReadable {
+export interface ParsedInteroperableName {
   name: string;
   chainType: string;
   chainReference: string;
   checksum: string;
 }
 
-export function parseBinaryForDisplay(binaryHex: string): ParsedBinary {
-  let pos = 2;
+/**
+ * Parses an InteroperableAddress object into display components.
+ * Formats the binary address structure for display purposes.
+ */
+export function parseInteroperableAddressForDisplay(interopAddress: InteroperableAddress): ParsedBinary {
+  // Convert to binary if needed
+  const binaryAddr = isBinaryAddress(interopAddress) ? interopAddress : toBinaryRepresentation(interopAddress);
 
-  const version = binaryHex.slice(pos, pos + 4);
-  pos += 4;
+  // Format version (2 bytes)
+  const versionHex = toHex(binaryAddr.version, { size: 2 }).slice(2);
 
-  const chainTypeHex = binaryHex.slice(pos, pos + 4);
-  pos += 4;
+  // Format chainType (2 bytes)
+  const chainTypeHex = toHex(binaryAddr.chainType, { size: 2 }).slice(2);
 
-  const chainRefLengthHex = binaryHex.slice(pos, pos + 2);
-  const chainRefLengthDec = parseInt(chainRefLengthHex, 16);
-  pos += 2;
+  // Format chainReference length and hex
+  const chainRefBinary = binaryAddr.chainReference ?? new Uint8Array();
+  const chainRefLength = chainRefBinary.length;
+  const chainRefLengthHex = chainRefLength.toString(16).padStart(2, '0');
+  const chainRefHex = chainRefBinary.length > 0 ? toHex(chainRefBinary).slice(2) : '';
 
-  const chainRefHex = binaryHex.slice(pos, pos + chainRefLengthDec * 2);
-  pos += chainRefLengthDec * 2;
-
-  const addressLengthHex = binaryHex.slice(pos, pos + 2);
-  const addressLengthDec = parseInt(addressLengthHex, 16);
-  pos += 2;
-
-  const addressHex = binaryHex.slice(pos, pos + addressLengthDec * 2);
+  // Format address length and hex
+  const addressBinary = binaryAddr.address ?? new Uint8Array();
+  const addressLength = addressBinary.length;
+  const addressLengthHex = addressLength.toString(16).padStart(2, '0');
+  const addressHex = addressBinary.length > 0 ? toHex(addressBinary).slice(2) : '';
 
   return {
-    version,
+    version: versionHex,
     chainTypeHex,
-    chainRefLength: `${chainRefLengthHex} (${chainRefLengthDec}b)`,
+    chainRefLength: `${chainRefLengthHex} (${chainRefLength}b)`,
     chainRefHex,
-    addressLength: `${addressLengthHex} (${addressLengthDec}b)`,
+    addressLength: `${addressLengthHex} (${addressLength}b)`,
     addressHex,
-  };
-}
-
-export function parseHumanReadableForDisplay(humanReadable: string): ParsedHumanReadable {
-  const parts = humanReadable.split('@');
-  const name = parts[0] || '';
-  const afterAt = parts[1] || '';
-  const [chainPart, checksumPart] = afterAt.split('#');
-
-  // Handle both "namespace:reference" and just "reference" (e.g., "eth")
-  const colonParts = chainPart.split(':').filter(Boolean);
-  const hasNamespace = colonParts.length > 1;
-
-  const namespace = hasNamespace ? colonParts[0] : '';
-  const chain = hasNamespace ? colonParts[1] : colonParts[0] || '';
-
-  return {
-    name,
-    chainType: namespace,
-    chainReference: chain,
-    checksum: checksumPart || '',
   };
 }

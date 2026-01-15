@@ -1,6 +1,6 @@
 # Interoperable Addresses - Interactive Demo
 
-Educational demo showcasing ERC-7930 (Human-Readable) and ERC-7828 (Binary) interoperable address formats.
+Educational demo showcasing ERC-7930 (Binary) and ERC-7828 (Interoperable Name) interoperable address formats.
 
 ## Getting Started
 
@@ -30,7 +30,7 @@ pnpm test:e2e
 ## Features
 
 ### Interactive Playground
-- **Dual Input Modes**: Enter a complete human-readable address OR build from address + chain
+- **Dual Input Modes**: Enter a complete interoperable name OR build from address + chain
 - **Live Conversion**: Real-time conversion between ERC-7930 and ERC-7828 formats
 - **Component Breakdown**: Visual breakdown of address parts with hover interactions
 - **Copy to Clipboard**: One-click copy of generated addresses
@@ -43,9 +43,9 @@ pnpm test:e2e
 - **Theme Support**: Light and dark themes for comfortable viewing
 
 ### Format Support
-- **Human-Readable (ERC-7930)**: `0xAddress@namespace:chainRef#checksum`
-- **Binary (ERC-7828)**: Compact byte representation for on-chain efficiency
-- **EVM Chains**: Supports eip155 namespace for Ethereum and EVM-compatible chains ([CAIP-2 spec](https://chainagnostic.org/CAIPs/caip-2))
+- **Binary (ERC-7930)**: Compact byte representation for on-chain efficiency
+- **Interoperable Name (ERC-7828)**: `0xAddress@chainType:chainRef#checksum`
+- **EVM Chains**: Supports eip155 chain type for Ethereum and EVM-compatible chains ([CAIP-2 spec](https://chainagnostic.org/CAIPs/caip-2))
 - **ENS Names**: Full support for ENS resolution (e.g., `vitalik.eth@eip155:1#checksum`)
 
 ## Tech Stack
