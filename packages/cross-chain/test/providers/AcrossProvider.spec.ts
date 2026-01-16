@@ -1,5 +1,5 @@
 import type viem from "viem";
-import { buildFromPayload } from "@wonderland/interop-addresses";
+import { encodeAddress } from "@wonderland/interop-addresses";
 import axios from "axios";
 import { Address, createPublicClient, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -17,34 +17,46 @@ const OUTPUT_TOKEN_ADDRESS = "0x4200000000000000000000000000000000000006" as Add
 const INPUT_CHAIN_ID = 11155111; // Sepolia
 const OUTPUT_CHAIN_ID = 84532; // Base Sepolia
 
-// Convert to interop addresses
-const USER_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${INPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: COMMON_USER_ADDRESS,
-});
+// Convert to interop addresses using synchronous encodeAddress
+const USER_INTEROP_ADDRESS = encodeAddress(
+    {
+        version: 1,
+        chainType: "eip155",
+        chainReference: INPUT_CHAIN_ID.toString(),
+        address: COMMON_USER_ADDRESS,
+    },
+    { format: "hex" },
+) as string;
 
-const RECEIVER_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${OUTPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: COMMON_RECEIVER_ADDRESS,
-});
+const RECEIVER_INTEROP_ADDRESS = encodeAddress(
+    {
+        version: 1,
+        chainType: "eip155",
+        chainReference: OUTPUT_CHAIN_ID.toString(),
+        address: COMMON_RECEIVER_ADDRESS,
+    },
+    { format: "hex" },
+) as string;
 
-const INPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${INPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: INPUT_TOKEN_ADDRESS,
-});
+const INPUT_TOKEN_INTEROP_ADDRESS = encodeAddress(
+    {
+        version: 1,
+        chainType: "eip155",
+        chainReference: INPUT_CHAIN_ID.toString(),
+        address: INPUT_TOKEN_ADDRESS,
+    },
+    { format: "hex" },
+) as string;
 
-const OUTPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${OUTPUT_CHAIN_ID.toString(16).padStart(6, "0")}`,
-    address: OUTPUT_TOKEN_ADDRESS,
-});
+const OUTPUT_TOKEN_INTEROP_ADDRESS = encodeAddress(
+    {
+        version: 1,
+        chainType: "eip155",
+        chainReference: OUTPUT_CHAIN_ID.toString(),
+        address: OUTPUT_TOKEN_ADDRESS,
+    },
+    { format: "hex" },
+) as string;
 
 vi.mock("axios");
 vi.mock("viem", async () => {
@@ -105,6 +117,7 @@ describe("AcrossProvider", () => {
                     originChainId: INPUT_CHAIN_ID.toString(),
                     destinationChainId: OUTPUT_CHAIN_ID.toString(),
                     depositor: COMMON_USER_ADDRESS,
+                    recipient: COMMON_RECEIVER_ADDRESS,
                 },
             });
         });
@@ -141,6 +154,7 @@ describe("AcrossProvider", () => {
                     originChainId: INPUT_CHAIN_ID.toString(),
                     destinationChainId: OUTPUT_CHAIN_ID.toString(),
                     depositor: COMMON_USER_ADDRESS,
+                    recipient: COMMON_RECEIVER_ADDRESS,
                 },
             });
         });

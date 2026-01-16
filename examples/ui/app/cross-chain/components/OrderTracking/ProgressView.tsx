@@ -1,3 +1,4 @@
+import { getExplorerTxUrl } from '../../constants/chains';
 import { STEP } from '../../types/execution';
 import { isApprovalPhase, isSubmitPhase, getStateLabel, getProgressMessage } from '../../utils/orderTrackingHelpers';
 import { ExternalLinkIcon, SpinnerIcon, CheckIcon } from '../icons';
@@ -28,6 +29,7 @@ function StepIndicator({ isCurrent, isPassed }: { isCurrent: boolean; isPassed: 
 
 export function ProgressView({ state }: ProgressViewProps) {
   const message = getProgressMessage(state);
+  const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
 
   // Determine current step index: 0=approval, 1=submit, 2=tracking
   const currentStep = isApprovalPhase(state) ? 0 : isSubmitPhase(state) ? 1 : 2;
@@ -73,10 +75,10 @@ export function ProgressView({ state }: ProgressViewProps) {
       </div>
 
       {/* Transaction link during progress */}
-      {state.txHash && (
+      {originTxUrl && (
         <div className='mt-4 pt-3 border-t border-border'>
           <a
-            href={`https://sepolia.etherscan.io/tx/${state.txHash}`}
+            href={originTxUrl}
             target='_blank'
             rel='noopener noreferrer'
             className='text-xs text-accent hover:underline flex items-center gap-1'

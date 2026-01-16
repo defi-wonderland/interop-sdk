@@ -7,14 +7,14 @@ export enum ChainType {
   EIP155 = 'eip155',
 }
 
-export enum HumanReadablePartKey {
+export enum InteroperableNamePartKey {
   NAME = 'name',
   CHAIN_TYPE = 'chainType',
   CHAIN_REF = 'chainRef',
   CHECKSUM = 'checksum',
 }
 
-export type HumanReadablePart = HumanReadablePartKey | null;
+export type InteroperableNamePart = InteroperableNamePartKey | null;
 
 export enum BinaryPartKey {
   VERSION = 'version',
@@ -32,7 +32,7 @@ export interface AddressResult {
   chainType: string;
   chainReference: string;
   checksum: string;
-  humanReadable: string;
+  interoperableName: string;
   version: string;
   chainTypeHex: string;
   chainRefLength: string;
@@ -50,5 +50,5 @@ export interface FieldCardProps {
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   className?: string;
-  color?: 'accent' | 'success';
+  color?: 'accent' | 'success' | 'info';
 }

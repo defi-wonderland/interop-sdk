@@ -41,10 +41,10 @@ export function InputSection({
 
   const readableModeExamples = React.useMemo(
     () =>
-      EXAMPLES.filter((example) => example.showInReadableMode).map(({ humanReadable, description }) => ({
-        key: humanReadable,
+      EXAMPLES.filter((example) => example.showInReadableMode).map(({ interoperableName, description }) => ({
+        key: interoperableName,
         description,
-        onClick: () => onExampleClick(humanReadable),
+        onClick: () => onExampleClick(interoperableName),
       })),
     [onExampleClick],
   );
@@ -82,14 +82,14 @@ export function InputSection({
         {isReadableMode && (
           <div>
             <label htmlFor='readable-address-input' className='text-sm font-medium text-text-secondary'>
-              Human-Readable Address
+              Interoperable Name
             </label>
             <input
               id='readable-address-input'
               type='text'
               value={readableName}
               onChange={(e) => setReadableName(e.target.value)}
-              placeholder='alice.eth@rollup-name'
+              placeholder='alice.eth@eip155:1#4CA88C9C'
               autoComplete='off'
               data-1p-ignore
               className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 mt-2'

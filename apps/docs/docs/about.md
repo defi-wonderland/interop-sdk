@@ -9,16 +9,22 @@ The _Interop SDK_ is a TypeScript library for cross-chain applications. It aims 
 
 ### `addresses`
 
-The `addresses` module provides tools to work with **interoperable addresses** —a format designed to encode a recipient, a chain, and optionally a domain name (e.g., `alice.eth@arb1`).
+The `addresses` module provides tools to work with **interoperable addresses** —a format designed to encode a recipient, a chain, and optionally a domain name (e.g., `alice.eth@eip155:1`).
 
-> This is a reference implementation for ERC-7930 and ERC-7828, the standards behind interoperable addresses
+> This is a reference implementation for [EIP-7930](https://eips.ethereum.org/EIPS/eip-7930), [ERC-7828](https://eips.ethereum.org/EIPS/eip-7828), and [CAIP-350](https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-350.md), the standards behind interoperable addresses
+
+The module follows a clean two-layer architecture:
+
+1. **Address Layer (EIP-7930 + CAIP-350)**: Discriminated union address representation (binary or text) - synchronous encoding/decoding with automatic conversion between representations
+2. **Name Layer (ERC-7828)**: Human-readable names with ENS resolution - async operations
 
 It includes utilities to:
 
--   Parse human-readable interoperable addresses
--   Convert to and from [ERC-7930](https://eips.ethereum.org/EIPS/eip-7930)-compatible address formats
+-   Parse interoperable names (e.g., `vitalik.eth@eip155:1#4CA88C9C`)
+-   Convert between name, address (binary or text representation), and binary serialized formats
 -   Resolve ENS names to target addresses on supported chains
--   Validate checksums and shortnames
+-   Validate checksums and chain references
+-   Extract address and chain ID components from any format
 
 This module standardizes how applications handle multi-chain addressing and ensures compatibility across chains and identity systems.
 
