@@ -6,18 +6,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
     AcrossProvider,
     createProviderExecutor,
-    IntentTracker,
-    IntentTrackerFactory,
+    OrderTracker,
+    OrderTrackerFactory,
     ProviderExecutor,
 } from "../../src/external.js";
 import {
     CrossChainProvider,
     ExecutableQuote,
+    OrderStatus,
     ProviderGetQuoteFailure,
 } from "../../src/internal.js";
-import { createMockFillEvent } from "../mocks/intentTracking.js";
+import { createMockFillEvent } from "../mocks/orderTracking.js";
 
-// Common addresses for testing
 const USER_ADDRESS = "0x0000000000000000000000000000000000000001" as Address;
 const RECEIVER_ADDRESS = "0x0000000000000000000000000000000000000002" as Address;
 const INPUT_TOKEN_ADDRESS = "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14" as Address;
@@ -230,8 +230,8 @@ describe("ProviderExecutor", () => {
         const MOCK_API_URL = "https://mocked.across.url/api";
         const MOCK_PROVIDER_ID = "across";
 
-        describe("getIntentStatus", () => {
-            it("returns intent status for a given transaction", async () => {
+        describe("getOrderStatus", () => {
+            it("returns order status for a given transaction", async () => {
                 const providerExecutor = createProviderExecutor({
                     providers: [
                         new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
@@ -239,14 +239,14 @@ describe("ProviderExecutor", () => {
                 });
 
                 const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
-                const getIntentStatusSpy = vi.spyOn(tracker, "getIntentStatus");
+                const getOrderStatusSpy = vi.spyOn(tracker, "getOrderStatus");
 
                 const mockFillEvent = createMockFillEvent({
                     depositId: 123n,
                 });
 
                 const mockStatus = {
-                    status: "filled" as const,
+                    status: OrderStatus.Finalized,
                     orderId: "0xabc123" as Hex,
                     openTxHash: "0xdef456" as Hex,
                     user: USER_ADDRESS,
@@ -259,16 +259,16 @@ describe("ProviderExecutor", () => {
                     fillEvent: mockFillEvent,
                 };
 
-                getIntentStatusSpy.mockResolvedValue(mockStatus);
+                getOrderStatusSpy.mockResolvedValue(mockStatus);
 
-                const result = await providerExecutor.getIntentStatus({
+                const result = await providerExecutor.getOrderStatus({
                     txHash: "0xdef456" as Hex,
                     providerId: MOCK_PROVIDER_ID,
                     originChainId: 11155111,
                 });
 
                 expect(result).toEqual(mockStatus);
-                expect(getIntentStatusSpy).toHaveBeenCalledWith("0xdef456", 11155111);
+                expect(getOrderStatusSpy).toHaveBeenCalledWith("0xdef456", 11155111);
             });
 
             it("throws error for unsupported provider", async () => {
@@ -279,7 +279,7 @@ describe("ProviderExecutor", () => {
                 });
 
                 await expect(
-                    providerExecutor.getIntentStatus({
+                    providerExecutor.getOrderStatus({
                         txHash: "0xabc123" as Hex,
                         providerId: "unsupported",
                         originChainId: 11155111,
@@ -295,8 +295,8 @@ describe("ProviderExecutor", () => {
                 });
 
                 const tracker1 = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
-                const getIntentStatusSpy = vi.spyOn(tracker1, "getIntentStatus").mockResolvedValue({
-                    status: "filling",
+                const getOrderStatusSpy = vi.spyOn(tracker1, "getOrderStatus").mockResolvedValue({
+                    status: OrderStatus.Pending,
                     orderId: "0xorder1" as Hex,
                     openTxHash: "0xtx1" as Hex,
                     user: USER_ADDRESS,
@@ -308,18 +308,18 @@ describe("ProviderExecutor", () => {
                     outputAmount: 990000000000000000n,
                 });
 
-                await providerExecutor.getIntentStatus({
+                await providerExecutor.getOrderStatus({
                     txHash: "0xtx1" as Hex,
                     providerId: MOCK_PROVIDER_ID,
                     originChainId: 11155111,
                 });
 
-                expect(getIntentStatusSpy).toHaveBeenCalled();
+                expect(getOrderStatusSpy).toHaveBeenCalled();
             });
         });
 
         describe("prepareTracking", () => {
-            it("returns an IntentTracker instance", () => {
+            it("returns an OrderTracker instance", () => {
                 const providerExecutor = createProviderExecutor({
                     providers: [
                         new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
@@ -328,7 +328,7 @@ describe("ProviderExecutor", () => {
 
                 const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
 
-                expect(tracker).toBeInstanceOf(IntentTracker);
+                expect(tracker).toBeInstanceOf(OrderTracker);
             });
 
             it("caches tracker instances per provider", () => {
@@ -346,7 +346,7 @@ describe("ProviderExecutor", () => {
         });
 
         describe("track", () => {
-            it("returns an IntentTracker instance", () => {
+            it("returns an OrderTracker instance", () => {
                 const providerExecutor = createProviderExecutor({
                     providers: [
                         new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
@@ -360,7 +360,7 @@ describe("ProviderExecutor", () => {
                     destinationChainId: 84532,
                 });
 
-                expect(tracker).toBeInstanceOf(IntentTracker);
+                expect(tracker).toBeInstanceOf(OrderTracker);
             });
 
             it("uses cached tracker for same provider", () => {
@@ -407,7 +407,7 @@ describe("ProviderExecutor", () => {
 
         describe("with custom tracker factory", () => {
             it("uses custom factory to create trackers", () => {
-                const customFactory = new IntentTrackerFactory({
+                const customFactory = new OrderTrackerFactory({
                     rpcUrls: {
                         11155111: "https://custom-factory-sepolia.com",
                         84532: "https://custom-factory-base.com",
@@ -427,13 +427,13 @@ describe("ProviderExecutor", () => {
 
                 const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
 
-                expect(tracker).toBeInstanceOf(IntentTracker);
+                expect(tracker).toBeInstanceOf(OrderTracker);
                 expect(createTrackerSpy).toHaveBeenCalledOnce();
                 expect(createTrackerSpy).toHaveBeenCalledWith(provider);
             });
 
             it("calls factory once per provider and caches result", () => {
-                const customFactory = new IntentTrackerFactory({
+                const customFactory = new OrderTrackerFactory({
                     rpcUrls: {
                         11155111: "https://custom-sepolia.com",
                         84532: "https://custom-base.com",
@@ -457,14 +457,12 @@ describe("ProviderExecutor", () => {
                 });
 
                 const tracker1 = providerExecutor.prepareTracking("across-a");
-                const tracker2 = providerExecutor.prepareTracking("across-a"); // Same provider again
+                const tracker2 = providerExecutor.prepareTracking("across-a");
                 providerExecutor.prepareTracking("across-b");
 
-                // Should be called only once per unique provider (caching)
                 expect(createTrackerSpy).toHaveBeenCalledTimes(2);
                 expect(createTrackerSpy).toHaveBeenCalledWith(providerA);
                 expect(createTrackerSpy).toHaveBeenCalledWith(providerB);
-                // Verify caching works
                 expect(tracker1).toBe(tracker2);
             });
         });

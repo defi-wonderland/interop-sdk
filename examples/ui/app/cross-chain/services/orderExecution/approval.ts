@@ -1,5 +1,5 @@
 import { erc20Abi, type Address, type PublicClient } from 'viem';
-import { EXECUTION_STATUS, type IntentExecutionState } from '../../types/execution';
+import { STEP, WALLET_ACTION, type BridgeState, type ChainContext } from '../../types/execution';
 import { waitForReceiptWithRetry } from '../../utils/transactionReceipt';
 import type { ConfiguredWalletClient } from './chainSetup';
 
@@ -10,9 +10,10 @@ export async function handleTokenApproval(
   inputTokenAddress: Address,
   spenderAddress: Address,
   inputAmount: bigint,
-  onStateChange: (state: IntentExecutionState) => void,
+  chainContext: ChainContext,
+  onStateChange: (state: BridgeState) => void,
 ): Promise<void> {
-  onStateChange({ status: EXECUTION_STATUS.CHECKING_APPROVAL, message: 'Checking token allowance...' });
+  onStateChange({ step: STEP.WALLET, action: WALLET_ACTION.CHECKING, ...chainContext });
 
   const allowance = await publicClient.readContract({
     address: inputTokenAddress,
@@ -23,7 +24,7 @@ export async function handleTokenApproval(
 
   if (allowance >= inputAmount) return;
 
-  onStateChange({ status: EXECUTION_STATUS.APPROVING, message: 'Please approve token spending in your wallet...' });
+  onStateChange({ step: STEP.WALLET, action: WALLET_ACTION.APPROVING, ...chainContext });
 
   const approvalHash = await walletClient.writeContract({
     address: inputTokenAddress,
@@ -32,11 +33,7 @@ export async function handleTokenApproval(
     args: [spenderAddress, inputAmount],
   });
 
-  onStateChange({
-    status: EXECUTION_STATUS.APPROVING,
-    message: 'Waiting for approval confirmation...',
-    txHash: approvalHash,
-  });
+  onStateChange({ step: STEP.WALLET, action: WALLET_ACTION.APPROVING, txHash: approvalHash, ...chainContext });
 
   await waitForReceiptWithRetry(publicClient, approvalHash);
 }

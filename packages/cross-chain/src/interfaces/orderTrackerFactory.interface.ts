@@ -3,17 +3,17 @@ import type { PublicClient } from "viem";
 import type { FillWatcher, OpenedIntentParser } from "../internal.js";
 
 /**
- * Configuration for IntentTrackerFactory
+ * Configuration for OrderTrackerFactory
  */
-export interface IntentTrackerFactoryConfig {
+export interface OrderTrackerFactoryConfig {
     publicClient?: PublicClient;
     rpcUrls?: Record<number, string>;
 }
 
 /**
- * Configuration for creating an IntentTracker
+ * Configuration for creating an OrderTracker
  */
-export interface IntentTrackerConfig extends IntentTrackerFactoryConfig {
+export interface OrderTrackerConfig extends OrderTrackerFactoryConfig {
     openedIntentParser?: OpenedIntentParser;
     fillWatcher?: FillWatcher;
 }

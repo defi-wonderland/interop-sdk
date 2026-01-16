@@ -1,8 +1,4 @@
-import {
-  createCrossChainProvider,
-  createProviderExecutor,
-  IntentTrackerFactory,
-} from '@wonderland/interop-cross-chain';
+import { createCrossChainProvider, createProviderExecutor, OrderTrackerFactory } from '@wonderland/interop-cross-chain';
 import { PROVIDERS, RPC_URLS } from '../constants';
 
 /**
@@ -13,9 +9,9 @@ const providers = PROVIDERS.map((providerConfig) =>
 );
 
 /**
- * Intent tracker factory - handles tracking for any provider
+ * Order tracker factory - handles tracking for any provider
  */
-const trackerFactory = new IntentTrackerFactory({ rpcUrls: RPC_URLS });
+const trackerFactory = new OrderTrackerFactory({ rpcUrls: RPC_URLS });
 
 /**
  * Cross-chain executor singleton

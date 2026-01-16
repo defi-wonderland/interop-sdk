@@ -1,7 +1,7 @@
 'use client';
 
 import { NOT_AVAILABLE } from '../constants';
-import { EXECUTION_STATUS, type IntentExecutionStatus } from '../types/execution';
+import { STEP, WALLET_ACTION, type BridgeState } from '../types/execution';
 import { formatQuoteData } from '../utils/quoteFormatter';
 import { Tooltip } from './Tooltip';
 import { SpinnerIcon, CheckIcon, CloseIcon, BoltIcon, ClockIcon, QuestionIcon } from './icons';
@@ -12,7 +12,7 @@ interface QuoteCardProps {
   inputTokenAddress: string;
   outputTokenAddress: string;
   isSelected?: boolean;
-  executionStatus?: IntentExecutionStatus;
+  executionState?: BridgeState;
   hideExecuteButton?: boolean;
   onSelect?: (quote: ExecutableQuote) => void;
   onExecute?: (quote: ExecutableQuote) => void;
@@ -38,7 +38,7 @@ export function QuoteCard({
   inputTokenAddress,
   outputTokenAddress,
   isSelected,
-  executionStatus = EXECUTION_STATUS.IDLE,
+  executionState,
   hideExecuteButton = false,
   onSelect,
   onExecute,
@@ -68,71 +68,89 @@ export function QuoteCard({
     ? 'border-accent bg-accent-light/10 ring-1 ring-accent'
     : 'border-border bg-surface hover:bg-surface-secondary hover:border-accent';
 
-  // Execute button content based on status
+  // Execute button content based on state
   const getExecuteButtonContent = () => {
-    switch (executionStatus) {
-      case EXECUTION_STATUS.CHECKING_APPROVAL:
-        return (
-          <>
-            <SpinnerIcon />
-            <span>Checking...</span>
-          </>
-        );
-      case EXECUTION_STATUS.APPROVING:
-        return (
-          <>
-            <SpinnerIcon />
-            <span>Approving...</span>
-          </>
-        );
-      case EXECUTION_STATUS.SUBMITTING:
-        return (
-          <>
-            <SpinnerIcon />
-            <span>Confirm...</span>
-          </>
-        );
-      case EXECUTION_STATUS.CONFIRMING:
-        return (
-          <>
-            <SpinnerIcon />
-            <span>Pending...</span>
-          </>
-        );
-      case EXECUTION_STATUS.FILLED:
-        return (
-          <>
-            <CheckIcon />
-            <span>Sent!</span>
-          </>
-        );
-      case EXECUTION_STATUS.ERROR:
-        return (
-          <>
-            <CloseIcon />
-            <span>Failed</span>
-          </>
-        );
-      default:
-        return (
-          <>
-            <BoltIcon />
-            <span>Execute</span>
-          </>
-        );
+    if (!executionState || executionState.step === STEP.IDLE) {
+      return (
+        <>
+          <BoltIcon />
+          <span>Execute</span>
+        </>
+      );
     }
+
+    if (executionState.step === STEP.WALLET) {
+      switch (executionState.action) {
+        case WALLET_ACTION.CHECKING:
+          return (
+            <>
+              <SpinnerIcon />
+              <span>Checking...</span>
+            </>
+          );
+        case WALLET_ACTION.APPROVING:
+          return (
+            <>
+              <SpinnerIcon />
+              <span>Approving...</span>
+            </>
+          );
+        case WALLET_ACTION.SUBMITTING:
+          return (
+            <>
+              <SpinnerIcon />
+              <span>Confirm...</span>
+            </>
+          );
+        case WALLET_ACTION.CONFIRMING:
+          return (
+            <>
+              <SpinnerIcon />
+              <span>Pending...</span>
+            </>
+          );
+        default:
+          return (
+            <>
+              <SpinnerIcon />
+              <span>Loading...</span>
+            </>
+          );
+      }
+    }
+
+    if (executionState.step === STEP.DONE) {
+      return (
+        <>
+          <CheckIcon />
+          <span>Sent!</span>
+        </>
+      );
+    }
+
+    if (executionState.step === STEP.ERROR) {
+      return (
+        <>
+          <CloseIcon />
+          <span>Failed</span>
+        </>
+      );
+    }
+
+    // tracking or timeout
+    return (
+      <>
+        <SpinnerIcon />
+        <span>Tracking...</span>
+      </>
+    );
   };
 
-  const isExecuting =
-    executionStatus === EXECUTION_STATUS.CHECKING_APPROVAL ||
-    executionStatus === EXECUTION_STATUS.APPROVING ||
-    executionStatus === EXECUTION_STATUS.SUBMITTING ||
-    executionStatus === EXECUTION_STATUS.CONFIRMING;
-
-  const isFinished = executionStatus === EXECUTION_STATUS.FILLED || executionStatus === EXECUTION_STATUS.ERROR;
+  const isPendingWallet = executionState?.step === STEP.WALLET;
+  const isFinished = executionState?.step === STEP.DONE || executionState?.step === STEP.ERROR;
 
   // Button styling: darker when loading, normal otherwise (no green for success)
-  const executeButtonClasses = isExecuting
+  const executeButtonClasses = isPendingWallet
     ? 'bg-surface-secondary text-text-primary border border-border cursor-wait'
     : 'bg-accent text-white hover:bg-accent-hover';
 
@@ -224,8 +242,8 @@ export function QuoteCard({
         <button
           type='button'
           onClick={handleExecuteClick}
-          disabled={isExecuting}
-          className={`absolute -bottom-3 right-3 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium shadow-lg transition-all transform disabled:cursor-wait ${isExecuting ? '' : 'hover:scale-105'} ${executeButtonClasses}`}
+          disabled={isPendingWallet}
+          className={`absolute -bottom-3 right-3 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium shadow-lg transition-all transform disabled:cursor-wait ${isPendingWallet ? '' : 'hover:scale-105'} ${executeButtonClasses}`}
         >
           {getExecuteButtonContent()}
         </button>

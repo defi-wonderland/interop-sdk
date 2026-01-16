@@ -190,9 +190,9 @@ export class AcrossProvider extends CrossChainProvider {
             const userParsed = this.parseInteropAddress(params.user);
 
             const { inputs, outputs } = params.intent;
-            const inputParsed = await this.parseInteropAddress(inputs[0].asset);
-            const outputParsed = await this.parseInteropAddress(outputs[0].asset);
-            const recipientParsed = await this.parseInteropAddress(outputs[0].receiver);
+            const inputParsed = this.parseInteropAddress(inputs[0].asset);
+            const outputParsed = this.parseInteropAddress(outputs[0].asset);
+            const recipientParsed = this.parseInteropAddress(outputs[0].receiver);
             const swapType = params.intent.swapType || "exact-input";
             const amount = swapType === "exact-input" ? inputs[0].amount : outputs[0].amount;
 
