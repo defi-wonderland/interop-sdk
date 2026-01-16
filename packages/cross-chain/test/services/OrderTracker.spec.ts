@@ -5,8 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
     FillWatcher,
     OpenedIntentParser,
-    OrderStatusOrExpired,
+    OrderFailureReason,
+    OrderStatus,
     OrderTracker,
+    OrderTrackerTimeoutPayload,
+    OrderTrackerYield,
+    OrderTrackerYieldType,
     OrderTrackingUpdate,
     WatchOrderParams,
 } from "../../src/internal.js";
@@ -52,13 +56,13 @@ describe("OrderTracker", () => {
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
-            expect(result.status).toBe(OrderStatusOrExpired.Finalized);
+            expect(result.status).toBe(OrderStatus.Finalized);
             expect(result.orderId).toBe(mockOpenedIntent.orderId);
             expect(result.fillEvent).toEqual(mockFillEventData);
             expect(result.depositId).toBe(mockOpenedIntent.depositId);
         });
 
-        it('should return "expired" when past fillDeadline with no fill', async () => {
+        it("should return Failed with deadline_exceeded when past fillDeadline with no fill", async () => {
             const expiredDeadline = Math.floor(Date.now() / 1000) - 3600;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: expiredDeadline,
@@ -69,7 +73,8 @@ describe("OrderTracker", () => {
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
-            expect(result.status).toBe(OrderStatusOrExpired.Expired);
+            expect(result.status).toBe(OrderStatus.Failed);
+            expect(result.failureReason).toBe(OrderFailureReason.DeadlineExceeded);
             expect(result.fillEvent).toBeUndefined();
         });
 
@@ -84,7 +89,7 @@ describe("OrderTracker", () => {
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
-            expect(result.status).toBe(OrderStatusOrExpired.Pending);
+            expect(result.status).toBe(OrderStatus.Pending);
             expect(result.fillEvent).toBeUndefined();
         });
 
@@ -125,12 +130,39 @@ describe("OrderTracker", () => {
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
-            expect(result.status).toBe(OrderStatusOrExpired.Pending);
+            expect(result.status).toBe(OrderStatus.Pending);
         });
     });
 
-    describe("watchOrder - async generator", () => {
-        it("should emit correct sequence: pending → pending → pending → finalized", async () => {
+    describe("watchOrder - async generator (Option B discriminated union)", () => {
+        function collectUpdates(items: OrderTrackerYield[]): OrderTrackingUpdate[] {
+            return items
+                .filter(
+                    (
+                        item,
+                    ): item is {
+                        type: typeof OrderTrackerYieldType.Update;
+                        update: OrderTrackingUpdate;
+                    } => item.type === OrderTrackerYieldType.Update,
+                )
+                .map((item) => item.update);
+        }
+
+        function getTimeoutPayload(
+            items: OrderTrackerYield[],
+        ): OrderTrackerTimeoutPayload | undefined {
+            const timeout = items.find(
+                (
+                    item,
+                ): item is {
+                    type: typeof OrderTrackerYieldType.Timeout;
+                    payload: OrderTrackerTimeoutPayload;
+                } => item.type === OrderTrackerYieldType.Timeout,
+            );
+            return timeout?.payload;
+        }
+
+        it("should yield correct sequence: pending → pending → pending → finalized (all as updates)", async () => {
             const mockOpenedIntent = createMockOpenedIntent({
                 destinationChainId: BigInt(mockDestinationChainId),
             });
@@ -146,21 +178,23 @@ describe("OrderTracker", () => {
                 timeout: 10000,
             };
 
-            const updates = [];
-            for await (const update of tracker.watchOrder(params)) {
-                updates.push(update);
+            const items: OrderTrackerYield[] = [];
+            for await (const item of tracker.watchOrder(params)) {
+                items.push(item);
             }
 
-            expect(updates).toHaveLength(4);
-            expect(updates[0]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[1]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[2]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[3]?.status).toBe(OrderStatusOrExpired.Finalized);
+            expect(items).toHaveLength(4);
+            expect(items.every((i) => i.type === OrderTrackerYieldType.Update)).toBe(true);
 
+            const updates = collectUpdates(items);
+            expect(updates[0]?.status).toBe(OrderStatus.Pending);
+            expect(updates[1]?.status).toBe(OrderStatus.Pending);
+            expect(updates[2]?.status).toBe(OrderStatus.Pending);
+            expect(updates[3]?.status).toBe(OrderStatus.Finalized);
             expect(updates[3]?.fillTxHash).toBe(mockFillEventData.fillTxHash);
         });
 
-        it("should emit expired if already past deadline before watching (with GRACE_PERIOD)", async () => {
+        it("should yield Failed with deadline_exceeded if already past deadline before watching (with GRACE_PERIOD)", async () => {
             const expiredDeadline = Math.floor(Date.now() / 1000) - 120;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: expiredDeadline,
@@ -175,19 +209,21 @@ describe("OrderTracker", () => {
                 destinationChainId: mockDestinationChainId,
             };
 
-            const updates = [];
-            for await (const update of tracker.watchOrder(params)) {
-                updates.push(update);
+            const items: OrderTrackerYield[] = [];
+            for await (const item of tracker.watchOrder(params)) {
+                items.push(item);
             }
 
-            expect(updates).toHaveLength(3);
-            expect(updates[0]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[1]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[2]?.status).toBe(OrderStatusOrExpired.Expired);
-            expect(updates[2]?.message).toContain("expired before watching started");
+            expect(items).toHaveLength(3);
+            const updates = collectUpdates(items);
+            expect(updates[0]?.status).toBe(OrderStatus.Pending);
+            expect(updates[1]?.status).toBe(OrderStatus.Pending);
+            expect(updates[2]?.status).toBe(OrderStatus.Failed);
+            expect(updates[2]?.failureReason).toBe(OrderFailureReason.DeadlineExceeded);
+            expect(updates[2]?.message).toContain("Deadline exceeded before watching started");
         });
 
-        it("should NOT emit expired if within GRACE_PERIOD (deadline recently passed)", async () => {
+        it("should NOT yield Failed if within GRACE_PERIOD (deadline recently passed)", async () => {
             const recentDeadline = Math.floor(Date.now() / 1000) - 30;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: recentDeadline,
@@ -204,21 +240,22 @@ describe("OrderTracker", () => {
                 destinationChainId: mockDestinationChainId,
             };
 
-            const updates = [];
-            for await (const update of tracker.watchOrder(params)) {
-                updates.push(update);
+            const items: OrderTrackerYield[] = [];
+            for await (const item of tracker.watchOrder(params)) {
+                items.push(item);
             }
 
-            expect(updates).toHaveLength(4);
-            expect(updates[0]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[1]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[2]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[3]?.status).toBe(OrderStatusOrExpired.Finalized);
+            expect(items).toHaveLength(4);
+            const updates = collectUpdates(items);
+            expect(updates[0]?.status).toBe(OrderStatus.Pending);
+            expect(updates[1]?.status).toBe(OrderStatus.Pending);
+            expect(updates[2]?.status).toBe(OrderStatus.Pending);
+            expect(updates[3]?.status).toBe(OrderStatus.Finalized);
 
             expect(mockFillWatcher.waitForFill).toHaveBeenCalled();
         });
 
-        it("should emit expired if deadline passes during fill wait", async () => {
+        it("should yield Failed with deadline_exceeded if deadline passes during fill wait", async () => {
             const expiredDeadline = Math.floor(Date.now() / 1000) - 10;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: expiredDeadline,
@@ -226,7 +263,6 @@ describe("OrderTracker", () => {
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
-
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
                 new FillTimeoutError(mockOpenedIntent.depositId, 10000),
             );
@@ -238,17 +274,19 @@ describe("OrderTracker", () => {
                 timeout: 10000,
             };
 
-            const updates = [];
-            for await (const update of tracker.watchOrder(params)) {
-                updates.push(update);
+            const items: OrderTrackerYield[] = [];
+            for await (const item of tracker.watchOrder(params)) {
+                items.push(item);
             }
 
-            expect(updates).toHaveLength(4);
-            expect(updates[3]?.status).toBe(OrderStatusOrExpired.Expired);
-            expect(updates[3]?.message).toContain("expired before fill");
+            expect(items).toHaveLength(4);
+            const updates = collectUpdates(items);
+            expect(updates[3]?.status).toBe(OrderStatus.Failed);
+            expect(updates[3]?.failureReason).toBe(OrderFailureReason.DeadlineExceeded);
+            expect(updates[3]?.message).toContain("Deadline exceeded before fill");
         });
 
-        it("should emit pending status on timeout with helpful message", async () => {
+        it("should yield timeout payload when fill watcher times out but deadline not exceeded", async () => {
             const futureDeadline = Math.floor(Date.now() / 1000) + 3600;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: futureDeadline,
@@ -256,7 +294,6 @@ describe("OrderTracker", () => {
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
-
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
                 new FillTimeoutError(mockOpenedIntent.depositId, 10000),
             );
@@ -268,43 +305,19 @@ describe("OrderTracker", () => {
                 timeout: 10000,
             };
 
-            const updates = [];
-            for await (const update of tracker.watchOrder(params)) {
-                updates.push(update);
+            const items: OrderTrackerYield[] = [];
+            for await (const item of tracker.watchOrder(params)) {
+                items.push(item);
             }
 
-            expect(updates).toHaveLength(4);
-            expect(updates[3]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[3]?.message).toContain("Stopped watching after timeout");
-            expect(updates[3]?.message).toContain("may still be filled before deadline");
-        });
+            expect(items).toHaveLength(4);
+            const updates = collectUpdates(items);
+            expect(updates).toHaveLength(3);
 
-        it("should handle waitForFill timeout vs expired distinction", async () => {
-            const mockOpenedIntent = createMockOpenedIntent({
-                destinationChainId: BigInt(mockDestinationChainId),
-            });
-
-            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
-
-            vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
-                new FillTimeoutError(mockOpenedIntent.depositId, 10000),
-            );
-
-            const params: WatchOrderParams = {
-                txHash: mockTxHash,
-                originChainId: mockOriginChainId,
-                destinationChainId: mockDestinationChainId,
-            };
-
-            const updates = [];
-            for await (const update of tracker.watchOrder(params)) {
-                updates.push(update);
-            }
-
-            const lastUpdate = updates[updates.length - 1];
-
-            expect(lastUpdate?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(lastUpdate?.message).toContain("timeout");
+            const timeoutPayload = getTimeoutPayload(items);
+            expect(timeoutPayload).toBeDefined();
+            expect(timeoutPayload?.message).toContain("Stopped watching after timeout");
+            expect(timeoutPayload?.message).toContain("may still finalize before deadline");
         });
 
         it("should propagate non-FillTimeoutError errors", async () => {
@@ -327,13 +340,13 @@ describe("OrderTracker", () => {
 
             await expect(async () => {
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                for await (const _unusedUpdates of generator) {
+                for await (const _unusedItems of generator) {
                     // Should throw before completing
                 }
             }).rejects.toThrow("Unexpected RPC error");
         });
 
-        it("should handle timeout expiring during order setup", async () => {
+        it("should yield timeout payload when timeout expires during order setup", async () => {
             vi.useFakeTimers();
 
             const mockOpenedIntent = createMockOpenedIntent({
@@ -354,17 +367,21 @@ describe("OrderTracker", () => {
 
             const generator = tracker.watchOrder(params);
 
-            const updates = [];
-            for await (const update of generator) {
-                updates.push(update);
+            const items: OrderTrackerYield[] = [];
+            for await (const item of generator) {
+                items.push(item);
             }
 
-            expect(updates).toHaveLength(3);
-            expect(updates[0]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[1]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[2]?.status).toBe(OrderStatusOrExpired.Pending);
-            expect(updates[2]?.message).toContain("Timeout expired during order setup");
-            expect(updates[2]?.message).toContain("may still be filled before deadline");
+            expect(items).toHaveLength(3);
+            const updates = collectUpdates(items);
+            expect(updates).toHaveLength(2);
+            expect(updates[0]?.status).toBe(OrderStatus.Pending);
+            expect(updates[1]?.status).toBe(OrderStatus.Pending);
+
+            const timeoutPayload = getTimeoutPayload(items);
+            expect(timeoutPayload).toBeDefined();
+            expect(timeoutPayload?.message).toContain("Timeout expired during order setup");
+            expect(timeoutPayload?.message).toContain("may still finalize before deadline");
 
             expect(mockFillWatcher.waitForFill).not.toHaveBeenCalled();
         });
@@ -381,8 +398,8 @@ describe("OrderTracker", () => {
             const pendingEvents: OrderTrackingUpdate[] = [];
             const finalizedEvents: OrderTrackingUpdate[] = [];
 
-            tracker.on("pending", (update: OrderTrackingUpdate) => pendingEvents.push(update));
-            tracker.on("finalized", (update: OrderTrackingUpdate) => finalizedEvents.push(update));
+            tracker.on(OrderStatus.Pending, (update) => pendingEvents.push(update));
+            tracker.on(OrderStatus.Finalized, (update) => finalizedEvents.push(update));
 
             const params: WatchOrderParams = {
                 txHash: mockTxHash,
@@ -396,10 +413,10 @@ describe("OrderTracker", () => {
             expect(pendingEvents).toHaveLength(3);
             expect(finalizedEvents).toHaveLength(1);
 
-            expect(pendingEvents[0]!.status).toBe(OrderStatusOrExpired.Pending);
-            expect(pendingEvents[1]!.status).toBe(OrderStatusOrExpired.Pending);
-            expect(pendingEvents[2]!.status).toBe(OrderStatusOrExpired.Pending);
-            expect(finalizedEvents[0]!.status).toBe(OrderStatusOrExpired.Finalized);
+            expect(pendingEvents[0]!.status).toBe(OrderStatus.Pending);
+            expect(pendingEvents[1]!.status).toBe(OrderStatus.Pending);
+            expect(pendingEvents[2]!.status).toBe(OrderStatus.Pending);
+            expect(finalizedEvents[0]!.status).toBe(OrderStatus.Finalized);
         });
 
         it("should return final status info", async () => {
@@ -419,7 +436,7 @@ describe("OrderTracker", () => {
 
             const result = await tracker.startTracking(params);
 
-            expect(result).toHaveProperty("status", OrderStatusOrExpired.Finalized);
+            expect(result).toHaveProperty("status", OrderStatus.Finalized);
             expect(result).toHaveProperty("orderId");
             expect(result).toHaveProperty("fillEvent");
         });
@@ -429,7 +446,7 @@ describe("OrderTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockRejectedValue(error);
 
             const errorEvents: Error[] = [];
-            tracker.on("error", (err: Error) => errorEvents.push(err));
+            tracker.on("error", (err) => errorEvents.push(err));
 
             const params: WatchOrderParams = {
                 txHash: mockTxHash,
@@ -443,7 +460,7 @@ describe("OrderTracker", () => {
             expect(errorEvents[0]!).toBe(error);
         });
 
-        it("should emit expired event when deadline passed", async () => {
+        it("should emit Failed event with deadline_exceeded when deadline passed", async () => {
             const expiredDeadline = Math.floor(Date.now() / 1000) - 3600;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: expiredDeadline,
@@ -452,8 +469,8 @@ describe("OrderTracker", () => {
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 
-            const expiredEvents: OrderTrackingUpdate[] = [];
-            tracker.on("expired", (update: OrderTrackingUpdate) => expiredEvents.push(update));
+            const failedEvents: OrderTrackingUpdate[] = [];
+            tracker.on(OrderStatus.Failed, (update) => failedEvents.push(update));
 
             const params: WatchOrderParams = {
                 txHash: mockTxHash,
@@ -464,8 +481,37 @@ describe("OrderTracker", () => {
 
             await tracker.startTracking(params);
 
-            expect(expiredEvents).toHaveLength(1);
-            expect(expiredEvents[0]!.status).toBe(OrderStatusOrExpired.Expired);
+            expect(failedEvents).toHaveLength(1);
+            expect(failedEvents[0]!.status).toBe(OrderStatus.Failed);
+            expect(failedEvents[0]!.failureReason).toBe(OrderFailureReason.DeadlineExceeded);
+        });
+
+        it("should emit timeout event when tracking times out but deadline not exceeded", async () => {
+            const futureDeadline = Math.floor(Date.now() / 1000) + 3600;
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillDeadline: futureDeadline,
+            });
+
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
+            vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
+                new FillTimeoutError(mockOpenedIntent.depositId, 10000),
+            );
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
+
+            const timeoutEvents: OrderTrackerTimeoutPayload[] = [];
+            tracker.on("timeout", (payload) => timeoutEvents.push(payload));
+
+            const params: WatchOrderParams = {
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 5000,
+            };
+
+            await tracker.startTracking(params);
+
+            expect(timeoutEvents).toHaveLength(1);
+            expect(timeoutEvents[0]!.message).toContain("Stopped watching after timeout");
         });
     });
 });

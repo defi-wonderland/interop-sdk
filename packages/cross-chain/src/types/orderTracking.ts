@@ -2,6 +2,24 @@ import { Address, Hex } from "viem";
 
 import { OrderStatus } from "./oif.js";
 
+export { OrderStatus };
+
+export const OrderFailureReason = {
+    OriginTxReverted: "origin_tx_reverted",
+    DeadlineExceeded: "deadline_exceeded",
+    Unknown: "unknown",
+} as const;
+
+export type OrderFailureReason = (typeof OrderFailureReason)[keyof typeof OrderFailureReason];
+
+export const OrderTrackerYieldType = {
+    Update: "update",
+    Timeout: "timeout",
+} as const;
+
+export type OrderTrackerYieldType =
+    (typeof OrderTrackerYieldType)[keyof typeof OrderTrackerYieldType];
+
 /**
  * Opened cross-chain intent parsed from an EIP-7683 Open event.
  *
@@ -61,18 +79,11 @@ export interface FillEvent {
     recipient: Address;
 }
 
-export const OrderStatusOrExpired = {
-    ...OrderStatus,
-    Expired: "expired",
-} as const;
-
-export type OrderStatusOrExpired = (typeof OrderStatusOrExpired)[keyof typeof OrderStatusOrExpired];
-
 /**
- * Complete order tracking information
+ * Complete order tracking information (final observed state)
  */
 export interface OrderTrackingInfo {
-    status: OrderStatusOrExpired;
+    status: OrderStatus;
     /** Order ID */
     orderId: Hex;
     /** Transaction hash where order was opened */
@@ -91,8 +102,10 @@ export interface OrderTrackingInfo {
     inputAmount: bigint;
     /** Output token amount from minReceived[0] */
     outputAmount: bigint;
-    /** Fill event data (present when status is 'completed' or 'filled') */
+    /** Fill event data (present when status is Finalized) */
     fillEvent?: FillEvent;
+    /** Reason for failure (present when status is Failed) */
+    failureReason?: OrderFailureReason;
 }
 
 /**
@@ -100,7 +113,7 @@ export interface OrderTrackingInfo {
  * Used by async generator for real-time updates.
  */
 export interface OrderTrackingUpdate {
-    status: OrderStatusOrExpired;
+    status: OrderStatus;
     /** Order ID (available after order is parsed) */
     orderId?: Hex;
     /** Transaction hash where order was opened */
@@ -111,7 +124,25 @@ export interface OrderTrackingUpdate {
     timestamp: number;
     /** Human-readable message */
     message: string;
+    /** Reason for failure (present when status is Failed) */
+    failureReason?: OrderFailureReason;
 }
+
+/**
+ * Timeout payload yielded/emitted when tracking times out before a terminal status.
+ */
+export interface OrderTrackerTimeoutPayload {
+    lastUpdate: OrderTrackingUpdate;
+    timestamp: number;
+    message: string;
+}
+
+/**
+ * Discriminated union yielded by watchOrder() generator.
+ */
+export type OrderTrackerYield =
+    | { type: typeof OrderTrackerYieldType.Update; update: OrderTrackingUpdate }
+    | { type: typeof OrderTrackerYieldType.Timeout; payload: OrderTrackerTimeoutPayload };
 
 /**
  * Parameters for watching an order

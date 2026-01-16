@@ -14,7 +14,7 @@ import {
 } from './components';
 import { useOrderExecution } from './hooks';
 import { useQuotes } from './hooks/useQuotes';
-import { EXECUTION_STATUS } from './types/execution';
+import { STEP } from './types/execution';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address } from 'viem';
 
@@ -35,8 +35,8 @@ export default function CrossChainPage() {
   const [outputChainId, setOutputChainId] = useState<number>(0);
   const [toast, setToast] = useState<ToastState | null>(null);
 
-  // Determine if we're in "tracking mode" (execution started)
-  const isInTrackingMode = executionState.status !== EXECUTION_STATUS.IDLE;
+  // Determine if execution has started (not idle)
+  const isExecutionStarted = executionState.step !== STEP.IDLE;
 
   const closeToast = useCallback(() => {
     setToast(null);
@@ -101,15 +101,15 @@ export default function CrossChainPage() {
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 items-start'>
               {/* Left column: Form and Quote Details */}
               <div className='flex flex-col gap-6'>
-                <SwapForm onSubmit={handleSubmit} isLoading={isLoading} isDisabled={isInTrackingMode} />
+                <SwapForm onSubmit={handleSubmit} isLoading={isLoading} isDisabled={isExecutionStarted} />
 
                 {/* Show Quote Details only when not in tracking mode */}
-                {selectedQuote && !isInTrackingMode && <QuoteDetails quote={selectedQuote} />}
+                {selectedQuote && !isExecutionStarted && <QuoteDetails quote={selectedQuote} />}
               </div>
 
               {/* Right column: Quotes List or Isolated Selected Quote + Tracking */}
               <div className='flex flex-col gap-4'>
-                {isInTrackingMode && selectedQuote ? (
+                {isExecutionStarted && selectedQuote ? (
                   // Isolated selected quote + tracking during execution
                   <>
                     <div className='rounded-xl border border-border bg-background/50 p-4'>
@@ -132,7 +132,7 @@ export default function CrossChainPage() {
                     inputTokenAddress={selectedInputToken}
                     outputTokenAddress={selectedOutputToken}
                     selectedQuoteId={selectedQuote?.quoteId}
-                    executionStatus={EXECUTION_STATUS.IDLE}
+                    executionState={executionState}
                     isLoading={isLoading}
                     onSelectQuote={handleSelectQuote}
                     onExecuteQuote={handleExecuteQuote}

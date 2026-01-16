@@ -8,18 +8,13 @@ import {
   submitBridgeTransaction,
   trackOrder,
 } from '../services/orderExecution';
-import {
-  EXECUTION_STATUS,
-  type ExecuteResult,
-  type OrderExecutionState,
-  type OrderExecutionStatus,
-} from '../types/execution';
+import { STEP, isTerminal, type BridgeState, type ChainContext, type ExecuteResult } from '../types/execution';
 import { isUserRejectionError, parseError } from '../utils/errorMessages';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address, Hex } from 'viem';
 
 interface UseOrderExecutionReturn {
-  state: OrderExecutionState;
+  state: BridgeState;
   execute: (
     quote: ExecutableQuote,
     inputTokenAddress: Address,
@@ -28,27 +23,24 @@ interface UseOrderExecutionReturn {
     destinationChainId: number,
   ) => Promise<ExecuteResult>;
   reset: () => void;
-  isExecuting: boolean;
+  isPendingWallet: boolean;
   isTracking: boolean;
   isComplete: boolean;
 }
 
-const INITIAL_STATE: OrderExecutionState = {
-  status: EXECUTION_STATUS.IDLE,
-  message: '',
-};
+const INITIAL_STATE: BridgeState = { step: STEP.IDLE };
 
 export function useOrderExecution(): UseOrderExecutionReturn {
   const { address, isConnected, chainId: walletChainId } = useAccount();
   const config = useConfig();
   const { switchChainAsync } = useSwitchChain();
 
-  const [state, setState] = useState<OrderExecutionState>(INITIAL_STATE);
+  const [state, setState] = useState<BridgeState>(INITIAL_STATE);
   const abortControllerRef = useRef<AbortController | null>(null);
   const expectedWalletChainIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const isInErrorState = state.status === EXECUTION_STATUS.ERROR;
+    const isInErrorState = state.step === STEP.ERROR;
     const isExpectingSwitch = expectedWalletChainIdRef.current !== null;
     const isWalletOnExpectedChain = walletChainId === expectedWalletChainIdRef.current;
 
@@ -56,30 +48,11 @@ export function useOrderExecution(): UseOrderExecutionReturn {
       expectedWalletChainIdRef.current = null;
       setState(INITIAL_STATE);
     }
-  }, [walletChainId, state.status]);
+  }, [walletChainId, state.step]);
 
-  const isExecuting = (
-    [
-      EXECUTION_STATUS.SWITCHING_NETWORK,
-      EXECUTION_STATUS.CHECKING_APPROVAL,
-      EXECUTION_STATUS.APPROVING,
-      EXECUTION_STATUS.SUBMITTING,
-      EXECUTION_STATUS.CONFIRMING,
-    ] as OrderExecutionStatus[]
-  ).includes(state.status);
-
-  const isTracking = ([EXECUTION_STATUS.PENDING, EXECUTION_STATUS.FILLING] as OrderExecutionStatus[]).includes(
-    state.status,
-  );
-
-  const isComplete = (
-    [
-      EXECUTION_STATUS.COMPLETED,
-      EXECUTION_STATUS.EXPIRED,
-      EXECUTION_STATUS.FAILED,
-      EXECUTION_STATUS.ERROR,
-    ] as OrderExecutionStatus[]
-  ).includes(state.status);
+  const isPendingWallet = state.step === STEP.WALLET;
+  const isTracking = state.step === STEP.TRACKING;
+  const isComplete = isTerminal(state);
 
   const execute = useCallback(
     async (
@@ -94,14 +67,16 @@ export function useOrderExecution(): UseOrderExecutionReturn {
       }
       abortControllerRef.current = new AbortController();
 
+      const chainContext: ChainContext = { originChainId, destinationChainId };
+
       expectedWalletChainIdRef.current = originChainId;
-      setState({ status: EXECUTION_STATUS.IDLE, message: '' });
+      setState(INITIAL_STATE);
 
       if (!isConnected || !address) {
         setState({
-          status: EXECUTION_STATUS.ERROR,
-          message: 'Wallet not connected',
+          step: STEP.ERROR,
           error: new Error('Wallet not connected'),
+          message: 'Wallet not connected',
         });
         return { success: false };
       }
@@ -117,9 +92,9 @@ export function useOrderExecution(): UseOrderExecutionReturn {
 
       if (!order?.payload?.to || !order?.payload?.data) {
         setState({
-          status: EXECUTION_STATUS.ERROR,
-          message: 'Invalid quote: missing transaction data',
+          step: STEP.ERROR,
           error: new Error('Invalid quote: missing transaction data'),
+          message: 'Invalid quote: missing transaction data',
         });
         return { success: false };
       }
@@ -144,6 +119,7 @@ export function useOrderExecution(): UseOrderExecutionReturn {
           inputTokenAddress,
           spenderAddress,
           inputAmount,
+          chainContext,
           setState,
         );
 
@@ -152,6 +128,7 @@ export function useOrderExecution(): UseOrderExecutionReturn {
           walletClient,
           order.payload.to,
           order.payload.data,
+          chainContext,
           setState,
         );
 
@@ -160,14 +137,7 @@ export function useOrderExecution(): UseOrderExecutionReturn {
           throw new Error('Quote missing provider identifier');
         }
 
-        await trackOrder(
-          providerId,
-          txHash,
-          originChainId,
-          destinationChainId,
-          abortControllerRef.current?.signal,
-          setState,
-        );
+        await trackOrder(providerId, txHash, chainContext, abortControllerRef.current?.signal, setState);
 
         return { success: true };
       } catch (err) {
@@ -180,11 +150,11 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         const parsed = parseError(err);
         const txHash = (err as { txHash?: Hex }).txHash;
         setState({
-          status: EXECUTION_STATUS.ERROR,
-          message: parsed.message,
+          step: STEP.ERROR,
           error,
-          originChainId,
+          message: parsed.message,
           txHash,
+          ...chainContext,
         });
         return { success: false };
       }
@@ -204,7 +174,7 @@ export function useOrderExecution(): UseOrderExecutionReturn {
     state,
     execute,
     reset,
-    isExecuting,
+    isPendingWallet,
     isTracking,
     isComplete,
   };

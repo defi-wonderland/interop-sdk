@@ -1,29 +1,58 @@
-import { ORDER_STEPS, getStepStatus } from '../../utils/orderTrackingHelpers';
-import { ExternalLinkIcon } from '../icons';
-import { StepIndicator } from './StepIndicator';
-import type { OrderExecutionState } from '../../types/execution';
+import { STEP } from '../../types/execution';
+import { isApprovalPhase, isSubmitPhase, getStateLabel, getProgressMessage } from '../../utils/orderTrackingHelpers';
+import { ExternalLinkIcon, SpinnerIcon, CheckIcon } from '../icons';
+import type { ProgressViewProps } from './types';
 
-export function ProgressView({ state }: { state: OrderExecutionState }) {
+/**
+ * Step indicator - simple visual component
+ */
+function StepIndicator({ isCurrent, isPassed }: { isCurrent: boolean; isPassed: boolean }) {
+  const baseClasses = 'w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all';
+
+  if (isCurrent) {
+    return (
+      <div className={`${baseClasses} bg-accent/20 border-2 border-accent`}>
+        <SpinnerIcon />
+      </div>
+    );
+  }
+  if (isPassed) {
+    return (
+      <div className={`${baseClasses} bg-accent text-white`}>
+        <CheckIcon />
+      </div>
+    );
+  }
+  return <div className={`${baseClasses} bg-surface-secondary border-2 border-border`} />;
+}
+
+export function ProgressView({ state }: ProgressViewProps) {
+  const message = getProgressMessage(state);
+
+  // Determine current step index: 0=approval, 1=submit, 2=tracking
+  const currentStep = isApprovalPhase(state) ? 0 : isSubmitPhase(state) ? 1 : 2;
+
+  const steps = [
+    { id: 'approval', label: 'Approval' },
+    { id: 'submit', label: 'Submit' },
+    { id: 'tracking', label: state.step === STEP.TRACKING ? getStateLabel(state) : 'Tracking' },
+  ].map((step, i) => ({ ...step, isCurrent: i === currentStep, isPassed: i < currentStep }));
+
   return (
     <div className='p-4 rounded-xl border border-border bg-surface'>
       <h3 className='text-sm font-semibold text-text-primary mb-4'>Order Progress</h3>
 
       <div className='space-y-3'>
-        {ORDER_STEPS.map((step, index) => {
-          const stepStatus = getStepStatus(step.statuses, state.status, index);
-          const isLast = index === ORDER_STEPS.length - 1;
+        {steps.map((step, index) => {
+          const isLast = index === steps.length - 1;
 
           return (
             <div key={step.id} className='flex items-start gap-3'>
               {/* Step indicator with connector line */}
               <div className='flex flex-col items-center'>
-                <StepIndicator status={stepStatus} />
+                <StepIndicator isCurrent={step.isCurrent} isPassed={step.isPassed} />
                 {!isLast && (
-                  <div
-                    className={`w-0.5 h-6 mt-1 transition-colors ${
-                      stepStatus === 'complete' ? 'bg-accent' : 'bg-border'
-                    }`}
-                  />
+                  <div className={`w-0.5 h-6 mt-1 transition-colors ${step.isPassed ? 'bg-accent' : 'bg-border'}`} />
                 )}
               </div>
 
@@ -31,20 +60,12 @@ export function ProgressView({ state }: { state: OrderExecutionState }) {
               <div className='flex-1 min-w-0 pb-2'>
                 <p
                   className={`text-sm font-medium ${
-                    stepStatus === 'active'
-                      ? 'text-accent'
-                      : stepStatus === 'complete'
-                        ? 'text-accent'
-                        : stepStatus === 'error'
-                          ? 'text-error'
-                          : 'text-text-tertiary'
+                    step.isCurrent ? 'text-accent' : step.isPassed ? 'text-accent' : 'text-text-tertiary'
                   }`}
                 >
                   {step.label}
                 </p>
-                {stepStatus === 'active' && state.message && (
-                  <p className='text-xs text-text-secondary mt-0.5 truncate'>{state.message}</p>
-                )}
+                {step.isCurrent && message && <p className='text-xs text-text-secondary mt-0.5 truncate'>{message}</p>}
               </div>
             </div>
           );
