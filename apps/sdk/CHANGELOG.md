@@ -1,5 +1,18 @@
 # @defi-wonderland/interop
 
+## 0.3.0
+
+### Minor Changes
+
+-   5185c3d: Refactor to three-layer architecture (Binary/Text/Name) aligned with EIP-7930, CAIP-350, and ERC-7828. Rename APIs (humanReadableToBinary → nameToBinary), add synchronous textToBinary/binaryToText, align terminology (chainNamespace → chainType).
+
+### Patch Changes
+
+-   Updated dependencies [7da2a86]
+-   Updated dependencies [5185c3d]
+    -   @wonderland/interop-cross-chain@0.2.2
+    -   @wonderland/interop-addresses@0.3.0
+
 ## 0.2.1
 
 ### Minor Changes
