@@ -23,9 +23,15 @@ export function FieldCard({
       shadow: 'shadow-success/20',
       text: 'text-success',
     },
+    info: {
+      border: 'border-blue-500',
+      bg: 'bg-blue-500/10',
+      shadow: 'shadow-blue-500/20',
+      text: 'text-blue-500',
+    },
   };
 
-  const colors = colorClasses[color];
+  const colors = colorClasses[color] || colorClasses.accent;
 
   return (
     <div

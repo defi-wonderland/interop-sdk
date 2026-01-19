@@ -1,5 +1,5 @@
 import type viem from "viem";
-import { buildFromPayload } from "@wonderland/interop-addresses";
+import { encodeAddress } from "@wonderland/interop-addresses";
 import axios from "axios";
 import { createPublicClient, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,31 +10,46 @@ import { CHAIN_IDS, TEST_ADDRESSES, TEST_AMOUNTS, TESTNET_TOKENS } from "../mock
 
 const MOCK_API_URL = "https://mocked.accross.url/api";
 
-// Build interop addresses for testnet scenario
-const USER_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${CHAIN_IDS.SEPOLIA.toString(16).padStart(6, "0")}`,
-    address: TEST_ADDRESSES.USER,
-});
-const RECEIVER_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${CHAIN_IDS.BASE_SEPOLIA.toString(16).padStart(6, "0")}`,
-    address: TEST_ADDRESSES.RECEIVER,
-});
-const INPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${CHAIN_IDS.SEPOLIA.toString(16).padStart(6, "0")}`,
-    address: TESTNET_TOKENS.WETH_SEPOLIA,
-});
-const OUTPUT_TOKEN_INTEROP_ADDRESS = await buildFromPayload({
-    version: 1,
-    chainType: "eip155",
-    chainReference: `0x${CHAIN_IDS.BASE_SEPOLIA.toString(16).padStart(6, "0")}`,
-    address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
-});
+// Build interop addresses for testnet scenario using encodeAddress
+const USER_INTEROP_ADDRESS = encodeAddress(
+    {
+        version: 1,
+        chainType: "eip155",
+        chainReference: CHAIN_IDS.SEPOLIA.toString(),
+        address: TEST_ADDRESSES.USER,
+    },
+    { format: "hex" },
+) as string;
+
+const RECEIVER_INTEROP_ADDRESS = encodeAddress(
+    {
+        version: 1,
+        chainType: "eip155",
+        chainReference: CHAIN_IDS.BASE_SEPOLIA.toString(),
+        address: TEST_ADDRESSES.RECEIVER,
+    },
+    { format: "hex" },
+) as string;
+
+const INPUT_TOKEN_INTEROP_ADDRESS = encodeAddress(
+    {
+        version: 1,
+        chainType: "eip155",
+        chainReference: CHAIN_IDS.SEPOLIA.toString(),
+        address: TESTNET_TOKENS.WETH_SEPOLIA,
+    },
+    { format: "hex" },
+) as string;
+
+const OUTPUT_TOKEN_INTEROP_ADDRESS = encodeAddress(
+    {
+        version: 1,
+        chainType: "eip155",
+        chainReference: CHAIN_IDS.BASE_SEPOLIA.toString(),
+        address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+    },
+    { format: "hex" },
+) as string;
 
 vi.mock("axios");
 vi.mock("viem", async () => {

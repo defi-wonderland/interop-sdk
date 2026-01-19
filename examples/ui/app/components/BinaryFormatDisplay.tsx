@@ -20,7 +20,7 @@ const fields: FieldConfig<BinaryPartKey, AddressResult>[] = [
     label: 'Chain Type',
     getValue: (r) => r.chainTypeHex,
     getDisplayValue: (r) => r.chainTypeHex,
-    description: 'Encoded namespace (eip155 for EVM chains)',
+    description: 'Encoded chain type (eip155 for EVM chains)',
   },
   {
     key: BinaryPartKey.CHAIN_REF_LENGTH,
@@ -83,7 +83,7 @@ export function BinaryFormatDisplay({ result, hoveredPart, setHoveredPart }: Bin
   return (
     <FormatDisplay
       title='Binary Format'
-      description='Compact binary representation for efficient on-chain storage and processing'
+      description='Compact binary representation for efficient on-chain storage and processing (ERC-7930)'
       result={result}
       fields={fields}
       hoveredPart={hoveredPart}

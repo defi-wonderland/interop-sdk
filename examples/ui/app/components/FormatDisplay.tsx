@@ -17,7 +17,7 @@ interface FormatDisplayProps<T extends string, R = unknown> {
   fields: FieldConfig<T, R>[];
   hoveredPart: T | null;
   setHoveredPart: (part: T | null) => void;
-  color: 'accent' | 'success';
+  color: 'accent' | 'success' | 'info';
   renderInlineDisplay?: (
     fields: FieldConfig<T, R>[],
     result: R,
@@ -48,6 +48,15 @@ const colorClasses = {
     text: 'text-success',
     gradientBar: 'from-success to-success/70',
     hoverBorder: 'hover:border-success/50',
+  },
+  info: {
+    gradient: 'from-blue-500/40 to-blue-500/20',
+    border: 'border-blue-500/20',
+    glow: 'bg-blue-500/10',
+    glowPosition: 'top-0 right-0 -translate-y-32 translate-x-32',
+    text: 'text-blue-500',
+    gradientBar: 'from-blue-500 to-blue-600',
+    hoverBorder: 'hover:border-blue-500/50',
   },
 };
 
@@ -96,20 +105,28 @@ export function FormatDisplay<T extends string, R = unknown>({
           <p className='text-sm text-text-secondary'>{description}</p>
         </div>
 
-        <div
-          className={`relative bg-surface/60 backdrop-blur rounded-2xl p-4 ${showCopyButton ? 'pr-12' : ''} font-mono text-sm break-all border border-border/30 ${colors.hoverBorder} transition-colors`}
-        >
-          {showCopyButton && copied !== undefined && onCopy && (
-            <button
-              onClick={onCopy}
-              className={`absolute top-1/2 -translate-y-1/2 right-3 p-2 rounded-lg bg-${color}/10 hover:bg-${color}/20 border border-${color}/30 hover:border-${color} transition-all hover:scale-110 cursor-pointer`}
-              title='Copy to clipboard'
-            >
-              {copied ? <CheckmarkIcon /> : <CopyIcon />}
-            </button>
-          )}
-          {renderInlineDisplay && renderInlineDisplay(fields, result, hoveredPart, setHoveredPart)}
-        </div>
+        {renderInlineDisplay && (
+          <div
+            className={`relative bg-surface/60 backdrop-blur rounded-2xl p-4 ${showCopyButton ? 'pr-12' : ''} font-mono text-sm break-all border border-border/30 ${colors.hoverBorder} transition-colors`}
+          >
+            {showCopyButton && copied !== undefined && onCopy && (
+              <button
+                onClick={onCopy}
+                className={`absolute top-1/2 -translate-y-1/2 right-3 p-2 rounded-lg transition-all hover:scale-110 cursor-pointer ${
+                  color === 'accent'
+                    ? 'bg-accent/10 hover:bg-accent/20 border border-accent/30 hover:border-accent'
+                    : color === 'success'
+                      ? 'bg-success/10 hover:bg-success/20 border border-success/30 hover:border-success'
+                      : 'bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 hover:border-blue-500'
+                }`}
+                title='Copy to clipboard'
+              >
+                {copied ? <CheckmarkIcon /> : <CopyIcon />}
+              </button>
+            )}
+            {renderInlineDisplay(fields, result, hoveredPart, setHoveredPart)}
+          </div>
+        )}
 
         <div className={`grid ${gridCols} gap-3`}>
           {enrichedFields.map(({ key, ...props }) => (

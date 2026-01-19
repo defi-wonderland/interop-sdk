@@ -1,27 +1,18 @@
+import { decodeAddress } from '@wonderland/interop-addresses';
 import { describe, expect, it } from 'vitest';
-import { parseHumanReadableForDisplay } from './demo-helpers';
+import { parseInteroperableAddressForDisplay } from './demo-helpers';
 
-describe('parseHumanReadableForDisplay', () => {
-  it('parses chain label with optional checksum', () => {
-    expect(parseHumanReadableForDisplay('vitalik.eth@eth#4CA88C9C')).toEqual({
-      name: 'vitalik.eth',
-      chainReference: 'eth',
-      checksum: '4CA88C9C',
-    });
+describe('parseInteroperableAddressForDisplay', () => {
+  it('parses an InteroperableAddress object into display components', () => {
+    const binaryHex = '0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045';
+    const interopAddress = decodeAddress(binaryHex);
+    const result = parseInteroperableAddressForDisplay(interopAddress);
 
-    expect(parseHumanReadableForDisplay('vitalik.eth@eth')).toEqual({
-      name: 'vitalik.eth',
-      chainReference: 'eth',
-      checksum: '',
-    });
-  });
-
-  it('parses namespace:reference format', () => {
-    expect(parseHumanReadableForDisplay('alice.eth@eip155:1#ABCD1234')).toEqual({
-      name: 'alice.eth',
-      chainType: 'eip155',
-      chainReference: '1',
-      checksum: 'ABCD1234',
-    });
+    expect(result.version).toBe('0001');
+    expect(result.chainTypeHex).toBe('0001');
+    expect(result.chainRefLength).toBe('00 (0b)');
+    expect(result.chainRefHex).toBe('01');
+    expect(result.addressLength).toBe('14 (20b)');
+    expect(result.addressHex).toBe('d8da6bf26964af9d7eed9e03e53415d37aa96045');
   });
 });
