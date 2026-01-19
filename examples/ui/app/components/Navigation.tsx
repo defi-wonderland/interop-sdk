@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getEnabledApps } from '../config/features';
 import { ThemeSwitcher } from './ThemeSwitcher';
 
 function MenuIcon() {
@@ -39,10 +40,7 @@ export function Navigation() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navLinks = [
-    { href: '/addresses', label: 'Addresses' },
-    { href: '/cross-chain', label: 'Cross-Chain' },
-  ];
+  const navLinks = getEnabledApps();
 
   return (
     <nav className='w-full border-b border-border bg-surface/50 backdrop-blur-sm sticky top-0 z-10'>
