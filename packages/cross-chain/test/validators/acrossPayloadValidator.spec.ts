@@ -1,18 +1,21 @@
 import { GetQuoteRequest } from "@openintentsframework/oif-specs";
-import { buildFromPayload } from "@wonderland/interop-addresses";
-import { Address, Hex, toHex } from "viem";
+import { encodeAddress } from "@wonderland/interop-addresses";
+import { Address, Hex } from "viem";
 import { describe, expect, it } from "vitest";
 
 import { validateAcrossPayload } from "../../src/validators/acrossPayloadValidator.js";
 import { ACROSS_DEPOSIT_FIXTURE, CHAIN_IDS, MAINNET_TOKENS } from "../mocks/fixtures.js";
 
-const interopAddress = (chainId: number, address: Address): Promise<string> =>
-    buildFromPayload({
-        version: 1,
-        chainType: "eip155",
-        chainReference: toHex(chainId),
-        address,
-    });
+const interopAddress = (chainId: number, address: Address): string =>
+    encodeAddress(
+        {
+            version: 1,
+            chainType: "eip155",
+            chainReference: chainId.toString(),
+            address,
+        },
+        { format: "hex" },
+    ) as string;
 
 interface IntentOverrides {
     inputUser?: string;
@@ -26,13 +29,10 @@ describe("validateAcrossPayload", () => {
     describe("SpokePool.deposit (simple bridge)", () => {
         const FIXTURE = ACROSS_DEPOSIT_FIXTURE;
 
-        const createIntent = async (overrides?: IntentOverrides): Promise<GetQuoteRequest> => {
-            const user = await interopAddress(CHAIN_IDS.ETHEREUM, FIXTURE.depositor);
-            const inputAsset = await interopAddress(CHAIN_IDS.ETHEREUM, FIXTURE.inputToken);
-            const outputAsset = await interopAddress(
-                FIXTURE.destinationChainId,
-                FIXTURE.outputToken,
-            );
+        const createIntent = (overrides?: IntentOverrides): GetQuoteRequest => {
+            const user = interopAddress(CHAIN_IDS.ETHEREUM, FIXTURE.depositor);
+            const inputAsset = interopAddress(CHAIN_IDS.ETHEREUM, FIXTURE.inputToken);
+            const outputAsset = interopAddress(FIXTURE.destinationChainId, FIXTURE.outputToken);
 
             return {
                 user,
@@ -57,45 +57,42 @@ describe("validateAcrossPayload", () => {
         };
 
         it("returns true when all fields match", async () => {
-            const intent = await createIntent();
+            const intent = createIntent();
             expect(await validateAcrossPayload(intent, FIXTURE.calldata)).toBe(true);
         });
 
         it("returns false when recipient does not match", async () => {
-            const attacker = await interopAddress(FIXTURE.destinationChainId, MAINNET_TOKENS.USDC);
-            const intent = await createIntent({ outputReceiver: attacker });
+            const attacker = interopAddress(FIXTURE.destinationChainId, MAINNET_TOKENS.USDC);
+            const intent = createIntent({ outputReceiver: attacker });
             expect(await validateAcrossPayload(intent, FIXTURE.calldata)).toBe(false);
         });
 
         it("returns false when outputToken does not match", async () => {
-            const wrongToken = await interopAddress(
-                FIXTURE.destinationChainId,
-                MAINNET_TOKENS.USDT,
-            );
-            const intent = await createIntent({ outputAsset: wrongToken });
+            const wrongToken = interopAddress(FIXTURE.destinationChainId, MAINNET_TOKENS.USDT);
+            const intent = createIntent({ outputAsset: wrongToken });
             expect(await validateAcrossPayload(intent, FIXTURE.calldata)).toBe(false);
         });
 
         it("returns false when destinationChainId does not match", async () => {
-            const wrongChain = await interopAddress(CHAIN_IDS.ARBITRUM, FIXTURE.outputToken);
-            const intent = await createIntent({ outputAsset: wrongChain });
+            const wrongChain = interopAddress(CHAIN_IDS.ARBITRUM, FIXTURE.outputToken);
+            const intent = createIntent({ outputAsset: wrongChain });
             expect(await validateAcrossPayload(intent, FIXTURE.calldata)).toBe(false);
         });
 
         it("returns false when depositor does not match", async () => {
-            const wrongUser = await interopAddress(CHAIN_IDS.ETHEREUM, MAINNET_TOKENS.USDC);
-            const intent = await createIntent({ inputUser: wrongUser });
+            const wrongUser = interopAddress(CHAIN_IDS.ETHEREUM, MAINNET_TOKENS.USDC);
+            const intent = createIntent({ inputUser: wrongUser });
             expect(await validateAcrossPayload(intent, FIXTURE.calldata)).toBe(false);
         });
 
         it("returns false when inputToken does not match", async () => {
-            const wrongToken = await interopAddress(CHAIN_IDS.ETHEREUM, MAINNET_TOKENS.WETH);
-            const intent = await createIntent({ inputAsset: wrongToken });
+            const wrongToken = interopAddress(CHAIN_IDS.ETHEREUM, MAINNET_TOKENS.WETH);
+            const intent = createIntent({ inputAsset: wrongToken });
             expect(await validateAcrossPayload(intent, FIXTURE.calldata)).toBe(false);
         });
 
         it("returns false when inputAmount does not match", async () => {
-            const intent = await createIntent({ inputAmount: "999" });
+            const intent = createIntent({ inputAmount: "999" });
             expect(await validateAcrossPayload(intent, FIXTURE.calldata)).toBe(false);
         });
     });
