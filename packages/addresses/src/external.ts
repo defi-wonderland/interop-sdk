@@ -13,6 +13,7 @@ export type {
 export type { ParsedInteroperableNameResult } from "./name/index.js";
 
 // Address layer functions (direct access, not via provider)
+export type { FormatResult } from "./address/index.js";
 export {
     decodeAddress,
     encodeAddress,

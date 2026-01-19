@@ -1,5 +1,25 @@
 import { Address, Hex } from "viem";
 
+import { OrderStatus } from "./oif.js";
+
+export { OrderStatus };
+
+export const OrderFailureReason = {
+    OriginTxReverted: "origin_tx_reverted",
+    DeadlineExceeded: "deadline_exceeded",
+    Unknown: "unknown",
+} as const;
+
+export type OrderFailureReason = (typeof OrderFailureReason)[keyof typeof OrderFailureReason];
+
+export const OrderTrackerYieldType = {
+    Update: "update",
+    Timeout: "timeout",
+} as const;
+
+export type OrderTrackerYieldType =
+    (typeof OrderTrackerYieldType)[keyof typeof OrderTrackerYieldType];
+
 /**
  * Opened cross-chain intent parsed from an EIP-7683 Open event.
  *
@@ -60,21 +80,10 @@ export interface FillEvent {
 }
 
 /**
- * Intent lifecycle status
- * - opening: Parsing the transaction and Open event
- * - opened: Intent successfully opened and parsed
- * - filling: Waiting for relayer to fill on destination chain
- * - filled: Successfully filled on destination chain
- * - expired: Fill deadline passed without being filled
+ * Complete order tracking information (final observed state)
  */
-export type IntentStatus = "opening" | "opened" | "filling" | "filled" | "expired";
-
-/**
- * Complete intent status information
- */
-export interface IntentStatusInfo {
-    /** Current status of the intent */
-    status: IntentStatus;
+export interface OrderTrackingInfo {
+    status: OrderStatus;
     /** Order ID */
     orderId: Hex;
     /** Transaction hash where order was opened */
@@ -93,33 +102,52 @@ export interface IntentStatusInfo {
     inputAmount: bigint;
     /** Output token amount from minReceived[0] */
     outputAmount: bigint;
-    /** Fill event data (present when status is 'filled') */
+    /** Fill event data (present when status is Finalized) */
     fillEvent?: FillEvent;
+    /** Reason for failure (present when status is Failed) */
+    failureReason?: OrderFailureReason;
 }
 
 /**
- * Intent update streamed during tracking
- * Used by async generator for real-time updates
+ * Order update streamed during tracking.
+ * Used by async generator for real-time updates.
  */
-export interface IntentUpdate {
-    /** Current status */
-    status: IntentStatus;
-    /** Order ID (available after intent is parsed) */
+export interface OrderTrackingUpdate {
+    status: OrderStatus;
+    /** Order ID (available after order is parsed) */
     orderId?: Hex;
     /** Transaction hash where order was opened */
     openTxHash: Hex;
-    /** Fill transaction hash (available when filled) */
+    /** Fill transaction hash (available when completed) */
     fillTxHash?: Hex;
     /** Timestamp of the update (Unix timestamp in seconds) */
     timestamp: number;
     /** Human-readable message */
     message: string;
+    /** Reason for failure (present when status is Failed) */
+    failureReason?: OrderFailureReason;
 }
 
 /**
- * Parameters for watching an intent
+ * Timeout payload yielded/emitted when tracking times out before a terminal status.
  */
-export interface WatchIntentParams {
+export interface OrderTrackerTimeoutPayload {
+    lastUpdate: OrderTrackingUpdate;
+    timestamp: number;
+    message: string;
+}
+
+/**
+ * Discriminated union yielded by watchOrder() generator.
+ */
+export type OrderTrackerYield =
+    | { type: typeof OrderTrackerYieldType.Update; update: OrderTrackingUpdate }
+    | { type: typeof OrderTrackerYieldType.Timeout; payload: OrderTrackerTimeoutPayload };
+
+/**
+ * Parameters for watching an order
+ */
+export interface WatchOrderParams {
     /** Transaction hash where the order was opened */
     txHash: Hex;
     /** Origin chain ID */
@@ -149,9 +177,9 @@ export interface GetFillParams {
 }
 
 /**
- * Parameters for tracking an existing transaction (power user method)
+ * Parameters for tracking an existing order (power user method)
  */
-export interface TrackingParams {
+export interface OrderTrackingParams {
     /** Transaction hash to track */
     txHash: Hex;
     /** Protocol name (e.g., 'across') */

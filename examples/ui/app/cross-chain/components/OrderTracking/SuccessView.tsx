@@ -1,12 +1,13 @@
 import { getChainConfig, getExplorerTxUrl } from '../../constants/chains';
 import { CheckIcon, ExternalLinkIcon } from '../icons';
-import type { IntentTrackingProps } from './types';
+import type { SuccessViewProps } from './types';
 
-export function SuccessView({ state, onReset }: IntentTrackingProps) {
+export function SuccessView({ state, onReset }: SuccessViewProps) {
   const originChain = getChainConfig(state.originChainId);
   const destinationChain = getChainConfig(state.destinationChainId);
   const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
-  const fillTxUrl = getExplorerTxUrl(state.destinationChainId, state.fillTxHash);
+  const fillTxHash = state.update.fillTxHash;
+  const fillTxUrl = getExplorerTxUrl(state.destinationChainId, fillTxHash);
 
   return (
     <div className='p-4 sm:p-6 rounded-xl border border-accent/30 bg-accent/5'>
@@ -16,8 +17,8 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
           <CheckIcon className='w-5 h-5 sm:w-6 sm:h-6 text-white' />
         </div>
         <div className='min-w-0'>
-          <h3 className='text-base sm:text-lg font-semibold text-accent'>Intent Filled Successfully!</h3>
-          <p className='text-xs sm:text-sm text-text-secondary break-words'>{state.message}</p>
+          <h3 className='text-base sm:text-lg font-semibold text-accent'>Order Filled Successfully!</h3>
+          <p className='text-xs sm:text-sm text-text-secondary break-words'>{state.update.message}</p>
         </div>
       </div>
 
@@ -45,7 +46,7 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
             </div>
           </a>
         )}
-        {state.fillTxHash && fillTxUrl && (
+        {fillTxHash && fillTxUrl && (
           <a
             href={fillTxUrl}
             target='_blank'
@@ -61,7 +62,7 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
             </div>
             <div className='flex items-center justify-between text-text-tertiary group-hover:text-accent'>
               <span className='text-sm font-mono'>
-                {state.fillTxHash.slice(0, 10)}...{state.fillTxHash.slice(-8)}
+                {fillTxHash.slice(0, 10)}...{fillTxHash.slice(-8)}
               </span>
               <ExternalLinkIcon />
             </div>
@@ -69,23 +70,14 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
         )}
       </div>
 
-      {/* Raw fill event data */}
+      {/* Raw SDK tracking update */}
       <details className='mb-4'>
         <summary className='cursor-pointer text-xs text-text-tertiary hover:text-text-secondary transition-colors'>
-          View raw intent data
+          View raw SDK data
         </summary>
         <div className='mt-2 p-3 rounded-lg bg-surface-secondary border border-border font-mono text-xs overflow-x-auto'>
           <pre className='text-text-secondary whitespace-pre-wrap break-all'>
-            {JSON.stringify(
-              {
-                status: state.status,
-                orderId: state.orderId,
-                originTxHash: state.txHash,
-                fillTxHash: state.fillTxHash,
-              },
-              null,
-              2,
-            )}
+            {JSON.stringify(state.update, null, 2)}
           </pre>
         </div>
       </details>
@@ -97,7 +89,7 @@ export function SuccessView({ state, onReset }: IntentTrackingProps) {
           onClick={onReset}
           className='w-full py-3 px-4 text-sm font-medium rounded-lg bg-accent hover:bg-accent/90 text-white transition-colors'
         >
-          Start New Intent
+          Start New Order
         </button>
       )}
     </div>

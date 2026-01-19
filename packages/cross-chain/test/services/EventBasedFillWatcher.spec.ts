@@ -11,7 +11,7 @@ import {
     GetFillParams,
 } from "../../src/internal.js";
 import { PublicClientManager } from "../../src/utils/publicClientManager.js";
-import { createMockFillEvent, createMockLog } from "../mocks/intentTracking.js";
+import { createMockFillEvent, createMockLog } from "../mocks/orderTracking.js";
 
 vi.mock("viem", async () => {
     return {

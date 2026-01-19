@@ -3,30 +3,30 @@ import {
     CustomEventOpenedIntentParser,
     EventBasedFillWatcher,
     FillWatcher,
-    IntentTracker,
-    IntentTrackerConfig,
-    IntentTrackerFactoryConfig,
     OIFOpenedIntentParser,
     OpenedIntentParser,
+    OrderTracker,
+    OrderTrackerConfig,
+    OrderTrackerFactoryConfig,
     PublicClientManager,
 } from "../internal.js";
 
 /**
- * Factory class for creating IntentTracker instances
+ * Factory class for creating OrderTracker instances
  * Centralizes tracker creation logic and configuration
  */
-export class IntentTrackerFactory {
+export class OrderTrackerFactory {
     private readonly clientManager: PublicClientManager;
 
-    constructor(config?: IntentTrackerFactoryConfig) {
+    constructor(config?: OrderTrackerFactoryConfig) {
         this.clientManager = new PublicClientManager(config?.publicClient, config?.rpcUrls);
     }
 
     /**
-     * Create an IntentTracker for a specific provider
+     * Create an OrderTracker for a specific provider
      * @param provider - The provider to create tracker for
      * @param config - Optional custom implementations
-     * @returns Configured IntentTracker instance
+     * @returns Configured OrderTracker instance
      */
     createTracker(
         provider: CrossChainProvider,
@@ -34,10 +34,9 @@ export class IntentTrackerFactory {
             openedIntentParser?: OpenedIntentParser;
             fillWatcher?: FillWatcher;
         },
-    ): IntentTracker {
+    ): OrderTracker {
         const trackingConfig = provider.getTrackingConfig();
 
-        // Create parser based on config type
         const openedIntentParser =
             config?.openedIntentParser ??
             this.createOpenedIntentParser(trackingConfig.openedIntentParserConfig);
@@ -48,7 +47,7 @@ export class IntentTrackerFactory {
                 clientManager: this.clientManager,
             });
 
-        return new IntentTracker(openedIntentParser, fillWatcher);
+        return new OrderTracker(openedIntentParser, fillWatcher, this.clientManager);
     }
 
     /**
@@ -81,25 +80,23 @@ export class IntentTrackerFactory {
 }
 
 /**
- * Create an intent tracker for a provider (advanced use case)
+ * Create an order tracker for a provider (advanced use case)
  *
  * @param provider - Provider instance to create tracker for (must implement getTrackingConfig())
  * @param config - Optional configuration (custom implementations or RPC URLs)
- * @returns Configured IntentTracker instance
+ * @returns Configured OrderTracker instance
  *
  * @example
  * ```typescript
- * // Advanced usage: Direct tracker creation
  * const provider = new AcrossProvider();
- * const tracker = createIntentTracker(provider, {
+ * const tracker = createOrderTracker(provider, {
  *   rpcUrls: {
  *     11155111: 'https://fast-sepolia.com',
  *     84532: 'https://fast-base.com'
  *   }
  * });
  *
- * // Watch an intent
- * for await (const update of tracker.watchIntent({
+ * for await (const update of tracker.watchOrder({
  *   txHash: "0x...",
  *   originChainId: 11155111,
  *   destinationChainId: 84532,
@@ -108,10 +105,10 @@ export class IntentTrackerFactory {
  * }
  * ```
  */
-export function createIntentTracker(
+export function createOrderTracker(
     provider: CrossChainProvider,
-    config?: IntentTrackerConfig,
-): IntentTracker {
+    config?: OrderTrackerConfig,
+): OrderTracker {
     const {
         publicClient,
         openedIntentParser: customParser,
@@ -119,7 +116,7 @@ export function createIntentTracker(
         rpcUrls,
     } = config || {};
 
-    const factory = new IntentTrackerFactory({ publicClient, rpcUrls });
+    const factory = new OrderTrackerFactory({ publicClient, rpcUrls });
     return factory.createTracker(provider, {
         openedIntentParser: customParser,
         fillWatcher: customFillWatcher,

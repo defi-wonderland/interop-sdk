@@ -17,6 +17,8 @@
   /* Status colors */
   --success: #22c55e;
   --success-light: #f0fdf4;
+  --warning: #f59e0b;
+  --warning-light: #fffbeb;
   --error: #ef4444;
   --error-light: #fef2f2;
 
@@ -47,6 +49,8 @@
   /* Status colors */
   --success: #4ade80;
   --success-light: #14532d;
+  --warning: #fbbf24;
+  --warning-light: #78350f;
   --error: #f87171;
   --error-light: #7f1d1d;
 
@@ -70,6 +74,8 @@
   --color-accent-light: var(--accent-light);
   --color-success: var(--success);
   --color-success-light: var(--success-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
   --color-error: var(--error);
   --color-error-light: var(--error-light);
   --color-text-primary: var(--text-primary);

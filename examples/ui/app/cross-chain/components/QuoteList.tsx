@@ -1,9 +1,9 @@
 'use client';
 
-import { EXECUTION_STATUS, type IntentExecutionStatus } from '../types/execution';
 import { ErrorList } from './ErrorList';
 import { QuoteCard } from './QuoteCard';
 import { SwapIcon, BoltIcon, ClockIcon } from './icons';
+import type { BridgeState } from '../types/execution';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 
 interface ErrorItem {
@@ -17,7 +17,7 @@ interface QuoteListProps {
   inputTokenAddress: string;
   outputTokenAddress: string;
   selectedQuoteId?: string;
-  executionStatus?: IntentExecutionStatus;
+  executionState?: BridgeState;
   isLoading?: boolean;
   onSelectQuote?: (quote: ExecutableQuote) => void;
   onExecuteQuote?: (quote: ExecutableQuote) => void;
@@ -98,7 +98,7 @@ export function QuoteList({
   inputTokenAddress,
   outputTokenAddress,
   selectedQuoteId,
-  executionStatus,
+  executionState,
   isLoading = false,
   onSelectQuote,
   onExecuteQuote,
@@ -129,7 +129,7 @@ export function QuoteList({
             inputTokenAddress={inputTokenAddress}
             outputTokenAddress={outputTokenAddress}
             isSelected={selectedQuoteId === quote.quoteId}
-            executionStatus={selectedQuoteId === quote.quoteId ? executionStatus : EXECUTION_STATUS.IDLE}
+            executionState={selectedQuoteId === quote.quoteId ? executionState : undefined}
             onSelect={onSelectQuote}
             onExecute={onExecuteQuote}
           />
