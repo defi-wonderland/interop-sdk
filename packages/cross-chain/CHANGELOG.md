@@ -1,5 +1,18 @@
 # @defi-wonderland/interop-cross-chain
 
+## 0.2.1
+
+### Minor Changes
+
+-   f9050e5: feat: cross chain default sorting strategy
+-   ba33ce0: feat: intent validator scaffolding
+
+### Patch Changes
+
+-   Updated dependencies [0652fb1]
+-   Updated dependencies [d55b308]
+    -   @wonderland/interop-addresses@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes

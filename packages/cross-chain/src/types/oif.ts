@@ -311,6 +311,20 @@ export interface GetQuoteRequest {
  */
 export type Order = OifEscrowOrder | OifResourceLockOrder | Oif3009Order | OifUserOpenIntentOrder;
 
+/** Order type discriminator */
+export type OifOrderType = Order["type"];
+
+/** Type-Safe Map of all OIF order types */
+const OIF_ORDER_TYPES_MAP: Record<OifOrderType, true> = {
+    "oif-escrow-v0": true,
+    "oif-resource-lock-v0": true,
+    "oif-3009-v0": true,
+    "oif-user-open-v0": true,
+};
+
+/** All OIF order types for runtime validation */
+export const OIF_ORDER_TYPES = Object.keys(OIF_ORDER_TYPES_MAP) as OifOrderType[];
+
 /**
  * Escrow-based order
  * @description Order that uses an escrow mechanism for asset custody during cross-chain transfers.

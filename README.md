@@ -3,7 +3,7 @@
 This repository is a monorepo consisting of the following packages:
 
 -   [`@wonderland/interop-addresses`](./packages/addresses/): A utility library for interoperable addresses based on ERC-7930.
--   [`@wonderland/interop-cross-chain`](./packages/cross-chain/): A library for cross-chain interoperability (🚧 currently under construction 🚧)
+-   [`@wonderland/interop-cross-chain`](./packages/cross-chain/): A library for cross-chain interoperability
 
 ## Project Structure
 
@@ -50,8 +50,15 @@ interop-sdk/
     ```
 
 -   **Run tests**
+
     ```bash
     pnpm test
+    ```
+
+-   **Run E2E tests** (UI examples)
+
+    ```bash
+    pnpm --filter @examples/ui test:e2e
     ```
 
 ## Examples
@@ -78,19 +85,15 @@ const isValid = await InteropAddressProvider.isValidInteropAddress(humanReadable
 
 ### Cross-Chain Package
 
-🚧 The cross-chain package is under construction 🚧
-
 The cross-chain package provides a standardized interface for cross-chain operations.
 
 ```typescript
-import {
-    createCrossChainProvider,
-    createProviderExecutor,
-    InteropAddressParamsParser,
-} from "@wonderland/interop-cross-chain";
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 // Create a provider for a specific protocol (e.g., Across)
-const provider = createCrossChainProvider("across");
+const provider = createCrossChainProvider("across", {
+    apiUrl: "https://testnet.across.to/api",
+});
 
 // Get a quote for a cross-chain transfer
 const quote = await provider.getQuote("crossChainTransfer", {
@@ -101,6 +104,12 @@ const quote = await provider.getQuote("crossChainTransfer", {
     inputAmount: "1000000000000000000", // amount in wei
     inputChainId: 11155111, // source chain ID
     outputChainId: 84532, // destination chain ID
+});
+
+// Or use OIF provider for intent-based cross-chain operations
+const oifProvider = createCrossChainProvider("oif", {
+    solverId: "my-solver",
+    url: "https://oif-api.example.com",
 });
 ```
 

@@ -1,13 +1,13 @@
 export function ProblemsSection() {
     return (
-        <section id="about" className="px-6 lg:px-16 py-20 lg:py-24">
+        <section id="about" className="px-6 lg:px-16 py-12 lg:py-16">
             <div className="max-w-3xl">
-                <h2 className="font-mono text-[1.75rem] leading-[1.2] md:text-3xl md:leading-tight lg:text-4xl lg:leading-tight font-light mb-12 md:mb-14 lg:mb-16">
+                <h2 className="font-mono text-[1.75rem] leading-[1.2] md:text-3xl md:leading-tight lg:text-4xl lg:leading-tight font-light mb-8 md:mb-10 lg:mb-12">
                     Why do we need{" "}
                     <span className="md:whitespace-nowrap">interoperable addresses?</span>
                 </h2>
 
-                <div className="space-y-10 md:space-y-11 lg:space-y-12 mb-20 md:mb-22 lg:mb-24">
+                <div className="space-y-8 md:space-y-9 lg:space-y-10 mb-12 md:mb-14 lg:mb-16">
                     <div>
                         <h3 className="font-mono text-base lg:text-lg font-medium mb-2.5 lg:mb-3">
                             Wrong chain, lost funds
@@ -40,11 +40,11 @@ export function ProblemsSection() {
                     </div>
                 </div>
 
-                <h2 className="font-mono text-[1.75rem] leading-[1.2] md:text-3xl md:leading-tight lg:text-4xl lg:leading-tight font-light mb-12 md:mb-14 lg:mb-16">
+                <h2 className="font-mono text-[1.75rem] leading-[1.2] md:text-3xl md:leading-tight lg:text-4xl lg:leading-tight font-light mb-8 md:mb-10 lg:mb-12">
                     With Interoperable Addresses
                 </h2>
 
-                <div className="grid md:grid-cols-2 gap-x-12 lg:gap-x-16 gap-y-10 lg:gap-y-12">
+                <div className="grid md:grid-cols-2 gap-x-12 lg:gap-x-16 gap-y-8 lg:gap-y-10">
                     <div>
                         <h3 className="font-mono text-base lg:text-lg font-medium mb-2.5 lg:mb-3">
                             Chain specificity

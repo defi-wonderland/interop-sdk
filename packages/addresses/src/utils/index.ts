@@ -1,18 +1,7 @@
-export * from "./buildInteropAddress.js";
-export * from "./calculateChecksum.js";
-export * from "./parseBinary.js";
-export * from "./toBinary.js";
-export * from "./toHumanReadable.js";
-export * from "./validateInteropAddress.js";
-export * from "./commonUtils.js";
-export * from "./parseHumanReadable.js";
 export * from "./convertToBytes.js";
-export * from "./validateChecksum.js";
-export * from "./isValidChain.js";
-export * from "./isInteropAddress.js";
-export * from "./shortnameToChainId.js";
-export * from "./parseInteropAddressString.js";
-export * from "./interpretInteropNameComponents.js";
-export * from "./resolveENS.js";
-export * from "./parseChainReference.js";
-export * from "./resolveChainReference.js";
+export {
+    isBinaryInteropAddress,
+    isInteropAddress,
+    isInteroperableName,
+    type ParseInteroperableNameOptions,
+} from "./isInteropAddress.js";

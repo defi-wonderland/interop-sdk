@@ -2,9 +2,9 @@ import { TerminalSnippet } from "@/components/terminal-snippet";
 
 export function SdkSection() {
     return (
-        <section id="sdk" className="px-6 lg:px-16 py-20 lg:py-24">
+        <section id="sdk" className="px-6 lg:px-16 py-12 lg:py-16">
             <div className="max-w-3xl">
-                <h2 className="font-mono text-[1.75rem] leading-[1.2] md:text-3xl md:leading-tight lg:text-4xl lg:leading-tight font-light mb-12 md:mb-16 lg:mb-20">
+                <h2 className="font-mono text-[1.75rem] leading-[1.2] md:text-3xl md:leading-tight lg:text-4xl lg:leading-tight font-light mb-8 md:mb-10 lg:mb-12">
                     SDK & Implementation
                 </h2>
                 <div>
@@ -13,7 +13,7 @@ export function SdkSection() {
                     </p>
                     <TerminalSnippet />
                     <a
-                        href="https://github.com/defi-wonderland/interop-sdk/tree/main/packages/addresses#readme"
+                        href="https://docs.interop.wonderland.xyz/"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-mono text-sm underline hover:no-underline"

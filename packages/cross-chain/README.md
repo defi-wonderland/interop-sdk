@@ -125,7 +125,7 @@ if (selectedQuote?.preparedTransaction) {
 -   `GetQuoteRequest` – OIF-compliant quote request (see `@openintentsframework/oif-specs`).
 -   `GetQuotesResponse` – Response containing `{ quotes: ExecutableQuote[], errors: GetQuotesError[] }`.
 -   `ExecutableQuote` – Quote with optional `preparedTransaction` for execution.
--   `ProviderExecutorConfig`, `IntentTrackerConfig`, and more (see exported types).
+-   `ProviderExecutorConfig`, `OrderTrackerConfig`, and more (see exported types).
 
 ## OIF Provider
 
@@ -193,6 +193,10 @@ const spender = quote.order.payload.message.spender;
 // User mode (oif-user-open-v0)
 const { spender, token, required } = quote.order.checks.allowances[0];
 ```
+
+## Payload Validation
+
+The SDK validates that calldata from solver APIs matches the user's intent. For Across, simple same-token bridges are fully validated (depositor, recipient, tokens, amount, chain). Cross-chain swap validation is coming soon.
 
 ## References
 

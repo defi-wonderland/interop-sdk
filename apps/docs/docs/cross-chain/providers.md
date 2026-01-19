@@ -2,135 +2,60 @@
 title: Supported Providers
 ---
 
-This document lists all cross-chain providers supported by the Interop SDK, their current status, and implementation details.
+This document lists all cross-chain providers supported by the Interop SDK.
 
-## Provider Status
+## Available Providers
 
-#### Across Protocol
+| Provider                                | Status  | Description                                     |
+| --------------------------------------- | ------- | ----------------------------------------------- |
+| [Across Protocol](./across-provider.md) | Testnet | Cross-chain token transfers using Across bridge |
+| [OIF](./oif-provider.md)                | Active  | Direct integration with OIF-compliant solvers   |
 
-**Status**: Testnet
-
-**Protocol Name**: `"across"`
-
-**Features**:
-
--   Cross-chain token transfers
--   Quote fetching with fee calculation
--   Transaction simulation
--   Intent tracking support
--   EIP-7683 Open Intent Framework integration
-
-**Usage**:
-
-```typescript
-import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
-
-const provider = createCrossChainProvider("across");
-
-const quote = await provider.getQuote("crossChainTransfer", {
-    sender: "0x...",
-    recipient: "0x...",
-    inputTokenAddress: "0x...",
-    outputTokenAddress: "0x...",
-    inputAmount: "1000000000000000000",
-    inputChainId: 11155111,
-    outputChainId: 84532,
-});
-```
-
-**Supported Actions**:
-
--   `crossChainTransfer`
-
-**Documentation**:
-
--   [Across Protocol Documentation](https://docs.across.to/)
-
----
-
-#### Sample Provider
-
-**Status**: Implemented for testing and development
-
-**Protocol Name**: `"sample-protocol"`
-
-**Features**:
-
--   Basic quote generation (returns input amount as output)
--   Transaction simulation (returns empty array)
--   Useful for testing SDK integration
-
-**Usage**:
-
-```typescript
-import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
-
-const provider = createCrossChainProvider("sample-protocol");
-
-// Returns a quote with inputAmount === outputAmount
-const quote = await provider.getQuote("crossChainTransfer", {
-    sender: "0x...",
-    recipient: "0x...",
-    inputTokenAddress: "0x...",
-    outputTokenAddress: "0x...",
-    inputAmount: "1000000000000000000",
-    inputChainId: 11155111,
-    outputChainId: 84532,
-});
-```
-
-**Supported Actions**:
-
--   `crossChainTransfer`
--   `crossChainSwap`
-
-> This provider is for testing only and should not be used in production.
+> Additional protocols are planned for future releases.
 
 ## Creating Custom Providers
 
-You can create custom providers by implementing the `CrossChainProvider` interface:
+You can create custom providers by extending the `CrossChainProvider` abstract class:
 
 ```typescript
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import {
     CrossChainProvider,
-    GetQuoteParams,
-    GetQuoteResponse,
+    ExecutableQuote,
+    FillWatcherConfig,
+    OpenedIntentParserConfig,
+    ProviderExecuteNotImplemented,
 } from "@wonderland/interop-cross-chain";
+import { Hex } from "viem";
 
-class MyCustomProvider extends CrossChainProvider<MyOpenParams> {
+class MyCustomProvider extends CrossChainProvider {
     readonly protocolName = "my-protocol";
+    readonly providerId = "my-protocol-1";
 
-    async getQuote<Action extends MyOpenParams["action"]>(
-        action: Action,
-        params: GetQuoteParams<Action>,
-    ): Promise<GetQuoteResponse<Action, MyOpenParams>> {
+    async getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]> {
         // Implement quote fetching logic
+        // Return array of ExecutableQuote with preparedTransaction
     }
 
-    validateOpenParams(params: MyOpenParams): void {
-        // Implement validation logic
+    async submitSignedOrder(
+        quote: ExecutableQuote,
+        signature: Hex | Uint8Array,
+    ): Promise<PostOrderResponse> {
+        // Implement signed order submission for gasless execution
+        // Throw if not supported:
+        throw new ProviderExecuteNotImplemented("submitSignedOrder not supported");
     }
 
-    async validatedSimulateOpen(params: MyOpenParams): Promise<TransactionRequest[]> {
-        // Implement transaction simulation
+    getTrackingConfig(): {
+        openedIntentParserConfig: OpenedIntentParserConfig;
+        fillWatcherConfig: FillWatcherConfig;
+    } {
+        // Return protocol-specific tracking configuration
     }
 }
 ```
 
-See the [API Reference](./api.md) for more details on implementing custom providers.
-
-## Getting Provider Information
-
-You can get information about a provider:
-
-```typescript
-import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
-
-const provider = createCrossChainProvider("across");
-
-// Get protocol name
-const protocolName = provider.getProtocolName(); // "across"
-```
+See the [API Reference](./api.md) for more details on the provider interface.
 
 ## References
 

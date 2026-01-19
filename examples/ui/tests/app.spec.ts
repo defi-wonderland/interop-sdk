@@ -15,8 +15,9 @@ test('Switch between dark-light theme', async ({ page }) => {
 });
 
 test('Footer links', async ({ page }) => {
-  const sdkDocsLink = await page.getByRole('link', { name: 'Interop SDK' }).getAttribute('href');
-  const wonderlandLink = await page.getByRole('link').last().getAttribute('href');
+  const footer = page.locator('footer');
+  const sdkDocsLink = await footer.getByRole('link', { name: 'Interop SDK' }).getAttribute('href');
+  const wonderlandLink = await footer.getByRole('link').last().getAttribute('href');
 
   expect(sdkDocsLink).toBe('https://docs.interop.wonderland.xyz/');
   expect(wonderlandLink).toBe('https://wonderland.xyz/');
