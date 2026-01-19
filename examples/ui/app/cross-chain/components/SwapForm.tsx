@@ -10,6 +10,7 @@ import {
   SUPPORTED_TOKEN_BY_CHAIN_ID,
   TOKEN_INFO,
 } from '../constants';
+import { isValidAmount, sanitizeAmountInput } from '../utils/amountValidation';
 import { formatAmount } from '../utils/formatting';
 import { WalletConnect } from './WalletConnect';
 import { SpinnerIcon } from './icons';
@@ -56,15 +57,17 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
   const inputTokenInfo = inputTokenAddress ? TOKEN_INFO[inputTokenAddress] : null;
   const displayBalance = tokenBalance ? formatAmount(tokenBalance.value.toString(), inputTokenInfo?.decimals) : '-';
 
+  const amountIsValid = useMemo(() => isValidAmount(inputAmount), [inputAmount]);
+
   const parsedInputAmount = useMemo(() => {
-    if (!inputAmount) return 0n;
+    if (!inputAmount || !amountIsValid) return 0n;
     try {
       const decimals = inputTokenInfo?.decimals || 18;
       return parseUnits(inputAmount, decimals);
     } catch {
       return 0n;
     }
-  }, [inputAmount, inputTokenInfo?.decimals]);
+  }, [inputAmount, inputTokenInfo?.decimals, amountIsValid]);
 
   const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.value);
 
@@ -80,7 +83,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!connectedAddress || !inputTokenAddress || !outputTokenAddress || !inputAmount) {
+    if (!connectedAddress || !inputTokenAddress || !outputTokenAddress || !amountIsValid) {
       return;
     }
     const finalRecipient = recipient.trim() || connectedAddress;
@@ -121,7 +124,8 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
     connectedAddress &&
     inputTokenAddress &&
     outputTokenAddress &&
-    inputAmount &&
+    amountIsValid &&
+    parsedInputAmount > 0n &&
     !isLoading &&
     !isDisabled &&
     !hasInsufficientBalance;
@@ -243,7 +247,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
             id='amount-input'
             type='text'
             value={inputAmount}
-            onChange={(e) => setInputAmount(e.target.value)}
+            onChange={(e) => setInputAmount(sanitizeAmountInput(e.target.value, inputAmount))}
             placeholder='0.0'
             autoComplete='off'
             disabled={isDisabled}
