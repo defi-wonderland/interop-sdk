@@ -32,7 +32,8 @@ describe("EventBasedFillWatcher", () => {
     const mockFillParams: GetFillParams = {
         originChainId: sepolia.id,
         destinationChainId: baseSepolia.id,
-        depositId: 12345n,
+        orderId: "0x0000000000000000000000000000000000000000000000000000000000003039" as Hex,
+        openTxHash: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" as Hex,
         user: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as Address,
         fillDeadline: Math.floor(Date.now() / 1000) + 3600,
     };
@@ -53,6 +54,7 @@ describe("EventBasedFillWatcher", () => {
         vi.mocked(createPublicClient).mockReturnValue(mockPublicClient);
 
         config = {
+            type: "event-based",
             contractAddresses: {
                 [mockFillParams.destinationChainId]: mockContractAddress,
             },
@@ -63,8 +65,8 @@ describe("EventBasedFillWatcher", () => {
                 address: mockContractAddress,
                 event: {} as AbiEvent,
                 args: {
-                    originChainId: BigInt(params.originChainId),
-                    depositId: params.depositId,
+                    originChainId: params.originChainId,
+                    orderId: params.orderId,
                 },
             }),
             extractFillEvent: (log: Log, params: GetFillParams): FillEvent | null => {
@@ -73,7 +75,7 @@ describe("EventBasedFillWatcher", () => {
                     fillTxHash: log.transactionHash,
                     blockNumber: log.blockNumber || 0n,
                     originChainId: params.originChainId,
-                    depositId: params.depositId,
+                    orderId: params.orderId,
                 });
             },
         };
@@ -99,8 +101,8 @@ describe("EventBasedFillWatcher", () => {
                 address: mockContractAddress,
                 event: expect.any(Object) as AbiEvent,
                 args: {
-                    originChainId: BigInt(mockFillParams.originChainId),
-                    depositId: mockFillParams.depositId,
+                    originChainId: mockFillParams.originChainId,
+                    orderId: mockFillParams.orderId,
                 },
                 fromBlock: 10000n, // 50000 - 40000
                 toBlock: "latest",
@@ -124,7 +126,7 @@ describe("EventBasedFillWatcher", () => {
             expect(result?.fillTxHash).toBe(mockLog.transactionHash);
             expect(result?.blockNumber).toBe(mockLog.blockNumber);
             expect(result?.originChainId).toBe(mockFillParams.originChainId);
-            expect(result?.depositId).toBe(mockFillParams.depositId);
+            expect(result?.orderId).toBe(mockFillParams.orderId);
         });
 
         it("should query correct block range (current - 40000 blocks)", async () => {
@@ -171,7 +173,7 @@ describe("EventBasedFillWatcher", () => {
                         blockNumber: log.blockNumber || 0n,
                         timestamp: 0, // Zero timestamp
                         originChainId: params.originChainId,
-                        depositId: params.depositId,
+                        orderId: params.orderId,
                     });
                 },
             };
@@ -258,7 +260,7 @@ describe("EventBasedFillWatcher", () => {
                         blockNumber: log.blockNumber || 0n,
                         timestamp: 0,
                         originChainId: params.originChainId,
-                        depositId: params.depositId,
+                        orderId: params.orderId,
                     });
                 },
             };
@@ -410,7 +412,7 @@ describe("EventBasedFillWatcher", () => {
 
             await expect(waitPromise).rejects.toThrow(FillTimeoutError);
             await expect(waitPromise).rejects.toThrow(
-                `Fill timeout after ${timeout}ms for depositId ${mockFillParams.depositId}`,
+                `Fill timeout after ${timeout}ms for orderId ${mockFillParams.orderId}`,
             );
         });
 

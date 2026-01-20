@@ -1,8 +1,10 @@
 import {
+    APIBasedFillWatcher,
     CrossChainProvider,
     CustomEventOpenedIntentParser,
     EventBasedFillWatcher,
     FillWatcher,
+    FillWatcherConfig,
     OIFOpenedIntentParser,
     OpenedIntentParser,
     OrderTracker,
@@ -43,11 +45,28 @@ export class OrderTrackerFactory {
 
         const fillWatcher =
             config?.fillWatcher ??
-            new EventBasedFillWatcher(trackingConfig.fillWatcherConfig, {
-                clientManager: this.clientManager,
-            });
+            this.createFillWatcher(trackingConfig.fillWatcherConfig as FillWatcherConfig);
 
         return new OrderTracker(openedIntentParser, fillWatcher, this.clientManager);
+    }
+
+    /**
+     * Create a FillWatcher instance based on config type
+     * Supports both event-based (onchain) and API-based (offchain) watchers
+     */
+    private createFillWatcher(config: FillWatcherConfig): FillWatcher {
+        if (config.type === "event-based") {
+            return new EventBasedFillWatcher(config, {
+                clientManager: this.clientManager,
+            });
+        }
+
+        if (config.type === "api-based") {
+            return new APIBasedFillWatcher(config);
+        }
+
+        const _exhaustive: never = config;
+        throw new Error(`Unknown FillWatcher config type: ${JSON.stringify(_exhaustive)}`);
     }
 
     /**
@@ -70,7 +89,6 @@ export class OrderTrackerFactory {
                 throw new Error("API-based OpenedIntentParser not yet implemented");
 
             default:
-                // Exhaustive check
                 const _exhaustive: never = config;
                 throw new Error(
                     `Unknown OpenedIntentParser config type: ${JSON.stringify(_exhaustive)}`,

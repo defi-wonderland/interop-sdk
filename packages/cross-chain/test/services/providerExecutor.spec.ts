@@ -242,20 +242,18 @@ describe("ProviderExecutor", () => {
                 const getOrderStatusSpy = vi.spyOn(tracker, "getOrderStatus");
 
                 const mockFillEvent = createMockFillEvent({
-                    depositId: 123n,
+                    orderId:
+                        "0x000000000000000000000000000000000000000000000000000000000000007b" as Hex,
                 });
 
                 const mockStatus = {
                     status: OrderStatus.Finalized,
-                    orderId: "0xabc123" as Hex,
+                    orderId:
+                        "0x000000000000000000000000000000000000000000000000000000000000007b" as Hex,
                     openTxHash: "0xdef456" as Hex,
                     user: USER_ADDRESS,
                     originChainId: 11155111,
                     destinationChainId: 84532,
-                    fillDeadline: Math.floor(Date.now() / 1000) + 3600,
-                    depositId: 123n,
-                    inputAmount: 1000000000000000000n,
-                    outputAmount: 990000000000000000n,
                     fillEvent: mockFillEvent,
                 };
 
@@ -301,11 +299,11 @@ describe("ProviderExecutor", () => {
                     openTxHash: "0xtx1" as Hex,
                     user: USER_ADDRESS,
                     originChainId: 11155111,
-                    destinationChainId: 84532,
-                    fillDeadline: Math.floor(Date.now() / 1000) + 3600,
-                    depositId: 12345n,
-                    inputAmount: 1000000000000000000n,
-                    outputAmount: 990000000000000000n,
+                    openDeadline: 0,
+                    fillDeadline: 0,
+                    maxSpent: [],
+                    minReceived: [],
+                    fillInstructions: [],
                 });
 
                 await providerExecutor.getOrderStatus({
