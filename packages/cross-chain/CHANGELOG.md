@@ -1,5 +1,13 @@
 # @defi-wonderland/interop-cross-chain
 
+## 0.2.2
+
+### Patch Changes
+
+-   7da2a86: Validations for every supported across api return value. Decoding built data to prevent any malicious injection from the involved centralized servers.
+-   Updated dependencies [5185c3d]
+    -   @wonderland/interop-addresses@0.3.0
+
 ## 0.2.1
 
 ### Minor Changes
