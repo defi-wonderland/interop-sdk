@@ -217,15 +217,35 @@ export const getOrderRequestSchema = z.object({
 });
 
 export const getOrderResponseSchema = z.object({
-    id: z.string(),
+    orderId: z.string(),
     status: orderStatusSchema,
+    quoteId: z.string(),
+    solverId: z.string(),
+    userAddress: z.string(),
+    inputs: z.array(
+        z.object({
+            asset: z.string(),
+            amount: z.string(),
+        }),
+    ),
+    outputs: z.array(
+        z.object({
+            asset: z.string(),
+            amount: z.string(),
+        }),
+    ),
     createdAt: z.number(),
-    updatedAt: z.number(),
-    quoteId: z.string().optional(),
-    inputAmounts: z.array(assetAmountSchema),
-    outputAmounts: z.array(assetAmountSchema),
-    settlement: settlementSchema,
-    fillTransaction: z.record(z.unknown()).optional(),
+    expiresAt: z.number(),
+    fillTxHash: z.string().optional(),
+    claimTxHash: z.string().optional(),
+    executionDetails: z
+        .object({
+            filledAt: z.number().optional(),
+            claimedAt: z.number().optional(),
+            gasUsed: z.string().optional(),
+            totalDuration: z.number().optional(),
+        })
+        .optional(),
 });
 
 export const oifEscrowOrderSchema = z.object({

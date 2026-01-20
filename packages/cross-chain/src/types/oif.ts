@@ -559,7 +559,6 @@ export interface OifUserOpenIntentOrder {
  */
 export interface Quote {
     order: Order;
-
     /** Quote validity timestamp in seconds */
     validUntil?: number;
     /** Estimated time of arrival in seconds */
@@ -568,9 +567,7 @@ export interface Quote {
     quoteId?: string;
     /** Provider identifier */
     provider?: string;
-    /**
-     * Informational amounts for UX/display, must be verified against the order
-     */
+    /** Informational amounts for UX/display, must be verified against the order */
     preview: QuotePreview;
     /** Failure handling policy for execution*/
     failureHandling: FailureHandlingMode;
@@ -837,51 +834,50 @@ export interface GetOrderRequest {
 }
 
 /**
- * Order response for API endpoints
- * @description Complete order information including status, amounts, settlement details, and
- *              transaction data. Returned by GET /orders/{id} endpoint.
- * @example
- * {
- *   id: "order-789-xyz",
- *   status: OrderStatus.Settled,
- *   createdAt: 1699900000,
- *   updatedAt: 1699900100,
- *   quoteId: "quote-123-abc",
- *   inputAmount: [{
- *     asset: "0x000100000101742d35Cc6634C0532925a3b844Bc9e7595f0bEb8",
- *     amount: "1000000000"
- *   }],
- *   outputAmount: [{
- *     asset: "0x000100000101742d35Cc6634C0532925a3b844Bc9e7595f0bEb9",
- *     amount: "500000000000000000"
- *   }],
- *   settlement: {
- *     type: SettlementType.Escrow,
- *     data: { escrowContract: "0x123...", claimable: true }
- *   },
- *   fillTransaction:[ {
- *     hash: "0xabc...",
- *     blockNumber: 18500000
- *   }]
- * }
+ * Order status response from solver API
+ * From: GET /v1/orders/:orderId
+ * @description Complete, self-contained response from OIF-compliant solver APIs.
+ * All data is properly typed - no separate "metadata" needed for compliant APIs.
+ * @see https://docs.openintents.xyz/docs/apis/order-api#get-order-status-1
  */
 export interface GetOrderResponse {
-    /** Unique identifier for this order */
-    id: string;
-    /** Current order status */
+    /** Unique order identifier */
+    orderId: string;
+    /** Current order status using standard OrderStatus enum */
     status: OrderStatus;
-    /** Timestamp when this order was created (Unix timestamp in seconds) */
-    createdAt: number;
-    /** Timestamp when this order was last updated (Unix timestamp in seconds) */
-    updatedAt: number;
-    /** Associated quote ID if available */
-    quoteId?: string;
+    /** Associated quote identifier */
+    quoteId: string;
+    /** ID of the executing solver */
+    solverId: string;
+    /** User's wallet address (EIP-7930 format) */
+    userAddress: string;
     /** Input assets and amounts */
-    inputAmounts: AssetAmount[];
+    inputs: Array<{
+        asset: string;
+        amount: string;
+    }>;
     /** Output assets and amounts */
-    outputAmounts: AssetAmount[];
-    /** Settlement information */
-    settlement: Settlement;
-    /** Transaction details if order has been executed */
-    fillTransaction?: Record<string, unknown>;
+    outputs: Array<{
+        asset: string;
+        amount: string;
+    }>;
+    /** Order creation timestamp (Unix seconds) */
+    createdAt: number;
+    /** Order expiration timestamp (Unix seconds) */
+    expiresAt: number;
+    /** Fill transaction hash (present when filled) */
+    fillTxHash?: string;
+    /** Claim transaction hash (present when claimed) */
+    claimTxHash?: string;
+    /** Execution details with timing and gas information */
+    executionDetails?: {
+        /** Timestamp when outputs were delivered (Unix seconds) */
+        filledAt?: number;
+        /** Timestamp when inputs were claimed (Unix seconds) */
+        claimedAt?: number;
+        /** Gas used for execution */
+        gasUsed?: string;
+        /** Total execution duration in seconds */
+        totalDuration?: number;
+    };
 }

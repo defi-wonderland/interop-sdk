@@ -12,6 +12,36 @@ export const OrderFailureReason = {
 
 export type OrderFailureReason = (typeof OrderFailureReason)[keyof typeof OrderFailureReason];
 
+/**
+ * Token transfer structure from ERC-7683 spec
+ * Represents a token transfer (can be used for both inputs and outputs)
+ * @see https://www.erc7683.org/spec
+ */
+export interface TokenTransfer {
+    /** Token address (bytes32 in spec, represented as Hex for addresses) */
+    token: Hex;
+    /** Token amount (in smallest unit) */
+    amount: bigint;
+    /** Recipient address (bytes32 in spec, represented as Hex for addresses) */
+    recipient: Hex;
+    /** Chain ID where this transfer exists/will be sent (uint256 in spec, but represented as number in SDK) */
+    chainId: number;
+}
+
+/**
+ * FillInstruction structure from ERC-7683 spec
+ * Parameterizes how to fill an order on destination chain
+ * @see https://www.erc7683.org/spec
+ */
+export interface FillInstruction {
+    /** Destination chain ID where fill will occur (uint256 in spec, but represented as number in SDK) */
+    destinationChainId: number;
+    /** Destination settler contract address (bytes32 in spec) */
+    destinationSettler: Hex;
+    /** Origin data passed to fill (protocol-specific) */
+    originData: Hex;
+}
+
 export const OrderTrackerYieldType = {
     Update: "update",
     Timeout: "timeout",
@@ -21,48 +51,49 @@ export type OrderTrackerYieldType =
     (typeof OrderTrackerYieldType)[keyof typeof OrderTrackerYieldType];
 
 /**
- * Opened cross-chain intent parsed from an EIP-7683 Open event.
+ * Opened cross-chain intent parsed from an ERC-7683 Open event.
  *
- * Contains all data extracted from the standard EIP-7683 ResolvedCrossChainOrder struct:
- * - Basic order info (orderId, user, fillDeadline)
- * - Destination chain from fillInstructions
- * - Input/output amounts from maxSpent/minReceived
+ * This interface closely follows the ERC-7683 ResolvedCrossChainOrder structure
+ * with additional SDK metadata fields for tracking.
  *
- * This type represents a fully parsed intent ready for tracking.
- *
- * @see https://eips.ethereum.org/EIPS/eip-7683
+ * @see https://www.erc7683.org/spec - ResolvedCrossChainOrder
  */
 export interface OpenedIntent {
-    /** Unique identifier for this order (bytes32) */
+    /**
+     * ERC-7683 ResolvedCrossChainOrder fields
+     */
+    /** User who created the order (address in spec) */
+    user: Address;
+    /** Origin chain ID (uint256 in spec, but represented as number in SDK) */
+    originChainId: number;
+    /** Open deadline timestamp in Unix seconds (uint32 in spec) */
+    openDeadline: number;
+    /** Fill deadline timestamp in Unix seconds (uint32 in spec) */
+    fillDeadline: number;
+    /** Unique order identifier (bytes32 in spec) */
     orderId: Hex;
+    /** Maximum outputs that the filler will send (caps on liabilities) */
+    maxSpent: TokenTransfer[];
+    /** Minimum amounts the user must receive (floors on receipts) */
+    minReceived: TokenTransfer[];
+    /** Fill instructions for destination chain(s) */
+    fillInstructions: FillInstruction[];
+    /**
+     * SDK metadata fields (not in ERC-7683)
+     */
     /** Transaction hash where the order was opened */
     txHash: Hex;
     /** Block number where the order was opened */
     blockNumber: bigint;
     /** Contract that emitted the open event */
     originContract: Address;
-    /** User who created the order */
-    user: Address;
-    /** Fill deadline timestamp (Unix seconds) */
-    fillDeadline: number;
-    /**
-     * Protocol-specific deposit ID
-     * Derived from orderId for compatibility with protocols like Across
-     */
-    depositId: bigint;
-    /** Destination chain ID where the intent will be filled */
-    destinationChainId: bigint;
-    /** Input token amount (in smallest unit) from maxSpent[0] */
-    inputAmount: bigint;
-    /** Expected output token amount (in smallest unit) from minReceived[0] */
-    outputAmount: bigint;
 }
 
 /**
  * Fill event data from destination chain
- * Protocol-specific implementation
+ * Aligned with ERC-7683 terminology
  */
-export interface FillEvent {
+export interface FillEvent<TMetadata = unknown> {
     /** Transaction hash where the fill occurred */
     fillTxHash: Hex;
     /** Block number where the fill occurred */
@@ -71,20 +102,26 @@ export interface FillEvent {
     timestamp: number;
     /** Origin chain ID */
     originChainId: number;
-    /** Protocol-specific deposit/order ID */
-    depositId: bigint;
-    /** Relayer who filled the order */
+    /** ERC-7683 order identifier (bytes32) */
+    orderId: Hex;
+    /** Relayer/filler who executed the order */
     relayer: Address;
     /** Recipient of the filled order */
     recipient: Address;
+    /**
+     * Optional metadata from API responses
+     * Can include: solver info, fees, routes, multi-hop data, etc.
+     */
+    metadata?: TMetadata;
 }
 
 /**
  * Complete order tracking information (final observed state)
+ * Combines ERC-7683 order data with SDK tracking status
  */
-export interface OrderTrackingInfo {
+export interface OrderTrackingInfo<TMetadata = unknown> {
     status: OrderStatus;
-    /** Order ID */
+    /** ERC-7683 order identifier */
     orderId: Hex;
     /** Transaction hash where order was opened */
     openTxHash: Hex;
@@ -92,18 +129,18 @@ export interface OrderTrackingInfo {
     user: Address;
     /** Origin chain ID */
     originChainId: number;
-    /** Destination chain ID */
-    destinationChainId: number;
+    /** Open deadline timestamp */
+    openDeadline: number;
     /** Fill deadline timestamp */
     fillDeadline: number;
-    /** Protocol-specific deposit ID */
-    depositId: bigint;
-    /** Input token amount from maxSpent[0] */
-    inputAmount: bigint;
-    /** Output token amount from minReceived[0] */
-    outputAmount: bigint;
+    /** Maximum outputs that the filler will send */
+    maxSpent: TokenTransfer[];
+    /** Minimum amounts the user must receive */
+    minReceived: TokenTransfer[];
+    /** Fill instructions for destination chain(s) */
+    fillInstructions: FillInstruction[];
     /** Fill event data (present when status is Finalized) */
-    fillEvent?: FillEvent;
+    fillEvent?: FillEvent<TMetadata>;
     /** Reason for failure (present when status is Failed) */
     failureReason?: OrderFailureReason;
 }
@@ -162,14 +199,17 @@ export interface WatchOrderParams {
 
 /**
  * Parameters for getting fill status on destination chain
+ * Aligned with ERC-7683 terminology
  */
 export interface GetFillParams {
+    /** ERC-7683 order identifier (bytes32) */
+    orderId: Hex;
+    /** Transaction hash where the order was opened (for API-based tracking) */
+    openTxHash: Hex;
     /** Origin chain ID */
     originChainId: number;
     /** Destination chain ID */
     destinationChainId: number;
-    /** Protocol-specific deposit ID */
-    depositId: bigint;
     /** User address (for validation) */
     user: Address;
     /** Fill deadline timestamp */

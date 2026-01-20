@@ -59,7 +59,7 @@ describe("OrderTracker", () => {
             expect(result.status).toBe(OrderStatus.Finalized);
             expect(result.orderId).toBe(mockOpenedIntent.orderId);
             expect(result.fillEvent).toEqual(mockFillEventData);
-            expect(result.depositId).toBe(mockOpenedIntent.depositId);
+            expect(result.orderId).toBe(mockOpenedIntent.orderId);
         });
 
         it("should return Failed with deadline_exceeded when past fillDeadline with no fill", async () => {
@@ -97,11 +97,10 @@ describe("OrderTracker", () => {
             const mockOpenedIntent = createMockOpenedIntent({
                 orderId:
                     "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Hex,
-                depositId: 99999n,
-                destinationChainId: BigInt(mockDestinationChainId),
             });
             const mockFillEventData = createMockFillEvent({
-                depositId: 99999n,
+                orderId:
+                    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Hex,
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
@@ -112,7 +111,7 @@ describe("OrderTracker", () => {
             expect(result.orderId).toBe(mockOpenedIntent.orderId);
             expect(result.user).toBe(mockOpenedIntent.user);
             expect(result.fillDeadline).toBe(mockOpenedIntent.fillDeadline);
-            expect(result.depositId).toBe(mockOpenedIntent.depositId);
+            expect(result.orderId).toBe(mockOpenedIntent.orderId);
             expect(result.destinationChainId).toBe(Number(mockOpenedIntent.destinationChainId));
             expect(result.fillEvent).toEqual(mockFillEventData);
             expect(result.openTxHash).toBe(mockTxHash);
@@ -164,7 +163,14 @@ describe("OrderTracker", () => {
 
         it("should yield correct sequence: pending → pending → pending → finalized (all as updates)", async () => {
             const mockOpenedIntent = createMockOpenedIntent({
-                destinationChainId: BigInt(mockDestinationChainId),
+                fillInstructions: [
+                    {
+                        destinationChainId: mockDestinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
             });
             const mockFillEventData = createMockFillEvent();
 
@@ -198,7 +204,14 @@ describe("OrderTracker", () => {
             const expiredDeadline = Math.floor(Date.now() / 1000) - 120;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: expiredDeadline,
-                destinationChainId: BigInt(mockDestinationChainId),
+                fillInstructions: [
+                    {
+                        destinationChainId: mockDestinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
@@ -227,7 +240,14 @@ describe("OrderTracker", () => {
             const recentDeadline = Math.floor(Date.now() / 1000) - 30;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: recentDeadline,
-                destinationChainId: BigInt(mockDestinationChainId),
+                fillInstructions: [
+                    {
+                        destinationChainId: mockDestinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
             });
             const mockFillEventData = createMockFillEvent();
 
@@ -259,12 +279,19 @@ describe("OrderTracker", () => {
             const expiredDeadline = Math.floor(Date.now() / 1000) - 10;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: expiredDeadline,
-                destinationChainId: BigInt(mockDestinationChainId),
+                fillInstructions: [
+                    {
+                        destinationChainId: mockDestinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
-                new FillTimeoutError(mockOpenedIntent.depositId, 10000),
+                new FillTimeoutError(mockOpenedIntent.orderId, 10000),
             );
 
             const params: WatchOrderParams = {
@@ -290,12 +317,19 @@ describe("OrderTracker", () => {
             const futureDeadline = Math.floor(Date.now() / 1000) + 3600;
             const mockOpenedIntent = createMockOpenedIntent({
                 fillDeadline: futureDeadline,
-                destinationChainId: BigInt(mockDestinationChainId),
+                fillInstructions: [
+                    {
+                        destinationChainId: mockDestinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
-                new FillTimeoutError(mockOpenedIntent.depositId, 10000),
+                new FillTimeoutError(mockOpenedIntent.orderId, 10000),
             );
 
             const params: WatchOrderParams = {
@@ -322,7 +356,14 @@ describe("OrderTracker", () => {
 
         it("should propagate non-FillTimeoutError errors", async () => {
             const mockOpenedIntent = createMockOpenedIntent({
-                destinationChainId: BigInt(mockDestinationChainId),
+                fillInstructions: [
+                    {
+                        destinationChainId: mockDestinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
@@ -350,7 +391,14 @@ describe("OrderTracker", () => {
             vi.useFakeTimers();
 
             const mockOpenedIntent = createMockOpenedIntent({
-                destinationChainId: BigInt(mockDestinationChainId),
+                fillInstructions: [
+                    {
+                        destinationChainId: mockDestinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockImplementation(async () => {
@@ -494,7 +542,7 @@ describe("OrderTracker", () => {
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
-                new FillTimeoutError(mockOpenedIntent.depositId, 10000),
+                new FillTimeoutError(mockOpenedIntent.orderId, 10000),
             );
             vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
 

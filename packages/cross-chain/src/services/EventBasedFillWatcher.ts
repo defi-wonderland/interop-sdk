@@ -5,19 +5,23 @@ import {
     FillWatcher,
     getChainById,
     GetFillParams,
+    OrderFailureReason,
+    OrderStatus,
     PublicClientManager,
 } from "../internal.js";
 
 export class FillTimeoutError extends Error {
-    constructor(depositId: bigint, timeout: number) {
+    constructor(orderId: string, timeout: number) {
         super(
-            `Fill timeout after ${timeout}ms for depositId ${depositId}. The intent may still be filled later.`,
+            `Fill timeout after ${timeout}ms for orderId ${orderId}. The intent may still be filled later.`,
         );
         this.name = "FillTimeoutError";
     }
 }
 
-export interface FillWatcherConfig {
+export interface EventBasedFillWatcherConfig {
+    /** Discriminator for FillWatcher config union */
+    type: "event-based";
     /** Contract addresses per chain ID where fill events are emitted */
     contractAddresses: Record<number, Address>;
     /** Event ABI for the fill event */
@@ -45,7 +49,7 @@ export interface EventBasedFillWatcherDependencies {
  */
 export class EventBasedFillWatcher implements FillWatcher {
     constructor(
-        private readonly config: FillWatcherConfig,
+        private readonly config: EventBasedFillWatcherConfig,
         private readonly dependencies: EventBasedFillWatcherDependencies,
     ) {}
 
@@ -57,10 +61,14 @@ export class EventBasedFillWatcher implements FillWatcher {
      * Get the current fill status on the destination chain (single check)
      *
      * @param params - Parameters for getting the fill
-     * @returns Fill event data if found, null if not yet filled
+     * @returns Fill event data (null if not filled), order status, and optional failure reason
      * @note Only searches the last 40,000 blocks. Older fills will not be detected.
      */
-    async getFill(params: GetFillParams): Promise<FillEvent | null> {
+    async getFill(params: GetFillParams): Promise<{
+        fillEvent: FillEvent | null;
+        status: OrderStatus;
+        failureReason?: OrderFailureReason;
+    }> {
         const { destinationChainId } = params;
 
         const destinationChain = getChainById(destinationChainId);
@@ -86,17 +94,17 @@ export class EventBasedFillWatcher implements FillWatcher {
             });
 
             if (logs.length === 0) {
-                return null;
+                return this.determineStatus(null, params.fillDeadline);
             }
 
             const log = logs[0];
             if (!log || !log.transactionHash) {
-                return null;
+                return this.determineStatus(null, params.fillDeadline);
             }
 
             const fillEvent = this.config.extractFillEvent(log, params);
             if (!fillEvent) {
-                return null;
+                return this.determineStatus(null, params.fillDeadline);
             }
 
             // Get block timestamp if not already set
@@ -105,14 +113,38 @@ export class EventBasedFillWatcher implements FillWatcher {
                 fillEvent.timestamp = Number(block.timestamp);
             }
 
-            return fillEvent;
+            return { fillEvent, status: OrderStatus.Finalized, failureReason: undefined };
         } catch (error) {
             // Log error but don't throw - treat as not filled yet
             console.error(
                 `Error querying fill events: ${error instanceof Error ? error.message : "Unknown error"}`,
             );
-            return null;
+            return this.determineStatus(null, params.fillDeadline);
         }
+    }
+
+    /**
+     * Determine order status based on fill event and deadline
+     * For event-based tracking, we infer status from available data
+     */
+    private determineStatus(
+        fillEvent: FillEvent | null,
+        fillDeadline: number,
+    ): { fillEvent: FillEvent | null; status: OrderStatus; failureReason?: OrderFailureReason } {
+        if (fillEvent) {
+            return { fillEvent, status: OrderStatus.Finalized, failureReason: undefined };
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        if (now > fillDeadline) {
+            return {
+                fillEvent: null,
+                status: OrderStatus.Failed,
+                failureReason: OrderFailureReason.DeadlineExceeded,
+            };
+        }
+
+        return { fillEvent: null, status: OrderStatus.Pending, failureReason: undefined };
     }
 
     /**
@@ -133,7 +165,7 @@ export class EventBasedFillWatcher implements FillWatcher {
         const startTime = Date.now();
 
         while (Date.now() - startTime < timeout) {
-            const fillEvent = await this.getFill(params);
+            const { fillEvent } = await this.getFill(params);
 
             if (fillEvent) {
                 return fillEvent;
@@ -142,6 +174,6 @@ export class EventBasedFillWatcher implements FillWatcher {
             await new Promise((resolve) => setTimeout(resolve, pollingInterval));
         }
 
-        throw new FillTimeoutError(params.depositId, timeout);
+        throw new FillTimeoutError(params.orderId, timeout);
     }
 }

@@ -45,6 +45,6 @@ export class CustomEventOpenedIntentParser implements OpenedIntentParser {
             throw new OpenedIntentNotFoundError(txHash, this.config.protocolName);
         }
 
-        return this.config.extractOpenedIntent(openLog, txHash, receipt.blockNumber);
+        return this.config.extractOpenedIntent(openLog, txHash, receipt.blockNumber, chainId);
     }
 }
