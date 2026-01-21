@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { nameToBinary } from '@wonderland/interop-addresses';
-import { crossChainExecutor } from '../services/sdk';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
+import { useCrossChainExecutor } from './useCrossChainExecutor';
+import { useTokenConfig } from './useNetworkConfig';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 
 /**
@@ -35,6 +36,8 @@ interface UseQuotesReturn {
 }
 
 export function useQuotes(): UseQuotesReturn {
+  const crossChainExecutor = useCrossChainExecutor();
+  const tokenConfig = useTokenConfig();
   const [quotes, setQuotes] = useState<ExecutableQuote[]>([]);
   const [errors, setErrors] = useState<GetQuotesError[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +49,12 @@ export function useQuotes(): UseQuotesReturn {
 
     try {
       // Convert amount to smallest unit (wei/smallest unit)
-      const amountInSmallestUnit = convertAmountToSmallestUnit(params.inputAmount, params.inputTokenAddress);
+      const amountInSmallestUnit = convertAmountToSmallestUnit(
+        params.inputAmount,
+        params.inputTokenAddress,
+        params.inputChainId,
+        tokenConfig.TOKEN_INFO,
+      );
 
       // Convert addresses to EIP-7930 interoperable format
       const [userAddress, inputAssetAddress, receiverAddress, outputAssetAddress] = await Promise.all([

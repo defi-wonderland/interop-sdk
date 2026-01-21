@@ -3,13 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { parseUnits } from 'viem';
 import { useAccount, useBalance } from 'wagmi';
-import {
-  SUPPORTED_CHAINS,
-  DEFAULT_INPUT_CHAIN_ID,
-  DEFAULT_OUTPUT_CHAIN_ID,
-  SUPPORTED_TOKEN_BY_CHAIN_ID,
-  TOKEN_INFO,
-} from '../constants';
+import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { isValidAmount, sanitizeAmountInput } from '../utils/amountValidation';
 import { formatAmount } from '../utils/formatting';
 import { WalletConnect } from './WalletConnect';
@@ -30,23 +24,34 @@ interface SwapFormProps {
   isDisabled?: boolean;
 }
 
-function getDefaultToken(chainId: number): string {
-  const tokens = SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
-  return tokens[0] || '';
-}
-
 export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: SwapFormProps) {
   const { address: connectedAddress, isConnected } = useAccount();
+  const chainConfig = useChainConfig();
+  const tokenConfig = useTokenConfig();
+
+  const getDefaultToken = (chainId: number): string => {
+    const tokens = tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
+    return tokens[0] || '';
+  };
+
   const [recipient, setRecipient] = useState('');
   const hasAutoFilledRef = useRef(false);
-  const [inputChainId, setInputChainId] = useState<number>(DEFAULT_INPUT_CHAIN_ID);
-  const [outputChainId, setOutputChainId] = useState<number>(DEFAULT_OUTPUT_CHAIN_ID);
-  const [inputTokenAddress, setInputTokenAddress] = useState(() => getDefaultToken(DEFAULT_INPUT_CHAIN_ID));
-  const [outputTokenAddress, setOutputTokenAddress] = useState(() => getDefaultToken(DEFAULT_OUTPUT_CHAIN_ID));
+  const [inputChainId, setInputChainId] = useState<number>(chainConfig.DEFAULT_INPUT_CHAIN_ID);
+  const [outputChainId, setOutputChainId] = useState<number>(chainConfig.DEFAULT_OUTPUT_CHAIN_ID);
+  const [inputTokenAddress, setInputTokenAddress] = useState(() => getDefaultToken(chainConfig.DEFAULT_INPUT_CHAIN_ID));
+  const [outputTokenAddress, setOutputTokenAddress] = useState(() =>
+    getDefaultToken(chainConfig.DEFAULT_OUTPUT_CHAIN_ID),
+  );
   const [inputAmount, setInputAmount] = useState('');
 
-  const inputTokens = useMemo(() => SUPPORTED_TOKEN_BY_CHAIN_ID[inputChainId] || [], [inputChainId]);
-  const outputTokens = useMemo(() => SUPPORTED_TOKEN_BY_CHAIN_ID[outputChainId] || [], [outputChainId]);
+  const inputTokens = useMemo(
+    () => tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[inputChainId] || [],
+    [inputChainId, tokenConfig],
+  );
+  const outputTokens = useMemo(
+    () => tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[outputChainId] || [],
+    [outputChainId, tokenConfig],
+  );
 
   const { data: tokenBalance, isLoading: isBalanceLoading } = useBalance({
     address: isConnected ? connectedAddress : undefined,
@@ -54,7 +59,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
     chainId: inputChainId,
   });
 
-  const inputTokenInfo = inputTokenAddress ? TOKEN_INFO[inputTokenAddress] : null;
+  const inputTokenInfo = inputTokenAddress ? tokenConfig.TOKEN_INFO[inputChainId]?.[inputTokenAddress] : null;
   const displayBalance = tokenBalance ? formatAmount(tokenBalance.value.toString(), inputTokenInfo?.decimals) : '-';
 
   const amountIsValid = useMemo(() => isValidAmount(inputAmount), [inputAmount]);
@@ -87,7 +92,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
       return;
     }
     const finalRecipient = recipient.trim() || connectedAddress;
-    const tokenInfo = TOKEN_INFO[inputTokenAddress];
+    const tokenInfo = tokenConfig.TOKEN_INFO[inputChainId]?.[inputTokenAddress];
     const decimals = tokenInfo?.decimals || 18;
     const inputAmountRaw = parseUnits(inputAmount, decimals);
 
@@ -105,7 +110,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
 
   const handleInputChainChange = (chainId: number) => {
     setInputChainId(chainId);
-    const tokens = SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
+    const tokens = tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
     if (tokens.length > 0) {
       setInputTokenAddress(tokens[0]);
     }
@@ -113,7 +118,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
 
   const handleOutputChainChange = (chainId: number) => {
     setOutputChainId(chainId);
-    const tokens = SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
+    const tokens = tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
     if (tokens.length > 0) {
       setOutputTokenAddress(tokens[0]);
     }
@@ -179,7 +184,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               disabled={isDisabled}
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {SUPPORTED_CHAINS.map((chain) => (
+              {chainConfig.SUPPORTED_CHAINS.map((chain) => (
                 <option key={chain.id} value={chain.id}>
                   {chain.name}
                 </option>
@@ -193,7 +198,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {inputTokens.map((token) => {
-                const info = TOKEN_INFO[token];
+                const info = tokenConfig.TOKEN_INFO[inputChainId]?.[token];
                 return (
                   <option key={token} value={token}>
                     {info?.symbol || token.slice(0, 8)}
@@ -214,7 +219,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               disabled={isDisabled}
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {SUPPORTED_CHAINS.map((chain) => (
+              {chainConfig.SUPPORTED_CHAINS.map((chain) => (
                 <option key={chain.id} value={chain.id}>
                   {chain.name}
                 </option>
@@ -228,7 +233,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {outputTokens.map((token) => {
-                const info = TOKEN_INFO[token];
+                const info = tokenConfig.TOKEN_INFO[outputChainId]?.[token];
                 return (
                   <option key={token} value={token}>
                     {info?.symbol || token.slice(0, 8)}
