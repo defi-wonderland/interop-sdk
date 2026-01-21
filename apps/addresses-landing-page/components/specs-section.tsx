@@ -21,7 +21,7 @@ export function SpecsSection() {
                             implementation profile.
                         </p>
                         <a
-                            href="https://chainagnostic.org/CAIPs/caip-350"
+                            href="https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-350.md"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-mono text-sm md:text-[0.9375rem] lg:text-base underline hover:no-underline"

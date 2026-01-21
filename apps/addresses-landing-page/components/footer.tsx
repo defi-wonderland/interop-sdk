@@ -7,7 +7,7 @@ export function Footer() {
                         <h3 className="font-semibold mb-4 text-foreground">Specifications</h3>
                         <div className="space-y-2 text-muted-foreground">
                             <a
-                                href="https://chainagnostic.org/CAIPs/caip-350"
+                                href="https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-350.md"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="block hover:text-foreground transition-colors"
