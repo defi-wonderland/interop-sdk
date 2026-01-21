@@ -96,7 +96,8 @@ describe("EventBasedFillWatcher", () => {
 
             const result = await watcher.getFill(mockFillParams);
 
-            expect(result).toBeNull();
+            expect(result.fillEvent).toBeNull();
+            expect(result.status).toBe("pending");
             expect(mockGetLogs).toHaveBeenCalledWith({
                 address: mockContractAddress,
                 event: expect.any(Object) as AbiEvent,
@@ -122,11 +123,12 @@ describe("EventBasedFillWatcher", () => {
 
             const result = await watcher.getFill(mockFillParams);
 
-            expect(result).not.toBeNull();
-            expect(result?.fillTxHash).toBe(mockLog.transactionHash);
-            expect(result?.blockNumber).toBe(mockLog.blockNumber);
-            expect(result?.originChainId).toBe(mockFillParams.originChainId);
-            expect(result?.orderId).toBe(mockFillParams.orderId);
+            expect(result.fillEvent).not.toBeNull();
+            expect(result.status).toBe("finalized");
+            expect(result.fillEvent?.fillTxHash).toBe(mockLog.transactionHash);
+            expect(result.fillEvent?.blockNumber).toBe(mockLog.blockNumber);
+            expect(result.fillEvent?.originChainId).toBe(mockFillParams.originChainId);
+            expect(result.fillEvent?.orderId).toBe(mockFillParams.orderId);
         });
 
         it("should query correct block range (current - 40000 blocks)", async () => {
@@ -189,7 +191,7 @@ describe("EventBasedFillWatcher", () => {
 
             const result = await watcherWithZeroTimestamp.getFill(mockFillParams);
 
-            expect(result?.timestamp).toBe(1234567890);
+            expect(result.fillEvent?.timestamp).toBe(1234567890);
             expect(mockGetBlock).toHaveBeenCalledWith({ blockNumber: mockLog.blockNumber });
         });
 
@@ -212,7 +214,8 @@ describe("EventBasedFillWatcher", () => {
 
             const result = await watcher.getFill(mockFillParams);
 
-            expect(result).toBeNull();
+            expect(result.fillEvent).toBeNull();
+            expect(result.status).toBe("pending");
             expect(consoleErrorSpy).toHaveBeenCalledWith(
                 "Error querying fill events: RPC request failed",
             );
@@ -230,7 +233,8 @@ describe("EventBasedFillWatcher", () => {
 
             const result = await watcher.getFill(mockFillParams);
 
-            expect(result).toBeNull();
+            expect(result.fillEvent).toBeNull();
+            expect(result.status).toBe("pending");
         });
 
         it("should return null when getBlockNumber fails", async () => {
@@ -240,7 +244,8 @@ describe("EventBasedFillWatcher", () => {
 
             const result = await watcher.getFill(mockFillParams);
 
-            expect(result).toBeNull();
+            expect(result.fillEvent).toBeNull();
+            expect(result.status).toBe("pending");
             expect(consoleErrorSpy).toHaveBeenCalledWith(
                 "Error querying fill events: Network error",
             );
@@ -278,7 +283,8 @@ describe("EventBasedFillWatcher", () => {
 
             const result = await watcherWithZeroTimestamp.getFill(mockFillParams);
 
-            expect(result).toBeNull();
+            expect(result.fillEvent).toBeNull();
+            expect(result.status).toBe("pending");
             expect(consoleErrorSpy).toHaveBeenCalledWith(
                 "Error querying fill events: Block not found",
             );
@@ -304,9 +310,10 @@ describe("EventBasedFillWatcher", () => {
 
             const result = await watcher.getFill(mockFillParams);
 
-            expect(result).not.toBeNull();
-            expect(result?.fillTxHash).toBe(firstLog.transactionHash);
-            expect(result?.blockNumber).toBe(1000000n);
+            expect(result.fillEvent).not.toBeNull();
+            expect(result.status).toBe("finalized");
+            expect(result.fillEvent?.fillTxHash).toBe(firstLog.transactionHash);
+            expect(result.fillEvent?.blockNumber).toBe(1000000n);
         });
 
         it("should return null when extractFillEvent returns null", async () => {
@@ -325,7 +332,8 @@ describe("EventBasedFillWatcher", () => {
 
             const result = await watcherWithNullExtractor.getFill(mockFillParams);
 
-            expect(result).toBeNull();
+            expect(result.fillEvent).toBeNull();
+            expect(result.status).toBe("pending");
         });
 
         it("should use block 0 when current block equals max range", async () => {

@@ -82,11 +82,9 @@ describe("CustomEventOpenedIntentParser", () => {
             expect(result.orderId).toBe(
                 "0x0000000000000000000000000000000000000000000000000000000000003039",
             );
-            expect(result.inputAmount).toBe(1000000000000000000n);
-            expect(result.outputAmount).toBe(990000000000000000n);
-            expect(result.destinationChainId).toBe(84532n);
             expect(result.txHash).toBe(mockTxHash);
             expect(result.blockNumber).toBe(1000000n);
+            expect(result.originChainId).toBe(11155111);
         });
 
         it("should throw OpenedIntentNotFoundError when event not found", async () => {
@@ -204,7 +202,7 @@ describe("CustomEventOpenedIntentParser", () => {
 
             await parserWithSpy.getOpenedIntent(mockTxHash, mockChainId);
 
-            expect(extractSpy).toHaveBeenCalledWith(mockLog, mockTxHash, 1000000n);
+            expect(extractSpy).toHaveBeenCalledWith(mockLog, mockTxHash, 1000000n, mockChainId);
         });
 
         it("should use correct chain client", async () => {
