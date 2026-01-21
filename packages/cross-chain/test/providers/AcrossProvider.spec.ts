@@ -168,11 +168,14 @@ describe("AcrossProvider", () => {
                 );
             }
 
-            // fillWatcherConfig
-            expect(config.fillWatcherConfig.contractAddresses).toBeDefined();
-            expect(config.fillWatcherConfig.eventAbi).toBeDefined();
-            expect(typeof config.fillWatcherConfig.buildLogsArgs).toBe("function");
-            expect(typeof config.fillWatcherConfig.extractFillEvent).toBe("function");
+            // fillWatcherConfig - for API-based tracking
+            expect(config.fillWatcherConfig).toBeDefined();
+            expect(config.fillWatcherConfig.type).toBe("api-based");
+            if (config.fillWatcherConfig.type === "api-based") {
+                expect(config.fillWatcherConfig.baseUrl).toBeDefined();
+                expect(typeof config.fillWatcherConfig.buildEndpoint).toBe("function");
+                expect(typeof config.fillWatcherConfig.extractFillEvent).toBe("function");
+            }
         });
     });
 });

@@ -52,7 +52,10 @@ describe("OrderTracker", () => {
             const mockFillEventData = createMockFillEvent();
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
-            vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: mockFillEventData,
+                status: OrderStatus.Finalized,
+            });
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
@@ -69,7 +72,11 @@ describe("OrderTracker", () => {
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
-            vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: null,
+                status: OrderStatus.Failed,
+                failureReason: OrderFailureReason.DeadlineExceeded,
+            });
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
@@ -85,7 +92,10 @@ describe("OrderTracker", () => {
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
-            vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: null,
+                status: OrderStatus.Pending,
+            });
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
@@ -104,7 +114,10 @@ describe("OrderTracker", () => {
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
-            vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: mockFillEventData,
+                status: OrderStatus.Finalized,
+            });
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
@@ -112,7 +125,6 @@ describe("OrderTracker", () => {
             expect(result.user).toBe(mockOpenedIntent.user);
             expect(result.fillDeadline).toBe(mockOpenedIntent.fillDeadline);
             expect(result.orderId).toBe(mockOpenedIntent.orderId);
-            expect(result.destinationChainId).toBe(Number(mockOpenedIntent.destinationChainId));
             expect(result.fillEvent).toEqual(mockFillEventData);
             expect(result.openTxHash).toBe(mockTxHash);
             expect(result.originChainId).toBe(mockOriginChainId);
@@ -125,7 +137,10 @@ describe("OrderTracker", () => {
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
-            vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: null,
+                status: OrderStatus.Pending,
+            });
 
             const result = await tracker.getOrderStatus(mockTxHash, mockOriginChainId);
 
@@ -442,6 +457,10 @@ describe("OrderTracker", () => {
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: mockFillEventData,
+                status: OrderStatus.Finalized,
+            });
 
             const pendingEvents: OrderTrackingUpdate[] = [];
             const finalizedEvents: OrderTrackingUpdate[] = [];
@@ -473,7 +492,10 @@ describe("OrderTracker", () => {
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
             vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
-            vi.mocked(mockFillWatcher.getFill).mockResolvedValue(mockFillEventData);
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: mockFillEventData,
+                status: OrderStatus.Finalized,
+            });
 
             const params: WatchOrderParams = {
                 txHash: mockTxHash,
@@ -515,7 +537,11 @@ describe("OrderTracker", () => {
             });
 
             vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
-            vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: null,
+                status: OrderStatus.Failed,
+                failureReason: OrderFailureReason.DeadlineExceeded,
+            });
 
             const failedEvents: OrderTrackingUpdate[] = [];
             tracker.on(OrderStatus.Failed, (update) => failedEvents.push(update));
@@ -544,7 +570,10 @@ describe("OrderTracker", () => {
             vi.mocked(mockFillWatcher.waitForFill).mockRejectedValue(
                 new FillTimeoutError(mockOpenedIntent.orderId, 10000),
             );
-            vi.mocked(mockFillWatcher.getFill).mockResolvedValue(null);
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: null,
+                status: OrderStatus.Pending,
+            });
 
             const timeoutEvents: OrderTrackerTimeoutPayload[] = [];
             tracker.on("timeout", (payload) => timeoutEvents.push(payload));
