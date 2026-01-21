@@ -10,6 +10,8 @@ This package provides methods to convert between interoperable names (ERC-7828),
 pnpm add @wonderland/interop-addresses
 ```
 
+> **Tip:** Set `MAINNET_RPC_URL` env var for faster ENS resolution.
+
 ## Architecture
 
 The package follows a clean two-layer architecture:
