@@ -28,7 +28,7 @@ jobs:
               working-directory: .
 
             - name: Build packages
-              run: pnpm build
+              run: pnpm build --filter=@examples/ui...
               working-directory: .
 
             - name: Cache Playwright browsers
@@ -38,7 +38,7 @@ jobs:
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
             - name: Install Playwright Browsers
-              run: pnpm exec playwright install --with-deps
+              run: pnpm exec playwright install chromium --with-deps
 
             - name: Run Playwright tests
               run: pnpm exec playwright test
