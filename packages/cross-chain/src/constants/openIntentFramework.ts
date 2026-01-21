@@ -3,6 +3,19 @@
  */
 import type { Address, Hex } from "viem";
 
+/**
+ * Supported OIF order types for validation.
+ * Only these order types will be validated by the OIF payload validator.
+ */
+export const OIF_ORDER_TYPES = [
+    "oif-escrow-v0",
+    "oif-resource-lock-v0",
+    "oif-3009-v0",
+    "oif-user-open-v0",
+] as const;
+
+export type OifOrderType = (typeof OIF_ORDER_TYPES)[number];
+
 export const OPEN_ABI = [
     {
         inputs: [

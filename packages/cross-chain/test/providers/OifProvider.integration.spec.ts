@@ -6,7 +6,7 @@ import { mainnet } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { OifProvider } from "../../src/external.js";
-import { getMockedOifQuoteResponse, MOCK_QUOTE_IDS } from "../mocks/oifApi.js";
+import { getMockedOifQuoteResponse } from "../mocks/oif/index.js";
 
 vi.mock("axios");
 
@@ -34,9 +34,7 @@ describe("OifProvider Integration Tests", () => {
                 transport: http(),
             });
 
-            // Using standard 20-byte addresses because EIP-712 'address' type must be exactly 20 bytes.
-            // OIF solvers accept ERC-7930 in requests but return standard addresses in EIP-712 messages.
-            const mockResponse = getMockedOifQuoteResponse({ useInteroperableAddresses: false });
+            const mockResponse = getMockedOifQuoteResponse();
             const quote = mockResponse.quotes[0];
             if (!quote) throw new Error("No quote in mock");
             if (quote.order.type !== "oif-escrow-v0") throw new Error("Expected escrow order");
@@ -75,7 +73,7 @@ describe("OifProvider Integration Tests", () => {
             expect(url).toBe(`${MOCK_SOLVER_URL}/v1/orders`);
             expect(body.signature).toBeInstanceOf(Uint8Array);
             expect(body.signature).toHaveLength(65);
-            expect(body.quoteId).toBe(MOCK_QUOTE_IDS.ESCROW_STANDARD);
+            expect(body.quoteId).toBe("test-quote-escrow");
         });
     });
 });
