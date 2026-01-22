@@ -184,9 +184,9 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               disabled={isDisabled}
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {chainConfig.SUPPORTED_CHAINS.map((chain) => (
-                <option key={chain.id} value={chain.id}>
-                  {chain.name}
+              {chainConfig.SUPPORTED_CHAINS.map((c) => (
+                <option key={c.chain.id} value={c.chain.id}>
+                  {c.name}
                 </option>
               ))}
             </select>
@@ -219,9 +219,9 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               disabled={isDisabled}
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {chainConfig.SUPPORTED_CHAINS.map((chain) => (
-                <option key={chain.id} value={chain.id}>
-                  {chain.name}
+              {chainConfig.SUPPORTED_CHAINS.map((c) => (
+                <option key={c.chain.id} value={c.chain.id}>
+                  {c.name}
                 </option>
               ))}
             </select>
