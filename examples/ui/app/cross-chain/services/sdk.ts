@@ -4,22 +4,8 @@ import {
   createProviderExecutor,
   OrderTrackerFactory,
 } from '@wonderland/interop-cross-chain';
-import { arbitrum, arbitrumSepolia, base, baseSepolia, sepolia } from 'viem/chains';
 import { IS_TESTNET } from '../config/network';
-
-/**
- * RPC URLs based on current network
- */
-const MAINNET_RPC_URLS: Record<number, string> = {
-  [base.id]: 'https://base-rpc.publicnode.com',
-  [arbitrum.id]: 'https://arbitrum-one-rpc.publicnode.com',
-};
-
-const TESTNET_RPC_URLS: Record<number, string> = {
-  [sepolia.id]: 'https://ethereum-sepolia-rpc.publicnode.com',
-  [baseSepolia.id]: 'https://base-sepolia-rpc.publicnode.com',
-  [arbitrumSepolia.id]: 'https://api.zan.top/arb-sepolia',
-};
+import { MAINNET_RPC_URLS, TESTNET_RPC_URLS } from '../constants/chains';
 
 const RPC_URLS = IS_TESTNET ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
 
