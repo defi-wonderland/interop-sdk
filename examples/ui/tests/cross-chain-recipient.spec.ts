@@ -8,8 +8,11 @@ test.beforeEach(async ({ page }) => {
 test.describe('Recipient address input', () => {
   test('auto-fills with connected address on load', async ({ page }) => {
     const recipientInput = page.getByLabel('Recipient Address');
-    const value = await recipientInput.inputValue();
-    expect(isAddress(value)).toBe(true);
+
+    await expect(async () => {
+      const value = await recipientInput.inputValue();
+      expect(isAddress(value)).toBe(true);
+    }).toPass({ timeout: 500 });
   });
 
   test('allows user to clear input', async ({ page }) => {
