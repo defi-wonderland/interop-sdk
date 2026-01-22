@@ -4,8 +4,8 @@ import type { SuccessViewProps } from './types';
 
 export function SuccessView({ state, onReset }: SuccessViewProps) {
   const chainConfig = useChainConfig();
-  const originChain = chainConfig.getChainConfig(state.originChainId);
-  const destinationChain = chainConfig.getChainConfig(state.destinationChainId);
+  const originChain = chainConfig.getChain(state.originChainId);
+  const destinationChain = chainConfig.getChain(state.destinationChainId);
   const originTxUrl = chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
   const fillTxHash = state.update.fillTxHash;
   const fillTxUrl = chainConfig.getExplorerTxUrl(state.destinationChainId, fillTxHash);
