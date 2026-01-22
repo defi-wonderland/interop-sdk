@@ -36,7 +36,7 @@ const resolveENSName = async (ensName: string, chainReference: string): Promise<
     try {
         const client = createPublicClient({
             chain: chains.mainnet,
-            transport: http(),
+            transport: http(process.env.MAINNET_RPC_URL),
         });
 
         const chainId = Number(chainReference);

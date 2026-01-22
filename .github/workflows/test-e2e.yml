@@ -38,6 +38,7 @@ jobs:
               run: pnpm exec playwright test
               env:
                   NEXT_PUBLIC_E2E: "true"
+                  MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
 
             - uses: actions/upload-artifact@v4
               if: always()
