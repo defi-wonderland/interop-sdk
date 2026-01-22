@@ -32,6 +32,7 @@ import {
     ExecutableQuote,
     FillEvent,
     FillWatcherConfig,
+    getAcrossApiUrl,
     getChainById,
     GetFillParams,
     InvalidOpenEventError,
@@ -57,6 +58,7 @@ export class AcrossProvider extends CrossChainProvider {
     readonly protocolName = AcrossProvider.PROTOCOL_NAME;
     readonly providerId: string;
     private readonly apiUrl: string;
+    private readonly isTestnet: boolean;
     private readonly rpcClientCache: Map<number, PublicClient> = new Map();
 
     constructor(config: AcrossConfigs) {
@@ -64,7 +66,8 @@ export class AcrossProvider extends CrossChainProvider {
 
         try {
             const configParsed = AcrossConfigSchema.parse(config);
-            this.apiUrl = configParsed.apiUrl;
+            this.isTestnet = configParsed.isTestnet ?? false;
+            this.apiUrl = configParsed.apiUrl || getAcrossApiUrl(this.isTestnet);
             this.providerId = configParsed.providerId;
         } catch (error) {
             if (error instanceof ZodError) {

@@ -6,10 +6,13 @@ import { injectedWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/
 import '@rainbow-me/rainbowkit/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { e2eConnector } from '@wonderland/walletless';
-import { sepolia, baseSepolia, arbitrumSepolia } from 'viem/chains';
+import { base, arbitrum, sepolia, baseSepolia, arbitrumSepolia, type Chain } from 'viem/chains';
 import { WagmiProvider, createConfig, http, cookieStorage, createStorage } from 'wagmi';
+import { IS_TESTNET } from '../cross-chain/config/network';
+import { useRpcUrls } from '../cross-chain/hooks/useNetworkConfig';
 
-const chains = [sepolia, baseSepolia, arbitrumSepolia] as const;
+const MAINNET_CHAINS = [base, arbitrum] as const;
+const TESTNET_CHAINS = [sepolia, baseSepolia, arbitrumSepolia] as const;
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 const isE2E = process.env.NEXT_PUBLIC_E2E === 'true';
@@ -21,17 +24,18 @@ function getWallets() {
   return [injectedWallet];
 }
 
-function getConfig() {
+function createWagmiConfig(isTestnet: boolean, rpcUrls: Record<number, string>) {
+  const chains: readonly [Chain, ...Chain[]] = isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS;
+
+  // Build transports dynamically based on selected chains
+  const transports = Object.fromEntries(chains.map((chain) => [chain.id, http(rpcUrls[chain.id])]));
+
   if (isE2E) {
     return createConfig({
       chains,
       ssr: true,
       connectors: [e2eConnector()],
-      transports: {
-        [sepolia.id]: http(),
-        [baseSepolia.id]: http(),
-        [arbitrumSepolia.id]: http(),
-      },
+      transports,
     });
   }
 
@@ -46,11 +50,7 @@ function getConfig() {
     storage: createStorage({
       storage: cookieStorage,
     }),
-    transports: {
-      [sepolia.id]: http(),
-      [baseSepolia.id]: http(),
-      [arbitrumSepolia.id]: http(),
-    },
+    transports,
     connectors,
   });
 }
@@ -60,7 +60,8 @@ interface WalletProviderProps {
 }
 
 export function WalletProvider({ children }: WalletProviderProps) {
-  const [config] = useState(() => getConfig());
+  const rpcUrls = useRpcUrls();
+  const [config] = useState(() => createWagmiConfig(IS_TESTNET, rpcUrls));
   const [queryClient] = useState(() => new QueryClient());
 
   return (

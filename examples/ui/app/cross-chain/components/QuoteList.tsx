@@ -16,6 +16,8 @@ interface QuoteListProps {
   errors: ErrorItem[];
   inputTokenAddress: string;
   outputTokenAddress: string;
+  inputChainId: number;
+  outputChainId: number;
   selectedQuoteId?: string;
   executionState?: BridgeState;
   isLoading?: boolean;
@@ -97,6 +99,8 @@ export function QuoteList({
   errors,
   inputTokenAddress,
   outputTokenAddress,
+  inputChainId,
+  outputChainId,
   selectedQuoteId,
   executionState,
   isLoading = false,
@@ -128,6 +132,8 @@ export function QuoteList({
             quote={quote}
             inputTokenAddress={inputTokenAddress}
             outputTokenAddress={outputTokenAddress}
+            inputChainId={inputChainId}
+            outputChainId={outputChainId}
             isSelected={selectedQuoteId === quote.quoteId}
             executionState={selectedQuoteId === quote.quoteId ? executionState : undefined}
             onSelect={onSelectQuote}

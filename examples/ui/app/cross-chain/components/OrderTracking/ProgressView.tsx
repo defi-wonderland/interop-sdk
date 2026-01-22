@@ -1,4 +1,4 @@
-import { getExplorerTxUrl } from '../../constants/chains';
+import { useChainConfig } from '../../hooks/useNetworkConfig';
 import { STEP } from '../../types/execution';
 import { isApprovalPhase, isSubmitPhase, getStateLabel, getProgressMessage } from '../../utils/orderTrackingHelpers';
 import { ExternalLinkIcon, SpinnerIcon, CheckIcon } from '../icons';
@@ -28,8 +28,9 @@ function StepIndicator({ isCurrent, isPassed }: { isCurrent: boolean; isPassed: 
 }
 
 export function ProgressView({ state }: ProgressViewProps) {
+  const chainConfig = useChainConfig();
   const message = getProgressMessage(state);
-  const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
+  const originTxUrl = chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
 
   // Determine current step index: 0=approval, 1=submit, 2=tracking
   const currentStep = isApprovalPhase(state) ? 0 : isSubmitPhase(state) ? 1 : 2;
