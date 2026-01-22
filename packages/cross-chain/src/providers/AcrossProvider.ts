@@ -553,17 +553,17 @@ export class AcrossProvider extends CrossChainProvider {
 
     /**
      * Get API-based fill watcher config for Across (default)
-     * Uses Across testnet API to track deposit status
+     * Uses Across API to track deposit status
      *
+     * @param isTestnet - Whether to use the testnet API (default: false for mainnet)
      * @see https://docs.across.to/reference/api-reference#get-deposit-status
      */
-    static getFillWatcherConfigAPI(): APIBasedFillWatcherConfig<
-        AcrossDepositStatusResponse,
-        AcrossMetadata
-    > {
+    static getFillWatcherConfigAPI(
+        isTestnet: boolean = false,
+    ): APIBasedFillWatcherConfig<AcrossDepositStatusResponse, AcrossMetadata> {
         return {
             type: "api-based",
-            baseUrl: "https://testnet.across.to/api",
+            baseUrl: getAcrossApiUrl(isTestnet),
             pollingInterval: 12000, // Poll every 12 seconds (API has 10s indexing cadence + buffer)
             retry: {
                 maxAttempts: 3,
@@ -634,7 +634,7 @@ export class AcrossProvider extends CrossChainProvider {
 
     /**
      * @inheritdoc
-     * Returns API-based tracking config by default (testnet)
+     * Returns API-based tracking config by default
      * For onchain tracking, use getFillWatcherConfig() manually
      */
     getTrackingConfig(): {
@@ -646,7 +646,9 @@ export class AcrossProvider extends CrossChainProvider {
                 type: "custom-event",
                 config: AcrossProvider.getOpenedIntentParserConfig(),
             },
-            fillWatcherConfig: AcrossProvider.getFillWatcherConfigAPI() as FillWatcherConfig,
+            fillWatcherConfig: AcrossProvider.getFillWatcherConfigAPI(
+                this.isTestnet,
+            ) as FillWatcherConfig,
         };
     }
 }
