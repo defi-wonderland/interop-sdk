@@ -1,4 +1,5 @@
 import type { GetQuoteRequest, Oif3009Order } from "@openintentsframework/oif-specs";
+import type { Address } from "viem";
 import { getAddress } from "@wonderland/interop-addresses";
 import { isAddressEqual, getAddress as viemGetAddress } from "viem";
 
@@ -27,8 +28,8 @@ export async function validate3009Order(
     if (!input) return false;
 
     const trusted = {
-        user: viemGetAddress(await getAddress(input.user)),
-        token: viemGetAddress(await getAddress(input.asset)),
+        user: (await getAddress(input.user)) as Address,
+        token: (await getAddress(input.asset)) as Address,
         amount: input.amount !== undefined ? BigInt(input.amount) : undefined,
     };
 
