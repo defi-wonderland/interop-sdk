@@ -18,7 +18,7 @@ function getMessage(state: ErrorViewProps['state']): string {
 export function ErrorView({ state, onReset }: ErrorViewProps) {
   const chainConfig = useChainConfig();
   const originChainId = 'originChainId' in state ? state.originChainId : undefined;
-  const originChain = chainConfig.getChainConfig(originChainId);
+  const originChain = chainConfig.getChain(originChainId);
   const originTxUrl = chainConfig.getExplorerTxUrl(originChainId, state.txHash);
   const isTimeout = state.step === STEP.TIMEOUT;
   const borderColor = isTimeout ? 'border-warning/30' : 'border-error/30';

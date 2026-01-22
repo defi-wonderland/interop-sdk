@@ -26,7 +26,7 @@ export function NetworkProvider({ children, searchParams }: NetworkProviderProps
 }
 
 /**
- * Hook to get the current network selection
+ * Hook to get the current network selection (for React components)
  */
 export function useIsTestnet(): boolean {
   const context = useContext(NetworkContext);
@@ -34,8 +34,16 @@ export function useIsTestnet(): boolean {
 }
 
 /**
+ * Get the current network selection from URL (for non-React code)
+ */
+export function getIsTestnet(): boolean {
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get(TESTNET_QUERY_PARAM) === 'true';
+}
+
+/**
  * Set the network selection by updating URL and reloading
- * @param isTestnet - true for testnet, false for mainnet
  */
 export function setNetworkAndReload(isTestnet: boolean): void {
   const url = new URL(window.location.href);

@@ -6,15 +6,9 @@ import {
   TESTNET_TOKEN_INFO,
   type TokenInfo,
 } from '@wonderland/interop-cross-chain';
-import { base, arbitrum, sepolia, baseSepolia } from 'viem/chains';
+import { base, arbitrum, sepolia, baseSepolia, type Chain } from 'viem/chains';
 import { useIsTestnet } from '../config/NetworkContext';
-import {
-  MAINNET_CHAIN_CONFIGS,
-  MAINNET_RPC_URLS,
-  TESTNET_CHAIN_CONFIGS,
-  TESTNET_RPC_URLS,
-  type ChainConfig,
-} from '../constants/chains';
+import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
 
 /**
  * Hook to get network-specific token configuration
@@ -38,26 +32,27 @@ export function useTokenConfig() {
 export function useChainConfig() {
   const isTestnet = useIsTestnet();
   return useMemo(() => {
-    const SUPPORTED_CHAINS = isTestnet ? TESTNET_CHAIN_CONFIGS : MAINNET_CHAIN_CONFIGS;
+    const SUPPORTED_CHAINS = isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS;
     const DEFAULT_INPUT_CHAIN_ID = isTestnet ? sepolia.id : base.id;
     const DEFAULT_OUTPUT_CHAIN_ID = isTestnet ? baseSepolia.id : arbitrum.id;
 
-    const getChainConfig = (chainId?: number): ChainConfig | undefined => {
+    const getChain = (chainId?: number): Chain | undefined => {
       if (!chainId) return undefined;
-      return SUPPORTED_CHAINS.find((c) => c.chain.id === chainId);
+      return SUPPORTED_CHAINS.find((c) => c.id === chainId);
     };
 
     const getExplorerTxUrl = (chainId?: number, txHash?: string): string | undefined => {
       if (!chainId || !txHash) return undefined;
-      const chain = getChainConfig(chainId);
-      return chain ? `${chain.blockExplorer.url}/tx/${txHash}` : undefined;
+      const chain = getChain(chainId);
+      const explorerUrl = chain?.blockExplorers?.default?.url;
+      return explorerUrl ? `${explorerUrl}/tx/${txHash}` : undefined;
     };
 
     return {
       SUPPORTED_CHAINS,
       DEFAULT_INPUT_CHAIN_ID,
       DEFAULT_OUTPUT_CHAIN_ID,
-      getChainConfig,
+      getChain,
       getExplorerTxUrl,
     };
   }, [isTestnet]);
