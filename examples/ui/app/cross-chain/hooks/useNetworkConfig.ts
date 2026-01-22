@@ -6,73 +6,45 @@ import {
   TESTNET_TOKEN_INFO,
   type TokenInfo,
 } from '@wonderland/interop-cross-chain';
-import { arbitrum, arbitrumSepolia, base, baseSepolia, sepolia } from 'viem/chains';
-import { IS_TESTNET } from '../config/network';
-import type { ChainConfig } from '../constants/chains';
+import { base, arbitrum, sepolia, baseSepolia } from 'viem/chains';
+import { useIsTestnet } from '../config/NetworkContext';
+import {
+  MAINNET_CHAIN_CONFIGS,
+  MAINNET_RPC_URLS,
+  TESTNET_CHAIN_CONFIGS,
+  TESTNET_RPC_URLS,
+  type ChainConfig,
+} from '../constants/chains';
 
 /**
  * Hook to get network-specific token configuration
  */
 export function useTokenConfig() {
+  const isTestnet = useIsTestnet();
   return useMemo(
     () => ({
-      SUPPORTED_TOKEN_BY_CHAIN_ID: (IS_TESTNET
+      SUPPORTED_TOKEN_BY_CHAIN_ID: (isTestnet
         ? TESTNET_SUPPORTED_TOKEN_BY_CHAIN_ID
         : MAINNET_SUPPORTED_TOKEN_BY_CHAIN_ID) as Record<number, readonly string[]>,
-      TOKEN_INFO: (IS_TESTNET ? TESTNET_TOKEN_INFO : MAINNET_TOKEN_INFO) as Record<number, Record<string, TokenInfo>>,
+      TOKEN_INFO: (isTestnet ? TESTNET_TOKEN_INFO : MAINNET_TOKEN_INFO) as Record<number, Record<string, TokenInfo>>,
     }),
-    [],
+    [isTestnet],
   );
 }
-
-const MAINNET_CHAINS: ChainConfig[] = [
-  {
-    id: base.id,
-    name: 'Base',
-    shortName: 'base',
-    blockExplorer: { name: 'Basescan', url: 'https://basescan.org' },
-  },
-  {
-    id: arbitrum.id,
-    name: 'Arbitrum One',
-    shortName: 'arbitrum',
-    blockExplorer: { name: 'Arbiscan', url: 'https://arbiscan.io' },
-  },
-];
-
-const TESTNET_CHAINS: ChainConfig[] = [
-  {
-    id: sepolia.id,
-    name: 'Ethereum Sepolia',
-    shortName: 'sepolia',
-    blockExplorer: { name: 'Etherscan', url: 'https://sepolia.etherscan.io' },
-  },
-  {
-    id: baseSepolia.id,
-    name: 'Base Sepolia',
-    shortName: 'base-sepolia',
-    blockExplorer: { name: 'Basescan', url: 'https://sepolia.basescan.org' },
-  },
-  {
-    id: arbitrumSepolia.id,
-    name: 'Arbitrum Sepolia',
-    shortName: 'arbitrum-sepolia',
-    blockExplorer: { name: 'Arbiscan', url: 'https://sepolia.arbiscan.io' },
-  },
-];
 
 /**
  * Hook to get network-specific chain configuration
  */
 export function useChainConfig() {
+  const isTestnet = useIsTestnet();
   return useMemo(() => {
-    const SUPPORTED_CHAINS = IS_TESTNET ? TESTNET_CHAINS : MAINNET_CHAINS;
-    const DEFAULT_INPUT_CHAIN_ID = IS_TESTNET ? sepolia.id : base.id;
-    const DEFAULT_OUTPUT_CHAIN_ID = IS_TESTNET ? baseSepolia.id : arbitrum.id;
+    const SUPPORTED_CHAINS = isTestnet ? TESTNET_CHAIN_CONFIGS : MAINNET_CHAIN_CONFIGS;
+    const DEFAULT_INPUT_CHAIN_ID = isTestnet ? sepolia.id : base.id;
+    const DEFAULT_OUTPUT_CHAIN_ID = isTestnet ? baseSepolia.id : arbitrum.id;
 
     const getChainConfig = (chainId?: number): ChainConfig | undefined => {
       if (!chainId) return undefined;
-      return SUPPORTED_CHAINS.find((chain) => chain.id === chainId);
+      return SUPPORTED_CHAINS.find((c) => c.chain.id === chainId);
     };
 
     const getExplorerTxUrl = (chainId?: number, txHash?: string): string | undefined => {
@@ -88,25 +60,15 @@ export function useChainConfig() {
       getChainConfig,
       getExplorerTxUrl,
     };
-  }, []);
+  }, [isTestnet]);
 }
 
 /**
  * Hook to get network-specific RPC URLs
  */
 export function useRpcUrls() {
+  const isTestnet = useIsTestnet();
   return useMemo(() => {
-    const MAINNET_RPC_URLS: Record<number, string> = {
-      [base.id]: 'https://base-rpc.publicnode.com',
-      [arbitrum.id]: 'https://arbitrum-one-rpc.publicnode.com',
-    };
-
-    const TESTNET_RPC_URLS: Record<number, string> = {
-      [sepolia.id]: 'https://ethereum-sepolia-rpc.publicnode.com',
-      [baseSepolia.id]: 'https://base-sepolia-rpc.publicnode.com',
-      [arbitrumSepolia.id]: 'https://api.zan.top/arb-sepolia',
-    };
-
-    return IS_TESTNET ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
-  }, []);
+    return isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
+  }, [isTestnet]);
 }

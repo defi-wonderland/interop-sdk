@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { IS_TESTNET, setNetworkAndReload } from '../config/network';
+import { useIsTestnet, setNetworkAndReload } from '../config/NetworkContext';
 
 export function NetworkSwitch() {
-  const [isTestnet] = useState(IS_TESTNET);
+  const isTestnet = useIsTestnet();
 
   const handleToggle = () => {
     setNetworkAndReload(!isTestnet);

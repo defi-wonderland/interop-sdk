@@ -1,18 +1,15 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { RainbowKitProvider, connectorsForWallets, darkTheme } from '@rainbow-me/rainbowkit';
 import { injectedWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
 import '@rainbow-me/rainbowkit/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { e2eConnector } from '@wonderland/walletless';
-import { base, arbitrum, sepolia, baseSepolia, arbitrumSepolia, type Chain } from 'viem/chains';
 import { WagmiProvider, createConfig, http, cookieStorage, createStorage } from 'wagmi';
-import { IS_TESTNET } from '../cross-chain/config/network';
-import { useRpcUrls } from '../cross-chain/hooks/useNetworkConfig';
-
-const MAINNET_CHAINS = [base, arbitrum] as const;
-const TESTNET_CHAINS = [sepolia, baseSepolia, arbitrumSepolia] as const;
+import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../cross-chain/constants/chains';
+import type { Chain } from 'viem/chains';
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 const isE2E = process.env.NEXT_PUBLIC_E2E === 'true';
@@ -24,10 +21,9 @@ function getWallets() {
   return [injectedWallet];
 }
 
-function createWagmiConfig(isTestnet: boolean, rpcUrls: Record<number, string>) {
+function createWagmiConfig(isTestnet: boolean) {
   const chains: readonly [Chain, ...Chain[]] = isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS;
-
-  // Build transports dynamically based on selected chains
+  const rpcUrls = isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
   const transports = Object.fromEntries(chains.map((chain) => [chain.id, http(rpcUrls[chain.id])]));
 
   if (isE2E) {
@@ -60,8 +56,9 @@ interface WalletProviderProps {
 }
 
 export function WalletProvider({ children }: WalletProviderProps) {
-  const rpcUrls = useRpcUrls();
-  const [config] = useState(() => createWagmiConfig(IS_TESTNET, rpcUrls));
+  const searchParams = useSearchParams();
+  const isTestnet = searchParams.get('testnet') === 'true';
+  const config = useMemo(() => createWagmiConfig(isTestnet), [isTestnet]);
   const [queryClient] = useState(() => new QueryClient());
 
   return (

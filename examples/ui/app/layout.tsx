@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
@@ -65,7 +66,9 @@ export default function RootLayout({
         <link rel='icon' href='/favicon.ico' sizes='64x64' />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <WalletProvider>{children}</WalletProvider>
+        <Suspense>
+          <WalletProvider>{children}</WalletProvider>
+        </Suspense>
         <Analytics />
       </body>
     </html>
