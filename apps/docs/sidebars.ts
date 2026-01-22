@@ -20,6 +20,10 @@ const sidebars: SidebarsConfig = {
             type: "category",
             label: "Addresses",
             collapsible: false,
+            link: {
+                type: "doc",
+                id: "addresses",
+            },
             items: [
                 "addresses/getting-started",
                 "addresses/advanced-usage",
