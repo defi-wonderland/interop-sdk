@@ -46,7 +46,7 @@ function createIntentFromQuote(
 }
 
 describe("validateOifPayload", () => {
-    describe("oif-escrow-v0 (Permit2)", () => {
+    describe("oif-escrow-v0", () => {
         it("returns true when order matches intent", async () => {
             const response = getMockedOifQuoteResponse();
             const intent = createIntentFromQuote(response, "oif-escrow-v0");
@@ -76,7 +76,7 @@ describe("validateOifPayload", () => {
         });
     });
 
-    describe("oif-resource-lock-v0 (BatchCompact)", () => {
+    describe("oif-resource-lock-v0", () => {
         it("returns true when order matches intent", async () => {
             const response = getMockedOifResourceLockQuoteResponse();
             const intent = createIntentFromQuote(response, "oif-resource-lock-v0");
@@ -122,7 +122,7 @@ describe("validateOifPayload", () => {
         });
     });
 
-    describe("oif-3009-v0 (TransferWithAuthorization)", () => {
+    describe("oif-3009-v0", () => {
         it("returns true when order matches intent", async () => {
             const response = getMockedOif3009QuoteResponse();
             const intent = createIntentFromQuote(response, "oif-3009-v0");

@@ -60,7 +60,7 @@ function baseQuoteFields(quoteId: string): Omit<Quote, "order"> {
 }
 
 // =============================================================================
-// oif-escrow-v0 (Permit2) - User signs token transfer permission
+// oif-escrow-v0 - User signs token transfer permission
 // ATTACK VECTOR: Tampering with permitted[].token or permitted[].amount
 // =============================================================================
 
@@ -118,7 +118,7 @@ export function getMockedOifQuoteResponse(overrides?: EscrowOverrides): GetQuote
 }
 
 // =============================================================================
-// oif-resource-lock-v0 (BatchCompact) - User locks resources with arbiter
+// oif-resource-lock-v0 - User locks resources with arbiter
 // ATTACK VECTOR: Tampering with commitments[].token, amount, or sponsor
 // =============================================================================
 
@@ -184,7 +184,7 @@ export function getMockedOifResourceLockQuoteResponse(
 }
 
 // =============================================================================
-// oif-3009-v0 (TransferWithAuthorization) - User authorizes ERC-3009 transfer
+// oif-3009-v0 - User authorizes ERC-3009 transfer
 // ATTACK VECTOR: Tampering with from, value, or metadata.inputs
 // =============================================================================
 

@@ -121,6 +121,17 @@ const { token, user, spender, required } = quote.order.checks.allowances[0];
 -   `oif-escrow-v0` - Gasless execution via solver
 -   `oif-user-open-v0` - User executes transaction directly
 
+## Payload Validation
+
+The provider validates that order payloads from solvers match the user's intent:
+
+| Order Type             | Validation                                |
+| ---------------------- | ----------------------------------------- |
+| `oif-escrow-v0`        | token, amount, deadline                   |
+| `oif-resource-lock-v0` | token, amount, sponsor, expiration        |
+| `oif-3009-v0`          | from, value, token address, expiration    |
+| `oif-user-open-v0`     | allowances (token, user, spender, amount) |
+
 ## Next Step
 
 See a complete working example: [Execute Intent](./example.md)
