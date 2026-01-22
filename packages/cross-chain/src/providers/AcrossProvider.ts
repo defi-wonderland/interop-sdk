@@ -634,21 +634,25 @@ export class AcrossProvider extends CrossChainProvider {
 
     /**
      * @inheritdoc
-     * Returns API-based tracking config by default
-     * For onchain tracking, use getFillWatcherConfig() manually
+     * Returns API-based tracking for mainnet, event-based for testnet
+     * (Across testnet API is not reliable)
      */
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
         fillWatcherConfig: FillWatcherConfig;
     } {
+        // Use event-based tracking for testnet (API not reliable)
+        // Use API-based tracking for mainnet
+        const fillWatcherConfig: FillWatcherConfig = this.isTestnet
+            ? AcrossProvider.getFillWatcherConfig()
+            : (AcrossProvider.getFillWatcherConfigAPI() as FillWatcherConfig);
+
         return {
             openedIntentParserConfig: {
                 type: "custom-event",
                 config: AcrossProvider.getOpenedIntentParserConfig(),
             },
-            fillWatcherConfig: AcrossProvider.getFillWatcherConfigAPI(
-                this.isTestnet,
-            ) as FillWatcherConfig,
+            fillWatcherConfig,
         };
     }
 }
