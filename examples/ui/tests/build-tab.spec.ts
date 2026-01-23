@@ -44,7 +44,9 @@ test.describe('Build tab - Chain dropdown', () => {
     await page.getByText('Ethereum Mainnet').last().click();
 
     await expect(page.getByPlaceholder('Search chain...')).not.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Ethereum Mainnet', exact: true })).toBeVisible();
+    const chainButton = page.getByRole('button', { name: 'Chain' });
+    await expect(chainButton).toBeVisible();
+    await expect(chainButton).toHaveText('Ethereum Mainnet');
   });
 
   test('No chains found', async ({ page }) => {
