@@ -64,3 +64,6 @@ lcov.info
 
 # playwright mcp
 .playwright-mcp/
+
+# ESLint cache
+.eslintcache

@@ -1,5 +1,5 @@
 import { CrossChainClient } from './CrossChainClient';
-import { NetworkProvider } from './config/NetworkContext';
+import { Providers } from './providers';
 
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -7,10 +7,11 @@ interface PageProps {
 
 export default async function CrossChainPage({ searchParams }: PageProps) {
   const params = await searchParams;
+  const isTestnet = params.testnet === 'true';
 
   return (
-    <NetworkProvider searchParams={params}>
+    <Providers isTestnet={isTestnet}>
       <CrossChainClient />
-    </NetworkProvider>
+    </Providers>
   );
 }

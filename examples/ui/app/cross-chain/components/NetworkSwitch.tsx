@@ -1,6 +1,6 @@
 'use client';
 
-import { useIsTestnet, setNetworkAndReload } from '../config/NetworkContext';
+import { useIsTestnet, setNetworkAndReload } from '../providers';
 
 export function NetworkSwitch() {
   const isTestnet = useIsTestnet();

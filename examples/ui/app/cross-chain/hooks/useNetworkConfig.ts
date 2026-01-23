@@ -7,8 +7,8 @@ import {
   type TokenInfo,
 } from '@wonderland/interop-cross-chain';
 import { base, arbitrum, sepolia, baseSepolia, type Chain } from 'viem/chains';
-import { useIsTestnet } from '../config/NetworkContext';
 import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
+import { useIsTestnet } from '../providers';
 
 /**
  * Hook to get network-specific token configuration
