@@ -19,5 +19,13 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            - name: Cache Turbo
+              uses: actions/cache@v4
+              with:
+                  path: .turbo/cache
+                  key: turbo-${{ runner.os }}-${{ github.sha }}
+                  restore-keys: |
+                      turbo-${{ runner.os }}-
+
             - name: Run integration tests
               run: pnpm test:integration
