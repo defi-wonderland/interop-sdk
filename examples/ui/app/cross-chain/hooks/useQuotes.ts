@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { nameToBinary } from '@wonderland/interop-addresses';
+import { crossChainExecutor } from '../services/sdk';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
-import { useCrossChainExecutor } from './useCrossChainExecutor';
 import { useTokenConfig } from './useNetworkConfig';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 
@@ -36,7 +36,6 @@ interface UseQuotesReturn {
 }
 
 export function useQuotes(): UseQuotesReturn {
-  const crossChainExecutor = useCrossChainExecutor();
   const tokenConfig = useTokenConfig();
   const [quotes, setQuotes] = useState<ExecutableQuote[]>([]);
   const [errors, setErrors] = useState<GetQuotesError[]>([]);
