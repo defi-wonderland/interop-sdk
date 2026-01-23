@@ -58,7 +58,7 @@ test.describe('Build tab - Chain dropdown', () => {
 test.describe('Build tab - Address input validations', () => {
   test('Convert button is disabled when address is empty', async ({ page }) => {
     await page.getByRole('button', { name: 'Select chain...' }).click();
-    await page.waitForTimeout(5000);
+    await page.getByText('Ethereum Mainnet').last().waitFor({ timeout: 5000 });
     await page.getByText('Ethereum Mainnet').last().click();
 
     await expect(page.getByRole('button', { name: 'Convert' })).toBeDisabled();

@@ -1,0 +1,53 @@
+name: Build and Lint
+
+on:
+    workflow_call:
+
+jobs:
+    commitlint:
+        name: Lint Commit Messages
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - uses: wagoid/commitlint-github-action@v5
+              with:
+                  commitDepth: 1
+
+    build-lint:
+        name: Build and Lint
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Check out github repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 1
+
+            - name: Setup environment
+              uses: ./.github/actions/setup
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Run Build
+              run: pnpm build
+
+            - name: Check types
+              run: pnpm check-types
+
+            - name: Cache ESLint
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      packages/*/.eslintcache
+                      apps/*/.eslintcache
+                      examples/*/.eslintcache
+                  key: eslint-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+            - name: Run Prettier
+              run: pnpm format
+
+            - name: Run Linter
+              run: pnpm lint -- --cache
