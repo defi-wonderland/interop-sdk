@@ -78,3 +78,25 @@ test.describe('"From text" tab - Input validations', () => {
     await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
   });
 });
+
+test.describe('Error handling', () => {
+  test('displays user-friendly error message on network failure', async ({ page }) => {
+    const USER_FRIENDLY_ERROR_MESSAGE = 'please try again or check your connection';
+
+    await page.route('**/*', (route) => {
+      const postData = route.request().postData();
+      // Reject all rpc calls
+      if (postData?.includes('eth_call')) {
+        return route.abort('failed');
+      }
+      return route.continue();
+    });
+
+    await page.getByRole('textbox', { name: 'Interoperable Name' }).fill('vitalik.eth@eth');
+    await page.getByRole('button', { name: 'Convert' }).click();
+
+    const errorContainer = page.getByTestId('error-container');
+    await expect(errorContainer).toBeVisible();
+    await expect(errorContainer).toContainText(USER_FRIENDLY_ERROR_MESSAGE);
+  });
+});
