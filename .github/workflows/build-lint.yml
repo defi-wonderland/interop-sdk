@@ -39,6 +39,15 @@ jobs:
                   restore-keys: |
                       turbo-${{ runner.os }}-
 
+            - name: Cache Next.js
+              uses: actions/cache@v4
+              with:
+                  path: examples/ui/.next/cache
+                  key: nextjs-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('examples/ui/**/*.ts', 'examples/ui/**/*.tsx') }}
+                  restore-keys: |
+                      nextjs-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}-
+                      nextjs-${{ runner.os }}-
+
             - name: Run Build
               run: pnpm build
 
