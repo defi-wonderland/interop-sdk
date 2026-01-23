@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 test.describe('Build tab - Convert address', () => {
   test('Convert address', async ({ page }) => {
     await page
-      .getByRole('textbox', { name: 'Address @ Chain Reference' })
+      .getByRole('textbox', { name: 'Address' })
       .fill('0x1234567890AbcdEF1234567890aBcdef12345678');
 
     await page.getByRole('button', { name: 'Select chain...' }).click();
@@ -66,7 +66,7 @@ test.describe('Build tab - Address input validations', () => {
 
   test('Convert button is disabled when chain is not selected', async ({ page }) => {
     await page
-      .getByRole('textbox', { name: 'Address @ Chain Reference' })
+      .getByRole('textbox', { name: 'Address' })
       .fill('0x1234567890AbcdEF1234567890aBcdef12345678');
 
     await expect(page.getByRole('button', { name: 'Convert' })).toBeDisabled();
@@ -77,7 +77,7 @@ test.describe('Build tab - Address input validations', () => {
   });
 
   test('Shows error for invalid address format', async ({ page }) => {
-    await page.getByRole('textbox', { name: 'Address @ Chain Reference' }).fill('invalid-address');
+    await page.getByRole('textbox', { name: 'Address' }).fill('invalid-address');
     await page.getByRole('button', { name: 'Select chain...' }).click();
     await page.getByText('Ethereum Mainnet').last().click();
     await page.getByRole('button', { name: 'Convert' }).click();
@@ -88,7 +88,7 @@ test.describe('Build tab - Address input validations', () => {
 
   test('Shows error when address has incorrect length', async ({ page }) => {
     await page
-      .getByRole('textbox', { name: 'Address @ Chain Reference' })
+      .getByRole('textbox', { name: 'Address' })
       .fill('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA0291');
     await page.getByRole('button', { name: 'Select chain...' }).click();
     await page.getByText('Ethereum Mainnet').last().click();
@@ -100,7 +100,7 @@ test.describe('Build tab - Address input validations', () => {
 
   test('Shows error for invalid human readable address', async ({ page }) => {
     const invalidCharactersAddress = '0xXYZ$#';
-    await page.getByRole('textbox', { name: 'Address @ Chain Reference' }).fill(invalidCharactersAddress);
+    await page.getByRole('textbox', { name: 'Address' }).fill(invalidCharactersAddress);
 
     await page.getByRole('button', { name: 'Select chain...' }).click();
     await page.getByText('Ethereum Mainnet').last().click();
