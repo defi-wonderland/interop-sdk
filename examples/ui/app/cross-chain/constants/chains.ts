@@ -1,52 +1,49 @@
-import { sepolia, baseSepolia, arbitrumSepolia } from 'viem/chains';
+import { arbitrum, arbitrumSepolia, base, baseSepolia, sepolia, type Chain } from 'viem/chains';
 
-export interface ChainConfig {
-  id: number;
-  name: string;
-  shortName: string;
-  blockExplorer: {
-    name: string;
-    url: string;
+/**
+ * Override chain default RPC, keeping original as fallback
+ */
+function overrideRpc(chain: Chain, rpcUrl: string): Chain {
+  return {
+    ...chain,
+    rpcUrls: {
+      ...chain.rpcUrls,
+      default: { http: [rpcUrl, ...chain.rpcUrls.default.http] },
+    },
   };
 }
 
-export const SUPPORTED_CHAINS: ChainConfig[] = [
-  {
-    id: sepolia.id,
-    name: 'Ethereum Sepolia',
-    shortName: 'sepolia',
-    blockExplorer: { name: 'Etherscan', url: 'https://sepolia.etherscan.io' },
-  },
-  {
-    id: baseSepolia.id,
-    name: 'Base Sepolia',
-    shortName: 'base-sepolia',
-    blockExplorer: { name: 'Basescan', url: 'https://sepolia.basescan.org' },
-  },
-  {
-    id: arbitrumSepolia.id,
-    name: 'Arbitrum Sepolia',
-    shortName: 'arbitrum-sepolia',
-    blockExplorer: { name: 'Arbiscan', url: 'https://sepolia.arbiscan.io' },
-  },
+/**
+ * Mainnet chains
+ */
+export const MAINNET_CHAINS: readonly [Chain, ...Chain[]] = [
+  overrideRpc(base, 'https://base-rpc.publicnode.com'),
+  overrideRpc(arbitrum, 'https://arbitrum-one-rpc.publicnode.com'),
 ];
 
-export const DEFAULT_INPUT_CHAIN_ID = sepolia.id;
-export const DEFAULT_OUTPUT_CHAIN_ID = baseSepolia.id;
+/**
+ * Testnet chains
+ */
+export const TESTNET_CHAINS: readonly [Chain, ...Chain[]] = [
+  overrideRpc(sepolia, 'https://ethereum-sepolia-rpc.publicnode.com'),
+  overrideRpc(baseSepolia, 'https://base-sepolia-rpc.publicnode.com'),
+  overrideRpc(arbitrumSepolia, 'https://api.zan.top/arb-sepolia'),
+];
 
 /**
- * Get chain config by chain ID
+ * All chains
  */
-export function getChainConfig(chainId?: number): ChainConfig | undefined {
-  if (!chainId) return undefined;
-  return SUPPORTED_CHAINS.find((chain) => chain.id === chainId);
-}
+export const ALL_CHAINS: readonly Chain[] = [...MAINNET_CHAINS, ...TESTNET_CHAINS];
 
 /**
- * Get block explorer transaction URL for a given chain
+ * Extract RPC URLs from chains (for SDK/tracker usage)
  */
-export function getExplorerTxUrl(chainId?: number, txHash?: string): string | undefined {
-  if (!chainId || !txHash) return undefined;
-  const chain = getChainConfig(chainId);
-  return chain ? `${chain.blockExplorer.url}/tx/${txHash}` : undefined;
-}
+export const MAINNET_RPC_URLS: Record<number, string> = Object.fromEntries(
+  MAINNET_CHAINS.map((c) => [c.id, c.rpcUrls.default.http[0]]),
+);
+
+export const TESTNET_RPC_URLS: Record<number, string> = Object.fromEntries(
+  TESTNET_CHAINS.map((c) => [c.id, c.rpcUrls.default.http[0]]),
+);
+
+export const ALL_RPC_URLS: Record<number, string> = { ...MAINNET_RPC_URLS, ...TESTNET_RPC_URLS };
