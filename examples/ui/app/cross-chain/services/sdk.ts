@@ -4,8 +4,8 @@ import {
   createProviderExecutor,
   OrderTrackerFactory,
 } from '@wonderland/interop-cross-chain';
-import { getIsTestnet } from '../config/NetworkContext';
 import { MAINNET_RPC_URLS, TESTNET_RPC_URLS } from '../constants/chains';
+import { getIsTestnet } from '../providers';
 
 const IS_TESTNET = getIsTestnet();
 const RPC_URLS = IS_TESTNET ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;

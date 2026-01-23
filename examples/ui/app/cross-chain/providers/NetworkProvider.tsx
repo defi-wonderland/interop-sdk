@@ -8,20 +8,17 @@ interface NetworkContextValue {
   isTestnet: boolean;
 }
 
-const NetworkContext = createContext<NetworkContextValue>({ isTestnet: false });
+export const NetworkContext = createContext<NetworkContextValue>({ isTestnet: false });
 
 interface NetworkProviderProps {
   children: ReactNode;
-  searchParams: Record<string, string | string[] | undefined>;
+  isTestnet: boolean;
 }
 
 /**
  * Provider that makes network configuration available to all child components
- * Reads from searchParams passed from the server
  */
-export function NetworkProvider({ children, searchParams }: NetworkProviderProps) {
-  const isTestnet = searchParams[TESTNET_QUERY_PARAM] === 'true';
-
+export function NetworkProvider({ children, isTestnet }: NetworkProviderProps) {
   return <NetworkContext.Provider value={{ isTestnet }}>{children}</NetworkContext.Provider>;
 }
 
