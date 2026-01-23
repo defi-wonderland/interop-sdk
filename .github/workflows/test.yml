@@ -23,7 +23,7 @@ jobs:
               uses: actions/cache@v4
               with:
                   path: .turbo/cache
-                  key: turbo-${{ runner.os }}-${{ github.sha }}
+                  key: turbo-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
                   restore-keys: |
                       turbo-${{ runner.os }}-
 
