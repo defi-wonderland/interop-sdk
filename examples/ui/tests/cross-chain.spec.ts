@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { isAddress } from 'viem';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/cross-chain');
@@ -7,14 +6,12 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('Recipient address input', () => {
   test('auto-fills with connected address on load', async ({ page }) => {
-    const recipientInput = page.getByLabel('Recipient Address');
-    const value = await recipientInput.inputValue();
-    expect(isAddress(value)).toBe(true);
+    const recipientInput = page.getByRole('textbox', { name: 'Recipient Address' });
+    await expect(recipientInput).toHaveValue('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
   });
 
   test('allows user to clear input', async ({ page }) => {
     const recipientInput = page.getByLabel('Recipient Address');
-
     await recipientInput.clear();
 
     await expect(recipientInput).toHaveValue('');
