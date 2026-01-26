@@ -25,24 +25,27 @@ export async function validateEscrowOrder(
     const permitted = message.permitted[0];
     if (!permitted) return false;
 
-    const trusted = {
-        token: viemGetAddress(await getAddress(input.asset)),
-        amount: input.amount !== undefined ? BigInt(input.amount) : undefined,
-    };
+            if (!permitted.token) return false;
+        if (!permitted.amount) return false;
+        if (!message.spender) return false;
+        if (message.deadline === undefined) return false;
 
-    if (permitted.token) {
+        const trusted = {
+            token: viemGetAddress(await getAddress(input.asset)),
+            amount: input.amount !== undefined ? BigInt(input.amount) : undefined,
+        };
+
         const orderToken = viemGetAddress(permitted.token);
         if (!isAddressEqual(orderToken, trusted.token)) return false;
-    }
 
-    if (permitted.amount && trusted.amount !== undefined) {
-        if (BigInt(permitted.amount) > trusted.amount) return false;
-    }
+        viemGetAddress(message.spender);
 
-    if (message.deadline) {
+        const orderAmount = BigInt(permitted.amount);
+        if (orderAmount < 0n) return false;
+        if (trusted.amount !== undefined && orderAmount > trusted.amount) return false;
+
         const now = Math.floor(Date.now() / 1000);
         if (message.deadline < now) return false;
-    }
 
-    return true;
+        return true;
 }
