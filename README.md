@@ -67,20 +67,41 @@ interop-sdk/
 
 The addresses package provides utilities for handling interoperable blockchain addresses across different networks.
 
-```typescript
-import { InteropAddressProvider } from "@wonderland/interop-addresses";
+**Address Formats:**
 
-// Convert between human-readable and binary addresses
-const humanReadableAddress = "alice.eth@eip155:1#ABCD1234";
-const binaryAddress = await InteropAddressProvider.humanReadableToBinary(humanReadableAddress);
-const backToHumanReadable = await InteropAddressProvider.binaryToHumanReadable(binaryAddress);
+-   **Human-readable (Interoperable Name)**: `0x...@eip155:1#ABCD1234` - Use for display, configuration, and user-facing interfaces
+-   **Binary hex**: `0x0001000000010114...` - Use for on-chain operations, ERC-7683 intents, and smart contract interactions
+
+Both formats are interchangeable - convert between them as needed for your use case.
+
+```typescript
+import { encodeAddress, InteropAddressProvider } from "@wonderland/interop-addresses";
+
+// Convert between human-readable (interoperable name) and binary addresses
+const interoperableName = "alice.eth@eip155:1#ABCD1234";
+const binaryAddress = await InteropAddressProvider.nameToBinary(interoperableName);
+// Returns: "0x0001000000010114d8da6bf26964af9d7eed9e03e53415d37aa96045"
+
+const backToName = InteropAddressProvider.binaryToName(binaryAddress);
+// Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#ABCD1234"
 
 // Get the underlying address for a chain
-const address = await InteropAddressProvider.getAddress(humanReadableAddress);
+const address = await InteropAddressProvider.getAddress(interoperableName);
 // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 
 // Validate addresses
-const isValid = await InteropAddressProvider.isValidInteropAddress(humanReadableAddress);
+const isValid = await InteropAddressProvider.isValidInteropAddress(interoperableName);
+
+// Create binary addresses programmatically (without parsing a name string)
+const binaryHex = encodeAddress(
+    {
+        version: 1,
+        chainType: "eip155",
+        chainReference: "11155111", // Sepolia
+        address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    },
+    { format: "hex" },
+);
 ```
 
 ### Cross-Chain Package
@@ -91,8 +112,11 @@ The cross-chain package provides a standardized interface for cross-chain operat
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 // Create a provider for a specific protocol (e.g., Across)
+// When isTestnet is true, it uses https://testnet.across.to/api
+// When isTestnet is false (default), it uses https://app.across.to/api
 const provider = createCrossChainProvider("across", {
-    apiUrl: "https://testnet.across.to/api",
+    isTestnet: true,
+    providerId: "my-across-provider",
 });
 
 // Get a quote for a cross-chain transfer

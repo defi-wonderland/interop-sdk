@@ -1,5 +1,17 @@
 # @defi-wonderland/interop-cross-chain
 
+## 0.3.0
+
+### Minor Changes
+
+-   feat: add mainnet/testnet switch support
+
+    -   Add `isTestnet` config option (optional, defaults to `false`)
+    -   Make `apiUrl` optional (auto-selects based on `isTestnet`)
+    -   Testnet: https://testnet.across.to/api
+    -   Mainnet: https://app.across.to/api
+    -   Make `dependencies` parameter optional in `createCrossChainProvider`
+
 ## 0.2.2
 
 ### Patch Changes

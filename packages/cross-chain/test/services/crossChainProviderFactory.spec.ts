@@ -17,23 +17,19 @@ describe("CrossChainProviderFactory", () => {
     });
 
     it("builds a CrossChainProvider", () => {
-        const provider = CrossChainProviderFactory.build("across", MOCK_ACROSS_CONFIG, {});
+        const provider = CrossChainProviderFactory.build("across", MOCK_ACROSS_CONFIG);
 
         expect(provider).toBeInstanceOf(CrossChainProvider);
     });
 
     it("builds a CrossChainProvider with the across provider", () => {
-        const provider = CrossChainProviderFactory.build("across", MOCK_ACROSS_CONFIG, {});
+        const provider = CrossChainProviderFactory.build("across", MOCK_ACROSS_CONFIG);
 
         expect(provider).toBeInstanceOf(AcrossProvider);
     });
 
     it("creates a cross chain provider using the createCrossChainProvider function", () => {
-        const provider = createCrossChainProvider(
-            "across",
-            MOCK_ACROSS_CONFIG,
-            {},
-        ) as AcrossProvider;
+        const provider = createCrossChainProvider("across", MOCK_ACROSS_CONFIG) as AcrossProvider;
 
         expect(provider).toBeInstanceOf(AcrossProvider);
     });
@@ -41,7 +37,7 @@ describe("CrossChainProviderFactory", () => {
     it("throws an UnsupportedProtocol error for unsupported protocols", () => {
         expect(() => {
             // @ts-expect-error - This is a test
-            CrossChainProviderFactory.build("unsupported-protocol", {}, {});
+            CrossChainProviderFactory.build("unsupported-protocol", {});
         }).toThrow(UnsupportedProtocol);
     });
 });
