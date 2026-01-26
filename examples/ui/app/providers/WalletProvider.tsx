@@ -26,7 +26,17 @@ function getConfig() {
     return createConfig({
       chains,
       ssr: true,
-      connectors: [e2eConnector()],
+      connectors: [
+        e2eConnector({
+          chains,
+          rpcUrls: {
+            [sepolia.id]: 'http://localhost:8545',
+            [baseSepolia.id]: 'http://localhost:8546',
+            [arbitrumSepolia.id]: 'http://localhost:8547',
+          },
+          debug: true,
+        }),
+      ],
       transports: {
         [sepolia.id]: http(),
         [baseSepolia.id]: http(),
