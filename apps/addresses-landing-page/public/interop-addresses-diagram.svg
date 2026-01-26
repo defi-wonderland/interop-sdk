@@ -5,12 +5,12 @@
   <!-- Top level label: Interoperable Name -->
   <text x="450" y="65" font-family="monospace" font-size="18" fill="#666" text-anchor="middle" font-weight="500">Interoperable Name</text>
 
-  <!-- Top: alice.eth @ base -->
+  <!-- Top: vitalik.eth @ base -->
   <rect x="307" y="90" width="286" height="50" rx="4" stroke="#B9B9B9" fill="white"/>
-  <text x="450" y="120" font-family="monospace" font-size="20" fill="#28253D" text-anchor="middle">alice.eth @ base</text>
+  <text x="450" y="120" font-family="monospace" font-size="20" fill="#28253D" text-anchor="middle">vitalik.eth @ base</text>
 
   <!-- Split arrows -->
-  <!-- Left arrow for alice.eth -->
+  <!-- Left arrow for vitalik.eth -->
   <path d="M350 140 L250 180" stroke="#A1A1A1" stroke-width="2" marker-end="url(#arrowhead)"/>
   <!-- Right arrow for base -->
   <path d="M550 140 L650 180" stroke="#A1A1A1" stroke-width="2" marker-end="url(#arrowhead)"/>
@@ -21,9 +21,9 @@
   <!-- Chain Registry annotation (right) -->
   <text x="690" y="155" font-family="monospace" font-size="16" fill="#666" text-anchor="middle">Chain Registry</text>
 
-  <!-- Left box: 0xcd2e...1c75 -->
+  <!-- Left box: 0xd8da...6045 -->
   <rect x="120" y="190" width="260" height="50" rx="4" stroke="#B9B9B9" fill="white"/>
-  <text x="250" y="220" font-family="monospace" font-size="20" fill="#28253D" text-anchor="middle">0xcd2e...1c75</text>
+  <text x="250" y="220" font-family="monospace" font-size="20" fill="#28253D" text-anchor="middle">0xd8da...6045</text>
 
   <!-- Right box: eip155:8453 -->
   <rect x="520" y="190" width="260" height="50" rx="4" stroke="#B9B9B9" fill="white"/>
@@ -35,9 +35,9 @@
   <!-- Right merge arrow -->
   <path d="M650 240 L550 280" stroke="#A1A1A1" stroke-width="2" marker-end="url(#arrowhead)"/>
 
-  <!-- Combined box: 0xcd2e...1c75 @ eip155:8453 -->
+  <!-- Combined box: 0xd8da...6045 @ eip155:8453 -->
   <rect x="227" y="290" width="446" height="50" rx="4" stroke="#B9B9B9" fill="white"/>
-  <text x="450" y="320" font-family="monospace" font-size="20" fill="#28253D" text-anchor="middle">0xcd2e...1c75 @ eip155:8453</text>
+  <text x="450" y="320" font-family="monospace" font-size="20" fill="#28253D" text-anchor="middle">0xd8da...6045 @ eip155:8453</text>
 
   <!-- Arrow down -->
   <path d="M450 340 L450 390" stroke="#A1A1A1" stroke-width="2" marker-end="url(#arrowhead)"/>
@@ -48,7 +48,7 @@
 
   <!-- Binary format -->
   <rect x="145" y="390" width="610" height="70" rx="4" stroke="#B9B9B9" fill="white"/>
-  <text x="450" y="420" font-family="monospace" font-size="18" fill="#28253D" text-anchor="middle">0x0001  0000  02  2105  14  cd2e...1c75</text>
+  <text x="450" y="420" font-family="monospace" font-size="18" fill="#28253D" text-anchor="middle">0x0001  0000  02  2105  14  d8da...6045</text>
   <text x="450" y="445" font-family="monospace" font-size="15" fill="#999" text-anchor="middle">Ver | ChainType | RefLen | Ref | AddrLen | Addr</text>
 
   <!-- Interoperable Address label -->
@@ -59,7 +59,7 @@
 
   <!-- Checksum step -->
   <rect x="250" y="530" width="400" height="50" rx="4" stroke="#B9B9B9" fill="white"/>
-  <text x="450" y="560" font-family="monospace" font-size="18" fill="#28253D" text-anchor="middle">Checksum: keccak256[0:4] = 8FC41F97</text>
+  <text x="450" y="560" font-family="monospace" font-size="18" fill="#28253D" text-anchor="middle">Checksum: keccak256[0:4] = 17DE0709</text>
 
   <!-- Arrow marker definition -->
   <defs>

@@ -82,6 +82,12 @@ export function HeroSection() {
                         FAQ
                     </a>
                 </div>
+                <h2 className="font-mono text-[1.375rem] leading-[1.35] md:text-3xl md:leading-relaxed lg:text-4xl lg:leading-relaxed font-light mb-3 md:mb-4 lg:mb-4">
+                    Chain-aware addressing for the Ethereum ecosystem
+                </h2>
+                <p className="font-mono text-[0.9375rem] leading-relaxed md:text-base lg:text-lg text-muted-foreground mb-5 md:mb-6 lg:mb-8">
+                    Simplify interoperability and eliminate cross-chain mistakes.
+                </p>
                 <AddressShowcase />
             </div>
         </section>
