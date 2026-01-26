@@ -22,20 +22,21 @@ export async function validateResourceLockOrder(
     if (!input) return false;
 
     if (message.expires === undefined) return false;
-        if (!message.sponsor) return false;
-        if (!message.commitments?.length) return false;
+    if (!message.sponsor) return false;
+    if (!message.commitments?.length) return false;
 
-        const commitment = message.commitments[0];
-        if (!commitment) return false;
-        if (!commitment.token) return false;
-        if (!commitment.amount) return false;
+    const commitment = message.commitments[0];
+    if (!commitment) return false;
+    if (!commitment.token) return false;
+    if (!commitment.amount) return false;
 
-        const now = Math.floor(Date.now() / 1000);
-        const expires =
-            typeof message.expires === "string" ? parseInt(message.expires, 10) : message.expires;
-        if (!Number.isFinite(expires)) return false;
-        if (expires < now) return false;
+    const now = Math.floor(Date.now() / 1000);
+    const expires =
+        typeof message.expires === "string" ? parseInt(message.expires, 10) : message.expires;
+    if (!Number.isFinite(expires)) return false;
+    if (expires < now) return false;
 
+    try {
         const trusted = {
             user: viemGetAddress(await getAddress(input.user)),
             token: viemGetAddress(await getAddress(input.asset)),
@@ -53,7 +54,8 @@ export async function validateResourceLockOrder(
         if (trusted.amount !== undefined && orderAmount > trusted.amount) return false;
 
         return true;
-    } catch {
+    } catch (error) {
+        console.error("[validateResourceLockOrder] Validation failed:", error);
         return false;
     }
 }

@@ -17,11 +17,12 @@ export async function validateUserOpenOrder(
     if (!allowance) return false;
 
     if (!order.openIntentTx?.to) return false;
-        if (!allowance.spender) return false;
-        if (!allowance.token) return false;
-        if (!allowance.user) return false;
-        if (!allowance.required) return false;
+    if (!allowance.spender) return false;
+    if (!allowance.token) return false;
+    if (!allowance.user) return false;
+    if (!allowance.required) return false;
 
+    try {
         const trusted = {
             user: viemGetAddress(await getAddress(input.user)),
             token: viemGetAddress(await getAddress(input.asset)),
@@ -43,7 +44,8 @@ export async function validateUserOpenOrder(
         if (trusted.amount !== undefined && requiredAmount > trusted.amount) return false;
 
         return true;
-    } catch {
+    } catch (error) {
+        console.error("[validateUserOpenOrder] Validation failed:", error);
         return false;
     }
 }

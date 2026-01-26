@@ -21,21 +21,21 @@ export async function validate3009Order(
     userIntent: GetQuoteRequest,
     order: Oif3009Order,
 ): Promise<boolean> {
+    const payload = order.payload;
+    const input = userIntent.intent.inputs[0];
+
+    if (!payload?.message) return false;
+    if (!input) return false;
+
+    const message = payload.message as Eip3009Message;
+    const metadata = order.metadata as Eip3009Metadata;
+
+    if (!message.from) return false;
+    if (!message.value) return false;
+    if (message.validBefore === undefined) return false;
+    if (!metadata?.tokenAddress) return false;
+
     try {
-        const payload = order.payload;
-        const input = userIntent.intent.inputs[0];
-
-        if (!payload?.message) return false;
-        if (!input) return false;
-
-        const message = payload.message as Eip3009Message;
-        const metadata = order.metadata as Eip3009Metadata;
-
-        if (!message.from) return false;
-        if (!message.value) return false;
-        if (message.validBefore === undefined) return false;
-        if (!metadata?.tokenAddress) return false;
-
         const trusted = {
             user: (await getAddress(input.user)) as Address,
             token: (await getAddress(input.asset)) as Address,
@@ -56,7 +56,8 @@ export async function validate3009Order(
         if (!isAddressEqual(metadataToken, trusted.token)) return false;
 
         return true;
-    } catch {
+    } catch (error) {
+        console.error("[validate3009Order] Validation failed:", error);
         return false;
     }
 }

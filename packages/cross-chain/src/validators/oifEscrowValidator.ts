@@ -25,11 +25,12 @@ export async function validateEscrowOrder(
     const permitted = message.permitted[0];
     if (!permitted) return false;
 
-            if (!permitted.token) return false;
-        if (!permitted.amount) return false;
-        if (!message.spender) return false;
-        if (message.deadline === undefined) return false;
+    if (!permitted.token) return false;
+    if (!permitted.amount) return false;
+    if (!message.spender) return false;
+    if (message.deadline === undefined) return false;
 
+    try {
         const trusted = {
             token: viemGetAddress(await getAddress(input.asset)),
             amount: input.amount !== undefined ? BigInt(input.amount) : undefined,
@@ -48,4 +49,8 @@ export async function validateEscrowOrder(
         if (message.deadline < now) return false;
 
         return true;
+    } catch (error) {
+        console.error("[validateEscrowOrder] Validation failed:", error);
+        return false;
+    }
 }
