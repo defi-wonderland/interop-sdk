@@ -198,7 +198,7 @@ export function AddressShowcase() {
 
     return (
         <div
-            className="mb-0"
+            className="mb-0 rounded-lg bg-gray-50 border border-gray-200 p-4 md:p-5 lg:p-6 shadow-sm"
             role="region"
             aria-label="Interoperable address showcase"
             aria-live="polite"
