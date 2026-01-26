@@ -1,6 +1,6 @@
-<svg width="900" height="750" viewBox="0 0 900 750" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="900" height="640" viewBox="0 0 900 640" fill="none" xmlns="http://www.w3.org/2000/svg">
   <!-- Main container -->
-  <rect x="30" y="30" width="840" height="690" stroke="#9C9C9C" fill="white"/>
+  <rect x="30" y="30" width="840" height="580" stroke="#9C9C9C" fill="white"/>
 
   <!-- Top level label: Interoperable Name -->
   <text x="450" y="65" font-family="monospace" font-size="18" fill="#666" text-anchor="middle" font-weight="500">Interoperable Name</text>
@@ -59,14 +59,7 @@
 
   <!-- Checksum step -->
   <rect x="250" y="530" width="400" height="50" rx="4" stroke="#B9B9B9" fill="white"/>
-  <text x="450" y="560" font-family="monospace" font-size="18" fill="#28253D" text-anchor="middle">Checksum: keccak256[0:4]</text>
-
-  <!-- Arrow down -->
-  <path d="M450 580 L450 620" stroke="#A1A1A1" stroke-width="2" marker-end="url(#arrowhead)"/>
-
-  <!-- Bottom: alice.eth @ base # 8FC41F97 -->
-  <rect x="227" y="620" width="446" height="50" rx="4" stroke="#B9B9B9" fill="white"/>
-  <text x="450" y="650" font-family="monospace" font-size="20" fill="#28253D" text-anchor="middle">alice.eth @ base # 8FC41F97</text>
+  <text x="450" y="560" font-family="monospace" font-size="18" fill="#28253D" text-anchor="middle">Checksum: keccak256[0:4] = 8FC41F97</text>
 
   <!-- Arrow marker definition -->
   <defs>
