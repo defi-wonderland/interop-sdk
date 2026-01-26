@@ -10,7 +10,8 @@
     -   Make `apiUrl` optional (auto-selects based on `isTestnet`)
     -   Testnet: https://testnet.across.to/api
     -   Mainnet: https://app.across.to/api
-    -   Make `dependencies` parameter optional in `createCrossChainProvider`
+    -   Remove unused `dependencies` parameter from `createCrossChainProvider`
+    -   Make `config` parameter optional for Across provider (defaults to mainnet)
 
 ## 0.2.2
 

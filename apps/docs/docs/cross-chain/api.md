@@ -8,18 +8,24 @@ A set of classes and utilities for handling cross-chain operations through vario
 
 #### Methods
 
--   **createCrossChainProvider**(protocolName: string, config: ProviderConfig, dependencies: Dependencies): CrossChainProvider
+-   **createCrossChainProvider**(protocolName: string, config?: ProviderConfig): CrossChainProvider
 
-    Creates a provider instance for a supported cross-chain protocol.
+    Creates a provider instance for a supported cross-chain protocol. Config is optional for Across (uses mainnet defaults), required for OIF.
 
     ```typescript
     import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-    const provider = createCrossChainProvider(
-        "across",
-        { apiUrl: "https://testnet.across.to/api" },
-        {},
-    );
+    // Across - config optional (defaults to mainnet)
+    const provider = createCrossChainProvider("across");
+
+    // Across - with testnet config
+    const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
+
+    // OIF - config required
+    const oifProvider = createCrossChainProvider("oif", {
+        solverId: "my-solver",
+        url: "https://solver.example.com",
+    });
     ```
 
 #### CrossChainProvider Class

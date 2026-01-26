@@ -10,15 +10,15 @@ This package combines two powerful functionalities:
 
 ```mermaid
 graph LR
-    A[humanReadable]
+    A[interoperableName]
     C[binaryRepresentation]
     D[chainId]
     E[address]
     F[Cross-Chain Operations]
     G[Token Transfers]
 
-    A -->|humanReadableToBinary| C
-    C -->|binaryToHumanReadable| A
+    A -->|nameToBinary| C
+    C -->|binaryToName| A
     C -->|getChainId| D
     C -->|getAddress| E
     F -->|Transfer| G
@@ -50,37 +50,64 @@ Available scripts that can be run using `pnpm`:
 
 ```typescript
 // Using the Provider
-import { InteropAddressProvider } from '@wonderland/interop';
-
-const humanReadableAddress = "alice.eth@eip155:1#ABCD1234"
-const binaryAddress = InteropAddressProvider.humanReadableToBinary(humanReadableAddress)
-
 // Or just importing the method
-import { humanReadableToBinary } from '@wonderland/interop';
-const binaryAddress = humanReadableToBinary(humanReadableAddress)
+import { InteropAddressProvider, nameToBinary } from "@wonderland/interop";
+
+const interoperableName = "alice.eth@eip155:1#ABCD1234";
+const binaryAddress = await InteropAddressProvider.nameToBinary(interoperableName);
+
+const binaryAddress = await nameToBinary(interoperableName);
 ```
 
 ### Cross-Chain Operations
 
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop";
+import { createPublicClient, createWalletClient, http } from "viem";
+import { mainnet } from "viem/chains";
 
-// Create a provider for a specific protocol (e.g., Across)
+// Create a provider - Across works with no config (defaults to mainnet)
+// Mainnet: https://app.across.to/api
+// Testnet: https://testnet.across.to/api
 const provider = createCrossChainProvider("across");
 
-// Get a quote for a cross-chain transfer
-const quote = await provider.getQuote("crossChainTransfer", {
-    inputTokenAddress: "0x...",
-    outputTokenAddress: "0x...",
-    inputAmount: "1000000000000000000",
-    inputChainId: 1,
-    outputChainId: 137,
-    sender: "0x...",
-    recipient: "0x...",
+// Or with testnet config
+const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
+
+// Get quotes using OIF format (addresses must be EIP-7930 binary format: 0x0001...)
+// Use nameToBinary() from @wonderland/interop-addresses to convert human-readable addresses
+const quotes = await provider.getQuotes({
+    user: "0x0001000aa36a7114...", // binary format address
+    intent: {
+        intentType: "oif-swap",
+        inputs: [
+            {
+                user: "0x0001000aa36a7114...",
+                asset: "0x0001000aa36a7114...",
+                amount: "1000000000000000000",
+            },
+        ],
+        outputs: [
+            {
+                receiver: "0x0001000149d4114...",
+                asset: "0x0001000149d4114...",
+            },
+        ],
+        swapType: "exact-input",
+    },
+    supportedTypes: ["oif-escrow-v0"],
 });
 
-// Simulate the transaction
-const transactions = await provider.simulateOpen(quote.openParams);
+// Execute the selected quote
+const selectedQuote = quotes[0];
+if (selectedQuote?.preparedTransaction) {
+    const walletClient = createWalletClient({
+        chain: mainnet,
+        transport: http("https://..."),
+        account: "0x...",
+    });
+    const hash = await walletClient.sendTransaction(selectedQuote.preparedTransaction);
+}
 ```
 
 ## API
@@ -91,41 +118,69 @@ const transactions = await provider.simulateOpen(quote.openParams);
 
 Available methods:
 
--   `humanReadableToBinary(humanReadableAddress: string)`
--   `binaryToHumanReadable(binaryAddress: Hex)`
--   `getChainId(binaryAddress: Hex)`
--   `getAddress(binaryAddress: Hex)`
--   `buildFromPayload(payload: InteropAddressFields)`
--   `computeChecksum(humanReadableAddress: string)`
+-   `nameToBinary(interoperableName: string)` – Convert human-readable address to binary format
+-   `binaryToName(binaryAddress: Hex)` – Convert binary address to human-readable format
+-   `getChainId(address: string)` – Extract chain ID from an address
+-   `getAddress(address: string)` – Extract the underlying address
+-   `encodeAddress(payload: InteroperableAddress, opts?: { format: "hex" | "bytes" })` – Create binary address from components
+-   `computeChecksum(interoperableName: string)` – Compute checksum for an address
 
 ### Cross-Chain Operations
 
-#### [CrossChainProviderFactory](./src/services/crossChainProviderFactory.ts)
+#### [createCrossChainProvider](./src/services/crossChainProviderFactory.ts)
 
-The factory provides a standardized way to create and manage cross-chain providers for different protocols.
+Creates a provider for the specified protocol:
 
-Available methods:
+```typescript
+// Across - config optional (defaults to mainnet)
+const acrossProvider = createCrossChainProvider("across");
+const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
 
--   `build<Protocol>(protocolName: Protocol, config?: Config, dependencies?: Dependencies)`: Creates a new provider instance for the specified protocol
--   `createCrossChainProvider<Protocol>(protocolName: Protocol, config?: Config, dependencies?: Dependencies)`: Helper function to create a provider instance
+// OIF - config required
+const oifProvider = createCrossChainProvider("oif", {
+    solverId: "my-solver",
+    url: "https://solver.example.com",
+});
+```
 
-#### [CrossChainExecutor](./src/services/crossChainExecutor.ts)
+#### CrossChainProvider
 
-The executor handles the execution of cross-chain operations, providing a unified interface for different protocols.
+All providers implement these methods:
 
-Available methods:
+-   `.getProtocolName()` – Returns the protocol name
+-   `.getProviderId()` – Returns the provider identifier
+-   `.getQuotes(params)` – Fetch quotes for a cross-chain request (OIF GetQuoteRequest format)
+-   `.submitSignedOrder(quote, signature)` – Submit a signed order (OIF providers only)
+-   `.getTrackingConfig()` – Get configuration for intent tracking
 
--   `execute(params: ExecutionParams)`: Executes a cross-chain operation
--   `getQuotes(params: QuoteParams)`: Gets a quote for a cross-chain operation
+#### [ProviderExecutor](./src/services/providerExecutor.ts)
+
+For comparing quotes across multiple providers:
+
+```typescript
+import { createProviderExecutor } from "@wonderland/interop";
+
+const executor = createProviderExecutor({
+    providers: [acrossProvider, oifProvider],
+});
+
+const response = await executor.getQuotes({
+    /* ... */
+});
+// response.quotes - sorted quotes from all providers
+// response.errors - any provider errors
+```
 
 Supported protocols:
 
 -   Across Protocol
+-   OIF (Open Intents Framework)
 -   More protocols coming soon...
 
 ## References
 
 -   [ERC 7930: Interoperable Addresses](https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365)
+-   [Open Intents Framework](https://docs.openintents.xyz/) - OIF API specification
 -   [Viem Documentation](https://viem.sh/) - Low-level Ethereum interface used for transaction handling
 -   [Zod Documentation](https://zod.dev/) - TypeScript-first schema validation used for input validation
 -   [Cross-Chain Interoperability Standards](https://ethereum.org/en/developers/docs/bridges/) - Overview of cross-chain bridge concepts

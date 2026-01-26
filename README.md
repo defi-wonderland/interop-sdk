@@ -111,26 +111,34 @@ The cross-chain package provides a standardized interface for cross-chain operat
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-// Create a provider for a specific protocol (e.g., Across)
-// When isTestnet is true, it uses https://testnet.across.to/api
-// When isTestnet is false (default), it uses https://app.across.to/api
-const provider = createCrossChainProvider("across", {
-    isTestnet: true,
-    providerId: "my-across-provider",
+// Create a provider - Across works with no config (defaults to mainnet)
+// Mainnet: https://app.across.to/api
+// Testnet: https://testnet.across.to/api
+const provider = createCrossChainProvider("across");
+
+// Or with custom configuration for testnet
+const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
+
+// Get quotes using OIF format (addresses must be EIP-7930 binary format: 0x0001...)
+// Use nameToBinary() from @wonderland/interop-addresses to convert human-readable addresses
+const quotes = await provider.getQuotes({
+    user: "0x0001000aa36a7114...", // binary format address
+    intent: {
+        intentType: "oif-swap",
+        inputs: [
+            {
+                user: "0x0001000aa36a7114...",
+                asset: "0x0001000aa36a7114...",
+                amount: "1000000000000000000",
+            },
+        ],
+        outputs: [{ receiver: "0x0001000149d4114...", asset: "0x0001000149d4114..." }],
+        swapType: "exact-input",
+    },
+    supportedTypes: ["oif-escrow-v0"],
 });
 
-// Get a quote for a cross-chain transfer
-const quote = await provider.getQuote("crossChainTransfer", {
-    sender: "0x...", // sender address
-    recipient: "0x...", // recipient address
-    inputTokenAddress: "0x...", // input token address
-    outputTokenAddress: "0x...", // output token address
-    inputAmount: "1000000000000000000", // amount in wei
-    inputChainId: 11155111, // source chain ID
-    outputChainId: 84532, // destination chain ID
-});
-
-// Or use OIF provider for intent-based cross-chain operations
+// OIF provider requires configuration
 const oifProvider = createCrossChainProvider("oif", {
     solverId: "my-solver",
     url: "https://oif-api.example.com",

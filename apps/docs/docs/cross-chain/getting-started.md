@@ -40,14 +40,17 @@ The package uses a factory pattern to create providers for different protocols:
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-// Create a provider for a specific protocol
-const provider = createCrossChainProvider(
-    "protocol-name",
-    {
-        // provider-specific configuration
-    },
-    {}, // dependencies
-);
+// Create a provider - Across uses sensible defaults
+const acrossProvider = createCrossChainProvider("across");
+
+// Or with custom configuration
+const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
+
+// OIF requires configuration
+const oifProvider = createCrossChainProvider("oif", {
+    solverId: "my-solver",
+    url: "https://solver.example.com",
+});
 ```
 
 See the provider-specific documentation for configuration options:
