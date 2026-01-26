@@ -21,37 +21,39 @@ export async function validateResourceLockOrder(
     const input = userIntent.intent.inputs[0];
     if (!input) return false;
 
-    if (message.expires) {
+    if (message.expires === undefined) return false;
+        if (!message.sponsor) return false;
+        if (!message.commitments?.length) return false;
+
+        const commitment = message.commitments[0];
+        if (!commitment) return false;
+        if (!commitment.token) return false;
+        if (!commitment.amount) return false;
+
         const now = Math.floor(Date.now() / 1000);
         const expires =
             typeof message.expires === "string" ? parseInt(message.expires, 10) : message.expires;
+        if (!Number.isFinite(expires)) return false;
         if (expires < now) return false;
-    }
 
-    const trusted = {
-        user: viemGetAddress(await getAddress(input.user)),
-        token: viemGetAddress(await getAddress(input.asset)),
-        amount: input.amount !== undefined ? BigInt(input.amount) : undefined,
-    };
+        const trusted = {
+            user: viemGetAddress(await getAddress(input.user)),
+            token: viemGetAddress(await getAddress(input.asset)),
+            amount: input.amount !== undefined ? BigInt(input.amount) : undefined,
+        };
 
-    if (message.sponsor) {
         const orderSponsor = viemGetAddress(message.sponsor);
         if (!isAddressEqual(orderSponsor, trusted.user)) return false;
-    }
 
-    if (!message.commitments?.length) return false;
-
-    const commitment = message.commitments[0];
-    if (!commitment) return false;
-
-    if (commitment.token) {
         const orderToken = viemGetAddress(commitment.token);
         if (!isAddressEqual(orderToken, trusted.token)) return false;
-    }
 
-    if (commitment.amount && trusted.amount !== undefined) {
-        if (BigInt(commitment.amount) > trusted.amount) return false;
-    }
+        const orderAmount = BigInt(commitment.amount);
+        if (orderAmount < 0n) return false;
+        if (trusted.amount !== undefined && orderAmount > trusted.amount) return false;
 
-    return true;
+        return true;
+    } catch {
+        return false;
+    }
 }
