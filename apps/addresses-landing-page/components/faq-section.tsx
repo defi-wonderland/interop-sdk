@@ -43,10 +43,10 @@ export function FaqSection() {
                         Does this work with non-EVM chains?
                     </h3>
                     <p className="font-mono text-sm lg:text-[0.9375rem] text-muted-foreground leading-relaxed">
-                        Yes! Both ERCs can support addresses on Bitcoin, Solana, and any
-                        CAIP-supported chains. The specifications build upon CAIP-350, a
-                        meta-specification that defines binary encoding for blockchain addresses
-                        across different ecosystems.
+                        Yes! Both ERCs can support addresses on non-EVM chains throughout Ethereum,
+                        and can be extended to support non-Ethereum chains such as Bitcoin. The
+                        specifications build upon CAIP-350, a meta-specification that defines binary
+                        encoding for blockchain addresses across different ecosystems.
                     </p>
                 </div>
 
