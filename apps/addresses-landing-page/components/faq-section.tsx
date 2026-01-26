@@ -1,6 +1,6 @@
 export function FaqSection() {
     return (
-        <section id="faq" className="px-6 lg:px-16 py-12 lg:py-16">
+        <section id="faq" className="px-6 lg:px-16 py-8 lg:py-10">
             <div className="max-w-3xl">
                 <h2 className="font-mono text-[1.75rem] leading-[1.2] md:text-3xl md:leading-tight lg:text-4xl lg:leading-tight font-light mb-8 md:mb-10 lg:mb-12">
                     Frequently Asked Questions

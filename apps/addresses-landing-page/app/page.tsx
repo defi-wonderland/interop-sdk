@@ -53,13 +53,13 @@ export default function Home() {
 
             <div className="lg:ml-[40%] lg:w-[60%] lg:max-w-[1400px]">
                 <HeroSection />
-                <LogosSection />
                 <ProblemsSection />
                 <HowItWorksSection />
                 <SpecsSection />
                 <DemoSection />
                 <SdkSection />
                 <FaqSection />
+                <LogosSection />
                 <Footer />
             </div>
         </main>

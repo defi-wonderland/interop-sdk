@@ -19,7 +19,7 @@ export function HeroSection() {
     }, []);
 
     return (
-        <section className="flex flex-col justify-center px-6 py-12 lg:py-16 lg:px-16">
+        <section className="flex flex-col justify-center px-6 pt-12 pb-8 lg:pt-16 lg:pb-10 lg:px-16">
             {/* Sticky navbar that appears on scroll */}
             <nav
                 className={`hidden lg:flex fixed top-0 left-[40%] right-0 max-w-[calc(1400px+40%)] bg-[#fcfcfc]/95 backdrop-blur-sm px-16 py-4 border-b border-gray-200 z-20 items-center justify-between transition-transform duration-300 ${
@@ -96,32 +96,11 @@ export function HeroSection() {
                 </h2>
 
                 <p className="font-mono text-[0.9375rem] leading-relaxed md:text-base lg:text-lg text-muted-foreground mb-5 md:mb-6 lg:mb-8 max-w-xl">
-                    Simplify interoperability and eliminate cross-chain mistakes with human-readable
-                    addresses that include chain information.
+                    Simplify interoperability and eliminate cross-chain mistakes.
                 </p>
 
                 <div className="max-w-xl mb-5 md:mb-6 lg:mb-8">
                     <TerminalSnippet />
-                </div>
-
-                <div className="flex flex-col sm:flex-row flex-wrap gap-4">
-                    <Button size="lg" className="font-mono" asChild>
-                        <a href="#specs">Read the Specs</a>
-                    </Button>
-                    <Button
-                        size="lg"
-                        variant="outline"
-                        className="font-mono bg-transparent"
-                        asChild
-                    >
-                        <a
-                            href="https://github.com/defi-wonderland/interop-sdk"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            View on GitHub
-                        </a>
-                    </Button>
                 </div>
             </div>
         </section>
