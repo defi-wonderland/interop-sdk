@@ -21,39 +21,42 @@ export async function validate3009Order(
     userIntent: GetQuoteRequest,
     order: Oif3009Order,
 ): Promise<boolean> {
-    const payload = order.payload;
-    if (!payload?.message) return false;
+    try {
+        const payload = order.payload;
+        const input = userIntent.intent.inputs[0];
 
-    const input = userIntent.intent.inputs[0];
-    if (!input) return false;
+        if (!payload?.message) return false;
+        if (!input) return false;
 
-    const trusted = {
-        user: (await getAddress(input.user)) as Address,
-        token: (await getAddress(input.asset)) as Address,
-        amount: input.amount !== undefined ? BigInt(input.amount) : undefined,
-    };
+        const message = payload.message as Eip3009Message;
+        const metadata = order.metadata as Eip3009Metadata;
 
-    const message = payload.message as Eip3009Message;
-    const metadata = order.metadata as Eip3009Metadata | undefined;
+        if (!message.from) return false;
+        if (!message.value) return false;
+        if (message.validBefore === undefined) return false;
+        if (!metadata?.tokenAddress) return false;
 
-    if (message.from) {
+        const trusted = {
+            user: (await getAddress(input.user)) as Address,
+            token: (await getAddress(input.asset)) as Address,
+            amount: input.amount !== undefined ? BigInt(input.amount) : undefined,
+        };
+
         const orderFrom = viemGetAddress(message.from);
         if (!isAddressEqual(orderFrom, trusted.user)) return false;
-    }
 
-    if (message.value && trusted.amount !== undefined) {
-        if (BigInt(message.value) > trusted.amount) return false;
-    }
+        const orderValue = BigInt(message.value);
+        if (orderValue < 0n) return false;
+        if (trusted.amount !== undefined && orderValue > trusted.amount) return false;
 
-    if (message.validBefore) {
         const now = Math.floor(Date.now() / 1000);
         if (message.validBefore < now) return false;
-    }
 
-    if (metadata?.tokenAddress) {
         const metadataToken = viemGetAddress(metadata.tokenAddress);
         if (!isAddressEqual(metadataToken, trusted.token)) return false;
-    }
 
-    return true;
+        return true;
+    } catch {
+        return false;
+    }
 }
