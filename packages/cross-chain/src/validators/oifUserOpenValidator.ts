@@ -16,29 +16,34 @@ export async function validateUserOpenOrder(
     const allowance = allowances[0];
     if (!allowance) return false;
 
-    const trusted = {
-        user: viemGetAddress(await getAddress(input.user)),
-        token: viemGetAddress(await getAddress(input.asset)),
-        amount: input.amount !== undefined ? BigInt(input.amount) : undefined,
-    };
+    if (!order.openIntentTx?.to) return false;
+        if (!allowance.spender) return false;
+        if (!allowance.token) return false;
+        if (!allowance.user) return false;
+        if (!allowance.required) return false;
 
-    // Validate tx destination matches allowance spender
-    const txTo = viemGetAddress(await getAddress(order.openIntentTx.to));
-    const orderSpender = viemGetAddress(await getAddress(allowance.spender));
-    if (!isAddressEqual(txTo, orderSpender)) return false;
+        const trusted = {
+            user: viemGetAddress(await getAddress(input.user)),
+            token: viemGetAddress(await getAddress(input.asset)),
+            amount: input.amount !== undefined ? BigInt(input.amount) : undefined,
+        };
 
-    // Validate token matches user intent
-    const orderToken = viemGetAddress(await getAddress(allowance.token));
-    if (!isAddressEqual(orderToken, trusted.token)) return false;
+        const txTo = viemGetAddress(await getAddress(order.openIntentTx.to));
+        const orderSpender = viemGetAddress(await getAddress(allowance.spender));
+        if (!isAddressEqual(txTo, orderSpender)) return false;
 
-    // Validate user matches
-    const orderUser = viemGetAddress(await getAddress(allowance.user));
-    if (!isAddressEqual(orderUser, trusted.user)) return false;
+        const orderToken = viemGetAddress(await getAddress(allowance.token));
+        if (!isAddressEqual(orderToken, trusted.token)) return false;
 
-    // Validate required amount doesn't exceed user's intended amount
-    if (trusted.amount !== undefined) {
-        if (BigInt(allowance.required) > trusted.amount) return false;
+        const orderUser = viemGetAddress(await getAddress(allowance.user));
+        if (!isAddressEqual(orderUser, trusted.user)) return false;
+
+        const requiredAmount = BigInt(allowance.required);
+        if (requiredAmount < 0n) return false;
+        if (trusted.amount !== undefined && requiredAmount > trusted.amount) return false;
+
+        return true;
+    } catch {
+        return false;
     }
-
-    return true;
 }
