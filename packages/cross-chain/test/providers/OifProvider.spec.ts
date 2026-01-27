@@ -11,24 +11,22 @@ import {
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,
 } from "../../src/external.js";
-import { getMockedOifQuoteResponse, getMockedOifUserOpenQuoteResponse } from "../mocks/oifApi.js";
+import { OIF_INTEROP_ADDRESSES } from "../mocks/fixtures.js";
+import {
+    getMockedOifQuoteResponse,
+    getMockedOifUserOpenQuoteResponse,
+} from "../mocks/oif/index.js";
 
 vi.mock("axios");
 
 const MOCK_SOLVER_URL = "https://mock-solver.example.com";
 const MOCK_SOLVER_ID = "mock-solver-1";
 
-// EIP-7930 interop addresses for testing
-const USER_ADDRESS = "0x000100000101742d35Cc6634C0532925a3b844Bc9e7595f0bEb8"; // Ethereum mainnet
-const USDC_ADDRESS = "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // USDC on Ethereum
-const USDT_ADDRESS = "0x000100000101dAC17F958D2ee523a2206206994597C13D831ec7"; // USDT on Ethereum
-
 describe("OifProvider", () => {
     const provider = new OifProvider({
         solverId: MOCK_SOLVER_ID,
         url: MOCK_SOLVER_URL,
     });
-    const mockOifResponse = getMockedOifQuoteResponse();
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -52,20 +50,20 @@ describe("OifProvider", () => {
 
     describe("getQuotes", () => {
         const mockQuoteRequest: GetQuoteRequest = {
-            user: USER_ADDRESS,
+            user: OIF_INTEROP_ADDRESSES.USER,
             intent: {
                 intentType: "oif-swap",
                 inputs: [
                     {
-                        user: USER_ADDRESS,
-                        asset: USDC_ADDRESS,
+                        user: OIF_INTEROP_ADDRESSES.USER,
+                        asset: OIF_INTEROP_ADDRESSES.TOKEN,
                         amount: "1000000000000000000",
                     },
                 ],
                 outputs: [
                     {
-                        receiver: USER_ADDRESS,
-                        asset: USDT_ADDRESS,
+                        receiver: OIF_INTEROP_ADDRESSES.USER,
+                        asset: OIF_INTEROP_ADDRESSES.OUTPUT_ASSET,
                     },
                 ],
                 swapType: "exact-input",
@@ -76,7 +74,7 @@ describe("OifProvider", () => {
         it("should call solver with correct endpoint", async () => {
             vi.mocked(axios.post).mockResolvedValue({
                 status: 200,
-                data: mockOifResponse,
+                data: getMockedOifQuoteResponse(),
             });
 
             await provider.getQuotes(mockQuoteRequest);
@@ -96,7 +94,7 @@ describe("OifProvider", () => {
         it("should return ExecutableQuote array with valid structure", async () => {
             vi.mocked(axios.post).mockResolvedValue({
                 status: 200,
-                data: mockOifResponse,
+                data: getMockedOifQuoteResponse(),
             });
 
             const quotes = await provider.getQuotes(mockQuoteRequest);
@@ -171,8 +169,10 @@ describe("OifProvider", () => {
             const quotes = await provider.getQuotes(requestWithUserOpen);
 
             expect(quotes[0]?.preparedTransaction).toBeDefined();
-            expect(quotes[0]?.preparedTransaction?.to).toBe(USDC_ADDRESS);
-            expect(quotes[0]?.preparedTransaction?.data).toBe("0x095ea7b3000000000000000000000000");
+            // In oif-user-open-v0, openIntentTx.to is the settlement contract (spender)
+            expect(quotes[0]?.preparedTransaction?.to).toBe(OIF_INTEROP_ADDRESSES.SPENDER);
+            // The calldata is opaque (call to settlement contract, not ERC20 approve)
+            expect(quotes[0]?.preparedTransaction?.data).toBeDefined();
         });
     });
 

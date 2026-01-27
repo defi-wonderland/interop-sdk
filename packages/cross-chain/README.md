@@ -187,7 +187,7 @@ if (response[0]?.preparedTransaction) {
 Access approval info directly from the quote:
 
 ```typescript
-// Protocol mode (oif-escrow-v0) - typically Permit2
+// Protocol mode (oif-escrow-v0)
 const spender = quote.order.payload.message.spender;
 
 // User mode (oif-user-open-v0)

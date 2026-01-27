@@ -1,4 +1,5 @@
-import type { OrderStatus } from "../types/oif.js";
+import type { OrderStatus } from "@openintentsframework/oif-specs";
+
 import type { OrderTrackerTimeoutPayload, OrderTrackingUpdate } from "../types/orderTracking.js";
 
 /**
