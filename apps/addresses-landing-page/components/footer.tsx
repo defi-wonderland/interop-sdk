@@ -51,7 +51,7 @@ export function Footer() {
                                 SDK
                             </a>
                             <a
-                                href="https://docs.interop.wonderland.xyz/"
+                                href="https://docs.interop.wonderland.xyz/addresses"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="block hover:text-foreground transition-colors"
