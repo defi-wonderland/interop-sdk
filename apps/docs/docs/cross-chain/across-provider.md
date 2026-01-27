@@ -8,21 +8,21 @@ The Across Protocol provider enables cross-chain token transfers using the Acros
 
 ## Configuration
 
-| Field        | Type   | Required | Description                |
-| ------------ | ------ | -------- | -------------------------- |
-| `apiUrl`     | string | Yes      | Across API endpoint URL    |
-| `providerId` | string | No       | Custom provider identifier |
+| Field        | Type    | Required | Description                                   |
+| ------------ | ------- | -------- | --------------------------------------------- |
+| `isTestnet`  | boolean | No       | Use testnet API (default: false)              |
+| `apiUrl`     | string  | No       | Custom API endpoint URL (overrides isTestnet) |
+| `providerId` | string  | No       | Custom provider identifier                    |
 
 ## Creating the Provider
 
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider(
-    "across",
-    { apiUrl: "https://testnet.across.to/api" },
-    {},
-);
+// Across config is optional - defaults to mainnet
+// Mainnet: https://app.across.to/api
+// Testnet: https://testnet.across.to/api
+const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 ```
 
 ## Getting Quotes
