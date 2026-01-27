@@ -1,4 +1,4 @@
-import { getChainConfig, getExplorerTxUrl } from '../../constants/chains';
+import { useChainConfig } from '../../hooks/useNetworkConfig';
 import { STEP } from '../../types/execution';
 import { formatMessageWithDate } from '../../utils/formatting';
 import { CloseIcon, ExternalLinkIcon } from '../icons';
@@ -16,9 +16,10 @@ function getMessage(state: ErrorViewProps['state']): string {
 }
 
 export function ErrorView({ state, onReset }: ErrorViewProps) {
+  const chainConfig = useChainConfig();
   const originChainId = 'originChainId' in state ? state.originChainId : undefined;
-  const originChain = getChainConfig(originChainId);
-  const originTxUrl = getExplorerTxUrl(originChainId, state.txHash);
+  const originChain = chainConfig.getChain(originChainId);
+  const originTxUrl = chainConfig.getExplorerTxUrl(originChainId, state.txHash);
   const isTimeout = state.step === STEP.TIMEOUT;
   const borderColor = isTimeout ? 'border-warning/30' : 'border-error/30';
   const bgColor = isTimeout ? 'bg-warning/5' : 'bg-error/5';

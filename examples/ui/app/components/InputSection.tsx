@@ -98,11 +98,11 @@ export function InputSection({
         )}
 
         {isBuildMode && (
-          <div>
-            <label htmlFor='address-input' className='text-sm font-medium text-text-secondary'>
-              Address @ Chain Reference
-            </label>
-            <div className='flex flex-col sm:flex-row gap-2 sm:items-center mt-2'>
+          <div className='flex flex-col sm:flex-row gap-4'>
+            <div className='flex-1'>
+              <label htmlFor='address-input' className='text-sm font-medium text-text-secondary'>
+                Address
+              </label>
               <input
                 id='address-input'
                 type='text'
@@ -111,18 +111,20 @@ export function InputSection({
                 placeholder='0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
                 autoComplete='off'
                 data-1p-ignore
-                className='w-full sm:flex-1 px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20'
+                className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 mt-2'
               />
-              <div className='flex items-center gap-2 sm:contents'>
-                <span className='text-text-secondary font-mono text-lg px-2'>@</span>
-                <ChainDropdown
-                  chains={chains}
-                  id='chain-reference-dropdown'
-                  value={chainReference}
-                  onChange={setChainReference}
-                  className='flex-1'
-                />
-              </div>
+            </div>
+            <div className='flex-1'>
+              <label htmlFor='chain-reference-dropdown' className='text-sm font-medium text-text-secondary'>
+                Chain
+              </label>
+              <ChainDropdown
+                chains={chains}
+                id='chain-reference-dropdown'
+                value={chainReference}
+                onChange={setChainReference}
+                className='mt-2'
+              />
             </div>
           </div>
         )}

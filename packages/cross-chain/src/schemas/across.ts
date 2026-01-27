@@ -98,7 +98,8 @@ export const AcrossOIFGetQuoteParamsSchema = z.object({
 
 export const AcrossConfigSchema = z
     .object({
-        apiUrl: z.string(),
+        isTestnet: z.boolean().optional().default(false),
+        apiUrl: z.string().optional(),
         providerId: z.string().default(`across_${uuidv4()}`),
     })
     .describe("Configuration for the Across provider");

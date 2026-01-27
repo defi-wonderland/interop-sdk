@@ -13,4 +13,4 @@ export type AcrossGetQuoteResponse = z.infer<typeof AcrossGetQuoteResponseSchema
 
 export type AcrossOIFGetQuoteParams = z.infer<typeof AcrossOIFGetQuoteParamsSchema>;
 
-export type AcrossConfigs = z.infer<typeof AcrossConfigSchema>;
+export type AcrossConfigs = z.input<typeof AcrossConfigSchema>;
