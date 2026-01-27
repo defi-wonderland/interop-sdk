@@ -1,12 +1,15 @@
 "use client";
 
 import { encodeAddress } from "@wonderland/interop-addresses";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // Animation constants
-const ANIMATION_DURATION = 800;
-const CYCLE_INTERVAL = 2000;
-const MID_ANIMATION_DELAY = ANIMATION_DURATION / 2;
+const SCRAMBLE_DURATION = 500; // Total time for scramble animation
+const CYCLE_INTERVAL = 2500; // Time between chain changes
+const SCRAMBLE_ITERATIONS = 3; // How many random chars before settling
+
+// Characters to use for scramble effect
+const SCRAMBLE_CHARS = "abcdef0123456789";
 
 const CHAIN_IDS: Record<string, string> = {
     ethereum: "1",
@@ -28,65 +31,153 @@ const abbreviateAddress = (address: string): string => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-type AnimationState = "idle" | "sliding-out" | "sliding-in";
+const getRandomChar = () => SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
 
-interface AnimatedCellProps {
-    children: React.ReactNode;
-    animationState: AnimationState;
+interface ScrambleTextProps {
+    text: string;
+    isAnimating: boolean;
+    onAnimationComplete?: () => void;
+    className?: string;
     minWidth?: string;
-    className?: string;
+    startFull?: boolean;
+    preservePrefix?: number;
 }
 
-function AnimatedCell({
-    children,
-    animationState,
-    minWidth = "min-w-[120px] md:min-w-[140px] lg:min-w-[160px]",
+function ScrambleText({
+    text,
+    isAnimating,
+    onAnimationComplete,
     className = "",
-}: AnimatedCellProps) {
-    const getTransform = () => {
-        switch (animationState) {
-            case "sliding-out":
-                return "translate-y-[100%]";
-            case "sliding-in":
-                return "translate-y-[-100%]";
-            case "idle":
-            default:
-                return "translate-y-0";
+    minWidth = "min-w-[120px] md:min-w-[140px] lg:min-w-[160px]",
+    startFull = false,
+    preservePrefix = 0,
+}: ScrambleTextProps) {
+    const [displayText, setDisplayText] = useState(text);
+    const animationRef = useRef<number | null>(null);
+    const iterationsRef = useRef<number[]>([]);
+
+    const animate = useCallback(() => {
+        if (!isAnimating) {
+            setDisplayText(text);
+            return;
         }
-    };
 
-    return (
-        <div
-            className={`transition-transform ease-in-out ${getTransform()} ${className}`}
-            style={{ transitionDuration: `${ANIMATION_DURATION}ms` }}
-        >
-            <span className={`inline-block ${minWidth}`}>{children}</span>
-        </div>
-    );
-}
+        // For startFull mode: scramble all chars together, then reveal all at once
+        if (startFull) {
+            const startTime = performance.now();
+            const prefix = text.slice(0, preservePrefix);
 
-interface FadeCellProps {
-    children: React.ReactNode;
-    isVisible: boolean;
-    className?: string;
-}
+            const step = (currentTime: number) => {
+                const elapsed = currentTime - startTime;
 
-function FadeCell({ children, isVisible, className = "" }: FadeCellProps) {
-    return (
-        <div
-            className={`transition-opacity ease-in-out ${isVisible ? "opacity-100" : "opacity-0"} ${className}`}
-            style={{ transitionDuration: `${ANIMATION_DURATION}ms` }}
-        >
-            {children}
-        </div>
-    );
+                if (elapsed >= SCRAMBLE_DURATION) {
+                    // Time's up - reveal the correct text
+                    setDisplayText(text);
+                    onAnimationComplete?.();
+                    return;
+                }
+
+                // Show prefix + random characters for the rest
+                let newDisplay = prefix;
+                for (let i = preservePrefix; i < text.length; i++) {
+                    newDisplay += getRandomChar();
+                }
+                setDisplayText(newDisplay);
+                animationRef.current = requestAnimationFrame(step);
+            };
+
+            animationRef.current = requestAnimationFrame(step);
+
+            return () => {
+                if (animationRef.current) {
+                    cancelAnimationFrame(animationRef.current);
+                }
+            };
+        }
+
+        // Progressive reveal mode (original behavior)
+        iterationsRef.current = new Array(text.length).fill(0) as number[];
+
+        const charDelay = SCRAMBLE_DURATION / text.length;
+        let currentIndex = 0;
+        let lastTime = performance.now();
+        let scrambleTimer = 0;
+
+        const step = (currentTime: number) => {
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+            scrambleTimer += deltaTime;
+
+            // Calculate which character index we should be resolving up to
+            const targetIndex = Math.min(Math.floor(scrambleTimer / charDelay), text.length);
+
+            // Build the display string
+            let newDisplay = "";
+            for (let i = 0; i < text.length; i++) {
+                if (i < currentIndex) {
+                    // Already resolved
+                    newDisplay += text[i];
+                } else if (i === currentIndex && targetIndex > currentIndex) {
+                    // Currently resolving this character
+                    iterationsRef.current[i]++;
+                    if (iterationsRef.current[i] >= SCRAMBLE_ITERATIONS) {
+                        newDisplay += text[i];
+                        currentIndex++;
+                    } else {
+                        newDisplay += getRandomChar();
+                    }
+                } else if (i <= targetIndex) {
+                    // Show scrambled character
+                    newDisplay += getRandomChar();
+                } else {
+                    // Not yet reached
+                    newDisplay += " ";
+                }
+            }
+
+            setDisplayText(newDisplay);
+
+            if (currentIndex < text.length) {
+                animationRef.current = requestAnimationFrame(step);
+            } else {
+                setDisplayText(text);
+                onAnimationComplete?.();
+            }
+        };
+
+        animationRef.current = requestAnimationFrame(step);
+
+        return () => {
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+            }
+        };
+    }, [text, isAnimating, onAnimationComplete, startFull, preservePrefix]);
+
+    useEffect(() => {
+        const cleanup = animate();
+        return () => {
+            cleanup?.();
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+            }
+        };
+    }, [animate]);
+
+    // Update display when text changes and not animating
+    useEffect(() => {
+        if (!isAnimating) {
+            setDisplayText(text);
+        }
+    }, [text, isAnimating]);
+
+    return <span className={`inline-block ${minWidth} ${className}`}>{displayText}</span>;
 }
 
 export function AddressShowcase() {
     const [currentChainIndex, setCurrentChainIndex] = useState(0);
-    const [animationState, setAnimationState] = useState<AnimationState>("idle");
+    const [isAnimating, setIsAnimating] = useState(false);
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-    const timeoutRefs = useRef<NodeJS.Timeout[]>([]);
 
     const currentChain = CHAINS[currentChainIndex];
     const chainId = currentChain ? CHAIN_IDS[currentChain] : null;
@@ -146,59 +237,32 @@ export function AddressShowcase() {
         }
     }, []);
 
-    // Cycle chain animation
+    // Cycle chain with scramble animation
     useEffect(() => {
-        if (CHAINS.length === 0 || prefersReducedMotion) return;
-
-        const clearTimeouts = () => {
-            timeoutRefs.current.forEach((timeout) => clearTimeout(timeout));
-            timeoutRefs.current = [];
-        };
+        if (CHAINS.length === 0) return;
 
         const cycleToNext = () => {
-            clearTimeouts();
-
-            // Start slide out animation
-            setAnimationState("sliding-out");
-
-            // Update index mid-animation so new content is ready
-            const timeout1 = setTimeout(() => {
-                setCurrentChainIndex((prev) => (prev + 1) % CHAINS.length);
-                setAnimationState("sliding-in");
-            }, MID_ANIMATION_DELAY);
-            timeoutRefs.current.push(timeout1);
-
-            // After slide out, reset animation state to slide in new content
-            const timeout2 = setTimeout(() => {
-                setAnimationState("idle");
-            }, ANIMATION_DURATION);
-            timeoutRefs.current.push(timeout2);
+            setCurrentChainIndex((prev) => (prev + 1) % CHAINS.length);
+            if (!prefersReducedMotion) {
+                setIsAnimating(true);
+            }
         };
 
         const interval = setInterval(cycleToNext, CYCLE_INTERVAL);
 
-        return () => {
-            clearInterval(interval);
-            clearTimeouts();
-        };
-    }, [prefersReducedMotion]);
-
-    // If reduced motion, just cycle without animation
-    useEffect(() => {
-        if (!prefersReducedMotion) return;
-
-        const interval = setInterval(() => {
-            setCurrentChainIndex((prev) => (prev + 1) % CHAINS.length);
-        }, CYCLE_INTERVAL);
-
         return () => clearInterval(interval);
     }, [prefersReducedMotion]);
+
+    // Handle animation completion
+    const handleAnimationComplete = useCallback(() => {
+        setIsAnimating(false);
+    }, []);
 
     const displayChainId = currentChain && chainId ? `eip155:${chainId}` : "";
 
     return (
         <div
-            className="mb-0 rounded-lg bg-gray-50 border border-gray-200 p-4 md:p-5 lg:p-6 shadow-sm"
+            className="mb-0 bg-gray-50 border border-[oklch(0.22_0.11_269.06)] p-4 md:p-5 lg:px-8"
             role="region"
             aria-label="Interoperable address showcase"
             aria-live="polite"
@@ -219,12 +283,12 @@ export function AddressShowcase() {
                     className="font-mono text-lg md:text-xl lg:text-2xl text-[oklch(0.22_0.11_269.06)] mb-2 overflow-hidden relative"
                     aria-label={`Chain: ${currentChain || "loading"}`}
                 >
-                    <AnimatedCell
+                    <ScrambleText
                         key={`chain-${currentChainIndex}`}
-                        animationState={animationState}
-                    >
-                        {currentChain || ""}
-                    </AnimatedCell>
+                        text={currentChain || ""}
+                        isAnimating={isAnimating}
+                        onAnimationComplete={handleAnimationComplete}
+                    />
                 </div>
 
                 {/* Second row: Address */}
@@ -241,12 +305,11 @@ export function AddressShowcase() {
                     className="font-mono text-base md:text-lg lg:text-xl text-[oklch(0.22_0.11_269.06)] mb-2 overflow-hidden relative"
                     aria-label={`Chain ID: ${displayChainId}`}
                 >
-                    <AnimatedCell
+                    <ScrambleText
                         key={`chainId-${currentChainIndex}`}
-                        animationState={animationState}
-                    >
-                        {displayChainId}
-                    </AnimatedCell>
+                        text={displayChainId}
+                        isAnimating={isAnimating}
+                    />
                 </div>
 
                 {/* Third row: Binary address (full width) */}
@@ -254,12 +317,15 @@ export function AddressShowcase() {
                     className="font-mono text-xs md:text-sm lg:text-base text-[oklch(0.22_0.11_269.06)] mb-2 col-span-3 opacity-60"
                     aria-label="Encoded interoperable address"
                 >
-                    <FadeCell
+                    <ScrambleText
                         key={`binary-${currentChainIndex}`}
-                        isVisible={animationState === "idle"}
-                    >
-                        <span className="inline-block break-all">{encodedAddress || ""}</span>
-                    </FadeCell>
+                        text={encodedAddress || ""}
+                        isAnimating={isAnimating}
+                        startFull
+                        preservePrefix={2}
+                        minWidth=""
+                        className="break-all"
+                    />
                 </div>
             </div>
         </div>
