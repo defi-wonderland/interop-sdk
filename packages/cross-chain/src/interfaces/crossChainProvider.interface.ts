@@ -2,6 +2,7 @@ import type { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/o
 import type { Hex } from "viem";
 
 import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
+import type { AssetDiscoveryConfig } from "./assetDiscovery.interface.js";
 import type { OpenedIntentParserConfig } from "./openedIntentParser.interface.js";
 import type { ExecutableQuote } from "./quotes.interface.js";
 
@@ -68,4 +69,29 @@ export abstract class CrossChainProvider {
         /** Configuration for watching fill events */
         fillWatcherConfig: FillWatcherConfig;
     };
+
+    /**
+     * Get the configuration for asset discovery
+     *
+     * This method allows providers to declare support for asset discovery.
+     * Returns null if discovery is not supported (default behavior).
+     *
+     * Providers that support discovery should override this method to return
+     * an appropriate configuration:
+     * - { type: "oif" } for OIF-compliant solvers
+     * - { type: "custom-api", config: {...} } for custom APIs
+     * - { type: "static", config: {...} } for static asset lists
+     *
+     * @returns Asset discovery configuration, or null if not supported
+     *
+     * @example OIF Provider:
+     * ```typescript
+     * getDiscoveryConfig() {
+     *   return { type: "oif" };
+     * }
+     * ```
+     */
+    getDiscoveryConfig(): AssetDiscoveryConfig | null {
+        return null;
+    }
 }

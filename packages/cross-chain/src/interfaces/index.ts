@@ -8,3 +8,4 @@ export * from "./fillWatcher.interface.js";
 export * from "./quotes.interface.js";
 export * from "./sortingStrategy.interface.js";
 export * from "./intentValidator.interface.js";
+export * from "./assetDiscovery.interface.js";

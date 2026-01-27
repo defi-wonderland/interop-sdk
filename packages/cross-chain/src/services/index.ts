@@ -8,3 +8,5 @@ export * from "./crossChainProviderFactory.js";
 export * from "./sortingStrategyFactory.js";
 export * from "./intentValidatorFactory.js";
 export * from "./intentValidationsAggregator.js";
+export * from "./OIFAssetDiscoveryService.js";
+export * from "./assetDiscoveryFactory.js";
