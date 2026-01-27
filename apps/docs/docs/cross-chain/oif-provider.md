@@ -19,14 +19,10 @@ The [OIF (Open Intents Framework)](https://github.com/BootNodeDev/intents-framew
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-const oifProvider = createCrossChainProvider(
-    "oif",
-    {
-        solverId: "my-solver",
-        url: "https://oif-api.example.com",
-    },
-    {},
-);
+const oifProvider = createCrossChainProvider("oif", {
+    solverId: "my-solver",
+    url: "https://oif-api.example.com",
+});
 ```
 
 ## Execution Modes

@@ -49,14 +49,14 @@ Available scripts that can be run using `pnpm`:
 ### Interoperable Addresses
 
 ```typescript
-// Using the Provider
-// Or just importing the method
 import { InteropAddressProvider, nameToBinary } from "@wonderland/interop";
 
+// Using the Provider
 const interoperableName = "alice.eth@eip155:1#ABCD1234";
 const binaryAddress = await InteropAddressProvider.nameToBinary(interoperableName);
 
-const binaryAddress = await nameToBinary(interoperableName);
+// Or just importing the method directly
+const binaryAddress2 = await nameToBinary("alice.eth@eip155:1#ABCD1234");
 ```
 
 ### Cross-Chain Operations
@@ -98,15 +98,24 @@ const quotes = await provider.getQuotes({
     supportedTypes: ["oif-escrow-v0"],
 });
 
-// Execute the selected quote
-const selectedQuote = quotes[0];
-if (selectedQuote?.preparedTransaction) {
-    const walletClient = createWalletClient({
-        chain: mainnet,
-        transport: http("https://..."),
-        account: "0x...",
-    });
-    const hash = await walletClient.sendTransaction(selectedQuote.preparedTransaction);
+// Execute the quote
+const quote = quotes[0];
+const walletClient = createWalletClient({
+    chain: mainnet,
+    transport: http("https://..."),
+    account: "0x...",
+});
+
+// Option 1 - User Mode: send transaction directly (Across, OIF user-open)
+if (quote?.preparedTransaction) {
+    const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+}
+
+// Option 2 - Protocol Mode: sign and submit order (OIF escrow - gasless for user)
+if (quote?.order.type === "oif-escrow-v0") {
+    const { domain, primaryType, message, types } = quote.order.payload;
+    const signature = await walletClient.signTypedData({ domain, primaryType, message, types });
+    await provider.submitSignedOrder(quote, signature);
 }
 ```
 
@@ -147,11 +156,11 @@ const oifProvider = createCrossChainProvider("oif", {
 
 All providers implement these methods:
 
--   `.getProtocolName()` – Returns the protocol name
--   `.getProviderId()` – Returns the provider identifier
--   `.getQuotes(params)` – Fetch quotes for a cross-chain request (OIF GetQuoteRequest format)
--   `.submitSignedOrder(quote, signature)` – Submit a signed order (OIF providers only)
--   `.getTrackingConfig()` – Get configuration for intent tracking
+-   `.getQuotes(params)` – Returns `ExecutableQuote[]`. Fetch quotes for a cross-chain request (OIF GetQuoteRequest format).
+-   `.submitSignedOrder(quote, signature)` – Submit a signed order (OIF escrow mode). Throws for Across.
+-   `.getProtocolName()` – Returns the protocol name.
+-   `.getProviderId()` – Returns the provider identifier.
+-   `.getTrackingConfig()` – Get configuration for intent tracking.
 
 #### [ProviderExecutor](./src/services/providerExecutor.ts)
 
@@ -164,11 +173,12 @@ const executor = createProviderExecutor({
     providers: [acrossProvider, oifProvider],
 });
 
+// Returns { quotes: ExecutableQuote[], errors: GetQuotesError[] }
 const response = await executor.getQuotes({
     /* ... */
 });
-// response.quotes - sorted quotes from all providers
-// response.errors - any provider errors
+
+const bestQuote = response.quotes[0]; // Sorted by best output
 ```
 
 Supported protocols:

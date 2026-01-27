@@ -72,7 +72,7 @@ An abstract class that defines the interface for cross-chain protocol providers.
             ],
             swapType: "exact-input",
         },
-        supportedTypes: ["across"],
+        supportedTypes: ["across"], // provider-specific: "across", "oif-escrow-v0", "oif-user-open-v0"
     });
     ```
 
@@ -141,7 +141,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
             ],
             swapType: "exact-input",
         },
-        supportedTypes: ["across"],
+        supportedTypes: ["across"], // provider-specific: "across", "oif-escrow-v0", "oif-user-open-v0"
     });
 
     // Handle results

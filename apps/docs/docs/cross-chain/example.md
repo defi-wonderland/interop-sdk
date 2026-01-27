@@ -47,11 +47,7 @@ const walletClient = createWalletClient({
 Initialize the cross-chain provider and executor, which will handle quoting and executing cross-chain transfers.
 
 ```js
-const acrossProvider = createCrossChainProvider(
-    "across",
-    { apiUrl: "https://testnet.across.to/api" },
-    {},
-);
+const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
 const executor = createProviderExecutor({
     providers: [acrossProvider],
