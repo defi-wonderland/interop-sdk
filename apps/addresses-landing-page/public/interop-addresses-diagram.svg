@@ -29,7 +29,7 @@
   <rect x="520" y="190" width="260" height="50" rx="4" stroke="#B9B9B9" fill="white"/>
   <text x="650" y="210" font-family="monospace" font-size="16" fill="#28253D" text-anchor="middle">
     <tspan x="650" dy="0">chainType: eip155</tspan>
-    <tspan x="650" dy="20">chainReference: 8543</tspan>
+    <tspan x="650" dy="20">chainReference: 8453</tspan>
   </text>
 
   <!-- Arrows from resolved values to serialization -->
