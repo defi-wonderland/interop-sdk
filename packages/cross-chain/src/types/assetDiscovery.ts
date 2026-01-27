@@ -9,7 +9,7 @@
  * - GET /api/tokens/{chain_id} - Returns assets for a specific chain
  */
 
-import type { Address } from "./oif.js";
+import type { Address } from "@openintentsframework/oif-specs";
 
 /**
  * Asset metadata information
