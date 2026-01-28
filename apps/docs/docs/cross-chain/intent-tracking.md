@@ -25,11 +25,7 @@ import {
     IntentTrackerFactory,
 } from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider(
-    "across",
-    { apiUrl: "https://testnet.across.to/api" },
-    {},
-);
+const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
 const executor = createProviderExecutor({
     providers: [acrossProvider],
@@ -165,11 +161,7 @@ For advanced use cases, you can create a tracker directly without using the exec
 ```typescript
 import { createCrossChainProvider, createIntentTracker } from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider(
-    "across",
-    { apiUrl: "https://testnet.across.to/api" },
-    {},
-);
+const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
 const tracker = createIntentTracker(acrossProvider, {
     rpcUrls: {

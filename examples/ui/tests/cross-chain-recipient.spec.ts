@@ -3,12 +3,13 @@ import { isAddress } from 'viem';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/cross-chain');
+  // Wait for wallet to connect and auto-fill recipient
+  await expect(page.getByLabel('Recipient Address')).not.toBeEmpty({ timeout: 500 });
 });
 
 test.describe('Recipient address input', () => {
   test('auto-fills with connected address on load', async ({ page }) => {
-    const recipientInput = page.getByLabel('Recipient Address');
-    const value = await recipientInput.inputValue();
+    const value = await page.getByLabel('Recipient Address').inputValue();
     expect(isAddress(value)).toBe(true);
   });
 

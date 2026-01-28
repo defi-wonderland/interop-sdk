@@ -1,13 +1,14 @@
-import { getChainConfig, getExplorerTxUrl } from '../../constants/chains';
+import { useChainConfig } from '../../hooks/useNetworkConfig';
 import { CheckIcon, ExternalLinkIcon } from '../icons';
 import type { SuccessViewProps } from './types';
 
 export function SuccessView({ state, onReset }: SuccessViewProps) {
-  const originChain = getChainConfig(state.originChainId);
-  const destinationChain = getChainConfig(state.destinationChainId);
-  const originTxUrl = getExplorerTxUrl(state.originChainId, state.txHash);
+  const chainConfig = useChainConfig();
+  const originChain = chainConfig.getChain(state.originChainId);
+  const destinationChain = chainConfig.getChain(state.destinationChainId);
+  const originTxUrl = chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
   const fillTxHash = state.update.fillTxHash;
-  const fillTxUrl = getExplorerTxUrl(state.destinationChainId, fillTxHash);
+  const fillTxUrl = chainConfig.getExplorerTxUrl(state.destinationChainId, fillTxHash);
 
   return (
     <div className='p-4 sm:p-6 rounded-xl border border-accent/30 bg-accent/5'>

@@ -1,7 +1,19 @@
 /**
  * TypeScript types for decoded EIP-7683 Open event data
  */
+import type { Order } from "@openintentsframework/oif-specs";
 import type { Address, Hex } from "viem";
+
+export type OifOrderType = Order["type"];
+
+const OIF_ORDER_TYPE_SET: Record<OifOrderType, true> = {
+    "oif-escrow-v0": true,
+    "oif-resource-lock-v0": true,
+    "oif-3009-v0": true,
+    "oif-user-open-v0": true,
+};
+
+export const OIF_ORDER_TYPES = Object.keys(OIF_ORDER_TYPE_SET) as OifOrderType[];
 
 export const OPEN_ABI = [
     {

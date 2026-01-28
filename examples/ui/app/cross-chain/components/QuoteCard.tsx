@@ -1,6 +1,7 @@
 'use client';
 
 import { NOT_AVAILABLE } from '../constants';
+import { useTokenConfig } from '../hooks/useNetworkConfig';
 import { STEP, WALLET_ACTION, type BridgeState } from '../types/execution';
 import { formatQuoteData } from '../utils/quoteFormatter';
 import { Tooltip } from './Tooltip';
@@ -11,6 +12,8 @@ interface QuoteCardProps {
   quote: ExecutableQuote;
   inputTokenAddress: string;
   outputTokenAddress: string;
+  inputChainId: number;
+  outputChainId: number;
   isSelected?: boolean;
   executionState?: BridgeState;
   hideExecuteButton?: boolean;
@@ -37,13 +40,23 @@ export function QuoteCard({
   quote,
   inputTokenAddress,
   outputTokenAddress,
+  inputChainId,
+  outputChainId,
   isSelected,
   executionState,
   hideExecuteButton = false,
   onSelect,
   onExecute,
 }: QuoteCardProps) {
-  const formatted = formatQuoteData(quote, inputTokenAddress, outputTokenAddress);
+  const tokenConfig = useTokenConfig();
+  const formatted = formatQuoteData(
+    quote,
+    inputTokenAddress,
+    outputTokenAddress,
+    inputChainId,
+    outputChainId,
+    tokenConfig.TOKEN_INFO,
+  );
 
   const handleClick = () => {
     onSelect?.(quote);

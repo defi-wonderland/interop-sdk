@@ -1,47 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AcrossProvider, CrossChainProvider, UnsupportedProtocol } from "../../src/internal.js";
-import {
-    createCrossChainProvider,
-    CrossChainProviderFactory,
-} from "../../src/services/crossChainProviderFactory.js";
+import { createCrossChainProvider } from "../../src/services/crossChainProviderFactory.js";
 
 const MOCK_ACROSS_CONFIG = {
     apiUrl: "https://across.to/api",
     providerId: "test-across-provider",
 };
 
-describe("CrossChainProviderFactory", () => {
+describe("createCrossChainProvider", () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it("builds a CrossChainProvider", () => {
-        const provider = CrossChainProviderFactory.build("across", MOCK_ACROSS_CONFIG, {});
+    it("creates a CrossChainProvider", () => {
+        const provider = createCrossChainProvider("across", MOCK_ACROSS_CONFIG);
 
         expect(provider).toBeInstanceOf(CrossChainProvider);
     });
 
-    it("builds a CrossChainProvider with the across provider", () => {
-        const provider = CrossChainProviderFactory.build("across", MOCK_ACROSS_CONFIG, {});
+    it("creates a CrossChainProvider with the across provider", () => {
+        const provider = createCrossChainProvider("across", MOCK_ACROSS_CONFIG);
 
         expect(provider).toBeInstanceOf(AcrossProvider);
     });
 
-    it("creates a cross chain provider using the createCrossChainProvider function", () => {
-        const provider = createCrossChainProvider(
-            "across",
-            MOCK_ACROSS_CONFIG,
-            {},
-        ) as AcrossProvider;
+    it("creates an across provider without config (defaults to mainnet)", () => {
+        const provider = createCrossChainProvider("across");
 
         expect(provider).toBeInstanceOf(AcrossProvider);
     });
 
     it("throws an UnsupportedProtocol error for unsupported protocols", () => {
         expect(() => {
-            // @ts-expect-error - This is a test
-            CrossChainProviderFactory.build("unsupported-protocol", {}, {});
+            // @ts-expect-error - Testing unsupported protocol
+            createCrossChainProvider("unsupported-protocol", {});
         }).toThrow(UnsupportedProtocol);
     });
 });

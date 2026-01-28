@@ -2,7 +2,7 @@ import type { GetQuoteRequest } from "@openintentsframework/oif-specs";
 import type { Hex } from "viem";
 
 import type { ExecutableQuote, IntentValidator } from "../internal.js";
-import { OIF_ORDER_TYPES } from "../types/oif.js";
+import { OIF_ORDER_TYPES } from "../constants/openIntentFramework.js";
 import { validateAcrossPayload } from "./acrossPayloadValidator.js";
 import { validateOifPayload } from "./oifPayloadValidator.js";
 
