@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/cross-chain');
+  await page.goto('/cross-chain?testnet=true');
 });
 
 test.describe('Recipient address input', () => {
@@ -12,6 +12,7 @@ test.describe('Recipient address input', () => {
 
   test('allows user to clear input', async ({ page }) => {
     const recipientInput = page.getByRole('textbox', { name: 'Recipient Address' });
+    await recipientInput.focus();
     await recipientInput.clear();
 
     await expect(recipientInput).toHaveValue('');
@@ -54,6 +55,8 @@ test.describe('Amount input validation', () => {
 
 test.describe('Cross-chain intents', () => {
   test('get quotes', async ({ page }) => {
+    await page.locator('#input-token-select').selectOption({ label: 'USDC' });
+    await page.locator('#output-token-select').selectOption({ label: 'USDC' });
     await page.getByRole('textbox', { name: 'Amount' }).fill('0.2');
     await page.getByRole('button', { name: 'Get Quotes' }).click();
     await page.locator('button').filter({ hasText: /Across Protocol/ }).click();

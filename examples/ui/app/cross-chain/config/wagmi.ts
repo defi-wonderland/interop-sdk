@@ -24,7 +24,13 @@ export function createWagmiConfig(isTestnet: boolean) {
     return createConfig({
       chains,
       ssr: true,
-      connectors: [e2eConnector()],
+      connectors: [
+        e2eConnector({
+          chains,
+          rpcUrls,
+          debug: true,
+        }),
+      ],
       transports,
     });
   }
