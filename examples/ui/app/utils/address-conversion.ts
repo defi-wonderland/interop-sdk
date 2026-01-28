@@ -1,6 +1,9 @@
-import { encodeAddress, parseName, type ParsedInteroperableNameResult } from '@wonderland/interop-addresses';
+import { type ParsedInteroperableNameResult } from '@wonderland/interop-addresses';
+import { parseNameAction } from '../actions/parse-name';
 import { parseInteroperableAddressForDisplay } from './demo-helpers';
 import type { ParsedBinary, ParsedInteroperableName } from './demo-helpers';
+
+export const NETWORK_ERROR_MESSAGE = 'Unexpected error, please try again or check your connection';
 
 export interface ConversionResult {
   interoperableName: string;
@@ -11,8 +14,18 @@ export interface ConversionResult {
 }
 
 export async function convertFromReadable(interoperableName: string): Promise<ConversionResult> {
-  const parsed = await parseName(interoperableName);
-  const binary = encodeAddress(parsed.interoperableAddress, { format: 'hex' });
+  let result;
+  try {
+    result = await parseNameAction(interoperableName);
+  } catch {
+    throw new Error(NETWORK_ERROR_MESSAGE);
+  }
+
+  if (!result.success) {
+    throw new Error(result.error);
+  }
+
+  const { parsed, binary } = result;
   const binaryParts = parseInteroperableAddressForDisplay(parsed.interoperableAddress);
 
   // Map parseName result to ParsedInteroperableName format
