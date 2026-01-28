@@ -45,10 +45,10 @@ export const metadata: Metadata = {
         siteName: "Interoperable Addresses",
         images: [
             {
-                url: "/share.jpg",
+                url: "/og-image.png",
                 width: 1200,
                 height: 630,
-                alt: "Wonderland - Interoperable Addresses",
+                alt: "Interoperable Addresses - ERC-7930 & ERC-7828",
             },
         ],
     },
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
         card: "summary_large_image",
         title: "Interoperable Addresses | ERC-7930 & ERC-7828",
         description: "Chain-aware addressing for the Ethereum ecosystem. ERC-7930 & ERC-7828",
-        images: ["/share.jpg"],
+        images: ["/og-image.png"],
     },
 };
 
