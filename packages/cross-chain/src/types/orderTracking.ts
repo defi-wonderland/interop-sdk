@@ -1,6 +1,5 @@
+import { OrderStatus } from "@openintentsframework/oif-specs";
 import { Address, Hex } from "viem";
-
-import { OrderStatus } from "./oif.js";
 
 export { OrderStatus };
 

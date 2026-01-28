@@ -18,14 +18,10 @@ The cross-chain package provides a standardized interface for interacting with c
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 // Create an OIF provider
-const provider = createCrossChainProvider(
-    "oif",
-    {
-        solverId: "my-solver",
-        url: "https://oif-api.example.com",
-    },
-    {},
-);
+const provider = createCrossChainProvider("oif", {
+    solverId: "my-solver",
+    url: "https://oif-api.example.com",
+});
 
 // Get quotes for a cross-chain transfer
 const quotes = await provider.getQuotes({

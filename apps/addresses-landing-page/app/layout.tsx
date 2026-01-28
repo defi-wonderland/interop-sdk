@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     openGraph: {
         title: "Interoperable Addresses | ERC-7930 & ERC-7828",
         description:
-            "Chain-aware addressing for the Ethereum ecosystem. Simplify interoperability and eliminate cross-chain mistakes with human-readable addresses that include chain information.",
+            "Chain-aware addressing for the Ethereum ecosystem. Simplify interoperability and eliminate cross-chain mistakes.",
         type: "website",
         url: "https://interop-addresses.xyz",
         siteName: "Interoperable Addresses",
