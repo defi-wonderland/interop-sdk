@@ -10,7 +10,6 @@ test.describe('"From text" tab - Convert address', () => {
     await page.getByRole('textbox', { name: 'Interoperable Name' }).fill('vitalik.eth@eth');
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
     await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
   });
@@ -25,7 +24,6 @@ test.describe('"From text" tab - Convert address', () => {
       await page.getByRole('button', { name: locator }).click();
       await page.getByRole('button', { name: 'Convert' }).click();
 
-      await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
       await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
     }

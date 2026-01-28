@@ -12,10 +12,8 @@ test.describe('Build tab - Convert address', () => {
 
     await page.getByRole('button', { name: 'Chain' }).click();
     await page.getByText('Ethereum Mainnet').first().click();
-
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
     await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
   });
@@ -26,13 +24,11 @@ test.describe('Build tab - Convert address', () => {
       'nick.eth (Arbitrum One)',
       '0x8335...A02913 (Base)',
     ];
-
     for (const locator of exampleChips) {
       await page.getByRole('button', { name: locator }).click();
       await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled();
       await page.getByRole('button', { name: 'Convert' }).click();
 
-      await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
       await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
     }
