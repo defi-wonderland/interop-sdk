@@ -11,11 +11,7 @@ For complex scenarios, use the ProviderExecutor to manage multiple providers wit
 ```typescript
 import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider(
-    "across",
-    { apiUrl: "https://testnet.across.to/api" },
-    {},
-);
+const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
 const executor = createProviderExecutor({
     providers: [acrossProvider],
@@ -32,11 +28,7 @@ import {
     SortingStrategyFactory,
 } from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider(
-    "across",
-    { apiUrl: "https://testnet.across.to/api" },
-    {},
-);
+const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
 const executor = createProviderExecutor({
     providers: [acrossProvider],

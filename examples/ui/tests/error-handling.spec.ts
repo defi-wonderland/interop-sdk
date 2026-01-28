@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-const USER_FRIENDLY_ERROR_MESSAGE = 'please try again or check your connection';
+import { NETWORK_ERROR_MESSAGE } from '../app/utils/address-conversion.js';
 
 test.describe('Error handling', () => {
   test.beforeEach(async ({ page }) => {
@@ -9,10 +8,10 @@ test.describe('Error handling', () => {
   });
 
   test('displays user-friendly error message on network failure', async ({ page }) => {
-    await page.route('**/*', (route) => {
-      const postData = route.request().postData();
-      // Reject all rpc calls
-      if (postData?.includes('eth_call')) {
+    // Abort server action requests to simulate network failure
+    await page.route('**/addresses', async (route) => {
+      const headers = route.request().headers();
+      if (headers['next-action']) {
         return route.abort('failed');
       }
       return route.continue();
@@ -23,6 +22,6 @@ test.describe('Error handling', () => {
 
     const errorContainer = page.getByTestId('error-container');
     await expect(errorContainer).toBeVisible();
-    await expect(errorContainer).toContainText(USER_FRIENDLY_ERROR_MESSAGE);
+    await expect(errorContainer).toContainText(NETWORK_ERROR_MESSAGE);
   });
 });

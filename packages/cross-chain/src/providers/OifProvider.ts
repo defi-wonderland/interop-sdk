@@ -3,6 +3,7 @@ import {
     GetQuoteResponse,
     PostOrderRequest,
     PostOrderResponse,
+    Quote,
 } from "@openintentsframework/oif-specs";
 import axios, { AxiosError } from "axios";
 import { bytesToHex, Hex, PrepareTransactionRequestReturnType } from "viem";
@@ -26,7 +27,6 @@ import {
     ProviderExecuteFailure,
     ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
-    Quote,
 } from "../internal.js";
 
 /**

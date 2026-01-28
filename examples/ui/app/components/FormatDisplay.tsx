@@ -28,12 +28,15 @@ interface FormatDisplayProps<T extends string, R = unknown> {
   copied?: boolean;
   onCopy?: () => void;
   showCopyButton?: boolean;
+  emphasizeInlineDisplay?: boolean;
+  inlineDisplayClassName?: string;
 }
 
 const colorClasses = {
   accent: {
     gradient: 'from-accent-light/40 to-accent-light/20',
     border: 'border-accent/20',
+    emphasizedBorder: 'border-accent/60',
     glow: 'bg-accent/10',
     glowPosition: 'top-0 right-0 -translate-y-32 translate-x-32',
     text: 'text-accent',
@@ -43,6 +46,7 @@ const colorClasses = {
   success: {
     gradient: 'from-success-light/40 to-success-light/20',
     border: 'border-success/20',
+    emphasizedBorder: 'border-success/60',
     glow: 'bg-success/10',
     glowPosition: 'top-0 left-0 -translate-y-32 -translate-x-32',
     text: 'text-success',
@@ -52,6 +56,7 @@ const colorClasses = {
   info: {
     gradient: 'from-blue-500/40 to-blue-500/20',
     border: 'border-blue-500/20',
+    emphasizedBorder: 'border-blue-500/60',
     glow: 'bg-blue-500/10',
     glowPosition: 'top-0 right-0 -translate-y-32 translate-x-32',
     text: 'text-blue-500',
@@ -73,6 +78,8 @@ export function FormatDisplay<T extends string, R = unknown>({
   copied,
   onCopy,
   showCopyButton = false,
+  emphasizeInlineDisplay = false,
+  inlineDisplayClassName = '',
 }: FormatDisplayProps<T, R>) {
   const colors = colorClasses[color];
 
@@ -107,7 +114,11 @@ export function FormatDisplay<T extends string, R = unknown>({
 
         {renderInlineDisplay && (
           <div
-            className={`relative bg-surface/60 backdrop-blur rounded-2xl p-4 ${showCopyButton ? 'pr-12' : ''} font-mono text-sm break-all border border-border/30 ${colors.hoverBorder} transition-colors`}
+            className={`relative backdrop-blur rounded-2xl p-4 ${showCopyButton ? 'pr-12' : ''} font-mono break-all border transition-colors ${
+              emphasizeInlineDisplay
+                ? `bg-surface/80 border-2 ${colors.emphasizedBorder} ${colors.hoverBorder} text-base font-semibold shadow-lg`
+                : `bg-surface/60 border border-border/30 ${colors.hoverBorder} text-sm`
+            } ${inlineDisplayClassName}`}
           >
             {showCopyButton && copied !== undefined && onCopy && (
               <button

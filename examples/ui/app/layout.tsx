@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://interop.wonderland.xyz'),
   title: 'Interop SDK Demo',
   description: 'Interactive showcase of Interop SDK features',
   keywords: [

@@ -87,6 +87,7 @@ export function InteroperableNameDisplay({
       copied={copied}
       onCopy={onCopy}
       showCopyButton
+      emphasizeInlineDisplay
     />
   );
 }
