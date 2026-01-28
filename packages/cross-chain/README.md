@@ -113,7 +113,13 @@ if (selectedQuote?.preparedTransaction) {
     -   `.getProviderId()` – Returns the provider identifier.
     -   `.getQuotes(params)` – Fetch quotes for a cross-chain request (OIF GetQuoteRequest format).
     -   `.submitSignedOrder(quote, signature)` – Submit a signed order to the provider (throws MethodNotImplemented for providers that don't support it, like Across).
-    -   `.getTrackingConfig()` – Get configuration for intent tracking.
+    -   `.getTrackingConfig()` – Get configuration for order tracking.
+
+### Tracking Notes (Across)
+
+-   **Mainnet**: fill tracking defaults to **API-based polling** via the Across API.
+-   **Testnet**: fill tracking defaults to **event-based watching** (Across testnet API is not reliable).
+-   The SDK still parses the **origin-chain open event**, so provide an origin-chain RPC URL for robust tracking.
 
 ### Provider Executor
 
@@ -121,9 +127,9 @@ if (selectedQuote?.preparedTransaction) {
     -   Config: `{ providers: CrossChainProvider[], sortingStrategy?, timeoutMs?, trackerFactory? }`
 -   `ProviderExecutor`
     -   `.getQuotes(params)` – Get quotes from all providers (params: GetQuoteRequest, returns: GetQuotesResponse).
-    -   `.prepareTracking(providerId)` – Prepare intent tracking for a provider.
+    -   `.prepareTracking(providerId)` – Prepare order tracking for a provider.
     -   `.track(params)` – Track an existing transaction.
-    -   `.getIntentStatus(params)` – Get current status without watching.
+    -   `.getOrderStatus(params)` – Get current status without watching.
 
 ### Types
 
