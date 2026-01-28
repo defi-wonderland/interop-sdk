@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    metadataBase: new URL("https://interop-addresses.xyz"),
+    metadataBase: new URL("https://interopaddress.com"),
     title: "Interoperable Addresses | ERC-7930 & ERC-7828",
     description: "Chain-aware addressing for the Ethereum ecosystem. ERC-7930 & ERC-7828",
     keywords: [
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
         description:
             "Chain-aware addressing for the Ethereum ecosystem. Simplify interoperability and eliminate cross-chain mistakes.",
         type: "website",
-        url: "https://interop-addresses.xyz",
+        url: "https://interopaddress.com",
         siteName: "Interoperable Addresses",
         images: [
             {
