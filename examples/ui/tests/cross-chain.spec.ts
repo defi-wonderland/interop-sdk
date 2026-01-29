@@ -81,3 +81,28 @@ test.describe('Address menu', () => {
     await expect(page.getByTestId('rk-connect-button')).toBeVisible();
   });
 });
+
+test.describe('Negative test', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const provider = (globalThis as any).__e2eTestProvider;
+      if (provider?.__internal) {
+        provider.__internal.rejectSignature = true;
+        provider.__internal.rejectTransaction = true;
+      }
+    });
+  });
+
+  test('rejects transaction', async ({ page }) => {
+    await page.locator('#input-token-select').selectOption({ label: 'USDC' });
+    await page.locator('#output-token-select').selectOption({ label: 'USDC' });
+    const amountInput = page.getByLabel('Amount');
+    await amountInput.fill('0.1');
+    await page.getByRole('button', { name: 'Get Quotes' }).click();
+    await page.locator('button').filter({ hasText: /Across Protocol/ }).click();
+    await page.getByRole('button', { name: 'Execute' }).click();
+
+    await expect(page.getByText('Transaction rejected')).toBeVisible();
+  });
+});
