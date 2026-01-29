@@ -7,16 +7,20 @@ import { ScrambleText } from "./scramble-text";
 
 // Animation constants
 const SCRAMBLE_DURATION = 500; // Total time for scramble animation
-const CYCLE_INTERVAL = 2400; // Time between chain changes
+const CYCLE_INTERVAL = 1200; // Time between chain changes
 
 const CHAIN_IDS: Record<string, string> = {
     ethereum: "1",
     arbitrum: "42161",
     base: "8453",
     celo: "42220",
-    optimism: "10",
     ink: "57073",
+    katana: "747474",
     linea: "59144",
+    optimism: "10",
+    scroll: "534352",
+    unichain: "130",
+    world: "480",
     zksync: "324",
 } as const;
 
