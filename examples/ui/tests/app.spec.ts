@@ -22,3 +22,17 @@ test('Footer links', async ({ page }) => {
   expect(sdkDocsLink).toBe('https://docs.interop.wonderland.xyz/');
   expect(wonderlandLink).toBe('https://wonderland.xyz/');
 });
+
+test('Navigate to Interoperable Addresses', async ({ page }) => {
+  await page.getByRole('link', { name: 'Interoperable Addresses' }).click();
+
+  await expect(page).toHaveURL('/addresses');
+  await expect(page.getByRole('heading', { name: 'Interoperable Addresses' })).toBeVisible();
+});
+
+test('Navigate to Cross-Chain Intent Swap', async ({ page }) => {
+  await page.getByRole('link', { name: 'Cross-Chain Intent Swap' }).click();
+
+  await expect(page).toHaveURL('/cross-chain');
+  await expect(page.getByRole('heading', { name: 'Cross-Chain Intent Swap' })).toBeVisible();
+});
