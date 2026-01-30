@@ -10,7 +10,6 @@ export {
     AcrossProvider,
     OifProvider,
     createCrossChainProvider,
-    CrossChainProviderFactory,
     createProviderExecutor,
     ProviderExecutor,
     createOrderTracker,

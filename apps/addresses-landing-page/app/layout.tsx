@@ -19,6 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+    metadataBase: new URL("https://interopaddress.com"),
     title: "Interoperable Addresses | ERC-7930 & ERC-7828",
     description: "Chain-aware addressing for the Ethereum ecosystem. ERC-7930 & ERC-7828",
     keywords: [
@@ -38,16 +39,16 @@ export const metadata: Metadata = {
     openGraph: {
         title: "Interoperable Addresses | ERC-7930 & ERC-7828",
         description:
-            "Chain-aware addressing for the Ethereum ecosystem. Simplify interoperability and eliminate cross-chain mistakes with human-readable addresses that include chain information.",
+            "Chain-aware addressing for the Ethereum ecosystem. Simplify interoperability and eliminate cross-chain mistakes.",
         type: "website",
-        url: "https://interop-addresses.xyz",
+        url: "https://interopaddress.com",
         siteName: "Interoperable Addresses",
         images: [
             {
-                url: "/share.jpg",
+                url: "/og-image.png",
                 width: 1200,
                 height: 630,
-                alt: "Wonderland - Interoperable Addresses",
+                alt: "Interoperable Addresses - ERC-7930 & ERC-7828",
             },
         ],
     },
@@ -55,7 +56,7 @@ export const metadata: Metadata = {
         card: "summary_large_image",
         title: "Interoperable Addresses | ERC-7930 & ERC-7828",
         description: "Chain-aware addressing for the Ethereum ecosystem. ERC-7930 & ERC-7828",
-        images: ["/share.jpg"],
+        images: ["/og-image.png"],
     },
 };
 

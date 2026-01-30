@@ -25,14 +25,10 @@ const PROVIDER_CONFIGS = [
  * Cross-chain providers - created based on network configuration
  */
 const providers = PROVIDER_CONFIGS.map((config) =>
-  createCrossChainProvider(
-    config.protocol,
-    {
-      isTestnet: IS_TESTNET,
-      providerId: config.providerId,
-    },
-    {},
-  ),
+  createCrossChainProvider(config.protocol, {
+    isTestnet: IS_TESTNET,
+    providerId: config.providerId,
+  }),
 );
 
 /**

@@ -1,39 +1,51 @@
 ---
-title: Intent Tracking
+title: Order Tracking
 ---
 
-The Intent Tracking system allows you to monitor cross-chain transfers from initiation to completion, following the EIP-7683 standard. This feature provides real-time status updates as intents progress through their lifecycle.
+The SDK includes **order tracking** to monitor cross-chain transfers from initiation to completion.
+
+Tracking supports **two ways of observing the same lifecycle**, depending on the provider and how the order is created:
+
+-   **Onchain tracking**: derive tracking data from the origin transaction (e.g. ERC-7683 open event), then watch the fill on the destination chain.
+-   **Offchain tracking**: query a provider API for order state transitions (e.g. polling an “order status / deposit status” endpoint).
 
 ## Overview
 
-The Intent Tracker monitors cross-chain transfers through their complete lifecycle:
+The `OrderTracker` streams updates using the full OIF `OrderStatus` set (see the OIF Order API docs for the canonical list). Depending on the provider, you may observe statuses such as:
 
-1. **Opening** - Transaction submitted, waiting for confirmation
-2. **Opened** - Open event detected on origin chain
-3. **Filling** - Waiting for fill on destination chain
-4. **Filled** - Transfer completed successfully
-5. **Expired** - Transfer deadline exceeded
+-   **Created**
+-   **Pending**
+-   **Executing**
+-   **Executed**
+-   **Settling**
+-   **Settled**
+-   **Finalized**
+-   **Failed**
+-   **Refunded**
+
+In other words, you can subscribe to **any** `OrderStatus` via `tracker.on(OrderStatus.<status>, ...)` — the examples below just show the most common ones.
+
+In addition, the tracker can emit:
+
+-   `Timeout` - the SDK stopped watching (the order may still finalize before its onchain deadline)
+-   `Error` - an unexpected error occurred
 
 ## Basic Usage
 
-The recommended way to track intents is through the `ProviderExecutor`, which handles tracker creation and caching automatically:
+The recommended way to track orders is through the `ProviderExecutor`, which handles tracker creation and caching automatically:
 
 ```typescript
 import {
     createCrossChainProvider,
     createProviderExecutor,
-    IntentTrackerFactory,
+    OrderTrackerFactory,
 } from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider(
-    "across",
-    { apiUrl: "https://testnet.across.to/api" },
-    {},
-);
+const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
 const executor = createProviderExecutor({
     providers: [acrossProvider],
-    trackerFactory: new IntentTrackerFactory({
+    trackerFactory: new OrderTrackerFactory({
         rpcUrls: {
             11155111: "https://sepolia.infura.io/v3/YOUR_API_KEY",
             84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY",
@@ -42,11 +54,13 @@ const executor = createProviderExecutor({
 });
 ```
 
-### Tracking an Intent
+### Tracking an Order
 
-After executing a transaction, use `executor.track()` for real-time updates:
+After sending the transaction, use `executor.track()` for real-time updates:
 
 ```typescript
+import { OrderStatus, OrderTrackerEvent } from "@wonderland/interop-cross-chain";
+
 const quote = response.quotes[0];
 const hash = await walletClient.sendTransaction(quote.preparedTransaction);
 
@@ -58,29 +72,27 @@ const tracker = executor.track({
     timeout: 300000, // 5 minutes
 });
 
-tracker.on("opening", (update) => console.log("Opening..."));
-tracker.on("opened", (update) => console.log("Opened:", update.orderId));
-tracker.on("filling", (update) => console.log("Waiting for fill..."));
-tracker.on("filled", (update) => console.log("Filled!", update.fillTxHash));
-tracker.on("expired", (update) => console.log("Transfer expired"));
-tracker.on("error", (error) => console.error("Error:", error));
+tracker.on(OrderStatus.Pending, (update) => console.log("Pending:", update.message));
+tracker.on(OrderStatus.Finalized, (update) => console.log("Finalized!", update.fillTxHash));
+tracker.on(OrderStatus.Failed, (update) => console.log("Failed:", update.failureReason));
+tracker.on(OrderStatus.Refunded, () => console.log("Refunded"));
+tracker.on(OrderTrackerEvent.Timeout, (payload) => console.log("Timeout:", payload.message));
+tracker.on(OrderTrackerEvent.Error, (error) => console.error("Error:", error));
 ```
 
 ### Getting Current Status
 
-Check the current status of an intent without watching:
+Check the current status of an order without watching:
 
 ```typescript
-const status = await executor.getIntentStatus({
+const status = await executor.getOrderStatus({
     txHash: "0xabc...",
     providerId: "across",
     originChainId: 11155111,
 });
 
-console.log(status.status); // 'opening' | 'opened' | 'filling' | 'filled' | 'expired'
+console.log(status.status); // OrderStatus
 console.log(status.orderId); // Order ID
-console.log(status.inputAmount); // Input amount (bigint)
-console.log(status.outputAmount); // Output amount (bigint)
 
 if (status.fillEvent) {
     console.log(`Filled by: ${status.fillEvent.relayer}`);
@@ -88,90 +100,21 @@ if (status.fillEvent) {
 }
 ```
 
-## Intent Status Types
+## Provider Notes (Across)
 
-### Opening
-
-The transaction has been submitted but the Open event hasn't been detected yet.
-
-```typescript
-{
-    status: 'opening',
-    message: 'Transaction submitted, waiting for confirmation...'
-}
-```
-
-### Opened
-
-The Open event has been detected on the origin chain. The intent is now waiting to be filled.
-
-```typescript
-{
-    status: 'opened',
-    orderId: '0x...',
-    openTxHash: '0x...',
-    timestamp: 1234567890,
-    message: 'Intent opened with orderId 0x...'
-}
-```
-
-### Filling
-
-The intent is actively being filled on the destination chain.
-
-```typescript
-{
-    status: 'filling',
-    orderId: '0x...',
-    openTxHash: '0x...',
-    timestamp: 1234567890,
-    message: 'Waiting for relayer to fill intent...'
-}
-```
-
-### Filled
-
-The transfer has been completed successfully.
-
-```typescript
-{
-    status: 'filled',
-    orderId: '0x...',
-    openTxHash: '0x...',
-    fillTxHash: '0xdef...',
-    timestamp: 1234567890,
-    message: 'Intent filled in block 12345'
-}
-```
-
-### Expired
-
-The transfer deadline has been exceeded.
-
-```typescript
-{
-    status: 'expired',
-    orderId: '0x...',
-    openTxHash: '0x...',
-    timestamp: 1234567890,
-    message: 'Intent expired before fill'
-}
-```
+-   **Mainnet**: Across uses **API-based fill tracking** by default (polls `GET /deposit/status?depositTxnRef=...`). This reduces reliance on destination-chain RPCs.
+-   **Testnet**: Across uses **event-based fill tracking** by default (Across testnet API is not reliable), so you should provide RPC URLs for both origin and destination chains.
 
 ## Advanced: Standalone Tracker
 
 For advanced use cases, you can create a tracker directly without using the executor:
 
 ```typescript
-import { createCrossChainProvider, createIntentTracker } from "@wonderland/interop-cross-chain";
+import { createCrossChainProvider, createOrderTracker } from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider(
-    "across",
-    { apiUrl: "https://testnet.across.to/api" },
-    {},
-);
+const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
-const tracker = createIntentTracker(acrossProvider, {
+const tracker = createOrderTracker(acrossProvider, {
     rpcUrls: {
         11155111: "https://sepolia.infura.io/v3/YOUR_API_KEY",
         84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY",
@@ -179,25 +122,32 @@ const tracker = createIntentTracker(acrossProvider, {
 });
 ```
 
-### Watching an Intent
+### Watching an Order
 
-Watch an intent with real-time updates using an async generator:
+Watch an order with real-time updates using an async generator:
 
 ```typescript
-for await (const update of tracker.watchIntent({
+import { OrderStatus, OrderTrackerYieldType } from "@wonderland/interop-cross-chain";
+
+for await (const item of tracker.watchOrder({
     txHash: "0xabc...",
     originChainId: 11155111,
     destinationChainId: 84532,
     timeout: 300000, // 5 minutes
 })) {
-    console.log(`Status: ${update.status}`);
-    console.log(`Message: ${update.message}`);
-
-    if (update.status === "filled") {
-        console.log(`Filled in tx: ${update.fillTxHash}`);
+    if (item.type === OrderTrackerYieldType.Timeout) {
+        console.log(`Timeout: ${item.payload.message}`);
         break;
-    } else if (update.status === "expired") {
-        console.log("Transfer expired");
+    }
+
+    console.log(`Status: ${item.update.status}`);
+    console.log(`Message: ${item.update.message}`);
+
+    if (item.update.status === OrderStatus.Finalized) {
+        console.log(`Filled in tx: ${item.update.fillTxHash}`);
+        break;
+    } else if (item.update.status === OrderStatus.Failed) {
+        console.log("Order failed");
         break;
     }
 }
@@ -208,6 +158,7 @@ for await (const update of tracker.watchIntent({
 You can also provide a custom viem PublicClient:
 
 ```typescript
+import { createOrderTracker } from "@wonderland/interop-cross-chain";
 import { createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
 
@@ -216,23 +167,30 @@ const publicClient = createPublicClient({
     transport: http("https://sepolia.infura.io/v3/YOUR_API_KEY"),
 });
 
-const tracker = createIntentTracker(acrossProvider, {
+const tracker = createOrderTracker(acrossProvider, {
     publicClient,
 });
 ```
 
 ## Error Handling
 
-The Intent Tracker handles errors gracefully:
+The tracker handles errors gracefully:
 
 ```typescript
+import { OrderTrackerYieldType } from "@wonderland/interop-cross-chain";
+
 try {
-    for await (const update of tracker.watchIntent({
+    for await (const item of tracker.watchOrder({
         txHash: "0x...",
         originChainId: 11155111,
         destinationChainId: 84532,
     })) {
-        // Handle updates
+        if (item.type === OrderTrackerYieldType.Timeout) {
+            // SDK stopped watching; order may still finalize before onchain deadline
+            break;
+        }
+
+        // Handle item.update
     }
 } catch (error) {
     if (error instanceof Error) {
@@ -243,11 +201,11 @@ try {
 
 ## Best Practices
 
-1. Always set an appropriate timeout for intent watching
-2. Handle all status types appropriately in your UI
-3. Use `getIntentStatus()` for one-time checks instead of watching
-4. Provide custom RPC URLs for better reliability
-5. Monitor for expired intents and handle them appropriately
+1. Always set an appropriate timeout for watching
+2. Handle all `OrderStatus` updates appropriately in your UI
+3. Use `getOrderStatus()` for one-time checks instead of watching
+4. Provide custom RPC URLs for better reliability (origin chain always; destination chain for event-based fill tracking)
+5. Treat `timeout` as non-terminal (the order can still finalize onchain)
 
 ## Next Step
 
@@ -256,4 +214,4 @@ Explore more complex scenarios: [Advanced Usage](./advanced-usage.md)
 ## References
 
 -   [EIP-7683: Open Intent Framework](https://www.erc7683.org/)
--   [Intent Tracking Types](./api.md#intent-tracker)
+-   [Order Tracking Types](./api.md#order-tracker)

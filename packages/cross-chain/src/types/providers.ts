@@ -16,8 +16,3 @@ export type SupportedProtocolsConfigs<Protocol extends SupportedProtocols> = {
     [PROTOCOLS.ACROSS]: AcrossConfigs;
     [PROTOCOLS.OIF]: OifProviderConfig;
 }[Protocol];
-
-export type SupportedProtocolsDependencies<Protocol extends SupportedProtocols> = {
-    [PROTOCOLS.ACROSS]: object;
-    [PROTOCOLS.OIF]: object;
-}[Protocol];

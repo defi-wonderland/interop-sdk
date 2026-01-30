@@ -52,15 +52,18 @@ const walletClient = createWalletClient({
 });
 
 // Create providers for different protocols
-// Across example:
-const acrossProvider = createCrossChainProvider("across", { apiUrl: "https://..." }, {});
+// Across - config optional (defaults to mainnet: https://app.across.to/api)
+// Testnet: https://testnet.across.to/api
+const acrossProvider = createCrossChainProvider("across");
 
-// OIF example:
-const oifProvider = createCrossChainProvider(
-    "oif",
-    { solverId: "my-solver", url: "https://..." },
-    {},
-);
+// Across with testnet config
+const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
+
+// OIF - config required
+const oifProvider = createCrossChainProvider("oif", {
+    solverId: "my-solver",
+    url: "https://...",
+});
 
 // Create executor with providers (can mix Across, OIF, etc.)
 const executor = createProviderExecutor({
@@ -68,21 +71,23 @@ const executor = createProviderExecutor({
 });
 
 // Get quotes using OIF GetQuoteRequest format
+// Addresses must be EIP-7930 binary format (0x0001...)
+// Use nameToBinary() from @wonderland/interop-addresses to convert
 const response = await executor.getQuotes({
-    user: "0x...@eip155:11155111#...",
+    user: "0x0001000aa36a7114...",
     intent: {
         intentType: "oif-swap",
         inputs: [
             {
-                user: "0x...@eip155:11155111#...",
-                asset: "0x...@eip155:11155111#...",
+                user: "0x0001000aa36a7114...",
+                asset: "0x0001000aa36a7114...",
                 amount: "1000000000000000000",
             },
         ],
         outputs: [
             {
-                receiver: "0x...@eip155:84532#...",
-                asset: "0x...@eip155:84532#...",
+                receiver: "0x0001000149d4114...",
+                asset: "0x0001000149d4114...",
             },
         ],
         swapType: "exact-input",
@@ -102,13 +107,19 @@ if (selectedQuote?.preparedTransaction) {
 
 ### Providers
 
--   `createCrossChainProvider(protocolName, config, dependencies)` – Create a provider for a supported protocol (e.g., "across", "oif").
+-   `createCrossChainProvider(protocolName, config?)` – Create a provider for a supported protocol. Config is optional for Across (defaults to mainnet), required for OIF.
 -   `CrossChainProvider` (abstract class)
     -   `.getProtocolName()` – Returns the protocol name.
     -   `.getProviderId()` – Returns the provider identifier.
     -   `.getQuotes(params)` – Fetch quotes for a cross-chain request (OIF GetQuoteRequest format).
     -   `.submitSignedOrder(quote, signature)` – Submit a signed order to the provider (throws MethodNotImplemented for providers that don't support it, like Across).
-    -   `.getTrackingConfig()` – Get configuration for intent tracking.
+    -   `.getTrackingConfig()` – Get configuration for order tracking.
+
+### Tracking Notes (Across)
+
+-   **Mainnet**: fill tracking defaults to **API-based polling** via the Across API.
+-   **Testnet**: fill tracking defaults to **event-based watching** (Across testnet API is not reliable).
+-   The SDK still parses the **origin-chain open event**, so provide an origin-chain RPC URL for robust tracking.
 
 ### Provider Executor
 
@@ -116,9 +127,9 @@ if (selectedQuote?.preparedTransaction) {
     -   Config: `{ providers: CrossChainProvider[], sortingStrategy?, timeoutMs?, trackerFactory? }`
 -   `ProviderExecutor`
     -   `.getQuotes(params)` – Get quotes from all providers (params: GetQuoteRequest, returns: GetQuotesResponse).
-    -   `.prepareTracking(providerId)` – Prepare intent tracking for a provider.
+    -   `.prepareTracking(providerId)` – Prepare order tracking for a provider.
     -   `.track(params)` – Track an existing transaction.
-    -   `.getIntentStatus(params)` – Get current status without watching.
+    -   `.getOrderStatus(params)` – Get current status without watching.
 
 ### Types
 
@@ -146,24 +157,28 @@ const walletClient = createWalletClient({
 });
 
 // Create OIF provider with your solver endpoint
-const provider = createCrossChainProvider("oif", { solverId: "my-solver", url: "https://..." }, {});
+const provider = createCrossChainProvider("oif", {
+    solverId: "my-solver",
+    url: "https://...",
+});
 
 // Get quotes using OIF GetQuoteRequest format
+// Addresses must be EIP-7930 binary format (0x0001...)
 const response = await provider.getQuotes({
-    user: "0x...@eip155:1#...",
+    user: "0x00010000000114...",
     intent: {
         intentType: "oif-swap",
         inputs: [
             {
-                user: "0x...@eip155:1#...",
-                asset: "0x...@eip155:1#...",
+                user: "0x00010000000114...",
+                asset: "0x00010000000114...",
                 amount: "1000000",
             },
         ],
         outputs: [
             {
-                receiver: "0x...@eip155:1#...",
-                asset: "0x...@eip155:1#...",
+                receiver: "0x00010000000114...",
+                asset: "0x00010000000114...",
             },
         ],
         swapType: "exact-input",

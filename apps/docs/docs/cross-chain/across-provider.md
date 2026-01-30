@@ -8,21 +8,26 @@ The Across Protocol provider enables cross-chain token transfers using the Acros
 
 ## Configuration
 
-| Field        | Type   | Required | Description                |
-| ------------ | ------ | -------- | -------------------------- |
-| `apiUrl`     | string | Yes      | Across API endpoint URL    |
-| `providerId` | string | No       | Custom provider identifier |
+| Field        | Type    | Required | Description                                   |
+| ------------ | ------- | -------- | --------------------------------------------- |
+| `isTestnet`  | boolean | No       | Use testnet API (default: false)              |
+| `apiUrl`     | string  | No       | Custom API endpoint URL (overrides isTestnet) |
+| `providerId` | string  | No       | Custom provider identifier                    |
+
+Notes:
+
+-   `isTestnet` also affects **tracking** defaults (see below).
+-   `apiUrl` overrides the **quote** endpoint. Tracking uses the standard Across API base URL for the selected network.
 
 ## Creating the Provider
 
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider(
-    "across",
-    { apiUrl: "https://testnet.across.to/api" },
-    {},
-);
+// Across config is optional - defaults to mainnet
+// Mainnet: https://app.across.to/api
+// Testnet: https://testnet.across.to/api
+const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 ```
 
 ## Getting Quotes
@@ -79,9 +84,18 @@ if (quote.preparedTransaction) {
 -   Cross-chain token transfers
 -   Quote fetching with fee calculation
 -   Transaction simulation
--   Intent tracking support
+-   Order tracking support
 -   EIP-7683 Open Intent Framework integration
 -   Payload validation for simple bridges
+
+## Tracking (Mainnet vs Testnet)
+
+Across tracking is implemented as:
+
+-   **Mainnet**: API-based fill tracking (polls `GET /deposit/status?depositTxnRef=<openTxHash>`)
+-   **Testnet**: Event-based fill tracking (Across testnet API is not reliable)
+
+In both cases, the SDK parses the ERC-7683 open event on the **origin chain**, so you should provide an origin-chain RPC URL for robust tracking.
 
 ## Payload Validation
 

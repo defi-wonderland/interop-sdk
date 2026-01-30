@@ -8,18 +8,24 @@ A set of classes and utilities for handling cross-chain operations through vario
 
 #### Methods
 
--   **createCrossChainProvider**(protocolName: string, config: ProviderConfig, dependencies: Dependencies): CrossChainProvider
+-   **createCrossChainProvider**(protocolName: string, config?: ProviderConfig): CrossChainProvider
 
-    Creates a provider instance for a supported cross-chain protocol.
+    Creates a provider instance for a supported cross-chain protocol. Config is optional for Across (uses mainnet defaults), required for OIF.
 
     ```typescript
     import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-    const provider = createCrossChainProvider(
-        "across",
-        { apiUrl: "https://testnet.across.to/api" },
-        {},
-    );
+    // Across - config optional (defaults to mainnet)
+    const provider = createCrossChainProvider("across");
+
+    // Across - with testnet config
+    const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
+
+    // OIF - config required
+    const oifProvider = createCrossChainProvider("oif", {
+        solverId: "my-solver",
+        url: "https://solver.example.com",
+    });
     ```
 
 #### CrossChainProvider Class
@@ -66,7 +72,7 @@ An abstract class that defines the interface for cross-chain protocol providers.
             ],
             swapType: "exact-input",
         },
-        supportedTypes: ["across"],
+        supportedTypes: ["across"], // provider-specific: "across", "oif-escrow-v0", "oif-user-open-v0"
     });
     ```
 
@@ -97,13 +103,17 @@ A utility for managing multiple cross-chain providers and executing operations a
     Creates an executor instance for managing multiple providers.
 
     ```typescript
-    import { createProviderExecutor } from "@wonderland/interop-cross-chain";
+    import {
+        createProviderExecutor,
+        OrderTrackerFactory,
+        SortingStrategyFactory,
+    } from "@wonderland/interop-cross-chain";
 
     const executor = createProviderExecutor({
         providers: [acrossProvider],
         sortingStrategy: SortingStrategyFactory.createStrategy("bestOutput"), // optional
         timeoutMs: 15000, // optional
-        trackerFactory: new IntentTrackerFactory({ rpcUrls }), // optional
+        trackerFactory: new OrderTrackerFactory({ rpcUrls }), // optional
     });
     ```
 
@@ -135,7 +145,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
             ],
             swapType: "exact-input",
         },
-        supportedTypes: ["across"],
+        supportedTypes: ["across"], // provider-specific: "across", "oif-escrow-v0", "oif-user-open-v0"
     });
 
     // Handle results
@@ -145,11 +155,13 @@ A class that manages multiple cross-chain providers and coordinates their operat
     response.errors.forEach((error) => console.error(error.errorMsg));
     ```
 
--   **track**(params: TrackParams): IntentTracker
+-   **track**(params: TrackParams): OrderTracker
 
     Starts tracking an executed transaction with real-time events.
 
     ```typescript
+    import { OrderStatus } from "@wonderland/interop-cross-chain";
+
     const tracker = executor.track({
         txHash: hash,
         providerId: quote.provider,
@@ -158,20 +170,20 @@ A class that manages multiple cross-chain providers and coordinates their operat
         timeout: 300000,
     });
 
-    tracker.on("filled", (update) => console.log("Filled!", update.fillTxHash));
+    tracker.on(OrderStatus.Finalized, (update) => console.log("Finalized!", update.fillTxHash));
     ```
 
--   **getIntentStatus**(params: GetIntentStatusParams): Promise\<IntentStatusInfo\>
+-   **getOrderStatus**(params: GetOrderStatusParams): Promise\<OrderTrackingInfo\>
 
-    Gets the current status of an intent without watching.
+    Gets the current status of an order without watching.
 
     ```typescript
-    const status = await executor.getIntentStatus({
+    const status = await executor.getOrderStatus({
         txHash: "0x...",
         providerId: "across",
         originChainId: 11155111,
     });
-    console.log(status.status); // 'opening' | 'opened' | 'filling' | 'filled' | 'expired'
+    console.log(status.status); // OrderStatus
     ```
 
 ### Sorting Strategies
@@ -195,20 +207,20 @@ A factory for creating quote sorting strategies.
     -   `bestOutput` - Sorts quotes by highest output amount
     -   `lowerEta` - Sorts quotes by lowest estimated time of arrival
 
-### Intent Tracker
+### Order Tracker
 
-A utility for tracking cross-chain intents from initiation to completion (EIP-7683 integration).
+A utility for tracking cross-chain orders from initiation to completion (ERC-7683 open event parsing + fill watching).
 
 #### Methods
 
--   **createIntentTracker**(provider: CrossChainProvider, config: IntentTrackerConfig): IntentTracker
+-   **createOrderTracker**(provider: CrossChainProvider, config: OrderTrackerConfig): OrderTracker
 
-    Creates an intent tracker instance for a specific provider.
+    Creates an order tracker instance for a specific provider.
 
     ```typescript
-    import { createIntentTracker } from "@wonderland/interop-cross-chain";
+    import { createOrderTracker } from "@wonderland/interop-cross-chain";
 
-    const tracker = createIntentTracker(acrossProvider, {
+    const tracker = createOrderTracker(acrossProvider, {
         rpcUrls: {
             11155111: "https://sepolia.infura.io/v3/YOUR_API_KEY",
             84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY",
@@ -216,33 +228,36 @@ A utility for tracking cross-chain intents from initiation to completion (EIP-76
     });
     ```
 
-#### IntentTracker Class
+#### OrderTracker Class
 
-A class that tracks cross-chain intents through their lifecycle.
+A class that tracks cross-chain orders through their lifecycle.
 
--   **watchIntent**(params: WatchIntentParams): AsyncGenerator\<IntentUpdate\>
+-   **watchOrder**(params: WatchOrderParams): AsyncGenerator\<OrderTrackerYield\>
 
-    Watches an intent and yields status updates as it progresses.
+    Watches an order and yields status updates as it progresses.
 
     ```typescript
-    for await (const update of tracker.watchIntent({
+    import { OrderStatus, OrderTrackerYieldType } from "@wonderland/interop-cross-chain";
+
+    for await (const item of tracker.watchOrder({
         txHash: "0x...",
         originChainId: 11155111,
         destinationChainId: 84532,
         timeout: 300000, // Optional, in milliseconds
     })) {
-        console.log(update.status, update.message);
-        if (update.status === "filled") break;
+        if (item.type === OrderTrackerYieldType.Timeout) break;
+        console.log(item.update.status, item.update.message);
+        if (item.update.status === OrderStatus.Finalized) break;
     }
     ```
 
--   **getIntentStatus**(txHash: Hex, originChainId: number): Promise\<IntentStatusInfo\>
+-   **getOrderStatus**(txHash: Hex, originChainId: number): Promise\<OrderTrackingInfo\>
 
-    Gets the current status of an intent without watching.
+    Gets the current status of an order without watching.
 
     ```typescript
-    const status = await tracker.getIntentStatus("0x...", 11155111);
-    console.log(status.status); // 'opening' | 'opened' | 'filling' | 'filled' | 'expired'
+    const status = await tracker.getOrderStatus("0x...", 11155111);
+    console.log(status.status); // OrderStatus
     ```
 
 ### Types
@@ -262,38 +277,37 @@ interface ExecutableQuote {
 ```typescript
 interface GetQuotesResponse {
     quotes: ExecutableQuote[];
-    errors: ProviderError[];
+    errors: { errorMsg: string; error: Error }[];
 }
 ```
 
-#### IntentStatusInfo
+#### OrderTrackingInfo
 
 ```typescript
-interface IntentStatusInfo {
-    status: "opening" | "opened" | "filling" | "filled" | "expired";
+interface OrderTrackingInfo {
+    status: OrderStatus;
     orderId: Hex;
     openTxHash: Hex;
     user: Address;
     originChainId: number;
-    destinationChainId: number;
+    openDeadline: number;
     fillDeadline: number;
-    depositId: bigint;
-    inputAmount: bigint;
-    outputAmount: bigint;
     fillEvent?: FillEvent;
+    failureReason?: OrderFailureReason;
 }
 ```
 
-#### IntentUpdate
+#### OrderTrackingUpdate
 
 ```typescript
-interface IntentUpdate {
-    status: "opening" | "opened" | "filling" | "filled" | "expired";
+interface OrderTrackingUpdate {
+    status: OrderStatus;
     orderId?: Hex;
     openTxHash: Hex;
     fillTxHash?: Hex;
     timestamp: number;
     message: string;
+    failureReason?: OrderFailureReason;
 }
 ```
 
@@ -305,7 +319,7 @@ interface FillEvent {
     blockNumber: bigint;
     timestamp: number;
     originChainId: number;
-    depositId: bigint;
+    orderId: Hex;
     relayer: Address;
     recipient: Address;
 }

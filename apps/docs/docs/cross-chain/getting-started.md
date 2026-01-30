@@ -9,14 +9,14 @@ The `cross-chain` package provides a standardized interface for interacting with
 -   Cross-chain token transfers between supported networks
 -   Cross-chain token swaps with customizable slippage
 -   Quote fetching for cross-chain operations
--   Intent tracking from initiation to completion
+-   Order tracking from initiation to completion
 -   Multi-provider quote aggregation and comparison
 -   Standardized provider interface for integrating different bridge protocols
 -   Type-safe interactions with comprehensive TypeScript support
 
 ### Currently Supported Providers
 
--   **[Across Protocol](./across-provider.md)** - Cross-chain transfers (testnet)
+-   **[Across Protocol](./across-provider.md)** - Cross-chain transfers (mainnet + testnet)
 -   **[OIF (Open Intents Framework)](./oif-provider.md)** - Direct integration with OIF-compliant solvers
 
 > Additional protocols are planned for future releases.
@@ -40,14 +40,17 @@ The package uses a factory pattern to create providers for different protocols:
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-// Create a provider for a specific protocol
-const provider = createCrossChainProvider(
-    "protocol-name",
-    {
-        // provider-specific configuration
-    },
-    {}, // dependencies
-);
+// Create a provider - Across uses sensible defaults
+const acrossProvider = createCrossChainProvider("across");
+
+// Or with custom configuration
+const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
+
+// OIF requires configuration
+const oifProvider = createCrossChainProvider("oif", {
+    solverId: "my-solver",
+    url: "https://solver.example.com",
+});
 ```
 
 See the provider-specific documentation for configuration options:

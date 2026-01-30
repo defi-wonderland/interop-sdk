@@ -32,10 +32,7 @@ export interface OpenedIntentParserDependencies {
  * Configuration for custom event-based opened intent parsing.
  * Allows protocols to define how to extract OpenedIntent data from their own events.
  *
- * Custom events MUST provide the full {@link OpenedIntent} including:
- * - destinationChainId
- * - inputAmount
- * - outputAmount
+ * Custom events MUST provide the full {@link OpenedIntent} matching ERC-7683 ResolvedCrossChainOrder structure.
  */
 export interface CustomEventOpenedIntentParserConfig {
     /** Protocol name for error messages */
@@ -44,9 +41,19 @@ export interface CustomEventOpenedIntentParserConfig {
     eventSignature: Hex;
     /**
      * Function to extract OpenedIntent data from the matched log.
-     * MUST return the full OpenedIntent with all protocol-specific fields.
+     * MUST return the full OpenedIntent with all ERC-7683 ResolvedCrossChainOrder fields.
+     *
+     * @param log - The event log to parse
+     * @param txHash - Transaction hash where the event was emitted
+     * @param blockNumber - Block number where the event was emitted
+     * @param originChainId - Chain ID where the event was emitted (for constructing maxSpent/fillInstructions)
      */
-    extractOpenedIntent: (log: Log, txHash: Hex, blockNumber: bigint) => OpenedIntent;
+    extractOpenedIntent: (
+        log: Log,
+        txHash: Hex,
+        blockNumber: bigint,
+        originChainId: number,
+    ) => OpenedIntent;
 }
 
 /**

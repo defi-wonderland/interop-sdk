@@ -10,14 +10,20 @@ import { bytesToHex, Hex, PrepareTransactionRequestReturnType } from "viem";
 import { ZodError } from "zod";
 
 import {
+    APIBasedFillWatcherConfig,
     CrossChainProvider,
     ExecutableQuote,
+    FillEvent,
     FillWatcherConfig,
+    GetFillParams,
+    getOrderResponseSchema,
     getQuoteResponseSchema,
     OIFAssetDiscoveryConfig,
     OifProviderConfig,
     OifProviderConfigSchema,
     OpenedIntentParserConfig,
+    OrderFailureReason,
+    OrderStatus,
     ProviderConfigFailure,
     ProviderExecuteFailure,
     ProviderExecuteNotImplemented,
@@ -239,17 +245,98 @@ export class OifProvider extends CrossChainProvider {
     }
 
     /**
+     * Get the fill watcher configuration for OIF
+     * Uses OIF API for tracking (not onchain events)
+     *
+     * @note EIP-7683 does NOT define a standard Fill event, so we use the solver's
+     *       API endpoint for tracking: `GET /v1/orders/:orderId`
+     */
+    static getFillWatcherConfig(baseUrl: string): APIBasedFillWatcherConfig<unknown> {
+        return {
+            type: "api-based",
+            baseUrl,
+            pollingInterval: 5000, // Poll every 5 seconds
+            retry: {
+                maxAttempts: 3,
+                initialDelay: 1000,
+                maxDelay: 10000,
+                backoffMultiplier: 2,
+            },
+            buildEndpoint: (params) => `/v1/orders/${params.orderId}`,
+            extractFillEvent: (
+                response: unknown,
+                params: GetFillParams,
+            ): {
+                event: FillEvent | null;
+                status: OrderStatus;
+                failureReason?: OrderFailureReason;
+                metadata?: unknown;
+            } => {
+                // Validate response against schema
+                const validatedResponse = getOrderResponseSchema.parse(response);
+
+                // Map OIF API status string to OrderStatus enum
+                const status = validatedResponse.status as OrderStatus;
+
+                // Determine failure reason for failed orders
+                let failureReason: OrderFailureReason | undefined;
+                if (status === OrderStatus.Failed) {
+                    // OIF doesn't provide specific failure reasons in the API
+                    // Default to Unknown for now
+                    failureReason = OrderFailureReason.Unknown;
+                }
+
+                // Only extract fill event if status indicates fill transaction exists
+                // Order must be Finalized, Settled, or Executing to have a fillTxHash
+                const hasFillTx =
+                    status === OrderStatus.Finalized ||
+                    status === OrderStatus.Settled ||
+                    status === OrderStatus.Executing;
+
+                if (!hasFillTx || !validatedResponse.fillTxHash) {
+                    return { event: null, status, failureReason };
+                }
+
+                const fillTxHash = validatedResponse.fillTxHash as Hex;
+                const blockNumber = 0n; // API doesn't provide block number
+
+                // Extract solver/relayer - OIF doesn't provide solver address in status response
+                // Use placeholder for now
+                const relayer = "0x0000000000000000000000000000000000000000" as Hex;
+
+                // Extract recipient from outputs (first output receiver)
+                const recipient = "0x0000000000000000000000000000000000000000" as Hex;
+
+                const event: FillEvent = {
+                    fillTxHash,
+                    blockNumber,
+                    timestamp:
+                        validatedResponse.executionDetails?.filledAt || validatedResponse.createdAt,
+                    originChainId: params.originChainId,
+                    orderId: params.orderId,
+                    relayer,
+                    recipient,
+                };
+
+                // For OIF-compliant APIs, all data is in the typed response
+                // No separate metadata needed
+                return { event, status, failureReason };
+            },
+        };
+    }
+
+    /**
      * @inheritdoc
      *
      * Intent tracking for OIF providers:
      *
      * **Open event parsing**: ✅ Fully supported via OIFOpenedIntentParser.
      *
-     * **Fill watching**: ❌ Not yet implemented.
-     * EIP-7683 does NOT define a standard Fill event - only the fill() function.
-     * Each protocol may emit different events (e.g., Across emits FilledRelay).
+     * **Fill watching**: ✅ Supported via OIF API tracking endpoint.
+     * Uses `GET /v1/orders/:orderId` to track fill status.
      *
-     * TODO: Implement solver API status endpoint tracking via `GET /v1/orders/:orderId`.
+     * @note EIP-7683 does NOT define a standard Fill event, so onchain tracking is not possible.
+     *       We use the solver's API endpoint instead.
      */
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
@@ -258,25 +345,8 @@ export class OifProvider extends CrossChainProvider {
         return {
             // Use standard OIF Open event parsing (EIP-7683)
             openedIntentParserConfig: { type: "oif" },
-            fillWatcherConfig: {
-                // NOTE: Contract addresses are available per-intent from fillInstructions[0].destinationSettler
-                // But we can't use them because EIP-7683 doesn't define a standard Fill event ABI
-                contractAddresses: {},
-                eventAbi: [],
-                buildLogsArgs: (): never => {
-                    throw new Error(
-                        "OifProvider: On-chain fill watching not supported. " +
-                            "EIP-7683 does not define a standard Fill event. " +
-                            "Use a protocol-specific provider (e.g., AcrossProvider) for on-chain fill tracking.",
-                    );
-                },
-                extractFillEvent: (): never => {
-                    throw new Error(
-                        "OifProvider: On-chain fill watching not supported. " +
-                            "EIP-7683 does not define a standard Fill event.",
-                    );
-                },
-            },
+            // Use API-based fill tracking via solver endpoint
+            fillWatcherConfig: OifProvider.getFillWatcherConfig(this.url),
         };
     }
 

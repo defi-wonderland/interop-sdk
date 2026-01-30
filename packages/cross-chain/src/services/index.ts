@@ -2,6 +2,7 @@ export * from "./providerExecutor.js";
 export * from "./OIFOpenedIntentParser.js";
 export * from "./CustomEventOpenedIntentParser.js";
 export * from "./EventBasedFillWatcher.js";
+export * from "./APIBasedFillWatcher.js";
 export * from "./OrderTracker.js";
 export * from "./orderTrackerFactory.js";
 export * from "./crossChainProviderFactory.js";
