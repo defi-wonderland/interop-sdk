@@ -6,7 +6,7 @@ export default async function AddressesPage() {
   const chains = await getChains();
 
   return (
-    <div className='min-h-screen bg-background flex flex-col'>
+    <div className='min-h-screen bg-background flex flex-col overflow-x-hidden'>
       <Navigation />
 
       <div className='flex-1 flex flex-col max-w-[680px] w-full mx-auto px-4 py-10 sm:px-6 sm:py-14'>
