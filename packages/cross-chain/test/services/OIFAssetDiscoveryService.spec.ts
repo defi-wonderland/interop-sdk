@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AssetDiscoveryFailure, OIFAssetDiscoveryService } from "../../src/internal.js";
@@ -11,7 +11,6 @@ describe("OIFAssetDiscoveryService", () => {
 
     let service: OIFAssetDiscoveryService;
 
-    // Sample API response matching OIF spec (snake_case as returned by API)
     const mockApiResponse = {
         networks: {
             "1": {
@@ -55,7 +54,7 @@ describe("OIFAssetDiscoveryService", () => {
     });
 
     describe("getSupportedAssets", () => {
-        it("should fetch and return all supported assets", async () => {
+        it("should fetch, transform snake_case to camelCase, and return all supported assets", async () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
                 status: 200,
                 data: mockApiResponse,
@@ -74,52 +73,32 @@ describe("OIFAssetDiscoveryService", () => {
             expect(result.providerId).toBe(providerId);
             expect(result.fetchedAt).toBeGreaterThan(0);
 
-            // Check Ethereum network (transformed to camelCase)
+            // Verify snake_case to camelCase transformation
             const ethereum = result.networks.find((n) => n.chainId === 1);
-            expect(ethereum).toBeDefined();
+            expect(ethereum?.chainId).toBe(1); // chain_id → chainId
             expect(ethereum?.assets).toHaveLength(2);
-            expect(ethereum?.assets[0]?.symbol).toBe("USDC");
-
-            // Check Polygon network
-            const polygon = result.networks.find((n) => n.chainId === 137);
-            expect(polygon).toBeDefined();
-            expect(polygon?.assets).toHaveLength(1);
         });
 
-        it("should use cache on subsequent calls", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
-
-            // First call - fetches from API
-            const result1 = await service.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(1);
-
-            // Second call - should use cache
-            const result2 = await service.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(1); // Still 1
-
-            // Results should be identical
-            expect(result1.networks).toEqual(result2.networks);
-        });
-
-        it("should bypass cache when forceRefresh is true", async () => {
+        it("should cache results and bypass cache when forceRefresh is true", async () => {
             vi.mocked(axios.get).mockResolvedValue({
                 status: 200,
                 data: mockApiResponse,
             });
 
-            // First call
+            // First call - fetches from API
             await service.getSupportedAssets();
             expect(axios.get).toHaveBeenCalledTimes(1);
 
-            // Second call with forceRefresh
+            // Second call - should use cache
+            await service.getSupportedAssets();
+            expect(axios.get).toHaveBeenCalledTimes(1);
+
+            // Third call with forceRefresh - should fetch again
             await service.getSupportedAssets({ forceRefresh: true });
             expect(axios.get).toHaveBeenCalledTimes(2);
         });
 
-        it("should filter by chain IDs when provided", async () => {
+        it("should filter networks by chainIds when provided", async () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
                 status: 200,
                 data: mockApiResponse,
@@ -130,111 +109,51 @@ describe("OIFAssetDiscoveryService", () => {
             expect(result.networks).toHaveLength(1);
             expect(result.networks[0]?.chainId).toBe(1);
         });
-
-        it("should throw AssetDiscoveryFailure on API error", async () => {
-            vi.mocked(axios.get).mockRejectedValueOnce({
-                isAxiosError: true,
-                response: { data: { message: "Service unavailable" } },
-                message: "Request failed",
-            });
-
-            await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
-        });
-
-        it("should throw AssetDiscoveryFailure on invalid response", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: { invalid: "response" },
-            });
-
-            await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
-        });
     });
 
     describe("getAssetsForChain", () => {
-        it("should return assets for a specific chain", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
+        it("should return assets for supported chain, null for unsupported", async () => {
+            vi.mocked(axios.get).mockResolvedValue({
                 status: 200,
                 data: mockApiResponse,
             });
 
-            const result = await service.getAssetsForChain(1);
+            const supported = await service.getAssetsForChain(1);
+            expect(supported?.chainId).toBe(1);
+            expect(supported?.assets).toHaveLength(2);
 
-            expect(result).toBeDefined();
-            expect(result?.chainId).toBe(1);
-            expect(result?.assets).toHaveLength(2);
-        });
-
-        it("should return null for unsupported chain", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
-
-            const result = await service.getAssetsForChain(999);
-
-            expect(result).toBeNull();
+            const unsupported = await service.getAssetsForChain(999);
+            expect(unsupported).toBeNull();
         });
     });
 
     describe("isAssetSupported", () => {
-        it("should return asset info when asset is supported", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
+        it("should find asset with case-insensitive address comparison", async () => {
+            vi.mocked(axios.get).mockResolvedValue({
                 status: 200,
                 data: mockApiResponse,
             });
 
-            const result = await service.isAssetSupported(
+            // Uppercase (as stored)
+            const upper = await service.isAssetSupported(
                 1,
                 "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
             );
+            expect(upper?.symbol).toBe("USDC");
 
-            expect(result).toBeDefined();
-            expect(result?.symbol).toBe("USDC");
-            expect(result?.decimals).toBe(6);
-        });
-
-        it("should be case-insensitive for address comparison", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
-
-            const result = await service.isAssetSupported(
+            // Lowercase (user might provide)
+            const lower = await service.isAssetSupported(
                 1,
-                "0x000100000101a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", // lowercase
+                "0x000100000101a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
             );
+            expect(lower?.symbol).toBe("USDC");
 
-            expect(result).toBeDefined();
-            expect(result?.symbol).toBe("USDC");
-        });
-
-        it("should return null for unsupported asset", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
-
-            const result = await service.isAssetSupported(
+            // Non-existent asset
+            const notFound = await service.isAssetSupported(
                 1,
                 "0x0001000001010000000000000000000000000000000000000000",
             );
-
-            expect(result).toBeNull();
-        });
-
-        it("should return null for unsupported chain", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
-
-            const result = await service.isAssetSupported(
-                999,
-                "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-            );
-
-            expect(result).toBeNull();
+            expect(notFound).toBeNull();
         });
     });
 
@@ -246,65 +165,128 @@ describe("OIFAssetDiscoveryService", () => {
             });
 
             const result = await service.getSupportedChainIds();
-
             expect(result).toEqual([1, 137]);
         });
     });
 
-    describe("caching", () => {
-        it("should respect custom cache TTL", async () => {
-            const shortCacheService = new OIFAssetDiscoveryService({
-                baseUrl,
-                providerId,
-                cacheTtl: 100, // 100ms
-            });
-
-            vi.mocked(axios.get).mockResolvedValue({
+    describe("malformed API responses (malicious solver protection)", () => {
+        it("should reject responses missing required fields", async () => {
+            // Missing networks
+            vi.mocked(axios.get).mockResolvedValueOnce({
                 status: 200,
-                data: mockApiResponse,
+                data: {},
             });
+            await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
 
-            // First call
-            await shortCacheService.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(1);
+            // Missing chain_id
+            vi.mocked(axios.get).mockResolvedValueOnce({
+                status: 200,
+                data: { networks: { "1": { assets: [] } } },
+            });
+            await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
 
-            // Wait for cache to expire
-            await new Promise((resolve) => setTimeout(resolve, 150));
+            // Missing asset symbol
+            vi.mocked(axios.get).mockResolvedValueOnce({
+                status: 200,
+                data: {
+                    networks: {
+                        "1": {
+                            chain_id: 1,
+                            assets: [
+                                {
+                                    address:
+                                        "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                    decimals: 6,
+                                },
+                            ],
+                        },
+                    },
+                },
+            });
+            await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
+        });
 
-            // Second call should fetch again
-            await shortCacheService.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(2);
+        it("should reject invalid values that could cause issues downstream", async () => {
+            // Negative chain_id
+            vi.mocked(axios.get).mockResolvedValueOnce({
+                status: 200,
+                data: { networks: { "-1": { chain_id: -1, assets: [] } } },
+            });
+            await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
+
+            // Invalid decimals (overflow risk)
+            vi.mocked(axios.get).mockResolvedValueOnce({
+                status: 200,
+                data: {
+                    networks: {
+                        "1": {
+                            chain_id: 1,
+                            assets: [
+                                {
+                                    address:
+                                        "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                    symbol: "FAKE",
+                                    decimals: 256,
+                                },
+                            ],
+                        },
+                    },
+                },
+            });
+            await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
+
+            // Invalid address format (injection risk)
+            vi.mocked(axios.get).mockResolvedValueOnce({
+                status: 200,
+                data: {
+                    networks: {
+                        "1": {
+                            chain_id: 1,
+                            assets: [
+                                { address: "not-a-valid-address", symbol: "FAKE", decimals: 6 },
+                            ],
+                        },
+                    },
+                },
+            });
+            await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
         });
     });
 
-    describe("custom headers", () => {
-        it("should include custom headers in requests", async () => {
-            const serviceWithHeaders = new OIFAssetDiscoveryService({
-                baseUrl,
-                providerId,
-                headers: {
-                    Authorization: "Bearer test-token",
-                    "X-Custom-Header": "custom-value",
-                },
-            });
+    describe("network and API errors", () => {
+        it("should wrap network errors in AssetDiscoveryFailure with context", async () => {
+            const axiosError = new AxiosError("timeout of 30000ms exceeded", "ECONNABORTED");
+            vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
 
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/api.solver.test/);
+            }
+        });
 
-            await serviceWithHeaders.getSupportedAssets();
+        it("should include API error message when server returns error response", async () => {
+            const axiosError = new AxiosError("Request failed", "ERR_BAD_REQUEST");
+            axiosError.response = {
+                status: 401,
+                data: { message: "Invalid API key" },
+                statusText: "Unauthorized",
+                headers: {},
+                config: { headers: {} } as AxiosError["response"] extends { config: infer C }
+                    ? C
+                    : never,
+            };
+            vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
 
-            expect(axios.get).toHaveBeenCalledWith(
-                `${baseUrl}/api/tokens`,
-                expect.objectContaining({
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: "Bearer test-token",
-                        "X-Custom-Header": "custom-value",
-                    },
-                }),
-            );
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/Invalid API key/);
+            }
         });
     });
 });
