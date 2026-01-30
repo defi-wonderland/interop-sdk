@@ -4,7 +4,7 @@ import { NETWORK_ERROR_MESSAGE } from '../app/utils/address-conversion.js';
 test.describe('Error handling', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/addresses');
-    await page.getByRole('button', { name: 'From text' }).click();
+    await page.getByRole('button', { name: 'Parse' }).click();
   });
 
   test('displays user-friendly error message on network failure', async ({ page }) => {
