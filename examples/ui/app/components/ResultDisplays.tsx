@@ -22,11 +22,26 @@ interface ResultDisplaysProps {
 }
 
 function ChainReferenceValue({ chainReference, fullAddress }: { chainReference: string; fullAddress: string }) {
-  const [formatted, setFormatted] = useState(chainReference);
+  const [formatted, setFormatted] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    formatChainReference(chainReference, fullAddress).then(setFormatted);
+    setIsLoading(true);
+    formatChainReference(chainReference, fullAddress).then((result) => {
+      setFormatted(result);
+      setIsLoading(false);
+    });
   }, [chainReference, fullAddress]);
+
+  // If still loading and format will include parentheses, show skeleton
+  if (isLoading) {
+    return (
+      <>
+        {chainReference}
+        <span className='inline-block ml-1 w-20 h-4 bg-surface-secondary rounded animate-pulse align-middle' />
+      </>
+    );
+  }
 
   return <>{formatted}</>;
 }
