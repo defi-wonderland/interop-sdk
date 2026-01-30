@@ -7,6 +7,7 @@
 
 import {
     AssetDiscoveryConfig,
+    AssetDiscoveryOptions,
     AssetDiscoveryResult,
     AssetDiscoveryService,
     AssetInfo,
@@ -41,9 +42,13 @@ class StaticAssetDiscoveryService implements AssetDiscoveryService {
         this.providerId = providerId;
     }
 
-    async getSupportedAssets(): Promise<AssetDiscoveryResult> {
+    async getSupportedAssets(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
+        const filteredNetworks = options?.chainIds
+            ? this.networks.filter((n) => options.chainIds!.includes(n.chainId))
+            : this.networks;
+
         return {
-            networks: this.networks,
+            networks: filteredNetworks,
             fetchedAt: Date.now(),
             providerId: this.providerId,
         };
@@ -64,8 +69,12 @@ class StaticAssetDiscoveryService implements AssetDiscoveryService {
         );
     }
 
-    async getSupportedChainIds(): Promise<number[]> {
-        return this.networks.map((n) => n.chainId);
+    async getSupportedChainIds(options?: AssetDiscoveryOptions): Promise<number[]> {
+        const filteredNetworks = options?.chainIds
+            ? this.networks.filter((n) => options.chainIds!.includes(n.chainId))
+            : this.networks;
+
+        return filteredNetworks.map((n) => n.chainId);
     }
 }
 

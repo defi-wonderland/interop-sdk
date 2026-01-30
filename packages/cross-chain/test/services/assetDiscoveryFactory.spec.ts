@@ -279,3 +279,110 @@ describe("createAssetDiscoveryService helper", () => {
         expect(service).not.toBeNull();
     });
 });
+
+describe("Static Asset Discovery Service with AssetDiscoveryOptions", () => {
+    const multiChainNetworks: NetworkAssets[] = [
+        {
+            chainId: 1,
+            assets: [
+                {
+                    address: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    symbol: "USDC",
+                    decimals: 6,
+                },
+            ],
+        },
+        {
+            chainId: 137,
+            assets: [
+                {
+                    address: "0x00010000018902791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                    symbol: "USDC",
+                    decimals: 6,
+                },
+            ],
+        },
+        {
+            chainId: 42161,
+            assets: [
+                {
+                    address: "0x0001000000a5af449f9385dc8d884c99e6836a3fae51acad7f0d9fe9",
+                    symbol: "USDC",
+                    decimals: 6,
+                },
+            ],
+        },
+    ];
+
+    let service: AssetDiscoveryService;
+
+    beforeEach(() => {
+        const factory = new AssetDiscoveryFactory();
+        service = factory.createServiceFromConfig(
+            { type: "static", config: { networks: multiChainNetworks } },
+            "test-provider",
+        );
+    });
+
+    describe("getSupportedAssets with options", () => {
+        it("should return all networks when no chainIds filter is provided", async () => {
+            const result = await service.getSupportedAssets();
+
+            expect(result.networks).toHaveLength(3);
+            expect(result.networks.map((n) => n.chainId)).toEqual([1, 137, 42161]);
+        });
+
+        it("should filter networks by chainIds when provided", async () => {
+            const result = await service.getSupportedAssets({ chainIds: [1, 42161] });
+
+            expect(result.networks).toHaveLength(2);
+            expect(result.networks.map((n) => n.chainId)).toEqual([1, 42161]);
+        });
+
+        it("should return empty networks array when chainIds filter matches nothing", async () => {
+            const result = await service.getSupportedAssets({ chainIds: [999] });
+
+            expect(result.networks).toHaveLength(0);
+        });
+
+        it("should return single network when chainIds has one matching ID", async () => {
+            const result = await service.getSupportedAssets({ chainIds: [137] });
+
+            expect(result.networks).toHaveLength(1);
+            expect(result.networks[0]?.chainId).toBe(137);
+        });
+
+        it("should include fetchedAt and providerId in filtered result", async () => {
+            const result = await service.getSupportedAssets({ chainIds: [1] });
+
+            expect(result.fetchedAt).toBeGreaterThan(0);
+            expect(result.providerId).toBe("test-provider");
+        });
+    });
+
+    describe("getSupportedChainIds with options", () => {
+        it("should return all chain IDs when no chainIds filter is provided", async () => {
+            const result = await service.getSupportedChainIds();
+
+            expect(result).toEqual([1, 137, 42161]);
+        });
+
+        it("should filter chain IDs by chainIds when provided", async () => {
+            const result = await service.getSupportedChainIds({ chainIds: [1, 137] });
+
+            expect(result).toEqual([1, 137]);
+        });
+
+        it("should return empty array when chainIds filter matches nothing", async () => {
+            const result = await service.getSupportedChainIds({ chainIds: [999] });
+
+            expect(result).toEqual([]);
+        });
+
+        it("should return single chain ID when chainIds has one matching ID", async () => {
+            const result = await service.getSupportedChainIds({ chainIds: [42161] });
+
+            expect(result).toEqual([42161]);
+        });
+    });
+});

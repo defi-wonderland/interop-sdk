@@ -78,16 +78,25 @@ export abstract class CrossChainProvider {
      *
      * Providers that support discovery should override this method to return
      * an appropriate configuration:
-     * - { type: "oif" } for OIF-compliant solvers
+     * - { type: "oif", config: { baseUrl: "..." } } for OIF-compliant solvers
+     *   (baseUrl is required and points to the solver's API endpoint)
      * - { type: "custom-api", config: {...} } for custom APIs
      * - { type: "static", config: {...} } for static asset lists
      *
      * @returns Asset discovery configuration, or null if not supported
      *
-     * @example OIF Provider:
+     * @example OIF Provider (baseUrl is required for the factory to create the service):
      * ```typescript
      * getDiscoveryConfig() {
-     *   return { type: "oif" };
+     *   return {
+     *     type: "oif",
+     *     config: {
+     *       baseUrl: "https://api.solver.example.com",
+     *       // Optional: custom headers and cache TTL
+     *       // headers: { "Authorization": "Bearer ..." },
+     *       // cacheTtl: 300000, // 5 minutes
+     *     },
+     *   };
      * }
      * ```
      */
