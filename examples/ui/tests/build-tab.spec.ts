@@ -15,16 +15,15 @@ test.describe('Build tab - Convert address', () => {
 
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
-    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
+    await expect(page.getByTestId('result-card')).toBeVisible();
+    await expect(page.getByTestId('binary-section')).toBeVisible();
   });
 
   test('Use example chips', async ({ page }) => {
     const exampleChips: string[] = [
-      'vitalik.eth (Ethereum Mainnet)',
-      'nick.eth (Arbitrum One)',
-      '0x8335...A02913 (Base)',
+      'vitalik.eth @ eth',
+      'nick.eth @ arb1',
+      '0x833...913 @ base',
     ];
 
     for (const locator of exampleChips) {
@@ -32,9 +31,8 @@ test.describe('Build tab - Convert address', () => {
       await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled();
       await page.getByRole('button', { name: 'Convert' }).click();
 
-      await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
-      await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
-      await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
+      await expect(page.getByTestId('result-card')).toBeVisible();
+      await expect(page.getByTestId('binary-section')).toBeVisible();
     }
   });
 });
@@ -87,7 +85,7 @@ test.describe('Build tab - Address input validations', () => {
     await page.getByRole('button', { name: 'Convert' }).click();
 
     await expect(page.getByText('EVM address must be a valid Ethereum address')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
+    await expect(page.getByTestId('result-card')).not.toBeVisible();
   });
 
   test('Shows error when address has incorrect length', async ({ page }) => {
@@ -99,7 +97,7 @@ test.describe('Build tab - Address input validations', () => {
     await page.getByRole('button', { name: 'Convert' }).click();
 
     await expect(page.getByText('EVM address must be a valid Ethereum address')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
+    await expect(page.getByTestId('result-card')).not.toBeVisible();
   });
 
   test('Shows error for invalid human readable address', async ({ page }) => {
@@ -111,6 +109,6 @@ test.describe('Build tab - Address input validations', () => {
     await page.getByRole('button', { name: 'Convert' }).click();
 
     await expect(page.getByText(`Invalid interoperable name: ${invalidCharactersAddress}`)).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
+    await expect(page.getByTestId('result-card')).not.toBeVisible();
   });
 });

@@ -8,10 +8,10 @@ export function TabButton({ isActive, onClick, children }: TabButtonProps) {
   return (
     <button
       onClick={onClick}
-      className={`flex-1 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+      className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-all cursor-pointer ${
         isActive
-          ? 'bg-gradient-to-r from-accent to-accent-hover text-white shadow-lg shadow-accent/30 scale-[1.02]'
-          : 'bg-surface/50 text-text-secondary hover:bg-surface'
+          ? 'bg-background text-text-primary shadow-sm border border-border'
+          : 'bg-transparent text-text-muted hover:text-text-secondary'
       }`}
     >
       {children}

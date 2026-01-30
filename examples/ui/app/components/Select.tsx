@@ -79,7 +79,7 @@ export function Select({
           id={id}
           type='button'
           className={cn(
-            'w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 text-left flex items-center justify-between',
+            'w-full px-4 py-2 bg-background border border-border rounded-full text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 text-left flex items-center justify-between',
             className,
           )}
         >

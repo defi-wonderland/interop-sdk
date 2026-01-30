@@ -2,37 +2,35 @@ import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/addresses');
-  await page.getByRole('button', { name: 'From text' }).click();
+  await page.getByRole('button', { name: 'Parse' }).click();
 });
 
-test.describe('"From text" tab - Convert address', () => {
+test.describe('"Parse" tab - Convert address', () => {
   test('Convert address', async ({ page }) => {
     await page.getByRole('textbox', { name: 'Interoperable Name' }).fill('vitalik.eth@eth');
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
-    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
+    await expect(page.getByTestId('result-card')).toBeVisible();
+    await expect(page.getByTestId('binary-section')).toBeVisible();
   });
 
   test('Use example chips', async ({ page }) => {
     const exampleChips: string[] = [
-      'vitalik.eth (Ethereum Mainnet)',
-      'nick.eth (Arbitrum One)',
-      '0x8335...A02913 (Base)',
+      'vitalik.eth @ eth',
+      'nick.eth @ arb1',
+      '0x833...913 @ base',
     ];
     for (const locator of exampleChips) {
       await page.getByRole('button', { name: locator }).click();
       await page.getByRole('button', { name: 'Convert' }).click();
 
-      await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
-      await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
-      await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
+      await expect(page.getByTestId('result-card')).toBeVisible();
+      await expect(page.getByTestId('binary-section')).toBeVisible();
     }
   });
 });
 
-test.describe('"From text" tab - Input validations', () => {
+test.describe('"Parse" tab - Input validations', () => {
   test('Convert button is disabled when Interoperable Name input is empty', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Convert' })).toBeDisabled();
   });
@@ -43,7 +41,7 @@ test.describe('"From text" tab - Input validations', () => {
     await page.getByRole('button', { name: 'Convert' }).click();
 
     await expect(page.getByText(`Invalid interoperable name: ${invalidAddress}`)).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
+    await expect(page.getByTestId('result-card')).not.toBeVisible();
   });
 
   test('Shows error for ENS name with chain type but no chain reference', async ({ page }) => {
@@ -56,7 +54,7 @@ test.describe('"From text" tab - Input validations', () => {
         'Invalid interoperable name: ENS names require a specific chain reference (e.g., @eip155:1). Use @<chainType>:<reference> format.',
       ),
     ).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
+    await expect(page.getByTestId('result-card')).not.toBeVisible();
   });
 
   test('Shows error for invalid chain identifier', async ({ page }) => {
@@ -69,7 +67,7 @@ test.describe('"From text" tab - Input validations', () => {
         `Invalid chain identifier: Chain reference "${invalidChainIdentifier}" could not be resolved to a valid chain type`,
       ),
     ).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
+    await expect(page.getByTestId('result-card')).not.toBeVisible();
   });
 
   test('Shows error for invalid address format', async ({ page }) => {
@@ -77,6 +75,6 @@ test.describe('"From text" tab - Input validations', () => {
     await page.getByRole('button', { name: 'Convert' }).click();
 
     await expect(page.getByText('EVM address must be a valid Ethereum address')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
+    await expect(page.getByTestId('result-card')).not.toBeVisible();
   });
 });

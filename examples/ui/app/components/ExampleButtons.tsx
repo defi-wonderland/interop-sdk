@@ -4,19 +4,17 @@ interface ExampleButtonsProps {
 
 export function ExampleButtons({ examples }: ExampleButtonsProps) {
   return (
-    <div className='flex flex-col gap-2'>
-      <div className='text-sm font-medium text-text-secondary'>Examples</div>
-      <div className='flex flex-wrap gap-2'>
-        {examples.map((example) => (
-          <button
-            key={example.key}
-            onClick={example.onClick}
-            className='px-3 py-1.5 bg-accent-light/50 hover:bg-accent-light text-accent rounded-lg text-xs font-medium transition-colors cursor-pointer'
-          >
-            {example.description}
-          </button>
-        ))}
-      </div>
+    <div className='flex items-center gap-2 flex-wrap'>
+      <span className='text-xs font-medium text-text-muted font-sans'>Try:</span>
+      {examples.map((example) => (
+        <button
+          key={example.key}
+          onClick={example.onClick}
+          className='px-2.5 py-1 bg-surface-secondary border border-border text-text-primary rounded-full text-[11px] transition-colors cursor-pointer hover:border-border-focus'
+        >
+          {example.description}
+        </button>
+      ))}
     </div>
   );
 }

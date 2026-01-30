@@ -65,23 +65,25 @@ export function InputSection({
   return (
     <div
       data-testid='input-card'
-      className='relative z-10 backdrop-blur-xl bg-surface/80 rounded-3xl border border-border/50 p-6 shadow-2xl'
+      className='bg-surface rounded-2xl border border-border overflow-hidden shadow-[0_4px_24px_-4px_rgba(0,0,0,0.38),0_0_80px_-20px_rgba(255,132,0,0.08)]'
     >
-      <div className='absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent rounded-3xl pointer-events-none' />
-
-      <div className='relative flex flex-col gap-6'>
-        <div className='flex gap-2'>
+      {/* Card Header with tabs */}
+      <div className='px-6 py-3.5 border-b border-border'>
+        <div className='inline-flex gap-1 p-1 bg-surface-secondary rounded-full'>
           <TabButton isActive={isBuildMode} onClick={() => setMode(InputMode.BUILD)}>
             Build
           </TabButton>
           <TabButton isActive={isReadableMode} onClick={() => setMode(InputMode.READABLE)}>
-            From text
+            Parse
           </TabButton>
         </div>
+      </div>
 
+      {/* Card Body: inputs + convert */}
+      <div className='px-6 pb-6 flex flex-col gap-4'>
         {isReadableMode && (
-          <div>
-            <label htmlFor='readable-address-input' className='text-sm font-medium text-text-secondary'>
+          <div className='flex flex-col gap-1.5 pt-4'>
+            <label htmlFor='readable-address-input' className='text-sm font-medium text-text-primary font-sans'>
               Interoperable Name
             </label>
             <input
@@ -92,15 +94,15 @@ export function InputSection({
               placeholder='alice.eth@eip155:1#4CA88C9C'
               autoComplete='off'
               data-1p-ignore
-              className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 mt-2'
+              className='w-full h-10 px-4 bg-background border border-border rounded-full text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-colors'
             />
           </div>
         )}
 
         {isBuildMode && (
-          <div className='flex flex-col sm:flex-row gap-4'>
-            <div className='flex-1'>
-              <label htmlFor='address-input' className='text-sm font-medium text-text-secondary'>
+          <div className='flex flex-col sm:flex-row gap-3 pt-4'>
+            <div className='flex-1 flex flex-col gap-1.5'>
+              <label htmlFor='address-input' className='text-sm font-medium text-text-primary font-sans'>
                 Address
               </label>
               <input
@@ -111,11 +113,11 @@ export function InputSection({
                 placeholder='0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
                 autoComplete='off'
                 data-1p-ignore
-                className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 mt-2'
+                className='w-full h-10 px-4 bg-background border border-border rounded-full text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 transition-colors'
               />
             </div>
-            <div className='flex-1'>
-              <label htmlFor='chain-reference-dropdown' className='text-sm font-medium text-text-secondary'>
+            <div className='w-full sm:w-[200px] flex flex-col gap-1.5'>
+              <label htmlFor='chain-reference-dropdown' className='text-sm font-medium text-text-primary font-sans'>
                 Chain
               </label>
               <ChainDropdown
@@ -123,16 +125,18 @@ export function InputSection({
                 id='chain-reference-dropdown'
                 value={chainReference}
                 onChange={setChainReference}
-                className='mt-2'
+                className='h-10 rounded-full'
               />
             </div>
           </div>
         )}
 
-        <div className='flex flex-col-reverse sm:flex-row gap-3 sm:justify-between'>
-          <ExampleButtons examples={isReadableMode ? readableModeExamples : buildModeExamples} />
-          <ConvertButton onClick={onConvert} isLoading={isLoading} isDisabled={isConvertDisabled} />
-        </div>
+        <ConvertButton onClick={onConvert} isLoading={isLoading} isDisabled={isConvertDisabled} />
+      </div>
+
+      {/* Examples */}
+      <div className='px-6 pb-4'>
+        <ExampleButtons examples={isReadableMode ? readableModeExamples : buildModeExamples} />
       </div>
     </div>
   );

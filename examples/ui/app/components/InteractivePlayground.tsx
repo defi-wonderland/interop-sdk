@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { InputMode, type InteroperableNamePart, type BinaryPart, type AddressResult } from '../types';
+import { InputMode, type AddressResult } from '../types';
 import { convertFromReadable } from '../utils/address-conversion';
 import { InputSection } from './InputSection';
 import { ResultDisplays } from './ResultDisplays';
@@ -16,17 +16,11 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
   const [readableName, setReadableName] = useState('');
   const [address, setAddress] = useState('');
   const [chainReference, setChainReference] = useState('');
-  const [hoveredName, setHoveredName] = useState<InteroperableNamePart>(null);
-  const [hoveredBinary, setHoveredBinary] = useState<BinaryPart>(null);
+  const [binaryExpanded, setBinaryExpanded] = useState(false);
+  const [advancedExpanded, setAdvancedExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [readableResult, setReadableResult] = useState<AddressResult | null>(null);
   const [buildResult, setBuildResult] = useState<AddressResult | null>(null);
-  const [readableParsedResult, setReadableParsedResult] = useState<
-    Awaited<ReturnType<typeof convertFromReadable>>['parsedResult'] | null
-  >(null);
-  const [buildParsedResult, setBuildParsedResult] = useState<
-    Awaited<ReturnType<typeof convertFromReadable>>['parsedResult'] | null
-  >(null);
   const [readableError, setReadableError] = useState('');
   const [buildError, setBuildError] = useState('');
   const [lastReadableInput, setLastReadableInput] = useState('');
@@ -35,24 +29,36 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const updateReadableResult = (conversionResult: Awaited<ReturnType<typeof convertFromReadable>>) => {
+    const { parsedResult } = conversionResult;
     setReadableResult({
       ...conversionResult.nameParts,
       interoperableName: conversionResult.interoperableName,
       binary: conversionResult.binary,
       ...conversionResult.binaryParts,
+      meta: {
+        resolvedAddress: parsedResult.interoperableAddress.address || '',
+        isENS: parsedResult.meta.isENS,
+        isChainLabel: parsedResult.meta.isChainLabel,
+        checksumMismatch: parsedResult.meta.checksumMismatch,
+      },
     });
-    setReadableParsedResult(conversionResult.parsedResult);
     setLastReadableInput(readableName.trim());
   };
 
   const updateBuildResult = (conversionResult: Awaited<ReturnType<typeof convertFromReadable>>) => {
+    const { parsedResult } = conversionResult;
     setBuildResult({
       ...conversionResult.nameParts,
       interoperableName: conversionResult.interoperableName,
       binary: conversionResult.binary,
       ...conversionResult.binaryParts,
+      meta: {
+        resolvedAddress: parsedResult.interoperableAddress.address || '',
+        isENS: parsedResult.meta.isENS,
+        isChainLabel: parsedResult.meta.isChainLabel,
+        checksumMismatch: parsedResult.meta.checksumMismatch,
+      },
     });
-    setBuildParsedResult(conversionResult.parsedResult);
     setLastBuildAddress(address.trim());
     setLastBuildChainReference(chainReference.trim());
   };
@@ -81,7 +87,6 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
       const message = err instanceof Error ? err.message : 'Failed to process';
       setBuildError(message);
       setBuildResult(null);
-      setBuildParsedResult(null);
     }
   };
 
@@ -112,7 +117,6 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
 
   const activeResult = mode === InputMode.READABLE ? readableResult : buildResult;
   const activeError = mode === InputMode.READABLE ? readableError : buildError;
-  const activeParsedResult = mode === InputMode.READABLE ? readableParsedResult : buildParsedResult;
   const isReadableStale = !!readableResult && Boolean(lastReadableInput) && lastReadableInput !== readableName.trim();
   const isBuildStale =
     !!buildResult &&
@@ -141,13 +145,12 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
         isLoading={isLoading}
         error={activeError}
         result={activeResult}
-        parsedResult={activeParsedResult}
         isStale={isStale}
         onRefresh={handleConvert}
-        hoveredName={hoveredName}
-        setHoveredName={setHoveredName}
-        hoveredBinary={hoveredBinary}
-        setHoveredBinary={setHoveredBinary}
+        binaryExpanded={binaryExpanded}
+        setBinaryExpanded={setBinaryExpanded}
+        advancedExpanded={advancedExpanded}
+        setAdvancedExpanded={setAdvancedExpanded}
         copied={copied}
         onCopy={handleCopy}
       />
