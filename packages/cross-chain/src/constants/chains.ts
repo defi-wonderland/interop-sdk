@@ -1,14 +1,22 @@
-import { arbitrum, arbitrumSepolia, base, baseSepolia, sepolia } from "viem/chains";
+import {
+    arbitrum,
+    arbitrumSepolia,
+    base,
+    baseSepolia,
+    optimism,
+    optimismSepolia,
+    sepolia,
+} from "viem/chains";
 
 /**
  * Mainnet chains
  */
-export const MAINNET_CHAINS = [base, arbitrum] as const;
+export const MAINNET_CHAINS = [base, arbitrum, optimism] as const;
 
 /**
  * Testnet chains
  */
-export const TESTNET_CHAINS = [sepolia, baseSepolia, arbitrumSepolia] as const;
+export const TESTNET_CHAINS = [sepolia, baseSepolia, arbitrumSepolia, optimismSepolia] as const;
 
 /**
  * Supported chains for cross-chain operations

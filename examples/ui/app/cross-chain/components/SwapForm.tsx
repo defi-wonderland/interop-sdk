@@ -6,6 +6,7 @@ import { useAccount, useBalance } from 'wagmi';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { isValidAmount, sanitizeAmountInput } from '../utils/amountValidation';
 import { formatAmount } from '../utils/formatting';
+import { MintButton } from './MintButton';
 import { WalletConnect } from './WalletConnect';
 import { SpinnerIcon } from './icons';
 
@@ -206,6 +207,15 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
                 );
               })}
             </select>
+            {inputTokenInfo?.mintable && (
+              <MintButton
+                chainId={inputChainId}
+                tokenAddress={inputTokenAddress as `0x${string}`}
+                tokenSymbol={inputTokenInfo.symbol}
+                tokenDecimals={inputTokenInfo.decimals}
+                disabled={isDisabled}
+              />
+            )}
           </div>
 
           <div className='flex flex-col gap-3'>

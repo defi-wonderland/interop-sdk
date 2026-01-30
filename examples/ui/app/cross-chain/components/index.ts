@@ -1,5 +1,6 @@
 export { ErrorList } from './ErrorList';
 export { ErrorQuoteCard } from './ErrorQuoteCard';
+export { MintButton } from './MintButton';
 export { NetworkSwitch } from './NetworkSwitch';
 export { OrderTracking } from './OrderTracking';
 export { QuoteCard } from './QuoteCard';
