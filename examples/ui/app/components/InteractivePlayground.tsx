@@ -28,6 +28,14 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
   const [lastBuildChainReference, setLastBuildChainReference] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const getResolvedAddress = (address: string | Uint8Array | undefined): string => {
+    if (!address) return '';
+    if (typeof address === 'string') return address;
+    return `0x${Array.from(address)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')}`;
+  };
+
   const updateReadableResult = (conversionResult: Awaited<ReturnType<typeof convertFromReadable>>) => {
     const { parsedResult } = conversionResult;
     setReadableResult({
@@ -36,7 +44,7 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
       binary: conversionResult.binary,
       ...conversionResult.binaryParts,
       meta: {
-        resolvedAddress: parsedResult.interoperableAddress.address || '',
+        resolvedAddress: getResolvedAddress(parsedResult.interoperableAddress.address),
         isENS: parsedResult.meta.isENS,
         isChainLabel: parsedResult.meta.isChainLabel,
         checksumMismatch: parsedResult.meta.checksumMismatch,
@@ -53,7 +61,7 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
       binary: conversionResult.binary,
       ...conversionResult.binaryParts,
       meta: {
-        resolvedAddress: parsedResult.interoperableAddress.address || '',
+        resolvedAddress: getResolvedAddress(parsedResult.interoperableAddress.address),
         isENS: parsedResult.meta.isENS,
         isChainLabel: parsedResult.meta.isChainLabel,
         checksumMismatch: parsedResult.meta.checksumMismatch,
