@@ -127,4 +127,4 @@ main().catch(console.error);
 
 ## Next Step
 
-Learn how to monitor your transaction: [Intent Tracking](./intent-tracking.md)
+Learn how to monitor your transaction: [Order Tracking](./intent-tracking.md)

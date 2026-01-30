@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { Hex } from "viem";
+import { Address, Hex } from "viem";
 
 import {
     FillWatcher,
@@ -68,67 +68,60 @@ export class OrderTracker extends EventEmitter {
         if (isReverted) {
             return {
                 status: OrderStatus.Failed,
-                orderId: "0x" as Hex,
+                orderId:
+                    "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
                 openTxHash: txHash,
-                user: "0x" as Hex,
+                user: "0x0000000000000000000000000000000000000000" as Address,
                 originChainId,
-                destinationChainId: 0,
+                openDeadline: 0,
                 fillDeadline: 0,
-                depositId: 0n,
-                inputAmount: 0n,
-                outputAmount: 0n,
+                maxSpent: [],
+                minReceived: [],
+                fillInstructions: [],
                 failureReason: OrderFailureReason.OriginTxReverted,
             };
         }
 
         const openedIntent = await this.openedIntentParser.getOpenedIntent(txHash, originChainId);
 
-        const fillEvent = await this.fillWatcher.getFill({
+        const destinationChainId = openedIntent.fillInstructions[0]?.destinationChainId || 0;
+
+        const {
+            fillEvent,
+            status,
+            failureReason: watcherFailureReason,
+        } = await this.fillWatcher.getFill({
+            orderId: openedIntent.orderId,
+            openTxHash: txHash,
             originChainId,
-            destinationChainId: Number(openedIntent.destinationChainId),
-            depositId: openedIntent.depositId,
+            destinationChainId,
             user: openedIntent.user,
             fillDeadline: openedIntent.fillDeadline,
         });
 
-        const { status, failureReason } = this.determineOrderStatus(
-            fillEvent,
-            openedIntent.fillDeadline,
-        );
+        let failureReason: OrderFailureReason | undefined = watcherFailureReason;
+        if (status === OrderStatus.Failed && !failureReason) {
+            const now = Math.floor(Date.now() / 1000);
+            failureReason =
+                now > openedIntent.fillDeadline
+                    ? OrderFailureReason.DeadlineExceeded
+                    : OrderFailureReason.Unknown;
+        }
 
         return {
             status,
             orderId: openedIntent.orderId,
             openTxHash: txHash,
             user: openedIntent.user,
-            originChainId,
-            destinationChainId: Number(openedIntent.destinationChainId),
+            originChainId: openedIntent.originChainId,
+            openDeadline: openedIntent.openDeadline,
             fillDeadline: openedIntent.fillDeadline,
-            depositId: openedIntent.depositId,
-            inputAmount: openedIntent.inputAmount,
-            outputAmount: openedIntent.outputAmount,
+            maxSpent: openedIntent.maxSpent,
+            minReceived: openedIntent.minReceived,
+            fillInstructions: openedIntent.fillInstructions,
             fillEvent: fillEvent || undefined,
             failureReason,
         };
-    }
-
-    private determineOrderStatus(
-        fillEvent: unknown,
-        fillDeadline: number,
-    ): { status: OrderStatus; failureReason?: OrderFailureReason } {
-        if (fillEvent) {
-            return { status: OrderStatus.Finalized };
-        }
-
-        const now = Math.floor(Date.now() / 1000);
-        if (now > fillDeadline) {
-            return {
-                status: OrderStatus.Failed,
-                failureReason: OrderFailureReason.DeadlineExceeded,
-            };
-        }
-
-        return { status: OrderStatus.Pending };
     }
 
     /**
@@ -149,12 +142,7 @@ export class OrderTracker extends EventEmitter {
      * ```
      */
     async *watchOrder(params: WatchOrderParams): AsyncGenerator<OrderTrackerYield> {
-        const {
-            txHash,
-            originChainId,
-            destinationChainId,
-            timeout = OrderTracker.DEFAULT_TIMEOUT_MS,
-        } = params;
+        const { txHash, originChainId, timeout = OrderTracker.DEFAULT_TIMEOUT_MS } = params;
 
         if (timeout <= 0) {
             throw new Error(`Timeout must be positive, got ${timeout}ms`);
@@ -231,11 +219,14 @@ export class OrderTracker extends EventEmitter {
         });
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
 
+        const destinationChainId = openedIntent.fillInstructions[0]?.destinationChainId || 0;
+
         const fillResult = await this.waitForFillWithTimeout(
             {
+                orderId: openedIntent.orderId,
+                openTxHash: txHash,
                 originChainId,
                 destinationChainId,
-                depositId: openedIntent.depositId,
                 user: openedIntent.user,
                 fillDeadline: openedIntent.fillDeadline,
             },
@@ -383,9 +374,10 @@ export class OrderTracker extends EventEmitter {
 
     private async waitForFillWithTimeout(
         fillParams: {
+            orderId: Hex;
+            openTxHash: Hex;
             originChainId: number;
             destinationChainId: number;
-            depositId: bigint;
             user: Hex;
             fillDeadline: number;
         },

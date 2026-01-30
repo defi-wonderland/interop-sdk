@@ -1,7 +1,7 @@
 import { GetQuoteRequest, PostOrderResponse, Quote } from "@openintentsframework/oif-specs";
 import { Address, Hex, PrepareTransactionRequestReturnType } from "viem";
 
-import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
+import type { FillWatcherConfig } from "../interfaces/fillWatcher.interface.js";
 import { CrossChainProvider, ExecutableQuote, OpenedIntentParserConfig } from "../internal.js";
 // TODO: REMOVE THIS IMPORT WHEN OIF-SPECS IS UPDATED WITH SCHEMAS
 import { getQuoteRequestSchema } from "../schemas/oif.js";
@@ -87,6 +87,7 @@ export class SampleProvider extends CrossChainProvider {
         return {
             openedIntentParserConfig: { type: "oif" },
             fillWatcherConfig: {
+                type: "event-based",
                 contractAddresses: {} as Record<number, Address>,
                 eventAbi: [],
                 buildLogsArgs: (): never => {

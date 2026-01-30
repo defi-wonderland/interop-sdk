@@ -9,14 +9,14 @@ The `cross-chain` package provides a standardized interface for interacting with
 -   Cross-chain token transfers between supported networks
 -   Cross-chain token swaps with customizable slippage
 -   Quote fetching for cross-chain operations
--   Intent tracking from initiation to completion
+-   Order tracking from initiation to completion
 -   Multi-provider quote aggregation and comparison
 -   Standardized provider interface for integrating different bridge protocols
 -   Type-safe interactions with comprehensive TypeScript support
 
 ### Currently Supported Providers
 
--   **[Across Protocol](./across-provider.md)** - Cross-chain transfers (testnet)
+-   **[Across Protocol](./across-provider.md)** - Cross-chain transfers (mainnet + testnet)
 -   **[OIF (Open Intents Framework)](./oif-provider.md)** - Direct integration with OIF-compliant solvers
 
 > Additional protocols are planned for future releases.

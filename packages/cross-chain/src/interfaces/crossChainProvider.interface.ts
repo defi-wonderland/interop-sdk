@@ -1,7 +1,7 @@
 import type { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import type { Hex } from "viem";
 
-import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
+import type { FillWatcherConfig } from "./fillWatcher.interface.js";
 import type { OpenedIntentParserConfig } from "./openedIntentParser.interface.js";
 import type { ExecutableQuote } from "./quotes.interface.js";
 

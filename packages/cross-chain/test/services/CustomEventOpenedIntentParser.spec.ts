@@ -21,11 +21,12 @@ const createMockConfig = (): CustomEventOpenedIntentParserConfig => ({
         blockNumber,
         originContract: log.address,
         user: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as Address,
+        originChainId: 11155111,
+        openDeadline: 1700003600,
         fillDeadline: 1700003600,
-        depositId: 12345n,
-        destinationChainId: 84532n,
-        inputAmount: 1000000000000000000n,
-        outputAmount: 990000000000000000n,
+        maxSpent: [],
+        minReceived: [],
+        fillInstructions: [],
     }),
 });
 
@@ -78,12 +79,12 @@ describe("CustomEventOpenedIntentParser", () => {
 
             const result = await parser.getOpenedIntent(mockTxHash, mockChainId);
 
-            expect(result.depositId).toBe(12345n);
-            expect(result.inputAmount).toBe(1000000000000000000n);
-            expect(result.outputAmount).toBe(990000000000000000n);
-            expect(result.destinationChainId).toBe(84532n);
+            expect(result.orderId).toBe(
+                "0x0000000000000000000000000000000000000000000000000000000000003039",
+            );
             expect(result.txHash).toBe(mockTxHash);
             expect(result.blockNumber).toBe(1000000n);
+            expect(result.originChainId).toBe(11155111);
         });
 
         it("should throw OpenedIntentNotFoundError when event not found", async () => {
@@ -152,7 +153,9 @@ describe("CustomEventOpenedIntentParser", () => {
 
             const result = await parser.getOpenedIntent(mockTxHash, mockChainId);
 
-            expect(result.depositId).toBe(12345n);
+            expect(result.orderId).toBe(
+                "0x0000000000000000000000000000000000000000000000000000000000003039",
+            );
         });
 
         it("should call extractOpenedIntent with correct parameters", async () => {
@@ -163,11 +166,12 @@ describe("CustomEventOpenedIntentParser", () => {
                 blockNumber: 1000000n,
                 originContract: "0x5f9D51679F5A0C7C1e2b7F0aE8F2c3c7c9c1c2c3" as Address,
                 user: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as Address,
+                originChainId: 11155111n,
+                openDeadline: 1700003600,
                 fillDeadline: 1700003600,
-                depositId: 12345n,
-                destinationChainId: 84532n,
-                inputAmount: 1000000000000000000n,
-                outputAmount: 990000000000000000n,
+                maxSpent: [],
+                minReceived: [],
+                fillInstructions: [],
             });
 
             const configWithSpy: CustomEventOpenedIntentParserConfig = {
@@ -198,7 +202,7 @@ describe("CustomEventOpenedIntentParser", () => {
 
             await parserWithSpy.getOpenedIntent(mockTxHash, mockChainId);
 
-            expect(extractSpy).toHaveBeenCalledWith(mockLog, mockTxHash, 1000000n);
+            expect(extractSpy).toHaveBeenCalledWith(mockLog, mockTxHash, 1000000n, mockChainId);
         });
 
         it("should use correct chain client", async () => {
