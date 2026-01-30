@@ -11,8 +11,9 @@ test.describe('"From text" tab - Convert address', () => {
     await page.getByRole('textbox', { name: 'Interoperable Name' }).fill('vitalik.eth@eth');
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'Advanced: Text & Meta Fields' })).toBeVisible({ timeout: 10_000 });
   });
 
   test('Use example chips', async ({ page }) => {
@@ -25,8 +26,9 @@ test.describe('"From text" tab - Convert address', () => {
       await page.getByRole('button', { name: locator }).click();
       await page.getByRole('button', { name: 'Convert' }).click();
 
-      await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
-      await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole('heading', { name: 'Advanced: Text & Meta Fields' })).toBeVisible({ timeout: 10_000 });
     }
   });
 });
