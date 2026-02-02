@@ -59,8 +59,9 @@ lcov.info
 # cursor
 .cursor
 
-# claude
-.claude/
+# Claude - ignore local config, track shared plugins
+.claude/*
+!.claude/plugins/
 
 # playwright mcp
 .playwright-mcp/
