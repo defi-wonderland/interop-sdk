@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { nameToBinary } from '@wonderland/interop-addresses';
-import { crossChainExecutor } from '../services/sdk';
+import { getExecutorForTokenPair } from '../services/sdk';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
 import { useTokenConfig } from './useNetworkConfig';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
@@ -86,7 +86,18 @@ export function useQuotes(): UseQuotesReturn {
         supportedTypes: ['oif-escrow-v0'],
       };
 
-      const response = await crossChainExecutor.getQuotes(getQuoteRequest);
+      const executor = getExecutorForTokenPair(params);
+      if (!executor) {
+        setErrors([
+          {
+            errorMsg: 'No provider supports this token pair',
+            error: new Error('Unsupported token pair'),
+          },
+        ]);
+        return;
+      }
+
+      const response = await executor.getQuotes(getQuoteRequest);
 
       if (response.quotes?.length) {
         setQuotes(response.quotes);

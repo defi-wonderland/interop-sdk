@@ -1,4 +1,15 @@
-import { arbitrum, arbitrumSepolia, base, baseSepolia, sepolia } from "viem/chains";
+import {
+    arbitrum,
+    arbitrumSepolia,
+    base,
+    baseSepolia,
+    optimism,
+    optimismSepolia,
+    sepolia,
+} from "viem/chains";
+
+import { TOKEN_ADDRESSES } from "./addresses.js";
+import { PROVIDER_CONFIG } from "./providers.js";
 
 /**
  * Token metadata interface
@@ -8,36 +19,35 @@ export interface TokenInfo {
     decimals: number;
 }
 
+function getAllTokensForChain(chainId: number): string[] {
+    const tokens = Object.values(PROVIDER_CONFIG).reduce<Record<string, true>>((acc, config) => {
+        const chainKey = chainId as keyof typeof config.tokens;
+        const chainTokens = config.tokens[chainKey] as readonly string[] | undefined;
+        if (chainTokens) {
+            chainTokens.forEach((token) => (acc[token] = true));
+        }
+        return acc;
+    }, {});
+    return Object.keys(tokens);
+}
+
 /**
  * Mainnet supported tokens by chain ID
  */
 export const MAINNET_SUPPORTED_TOKEN_BY_CHAIN_ID = {
-    [base.id]: [
-        "0x4200000000000000000000000000000000000006", // WETH
-        "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC (native)
-    ],
-    [arbitrum.id]: [
-        "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", // WETH
-        "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", // USDC (native)
-    ],
+    [base.id]: getAllTokensForChain(base.id),
+    [arbitrum.id]: getAllTokensForChain(arbitrum.id),
+    [optimism.id]: getAllTokensForChain(optimism.id),
 } as const;
 
 /**
  * Testnet supported tokens by chain ID
  */
 export const TESTNET_SUPPORTED_TOKEN_BY_CHAIN_ID = {
-    [sepolia.id]: [
-        "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14", // WETH
-        "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238", // USDC
-    ],
-    [baseSepolia.id]: [
-        "0x4200000000000000000000000000000000000006", // WETH
-        "0x036CbD53842c5426634e7929541eC2318f3dCF7e", // USDC
-    ],
-    [arbitrumSepolia.id]: [
-        "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73", // WETH
-        "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d", // USDC
-    ],
+    [sepolia.id]: getAllTokensForChain(sepolia.id),
+    [baseSepolia.id]: getAllTokensForChain(baseSepolia.id),
+    [arbitrumSepolia.id]: getAllTokensForChain(arbitrumSepolia.id),
+    [optimismSepolia.id]: getAllTokensForChain(optimismSepolia.id),
 } as const;
 
 /**
@@ -54,12 +64,19 @@ export const SUPPORTED_TOKEN_BY_CHAIN_ID = {
  */
 export const MAINNET_TOKEN_INFO: Record<number, Record<string, TokenInfo>> = {
     [base.id]: {
-        "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": { symbol: "USDC", decimals: 6 },
-        "0x4200000000000000000000000000000000000006": { symbol: "WETH", decimals: 18 },
+        [TOKEN_ADDRESSES.base.USDC]: { symbol: "USDC", decimals: 6 },
+        [TOKEN_ADDRESSES.base.WETH]: { symbol: "WETH", decimals: 18 },
+        [TOKEN_ADDRESSES.base.OIF_USDC]: { symbol: "mockUSDC", decimals: 6 },
     },
     [arbitrum.id]: {
-        "0xaf88d065e77c8cC2239327C5EDb3A432268e5831": { symbol: "USDC", decimals: 6 },
-        "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": { symbol: "WETH", decimals: 18 },
+        [TOKEN_ADDRESSES.arbitrum.USDC]: { symbol: "USDC", decimals: 6 },
+        [TOKEN_ADDRESSES.arbitrum.WETH]: { symbol: "WETH", decimals: 18 },
+        [TOKEN_ADDRESSES.arbitrum.OIF_USDC]: { symbol: "mockUSDC", decimals: 6 },
+    },
+    [optimism.id]: {
+        [TOKEN_ADDRESSES.optimism.USDC]: { symbol: "USDC", decimals: 6 },
+        [TOKEN_ADDRESSES.optimism.WETH]: { symbol: "WETH", decimals: 18 },
+        [TOKEN_ADDRESSES.optimism.OIF_USDC]: { symbol: "mockUSDC", decimals: 6 },
     },
 };
 
@@ -68,15 +85,28 @@ export const MAINNET_TOKEN_INFO: Record<number, Record<string, TokenInfo>> = {
  */
 export const TESTNET_TOKEN_INFO: Record<number, Record<string, TokenInfo>> = {
     [sepolia.id]: {
-        "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238": { symbol: "USDC", decimals: 6 },
-        "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14": { symbol: "WETH", decimals: 18 },
+        [TOKEN_ADDRESSES.sepolia.USDC]: { symbol: "USDC", decimals: 6 },
+        [TOKEN_ADDRESSES.sepolia.WETH]: { symbol: "WETH", decimals: 18 },
     },
     [baseSepolia.id]: {
-        "0x036CbD53842c5426634e7929541eC2318f3dCF7e": { symbol: "USDC", decimals: 6 },
-        "0x4200000000000000000000000000000000000006": { symbol: "WETH", decimals: 18 },
+        [TOKEN_ADDRESSES.baseSepolia.USDC]: { symbol: "USDC", decimals: 6 },
+        [TOKEN_ADDRESSES.baseSepolia.WETH]: { symbol: "WETH", decimals: 18 },
+        [TOKEN_ADDRESSES.baseSepolia.OIF_USDC]: { symbol: "mockUSDC", decimals: 6 },
     },
     [arbitrumSepolia.id]: {
-        "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d": { symbol: "USDC", decimals: 6 },
-        "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73": { symbol: "WETH", decimals: 18 },
+        [TOKEN_ADDRESSES.arbitrumSepolia.USDC]: { symbol: "USDC", decimals: 6 },
+        [TOKEN_ADDRESSES.arbitrumSepolia.WETH]: { symbol: "WETH", decimals: 18 },
     },
+    [optimismSepolia.id]: {
+        [TOKEN_ADDRESSES.optimismSepolia.WETH]: { symbol: "WETH", decimals: 18 },
+        [TOKEN_ADDRESSES.optimismSepolia.OIF_USDC]: { symbol: "mockUSDC", decimals: 6 },
+    },
+};
+
+/**
+ * Token information by chain ID and token address
+ */
+export const TOKEN_INFO: Record<number, Record<string, TokenInfo>> = {
+    ...MAINNET_TOKEN_INFO,
+    ...TESTNET_TOKEN_INFO,
 };
