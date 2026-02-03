@@ -1,7 +1,5 @@
 # AI Rules configuration file - version 1.0.0
 
-# Configuration file version.
-version: 1.0.0
 # Language for reviews using ISO language code
 language: en-US
 # Custom instructions for review tone (max 250 chars)
