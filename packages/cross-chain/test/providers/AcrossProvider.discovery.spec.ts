@@ -293,9 +293,10 @@ describe("AcrossProvider.discovery", () => {
             expect(result.success).toBe(false);
         });
 
-        it("should reject address without 0x prefix", () => {
+        it("should reject address without 0x prefix (non-base58)", () => {
             const invalidToken = {
                 chainId: 1,
+                // Contains '0' which is not in base58 alphabet, and doesn't have 0x prefix
                 address: "A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                 symbol: "USDC",
                 decimals: 6,
@@ -303,6 +304,31 @@ describe("AcrossProvider.discovery", () => {
 
             const result = acrossTokensResponseSchema.safeParse([invalidToken]);
             expect(result.success).toBe(false);
+        });
+
+        it("should validate Solana address format (base58)", () => {
+            // Solana USDC address on mainnet
+            const solanaToken = {
+                chainId: 34268394551451, // Solana chain ID used by Across
+                address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                symbol: "USDC",
+                decimals: 6,
+            };
+
+            const result = acrossTokensResponseSchema.safeParse([solanaToken]);
+            expect(result.success).toBe(true);
+        });
+
+        it("should validate Solana Wrapped SOL address", () => {
+            const wrappedSol = {
+                chainId: 34268394551451,
+                address: "So11111111111111111111111111111111111111112",
+                symbol: "SOL",
+                decimals: 9,
+            };
+
+            const result = acrossTokensResponseSchema.safeParse([wrappedSol]);
+            expect(result.success).toBe(true);
         });
 
         it("should reject empty symbol", () => {

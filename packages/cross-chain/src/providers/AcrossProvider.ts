@@ -44,6 +44,7 @@ import {
     FillWatcherConfig,
     getAcrossApiUrl,
     getChainById,
+    getChainType,
     GetFillParams,
     InvalidOpenEventError,
     NetworkAssets,
@@ -680,10 +681,14 @@ export class AcrossProvider extends CrossChainProvider {
         const chainMap = new Map<number, Map<string, AssetInfo>>();
 
         for (const token of tokens) {
+            // Determine chain type based on chain ID (e.g., "eip155" for EVM, "solana" for Solana)
+            const chainType = getChainType(token.chainId);
+            const isEvm = chainType === "eip155";
+
             const encoded = encodeAddress(
                 {
                     version: 1,
-                    chainType: "eip155",
+                    chainType,
                     chainReference: token.chainId.toString(),
                     address: token.address as Address,
                 },
@@ -701,7 +706,8 @@ export class AcrossProvider extends CrossChainProvider {
             }
 
             const chainAssets = chainMap.get(token.chainId)!;
-            const normalizedAddress = token.address.toLowerCase();
+            // Use case-insensitive comparison for EVM (hex), case-sensitive for others (e.g., Solana base58)
+            const normalizedAddress = isEvm ? token.address.toLowerCase() : token.address;
             if (!chainAssets.has(normalizedAddress)) {
                 chainAssets.set(normalizedAddress, asset);
             }
