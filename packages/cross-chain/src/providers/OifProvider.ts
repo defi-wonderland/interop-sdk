@@ -18,6 +18,7 @@ import {
     GetFillParams,
     getOrderResponseSchema,
     getQuoteResponseSchema,
+    OIFAssetDiscoveryConfig,
     OifProviderConfig,
     OifProviderConfigSchema,
     OpenedIntentParserConfig,
@@ -346,6 +347,26 @@ export class OifProvider extends CrossChainProvider {
             openedIntentParserConfig: { type: "oif" },
             // Use API-based fill tracking via solver endpoint
             fillWatcherConfig: OifProvider.getFillWatcherConfig(this.url),
+        };
+    }
+
+    /**
+     * Get the configuration for asset discovery
+     *
+     * OIF providers use the standard OIF asset discovery API (GET /api/tokens)
+     * as defined in OIF Spec PR 31.
+     *
+     * @see https://github.com/openintentsframework/oif-specs/pull/31
+     *
+     * @returns OIF asset discovery configuration with base URL
+     */
+    override getDiscoveryConfig(): OIFAssetDiscoveryConfig {
+        return {
+            type: "oif" as const,
+            config: {
+                baseUrl: this.url,
+                headers: this.headers,
+            },
         };
     }
 }
