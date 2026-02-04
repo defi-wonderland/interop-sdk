@@ -11,3 +11,4 @@ export * from "./intentValidatorFactory.js";
 export * from "./intentValidationsAggregator.js";
 export * from "./OIFAssetDiscoveryService.js";
 export * from "./assetDiscoveryFactory.js";
+export * from "./CustomApiAssetDiscoveryService.js";

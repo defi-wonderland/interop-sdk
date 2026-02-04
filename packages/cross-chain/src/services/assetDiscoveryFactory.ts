@@ -12,6 +12,8 @@ import {
     AssetDiscoveryService,
     AssetInfo,
     CrossChainProvider,
+    CustomApiAssetDiscoveryConfig,
+    CustomApiAssetDiscoveryService,
     NetworkAssets,
     OIFAssetDiscoveryService,
     OIFAssetDiscoveryServiceConfig,
@@ -136,11 +138,7 @@ export class AssetDiscoveryFactory {
                 return this.createOIFService(config, providerId);
 
             case "custom-api":
-                // Custom API support will be added in PR2
-                throw new Error(
-                    "Custom API asset discovery not yet implemented. " +
-                        "This will be added in a future PR.",
-                );
+                return this.createCustomApiService(config, providerId);
 
             case "static":
                 return new StaticAssetDiscoveryService(config.config.networks, providerId);
@@ -170,6 +168,23 @@ export class AssetDiscoveryFactory {
             providerId,
             headers: config.config.headers,
             cacheTtl: config.config.cacheTtl ?? this.config.defaultCacheTtl,
+        });
+    }
+
+    /**
+     * Create Custom API Asset Discovery Service
+     */
+    private createCustomApiService(
+        config: CustomApiAssetDiscoveryConfig,
+        providerId: string,
+    ): CustomApiAssetDiscoveryService {
+        return new CustomApiAssetDiscoveryService({
+            assetsEndpoint: config.config.assetsEndpoint,
+            parseResponse: config.config.parseResponse,
+            providerId,
+            headers: config.config.headers,
+            cacheTtl: config.config.cacheTtl ?? this.config.defaultCacheTtl,
+            timeout: config.config.timeout,
         });
     }
 }

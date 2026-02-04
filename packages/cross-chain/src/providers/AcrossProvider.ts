@@ -30,9 +30,13 @@ import {
     AcrossMetadata,
     AcrossOIFGetQuoteParams,
     AcrossOIFGetQuoteParamsSchema,
+    AcrossToken,
+    acrossTokensResponseSchema,
     APIBasedFillWatcherConfig,
+    AssetInfo,
     bytes32ToAddress,
     CrossChainProvider,
+    CustomApiAssetDiscoveryConfig,
     CustomEventOpenedIntentParserConfig,
     EventBasedFillWatcherConfig,
     ExecutableQuote,
@@ -42,6 +46,7 @@ import {
     getChainById,
     GetFillParams,
     InvalidOpenEventError,
+    NetworkAssets,
     OpenedIntent,
     OpenedIntentParserConfig,
     OrderFailureReason,
@@ -654,5 +659,57 @@ export class AcrossProvider extends CrossChainProvider {
             },
             fillWatcherConfig,
         };
+    }
+
+    override getDiscoveryConfig(): CustomApiAssetDiscoveryConfig {
+        return {
+            type: "custom-api",
+            config: {
+                assetsEndpoint: `${this.apiUrl}/swap/tokens`,
+                parseResponse: AcrossProvider.parseTokensResponse,
+            },
+        };
+    }
+
+    private static parseTokensResponse(data: unknown): NetworkAssets[] {
+        const tokens = acrossTokensResponseSchema.parse(data);
+        return AcrossProvider.groupTokensByChain(tokens);
+    }
+
+    private static groupTokensByChain(tokens: AcrossToken[]): NetworkAssets[] {
+        const chainMap = new Map<number, Map<string, AssetInfo>>();
+
+        for (const token of tokens) {
+            const encoded = encodeAddress(
+                {
+                    version: 1,
+                    chainType: "eip155",
+                    chainReference: token.chainId.toString(),
+                    address: token.address as Address,
+                },
+                { format: "hex" },
+            );
+
+            const asset: AssetInfo = {
+                address: encoded as Address,
+                symbol: token.symbol,
+                decimals: token.decimals,
+            };
+
+            if (!chainMap.has(token.chainId)) {
+                chainMap.set(token.chainId, new Map());
+            }
+
+            const chainAssets = chainMap.get(token.chainId)!;
+            const normalizedAddress = token.address.toLowerCase();
+            if (!chainAssets.has(normalizedAddress)) {
+                chainAssets.set(normalizedAddress, asset);
+            }
+        }
+
+        return Array.from(chainMap.entries()).map(([chainId, assetsMap]) => ({
+            chainId,
+            assets: Array.from(assetsMap.values()),
+        }));
     }
 }

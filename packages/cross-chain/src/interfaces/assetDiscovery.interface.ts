@@ -88,12 +88,20 @@ export interface CustomApiAssetDiscoveryConfig {
     config: {
         /** Endpoint URL for fetching all assets */
         assetsEndpoint: string;
-        /** Optional endpoint for fetching assets by chain */
-        chainAssetsEndpoint?: string;
         /** Custom headers to include in requests */
         headers?: Record<string, string>;
         /** Function to transform API response to SDK types */
         parseResponse: (data: unknown) => NetworkAssets[];
+        /**
+         * Cache TTL in milliseconds
+         * @default 300000 (5 minutes)
+         */
+        cacheTtl?: number;
+        /**
+         * Request timeout in milliseconds
+         * @default 30000 (30 seconds)
+         */
+        timeout?: number;
     };
 }
 
