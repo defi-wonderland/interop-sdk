@@ -4,6 +4,38 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/cross-chain?testnet=true');
 });
 
+test.describe('Asset Discovery', () => {
+  test('displays swap form after successful discovery', async ({ page }) => {
+    await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#input-token-select')).toBeVisible();
+    await expect(page.locator('#output-token-select')).toBeVisible();
+  });
+
+  test('populates token selectors with discovered assets', async ({ page }) => {
+    await expect(page.locator('#input-token-select')).toBeVisible({ timeout: 15000 });
+
+    const inputOptions = await page.locator('#input-token-select option').count();
+    const outputOptions = await page.locator('#output-token-select option').count();
+
+    expect(inputOptions).toBeGreaterThan(0);
+    expect(outputOptions).toBeGreaterThan(0);
+  });
+
+  test('allows retry after discovery failure', async ({ page, context }) => {
+    await context.route('**/api/swap/tokens**', (route) => route.abort('failed'));
+    await page.reload();
+
+    const retryButton = page.getByRole('button', { name: /Try Again/i });
+    await expect(retryButton).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Failed to discover assets/i)).toBeVisible();
+
+    await context.unroute('**/api/swap/tokens**');
+    await retryButton.click();
+
+    await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15000 });
+  });
+});
+
 test.describe('Recipient address input', () => {
   test('auto-fills with connected address on load', async ({ page }) => {
     const recipientInput = page.getByRole('textbox', { name: 'Recipient Address' });
@@ -59,7 +91,10 @@ test.describe('Cross-chain intents', () => {
     await page.locator('#output-token-select').selectOption({ label: 'USDC' });
     await page.getByRole('textbox', { name: 'Amount' }).fill('0.2');
     await page.getByRole('button', { name: 'Get Quotes' }).click();
-    await page.locator('button').filter({ hasText: /Across Protocol/ }).click();
+    await page
+      .locator('button')
+      .filter({ hasText: /Across Protocol/ })
+      .click();
 
     await expect(page.getByRole('button', { name: 'Execute' })).toBeVisible();
   });
@@ -100,7 +135,10 @@ test.describe('Negative test', () => {
     const amountInput = page.getByLabel('Amount');
     await amountInput.fill('0.1');
     await page.getByRole('button', { name: 'Get Quotes' }).click();
-    await page.locator('button').filter({ hasText: /Across Protocol/ }).click();
+    await page
+      .locator('button')
+      .filter({ hasText: /Across Protocol/ })
+      .click();
     await page.getByRole('button', { name: 'Execute' }).click();
 
     await expect(page.getByText('Transaction rejected')).toBeVisible();

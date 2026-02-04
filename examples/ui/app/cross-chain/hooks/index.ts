@@ -1,5 +1,7 @@
 export { useQuotes } from './useQuotes';
 export { useOrderExecution } from './useOrderExecution';
+export { useAssetDiscovery, type DiscoveredAssets } from './useAssetDiscovery';
+export { useTokenConfig, useChainConfig, useRpcUrls } from './useNetworkConfig';
 export {
   STEP,
   WALLET_ACTION,
