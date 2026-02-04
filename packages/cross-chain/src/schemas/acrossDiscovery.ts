@@ -17,4 +17,3 @@ export const acrossTokenSchema = z.object({
 export const acrossTokensResponseSchema = z.array(acrossTokenSchema);
 
 export type AcrossToken = z.infer<typeof acrossTokenSchema>;
-export type AcrossTokensResponse = z.infer<typeof acrossTokensResponseSchema>;
