@@ -4,32 +4,6 @@ Organized by workflow: Understand → Implement → Customization → Security
 
 ---
 
-## Standards Relationship
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        ERC-7683                                 │
-│                  Cross-Chain Intents                            │
-│           Standard API for cross-chain transfers                │
-└───────────┬─────────────────────────────────────────────────────┘
-            │ uses / recommends
-            ▼
-┌───────────────────────┐    ┌───────────────────────┐
-│       EIP-712         │    │        Permit2        │
-│  Typed structured     │    │   Nonce validation    │
-│   data hashing        │    │   (recommended)       │
-└───────────────────────┘    └───────────────────────┘
-```
-
-| Standard | Relationship | Notes |
-|----------|--------------|-------|
-| **ERC-7683** | Independent | Core cross-chain intents standard |
-| **EIP-712** | Used by | `orderDataType` is an EIP-712 typehash |
-| **Permit2** | Recommended | For nonce validation (not required) |
-| **ERC-7930** | Complementary | Can be used for `bytes32` address fields |
-
----
-
 ## 1. Understand
 
 ### Flows

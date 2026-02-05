@@ -4,38 +4,6 @@ Organized by workflow: Understand → Build → Validate → Security
 
 ---
 
-## Standards Relationship
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         CAIP-350                                │
-│              (Namespace profiles - Living)                      │
-│         Defines ChainType + serialization per namespace         │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │ defines profiles for
-                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        ERC-7930                                 │
-│               Interoperable Address (Binary)                    │
-│                    Canonical format                             │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │ derives from (requires: 7930)
-                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        ERC-7828                                 │
-│                Interoperable Name (Text)                        │
-│                  Human-readable layer                           │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-| Standard | Depends on | Relationship |
-|----------|------------|--------------|
-| **ERC-7930** | CAIP-350 | Uses namespace profiles for serialization rules |
-| **ERC-7828** | ERC-7930, EIP-155 | Derives from ERC-7930; MUST be convertible to/from binary format |
-| **CAIP-350** | CAIP-2, CAIP-10 | Extends chain identification standards |
-
----
-
 ## 1. Understand
 
 ### Interoperable Address (ERC-7930)
