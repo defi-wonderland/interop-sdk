@@ -150,10 +150,10 @@ export interface OrderTrackingInfo<TMetadata = unknown> {
  */
 export interface OrderTrackingUpdate {
     status: OrderStatus;
-    /** Order ID (available after order is parsed) */
+    /** Order ID (available after order is parsed, or immediately for escrow orders) */
     orderId?: Hex;
-    /** Transaction hash where order was opened */
-    openTxHash: Hex;
+    /** Transaction hash where order was opened (undefined for escrow orders) */
+    openTxHash?: Hex;
     /** Fill transaction hash (available when completed) */
     fillTxHash?: Hex;
     /** Timestamp of the update (Unix timestamp in seconds) */
@@ -180,21 +180,35 @@ export type OrderTrackerYield =
     | { type: typeof OrderTrackerYieldType.Update; update: OrderTrackingUpdate }
     | { type: typeof OrderTrackerYieldType.Timeout; payload: OrderTrackerTimeoutPayload };
 
-/**
- * Parameters for watching an order
- */
-export interface WatchOrderParams {
-    /** Transaction hash where the order was opened */
-    txHash: Hex;
+interface WatchOrderBase {
     /** Origin chain ID */
     originChainId: number;
-    /** Destination chain ID */
-    destinationChainId: number;
     /** Timeout in milliseconds (default: 5 minutes) */
     timeout?: number;
     /** Polling interval in milliseconds (default: 5 seconds) */
     pollingInterval?: number;
 }
+
+/** Watch by txHash (user-open orders) */
+export interface WatchOrderByTxHash extends WatchOrderBase {
+    /** Transaction hash where the order was opened */
+    txHash: Hex;
+    orderId?: never;
+    /** Optional - extracted from parsed order's fillInstructions */
+    destinationChainId?: number;
+}
+
+/** Watch by orderId (escrow orders) */
+export interface WatchOrderByOrderId extends WatchOrderBase {
+    txHash?: never;
+    /** Order ID from submitSignedOrder() */
+    orderId: Hex;
+    /** Required - no order to parse */
+    destinationChainId: number;
+}
+
+/** Pass txHash for user-open orders, orderId for escrow orders */
+export type WatchOrderParams = WatchOrderByTxHash | WatchOrderByOrderId;
 
 /**
  * Parameters for getting fill status on destination chain
@@ -203,16 +217,16 @@ export interface WatchOrderParams {
 export interface GetFillParams {
     /** ERC-7683 order identifier (bytes32) */
     orderId: Hex;
-    /** Transaction hash where the order was opened (for API-based tracking) */
-    openTxHash: Hex;
+    /** Transaction hash where the order was opened. Optional for escrow orders. */
+    openTxHash?: Hex;
     /** Origin chain ID */
     originChainId: number;
     /** Destination chain ID */
     destinationChainId: number;
-    /** User address (for validation) */
-    user: Address;
-    /** Fill deadline timestamp */
-    fillDeadline: number;
+    /** User address. Optional for OIF escrow orders. */
+    user?: Address;
+    /** Fill deadline timestamp. Optional for OIF escrow orders. */
+    fillDeadline?: number;
 }
 
 /**

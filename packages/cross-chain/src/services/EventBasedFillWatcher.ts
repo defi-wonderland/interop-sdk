@@ -44,8 +44,8 @@ export interface EventBasedFillWatcherDependencies {
 }
 
 /**
- * Generic event-based fill watcher
- * Can be configured for any protocol that emits fill events
+ * Event-based fill watcher for protocols like Across.
+ * Requires `fillDeadline` to detect deadline exceeded.
  */
 export class EventBasedFillWatcher implements FillWatcher {
     constructor(
@@ -124,24 +124,27 @@ export class EventBasedFillWatcher implements FillWatcher {
     }
 
     /**
-     * Determine order status based on fill event and deadline
-     * For event-based tracking, we infer status from available data
+     * Determine order status based on fill event and deadline.
+     * For event-based tracking, we infer status from available data.
      */
     private determineStatus(
         fillEvent: FillEvent | null,
-        fillDeadline: number,
+        fillDeadline?: number,
     ): { fillEvent: FillEvent | null; status: OrderStatus; failureReason?: OrderFailureReason } {
         if (fillEvent) {
             return { fillEvent, status: OrderStatus.Finalized, failureReason: undefined };
         }
 
-        const now = Math.floor(Date.now() / 1000);
-        if (now > fillDeadline) {
-            return {
-                fillEvent: null,
-                status: OrderStatus.Failed,
-                failureReason: OrderFailureReason.DeadlineExceeded,
-            };
+        // Without fillDeadline, we can't know if the order failed - assume still pending
+        if (fillDeadline) {
+            const now = Math.floor(Date.now() / 1000);
+            if (now > fillDeadline) {
+                return {
+                    fillEvent: null,
+                    status: OrderStatus.Failed,
+                    failureReason: OrderFailureReason.DeadlineExceeded,
+                };
+            }
         }
 
         return { fillEvent: null, status: OrderStatus.Pending, failureReason: undefined };

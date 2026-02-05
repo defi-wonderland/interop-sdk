@@ -6,9 +6,14 @@ import {
     Quote,
 } from "@openintentsframework/oif-specs";
 import axios, { AxiosError } from "axios";
-import { bytesToHex, Hex, PrepareTransactionRequestReturnType } from "viem";
+import { bytesToHex, Hex, hexToBytes, PrepareTransactionRequestReturnType } from "viem";
 import { ZodError } from "zod";
 
+import {
+    adaptOrderStatus,
+    adaptPostOrderRequest,
+    adaptTypedDataPayload,
+} from "../adapters/index.js";
 import {
     APIBasedFillWatcherConfig,
     CrossChainProvider,
@@ -28,6 +33,7 @@ import {
     ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
 } from "../internal.js";
+import { isSignableOifOrder } from "../utils/orderTypeHelpers.js";
 
 /**
  * OIF Provider implementation
@@ -118,13 +124,15 @@ export class OifProvider extends CrossChainProvider {
 
             const executableQuotes: ExecutableQuote[] = validatedResponse.quotes.map(
                 (quote): ExecutableQuote => {
-                    const preparedTransaction = this.prepareTransaction(quote);
+                    // WORKAROUND #286: Fix typed data payload for viem compatibility
+                    const adaptedQuote = adaptTypedDataPayload(quote);
+                    const preparedTransaction = this.prepareTransaction(adaptedQuote);
 
                     return {
-                        ...quote,
-                        provider: quote.provider ?? this.solverId,
+                        ...adaptedQuote,
+                        provider: adaptedQuote.provider ?? this.solverId,
                         metadata: {
-                            ...quote.metadata,
+                            ...adaptedQuote.metadata,
                             ...(this.adapterMetadata && { adapterMetadata: this.adapterMetadata }),
                         },
                         preparedTransaction,
@@ -174,38 +182,35 @@ export class OifProvider extends CrossChainProvider {
         quote: ExecutableQuote,
         signature: Hex | Uint8Array,
     ): Promise<PostOrderResponse> {
-        if (quote.order.type !== "oif-escrow-v0") {
+        if (!isSignableOifOrder(quote.order)) {
             throw new ProviderExecuteNotImplemented(
                 `Execute not supported for order type: ${quote.order.type}`,
             );
         }
 
-        const signatureBytes =
-            typeof signature === "string"
-                ? new Uint8Array(Buffer.from(signature.slice(2), "hex"))
-                : signature;
+        const signatureBytes = typeof signature === "string" ? hexToBytes(signature) : signature;
 
-        return this.submitOrderToSolver({
+        const request: PostOrderRequest = {
             order: quote.order,
             signature: signatureBytes,
             quoteId: quote.quoteId,
-        });
-    }
+        };
 
-    /**
-     * Submit a signed order to the solver
-     * @param request - The post order request
-     * @returns The post order response
-     */
-    private async submitOrderToSolver(request: PostOrderRequest): Promise<PostOrderResponse> {
+        // WORKAROUND #34, #109: Adapt request for current OIF solver
+        const adaptedRequest = adaptPostOrderRequest(request, quote);
+
         try {
-            const response = await axios.post<PostOrderResponse>(`${this.url}/v1/orders`, request, {
-                headers: {
-                    "Content-Type": "application/json",
-                    ...this.headers,
+            const response = await axios.post<PostOrderResponse>(
+                `${this.url}/v1/orders`,
+                adaptedRequest,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...this.headers,
+                    },
+                    timeout: OifProvider.REQUEST_TIMEOUT_MS,
                 },
-                timeout: OifProvider.REQUEST_TIMEOUT_MS,
-            });
+            );
 
             if (response.status !== 200) {
                 throw new ProviderExecuteFailure(
@@ -274,8 +279,8 @@ export class OifProvider extends CrossChainProvider {
                 // Validate response against schema
                 const validatedResponse = getOrderResponseSchema.parse(response);
 
-                // Map OIF API status string to OrderStatus enum
-                const status = validatedResponse.status as OrderStatus;
+                // WORKAROUND #111: Normalize status (handles object format from OIF solver)
+                const status = adaptOrderStatus(validatedResponse.status);
 
                 // Determine failure reason for failed orders
                 let failureReason: OrderFailureReason | undefined;
