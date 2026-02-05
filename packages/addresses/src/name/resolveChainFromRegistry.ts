@@ -1,15 +1,8 @@
-import { Address, createPublicClient, fromHex, Hex, http, namehash, parseAbi, toHex } from "viem";
+import { Address, createPublicClient, Hex, http, namehash, parseAbi } from "viem";
 import * as chains from "viem/chains";
 
 import { decodeAddress } from "../address/index.js";
-import { ChainTypeName, ChainTypeValue } from "../constants/interopAddress.js";
-
-// WORKAROUNDS for cid.eth registry bugs (https://github.com/unruggable-labs/chain-resolver):
-// 1. Registry uses 0x0001 for eip155 chain type, but ERC-7930 specifies 0x0000
-// 2. Registry sometimes omits the trailing address length byte (0x00) for chain-only addresses
-const REGISTRY_CHAIN_TYPE_FIX: Record<number, ChainTypeValue> = {
-    0x0001: ChainTypeValue.EIP155, // Registry uses 0x0001, should be 0x0000
-};
+import { ChainTypeName } from "../constants/interopAddress.js";
 
 // Standard ENS registry address (same on all networks)
 const ENS_REGISTRY_ADDRESS: Address = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
@@ -82,45 +75,8 @@ export async function resolveChainFromRegistry(
             return null;
         }
 
-        // 3. Patch registry bugs in the returned bytes
-        let bytes = fromHex(interopAddrBytes as Hex, "bytes");
-
-        if (bytes.length < 6) {
-            return null; // Too short to be valid
-        }
-
-        // WORKAROUND: Fix incorrect chain type (0x0001 -> 0x0000 for eip155)
-        const chainTypeByte2 = bytes[2];
-        const chainTypeByte3 = bytes[3];
-        if (chainTypeByte2 === undefined || chainTypeByte3 === undefined) {
-            return null;
-        }
-        const registryChainType = (chainTypeByte2 << 8) | chainTypeByte3;
-        const correctedChainType = REGISTRY_CHAIN_TYPE_FIX[registryChainType];
-
-        if (correctedChainType) {
-            const correctedBytes = fromHex(correctedChainType, "bytes");
-            bytes[2] = correctedBytes[0]!;
-            bytes[3] = correctedBytes[1]!;
-        }
-
-        // WORKAROUND: Registry sometimes omits the address length byte (should be 0x00 for chain-only)
-        // Expected length: 2 (version) + 2 (chainType) + 1 (chainRefLen) + chainRefLen + 1 (addrLen)
-        const chainRefLen = bytes[4];
-        if (chainRefLen === undefined) {
-            return null;
-        }
-        const expectedLength = 6 + chainRefLen;
-        if (bytes.length === expectedLength - 1) {
-            // Missing address length byte, append 0x00
-            const fixedBytes = new Uint8Array(bytes.length + 1);
-            fixedBytes.set(bytes);
-            fixedBytes[bytes.length] = 0x00;
-            bytes = fixedBytes;
-        }
-
-        // 4. Decode using standard decodeAddress
-        const decoded = decodeAddress(toHex(bytes), { representation: "text" });
+        // 3. Decode using standard decodeAddress
+        const decoded = decodeAddress(interopAddrBytes as Hex, { representation: "text" });
         if (decoded.chainReference == null) {
             return null;
         }

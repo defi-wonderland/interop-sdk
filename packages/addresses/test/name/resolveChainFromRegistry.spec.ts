@@ -23,8 +23,8 @@ describe("resolveChainFromRegistry", () => {
         // First call: ENS registry.resolver(node) returns resolver address
         mockReadContract.mockResolvedValueOnce("0x1234567890123456789012345678901234567890");
         // Second call: ChainResolver.interoperableAddress(label) returns bytes
-        // Registry format: 0x0001 (version) + 0x0001 (eip155 - registry bug) + 0x01 (chainRefLen) + 0x0a (10) + 0x00 (addrLen)
-        mockReadContract.mockResolvedValueOnce("0x00010001010a00");
+        // ERC-7930 format: 0x0001 (version) + 0x0000 (eip155) + 0x01 (chainRefLen) + 0x0a (10) + 0x00 (addrLen)
+        mockReadContract.mockResolvedValueOnce("0x00010000010a00");
 
         const result = await resolveChainFromRegistry("optimism", "cid.eth");
 
@@ -46,8 +46,8 @@ describe("resolveChainFromRegistry", () => {
 
     it("resolves chain with 2-byte chain reference (arbitrum)", async () => {
         mockReadContract.mockResolvedValueOnce("0x1234567890123456789012345678901234567890");
-        // Registry format for arbitrum (chain ID 42161 = 0xa4b1): missing trailing 0x00
-        mockReadContract.mockResolvedValueOnce("0x0001000102a4b1");
+        // ERC-7930 format for arbitrum (chain ID 42161 = 0xa4b1)
+        mockReadContract.mockResolvedValueOnce("0x0001000002a4b100");
 
         const result = await resolveChainFromRegistry("arbitrum", "cid.eth");
 
@@ -56,7 +56,8 @@ describe("resolveChainFromRegistry", () => {
 
     it("resolves using different registry domains", async () => {
         mockReadContract.mockResolvedValueOnce("0xABCDEF1234567890ABCDEF1234567890ABCDEF12");
-        mockReadContract.mockResolvedValueOnce("0x00010001010100");
+        // ERC-7930 format: 0x0001 (version) + 0x0000 (eip155) + 0x01 (chainRefLen) + 0x01 (chain ID 1) + 0x00 (addrLen)
+        mockReadContract.mockResolvedValueOnce("0x00010000010100");
 
         const result = await resolveChainFromRegistry("eth", "on.eth");
 
@@ -125,15 +126,5 @@ describe("resolveChainFromRegistry", () => {
         const result = await resolveChainFromRegistry("unknown", "cid.eth");
 
         expect(result).toBeNull();
-    });
-
-    it("handles correct ERC-7930 format (if registry is fixed)", async () => {
-        mockReadContract.mockResolvedValueOnce("0x1234567890123456789012345678901234567890");
-        // Correct ERC-7930 format: 0x0000 for eip155
-        mockReadContract.mockResolvedValueOnce("0x00010000010100");
-
-        const result = await resolveChainFromRegistry("eth", "cid.eth");
-
-        expect(result).toEqual({ chainType: "eip155", chainReference: "1" });
     });
 });
