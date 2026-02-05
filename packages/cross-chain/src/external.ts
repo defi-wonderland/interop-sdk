@@ -18,4 +18,8 @@ export {
     OIFOpenedIntentParser,
     CustomEventOpenedIntentParser,
     SortingStrategyFactory,
+    OIFAssetDiscoveryService,
+    AssetDiscoveryFactory,
+    createAssetDiscoveryService,
+    createOIFAssetDiscoveryService,
 } from "./internal.js";
