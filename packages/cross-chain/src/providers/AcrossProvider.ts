@@ -19,6 +19,7 @@ import { ZodError } from "zod";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
+    ACROSS_UNSUPPORTED_CHAIN_IDS,
     ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
     AcrossConfigs,
     AcrossConfigSchema,
@@ -44,7 +45,6 @@ import {
     FillWatcherConfig,
     getAcrossApiUrl,
     getChainById,
-    getChainType,
     GetFillParams,
     InvalidOpenEventError,
     NetworkAssets,
@@ -681,14 +681,14 @@ export class AcrossProvider extends CrossChainProvider {
         const chainMap = new Map<number, Map<string, AssetInfo>>();
 
         for (const token of tokens) {
-            // Determine chain type based on chain ID (e.g., "eip155" for EVM, "solana" for Solana)
-            const chainType = getChainType(token.chainId);
-            const isEvm = chainType === "eip155";
+            if (ACROSS_UNSUPPORTED_CHAIN_IDS.has(token.chainId)) {
+                continue;
+            }
 
             const encoded = encodeAddress(
                 {
                     version: 1,
-                    chainType,
+                    chainType: "eip155",
                     chainReference: token.chainId.toString(),
                     address: token.address as Address,
                 },
@@ -706,8 +706,7 @@ export class AcrossProvider extends CrossChainProvider {
             }
 
             const chainAssets = chainMap.get(token.chainId)!;
-            // Use case-insensitive comparison for EVM (hex), case-sensitive for others (e.g., Solana base58)
-            const normalizedAddress = isEvm ? token.address.toLowerCase() : token.address;
+            const normalizedAddress = token.address.toLowerCase();
             if (!chainAssets.has(normalizedAddress)) {
                 chainAssets.set(normalizedAddress, asset);
             }
