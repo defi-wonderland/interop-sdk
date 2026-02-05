@@ -121,10 +121,12 @@ export async function resolveChainFromRegistry(
 
         // 4. Decode using standard decodeAddress
         const decoded = decodeAddress(toHex(bytes), { representation: "text" });
-
+        if (decoded.chainReference == null) {
+            return null;
+        }
         return {
             chainType: decoded.chainType as ChainTypeName,
-            chainReference: decoded.chainReference ?? "",
+            chainReference: decoded.chainReference,
         };
     } catch {
         // Return null on any error to allow fallback to offchain resolution
