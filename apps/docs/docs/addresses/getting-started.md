@@ -222,8 +222,34 @@ The package resolves chain identifiers using off-chain registries:
 -   **Primary**: Uses `shortnameToChainId` with built-in chain shortname mappings
 -   **Fallback**: Uses viem's chain definitions and chainid.network
 
-> We're currently working on the ENS on-chain chain registry, though it hasn't been deployed yet.
-> For now, the SDK uses off-chain registries (such as chainid.network and viem) as the main resolution mechanism.
+### Experimental: Onchain Chain Registry
+
+ENS-based chain resolution is available as an experimental feature. When enabled, the SDK queries an onchain ENS registry (like `cid.eth`) to resolve chain labels:
+
+```typescript
+import { parseName } from "@wonderland/interop-addresses";
+
+// Use cid.eth (Unruggable's chain registry on mainnet)
+const result = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth", {
+    useExperimentalChainRegistry: "cid.eth",
+});
+// result.interoperableAddress.chainType === "eip155"
+// result.interoperableAddress.chainReference === "1"
+
+// Or use on.eth when deployed
+const result2 = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@arb1", {
+    useExperimentalChainRegistry: "on.eth",
+});
+```
+
+**How it works:**
+
+1. Constructs the full ENS domain as `{label}.{registryDomain}` (e.g., `eth.cid.eth`)
+2. Queries the ENS registry to find the resolver for that domain
+3. Calls the resolver's `data()` method with key `"interoperable-address"` (per ENSIP-24)
+4. Decodes the returned ERC-7930 binary format to get chainType and chainReference
+
+If onchain resolution fails (domain not found, resolver error, etc.), it automatically falls back to the offchain chainid.network registry.
 
 ## References
 
