@@ -5,9 +5,7 @@ import {
     AbiEvent,
     Address,
     Chain,
-    createPublicClient,
     Hex,
-    http,
     Log,
     numberToHex,
     pad,
@@ -56,6 +54,7 @@ import {
     ProviderConfigFailure,
     ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
+    PublicClientManager,
     QuoteWithAcross,
 } from "../internal.js";
 
@@ -73,7 +72,7 @@ export class AcrossProvider extends CrossChainProvider {
     readonly providerId: string;
     private readonly apiUrl: string;
     private readonly isTestnet: boolean;
-    private readonly rpcClientCache: Map<number, PublicClient> = new Map();
+    private readonly clientManager = new PublicClientManager();
 
     constructor(config: AcrossConfigs) {
         super();
@@ -99,19 +98,8 @@ export class AcrossProvider extends CrossChainProvider {
         }
     }
 
-    private async getPublicClient(chain: Chain): Promise<PublicClient> {
-        if (this.rpcClientCache.has(chain.id)) {
-            return this.rpcClientCache.get(chain.id)!;
-        }
-
-        const rpcClient = createPublicClient({
-            chain,
-            transport: http(),
-        });
-
-        this.rpcClientCache.set(chain.id, rpcClient);
-
-        return rpcClient;
+    private getPublicClient(chain: Chain): PublicClient {
+        return this.clientManager.getClient(chain);
     }
 
     /**
@@ -291,7 +279,7 @@ export class AcrossProvider extends CrossChainProvider {
     ): Promise<PrepareTransactionRequestReturnType | undefined> {
         try {
             const chain = getChainById(quote.swapTx.chainId);
-            const publicClient = await this.getPublicClient(chain);
+            const publicClient = this.getPublicClient(chain);
             const preparedTransaction = await publicClient.prepareTransactionRequest({
                 to: quote.swapTx.to,
                 data: quote.swapTx.data,
