@@ -38,19 +38,18 @@ export function AssetDiscoveryProvider({ children }: AssetDiscoveryProviderProps
     enabled: true,
   });
 
-  return (
-    <AssetDiscoveryContext.Provider
-      value={{
-        discoveredAssets: assets,
-        isDiscovering: isLoading,
-        discoveryError: error,
-        refetchAssets: refetch,
-        lastFetchedAt,
-      }}
-    >
-      {children}
-    </AssetDiscoveryContext.Provider>
+  const value = useMemo<AssetDiscoveryContextValue>(
+    () => ({
+      discoveredAssets: assets,
+      isDiscovering: isLoading,
+      discoveryError: error,
+      refetchAssets: refetch,
+      lastFetchedAt,
+    }),
+    [assets, isLoading, error, refetch, lastFetchedAt],
   );
+
+  return <AssetDiscoveryContext.Provider value={value}>{children}</AssetDiscoveryContext.Provider>;
 }
 
 /**

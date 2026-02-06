@@ -88,25 +88,19 @@ function transformDiscoveryResult(results: AssetDiscoveryResult[], filterChainId
 }
 
 /**
- * Hook to discover supported assets from all providers
+ * Hook to discover supported assets from all providers.
  *
- * The SDK handles caching (5min TTL) and in-flight request deduplication,
- * so this hook doesn't need to manage fetch state beyond loading/error.
- *
- * @param options - Discovery options
- * @param options.chainIds - Filter results to specific chain IDs (optional)
+ * @param options.chainIds - Filter results to specific chain IDs.
+ *   **Must be a stable reference** (e.g. via useMemo) to avoid infinite refetches.
  * @param options.enabled - Whether to enable discovery (default: true)
  */
 export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boolean }): UseAssetDiscoveryResult {
   const { chainIds, enabled = true } = options ?? {};
 
   const [assets, setAssets] = useState<DiscoveredAssets | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<Error | null>(null);
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
-
-  // Stable stringified chainIds for dependency tracking
-  const chainIdsKey = chainIds ? JSON.stringify(chainIds) : '';
 
   const fetchAssets = useCallback(
     async (forceRefresh = false) => {
@@ -117,8 +111,6 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
 
       try {
         const services = getAssetDiscoveryServices();
-        const results: AssetDiscoveryResult[] = [];
-
         const promises = Array.from(services.values()).map(async (service) => {
           try {
             return await service.getSupportedAssets({
@@ -132,19 +124,13 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
         });
 
         const settled = await Promise.all(promises);
-
-        for (const result of settled) {
-          if (result) {
-            results.push(result);
-          }
-        }
+        const results = settled.filter(Boolean) as AssetDiscoveryResult[];
 
         if (results.length === 0) {
           throw new Error('No assets discovered from any provider');
         }
 
-        const transformed = transformDiscoveryResult(results, chainIds);
-        setAssets(transformed);
+        setAssets(transformDiscoveryResult(results, chainIds));
         setLastFetchedAt(Date.now());
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)));
@@ -155,24 +141,16 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
     [enabled, chainIds],
   );
 
-  const refetch = useCallback(async () => {
-    await fetchAssets(true);
-  }, [fetchAssets]);
+  const refetch = useCallback(() => fetchAssets(true), [fetchAssets]);
 
   useEffect(() => {
     if (enabled) {
       fetchAssets();
     }
-  }, [enabled, chainIdsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [enabled, fetchAssets]);
 
   return useMemo(
-    () => ({
-      assets,
-      isLoading,
-      error,
-      refetch,
-      lastFetchedAt,
-    }),
+    () => ({ assets, isLoading, error, refetch, lastFetchedAt }),
     [assets, isLoading, error, refetch, lastFetchedAt],
   );
 }
