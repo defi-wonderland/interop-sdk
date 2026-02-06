@@ -227,22 +227,19 @@ describe("BaseAssetDiscoveryService", () => {
             expect(result2.networks).toHaveLength(2);
         });
 
-        it("should dedupe concurrent forceRefresh calls", async () => {
-            let resolvePromise: (value: AssetDiscoveryResult) => void;
-            const delayedPromise = new Promise<AssetDiscoveryResult>((resolve) => {
-                resolvePromise = resolve;
-            });
-
-            fetchMock.mockReturnValueOnce(delayedPromise);
+        it("should not dedupe concurrent forceRefresh calls", async () => {
+            fetchMock.mockResolvedValue(mockResult);
 
             const promise1 = service.getSupportedAssets({ forceRefresh: true });
             const promise2 = service.getSupportedAssets({ forceRefresh: true });
 
-            resolvePromise!(mockResult);
+            const [result1, result2] = await Promise.all([promise1, promise2]);
 
-            await Promise.all([promise1, promise2]);
+            // forceRefresh bypasses in-flight dedup, so each call triggers a separate fetch
+            expect(fetchMock).toHaveBeenCalledTimes(2);
 
-            expect(fetchMock).toHaveBeenCalledTimes(1);
+            expect(result1.networks).toHaveLength(2);
+            expect(result2.networks).toHaveLength(2);
         });
 
         it("should clear in-flight state on failure and allow retry", async () => {

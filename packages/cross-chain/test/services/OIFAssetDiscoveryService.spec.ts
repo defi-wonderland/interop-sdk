@@ -318,31 +318,21 @@ describe("OIFAssetDiscoveryService", () => {
             expect(result1.providerId).toBe(result2.providerId);
         });
 
-        it("should dedupe concurrent forceRefresh calls to a single API request", async () => {
-            let resolvePromise: (value: unknown) => void;
-            const delayedPromise = new Promise((resolve) => {
-                resolvePromise = resolve;
+        it("should not dedupe concurrent forceRefresh calls", async () => {
+            vi.mocked(axios.get).mockResolvedValue({
+                status: 200,
+                data: mockApiResponse,
             });
-
-            vi.mocked(axios.get).mockImplementationOnce(() =>
-                delayedPromise.then(() => ({
-                    status: 200,
-                    data: mockApiResponse,
-                })),
-            );
 
             // Start two concurrent forceRefresh calls
             const promise1 = service.getSupportedAssets({ forceRefresh: true });
             const promise2 = service.getSupportedAssets({ forceRefresh: true });
 
-            // Resolve the delayed promise
-            resolvePromise!(undefined);
-
             // Both should resolve successfully
             const [result1, result2] = await Promise.all([promise1, promise2]);
 
-            // Should only make one API call
-            expect(axios.get).toHaveBeenCalledTimes(1);
+            // forceRefresh bypasses in-flight dedup, so each call triggers a separate fetch
+            expect(axios.get).toHaveBeenCalledTimes(2);
 
             // Both results should be equivalent
             expect(result1.networks).toHaveLength(2);
