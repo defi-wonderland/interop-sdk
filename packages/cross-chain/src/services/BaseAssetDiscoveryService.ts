@@ -160,8 +160,14 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * @param error - The caught error
      * @param context - Human-readable context (e.g. "OIF API", "custom API")
      * @param url - The URL that was called (included in error details)
+     * @param timeout - The actual timeout used for the request (for accurate error messages)
      */
-    protected wrapError(error: unknown, context: string, url: string): AssetDiscoveryFailure {
+    protected wrapError(
+        error: unknown,
+        context: string,
+        url: string,
+        timeout: number,
+    ): AssetDiscoveryFailure {
         if (error instanceof AssetDiscoveryFailure) {
             return error;
         }
@@ -170,7 +176,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
             if (error.code === "ECONNABORTED") {
                 return new AssetDiscoveryFailure(
                     `Request to ${context} timed out`,
-                    `Timeout after ${this.timeout}ms. URL: ${url}`,
+                    `Timeout after ${timeout}ms. URL: ${url}`,
                     error.stack,
                 );
             }

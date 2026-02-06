@@ -80,7 +80,7 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
                 );
             }
 
-            throw this.wrapError(error, "OIF API", url);
+            throw this.wrapError(error, "OIF API", url, timeout);
         }
     }
 }

@@ -28,8 +28,13 @@ class TestAssetDiscoveryService extends BaseAssetDiscoveryService {
     }
 
     // Expose wrapError for testing
-    public testWrapError(error: unknown, context: string, url: string): AssetDiscoveryFailure {
-        return this.wrapError(error, context, url);
+    public testWrapError(
+        error: unknown,
+        context: string,
+        url: string,
+        timeout: number = 30000,
+    ): AssetDiscoveryFailure {
+        return this.wrapError(error, context, url, timeout);
     }
 }
 
@@ -357,13 +362,20 @@ describe("BaseAssetDiscoveryService", () => {
             expect(wrapped).toBe(original);
         });
 
-        it("should wrap timeout errors (ECONNABORTED)", () => {
+        it("should wrap timeout errors (ECONNABORTED) with correct timeout value", () => {
             const axiosError = new AxiosError("timeout", "ECONNABORTED");
+            const customTimeout = 15000;
 
-            const wrapped = service.testWrapError(axiosError, "test API", "http://test.url");
+            const wrapped = service.testWrapError(
+                axiosError,
+                "test API",
+                "http://test.url",
+                customTimeout,
+            );
 
             expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
             expect(wrapped.message).toMatch(/timed out/);
+            expect(wrapped.details).toMatch(/15000ms/);
             expect(wrapped.details).toMatch(/http:\/\/test.url/);
         });
 

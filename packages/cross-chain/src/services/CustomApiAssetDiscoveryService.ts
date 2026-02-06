@@ -71,7 +71,7 @@ export class CustomApiAssetDiscoveryService extends BaseAssetDiscoveryService {
                 throw error;
             }
 
-            throw this.wrapError(error, "custom API", this.assetsEndpoint);
+            throw this.wrapError(error, "custom API", this.assetsEndpoint, timeout);
         }
     }
 }
