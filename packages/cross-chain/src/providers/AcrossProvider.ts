@@ -572,6 +572,10 @@ export class AcrossProvider extends CrossChainProvider {
                 backoffMultiplier: 2,
             },
             buildEndpoint: (params): string => {
+                // Across only supports user-open orders, so openTxHash is always available
+                if (!params.openTxHash) {
+                    throw new Error("Across requires openTxHash for tracking");
+                }
                 // Across API uses depositTxnRef (origin transaction hash)
                 return `/deposit/status?depositTxnRef=${params.openTxHash}`;
             },

@@ -1,5 +1,5 @@
 import { Address, Hex, Log } from "viem";
-import { sepolia } from "viem/chains";
+import { arbitrumSepolia, sepolia } from "viem/chains";
 
 import { FillEvent, OpenedIntent } from "../../src/internal.js";
 
@@ -15,7 +15,13 @@ export const createMockOpenedIntent = (overrides?: Partial<OpenedIntent>): Opene
         openDeadline: Math.floor(Date.now() / 1000),
         maxSpent: [],
         minReceived: [],
-        fillInstructions: [],
+        fillInstructions: [
+            {
+                destinationChainId: arbitrumSepolia.id,
+                destinationSettler: "0x0000000000000000000000000000000000000000" as Hex,
+                originData: "0x" as Hex,
+            },
+        ],
         ...overrides,
     };
 };

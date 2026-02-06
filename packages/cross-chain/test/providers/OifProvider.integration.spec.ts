@@ -25,7 +25,8 @@ describe("OifProvider Integration Tests", () => {
     });
 
     describe("viem wallet signing flow", () => {
-        it("should work end-to-end with viem WalletClient", async () => {
+        // TODO: Unskip when https://github.com/openintentsframework/oif-specs/issues/34 is resolved
+        it.skip("should work end-to-end with viem WalletClient", async () => {
             const testPrivateKey = generatePrivateKey();
             const account = privateKeyToAccount(testPrivateKey);
             const walletClient = createWalletClient({
