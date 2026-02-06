@@ -20,6 +20,7 @@ export {
     BaseAssetDiscoveryService,
     StaticAssetDiscoveryService,
     OIFAssetDiscoveryService,
+    CustomApiAssetDiscoveryService,
     AssetDiscoveryFactory,
     createAssetDiscoveryService,
     createOIFAssetDiscoveryService,
