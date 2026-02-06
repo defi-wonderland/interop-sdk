@@ -44,8 +44,8 @@ export interface EventBasedFillWatcherDependencies {
 }
 
 /**
- * Event-based fill watcher for protocols like Across.
- * Requires `fillDeadline` to detect deadline exceeded.
+ * Generic event-based fill watcher.
+ * Can be configured for any protocol that emits fill events.
  */
 export class EventBasedFillWatcher implements FillWatcher {
     constructor(
