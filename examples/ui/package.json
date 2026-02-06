@@ -14,6 +14,7 @@
     "lint": "eslint app",
     "lint:fix": "eslint app --fix",
     "start": "next start",
+    "test:fork:sepolia": "anvil --fork-url https://ethereum-sepolia-rpc.publicnode.com --chain-id 11155111 --no-storage-caching --port 8545",
     "test:e2e": "playwright test"
   },
   "lint-staged": {

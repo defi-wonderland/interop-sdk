@@ -1,9 +1,9 @@
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 import { injectedWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
 import { createE2EProvider, e2eConnector } from '@wonderland/walletless';
+import { baseSepolia, sepolia, type Chain } from 'viem/chains';
 import { createConfig, http, cookieStorage, createStorage } from 'wagmi';
 import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
-import type { Chain } from 'viem/chains';
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 const isE2E = process.env.NEXT_PUBLIC_E2E === 'true';
@@ -16,8 +16,11 @@ function getWallets() {
 }
 
 export const e2eTestProvider = createE2EProvider({
-  chains: TESTNET_CHAINS,
-  rpcUrls: TESTNET_RPC_URLS,
+  chains: [sepolia, baseSepolia],
+  rpcUrls: {
+    11155111: 'http://localhost:8545',
+    84532: 'https://base-sepolia-rpc.publicnode.com',
+  },
   debug: true,
 });
 
@@ -31,13 +34,15 @@ export function createWagmiConfig(isTestnet: boolean) {
   const chains: readonly [Chain, ...Chain[]] = isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS;
   const rpcUrls = isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
   const transports = Object.fromEntries(chains.map((chain) => [chain.id, http(rpcUrls[chain.id])]));
-
   if (isE2E) {
     return createConfig({
       chains,
       ssr: true,
       connectors: [e2eConnector({ provider: e2eTestProvider })],
-      transports,
+      transports: {
+        [sepolia.id]: http('http://localhost:8545'),
+        [baseSepolia.id]: http('https://base-sepolia-rpc.publicnode.com'),
+      },
     });
   }
 

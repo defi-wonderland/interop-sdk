@@ -26,10 +26,22 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: 'pnpm build && pnpm start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: [
+    {
+      command: 'pnpm test:fork:sepolia',
+      url: 'http://localhost:8545',
+      reuseExistingServer: true,
+      timeout: 120 * 1000,
+    },
+    {
+      command: 'pnpm build && pnpm start',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+      env: {
+        NEXT_PUBLIC_E2E: 'true',
+        NEXT_PUBLIC_RPC_SEPOLIA: 'http://localhost:8545',
+      },
+    },
+  ],
 });
