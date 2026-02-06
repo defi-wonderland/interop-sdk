@@ -1,4 +1,3 @@
-// Add your external exports here
 export * from "./errors/index.js";
 export * from "./interfaces/index.js";
 export * from "./types/index.js";
@@ -18,6 +17,8 @@ export {
     OIFOpenedIntentParser,
     CustomEventOpenedIntentParser,
     SortingStrategyFactory,
+    BaseAssetDiscoveryService,
+    StaticAssetDiscoveryService,
     OIFAssetDiscoveryService,
     AssetDiscoveryFactory,
     createAssetDiscoveryService,

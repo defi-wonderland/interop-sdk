@@ -25,7 +25,8 @@ interface AssetDiscoveryProviderProps {
 }
 
 /**
- * Provider that fetches and caches asset discovery results
+ * Provider that exposes asset discovery results via context.
+ * Caching and deduplication are handled by the SDK internally.
  */
 export function AssetDiscoveryProvider({ children }: AssetDiscoveryProviderProps) {
   const isTestnet = useIsTestnet();

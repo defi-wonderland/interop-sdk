@@ -1,22 +1,13 @@
-/**
- * Asset Discovery Factory
- *
- * Creates AssetDiscoveryService instances based on provider configuration.
- * Follows the same pattern as IntentTrackerFactory.
- */
-
 import {
     AssetDiscoveryConfig,
-    AssetDiscoveryOptions,
-    AssetDiscoveryResult,
     AssetDiscoveryService,
-    AssetInfo,
     CrossChainProvider,
     CustomApiAssetDiscoveryConfig,
     CustomApiAssetDiscoveryService,
-    NetworkAssets,
+    OIFAssetDiscoveryConfig,
     OIFAssetDiscoveryService,
     OIFAssetDiscoveryServiceConfig,
+    StaticAssetDiscoveryService,
 } from "../internal.js";
 
 /**
@@ -28,56 +19,6 @@ export interface AssetDiscoveryFactoryConfig {
      * @default 300000 (5 minutes)
      */
     defaultCacheTtl?: number;
-}
-
-/**
- * Static asset discovery service implementation
- *
- * Returns hardcoded data - useful for testing or providers with static asset lists
- */
-class StaticAssetDiscoveryService implements AssetDiscoveryService {
-    private readonly networks: NetworkAssets[];
-    private readonly providerId: string;
-
-    constructor(networks: NetworkAssets[], providerId: string) {
-        this.networks = networks;
-        this.providerId = providerId;
-    }
-
-    async getSupportedAssets(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
-        const filteredNetworks = options?.chainIds
-            ? this.networks.filter((n) => options.chainIds!.includes(n.chainId))
-            : this.networks;
-
-        return {
-            networks: filteredNetworks,
-            fetchedAt: Date.now(),
-            providerId: this.providerId,
-        };
-    }
-
-    async getAssetsForChain(chainId: number): Promise<NetworkAssets | null> {
-        return this.networks.find((n) => n.chainId === chainId) ?? null;
-    }
-
-    async isAssetSupported(chainId: number, assetAddress: string): Promise<AssetInfo | null> {
-        const network = await this.getAssetsForChain(chainId);
-        if (!network) return null;
-
-        const normalizedAddress = assetAddress.toLowerCase();
-        return (
-            network.assets.find((asset) => asset.address.toLowerCase() === normalizedAddress) ??
-            null
-        );
-    }
-
-    async getSupportedChainIds(options?: AssetDiscoveryOptions): Promise<number[]> {
-        const filteredNetworks = options?.chainIds
-            ? this.networks.filter((n) => options.chainIds!.includes(n.chainId))
-            : this.networks;
-
-        return filteredNetworks.map((n) => n.chainId);
-    }
 }
 
 /**
@@ -157,10 +98,7 @@ export class AssetDiscoveryFactory {
      * Create OIF Asset Discovery Service
      */
     private createOIFService(
-        config: {
-            type: "oif";
-            config: { baseUrl: string; headers?: Record<string, string>; cacheTtl?: number };
-        },
+        config: OIFAssetDiscoveryConfig,
         providerId: string,
     ): OIFAssetDiscoveryService {
         return new OIFAssetDiscoveryService({
@@ -168,6 +106,7 @@ export class AssetDiscoveryFactory {
             providerId,
             headers: config.config.headers,
             cacheTtl: config.config.cacheTtl ?? this.config.defaultCacheTtl,
+            timeout: config.config.timeout,
         });
     }
 

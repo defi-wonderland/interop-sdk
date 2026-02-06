@@ -59,22 +59,33 @@ export interface AssetDiscoveryService {
 // ============ Configuration Types ============
 
 /**
+ * Shared configuration fields for API-based asset discovery services
+ */
+export interface BaseApiDiscoveryConfig {
+    /** Optional custom headers for API requests */
+    headers?: Record<string, string>;
+    /**
+     * Cache TTL in milliseconds
+     * @default 300000 (5 minutes)
+     */
+    cacheTtl?: number;
+    /**
+     * Request timeout in milliseconds
+     * @default 30000 (30 seconds)
+     */
+    timeout?: number;
+}
+
+/**
  * Configuration for OIF standard asset discovery
  *
  * Uses the standard OIF API endpoint: GET /api/tokens
  */
 export interface OIFAssetDiscoveryConfig {
     type: "oif";
-    config: {
+    config: BaseApiDiscoveryConfig & {
         /** Base URL of the OIF-compliant solver API */
         baseUrl: string;
-        /** Optional custom headers for API requests */
-        headers?: Record<string, string>;
-        /**
-         * Cache TTL in milliseconds
-         * @default 300000 (5 minutes)
-         */
-        cacheTtl?: number;
     };
 }
 
@@ -85,23 +96,11 @@ export interface OIFAssetDiscoveryConfig {
  */
 export interface CustomApiAssetDiscoveryConfig {
     type: "custom-api";
-    config: {
+    config: BaseApiDiscoveryConfig & {
         /** Endpoint URL for fetching all assets */
         assetsEndpoint: string;
-        /** Custom headers to include in requests */
-        headers?: Record<string, string>;
         /** Function to transform API response to SDK types */
         parseResponse: (data: unknown) => NetworkAssets[];
-        /**
-         * Cache TTL in milliseconds
-         * @default 300000 (5 minutes)
-         */
-        cacheTtl?: number;
-        /**
-         * Request timeout in milliseconds
-         * @default 30000 (30 seconds)
-         */
-        timeout?: number;
     };
 }
 

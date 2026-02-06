@@ -289,4 +289,123 @@ describe("OIFAssetDiscoveryService", () => {
             }
         });
     });
+
+    describe("in-flight request deduplication", () => {
+        it("should dedupe concurrent calls to a single API request", async () => {
+            let resolvePromise: (value: unknown) => void;
+            const delayedPromise = new Promise((resolve) => {
+                resolvePromise = resolve;
+            });
+
+            vi.mocked(axios.get).mockImplementationOnce(() =>
+                delayedPromise.then(() => ({
+                    status: 200,
+                    data: mockApiResponse,
+                })),
+            );
+
+            // Start two concurrent calls before the first resolves
+            const promise1 = service.getSupportedAssets();
+            const promise2 = service.getSupportedAssets();
+
+            // Resolve the delayed promise
+            resolvePromise!(undefined);
+
+            // Both should resolve successfully
+            const [result1, result2] = await Promise.all([promise1, promise2]);
+
+            // Should only make one API call
+            expect(axios.get).toHaveBeenCalledTimes(1);
+
+            // Both results should be equivalent
+            expect(result1.networks).toHaveLength(2);
+            expect(result2.networks).toHaveLength(2);
+            expect(result1.providerId).toBe(result2.providerId);
+        });
+
+        it("should dedupe concurrent forceRefresh calls to a single API request", async () => {
+            let resolvePromise: (value: unknown) => void;
+            const delayedPromise = new Promise((resolve) => {
+                resolvePromise = resolve;
+            });
+
+            vi.mocked(axios.get).mockImplementationOnce(() =>
+                delayedPromise.then(() => ({
+                    status: 200,
+                    data: mockApiResponse,
+                })),
+            );
+
+            // Start two concurrent forceRefresh calls
+            const promise1 = service.getSupportedAssets({ forceRefresh: true });
+            const promise2 = service.getSupportedAssets({ forceRefresh: true });
+
+            // Resolve the delayed promise
+            resolvePromise!(undefined);
+
+            // Both should resolve successfully
+            const [result1, result2] = await Promise.all([promise1, promise2]);
+
+            // Should only make one API call
+            expect(axios.get).toHaveBeenCalledTimes(1);
+
+            // Both results should be equivalent
+            expect(result1.networks).toHaveLength(2);
+            expect(result2.networks).toHaveLength(2);
+        });
+
+        it("should clear in-flight state on failure and allow retry", async () => {
+            const axiosError = new AxiosError("Network error", "ERR_NETWORK");
+
+            // First call fails
+            vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
+
+            await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
+
+            // Second call should attempt a new request (not stuck on rejected promise)
+            vi.mocked(axios.get).mockResolvedValueOnce({
+                status: 200,
+                data: mockApiResponse,
+            });
+
+            const result = await service.getSupportedAssets();
+
+            // Should have made two API calls total
+            expect(axios.get).toHaveBeenCalledTimes(2);
+            expect(result.networks).toHaveLength(2);
+        });
+
+        it("should apply chainIds filter to deduped result", async () => {
+            let resolvePromise: (value: unknown) => void;
+            const delayedPromise = new Promise((resolve) => {
+                resolvePromise = resolve;
+            });
+
+            vi.mocked(axios.get).mockImplementationOnce(() =>
+                delayedPromise.then(() => ({
+                    status: 200,
+                    data: mockApiResponse,
+                })),
+            );
+
+            // Start two concurrent calls with different chainIds filters
+            const promise1 = service.getSupportedAssets({ chainIds: [1] });
+            const promise2 = service.getSupportedAssets({ chainIds: [137] });
+
+            // Resolve the delayed promise
+            resolvePromise!(undefined);
+
+            const [result1, result2] = await Promise.all([promise1, promise2]);
+
+            // Should only make one API call
+            expect(axios.get).toHaveBeenCalledTimes(1);
+
+            // Each result should have its own filter applied
+            expect(result1.networks).toHaveLength(1);
+            expect(result1.networks[0]?.chainId).toBe(1);
+
+            expect(result2.networks).toHaveLength(1);
+            expect(result2.networks[0]?.chainId).toBe(137);
+        });
+    });
 });
