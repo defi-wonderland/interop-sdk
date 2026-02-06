@@ -62,12 +62,7 @@ describe("OIFAssetDiscoveryService", () => {
 
             const result = await service.getSupportedAssets();
 
-            expect(axios.get).toHaveBeenCalledWith(
-                `${baseUrl}/api/tokens`,
-                expect.objectContaining({
-                    headers: { "Content-Type": "application/json" },
-                }),
-            );
+            expect(axios.get).toHaveBeenCalledWith(`${baseUrl}/api/tokens`, expect.anything());
 
             expect(result.networks).toHaveLength(2);
             expect(result.providerId).toBe(providerId);

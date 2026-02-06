@@ -45,10 +45,7 @@ export class CustomApiAssetDiscoveryService extends BaseAssetDiscoveryService {
     protected async fetchAssets(timeout: number): Promise<AssetDiscoveryResult> {
         try {
             const response = await axios.get(this.assetsEndpoint, {
-                headers: {
-                    "Content-Type": "application/json",
-                    ...this.headers,
-                },
+                headers: this.headers ?? {},
                 timeout,
             });
 

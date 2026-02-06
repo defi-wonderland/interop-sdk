@@ -42,10 +42,7 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
 
         try {
             const response = await axios.get(url, {
-                headers: {
-                    "Content-Type": "application/json",
-                    ...this.headers,
-                },
+                headers: this.headers ?? {},
                 timeout,
             });
 

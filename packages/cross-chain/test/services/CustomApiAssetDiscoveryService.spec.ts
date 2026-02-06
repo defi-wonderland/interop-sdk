@@ -79,12 +79,7 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             const result = await service.getSupportedAssets();
 
-            expect(axios.get).toHaveBeenCalledWith(
-                assetsEndpoint,
-                expect.objectContaining({
-                    headers: { "Content-Type": "application/json" },
-                }),
-            );
+            expect(axios.get).toHaveBeenCalledWith(assetsEndpoint, expect.anything());
 
             expect(result.networks).toHaveLength(2);
             expect(result.providerId).toBe(providerId);
@@ -168,7 +163,6 @@ describe("CustomApiAssetDiscoveryService", () => {
                 assetsEndpoint,
                 expect.objectContaining({
                     headers: {
-                        "Content-Type": "application/json",
                         Authorization: "Bearer test-token",
                     },
                 }),
