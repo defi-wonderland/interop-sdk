@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resolveChainFromRegistry } from "../../src/name/resolveChainFromRegistry.js";
+import {
+    clearRegistryCache,
+    resolveChainFromRegistry,
+} from "../../src/name/resolveChainFromRegistry.js";
 
 const mockReadContract = vi.fn();
 
@@ -17,6 +20,7 @@ vi.mock("viem", async () => {
 describe("resolveChainFromRegistry", () => {
     beforeEach(() => {
         mockReadContract.mockReset();
+        clearRegistryCache();
     });
 
     it("resolves 'optimism' to eip155:10 using cid.eth registry", async () => {
@@ -126,5 +130,80 @@ describe("resolveChainFromRegistry", () => {
         const result = await resolveChainFromRegistry("unknown", "cid.eth");
 
         expect(result).toBeNull();
+    });
+
+    it("caches resolution results and skips RPC on repeated calls", async () => {
+        // First call: resolver + interoperableAddress
+        mockReadContract.mockResolvedValueOnce("0x1234567890123456789012345678901234567890");
+        mockReadContract.mockResolvedValueOnce("0x00010000010a00");
+
+        const result1 = await resolveChainFromRegistry("optimism", "cid.eth");
+        expect(result1).toEqual({ chainType: "eip155", chainReference: "10" });
+        expect(mockReadContract).toHaveBeenCalledTimes(2);
+
+        // Second call: should return cached result with no additional RPC calls
+        const result2 = await resolveChainFromRegistry("optimism", "cid.eth");
+        expect(result2).toEqual({ chainType: "eip155", chainReference: "10" });
+        expect(mockReadContract).toHaveBeenCalledTimes(2); // still 2, no new calls
+    });
+
+    it("caches resolver address across different labels for same domain", async () => {
+        // First call: resolver + interoperableAddress for "optimism"
+        mockReadContract.mockResolvedValueOnce("0x1234567890123456789012345678901234567890");
+        mockReadContract.mockResolvedValueOnce("0x00010000010a00");
+
+        await resolveChainFromRegistry("optimism", "cid.eth");
+        expect(mockReadContract).toHaveBeenCalledTimes(2);
+
+        // Second call for different label, same domain: only interoperableAddress (resolver is cached)
+        mockReadContract.mockResolvedValueOnce("0x0001000002a4b100");
+
+        const result = await resolveChainFromRegistry("arbitrum", "cid.eth");
+        expect(result).toEqual({ chainType: "eip155", chainReference: "42161" });
+        expect(mockReadContract).toHaveBeenCalledTimes(3); // only 1 new call (no resolver lookup)
+    });
+
+    it("caches null results for failed lookups", async () => {
+        mockReadContract.mockResolvedValueOnce("0x1234567890123456789012345678901234567890");
+        mockReadContract.mockResolvedValueOnce("0x");
+
+        const result1 = await resolveChainFromRegistry("unknown", "cid.eth");
+        expect(result1).toBeNull();
+        expect(mockReadContract).toHaveBeenCalledTimes(2);
+
+        // Second call: should return cached null with no additional RPC calls
+        const result2 = await resolveChainFromRegistry("unknown", "cid.eth");
+        expect(result2).toBeNull();
+        expect(mockReadContract).toHaveBeenCalledTimes(2);
+    });
+
+    it("deduplicates concurrent requests for the same label+domain", async () => {
+        mockReadContract.mockResolvedValueOnce("0x1234567890123456789012345678901234567890");
+        mockReadContract.mockResolvedValueOnce("0x00010000010a00");
+
+        // Fire two requests concurrently — they should share a single in-flight promise
+        const [result1, result2] = await Promise.all([
+            resolveChainFromRegistry("optimism", "cid.eth"),
+            resolveChainFromRegistry("optimism", "cid.eth"),
+        ]);
+
+        expect(result1).toEqual({ chainType: "eip155", chainReference: "10" });
+        expect(result2).toEqual({ chainType: "eip155", chainReference: "10" });
+        expect(mockReadContract).toHaveBeenCalledTimes(2); // only 1 resolver + 1 interopAddress
+    });
+
+    it("retries after a transient RPC error (does not cache errors)", async () => {
+        // First call: fails
+        mockReadContract.mockRejectedValueOnce(new Error("RPC error"));
+
+        const result1 = await resolveChainFromRegistry("optimism", "cid.eth");
+        expect(result1).toBeNull();
+
+        // Second call: succeeds — error was not cached
+        mockReadContract.mockResolvedValueOnce("0x1234567890123456789012345678901234567890");
+        mockReadContract.mockResolvedValueOnce("0x00010000010a00");
+
+        const result2 = await resolveChainFromRegistry("optimism", "cid.eth");
+        expect(result2).toEqual({ chainType: "eip155", chainReference: "10" });
     });
 });
