@@ -11,33 +11,44 @@ const MOCK_TOKENS = [
 ];
 
 /**
- * Mock quote response from Across API
+ * Mock quote response from Across API (matches AcrossGetQuoteResponseSchema)
  */
 const MOCK_QUOTE_RESPONSE = {
-  deposit: {
-    inputToken: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-    outputToken: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-    inputAmount: '200000',
-    outputAmount: '199000',
-    originChainId: 11155111,
-    destinationChainId: 84532,
-    depositor: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
-    recipient: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
-    message: '0x',
-    quoteTimestamp: Math.floor(Date.now() / 1000),
-    fillDeadline: Math.floor(Date.now() / 1000) + 3600,
-    exclusivityDeadline: 0,
-    exclusiveRelayer: '0x0000000000000000000000000000000000000000',
+  id: 'e2e-test-quote-id',
+  inputToken: {
+    address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+    chainId: 11155111,
+    decimals: 6,
+    symbol: 'USDC',
+    name: 'USD Coin',
   },
+  outputToken: {
+    address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    chainId: 84532,
+    decimals: 6,
+    symbol: 'USDC',
+    name: 'USD Coin',
+  },
+  inputAmount: '200000',
+  expectedOutputAmount: '199000',
+  minOutputAmount: '198000',
   fees: {
-    totalRelayFee: { pct: '100000000000000', total: '1000' },
-    relayerCapitalFee: { pct: '50000000000000', total: '500' },
-    relayerGasFee: { pct: '50000000000000', total: '500' },
-    lpFee: { pct: '0', total: '0' },
+    total: {
+      amount: '1000',
+      amountUsd: '0.001',
+      pct: '500000000000000',
+    },
   },
-  limits: { minDeposit: '1000', maxDeposit: '1000000000000', maxDepositInstant: '100000000000' },
-  estimatedFillTimeSec: 60,
-  spokePoolAddress: '0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662',
+  swapTx: {
+    simulationSuccess: true,
+    chainId: 11155111,
+    to: '0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662',
+    data: '0xad5425c6000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb922660000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238000000000000000000000000036cbd53842c5426634e7929541ec2318f3dcf7e0000000000000000000000000000000000000000000000000000000000030d400000000000000000000000000000000000000000000000000000000000030718000000000000000000000000000000000000000000000000000000000001499400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001800000000000000000000000000000000000000000000000000000000000000000',
+    gas: '250000',
+    maxFeePerGas: '1000000000',
+    maxPriorityFeePerGas: '1000000000',
+  },
+  expectedFillTime: 60,
 };
 
 test.beforeEach(async ({ page, context }) => {
