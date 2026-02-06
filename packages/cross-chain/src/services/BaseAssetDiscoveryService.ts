@@ -80,13 +80,14 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * Get all supported assets across all chains
      */
     async getSupportedAssets(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
-        if (!options?.forceRefresh && this.isCacheValid()) {
-            return this.applyFilter(this.cache!.data, options?.chainIds);
-        }
-
-        if (this.inFlight) {
-            const result = await this.inFlight;
-            return this.applyFilter(result, options?.chainIds);
+        if (!options?.forceRefresh) {
+            if (this.isCacheValid()) {
+                return this.applyFilter(this.cache!.data, options?.chainIds);
+            }
+            if (this.inFlight) {
+                const result = await this.inFlight;
+                return this.applyFilter(result, options?.chainIds);
+            }
         }
 
         const requestTimeout = options?.timeout ?? this.timeout;
