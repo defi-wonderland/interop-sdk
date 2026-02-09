@@ -142,6 +142,7 @@ export const DEFAULT_CHAIN_SHORTNAME_MAP = {
     OPtest: 141,
     dax: 142,
     mon: 143,
+    monad: 143,
     PHI: 144,
     SETH: 145,
     sonic: 146,
