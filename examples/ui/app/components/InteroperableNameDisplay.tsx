@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { InteroperableNamePartKey, type AddressResult, type InteroperableNamePart } from '../types';
 import { formatChainReference } from '../utils/chain-names';
 import { FormatDisplay, type FieldConfig } from './FormatDisplay';
@@ -10,16 +9,6 @@ interface InteroperableNameDisplayProps {
   setHoveredPart: (part: InteroperableNamePart) => void;
   copied: boolean;
   onCopy: () => void;
-}
-
-function ChainReferenceDisplay({ chainReference, fullAddress }: { chainReference: string; fullAddress: string }) {
-  const [formatted, setFormatted] = useState(chainReference);
-
-  useEffect(() => {
-    formatChainReference(chainReference, fullAddress).then(setFormatted);
-  }, [chainReference, fullAddress]);
-
-  return <>{formatted}</>;
 }
 
 const fields: FieldConfig<InteroperableNamePartKey, AddressResult>[] = [
@@ -41,10 +30,8 @@ const fields: FieldConfig<InteroperableNamePartKey, AddressResult>[] = [
     key: InteroperableNamePartKey.CHAIN_REF,
     label: 'Chain Reference',
     getValue: (r) => r.chainReference,
-    getDisplayValue: (r) => (
-      <ChainReferenceDisplay chainReference={r.chainReference} fullAddress={r.interoperableName} />
-    ),
-    description: 'Chain identifier (numeric ID or shortname)',
+    getDisplayValue: (r) => formatChainReference(r.chainReference),
+    description: 'Chain identifier (numeric ID, label or shortname)',
   },
   {
     key: InteroperableNamePartKey.CHECKSUM,

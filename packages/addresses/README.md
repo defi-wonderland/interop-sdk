@@ -357,11 +357,30 @@ This package implements:
 -   ✅ ENS name resolution for addresses (e.g., `alice.eth@eip155:1`)
 -   ✅ Validation: ENS names MUST include chain reference
 -   ✅ Context-aware error handling for ENS vs raw addresses
--   ⚠️ ENS chain registry integration (pending - registry not yet deployed)
+-   ✅ **Experimental**: ENS chain label resolution via onchain registries (e.g., `cid.eth`)
+
+### Experimental: Onchain Chain Registry
+
+ENS-based chain resolution is available as an experimental feature using the `useExperimentalChainRegistry` option:
+
+```typescript
+import { parseName } from "@wonderland/interop-addresses";
+
+// Use cid.eth (Unruggable's chain registry on mainnet)
+const result = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth", {
+    useExperimentalChainRegistry: "cid.eth",
+});
+
+// Or use on.eth when deployed
+const result2 = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth", {
+    useExperimentalChainRegistry: "on.eth",
+});
+```
+
+This queries the specified ENS-based chain registry on mainnet. If onchain resolution fails, it falls back to chainid.network.
 
 ### Not Yet Implemented
 
--   ⏳ ENS chain label resolution (e.g., `address@ethereum` → resolves via ENS)
 -   ⏳ Reverse chain name lookup via ENS
 -   ⏳ Chain discovery via ENS registry (`chainCount`, `getChainAtIndex`)
 
