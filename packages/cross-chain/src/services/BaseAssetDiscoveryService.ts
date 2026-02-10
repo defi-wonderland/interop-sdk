@@ -20,8 +20,10 @@ export interface BaseAssetDiscoveryServiceConfig {
     /** Optional custom headers for API requests */
     headers?: Record<string, string>;
     /**
-     * Cache TTL in milliseconds
-     * @default 300000 (5 minutes)
+     * Cache TTL in milliseconds.
+     * Asset lists rarely change, so the default is Infinity (cache never expires).
+     * Use `forceRefresh: true` to explicitly refresh when needed.
+     * @default Infinity
      */
     cacheTtl?: number;
     /**
@@ -57,7 +59,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
     private cache: CacheEntry | null = null;
     private inFlight: Promise<AssetDiscoveryResult> | null = null;
 
-    static readonly DEFAULT_CACHE_TTL = 5 * 60 * 1000;
+    static readonly DEFAULT_CACHE_TTL = Infinity;
     static readonly DEFAULT_TIMEOUT = 30_000;
 
     constructor(config: BaseAssetDiscoveryServiceConfig) {

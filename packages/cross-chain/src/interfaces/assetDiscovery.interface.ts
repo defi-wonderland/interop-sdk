@@ -70,8 +70,10 @@ export interface BaseApiDiscoveryConfig {
     /** Optional custom headers for API requests */
     headers?: Record<string, string>;
     /**
-     * Cache TTL in milliseconds
-     * @default 300000 (5 minutes)
+     * Cache TTL in milliseconds.
+     * Asset lists rarely change, so the default is Infinity (cache never expires).
+     * Use `forceRefresh: true` to explicitly refresh when needed.
+     * @default Infinity
      */
     cacheTtl?: number;
     /**

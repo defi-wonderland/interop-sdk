@@ -11,8 +11,6 @@ interface UseAssetDiscoveryResult {
   isLoading: boolean;
   /** Error if discovery failed */
   error: Error | null;
-  /** Refetch assets (force refresh) */
-  refetch: () => Promise<void>;
   /** Timestamp when assets were last fetched */
   lastFetchedAt: number | null;
 }
@@ -24,7 +22,7 @@ interface UseAssetDiscoveryResult {
  * from all configured providers and returns a DiscoveredAssets structure.
  *
  * @param options.chainIds - Filter results to specific chain IDs.
- *   **Must be a stable reference** (e.g. via useMemo) to avoid infinite refetches.
+ *   **Must be a stable reference** (e.g. via useMemo) to avoid re-triggering the effect.
  * @param options.enabled - Whether to enable discovery (default: true)
  */
 export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boolean }): UseAssetDiscoveryResult {
@@ -35,35 +33,27 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
   const [error, setError] = useState<Error | null>(null);
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
 
-  const fetchAssets = useCallback(
-    async (forceRefresh = false) => {
-      if (!enabled) return;
+  const fetchAssets = useCallback(async () => {
+    if (!enabled) return;
 
-      setIsLoading(true);
-      setError(null);
+    setIsLoading(true);
+    setError(null);
 
-      try {
-        const discovered = await crossChainExecutor.discoverAssets({
-          chainIds,
-          forceRefresh,
-        });
+    try {
+      const discovered = await crossChainExecutor.discoverAssets({ chainIds });
 
-        if (discovered.chainIds.length === 0) {
-          throw new Error('No assets discovered from any provider');
-        }
-
-        setAssets(discovered);
-        setLastFetchedAt(Date.now());
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error(String(err)));
-      } finally {
-        setIsLoading(false);
+      if (discovered.chainIds.length === 0) {
+        throw new Error('No assets discovered from any provider');
       }
-    },
-    [enabled, chainIds],
-  );
 
-  const refetch = useCallback(() => fetchAssets(true), [fetchAssets]);
+      setAssets(discovered);
+      setLastFetchedAt(Date.now());
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [enabled, chainIds]);
 
   useEffect(() => {
     if (enabled) {
@@ -71,8 +61,5 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
     }
   }, [enabled, fetchAssets]);
 
-  return useMemo(
-    () => ({ assets, isLoading, error, refetch, lastFetchedAt }),
-    [assets, isLoading, error, refetch, lastFetchedAt],
-  );
+  return useMemo(() => ({ assets, isLoading, error, lastFetchedAt }), [assets, isLoading, error, lastFetchedAt]);
 }

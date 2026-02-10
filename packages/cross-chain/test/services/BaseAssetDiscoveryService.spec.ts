@@ -97,7 +97,7 @@ describe("BaseAssetDiscoveryService", () => {
     describe("default config values", () => {
         it("should use default cacheTtl when not provided", () => {
             const defaultService = new TestAssetDiscoveryService({ providerId }, fetchMock);
-            expect(BaseAssetDiscoveryService.DEFAULT_CACHE_TTL).toBe(5 * 60 * 1000);
+            expect(BaseAssetDiscoveryService.DEFAULT_CACHE_TTL).toBe(Infinity);
             // We can't directly access private fields, but we can verify behavior
             expect(defaultService).toBeDefined();
         });

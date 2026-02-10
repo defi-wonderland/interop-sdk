@@ -109,7 +109,7 @@ export function CrossChainClient() {
                 {chainConfig.isDiscovering && <DiscoveryLoading />}
 
                 {!chainConfig.isDiscovering && chainConfig.discoveryError && (
-                  <DiscoveryError error={chainConfig.discoveryError} onRetry={() => chainConfig.refetchAssets()} />
+                  <DiscoveryError error={chainConfig.discoveryError} />
                 )}
 
                 {chainConfig.isDiscovered &&

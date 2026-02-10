@@ -63,7 +63,6 @@ export function useChainConfig() {
   return useMemo(() => {
     const allConfiguredChains = isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS;
     const discoveryError = discoveryContext?.discoveryError ?? null;
-    const refetchAssets = discoveryContext?.refetchAssets ?? (async () => {});
 
     if (!discoveryContext?.discoveredAssets) {
       return {
@@ -74,7 +73,6 @@ export function useChainConfig() {
         isDiscovered: false,
         isDiscovering: discoveryContext?.isDiscovering ?? true,
         discoveryError,
-        refetchAssets,
         getChain: () => undefined,
         getExplorerTxUrl: () => undefined,
       };
@@ -115,7 +113,6 @@ export function useChainConfig() {
       isDiscovered: true,
       isDiscovering: false,
       discoveryError,
-      refetchAssets,
       getChain,
       getExplorerTxUrl,
     };
