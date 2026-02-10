@@ -14,6 +14,8 @@ import {
     OrderTrackingInfo,
     OrderTrackingUpdate,
     PublicClientManager,
+    WatchOrderByOrderId,
+    WatchOrderByTxHash,
     WatchOrderParams,
 } from "../internal.js";
 
@@ -125,14 +127,26 @@ export class OrderTracker extends EventEmitter {
     }
 
     /**
-     * Watch an order with real-time updates
+     * Watch an order with real-time updates.
+     * Supports both user-open orders (by txHash) and escrow orders (by orderId).
      *
-     * @param params - Watch parameters
+     * @param params - Watch parameters (pass txHash OR orderId)
      * @yields Discriminated union: either an order update or a timeout payload
      *
-     * @example
+     * @example User-open order (by txHash)
      * ```typescript
-     * for await (const item of tracker.watchOrder({ txHash, originChainId, destinationChainId, timeout })) {
+     * for await (const item of tracker.watchOrder({ txHash, originChainId, destinationChainId })) {
+     *   if (item.type === OrderTrackerYieldType.Update) {
+     *     console.log(item.update.status, item.update.message);
+     *   } else {
+     *     console.log("timeout:", item.payload.message);
+     *   }
+     * }
+     * ```
+     *
+     * @example Escrow order (by orderId)
+     * ```typescript
+     * for await (const item of tracker.watchOrder({ orderId, originChainId, destinationChainId })) {
      *   if (item.type === OrderTrackerYieldType.Update) {
      *     console.log(item.update.status, item.update.message);
      *   } else {
@@ -142,12 +156,24 @@ export class OrderTracker extends EventEmitter {
      * ```
      */
     async *watchOrder(params: WatchOrderParams): AsyncGenerator<OrderTrackerYield> {
-        const { txHash, originChainId, timeout = OrderTracker.DEFAULT_TIMEOUT_MS } = params;
+        const timeout = params.timeout ?? OrderTracker.DEFAULT_TIMEOUT_MS;
 
         if (timeout <= 0) {
             throw new Error(`Timeout must be positive, got ${timeout}ms`);
         }
 
+        if ("txHash" in params && params.txHash) {
+            yield* this.watchOrderByTxHash({ ...params, timeout });
+        } else {
+            yield* this.watchOrderByOrderId({ ...(params as WatchOrderByOrderId), timeout });
+        }
+    }
+
+    /** Watch user-open order by parsing Open event from txHash */
+    private async *watchOrderByTxHash(
+        params: WatchOrderByTxHash & { timeout: number },
+    ): AsyncGenerator<OrderTrackerYield> {
+        const { txHash, originChainId, timeout } = params;
         const startTime = Date.now();
 
         let lastUpdate: OrderTrackingUpdate = this.createUpdate({
@@ -219,14 +245,17 @@ export class OrderTracker extends EventEmitter {
         });
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
 
-        const destinationChainId = openedIntent.fillInstructions[0]?.destinationChainId || 0;
+        const destChainId = openedIntent.fillInstructions[0]?.destinationChainId;
+        if (!destChainId) {
+            throw new Error("Order has no destination chain in fillInstructions");
+        }
 
         const fillResult = await this.waitForFillWithTimeout(
             {
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 originChainId,
-                destinationChainId,
+                destinationChainId: destChainId,
                 user: openedIntent.user,
                 fillDeadline: openedIntent.fillDeadline,
             },
@@ -242,10 +271,45 @@ export class OrderTracker extends EventEmitter {
         );
     }
 
+    /** Watch escrow order by polling API directly with orderId */
+    private async *watchOrderByOrderId(
+        params: WatchOrderByOrderId & { timeout: number },
+    ): AsyncGenerator<OrderTrackerYield> {
+        const { orderId, originChainId, destinationChainId, timeout } = params;
+        const startTime = Date.now();
+
+        let lastUpdate: OrderTrackingUpdate = this.createUpdate({
+            status: OrderStatus.Pending,
+            orderId,
+            message: "Tracking escrow order...",
+        });
+        yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
+
+        lastUpdate = this.createUpdate({
+            status: OrderStatus.Pending,
+            orderId,
+            message: "Waiting for solver to fill order...",
+        });
+        yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
+
+        const remainingTimeout = Math.max(0, timeout - (Date.now() - startTime));
+        if (remainingTimeout === 0) {
+            yield this.createTimeoutYield(lastUpdate, 0, "Timeout expired");
+            return;
+        }
+
+        const fillResult = await this.waitForFillWithTimeout(
+            { orderId, originChainId, destinationChainId },
+            remainingTimeout,
+        );
+
+        yield this.createFillResultYield(fillResult, orderId, undefined, lastUpdate, 0);
+    }
+
     private createFillResultYield(
         fillResult: Awaited<ReturnType<typeof this.waitForFillWithTimeout>>,
         orderId: Hex,
-        txHash: Hex,
+        openTxHash: Hex | undefined,
         lastUpdate: OrderTrackingUpdate,
         fillDeadline: number,
     ): OrderTrackerYield {
@@ -255,7 +319,7 @@ export class OrderTracker extends EventEmitter {
                 update: this.createUpdate({
                     status: OrderStatus.Finalized,
                     orderId,
-                    openTxHash: txHash,
+                    openTxHash,
                     fillTxHash: fillResult.fillTxHash,
                     message: `Order completed in block ${fillResult.blockNumber}`,
                 }),
@@ -268,7 +332,7 @@ export class OrderTracker extends EventEmitter {
                 update: this.createUpdate({
                     status: OrderStatus.Failed,
                     orderId,
-                    openTxHash: txHash,
+                    openTxHash,
                     message: "Deadline exceeded before fill",
                     failureReason: OrderFailureReason.DeadlineExceeded,
                 }),
@@ -279,9 +343,11 @@ export class OrderTracker extends EventEmitter {
     }
 
     /**
-     * Start tracking an order with event-based updates
+     * Start tracking an order with event-based updates.
+     * Only supported for user-open orders (by txHash).
+     * For escrow orders, use watchOrder() generator directly.
      *
-     * @param params - Watch parameters including optional timeout (defaults to 5 minutes)
+     * @param params - Watch parameters (must include txHash)
      * @returns Promise that resolves with final order status
      *
      * @example
@@ -303,6 +369,12 @@ export class OrderTracker extends EventEmitter {
      * ```
      */
     async startTracking(params: WatchOrderParams): Promise<OrderTrackingInfo> {
+        if (!params.txHash) {
+            throw new Error(
+                "startTracking() only supports txHash. Use watchOrder() for escrow orders.",
+            );
+        }
+
         try {
             await this.processWatchUpdates(params);
             return await this.getOrderStatus(params.txHash, params.originChainId);
@@ -375,11 +447,11 @@ export class OrderTracker extends EventEmitter {
     private async waitForFillWithTimeout(
         fillParams: {
             orderId: Hex;
-            openTxHash: Hex;
+            openTxHash?: Hex;
             originChainId: number;
             destinationChainId: number;
-            user: Hex;
-            fillDeadline: number;
+            user?: Hex;
+            fillDeadline?: number;
         },
         timeout: number,
     ): Promise<
@@ -401,7 +473,8 @@ export class OrderTracker extends EventEmitter {
         } catch (error) {
             if (error instanceof Error && error.name === "FillTimeoutError") {
                 const nowSeconds = Math.floor(Date.now() / 1000);
-                const isDeadlineExceeded = nowSeconds > fillParams.fillDeadline;
+                const isDeadlineExceeded =
+                    fillParams.fillDeadline && nowSeconds > fillParams.fillDeadline;
 
                 return isDeadlineExceeded
                     ? { status: FillResultStatus.DeadlineExceeded }

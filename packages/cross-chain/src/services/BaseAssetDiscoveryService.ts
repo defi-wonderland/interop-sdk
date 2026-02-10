@@ -78,6 +78,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * @throws AssetDiscoveryFailure on any fetch or parse error
      */
     protected abstract fetchAssets(timeout: number): Promise<AssetDiscoveryResult>;
+
     /**
      * Get all supported assets across all chains
      *
@@ -86,11 +87,11 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
     async getSupportedAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
         if (!options?.forceRefresh) {
             if (this.isCacheValid()) {
-                return this.toDiscoveredAssets(this.cache!.data, options?.chainIds);
+                return this.transformToDiscoveredAssets(this.cache!.data, options?.chainIds);
             }
             if (this.inFlight) {
                 const result = await this.inFlight;
-                return this.toDiscoveredAssets(result, options?.chainIds);
+                return this.transformToDiscoveredAssets(result, options?.chainIds);
             }
         }
 
@@ -109,13 +110,13 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
             });
 
         const result = await this.inFlight;
-        return this.toDiscoveredAssets(result, options?.chainIds);
+        return this.transformToDiscoveredAssets(result, options?.chainIds);
     }
 
     /**
      * Transform raw discovery result to DiscoveredAssets format
      */
-    private toDiscoveredAssets(
+    private transformToDiscoveredAssets(
         result: AssetDiscoveryResult,
         chainIds?: number[],
     ): DiscoveredAssets {

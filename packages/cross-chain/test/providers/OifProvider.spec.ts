@@ -187,7 +187,8 @@ describe("OifProvider", () => {
         // Using repeated pattern to avoid resembling real private keys
         const mockSignature = ("0x" + "ab".repeat(65)) as `0x${string}`;
 
-        it("should submit signed order successfully", async () => {
+        // TODO: Unskip when https://github.com/openintentsframework/oif-specs/issues/34 is resolved
+        it.skip("should submit signed order successfully", async () => {
             const mockResponse = getMockedOifQuoteResponse();
             const quote = mockResponse.quotes[0];
             if (!quote) throw new Error("No quote in mock");

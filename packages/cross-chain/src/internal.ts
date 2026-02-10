@@ -8,3 +8,4 @@ export * from "./types/index.js";
 export * from "./services/index.js";
 export * from "./sorting_strategies/index.js";
 export * from "./validators/index.js";
+export * from "./adapters/index.js";
