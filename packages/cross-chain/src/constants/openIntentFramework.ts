@@ -1,7 +1,10 @@
 /**
  * TypeScript types for decoded EIP-7683 Open event data
  */
-import type { Order } from "@openintentsframework/oif-specs";
+// =============================================================================
+// Canonical EIP-712 type definitions for OIF order signing
+// =============================================================================
+import type { EIP712Types, Order } from "@openintentsframework/oif-specs";
 import type { Address, Hex } from "viem";
 
 export type OifOrderType = Order["type"];
@@ -147,3 +150,63 @@ export interface EIP7683ResolvedOrder {
     minReceived: readonly EIP7683Output[];
     fillInstructions: readonly EIP7683FillInstruction[];
 }
+
+/**
+ * Canonical EIP-712 types for oif-escrow-v0 and oif-3009-v0 orders.
+ * Override solver-provided types which are currently incomplete.
+ *
+ * TODO: Delete this block + export in external.ts when solver sends complete payload.types
+ * @see https://github.com/openintentsframework/oif-solver/issues/TODO
+ */
+export const PERMIT2_TYPES: EIP712Types = {
+    PermitBatchWitnessTransferFrom: [
+        { name: "permitted", type: "TokenPermissions[]" },
+        { name: "spender", type: "address" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" },
+        { name: "witness", type: "Permit2Witness" },
+    ],
+    Permit2Witness: [
+        { name: "expires", type: "uint32" },
+        { name: "inputOracle", type: "address" },
+        { name: "outputs", type: "MandateOutput[]" },
+    ],
+    MandateOutput: [
+        { name: "oracle", type: "bytes32" },
+        { name: "settler", type: "bytes32" },
+        { name: "chainId", type: "uint256" },
+        { name: "token", type: "bytes32" },
+        { name: "amount", type: "uint256" },
+        { name: "recipient", type: "bytes32" },
+        { name: "callbackData", type: "bytes" },
+        { name: "context", type: "bytes" },
+    ],
+    TokenPermissions: [
+        { name: "token", type: "address" },
+        { name: "amount", type: "uint256" },
+    ],
+};
+
+/** @see https://eips.ethereum.org/EIPS/eip-3009 */
+export const EIP3009_TYPES: EIP712Types = {
+    TransferWithAuthorization: [
+        { name: "from", type: "address" },
+        { name: "to", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "validAfter", type: "uint256" },
+        { name: "validBefore", type: "uint256" },
+        { name: "nonce", type: "bytes32" },
+    ],
+    ReceiveWithAuthorization: [
+        { name: "from", type: "address" },
+        { name: "to", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "validAfter", type: "uint256" },
+        { name: "validBefore", type: "uint256" },
+        { name: "nonce", type: "bytes32" },
+    ],
+    CancelAuthorization: [
+        { name: "authorizer", type: "address" },
+        { name: "nonce", type: "bytes32" },
+    ],
+};

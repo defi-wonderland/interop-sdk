@@ -1,4 +1,4 @@
-import { GetQuoteRequest } from "@openintentsframework/oif-specs";
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import { decodeAddress } from "@wonderland/interop-addresses";
 import { Hex } from "viem";
 
@@ -130,7 +130,7 @@ class ProviderExecutor {
                     const quotesPromise = provider.getQuotes(params).then((quotes) =>
                         quotes.map((quote) => ({
                             ...quote,
-                            provider: provider.getProviderId(),
+                            _providerId: provider.getProviderId(),
                         })),
                     );
 
@@ -163,6 +163,28 @@ class ProviderExecutor {
             quotes: this.sortingStrategy.sort(response.quotes),
             errors: response.errors,
         };
+    }
+
+    /**
+     * Submit a signed order to the appropriate provider.
+     * Looks up the provider from the quote's provider field and delegates.
+     *
+     * @param quote - The executable quote containing the order
+     * @param signature - The EIP-712 signature (hex or bytes)
+     * @returns The post order response (contains orderId for tracking)
+     */
+    async submitSignedOrder(
+        quote: ExecutableQuote,
+        signature: Hex | Uint8Array,
+    ): Promise<PostOrderResponse> {
+        const providerId = quote._providerId;
+
+        const provider = this.providers[providerId];
+        if (!provider) {
+            throw new ProviderNotFound(providerId);
+        }
+
+        return provider.submitSignedOrder(quote, signature);
     }
 
     /**

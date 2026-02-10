@@ -1,49 +1,53 @@
 /**
  * Typed Data Adapter (#286)
- * TEMPORARY - Solver missing 'version' field in domain, viem requires it.
  * @see https://github.com/openintentsframework/oif-solver/issues/286
+ * @see https://github.com/openintentsframework/oif-solver/issues/289
+ *
+ * TEMPORARY - Solver returns order.payload with EIP-712 issues that break signing.
+ * Payload is NOT part of the HMAC integrity checksum, so safe to fix client-side.
  */
 
-import type { Quote } from "@openintentsframework/oif-specs";
-import type { z } from "zod";
+import type { EIP712Types, Quote } from "@openintentsframework/oif-specs";
 
-import type {
-    oif3009OrderSchema,
-    oifEscrowOrderSchema,
-    oifResourceLockOrderSchema,
-} from "../schemas/oif.js";
+import { EIP3009_TYPES, PERMIT2_TYPES } from "../constants/openIntentFramework.js";
 import { isSignableOifOrder } from "../utils/orderTypeHelpers.js";
 
-/** Union of all signable OIF order types */
-type SignableOrder =
-    | z.infer<typeof oifEscrowOrderSchema>
-    | z.infer<typeof oif3009OrderSchema>
-    | z.infer<typeof oifResourceLockOrderSchema>;
+const CANONICAL_TYPES: Record<string, EIP712Types> = {
+    "oif-escrow-v0": PERMIT2_TYPES,
+    "oif-3009-v0": EIP3009_TYPES,
+};
 
-/** EIP-712 payload structure shared by all signable OIF orders */
-type SignableOrderPayload = SignableOrder["payload"];
+const DOMAIN_REQUIRES_VERSION = new Set(["oif-3009-v0", "oif-resource-lock-v0"]);
 
-/**
- * Fix typed data payload for viem compatibility (#286)
- * Adds missing 'version' field (solver should include per oif-specs)
- */
 export function adaptTypedDataPayload(quote: Quote): Quote {
     if (!isSignableOifOrder(quote.order)) return quote;
 
-    const { payload } = quote.order as { payload?: SignableOrderPayload };
-    if (!payload) return quote;
+    const { payload } = quote.order;
+    const domain = { ...(payload.domain as Record<string, unknown>) };
 
-    const fixedPayload: SignableOrderPayload = {
-        ...payload,
-        domain: {
-            ...payload.domain,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            version: payload.domain.version ?? "1",
-        },
-    };
+    // #286: Solver sends chainId as string, viem produces wrong domain separator hash
+    if (typeof domain.chainId === "string") {
+        domain.chainId = Number(domain.chainId);
+    }
+
+    // #286: 3009/resource-lock need version in domain (USDC has version: '1'),
+    // but escrow (Permit2) must NOT have it
+    if (DOMAIN_REQUIRES_VERSION.has(quote.order.type)) {
+        domain.version = domain.version ?? "1";
+    } else {
+        delete domain.version;
+    }
 
     return {
         ...quote,
-        order: { ...quote.order, payload: fixedPayload },
+        order: {
+            ...quote.order,
+            payload: {
+                ...payload,
+                domain,
+                // #286: Solver-provided types are incomplete, use canonical
+                types: CANONICAL_TYPES[quote.order.type] ?? payload.types,
+            },
+        },
     } as Quote;
 }

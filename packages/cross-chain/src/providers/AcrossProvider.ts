@@ -54,8 +54,8 @@ import {
     ProviderConfigFailure,
     ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
+    ProviderQuote,
     PublicClientManager,
-    QuoteWithAcross,
 } from "../internal.js";
 
 /**
@@ -230,7 +230,7 @@ export class AcrossProvider extends CrossChainProvider {
     private async convertAcrossSwapToOifQuote(
         request: AcrossOIFGetQuoteParams,
         response: AcrossGetQuoteResponse,
-    ): Promise<QuoteWithAcross> {
+    ): Promise<Omit<ProviderQuote, "preparedTransaction">> {
         const { inputs, outputs } = request.intent;
 
         return {
@@ -295,7 +295,7 @@ export class AcrossProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      */
-    async getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]> {
+    async getQuotes(params: GetQuoteRequest): Promise<ProviderQuote[]> {
         try {
             const parsedParams = AcrossOIFGetQuoteParamsSchema.parse(params);
 
@@ -305,12 +305,12 @@ export class AcrossProvider extends CrossChainProvider {
 
             const preparedTransaction = await this.prepareTransaction(acrossQuote);
 
-            const executableQuote: ExecutableQuote = {
+            const providerQuote: ProviderQuote = {
                 ...oifQuote,
                 preparedTransaction,
             };
 
-            return [executableQuote];
+            return [providerQuote];
         } catch (error) {
             if (error instanceof ZodError) {
                 throw new ProviderGetQuoteFailure(

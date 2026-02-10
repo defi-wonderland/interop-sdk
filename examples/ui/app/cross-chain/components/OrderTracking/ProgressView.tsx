@@ -31,6 +31,8 @@ export function ProgressView({ state }: ProgressViewProps) {
   const chainConfig = useChainConfig();
   const message = getProgressMessage(state);
   const originTxUrl = chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
+  const fillTxHash = state.step === STEP.TRACKING ? state.update.fillTxHash : undefined;
+  const fillTxUrl = chainConfig.getExplorerTxUrl(state.destinationChainId, fillTxHash);
 
   // Determine current step index: 0=approval, 1=submit, 2=tracking
   const currentStep = isApprovalPhase(state) ? 0 : isSubmitPhase(state) ? 1 : 2;
@@ -75,18 +77,31 @@ export function ProgressView({ state }: ProgressViewProps) {
         })}
       </div>
 
-      {/* Transaction link during progress */}
-      {originTxUrl && (
-        <div className='mt-4 pt-3 border-t border-border'>
-          <a
-            href={originTxUrl}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-xs text-accent hover:underline flex items-center gap-1'
-          >
-            <span>View origin transaction</span>
-            <ExternalLinkIcon />
-          </a>
+      {/* Transaction links during progress */}
+      {(originTxUrl || fillTxUrl) && (
+        <div className='mt-4 pt-3 border-t border-border space-y-1.5'>
+          {originTxUrl && (
+            <a
+              href={originTxUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-xs text-accent hover:underline flex items-center gap-1'
+            >
+              <span>View origin transaction</span>
+              <ExternalLinkIcon />
+            </a>
+          )}
+          {fillTxUrl && (
+            <a
+              href={fillTxUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-xs text-accent hover:underline flex items-center gap-1'
+            >
+              <span>View fill transaction</span>
+              <ExternalLinkIcon />
+            </a>
+          )}
         </div>
       )}
     </div>

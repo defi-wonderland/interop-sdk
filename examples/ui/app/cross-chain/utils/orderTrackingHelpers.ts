@@ -19,7 +19,9 @@ export function isApprovalPhase(state: BridgeState): boolean {
 export function isSubmitPhase(state: BridgeState): boolean {
   return (
     state.step === STEP.WALLET &&
-    (state.action === WALLET_ACTION.SUBMITTING || state.action === WALLET_ACTION.CONFIRMING)
+    (state.action === WALLET_ACTION.SIGNING ||
+      state.action === WALLET_ACTION.SUBMITTING ||
+      state.action === WALLET_ACTION.CONFIRMING)
   );
 }
 
@@ -36,6 +38,8 @@ export function getStateLabel(state: BridgeState): string {
           return 'Checking Approval';
         case WALLET_ACTION.APPROVING:
           return 'Approving';
+        case WALLET_ACTION.SIGNING:
+          return 'Signing';
         case WALLET_ACTION.SUBMITTING:
           return 'Submitting';
         case WALLET_ACTION.CONFIRMING:
@@ -69,8 +73,10 @@ export function getProgressMessage(state: BridgeState): string | undefined {
         return state.txHash
           ? 'Waiting for approval confirmation...'
           : 'Please approve token spending in your wallet...';
+      case WALLET_ACTION.SIGNING:
+        return 'Please sign the order in your wallet...';
       case WALLET_ACTION.SUBMITTING:
-        return 'Please confirm the bridge transaction in your wallet...';
+        return 'Submitting order to solver...';
       case WALLET_ACTION.CONFIRMING:
         return 'Waiting for transaction confirmation...';
     }

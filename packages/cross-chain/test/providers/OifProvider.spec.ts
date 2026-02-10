@@ -105,23 +105,6 @@ describe("OifProvider", () => {
             expect(quotes[0]).toHaveProperty("provider");
         });
 
-        it("should inject solverId as provider fallback", async () => {
-            const responseWithoutProvider = getMockedOifQuoteResponse();
-            const firstQuote = responseWithoutProvider.quotes[0];
-            if (firstQuote) {
-                firstQuote.provider = undefined;
-            }
-
-            vi.mocked(axios.post).mockResolvedValue({
-                status: 200,
-                data: responseWithoutProvider,
-            });
-
-            const quotes = await provider.getQuotes(mockQuoteRequest);
-
-            expect(quotes[0]?.provider).toBe(MOCK_SOLVER_ID);
-        });
-
         it("should throw on HTTP error", async () => {
             vi.mocked(axios.post).mockRejectedValue({
                 isAxiosError: true,
