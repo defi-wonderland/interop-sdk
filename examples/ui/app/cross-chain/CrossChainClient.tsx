@@ -3,6 +3,9 @@
 import { useState, useCallback } from 'react';
 import { Footer, Navigation } from '../components';
 import {
+  DiscoveryLoading,
+  DiscoveryError,
+  DiscoveryEmpty,
   NetworkSwitch,
   OrderTracking,
   QuoteCard,
@@ -13,7 +16,7 @@ import {
   TooltipProvider,
   type ToastType,
 } from './components';
-import { useOrderExecution } from './hooks';
+import { useOrderExecution, useChainConfig } from './hooks';
 import { useQuotes } from './hooks/useQuotes';
 import { STEP } from './types/execution';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
@@ -27,6 +30,7 @@ interface ToastState {
 export function CrossChainClient() {
   const { quotes, errors, isLoading, fetchQuotes, clearQuotes } = useQuotes();
   const { state: executionState, execute, reset: resetExecution } = useOrderExecution();
+  const chainConfig = useChainConfig();
 
   const [selectedInputToken, setSelectedInputToken] = useState<string>('');
   const [selectedOutputToken, setSelectedOutputToken] = useState<string>('');
@@ -35,8 +39,6 @@ export function CrossChainClient() {
   const [inputChainId, setInputChainId] = useState<number>(0);
   const [outputChainId, setOutputChainId] = useState<number>(0);
   const [toast, setToast] = useState<ToastState | null>(null);
-
-  // Determine if execution has started (not idle)
   const isExecutionStarted = executionState.step !== STEP.IDLE;
 
   const closeToast = useCallback(() => {
@@ -89,7 +91,6 @@ export function CrossChainClient() {
         <div className='flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 py-12 sm:px-6 sm:py-16'>
           <div className='flex-1 flex flex-col gap-12'>
             <header className='flex flex-col items-center gap-4 text-center relative'>
-              {/* Network Switch in top right */}
               <div className='absolute top-0 right-0'>
                 <NetworkSwitch />
               </div>
@@ -103,20 +104,27 @@ export function CrossChainClient() {
               </p>
             </header>
 
-            {/* Two-column layout */}
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 items-start'>
-              {/* Left column: Form and Quote Details */}
               <div className='flex flex-col gap-6'>
-                <SwapForm onSubmit={handleSubmit} isLoading={isLoading} isDisabled={isExecutionStarted} />
+                {chainConfig.isDiscovering && <DiscoveryLoading />}
 
-                {/* Show Quote Details only when not in tracking mode */}
+                {!chainConfig.isDiscovering && chainConfig.discoveryError && (
+                  <DiscoveryError error={chainConfig.discoveryError} onRetry={() => chainConfig.refetchAssets()} />
+                )}
+
+                {chainConfig.isDiscovered &&
+                  !chainConfig.discoveryError &&
+                  chainConfig.SUPPORTED_CHAINS.length === 0 && <DiscoveryEmpty />}
+
+                {chainConfig.isDiscovered && chainConfig.SUPPORTED_CHAINS.length > 0 && (
+                  <SwapForm onSubmit={handleSubmit} isLoading={isLoading} isDisabled={isExecutionStarted} />
+                )}
+
                 {selectedQuote && !isExecutionStarted && <QuoteDetails quote={selectedQuote} />}
               </div>
 
-              {/* Right column: Quotes List or Isolated Selected Quote + Tracking */}
               <div className='flex flex-col gap-4'>
                 {isExecutionStarted && selectedQuote ? (
-                  // Isolated selected quote + tracking during execution
                   <>
                     <div className='rounded-xl border border-border bg-background/50 p-4'>
                       <h3 className='text-sm font-semibold text-text-primary mb-3'>Selected Quote</h3>
@@ -133,7 +141,6 @@ export function CrossChainClient() {
                     <OrderTracking state={executionState} onReset={handleReset} />
                   </>
                 ) : (
-                  // Normal quote list
                   <QuoteList
                     quotes={quotes}
                     errors={errors}
@@ -155,7 +162,6 @@ export function CrossChainClient() {
           <Footer />
         </div>
 
-        {/* Toast notifications */}
         {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
       </div>
     </TooltipProvider>

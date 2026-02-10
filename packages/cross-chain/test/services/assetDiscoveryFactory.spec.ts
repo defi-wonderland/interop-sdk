@@ -137,7 +137,7 @@ describe("AssetDiscoveryFactory", () => {
             expect(service).not.toBeNull();
         });
 
-        it("should throw for custom-api config (not yet implemented)", () => {
+        it("should create CustomApiAssetDiscoveryService for custom-api config", () => {
             const factory = new AssetDiscoveryFactory();
 
             class CustomApiProvider extends CrossChainProvider {
@@ -159,7 +159,8 @@ describe("AssetDiscoveryFactory", () => {
 
             const provider = new CustomApiProvider();
 
-            expect(() => factory.createService(provider)).toThrow("not yet implemented");
+            const service = factory.createService(provider);
+            expect(service).not.toBeNull();
         });
     });
 

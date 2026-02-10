@@ -5,9 +5,7 @@ import {
     AbiEvent,
     Address,
     Chain,
-    createPublicClient,
     Hex,
-    http,
     Log,
     numberToHex,
     pad,
@@ -19,6 +17,7 @@ import { ZodError } from "zod";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
+    ACROSS_UNSUPPORTED_CHAIN_IDS,
     ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
     AcrossConfigs,
     AcrossConfigSchema,
@@ -30,9 +29,13 @@ import {
     AcrossMetadata,
     AcrossOIFGetQuoteParams,
     AcrossOIFGetQuoteParamsSchema,
+    AcrossToken,
+    acrossTokensResponseSchema,
     APIBasedFillWatcherConfig,
+    AssetInfo,
     bytes32ToAddress,
     CrossChainProvider,
+    CustomApiAssetDiscoveryConfig,
     CustomEventOpenedIntentParserConfig,
     EventBasedFillWatcherConfig,
     ExecutableQuote,
@@ -42,6 +45,7 @@ import {
     getChainById,
     GetFillParams,
     InvalidOpenEventError,
+    NetworkAssets,
     OpenedIntent,
     OpenedIntentParserConfig,
     OrderFailureReason,
@@ -50,6 +54,7 @@ import {
     ProviderConfigFailure,
     ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
+    PublicClientManager,
     QuoteWithAcross,
 } from "../internal.js";
 
@@ -67,7 +72,7 @@ export class AcrossProvider extends CrossChainProvider {
     readonly providerId: string;
     private readonly apiUrl: string;
     private readonly isTestnet: boolean;
-    private readonly rpcClientCache: Map<number, PublicClient> = new Map();
+    private readonly clientManager = new PublicClientManager();
 
     constructor(config: AcrossConfigs) {
         super();
@@ -93,19 +98,8 @@ export class AcrossProvider extends CrossChainProvider {
         }
     }
 
-    private async getPublicClient(chain: Chain): Promise<PublicClient> {
-        if (this.rpcClientCache.has(chain.id)) {
-            return this.rpcClientCache.get(chain.id)!;
-        }
-
-        const rpcClient = createPublicClient({
-            chain,
-            transport: http(),
-        });
-
-        this.rpcClientCache.set(chain.id, rpcClient);
-
-        return rpcClient;
+    private getPublicClient(chain: Chain): PublicClient {
+        return this.clientManager.getClient(chain);
     }
 
     /**
@@ -285,7 +279,7 @@ export class AcrossProvider extends CrossChainProvider {
     ): Promise<PrepareTransactionRequestReturnType | undefined> {
         try {
             const chain = getChainById(quote.swapTx.chainId);
-            const publicClient = await this.getPublicClient(chain);
+            const publicClient = this.getPublicClient(chain);
             const preparedTransaction = await publicClient.prepareTransactionRequest({
                 to: quote.swapTx.to,
                 data: quote.swapTx.data,
@@ -658,5 +652,61 @@ export class AcrossProvider extends CrossChainProvider {
             },
             fillWatcherConfig,
         };
+    }
+
+    override getDiscoveryConfig(): CustomApiAssetDiscoveryConfig {
+        return {
+            type: "custom-api",
+            config: {
+                assetsEndpoint: `${this.apiUrl}/swap/tokens`,
+                parseResponse: AcrossProvider.parseTokensResponse,
+            },
+        };
+    }
+
+    private static parseTokensResponse(data: unknown): NetworkAssets[] {
+        const tokens = acrossTokensResponseSchema.parse(data);
+        return AcrossProvider.groupTokensByChain(tokens);
+    }
+
+    private static groupTokensByChain(tokens: AcrossToken[]): NetworkAssets[] {
+        const chainMap = new Map<number, Map<string, AssetInfo>>();
+
+        for (const token of tokens) {
+            if (ACROSS_UNSUPPORTED_CHAIN_IDS.has(token.chainId)) {
+                continue;
+            }
+
+            const encoded = encodeAddress(
+                {
+                    version: 1,
+                    chainType: "eip155",
+                    chainReference: token.chainId.toString(),
+                    address: token.address as Address,
+                },
+                { format: "hex" },
+            );
+
+            const asset: AssetInfo = {
+                address: encoded as Address,
+                symbol: token.symbol,
+                decimals: token.decimals,
+            };
+
+            if (!chainMap.has(token.chainId)) {
+                chainMap.set(token.chainId, new Map());
+            }
+
+            const chainAssets = chainMap.get(token.chainId)!;
+            const normalizedAddress = token.address.toLowerCase();
+            if (!chainAssets.has(normalizedAddress)) {
+                chainAssets.set(normalizedAddress, asset);
+            }
+        }
+
+        return Array.from(chainMap.entries()).map(([chainId, assetsMap]) => ({
+            chainId,
+            assets: Array.from(assetsMap.values()),
+        }));
     }
 }

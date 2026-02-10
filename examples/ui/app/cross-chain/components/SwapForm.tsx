@@ -36,8 +36,8 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
 
   const [recipient, setRecipient] = useState('');
   const hasAutoFilledRef = useRef(false);
-  const [inputChainId, setInputChainId] = useState<number>(chainConfig.DEFAULT_INPUT_CHAIN_ID);
-  const [outputChainId, setOutputChainId] = useState<number>(chainConfig.DEFAULT_OUTPUT_CHAIN_ID);
+  const [inputChainId, setInputChainId] = useState(chainConfig.DEFAULT_INPUT_CHAIN_ID);
+  const [outputChainId, setOutputChainId] = useState(chainConfig.DEFAULT_OUTPUT_CHAIN_ID);
   const [inputTokenAddress, setInputTokenAddress] = useState(() => getDefaultToken(chainConfig.DEFAULT_INPUT_CHAIN_ID));
   const [outputTokenAddress, setOutputTokenAddress] = useState(() =>
     getDefaultToken(chainConfig.DEFAULT_OUTPUT_CHAIN_ID),

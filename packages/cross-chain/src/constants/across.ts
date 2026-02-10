@@ -162,3 +162,11 @@ export const ACROSS_SPOKE_POOL_DEPOSIT_ABI = [
         type: "function",
     },
 ] as const;
+
+/**
+ * Chain IDs returned by Across API that are not supported by this SDK
+ * These non-EVM chains are filtered out during asset discovery
+ */
+export const ACROSS_UNSUPPORTED_CHAIN_IDS: ReadonlySet<number> = new Set([
+    34268394551451, // Solana mainnet
+]);
