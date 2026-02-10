@@ -2,8 +2,12 @@ import { GetQuoteRequest } from "@openintentsframework/oif-specs";
 import { Hex } from "viem";
 
 import {
+    AssetDiscoveryOptions,
+    createAssetDiscoveryService,
     CrossChainProvider,
+    DiscoveredAssets,
     ExecutableQuote,
+    mergeDiscoveredAssets,
     OrderTracker,
     OrderTrackerFactory,
     OrderTrackingInfo,
@@ -212,6 +216,48 @@ class ProviderExecutor {
     }): Promise<OrderTrackingInfo> {
         const tracker = this.getOrCreateTracker(params.providerId);
         return tracker.getOrderStatus(params.txHash, params.originChainId);
+    }
+
+    /**
+     * Discover supported assets from all providers
+     *
+     * Aggregates asset discovery results from all registered providers into
+     * a single DiscoveredAssets structure with CAIP-2 chain keys and flat
+     * token metadata.
+     *
+     * @param options - Discovery options (chain filtering, caching)
+     * @returns Aggregated discovered assets
+     *
+     * @example
+     * ```typescript
+     * const discovered = await executor.discoverAssets({ chainIds: [1, 42161] });
+     *
+     * // Get tokens for Ethereum using CAIP-2 key
+     * const ethTokens = discovered.tokensByChain["eip155:1"];
+     *
+     * // Get metadata for a specific token (flat lookup)
+     * const usdc = discovered.tokenMetadata["0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"];
+     * ```
+     */
+    async discoverAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
+        const promises = Object.values(this.providers).map(async (provider) => {
+            try {
+                const service = createAssetDiscoveryService(provider);
+                if (!service) return null;
+                return await service.getSupportedAssets(options);
+            } catch {
+                return null;
+            }
+        });
+
+        const settled = await Promise.all(promises);
+        const results = settled.filter(Boolean) as DiscoveredAssets[];
+
+        if (results.length === 0) {
+            return { tokensByChain: {}, tokenMetadata: {}, chainIds: [] };
+        }
+
+        return mergeDiscoveredAssets(results);
     }
 
     /**

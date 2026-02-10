@@ -59,7 +59,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
     chainId: inputChainId,
   });
 
-  const inputTokenInfo = inputTokenAddress ? tokenConfig.TOKEN_INFO[inputChainId]?.[inputTokenAddress] : null;
+  const inputTokenInfo = inputTokenAddress ? tokenConfig.TOKEN_INFO[inputTokenAddress] : null;
   const displayBalance = tokenBalance ? formatAmount(tokenBalance.value.toString(), inputTokenInfo?.decimals) : '-';
 
   const amountIsValid = useMemo(() => isValidAmount(inputAmount), [inputAmount]);
@@ -92,7 +92,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
       return;
     }
     const finalRecipient = recipient.trim() || connectedAddress;
-    const tokenInfo = tokenConfig.TOKEN_INFO[inputChainId]?.[inputTokenAddress];
+    const tokenInfo = tokenConfig.TOKEN_INFO[inputTokenAddress];
     const decimals = tokenInfo?.decimals || 18;
     const inputAmountRaw = parseUnits(inputAmount, decimals);
 
@@ -198,7 +198,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {inputTokens.map((token) => {
-                const info = tokenConfig.TOKEN_INFO[inputChainId]?.[token];
+                const info = tokenConfig.TOKEN_INFO[token];
                 return (
                   <option key={token} value={token}>
                     {info?.symbol || token.slice(0, 8)}
@@ -233,7 +233,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {outputTokens.map((token) => {
-                const info = tokenConfig.TOKEN_INFO[outputChainId]?.[token];
+                const info = tokenConfig.TOKEN_INFO[token];
                 return (
                   <option key={token} value={token}>
                     {info?.symbol || token.slice(0, 8)}

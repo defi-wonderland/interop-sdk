@@ -131,6 +131,51 @@ if (selectedQuote?.preparedTransaction) {
     -   `.track(params)` – Track an existing transaction.
     -   `.getOrderStatus(params)` – Get current status without watching.
 
+### Asset Discovery
+
+The SDK provides utilities to discover supported assets from providers. All discovery methods return a pre-processed `DiscoveredAssets` structure ready for consumption.
+
+**Via ProviderExecutor (recommended):**
+
+```typescript
+import { createProviderExecutor, toCaip2ChainId } from "@wonderland/interop-cross-chain";
+
+const executor = createProviderExecutor({ providers: [acrossProvider] });
+
+// Discover assets from all configured providers
+const discovered = await executor.discoverAssets({ chainIds: [1, 42161] });
+
+// Get tokens for Ethereum using CAIP-2 key
+const ethTokens = discovered.tokensByChain[toCaip2ChainId(1)]; // "eip155:1"
+
+// Get metadata for a specific token (flat lookup by interop address)
+const usdc = discovered.tokenMetadata["0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"];
+console.log(usdc.symbol); // "USDC"
+console.log(usdc.decimals); // 6
+```
+
+**Via individual service:**
+
+```typescript
+import { createAssetDiscoveryService, toCaip2ChainId } from "@wonderland/interop-cross-chain";
+
+const service = createAssetDiscoveryService(provider);
+const discovered = await service.getSupportedAssets(); // Returns DiscoveredAssets directly
+
+const ethTokens = discovered.tokensByChain[toCaip2ChainId(1)];
+```
+
+**Key concepts:**
+
+-   **CAIP-2 chain keys**: Chain identifiers use CAIP-2 format (e.g., `"eip155:1"` for Ethereum mainnet). Use `toCaip2ChainId(numericChainId)` to convert from viem's numeric chain ID.
+-   **EIP-7930 interop addresses**: All addresses in `tokensByChain` and `tokenMetadata` use the EIP-7930 interoperable format. Use `decodeAddress` from `@wonderland/interop-addresses` when you need the plain `0x` address for display or wallet interaction.
+-   **Flat metadata**: `tokenMetadata` is keyed directly by interop address (globally unique), not nested by chain.
+
+**Types:**
+
+-   `DiscoveredAssets` – Aggregated discovery result with `tokensByChain`, `tokenMetadata`, and `chainIds`.
+-   `AssetInfo` – Token metadata: `{ address, symbol, decimals }`.
+
 ### Types
 
 -   `GetQuoteRequest` – OIF-compliant quote request (see `@openintentsframework/oif-specs`).

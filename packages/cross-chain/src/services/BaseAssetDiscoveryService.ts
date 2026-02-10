@@ -6,8 +6,10 @@ import {
     AssetDiscoveryOptions,
     AssetDiscoveryResult,
     AssetInfo,
+    DiscoveredAssets,
     NetworkAssets,
 } from "../types/assetDiscovery.js";
+import { toDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
 
 /**
  * Shared configuration for all asset discovery services
@@ -78,8 +80,86 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
     protected abstract fetchAssets(timeout: number): Promise<AssetDiscoveryResult>;
     /**
      * Get all supported assets across all chains
+     *
+     * Returns a pre-processed DiscoveredAssets structure ready for consumption.
      */
-    async getSupportedAssets(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
+    async getSupportedAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
+        if (!options?.forceRefresh) {
+            if (this.isCacheValid()) {
+                return this.toDiscoveredAssets(this.cache!.data, options?.chainIds);
+            }
+            if (this.inFlight) {
+                const result = await this.inFlight;
+                return this.toDiscoveredAssets(result, options?.chainIds);
+            }
+        }
+
+        const requestTimeout = options?.timeout ?? this.timeout;
+
+        this.inFlight = this.fetchAssets(requestTimeout)
+            .then((result) => {
+                this.cache = {
+                    data: result,
+                    expiresAt: Date.now() + this.cacheTtl,
+                };
+                return result;
+            })
+            .finally(() => {
+                this.inFlight = null;
+            });
+
+        const result = await this.inFlight;
+        return this.toDiscoveredAssets(result, options?.chainIds);
+    }
+
+    /**
+     * Transform raw discovery result to DiscoveredAssets format
+     */
+    private toDiscoveredAssets(
+        result: AssetDiscoveryResult,
+        chainIds?: number[],
+    ): DiscoveredAssets {
+        return toDiscoveredAssets([result], chainIds);
+    }
+
+    /**
+     * Get supported assets for a specific chain
+     */
+    async getAssetsForChain(
+        chainId: number,
+        options?: AssetDiscoveryOptions,
+    ): Promise<NetworkAssets | null> {
+        const rawResult = await this.getRawResult(options);
+        return rawResult.networks.find((n) => n.chainId === chainId) ?? null;
+    }
+
+    /**
+     * Check if a specific asset is supported
+     */
+    async isAssetSupported(
+        chainId: number,
+        assetAddress: string,
+        options?: AssetDiscoveryOptions,
+    ): Promise<AssetInfo | null> {
+        const network = await this.getAssetsForChain(chainId, options);
+        if (!network) return null;
+
+        const normalizedAddress = assetAddress.toLowerCase();
+        return network.assets.find((a) => a.address.toLowerCase() === normalizedAddress) ?? null;
+    }
+
+    /**
+     * Get the list of supported chain IDs
+     */
+    async getSupportedChainIds(options?: AssetDiscoveryOptions): Promise<number[]> {
+        const rawResult = await this.getRawResult(options);
+        return rawResult.networks.map((n) => n.chainId);
+    }
+
+    /**
+     * Get raw discovery result (internal use for helper methods)
+     */
+    private async getRawResult(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
         if (!options?.forceRefresh) {
             if (this.isCacheValid()) {
                 return this.applyFilter(this.cache!.data, options?.chainIds);
@@ -108,41 +188,14 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
         return this.applyFilter(result, options?.chainIds);
     }
 
-    /**
-     * Get supported assets for a specific chain
-     */
-    async getAssetsForChain(
-        chainId: number,
-        options?: AssetDiscoveryOptions,
-    ): Promise<NetworkAssets | null> {
-        const result = await this.getSupportedAssets({
-            ...options,
-            chainIds: [chainId],
-        });
-        return result.networks.find((n) => n.chainId === chainId) ?? null;
-    }
+    private applyFilter(result: AssetDiscoveryResult, chainIds?: number[]): AssetDiscoveryResult {
+        if (!chainIds?.length) return result;
 
-    /**
-     * Check if a specific asset is supported
-     */
-    async isAssetSupported(
-        chainId: number,
-        assetAddress: string,
-        options?: AssetDiscoveryOptions,
-    ): Promise<AssetInfo | null> {
-        const network = await this.getAssetsForChain(chainId, options);
-        if (!network) return null;
-
-        const normalizedAddress = assetAddress.toLowerCase();
-        return network.assets.find((a) => a.address.toLowerCase() === normalizedAddress) ?? null;
-    }
-
-    /**
-     * Get the list of supported chain IDs
-     */
-    async getSupportedChainIds(options?: AssetDiscoveryOptions): Promise<number[]> {
-        const result = await this.getSupportedAssets(options);
-        return result.networks.map((n) => n.chainId);
+        const chainIdSet = new Set(chainIds);
+        return {
+            ...result,
+            networks: result.networks.filter((n) => chainIdSet.has(n.chainId)),
+        };
     }
 
     /**
@@ -213,15 +266,5 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
 
     private isCacheValid(): boolean {
         return this.cache !== null && Date.now() < this.cache.expiresAt;
-    }
-
-    private applyFilter(result: AssetDiscoveryResult, chainIds?: number[]): AssetDiscoveryResult {
-        if (!chainIds?.length) return result;
-
-        const chainIdSet = new Set(chainIds);
-        return {
-            ...result,
-            networks: result.networks.filter((n) => chainIdSet.has(n.chainId)),
-        };
     }
 }

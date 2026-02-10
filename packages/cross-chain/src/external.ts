@@ -24,4 +24,5 @@ export {
     AssetDiscoveryFactory,
     createAssetDiscoveryService,
     createOIFAssetDiscoveryService,
+    toCaip2ChainId,
 } from "./internal.js";

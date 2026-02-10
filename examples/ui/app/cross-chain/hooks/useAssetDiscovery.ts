@@ -1,22 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { decodeAddress } from '@wonderland/interop-addresses';
-import { getAssetDiscoveryServices } from '../services/sdk';
-import type { AssetDiscoveryResult, TokenInfo } from '@wonderland/interop-cross-chain';
-import type { Hex } from 'viem';
-
-/**
- * Discovered assets in UI-friendly format
- */
-export interface DiscoveredAssets {
-  /** Tokens by chain ID (chainId -> token addresses) */
-  supportedTokensByChain: Record<number, readonly string[]>;
-  /** Token info by chain and address (chainId -> address -> info) */
-  tokenInfo: Record<number, Record<string, TokenInfo>>;
-  /** All supported chain IDs */
-  supportedChainIds: number[];
-}
+import { crossChainExecutor } from '../services/sdk';
+import type { DiscoveredAssets } from '@wonderland/interop-cross-chain';
 
 interface UseAssetDiscoveryResult {
   /** Discovered assets, null if not yet loaded */
@@ -32,63 +18,10 @@ interface UseAssetDiscoveryResult {
 }
 
 /**
- * Transform SDK discovery result to UI-friendly format
- * Handles EIP-7930 address decoding
- */
-function transformDiscoveryResult(results: AssetDiscoveryResult[], filterChainIds?: number[]): DiscoveredAssets {
-  const supportedTokensByChain: Record<number, string[]> = {};
-  const tokenInfo: Record<number, Record<string, TokenInfo>> = {};
-  const chainIdSet = new Set<number>();
-
-  for (const result of results) {
-    for (const network of result.networks) {
-      const { chainId, assets } = network;
-
-      if (filterChainIds && !filterChainIds.includes(chainId)) {
-        continue;
-      }
-
-      chainIdSet.add(chainId);
-
-      if (!supportedTokensByChain[chainId]) {
-        supportedTokensByChain[chainId] = [];
-      }
-      if (!tokenInfo[chainId]) {
-        tokenInfo[chainId] = {};
-      }
-
-      for (const asset of assets) {
-        let rawAddress: string;
-        try {
-          const decoded = decodeAddress(asset.address as Hex);
-          rawAddress = decoded.address ?? asset.address;
-        } catch {
-          rawAddress = asset.address;
-        }
-
-        const normalizedAddress = rawAddress;
-
-        if (!supportedTokensByChain[chainId].includes(normalizedAddress)) {
-          supportedTokensByChain[chainId].push(normalizedAddress);
-        }
-
-        tokenInfo[chainId][normalizedAddress] = {
-          symbol: asset.symbol,
-          decimals: asset.decimals,
-        };
-      }
-    }
-  }
-
-  return {
-    supportedTokensByChain,
-    tokenInfo,
-    supportedChainIds: Array.from(chainIdSet).sort((a, b) => a - b),
-  };
-}
-
-/**
  * Hook to discover supported assets from all providers.
+ *
+ * Uses the ProviderExecutor.discoverAssets() method which aggregates results
+ * from all configured providers and returns a DiscoveredAssets structure.
  *
  * @param options.chainIds - Filter results to specific chain IDs.
  *   **Must be a stable reference** (e.g. via useMemo) to avoid infinite refetches.
@@ -110,27 +43,16 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
       setError(null);
 
       try {
-        const services = getAssetDiscoveryServices();
-        const promises = Array.from(services.values()).map(async (service) => {
-          try {
-            return await service.getSupportedAssets({
-              chainIds,
-              forceRefresh,
-            });
-          } catch (err) {
-            console.warn('Asset discovery failed for a provider:', err);
-            return null;
-          }
+        const discovered = await crossChainExecutor.discoverAssets({
+          chainIds,
+          forceRefresh,
         });
 
-        const settled = await Promise.all(promises);
-        const results = settled.filter(Boolean) as AssetDiscoveryResult[];
-
-        if (results.length === 0) {
+        if (discovered.chainIds.length === 0) {
           throw new Error('No assets discovered from any provider');
         }
 
-        setAssets(transformDiscoveryResult(results, chainIds));
+        setAssets(discovered);
         setLastFetchedAt(Date.now());
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)));
