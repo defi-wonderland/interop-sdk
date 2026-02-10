@@ -6,6 +6,7 @@ import {
     AssetDiscoveryResult,
     BaseAssetDiscoveryService,
     BaseAssetDiscoveryServiceConfig,
+    toCaip2ChainId,
 } from "../../src/internal.js";
 
 /**
@@ -167,34 +168,37 @@ describe("BaseAssetDiscoveryService", () => {
     });
 
     describe("chainIds filtering", () => {
-        it("should filter networks by chainIds", async () => {
+        it("should filter by chainIds", async () => {
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
-            expect(result.networks).toHaveLength(1);
-            expect(result.networks[0]?.chainId).toBe(1);
+            expect(result.chainIds).toHaveLength(1);
+            expect(result.chainIds).toContain(toCaip2ChainId(1));
         });
 
-        it("should return all networks when chainIds is not provided", async () => {
+        it("should return all chains when chainIds is not provided", async () => {
             const result = await service.getSupportedAssets();
 
-            expect(result.networks).toHaveLength(2);
+            expect(result.chainIds).toHaveLength(2);
+            expect(result.chainIds).toContain(toCaip2ChainId(1));
+            expect(result.chainIds).toContain(toCaip2ChainId(137));
         });
 
-        it("should return empty networks array when chainIds matches nothing", async () => {
+        it("should return empty when chainIds matches nothing", async () => {
             const result = await service.getSupportedAssets({ chainIds: [999] });
 
-            expect(result.networks).toHaveLength(0);
+            expect(result.chainIds).toHaveLength(0);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(0);
         });
 
         it("should apply filter to cached result", async () => {
-            // First call populates cache with all networks
+            // First call populates cache with all chains
             const full = await service.getSupportedAssets();
-            expect(full.networks).toHaveLength(2);
+            expect(full.chainIds).toHaveLength(2);
 
             // Second call with filter should return filtered cached result
             const filtered = await service.getSupportedAssets({ chainIds: [137] });
-            expect(filtered.networks).toHaveLength(1);
-            expect(filtered.networks[0]?.chainId).toBe(137);
+            expect(filtered.chainIds).toHaveLength(1);
+            expect(filtered.chainIds).toContain(toCaip2ChainId(137));
 
             // Only one fetch should have occurred
             expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -223,8 +227,8 @@ describe("BaseAssetDiscoveryService", () => {
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
             // Both results should be equivalent
-            expect(result1.networks).toHaveLength(2);
-            expect(result2.networks).toHaveLength(2);
+            expect(result1.chainIds).toHaveLength(2);
+            expect(result2.chainIds).toHaveLength(2);
         });
 
         it("should not dedupe concurrent forceRefresh calls", async () => {
@@ -238,8 +242,8 @@ describe("BaseAssetDiscoveryService", () => {
             // forceRefresh bypasses in-flight dedup, so each call triggers a separate fetch
             expect(fetchMock).toHaveBeenCalledTimes(2);
 
-            expect(result1.networks).toHaveLength(2);
-            expect(result2.networks).toHaveLength(2);
+            expect(result1.chainIds).toHaveLength(2);
+            expect(result2.chainIds).toHaveLength(2);
         });
 
         it("should clear in-flight state on failure and allow retry", async () => {
@@ -253,7 +257,7 @@ describe("BaseAssetDiscoveryService", () => {
             const result = await service.getSupportedAssets();
 
             expect(fetchMock).toHaveBeenCalledTimes(2);
-            expect(result.networks).toHaveLength(2);
+            expect(result.chainIds).toHaveLength(2);
         });
 
         it("should apply different chainIds filters to same deduped result", async () => {
@@ -273,11 +277,11 @@ describe("BaseAssetDiscoveryService", () => {
 
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
-            expect(result1.networks).toHaveLength(1);
-            expect(result1.networks[0]?.chainId).toBe(1);
+            expect(result1.chainIds).toHaveLength(1);
+            expect(result1.chainIds).toContain(toCaip2ChainId(1));
 
-            expect(result2.networks).toHaveLength(1);
-            expect(result2.networks[0]?.chainId).toBe(137);
+            expect(result2.chainIds).toHaveLength(1);
+            expect(result2.chainIds).toContain(toCaip2ChainId(137));
         });
     });
 

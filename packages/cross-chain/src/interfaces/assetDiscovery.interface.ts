@@ -7,8 +7,8 @@
 
 import type {
     AssetDiscoveryOptions,
-    AssetDiscoveryResult,
     AssetInfo,
+    DiscoveredAssets,
     NetworkAssets,
 } from "../types/assetDiscovery.js";
 
@@ -19,10 +19,15 @@ export interface AssetDiscoveryService {
     /**
      * Get all supported assets across all chains
      *
+     * Returns a pre-processed DiscoveredAssets structure with:
+     * - tokensByChain: CAIP-2 chain keys → EIP-7930 token addresses
+     * - tokenMetadata: flat lookup by interop address → AssetInfo
+     * - chainIds: sorted CAIP-2 identifiers
+     *
      * @param options - Discovery options (filtering, caching)
-     * @returns Discovery result with networks and assets
+     * @returns Aggregated discovery result ready for consumption
      */
-    getSupportedAssets(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult>;
+    getSupportedAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets>;
     /**
      * Get supported assets for a specific chain
      *

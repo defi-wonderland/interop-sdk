@@ -1,21 +1,19 @@
 import { parseUnits } from 'viem';
-import type { TokenInfo } from '@wonderland/interop-cross-chain';
+import type { AssetInfo } from '@wonderland/interop-cross-chain';
 
 /**
  * Converts a human-readable amount to the smallest unit (wei/smallest unit)
  * @param amount - Human-readable amount (e.g., "0.01")
- * @param tokenAddress - Token address to get decimals from
- * @param chainId - Chain ID where the token exists
- * @param tokenInfo - Token info map by chain ID and token address
+ * @param tokenAddress - Token address (EIP-7930 interop format) to get decimals from
+ * @param tokenMetadata - Flat token metadata map keyed by interop address
  * @returns Amount in smallest unit as string
  */
 export function convertAmountToSmallestUnit(
   amount: string,
   tokenAddress: string,
-  chainId: number,
-  tokenInfo: Record<number, Record<string, TokenInfo>>,
+  tokenMetadata: Record<string, AssetInfo>,
 ): string {
-  const token = tokenInfo[chainId]?.[tokenAddress];
+  const token = tokenMetadata[tokenAddress];
   const decimals = token?.decimals || 18;
 
   try {

@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
+import { toCaip2ChainId, type AssetInfo } from '@wonderland/interop-cross-chain';
 import { base, arbitrum, sepolia, baseSepolia, type Chain } from 'viem/chains';
 import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
 import { useIsTestnet, useDiscoveredAssetsSafe } from '../providers';
-import type { TokenInfo } from '@wonderland/interop-cross-chain';
 
 /**
  * Hook to get network-specific token configuration
@@ -21,31 +21,28 @@ export function useTokenConfig() {
 
     if (!discoveryContext?.discoveredAssets) {
       return {
-        SUPPORTED_TOKEN_BY_CHAIN_ID: {} as Record<number, readonly string[]>,
-        TOKEN_INFO: {} as Record<number, Record<string, TokenInfo>>,
+        SUPPORTED_TOKEN_BY_CHAIN_ID: {} as Record<string, readonly string[]>,
+        TOKEN_INFO: {} as Record<string, AssetInfo>,
         isDiscovered: false,
         isDiscovering: discoveryContext?.isDiscovering ?? true,
         discoveryError: discoveryContext?.discoveryError ?? null,
       };
     }
 
-    const { supportedTokensByChain, tokenInfo } = discoveryContext.discoveredAssets;
+    const { tokensByChain, tokenMetadata } = discoveryContext.discoveredAssets;
 
-    const filteredTokensByChain: Record<number, readonly string[]> = {};
-    const filteredTokenInfo: Record<number, Record<string, TokenInfo>> = {};
+    const filteredTokensByChain: Record<string, readonly string[]> = {};
 
     for (const chainId of configuredChainIds) {
-      if (supportedTokensByChain[chainId]?.length > 0) {
-        filteredTokensByChain[chainId] = supportedTokensByChain[chainId];
-      }
-      if (tokenInfo[chainId] && Object.keys(tokenInfo[chainId]).length > 0) {
-        filteredTokenInfo[chainId] = tokenInfo[chainId];
+      const key = toCaip2ChainId(chainId);
+      if (tokensByChain[key]?.length > 0) {
+        filteredTokensByChain[key] = tokensByChain[key];
       }
     }
 
     return {
       SUPPORTED_TOKEN_BY_CHAIN_ID: filteredTokensByChain,
-      TOKEN_INFO: filteredTokenInfo,
+      TOKEN_INFO: tokenMetadata,
       isDiscovered: true,
       isDiscovering: false,
       discoveryError: null,
@@ -83,9 +80,9 @@ export function useChainConfig() {
       };
     }
 
-    const { supportedChainIds } = discoveryContext.discoveredAssets;
+    const { chainIds } = discoveryContext.discoveredAssets;
 
-    const SUPPORTED_CHAINS = allConfiguredChains.filter((chain) => supportedChainIds.includes(chain.id));
+    const SUPPORTED_CHAINS = allConfiguredChains.filter((chain) => chainIds.includes(toCaip2ChainId(chain.id)));
 
     const defaultInput = isTestnet ? sepolia.id : base.id;
     const defaultOutput = isTestnet ? baseSepolia.id : arbitrum.id;

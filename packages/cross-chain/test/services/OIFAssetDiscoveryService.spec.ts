@@ -1,7 +1,11 @@
 import axios, { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AssetDiscoveryFailure, OIFAssetDiscoveryService } from "../../src/internal.js";
+import {
+    AssetDiscoveryFailure,
+    OIFAssetDiscoveryService,
+    toCaip2ChainId,
+} from "../../src/internal.js";
 
 vi.mock("axios");
 
@@ -54,7 +58,7 @@ describe("OIFAssetDiscoveryService", () => {
     });
 
     describe("getSupportedAssets", () => {
-        it("should fetch, transform snake_case to camelCase, and return all supported assets", async () => {
+        it("should fetch, transform, and return DiscoveredAssets", async () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
                 status: 200,
                 data: mockApiResponse,
@@ -64,14 +68,17 @@ describe("OIFAssetDiscoveryService", () => {
 
             expect(axios.get).toHaveBeenCalledWith(`${baseUrl}/api/tokens`, expect.anything());
 
-            expect(result.networks).toHaveLength(2);
-            expect(result.providerId).toBe(providerId);
-            expect(result.fetchedAt).toBeGreaterThan(0);
+            // Returns DiscoveredAssets format
+            expect(result.chainIds).toHaveLength(2);
+            expect(result.chainIds).toContain(toCaip2ChainId(1));
+            expect(result.chainIds).toContain(toCaip2ChainId(137));
 
-            // Verify snake_case to camelCase transformation
-            const ethereum = result.networks.find((n) => n.chainId === 1);
-            expect(ethereum?.chainId).toBe(1); // chain_id → chainId
-            expect(ethereum?.assets).toHaveLength(2);
+            // Verify tokensByChain has the expected tokens
+            const ethTokens = result.tokensByChain[toCaip2ChainId(1)];
+            expect(ethTokens).toHaveLength(2);
+
+            // Verify tokenMetadata is populated
+            expect(Object.keys(result.tokenMetadata)).toHaveLength(3); // 2 on chain 1 + 1 on chain 137
         });
 
         it("should cache results and bypass cache when forceRefresh is true", async () => {
@@ -93,7 +100,7 @@ describe("OIFAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(2);
         });
 
-        it("should filter networks by chainIds when provided", async () => {
+        it("should filter by chainIds when provided", async () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
                 status: 200,
                 data: mockApiResponse,
@@ -101,8 +108,8 @@ describe("OIFAssetDiscoveryService", () => {
 
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
-            expect(result.networks).toHaveLength(1);
-            expect(result.networks[0]?.chainId).toBe(1);
+            expect(result.chainIds).toHaveLength(1);
+            expect(result.chainIds).toContain(toCaip2ChainId(1));
         });
     });
 
@@ -313,9 +320,8 @@ describe("OIFAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(1);
 
             // Both results should be equivalent
-            expect(result1.networks).toHaveLength(2);
-            expect(result2.networks).toHaveLength(2);
-            expect(result1.providerId).toBe(result2.providerId);
+            expect(result1.chainIds).toHaveLength(2);
+            expect(result2.chainIds).toHaveLength(2);
         });
 
         it("should not dedupe concurrent forceRefresh calls", async () => {
@@ -335,8 +341,8 @@ describe("OIFAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(2);
 
             // Both results should be equivalent
-            expect(result1.networks).toHaveLength(2);
-            expect(result2.networks).toHaveLength(2);
+            expect(result1.chainIds).toHaveLength(2);
+            expect(result2.chainIds).toHaveLength(2);
         });
 
         it("should clear in-flight state on failure and allow retry", async () => {
@@ -357,7 +363,7 @@ describe("OIFAssetDiscoveryService", () => {
 
             // Should have made two API calls total
             expect(axios.get).toHaveBeenCalledTimes(2);
-            expect(result.networks).toHaveLength(2);
+            expect(result.chainIds).toHaveLength(2);
         });
 
         it("should apply chainIds filter to deduped result", async () => {
@@ -386,11 +392,11 @@ describe("OIFAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(1);
 
             // Each result should have its own filter applied
-            expect(result1.networks).toHaveLength(1);
-            expect(result1.networks[0]?.chainId).toBe(1);
+            expect(result1.chainIds).toHaveLength(1);
+            expect(result1.chainIds).toContain(toCaip2ChainId(1));
 
-            expect(result2.networks).toHaveLength(1);
-            expect(result2.networks[0]?.chainId).toBe(137);
+            expect(result2.chainIds).toHaveLength(1);
+            expect(result2.chainIds).toContain(toCaip2ChainId(137));
         });
     });
 });

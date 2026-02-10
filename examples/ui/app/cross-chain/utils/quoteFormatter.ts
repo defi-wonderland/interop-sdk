@@ -1,8 +1,7 @@
 import { UNKNOWN_TOKEN_SYMBOL, NOT_AVAILABLE } from '../constants';
 import { getProviderDisplayName } from '../services/sdk';
 import { formatAmount, formatPercentage, formatETA, formatUsdAmount } from './formatting';
-import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
-import type { TokenInfo } from '@wonderland/interop-cross-chain';
+import type { ExecutableQuote, AssetInfo } from '@wonderland/interop-cross-chain';
 
 export interface FormattedQuoteData {
   inputAmount: string;
@@ -32,10 +31,10 @@ export function formatQuoteData(
   outputTokenAddress: string,
   inputChainId: number,
   outputChainId: number,
-  tokenInfo: Record<number, Record<string, TokenInfo>>,
+  tokenMetadata: Record<string, AssetInfo>,
 ): FormattedQuoteData {
-  const inputTokenInfo = tokenInfo[inputChainId]?.[inputTokenAddress];
-  const outputTokenInfo = tokenInfo[outputChainId]?.[outputTokenAddress];
+  const inputTokenInfo = tokenMetadata[inputTokenAddress];
+  const outputTokenInfo = tokenMetadata[outputTokenAddress];
 
   const preview = quote.preview;
   const inputPreview = preview?.inputs?.[0];

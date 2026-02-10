@@ -6,6 +6,7 @@ import {
     AssetDiscoveryFailure,
     CustomApiAssetDiscoveryService,
     NetworkAssets,
+    toCaip2ChainId,
 } from "../../src/internal.js";
 
 vi.mock("axios");
@@ -71,7 +72,7 @@ describe("CustomApiAssetDiscoveryService", () => {
     });
 
     describe("getSupportedAssets", () => {
-        it("should fetch and return all supported assets", async () => {
+        it("should fetch and return DiscoveredAssets", async () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
                 status: 200,
                 data: mockApiResponse,
@@ -81,12 +82,14 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             expect(axios.get).toHaveBeenCalledWith(assetsEndpoint, expect.anything());
 
-            expect(result.networks).toHaveLength(2);
-            expect(result.providerId).toBe(providerId);
-            expect(result.fetchedAt).toBeGreaterThan(0);
+            // Returns DiscoveredAssets format
+            expect(result.chainIds).toHaveLength(2);
+            expect(result.chainIds).toContain(toCaip2ChainId(1));
+            expect(result.chainIds).toContain(toCaip2ChainId(137));
 
-            const ethereum = result.networks.find((n) => n.chainId === 1);
-            expect(ethereum?.assets).toHaveLength(2);
+            // Verify tokensByChain has the expected tokens
+            const ethTokens = result.tokensByChain[toCaip2ChainId(1)];
+            expect(ethTokens).toHaveLength(2);
         });
 
         it("should use cache on subsequent calls", async () => {
@@ -127,8 +130,8 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
-            expect(result.networks).toHaveLength(1);
-            expect(result.networks[0]?.chainId).toBe(1);
+            expect(result.chainIds).toHaveLength(1);
+            expect(result.chainIds).toContain(toCaip2ChainId(1));
         });
 
         it("should handle empty response array", async () => {
@@ -140,7 +143,7 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             const result = await service.getSupportedAssets();
 
-            expect(result.networks).toHaveLength(0);
+            expect(result.chainIds).toHaveLength(0);
         });
 
         it("should include custom headers in requests", async () => {
@@ -486,9 +489,8 @@ describe("CustomApiAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(1);
 
             // Both results should be equivalent
-            expect(result1.networks).toHaveLength(2);
-            expect(result2.networks).toHaveLength(2);
-            expect(result1.providerId).toBe(result2.providerId);
+            expect(result1.chainIds).toHaveLength(2);
+            expect(result2.chainIds).toHaveLength(2);
         });
 
         it("should not dedupe concurrent forceRefresh calls", async () => {
@@ -508,8 +510,8 @@ describe("CustomApiAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(2);
 
             // Both results should be equivalent
-            expect(result1.networks).toHaveLength(2);
-            expect(result2.networks).toHaveLength(2);
+            expect(result1.chainIds).toHaveLength(2);
+            expect(result2.chainIds).toHaveLength(2);
         });
 
         it("should clear in-flight state on failure and allow retry", async () => {
@@ -530,7 +532,7 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             // Should have made two API calls total
             expect(axios.get).toHaveBeenCalledTimes(2);
-            expect(result.networks).toHaveLength(2);
+            expect(result.chainIds).toHaveLength(2);
         });
 
         it("should apply chainIds filter to deduped result", async () => {
@@ -559,11 +561,11 @@ describe("CustomApiAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(1);
 
             // Each result should have its own filter applied
-            expect(result1.networks).toHaveLength(1);
-            expect(result1.networks[0]?.chainId).toBe(1);
+            expect(result1.chainIds).toHaveLength(1);
+            expect(result1.chainIds).toContain(toCaip2ChainId(1));
 
-            expect(result2.networks).toHaveLength(1);
-            expect(result2.networks[0]?.chainId).toBe(137);
+            expect(result2.chainIds).toHaveLength(1);
+            expect(result2.chainIds).toContain(toCaip2ChainId(137));
         });
     });
 });

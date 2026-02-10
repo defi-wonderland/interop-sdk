@@ -51,7 +51,6 @@ export function useQuotes(): UseQuotesReturn {
       const amountInSmallestUnit = convertAmountToSmallestUnit(
         params.inputAmount,
         params.inputTokenAddress,
-        params.inputChainId,
         tokenConfig.TOKEN_INFO,
       );
 
