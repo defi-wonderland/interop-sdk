@@ -1,6 +1,10 @@
 import axios from "axios";
 import { ZodError } from "zod";
 
+import {
+    buildAggregatorSolverEndpoint,
+    parseAggregatorSolverResponse,
+} from "../adapters/assetDiscoveryAdapter.js";
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import { getAssetsResponseSchema } from "../schemas/assetDiscovery.js";
 import { AssetDiscoveryResult } from "../types/assetDiscovery.js";
@@ -18,6 +22,13 @@ export interface OIFAssetDiscoveryServiceConfig extends BaseAssetDiscoveryServic
      * @example "https://api.solver.com"
      */
     baseUrl: string;
+    /**
+     * Solver ID — when present, uses aggregator workaround endpoint
+     * instead of spec-compliant GET /api/tokens.
+     *
+     * @see https://github.com/openintentsframework/oif-aggregator/issues/TODO
+     */
+    solverId?: string;
 }
 
 /**
@@ -25,19 +36,30 @@ export interface OIFAssetDiscoveryServiceConfig extends BaseAssetDiscoveryServic
  *
  * Fetches supported assets from OIF-compliant solvers using the standard
  * /api/tokens endpoint. Includes in-memory caching with configurable TTL.
+ *
+ * WORKAROUND: When solverId is provided, uses GET /v1/solvers/{solverId}
+ * instead of GET /api/tokens (aggregator does not expose the spec endpoint yet).
+ * @see https://github.com/openintentsframework/oif-aggregator/issues/TODO
  */
 export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
     private readonly baseUrl: string;
+    private readonly solverId?: string;
 
     constructor(config: OIFAssetDiscoveryServiceConfig) {
         super(config);
         this.baseUrl = config.baseUrl.replace(/\/$/, ""); // Remove trailing slash
+        this.solverId = config.solverId;
     }
 
     /**
      * Fetch assets from the OIF API
      */
     protected async fetchAssets(timeout: number): Promise<AssetDiscoveryResult> {
+        // WORKAROUND: aggregator doesn't expose GET /api/tokens yet
+        if (this.solverId) {
+            return this.fetchAssetsViaWorkaround(timeout);
+        }
+
         const url = `${this.baseUrl}/api/tokens`;
 
         try {
@@ -78,6 +100,44 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
             }
 
             throw this.wrapError(error, "OIF API", url, timeout);
+        }
+    }
+
+    /**
+     * WORKAROUND: Fetch assets via aggregator's GET /v1/solvers/{solverId}
+     *
+     * Remove when aggregator implements GET /api/tokens.
+     * @see https://github.com/openintentsframework/oif-aggregator/issues/TODO
+     */
+    private async fetchAssetsViaWorkaround(timeout: number): Promise<AssetDiscoveryResult> {
+        const url = buildAggregatorSolverEndpoint(this.baseUrl, this.solverId!);
+
+        try {
+            const response = await axios.get(url, {
+                headers: this.headers ?? {},
+                timeout,
+            });
+
+            if (response.status !== 200) {
+                throw new AssetDiscoveryFailure(
+                    "Failed to fetch assets from OIF aggregator",
+                    `Unexpected status code: ${response.status}. URL: ${url}`,
+                );
+            }
+
+            const networks = parseAggregatorSolverResponse(response.data);
+
+            return {
+                networks,
+                fetchedAt: Date.now(),
+                providerId: this.providerId,
+            };
+        } catch (error) {
+            if (error instanceof AssetDiscoveryFailure) {
+                throw error;
+            }
+
+            throw this.wrapError(error, "OIF aggregator (workaround)", url, timeout);
         }
     }
 }

@@ -2,8 +2,9 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { MAINNET_CHAINS, TESTNET_CHAINS } from '../constants/chains';
-import { useAssetDiscovery, type DiscoveredAssets } from '../hooks/useAssetDiscovery';
+import { useAssetDiscovery } from '../hooks/useAssetDiscovery';
 import { useIsTestnet } from './NetworkProvider';
+import type { DiscoveredAssets } from '../types/assets';
 
 interface AssetDiscoveryContextValue {
   /** Discovered assets from providers */

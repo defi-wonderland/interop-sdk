@@ -103,6 +103,7 @@ export class AssetDiscoveryFactory {
     ): OIFAssetDiscoveryService {
         return new OIFAssetDiscoveryService({
             baseUrl: config.config.baseUrl,
+            solverId: config.config.solverId,
             providerId,
             headers: config.config.headers,
             cacheTtl: config.config.cacheTtl ?? this.config.defaultCacheTtl,

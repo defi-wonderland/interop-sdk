@@ -14,6 +14,7 @@ const IS_TESTNET = getIsTestnet();
 const RPC_URLS = IS_TESTNET ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
 
 const OIF_API_URL = 'https://oif-api.openzeppelin.com/api';
+const OIF_SOLVER_ID = IS_TESTNET ? 'testnet-solver' : 'mainnet-solver';
 
 /**
  * Provider configuration with display names
@@ -38,7 +39,7 @@ const providers: CrossChainProvider[] = [
     providerId: 'across',
   }),
   createCrossChainProvider(PROTOCOLS.OIF, {
-    solverId: 'oif-sample-solver',
+    solverId: OIF_SOLVER_ID,
     url: OIF_API_URL,
     providerId: 'oif',
   }),

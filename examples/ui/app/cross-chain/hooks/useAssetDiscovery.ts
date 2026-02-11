@@ -3,20 +3,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { decodeAddress } from '@wonderland/interop-addresses';
 import { getAssetDiscoveryServices } from '../services/sdk';
-import type { AssetDiscoveryResult, TokenInfo } from '@wonderland/interop-cross-chain';
+import type { DiscoveredAssets, UITokenInfo } from '../types/assets';
+import type { AssetDiscoveryResult } from '@wonderland/interop-cross-chain';
 import type { Hex } from 'viem';
-
-/**
- * Discovered assets in UI-friendly format
- */
-export interface DiscoveredAssets {
-  /** Tokens by chain ID (chainId -> token addresses) */
-  supportedTokensByChain: Record<number, readonly string[]>;
-  /** Token info by chain and address (chainId -> address -> info) */
-  tokenInfo: Record<number, Record<string, TokenInfo>>;
-  /** All supported chain IDs */
-  supportedChainIds: number[];
-}
 
 interface UseAssetDiscoveryResult {
   /** Discovered assets, null if not yet loaded */
@@ -31,16 +20,21 @@ interface UseAssetDiscoveryResult {
   lastFetchedAt: number | null;
 }
 
+interface ProviderAssetResult {
+  providerId: string;
+  result: AssetDiscoveryResult;
+}
+
 /**
- * Transform SDK discovery result to UI-friendly format
- * Handles EIP-7930 address decoding
+ * Transform SDK discovery results to UI-friendly format
+ * Handles EIP-7930 address decoding and tracks provider attribution
  */
-function transformDiscoveryResult(results: AssetDiscoveryResult[], filterChainIds?: number[]): DiscoveredAssets {
+function transformDiscoveryResult(providerResults: ProviderAssetResult[], filterChainIds?: number[]): DiscoveredAssets {
   const supportedTokensByChain: Record<number, string[]> = {};
-  const tokenInfo: Record<number, Record<string, TokenInfo>> = {};
+  const tokenInfo: Record<number, Record<string, UITokenInfo>> = {};
   const chainIdSet = new Set<number>();
 
-  for (const result of results) {
+  for (const { providerId, result } of providerResults) {
     for (const network of result.networks) {
       const { chainId, assets } = network;
 
@@ -72,10 +66,18 @@ function transformDiscoveryResult(results: AssetDiscoveryResult[], filterChainId
           supportedTokensByChain[chainId].push(normalizedAddress);
         }
 
-        tokenInfo[chainId][normalizedAddress] = {
-          symbol: asset.symbol,
-          decimals: asset.decimals,
-        };
+        const existing = tokenInfo[chainId][normalizedAddress];
+        if (existing) {
+          if (!existing.providers.includes(providerId)) {
+            existing.providers.push(providerId);
+          }
+        } else {
+          tokenInfo[chainId][normalizedAddress] = {
+            symbol: asset.symbol,
+            decimals: asset.decimals,
+            providers: [providerId],
+          };
+        }
       }
     }
   }
@@ -111,26 +113,27 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
 
       try {
         const services = getAssetDiscoveryServices();
-        const promises = Array.from(services.values()).map(async (service) => {
+        const promises = Array.from(services.entries()).map(async ([providerId, service]) => {
           try {
-            return await service.getSupportedAssets({
+            const result = await service.getSupportedAssets({
               chainIds,
               forceRefresh,
             });
+            return { providerId, result };
           } catch (err) {
-            console.warn('Asset discovery failed for a provider:', err);
+            console.warn(`Asset discovery failed for provider ${providerId}:`, err);
             return null;
           }
         });
 
         const settled = await Promise.all(promises);
-        const results = settled.filter(Boolean) as AssetDiscoveryResult[];
+        const providerResults = settled.filter(Boolean) as ProviderAssetResult[];
 
-        if (results.length === 0) {
+        if (providerResults.length === 0) {
           throw new Error('No assets discovered from any provider');
         }
 
-        setAssets(transformDiscoveryResult(results, chainIds));
+        setAssets(transformDiscoveryResult(providerResults, chainIds));
         setLastFetchedAt(Date.now());
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)));

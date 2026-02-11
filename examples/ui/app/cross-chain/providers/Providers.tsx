@@ -5,6 +5,7 @@ import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import '@rainbow-me/rainbowkit/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
+import { BalanceSync } from '../components/BalanceSync';
 import { createWagmiConfig } from '../config/wagmi';
 import { AssetDiscoveryProvider } from './AssetDiscoveryProvider';
 import { NetworkProvider } from './NetworkProvider';
@@ -27,7 +28,10 @@ export function Providers({ children, isTestnet }: ProvidersProps) {
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider modalSize='compact' theme={darkTheme()}>
-            <AssetDiscoveryProvider>{children}</AssetDiscoveryProvider>
+            <AssetDiscoveryProvider>
+              <BalanceSync />
+              {children}
+            </AssetDiscoveryProvider>
           </RainbowKitProvider>
         </QueryClientProvider>
       </WagmiProvider>
