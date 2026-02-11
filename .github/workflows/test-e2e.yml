@@ -31,6 +31,9 @@ jobs:
               run: pnpm build --filter=@examples/ui...
               working-directory: .
 
+            - name: Install Foundry
+              uses: foundry-rs/foundry-toolchain@v1
+
             - name: Cache Playwright browsers
               uses: actions/cache@v4
               with:
