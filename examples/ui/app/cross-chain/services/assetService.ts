@@ -5,10 +5,13 @@ import type { BalanceTarget, TokenBalance } from '../stores/balanceStore';
 import type { DiscoveredAssets } from '../types/assets';
 import type { Config } from 'wagmi';
 
-const NATIVE_TOKEN_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+const NATIVE_TOKEN_ADDRESSES = new Set([
+  '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  '0x0000000000000000000000000000000000000000',
+]);
 
 function isNativeToken(address: string): boolean {
-  return address.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase();
+  return NATIVE_TOKEN_ADDRESSES.has(address.toLowerCase());
 }
 
 // TODO: SDK will return EIP-7930 interop addresses — all addresses will need decoding
@@ -85,10 +88,12 @@ export class AssetService {
 
     if (nativeTokens.length > 0) {
       const native = await getBalance(this.config, { address: owner, chainId });
-      balances[NATIVE_TOKEN_ADDRESS] = {
-        raw: native.value,
-        formatted: formatUnits(native.value, 18),
-      };
+      for (const addr of nativeTokens) {
+        balances[addr] = {
+          raw: native.value,
+          formatted: formatUnits(native.value, 18),
+        };
+      }
     }
 
     if (erc20Tokens.length === 0) return balances;
