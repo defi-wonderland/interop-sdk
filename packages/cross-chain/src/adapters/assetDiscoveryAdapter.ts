@@ -1,6 +1,6 @@
 /**
  * TEMPORARY — Aggregator workaround for missing GET /api/tokens
- * @see https://github.com/openintentsframework/oif-aggregator/issues/TODO
+ * @see https://github.com/openintentsframework/oif-solver/issues/295
  */
 
 import { encodeAddress } from "@wonderland/interop-addresses";

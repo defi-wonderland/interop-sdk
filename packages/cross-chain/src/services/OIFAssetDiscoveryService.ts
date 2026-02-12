@@ -23,10 +23,10 @@ export interface OIFAssetDiscoveryServiceConfig extends BaseAssetDiscoveryServic
      */
     baseUrl: string;
     /**
-     * Solver ID — when present, uses aggregator workaround endpoint
+     * Solver ID — when present, uses workaround endpoint
      * instead of spec-compliant GET /api/tokens.
      *
-     * @see https://github.com/openintentsframework/oif-aggregator/issues/TODO
+     * @see https://github.com/openintentsframework/oif-solver/issues/295
      */
     solverId?: string;
 }
@@ -38,8 +38,8 @@ export interface OIFAssetDiscoveryServiceConfig extends BaseAssetDiscoveryServic
  * /api/tokens endpoint. Includes in-memory caching with configurable TTL.
  *
  * WORKAROUND: When solverId is provided, uses GET /v1/solvers/{solverId}
- * instead of GET /api/tokens (aggregator does not expose the spec endpoint yet).
- * @see https://github.com/openintentsframework/oif-aggregator/issues/TODO
+ * instead of spec-compliant GET /api/tokens (solver response uses `tokens` instead of `assets`).
+ * @see https://github.com/openintentsframework/oif-solver/issues/295
  */
 export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
     private readonly baseUrl: string;
@@ -55,7 +55,7 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
      * Fetch assets from the OIF API
      */
     protected async fetchAssets(timeout: number): Promise<AssetDiscoveryResult> {
-        // WORKAROUND: aggregator doesn't expose GET /api/tokens yet
+        // WORKAROUND: solver response doesn't match oif-specs yet (#295)
         if (this.solverId) {
             return this.fetchAssetsViaWorkaround(timeout);
         }
@@ -104,10 +104,10 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
     }
 
     /**
-     * WORKAROUND: Fetch assets via aggregator's GET /v1/solvers/{solverId}
+     * WORKAROUND: Fetch assets via GET /v1/solvers/{solverId}
      *
-     * Remove when aggregator implements GET /api/tokens.
-     * @see https://github.com/openintentsframework/oif-aggregator/issues/TODO
+     * Remove when solver aligns GET /api/tokens response with oif-specs.
+     * @see https://github.com/openintentsframework/oif-solver/issues/295
      */
     private async fetchAssetsViaWorkaround(timeout: number): Promise<AssetDiscoveryResult> {
         const url = buildAggregatorSolverEndpoint(this.baseUrl, this.solverId!);
@@ -120,7 +120,7 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
 
             if (response.status !== 200) {
                 throw new AssetDiscoveryFailure(
-                    "Failed to fetch assets from OIF aggregator",
+                    "Failed to fetch assets from OIF solver",
                     `Unexpected status code: ${response.status}. URL: ${url}`,
                 );
             }
@@ -137,7 +137,7 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
                 throw error;
             }
 
-            throw this.wrapError(error, "OIF aggregator (workaround)", url, timeout);
+            throw this.wrapError(error, "OIF solver (workaround)", url, timeout);
         }
     }
 }
