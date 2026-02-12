@@ -194,6 +194,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               value={inputTokenAddress}
               onChange={setInputTokenAddress}
               disabled={isDisabled}
+              dataTestId='input-token-select'
             />
           </div>
 
@@ -221,6 +222,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               value={outputTokenAddress}
               onChange={setOutputTokenAddress}
               disabled={isDisabled}
+              dataTestId='output-token-select'
             />
           </div>
         </div>

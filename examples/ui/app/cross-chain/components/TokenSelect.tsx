@@ -13,6 +13,7 @@ interface TokenSelectProps {
   value: string;
   onChange: (address: string) => void;
   disabled?: boolean;
+  dataTestId?: string;
 }
 
 interface TokenOptionProps {
@@ -36,7 +37,7 @@ function TokenOption({ address, info, balance, isSelected, onSelect }: TokenOpti
   );
 }
 
-export function TokenSelect({ tokens, tokenInfo, balances, value, onChange, disabled }: TokenSelectProps) {
+export function TokenSelect({ tokens, tokenInfo, balances, value, onChange, disabled, dataTestId }: TokenSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -58,6 +59,7 @@ export function TokenSelect({ tokens, tokenInfo, balances, value, onChange, disa
         type='button'
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
         disabled={disabled}
+        data-testid={dataTestId}
         className={`w-full flex items-center justify-between px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm text-left focus:border-accent focus:ring-2 focus:ring-accent/20 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
       >
         <span className='font-medium'>{getDisplaySymbol(tokenInfo[value], value)}</span>
@@ -70,7 +72,10 @@ export function TokenSelect({ tokens, tokenInfo, balances, value, onChange, disa
       </button>
 
       {isOpen && (
-        <div className='absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-surface border border-border/50 rounded-xl shadow-xl'>
+        <div
+          data-testid={dataTestId ? `${dataTestId}-listbox` : undefined}
+          className='absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-surface border border-border/50 rounded-xl shadow-xl'
+        >
           {sortedTokens.map((token) => (
             <TokenOption
               key={token}
