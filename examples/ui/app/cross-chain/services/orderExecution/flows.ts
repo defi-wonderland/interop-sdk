@@ -1,4 +1,4 @@
-import { getExecutorForProvider } from '../sdk';
+import { crossChainExecutor } from '../sdk';
 import { handleTokenApproval } from './approval';
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
@@ -30,11 +30,6 @@ export const submitOifSignableOrder = async ({
   chainContext,
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
-  const executor = getExecutorForProvider(quote._providerId);
-  if (!executor) {
-    throw new Error(`No executor found for provider: ${quote._providerId}`);
-  }
-
   // Permit2 approval for escrow orders (3009 doesn't need approval)
   if (quote.order.type === 'oif-escrow-v0') {
     const PERMIT2 = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as Address;
@@ -50,7 +45,13 @@ export const submitOifSignableOrder = async ({
     );
   }
 
-  const { orderId } = await signAndSubmitOrder({ executor, walletClient, quote, chainContext, onStateChange });
+  const { orderId } = await signAndSubmitOrder({
+    executor: crossChainExecutor,
+    walletClient,
+    quote,
+    chainContext,
+    onStateChange,
+  });
   return { orderId };
 };
 

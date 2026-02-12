@@ -50,8 +50,7 @@ export function formatQuoteData(
     : NOT_AVAILABLE;
 
   const eta = quote.eta ? formatETA(quote.eta) : NOT_AVAILABLE;
-  const provider = quote.provider || '';
-  const providerDisplayName = getProviderDisplayName(provider);
+  const providerDisplayName = getProviderDisplayName(quote._providerId);
 
   // Extract fee information from metadata (provider-specific structure)
   let feeTotal: string | undefined;
@@ -164,7 +163,7 @@ export function formatQuoteData(
     inputSymbol: inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL,
     outputSymbol: outputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL,
     eta,
-    provider,
+    provider: quote._providerId,
     providerDisplayName,
     feeTotal,
     feeTotalUsd,

@@ -17,7 +17,7 @@ import {
   type ToastType,
 } from './components';
 import { useOrderExecution, useChainConfig } from './hooks';
-import { useQuotes } from './hooks/useQuotes';
+import { useQuotes, QuoteStatus } from './hooks/useQuotes';
 import { STEP } from './types/execution';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address } from 'viem';
@@ -28,7 +28,7 @@ interface ToastState {
 }
 
 export function CrossChainClient() {
-  const { quotes, errors, isLoading, fetchQuotes, clearQuotes } = useQuotes();
+  const { quotes, errors, status: quoteStatus, fetchQuotes, clearQuotes } = useQuotes();
   const { state: executionState, execute, reset: resetExecution } = useOrderExecution();
   const chainConfig = useChainConfig();
 
@@ -124,7 +124,11 @@ export function CrossChainClient() {
                   chainConfig.SUPPORTED_CHAINS.length === 0 && <DiscoveryEmpty />}
 
                 {chainConfig.isDiscovered && chainConfig.SUPPORTED_CHAINS.length > 0 && (
-                  <SwapForm onSubmit={handleSubmit} isLoading={isLoading} isDisabled={isExecutionStarted} />
+                  <SwapForm
+                    onSubmit={handleSubmit}
+                    isLoading={quoteStatus === QuoteStatus.LOADING}
+                    isDisabled={isExecutionStarted}
+                  />
                 )}
 
                 {selectedQuote && !isExecutionStarted && <QuoteDetails quote={selectedQuote} />}
@@ -151,13 +155,13 @@ export function CrossChainClient() {
                   <QuoteList
                     quotes={quotes}
                     errors={errors}
+                    status={quoteStatus}
                     inputTokenAddress={selectedInputToken}
                     outputTokenAddress={selectedOutputToken}
                     inputChainId={inputChainId}
                     outputChainId={outputChainId}
                     selectedQuoteId={selectedQuote?.quoteId}
                     executionState={executionState}
-                    isLoading={isLoading}
                     onSelectQuote={handleSelectQuote}
                     onExecuteQuote={handleExecuteQuote}
                   />
