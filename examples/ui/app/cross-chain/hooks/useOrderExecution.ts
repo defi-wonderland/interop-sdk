@@ -145,7 +145,7 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         await trackOrder(providerId, txHash, chainContext, abortControllerRef.current?.signal, setState);
 
         if (address) {
-          updateBalances(config, address, [
+          updateBalances(address, [
             { chainId: originChainId, token: inputTokenAddress },
             { chainId: destinationChainId, token: outputTokenAddress },
           ]).catch((err) => {

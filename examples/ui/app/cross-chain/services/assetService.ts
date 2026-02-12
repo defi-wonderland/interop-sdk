@@ -1,9 +1,8 @@
 import { decodeAddress } from '@wonderland/interop-addresses';
-import { type Address, erc20Abi, formatUnits, type Hex, isAddress } from 'viem';
-import { getBalance, readContracts } from 'wagmi/actions';
+import { createPublicClient, type Address, erc20Abi, formatUnits, http, type Hex, isAddress } from 'viem';
+import { ALL_CHAINS } from '../constants/chains';
 import type { BalanceTarget, TokenBalance } from '../stores/balanceStore';
 import type { DiscoveredAssets } from '../types/assets';
-import type { Config } from 'wagmi';
 
 const NATIVE_TOKEN_ADDRESSES = new Set([
   '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
@@ -23,7 +22,11 @@ function resolveEvmAddress(address: string): Address {
 }
 
 export class AssetService {
-  constructor(private config: Config) {}
+  private getClient(chainId: number) {
+    const chain = ALL_CHAINS.find((c) => c.id === chainId);
+    if (!chain) throw new Error(`No chain configured for chainId ${chainId}`);
+    return createPublicClient({ chain, transport: http() });
+  }
 
   async fetchAllBalances(
     userAddress: string,
@@ -86,12 +89,14 @@ export class AssetService {
     const erc20Tokens = tokens.filter((t) => !isNativeToken(t));
     const balances: Record<string, TokenBalance> = {};
 
+    const client = this.getClient(chainId);
+
     if (nativeTokens.length > 0) {
-      const native = await getBalance(this.config, { address: owner, chainId });
+      const native = await client.getBalance({ address: owner });
       for (const addr of nativeTokens) {
         balances[addr] = {
-          raw: native.value,
-          formatted: formatUnits(native.value, 18),
+          raw: native,
+          formatted: formatUnits(native, 18),
         };
       }
     }
@@ -103,10 +108,9 @@ export class AssetService {
       abi: erc20Abi,
       functionName: 'balanceOf' as const,
       args: [owner] as const,
-      chainId,
     }));
 
-    const results = await readContracts(this.config, { contracts });
+    const results = await client.multicall({ contracts });
 
     erc20Tokens.forEach((token, i) => {
       const result = results[i];

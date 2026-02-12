@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { AssetService } from '../services/assetService';
 import type { DiscoveredAssets } from '../types/assets';
-import type { Config } from 'wagmi';
 
 export interface TokenBalance {
   raw: bigint;
@@ -21,8 +20,8 @@ interface BalanceState {
 }
 
 interface BalanceActions {
-  fetchAllBalances(config: Config, userAddress: string, discoveredAssets: DiscoveredAssets): Promise<void>;
-  updateBalances(config: Config, userAddress: string, targets: BalanceTarget[]): Promise<void>;
+  fetchAllBalances(userAddress: string, discoveredAssets: DiscoveredAssets): Promise<void>;
+  updateBalances(userAddress: string, targets: BalanceTarget[]): Promise<void>;
   clearAll(): void;
 }
 
@@ -32,11 +31,11 @@ export const useBalanceStore = create<BalanceState & BalanceActions>((set, get) 
   error: null,
   _discoveredAssets: null,
 
-  fetchAllBalances: async (config, userAddress, discoveredAssets) => {
+  fetchAllBalances: async (userAddress, discoveredAssets) => {
     set({ isLoading: true, error: null, _discoveredAssets: discoveredAssets });
 
     try {
-      const service = new AssetService(config);
+      const service = new AssetService();
       const balances = await service.fetchAllBalances(userAddress, discoveredAssets);
       set({ balances, isLoading: false });
     } catch (err) {
@@ -45,11 +44,11 @@ export const useBalanceStore = create<BalanceState & BalanceActions>((set, get) 
     }
   },
 
-  updateBalances: async (config, userAddress, targets) => {
+  updateBalances: async (userAddress, targets) => {
     const { _discoveredAssets } = get();
     if (!_discoveredAssets || targets.length === 0) return;
 
-    const service = new AssetService(config);
+    const service = new AssetService();
     const updated = await service.fetchTargetedBalances(userAddress, targets, _discoveredAssets);
 
     set((state) => {

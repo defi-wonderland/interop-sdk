@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useAccount, useConfig } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { useDiscoveredAssets } from '../providers/AssetDiscoveryProvider';
 import { useBalanceStore } from '../stores/balanceStore';
 
 export function BalanceSync() {
   const { address, isConnected } = useAccount();
-  const config = useConfig();
   const { discoveredAssets } = useDiscoveredAssets();
   const { fetchAllBalances, clearAll } = useBalanceStore();
 
@@ -19,8 +18,8 @@ export function BalanceSync() {
 
     if (!address || !discoveredAssets) return;
 
-    fetchAllBalances(config, address, discoveredAssets);
-  }, [isConnected, address, config, discoveredAssets, fetchAllBalances, clearAll]);
+    fetchAllBalances(address, discoveredAssets);
+  }, [isConnected, address, discoveredAssets, fetchAllBalances, clearAll]);
 
   return null;
 }
