@@ -13,37 +13,26 @@ import { getIsTestnet } from '../providers';
 const IS_TESTNET = getIsTestnet();
 const RPC_URLS = IS_TESTNET ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
 
-const OIF_API_URL = 'https://oif-api.openzeppelin.com/api';
-const OIF_SOLVER_ID = IS_TESTNET ? 'testnet-solver' : 'mainnet-solver';
-
 /**
  * Provider configuration with display names
  */
 const PROVIDER_CONFIGS = [
   {
+    protocol: PROTOCOLS.ACROSS,
     providerId: 'across',
     displayName: 'Across Protocol',
-  },
-  {
-    providerId: 'oif',
-    displayName: 'OIF Sample Solver',
   },
 ];
 
 /**
- * Cross-chain providers
+ * Cross-chain providers - created based on network configuration
  */
-const providers: CrossChainProvider[] = [
-  createCrossChainProvider(PROTOCOLS.ACROSS, {
+const providers = PROVIDER_CONFIGS.map((config) =>
+  createCrossChainProvider(config.protocol, {
     isTestnet: IS_TESTNET,
-    providerId: 'across',
+    providerId: config.providerId,
   }),
-  createCrossChainProvider(PROTOCOLS.OIF, {
-    solverId: OIF_SOLVER_ID,
-    url: OIF_API_URL,
-    providerId: 'oif',
-  }),
-];
+);
 
 /**
  * Order tracker factory - handles tracking for any provider

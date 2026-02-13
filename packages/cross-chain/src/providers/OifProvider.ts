@@ -370,7 +370,6 @@ export class OifProvider extends CrossChainProvider {
             type: "oif" as const,
             config: {
                 baseUrl: this.url,
-                solverId: this.solverId,
                 headers: this.headers,
             },
         };

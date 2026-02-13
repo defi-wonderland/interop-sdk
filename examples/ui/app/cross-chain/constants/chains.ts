@@ -1,13 +1,4 @@
-import {
-  arbitrum,
-  arbitrumSepolia,
-  base,
-  baseSepolia,
-  optimism,
-  optimismSepolia,
-  sepolia,
-  type Chain,
-} from 'viem/chains';
+import { arbitrum, arbitrumSepolia, base, baseSepolia, sepolia, type Chain } from 'viem/chains';
 
 /**
  * Override chain default RPC, keeping original as fallback
@@ -28,7 +19,6 @@ function overrideRpc(chain: Chain, rpcUrl: string): Chain {
 export const MAINNET_CHAINS: readonly [Chain, ...Chain[]] = [
   overrideRpc(base, 'https://base-rpc.publicnode.com'),
   overrideRpc(arbitrum, 'https://arbitrum-one-rpc.publicnode.com'),
-  overrideRpc(optimism, 'https://optimism-rpc.publicnode.com'),
 ];
 
 /**
@@ -38,7 +28,6 @@ export const TESTNET_CHAINS: readonly [Chain, ...Chain[]] = [
   overrideRpc(sepolia, 'https://ethereum-sepolia-rpc.publicnode.com'),
   overrideRpc(baseSepolia, 'https://base-sepolia-rpc.publicnode.com'),
   overrideRpc(arbitrumSepolia, 'https://api.zan.top/arb-sepolia'),
-  overrideRpc(optimismSepolia, 'https://optimism-sepolia-rpc.publicnode.com'),
 ];
 
 /**

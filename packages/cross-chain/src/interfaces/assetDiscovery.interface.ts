@@ -86,8 +86,6 @@ export interface OIFAssetDiscoveryConfig {
     config: BaseApiDiscoveryConfig & {
         /** Base URL of the OIF-compliant solver API */
         baseUrl: string;
-        /** Solver ID — used for aggregator workaround endpoint */
-        solverId?: string;
     };
 }
 

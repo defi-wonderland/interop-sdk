@@ -1,8 +1,6 @@
 import { GetQuoteRequest } from "@openintentsframework/oif-specs";
-import { decodeAddress } from "@wonderland/interop-addresses";
 import { Hex } from "viem";
 
-import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import {
     CrossChainProvider,
     ExecutableQuote,
@@ -15,7 +13,6 @@ import {
     WatchOrderParams,
 } from "../internal.js";
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
-import { createAssetDiscoveryService } from "./assetDiscoveryFactory.js";
 
 type GetQuotesError = {
     errorMsg: string;
@@ -66,46 +63,6 @@ class ProviderExecutor {
         this.trackerFactory = trackerFactory ?? new OrderTrackerFactory();
     }
 
-    /**
-     * Check whether a provider supports all assets in the quote request.
-     * Returns false if any input or output asset is not supported, avoiding unnecessary HTTP calls.
-     */
-    private async supportsRequestedAssets(
-        provider: CrossChainProvider,
-        params: GetQuoteRequest,
-    ): Promise<boolean> {
-        try {
-            const discovery = createAssetDiscoveryService(provider);
-            if (!discovery) return true;
-
-            const { inputs, outputs } = params.intent;
-            const uniqueAssets = [...new Set([...inputs, ...outputs].map((e) => e.asset))];
-
-            const assetPromises = uniqueAssets.map((asset) => {
-                const decoded = decodeAddress(asset as Hex);
-                return discovery.isAssetSupported(Number(decoded.chainReference), asset);
-            });
-
-            const results = await Promise.all(assetPromises);
-
-            return results.every((result) => result !== null);
-        } catch (error) {
-            if (error instanceof AssetDiscoveryFailure) {
-                console.warn(
-                    `[ProviderExecutor] Asset discovery failed for ${provider.getProviderId()}: ${error.message}`,
-                    error.details,
-                );
-            } else {
-                console.warn(
-                    `[ProviderExecutor] Unexpected error checking asset support for ${provider.getProviderId()}:`,
-                    error,
-                );
-            }
-            // If discovery fails, don't block — let the quote request proceed
-            return true;
-        }
-    }
-
     private splitQuotesAndErrors(quotes: (ExecutableQuote | GetQuotesError)[]): GetQuotesResponse {
         return {
             quotes: quotes.filter((quote) => "order" in quote) as ExecutableQuote[],
@@ -122,11 +79,6 @@ class ProviderExecutor {
         const resultQuotes = await Promise.all(
             Object.values(this.providers).map(async (provider) => {
                 try {
-                    const isSupported = await this.supportsRequestedAssets(provider, params);
-                    if (!isSupported) {
-                        return [];
-                    }
-
                     const quotesPromise = provider.getQuotes(params).then((quotes) =>
                         quotes.map((quote) => ({
                             ...quote,

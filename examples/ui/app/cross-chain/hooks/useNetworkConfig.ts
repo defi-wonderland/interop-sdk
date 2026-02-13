@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { base, arbitrum, sepolia, baseSepolia, type Chain } from 'viem/chains';
 import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
 import { useIsTestnet, useDiscoveredAssetsSafe } from '../providers';
-import type { UITokenInfo } from '../types/assets';
+import type { TokenInfo } from '@wonderland/interop-cross-chain';
 
 /**
  * Hook to get network-specific token configuration
@@ -22,7 +22,7 @@ export function useTokenConfig() {
     if (!discoveryContext?.discoveredAssets) {
       return {
         SUPPORTED_TOKEN_BY_CHAIN_ID: {} as Record<number, readonly string[]>,
-        TOKEN_INFO: {} as Record<number, Record<string, UITokenInfo>>,
+        TOKEN_INFO: {} as Record<number, Record<string, TokenInfo>>,
         isDiscovered: false,
         isDiscovering: discoveryContext?.isDiscovering ?? true,
         discoveryError: discoveryContext?.discoveryError ?? null,
@@ -32,7 +32,7 @@ export function useTokenConfig() {
     const { supportedTokensByChain, tokenInfo } = discoveryContext.discoveredAssets;
 
     const filteredTokensByChain: Record<number, readonly string[]> = {};
-    const filteredTokenInfo: Record<number, Record<string, UITokenInfo>> = {};
+    const filteredTokenInfo: Record<number, Record<string, TokenInfo>> = {};
 
     for (const chainId of configuredChainIds) {
       if (supportedTokensByChain[chainId]?.length > 0) {
