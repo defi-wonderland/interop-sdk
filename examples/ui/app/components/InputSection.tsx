@@ -15,6 +15,8 @@ interface InputSectionProps {
   setAddress: (value: string) => void;
   chainReference: string;
   setChainReference: (value: string) => void;
+  useOnchainRegistry: boolean;
+  setUseOnchainRegistry: (value: boolean) => void;
   onConvert: () => void;
   onExampleClick: (example: string) => void;
   isLoading?: boolean;
@@ -30,6 +32,8 @@ export function InputSection({
   setAddress,
   chainReference,
   setChainReference,
+  useOnchainRegistry,
+  setUseOnchainRegistry,
   onConvert,
   onExampleClick,
   isLoading = false,
@@ -128,6 +132,31 @@ export function InputSection({
             </div>
           </div>
         )}
+
+        <div className='flex items-center gap-2'>
+          <input
+            id='onchain-registry-toggle'
+            type='checkbox'
+            checked={useOnchainRegistry}
+            onChange={(e) => setUseOnchainRegistry(e.target.checked)}
+            className='w-4 h-4 rounded border-border/50 bg-background/50 text-accent focus:ring-accent/20 focus:ring-2 cursor-pointer'
+          />
+          <label htmlFor='onchain-registry-toggle' className='text-sm text-text-secondary cursor-pointer select-none'>
+            Use onchain registry{' '}
+            <span className='text-xs text-text-tertiary'>
+              (experimental, via{' '}
+              <a
+                href='https://cid.eth.limo'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-accent hover:underline'
+              >
+                cid.eth
+              </a>
+              )
+            </span>
+          </label>
+        </div>
 
         <div className='flex flex-col-reverse sm:flex-row gap-3 sm:justify-between'>
           <ExampleButtons examples={isReadableMode ? readableModeExamples : buildModeExamples} />

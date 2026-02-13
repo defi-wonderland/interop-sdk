@@ -2,7 +2,12 @@ import { GetQuoteRequest, PostOrderResponse, Quote } from "@openintentsframework
 import { Address, Hex, PrepareTransactionRequestReturnType } from "viem";
 
 import type { FillWatcherConfig } from "../interfaces/fillWatcher.interface.js";
-import { CrossChainProvider, ExecutableQuote, OpenedIntentParserConfig } from "../internal.js";
+import {
+    CrossChainProvider,
+    ExecutableQuote,
+    OpenedIntentParserConfig,
+    ProviderQuote,
+} from "../internal.js";
 // TODO: REMOVE THIS IMPORT WHEN OIF-SPECS IS UPDATED WITH SCHEMAS
 import { getQuoteRequestSchema } from "../schemas/oif.js";
 
@@ -49,17 +54,17 @@ export class SampleProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      */
-    async getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]> {
+    async getQuotes(params: GetQuoteRequest): Promise<ProviderQuote[]> {
         const parsedParams = getQuoteRequestSchema.parse(params);
         const sampleParams = await this.convertOifParamsToSampleParams(parsedParams);
         const sampleQuote = await this.getSampleQuote(sampleParams);
         const oifQuote = await this.convertSampleResponseToOifResponse(sampleQuote);
-        const executableQuote: ExecutableQuote = {
+        const providerQuote: ProviderQuote = {
             ...oifQuote,
             preparedTransaction: "0x" as unknown as PrepareTransactionRequestReturnType,
         };
 
-        return [executableQuote];
+        return [providerQuote];
     }
 
     /**

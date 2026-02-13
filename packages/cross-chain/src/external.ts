@@ -4,6 +4,7 @@ export * from "./types/index.js";
 export * from "./sorting_strategies/index.js";
 export * from "./constants/chains.js";
 export * from "./constants/tokens.js";
+export { PERMIT2_TYPES, EIP3009_TYPES } from "./constants/openIntentFramework.js";
 
 export {
     AcrossProvider,
@@ -25,4 +26,5 @@ export {
     createAssetDiscoveryService,
     createOIFAssetDiscoveryService,
     toCaip2ChainId,
+    isSignableOifOrder,
 } from "./internal.js";

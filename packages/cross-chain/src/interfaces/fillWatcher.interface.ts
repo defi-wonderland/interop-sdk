@@ -14,6 +14,7 @@ export interface FillWatcher {
         fillEvent: FillEvent | null;
         status: OrderStatus;
         failureReason?: OrderFailureReason;
+        fillTxHash?: string;
     }>;
 
     /**

@@ -18,7 +18,7 @@ import {
   type ToastType,
 } from './components';
 import { useOrderExecution, useChainConfig } from './hooks';
-import { useQuotes } from './hooks/useQuotes';
+import { useQuotes, QuoteStatus } from './hooks/useQuotes';
 import { useDiscoveredAssets } from './providers';
 import { STEP } from './types/execution';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
@@ -30,7 +30,7 @@ interface ToastState {
 }
 
 export function CrossChainClient() {
-  const { quotes, errors, isLoading, fetchQuotes, clearQuotes } = useQuotes();
+  const { quotes, errors, status: quoteStatus, fetchQuotes, clearQuotes } = useQuotes();
   const { state: executionState, execute, reset: resetExecution } = useOrderExecution();
   const chainConfig = useChainConfig();
   const { retryDiscovery } = useDiscoveredAssets();
@@ -74,9 +74,18 @@ export function CrossChainClient() {
   };
 
   const handleExecuteQuote = async (quote: ExecutableQuote) => {
+    // Decode the input token address for EIP-7930 compatibility (used for approvals)
     const decoded = decodeAddress(selectedInputToken as `0x${string}`);
-    const rawTokenAddress = (decoded.address ?? selectedInputToken) as Address;
-    const result = await execute(quote, rawTokenAddress, inputAmountRaw, inputChainId, outputChainId);
+    const rawInputAddress = (decoded.address ?? selectedInputToken) as Address;
+
+    const result = await execute(
+      quote,
+      rawInputAddress,
+      selectedOutputToken as Address,
+      inputAmountRaw,
+      inputChainId,
+      outputChainId,
+    );
     if (result.userRejected) {
       setToast({ message: 'Transaction rejected', type: 'info' });
     }
@@ -122,7 +131,11 @@ export function CrossChainClient() {
                   chainConfig.SUPPORTED_CHAINS.length === 0 && <DiscoveryEmpty />}
 
                 {chainConfig.isDiscovered && chainConfig.SUPPORTED_CHAINS.length > 0 && (
-                  <SwapForm onSubmit={handleSubmit} isLoading={isLoading} isDisabled={isExecutionStarted} />
+                  <SwapForm
+                    onSubmit={handleSubmit}
+                    isLoading={quoteStatus === QuoteStatus.LOADING}
+                    isDisabled={isExecutionStarted}
+                  />
                 )}
 
                 {selectedQuote && !isExecutionStarted && <QuoteDetails quote={selectedQuote} />}
@@ -149,13 +162,13 @@ export function CrossChainClient() {
                   <QuoteList
                     quotes={quotes}
                     errors={errors}
+                    status={quoteStatus}
                     inputTokenAddress={selectedInputToken}
                     outputTokenAddress={selectedOutputToken}
                     inputChainId={inputChainId}
                     outputChainId={outputChainId}
                     selectedQuoteId={selectedQuote?.quoteId}
                     executionState={executionState}
-                    isLoading={isLoading}
                     onSelectQuote={handleSelectQuote}
                     onExecuteQuote={handleExecuteQuote}
                   />

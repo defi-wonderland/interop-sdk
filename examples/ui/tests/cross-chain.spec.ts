@@ -52,6 +52,7 @@ const MOCK_QUOTE_RESPONSE = {
 };
 
 test.beforeEach(async ({ page, context }) => {
+  // Mock Across asset discovery
   await context.route('**/api/swap/tokens**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -60,6 +61,7 @@ test.beforeEach(async ({ page, context }) => {
     });
   });
 
+  // Mock Across quote
   await context.route('**/api/swap/approval**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -68,23 +70,31 @@ test.beforeEach(async ({ page, context }) => {
     });
   });
 
+  // Block OIF aggregator calls so they fail fast instead of timing out
+  await context.route('**/oif-api.openzeppelin.com/**', (route) => route.abort('blockedbyclient'));
+
   await page.goto('/cross-chain?testnet=true');
 });
 
 test.describe('Asset Discovery', () => {
   test('displays swap form after successful discovery', async ({ page }) => {
     await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('#input-token-select')).toBeVisible();
-    await expect(page.locator('#output-token-select')).toBeVisible();
+    await expect(page.getByTestId('input-token-select')).toBeVisible();
+    await expect(page.getByTestId('output-token-select')).toBeVisible();
   });
 
   test('populates token selectors with discovered assets', async ({ page }) => {
-    await expect(page.locator('#input-token-select')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('input-token-select')).toBeVisible({ timeout: 15000 });
 
-    const inputOptions = await page.locator('#input-token-select option').count();
-    const outputOptions = await page.locator('#output-token-select option').count();
-
+    // Open input dropdown and count options
+    await page.getByTestId('input-token-select').click();
+    const inputOptions = await page.getByTestId('input-token-select-listbox').locator('button').count();
     expect(inputOptions).toBeGreaterThan(0);
+
+    // Close by clicking trigger again, then check output
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('output-token-select').click();
+    const outputOptions = await page.getByTestId('output-token-select-listbox').locator('button').count();
     expect(outputOptions).toBeGreaterThan(0);
   });
 
@@ -162,8 +172,14 @@ test.describe('Amount input validation', () => {
 
 test.describe('Cross-chain intents', () => {
   test('get quotes', async ({ page }) => {
-    await page.locator('#input-token-select').selectOption({ label: 'USDC' });
-    await page.locator('#output-token-select').selectOption({ label: 'USDC' });
+    // Select input token via custom dropdown
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+
+    // Select output token via custom dropdown
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+
     await page.getByRole('textbox', { name: 'Amount' }).fill('0.2');
     await page.getByRole('button', { name: 'Get Quotes' }).click();
     await page
@@ -205,8 +221,14 @@ test.describe('Negative test', () => {
   });
 
   test('rejects transaction', async ({ page }) => {
-    await page.locator('#input-token-select').selectOption({ label: 'USDC' });
-    await page.locator('#output-token-select').selectOption({ label: 'USDC' });
+    // Select input token via custom dropdown
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+
+    // Select output token via custom dropdown
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+
     const amountInput = page.getByLabel('Amount');
     await amountInput.fill('0.1');
     await page.getByRole('button', { name: 'Get Quotes' }).click();

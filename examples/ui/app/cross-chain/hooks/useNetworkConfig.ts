@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { toCaip2ChainId, type AssetInfo } from '@wonderland/interop-cross-chain';
 import { base, arbitrum, sepolia, baseSepolia, type Chain } from 'viem/chains';
 import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
 import { useIsTestnet, useDiscoveredAssetsSafe } from '../providers';
+import type { UITokenInfo } from '../types/assets';
 
 /**
  * Hook to get network-specific token configuration
@@ -22,28 +22,29 @@ export function useTokenConfig() {
     if (!discoveryContext?.discoveredAssets) {
       return {
         SUPPORTED_TOKEN_BY_CHAIN_ID: {} as Record<number, readonly string[]>,
-        TOKEN_INFO: {} as Record<string, AssetInfo>,
+        TOKEN_INFO: {} as Record<number, Record<string, UITokenInfo>>,
         isDiscovered: false,
         isDiscovering: discoveryContext?.isDiscovering ?? true,
         discoveryError: discoveryContext?.discoveryError ?? null,
       };
     }
 
-    const { tokensByChain, tokenMetadata } = discoveryContext.discoveredAssets;
+    const { supportedTokensByChain, tokenInfo } = discoveryContext.discoveredAssets;
 
     // Use numeric chain IDs as keys so SwapForm can look up tokens by chain ID directly
     const filteredTokensByChain: Record<number, readonly string[]> = {};
+    const filteredTokenInfo: Record<number, Record<string, UITokenInfo>> = {};
 
     for (const chainId of configuredChainIds) {
-      const key = toCaip2ChainId(chainId);
-      if (tokensByChain[key]?.length > 0) {
-        filteredTokensByChain[chainId] = tokensByChain[key];
+      if (supportedTokensByChain[chainId]?.length > 0) {
+        filteredTokensByChain[chainId] = supportedTokensByChain[chainId];
+        filteredTokenInfo[chainId] = tokenInfo[chainId] ?? {};
       }
     }
 
     return {
       SUPPORTED_TOKEN_BY_CHAIN_ID: filteredTokensByChain,
-      TOKEN_INFO: tokenMetadata,
+      TOKEN_INFO: filteredTokenInfo,
       isDiscovered: true,
       isDiscovering: false,
       discoveryError: null,
@@ -79,9 +80,9 @@ export function useChainConfig() {
       };
     }
 
-    const { chainIds } = discoveryContext.discoveredAssets;
+    const { supportedChainIds } = discoveryContext.discoveredAssets;
 
-    const SUPPORTED_CHAINS = allConfiguredChains.filter((chain) => chainIds.includes(toCaip2ChainId(chain.id)));
+    const SUPPORTED_CHAINS = allConfiguredChains.filter((chain) => supportedChainIds.includes(chain.id));
 
     const defaultInput = isTestnet ? sepolia.id : base.id;
     const defaultOutput = isTestnet ? baseSepolia.id : arbitrum.id;

@@ -21,6 +21,7 @@ import {
 
 const FillResultStatus = {
     Finalized: "finalized",
+    Failed: "failed",
     DeadlineExceeded: "deadline_exceeded",
     Timeout: "timeout",
 } as const;
@@ -292,18 +293,94 @@ export class OrderTracker extends EventEmitter {
         });
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
 
-        const remainingTimeout = Math.max(0, timeout - (Date.now() - startTime));
-        if (remainingTimeout === 0) {
-            yield this.createTimeoutYield(lastUpdate, 0, "Timeout expired");
-            return;
+        yield* this.pollForFillWithYields(
+            { orderId, originChainId, destinationChainId },
+            timeout - (Date.now() - startTime),
+        );
+    }
+
+    /**
+     * Poll fillWatcher.getFill() in a generator loop, yielding intermediate updates.
+     * Used by escrow (orderId) path so the UI can show fillTxHash before finalization.
+     * The txHash (Across) path uses waitForFillWithTimeout instead.
+     */
+    private async *pollForFillWithYields(
+        fillParams: { orderId: Hex; originChainId: number; destinationChainId: number },
+        timeout: number,
+    ): AsyncGenerator<OrderTrackerYield> {
+        const terminalFailures = new Set([OrderStatus.Failed, OrderStatus.Refunded]);
+        const pollingInterval = 5000;
+        const startTime = Date.now();
+        let lastUpdate: OrderTrackingUpdate | undefined;
+
+        while (Date.now() - startTime < timeout) {
+            const { fillEvent, status, failureReason, fillTxHash } =
+                await this.fillWatcher.getFill(fillParams);
+
+            if (fillEvent) {
+                yield {
+                    type: OrderTrackerYieldType.Update,
+                    update: this.createUpdate({
+                        status: OrderStatus.Finalized,
+                        orderId: fillParams.orderId,
+                        fillTxHash: fillEvent.fillTxHash,
+                        message: "Order completed",
+                    }),
+                };
+                return;
+            }
+
+            if (terminalFailures.has(status)) {
+                yield {
+                    type: OrderTrackerYieldType.Update,
+                    update: this.createUpdate({
+                        status: OrderStatus.Failed,
+                        orderId: fillParams.orderId,
+                        message: "Order failed",
+                        failureReason: failureReason ?? OrderFailureReason.Unknown,
+                    }),
+                };
+                return;
+            }
+
+            // Finalized but no fillTxHash — stop polling
+            if (status === OrderStatus.Finalized) {
+                yield {
+                    type: OrderTrackerYieldType.Update,
+                    update: this.createUpdate({
+                        status: OrderStatus.Failed,
+                        orderId: fillParams.orderId,
+                        message: "Order finalized but fill transaction hash unavailable",
+                        failureReason: OrderFailureReason.Unknown,
+                    }),
+                };
+                return;
+            }
+
+            // Yield intermediate update with fillTxHash when available (e.g. executing status)
+            if (fillTxHash) {
+                lastUpdate = this.createUpdate({
+                    status,
+                    orderId: fillParams.orderId,
+                    fillTxHash: fillTxHash as Hex,
+                    message: `Order ${status}, fill tx detected`,
+                });
+                yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, pollingInterval));
         }
 
-        const fillResult = await this.waitForFillWithTimeout(
-            { orderId, originChainId, destinationChainId },
-            remainingTimeout,
+        yield this.createTimeoutYield(
+            lastUpdate ??
+                this.createUpdate({
+                    status: OrderStatus.Pending,
+                    orderId: fillParams.orderId,
+                    message: "Waiting for solver to fill order...",
+                }),
+            0,
+            "Stopped watching after timeout",
         );
-
-        yield this.createFillResultYield(fillResult, orderId, undefined, lastUpdate, 0);
     }
 
     private createFillResultYield(
@@ -321,7 +398,22 @@ export class OrderTracker extends EventEmitter {
                     orderId,
                     openTxHash,
                     fillTxHash: fillResult.fillTxHash,
-                    message: `Order completed in block ${fillResult.blockNumber}`,
+                    message: fillResult.blockNumber
+                        ? `Order completed in block ${fillResult.blockNumber}`
+                        : "Order completed",
+                }),
+            };
+        }
+
+        if (fillResult.status === FillResultStatus.Failed) {
+            return {
+                type: OrderTrackerYieldType.Update,
+                update: this.createUpdate({
+                    status: OrderStatus.Failed,
+                    orderId,
+                    openTxHash,
+                    message: "Order failed",
+                    failureReason: fillResult.failureReason,
                 }),
             };
         }
@@ -418,13 +510,15 @@ export class OrderTracker extends EventEmitter {
         fillDeadline: number,
         reason: string,
     ): OrderTrackerYield {
-        const deadlineDate = new Date(fillDeadline * 1000).toISOString();
+        const deadlineSuffix = fillDeadline
+            ? ` before deadline at ${new Date(fillDeadline * 1000).toISOString()}`
+            : "";
         return {
             type: OrderTrackerYieldType.Timeout,
             payload: {
                 lastUpdate,
                 timestamp: Math.floor(Date.now() / 1000),
-                message: `${reason}. Order may still finalize before deadline at ${deadlineDate}`,
+                message: `${reason}. Order may still finalize${deadlineSuffix}`,
             },
         };
     }
@@ -458,8 +552,9 @@ export class OrderTracker extends EventEmitter {
         | {
               status: typeof FillResultStatus.Finalized;
               fillTxHash: Hex;
-              blockNumber: bigint;
+              blockNumber?: bigint;
           }
+        | { status: typeof FillResultStatus.Failed; failureReason?: OrderFailureReason }
         | { status: typeof FillResultStatus.DeadlineExceeded }
         | { status: typeof FillResultStatus.Timeout }
     > {
@@ -471,6 +566,12 @@ export class OrderTracker extends EventEmitter {
                 blockNumber: fillEvent.blockNumber,
             };
         } catch (error) {
+            if (error instanceof Error && error.name === "FillFailedError") {
+                return {
+                    status: FillResultStatus.Failed,
+                    failureReason: OrderFailureReason.Unknown,
+                };
+            }
             if (error instanceof Error && error.name === "FillTimeoutError") {
                 const nowSeconds = Math.floor(Date.now() / 1000);
                 const isDeadlineExceeded =

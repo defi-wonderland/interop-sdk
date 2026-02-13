@@ -5,27 +5,37 @@ import { crossChainExecutor } from '../sdk';
 import type { Hex } from 'viem';
 
 export class TrackingError extends Error {
-  readonly txHash: Hex;
+  readonly txHash?: Hex;
+  readonly orderId?: Hex;
 
-  constructor(txHash: Hex, providerId: string) {
-    super(`Order tracking failed for provider "${providerId}". The transaction may still complete.`);
+  constructor(identifier: { txHash: Hex } | { orderId: Hex }, providerId: string) {
+    super(`Order tracking failed for provider "${providerId}". The order may still complete.`);
     this.name = 'TrackingError';
-    this.txHash = txHash;
+    if ('orderId' in identifier) {
+      this.orderId = identifier.orderId;
+    } else {
+      this.txHash = identifier.txHash;
+    }
   }
 }
 
+/**
+ * Track an order by txHash (Across) or orderId (OIF escrow/3009).
+ * The SDK's watchOrder accepts either identifier.
+ */
 export async function trackOrder(
   providerId: string,
-  txHash: Hex,
+  identifier: { txHash: Hex } | { orderId: Hex },
   chainContext: ChainContext,
   abortSignal: AbortSignal | undefined,
   onStateChange: (state: BridgeState) => void,
 ): Promise<void> {
   const tracker = crossChainExecutor.prepareTracking(providerId);
+  const txHash = 'txHash' in identifier ? identifier.txHash : undefined;
 
   try {
     for await (const item of tracker.watchOrder({
-      txHash,
+      ...identifier,
       originChainId: chainContext.originChainId,
       destinationChainId: chainContext.destinationChainId,
       timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
@@ -67,6 +77,6 @@ export async function trackOrder(
     }
   } catch (trackingErr) {
     console.warn('Order tracking failed:', trackingErr);
-    throw new TrackingError(txHash, providerId);
+    throw new TrackingError(identifier, providerId);
   }
 }

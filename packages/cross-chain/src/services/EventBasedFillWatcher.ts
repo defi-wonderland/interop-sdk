@@ -19,6 +19,17 @@ export class FillTimeoutError extends Error {
     }
 }
 
+export class FillFailedError extends Error {
+    constructor(
+        orderId: string,
+        public readonly status: string,
+        public readonly failureReason?: string,
+    ) {
+        super(`Order ${orderId} reached terminal status: ${status}`);
+        this.name = "FillFailedError";
+    }
+}
+
 export interface EventBasedFillWatcherConfig {
     /** Discriminator for FillWatcher config union */
     type: "event-based";

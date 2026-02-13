@@ -33,6 +33,7 @@ import {
     ProviderExecuteFailure,
     ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
+    ProviderQuote,
 } from "../internal.js";
 import { isSignableOifOrder } from "../utils/orderTypeHelpers.js";
 
@@ -104,7 +105,7 @@ export class OifProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      */
-    async getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]> {
+    async getQuotes(params: GetQuoteRequest): Promise<ProviderQuote[]> {
         try {
             const response = await axios.post<GetQuoteResponse>(`${this.url}/v1/quotes`, params, {
                 headers: {
@@ -121,27 +122,26 @@ export class OifProvider extends CrossChainProvider {
                 );
             }
 
-            const validatedResponse = getQuoteResponseSchema.parse(response.data);
+            // Validate but use raw data (Zod reorders fields, breaks integrity checksum)
+            getQuoteResponseSchema.parse(response.data);
+            const { quotes } = response.data as GetQuoteResponse;
 
-            const executableQuotes: ExecutableQuote[] = validatedResponse.quotes.map(
-                (quote): ExecutableQuote => {
-                    // WORKAROUND #286: Fix typed data payload for viem compatibility
-                    const adaptedQuote = adaptTypedDataPayload(quote);
-                    const preparedTransaction = this.prepareTransaction(adaptedQuote);
+            const providerQuotes: ProviderQuote[] = quotes.map((quote): ProviderQuote => {
+                // WORKAROUND #286: Normalize EIP-712 typed data for viem compatibility
+                const adaptedQuote = adaptTypedDataPayload(quote);
+                const preparedTransaction = this.prepareTransaction(adaptedQuote);
 
-                    return {
-                        ...adaptedQuote,
-                        provider: adaptedQuote.provider ?? this.solverId,
-                        metadata: {
-                            ...adaptedQuote.metadata,
-                            ...(this.adapterMetadata && { adapterMetadata: this.adapterMetadata }),
-                        },
-                        preparedTransaction,
-                    };
-                },
-            );
+                return {
+                    ...adaptedQuote,
+                    metadata: {
+                        ...adaptedQuote.metadata,
+                        ...(this.adapterMetadata && { adapterMetadata: this.adapterMetadata }),
+                    },
+                    preparedTransaction,
+                };
+            });
 
-            return executableQuotes;
+            return providerQuotes;
         } catch (error) {
             if (error instanceof AxiosError) {
                 const errorData = error.response?.data as { message?: string };
@@ -255,6 +255,7 @@ export class OifProvider extends CrossChainProvider {
      *
      * @note EIP-7683 does NOT define a standard Fill event, so we use the solver's
      *       API endpoint for tracking: `GET /v1/orders/:orderId`
+     * @see https://github.com/openintentsframework/oif-solver/issues/288 for known response divergences
      */
     static getFillWatcherConfig(baseUrl: string): APIBasedFillWatcherConfig<unknown> {
         return {
@@ -276,6 +277,7 @@ export class OifProvider extends CrossChainProvider {
                 status: OrderStatus;
                 failureReason?: OrderFailureReason;
                 metadata?: unknown;
+                fillTxHash?: string;
             } => {
                 // Validate response against schema
                 const validatedResponse = getOrderResponseSchema.parse(response);
@@ -291,36 +293,31 @@ export class OifProvider extends CrossChainProvider {
                     failureReason = OrderFailureReason.Unknown;
                 }
 
-                // Only extract fill event if status indicates fill transaction exists
-                // Order must be Finalized, Settled, or Executing to have a fillTxHash
-                const hasFillTx =
-                    status === OrderStatus.Finalized ||
-                    status === OrderStatus.Settled ||
-                    status === OrderStatus.Executing;
+                // fillTxHash appears from executing onwards, but only finalized is terminal.
+                // Matches oif-aggregator: poll until finalized.
+                const isFinalized = status === OrderStatus.Finalized;
 
-                if (!hasFillTx || !validatedResponse.fillTxHash) {
-                    return { event: null, status, failureReason };
+                // fillTxHash may be top-level or nested in fillTransaction.hash
+                const fillTxHash = (validatedResponse.fillTxHash ??
+                    validatedResponse.fillTransaction?.hash) as Hex | undefined;
+
+                if (!isFinalized || !fillTxHash) {
+                    return {
+                        event: null,
+                        status,
+                        failureReason,
+                        fillTxHash,
+                    };
                 }
-
-                const fillTxHash = validatedResponse.fillTxHash as Hex;
-                const blockNumber = 0n; // API doesn't provide block number
-
-                // Extract solver/relayer - OIF doesn't provide solver address in status response
-                // Use placeholder for now
-                const relayer = "0x0000000000000000000000000000000000000000" as Hex;
-
-                // Extract recipient from outputs (first output receiver)
-                const recipient = "0x0000000000000000000000000000000000000000" as Hex;
 
                 const event: FillEvent = {
                     fillTxHash,
-                    blockNumber,
                     timestamp:
-                        validatedResponse.executionDetails?.filledAt || validatedResponse.createdAt,
+                        validatedResponse.updatedAt ??
+                        validatedResponse.createdAt ??
+                        Math.floor(Date.now() / 1000),
                     originChainId: params.originChainId,
                     orderId: params.orderId,
-                    relayer,
-                    recipient,
                 };
 
                 // For OIF-compliant APIs, all data is in the typed response
@@ -370,6 +367,7 @@ export class OifProvider extends CrossChainProvider {
             type: "oif" as const,
             config: {
                 baseUrl: this.url,
+                solverId: this.solverId,
                 headers: this.headers,
             },
         };

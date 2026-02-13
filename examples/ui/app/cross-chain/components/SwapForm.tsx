@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { parseUnits } from 'viem';
-import { useAccount, useBalance } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
+import { useBalanceStore, type TokenBalance } from '../stores/balanceStore';
 import { isValidAmount, sanitizeAmountInput } from '../utils/amountValidation';
-import { formatAmount } from '../utils/formatting';
+import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
-import { SpinnerIcon } from './icons';
 
 interface SwapFormProps {
   onSubmit: (params: {
@@ -53,14 +53,12 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
     [outputChainId, tokenConfig],
   );
 
-  const { data: tokenBalance, isLoading: isBalanceLoading } = useBalance({
-    address: isConnected ? connectedAddress : undefined,
-    token: inputTokenAddress as `0x${string}` | undefined,
-    chainId: inputChainId,
-  });
+  const { balances: allBalances } = useBalanceStore();
+  const balances: Record<string, TokenBalance> = allBalances[inputChainId] ?? {};
+  const outputBalances: Record<string, TokenBalance> = allBalances[outputChainId] ?? {};
 
-  const inputTokenInfo = inputTokenAddress ? tokenConfig.TOKEN_INFO[inputTokenAddress] : null;
-  const displayBalance = tokenBalance ? formatAmount(tokenBalance.value.toString(), inputTokenInfo?.decimals) : '-';
+  const inputTokenInfo = inputTokenAddress ? tokenConfig.TOKEN_INFO[inputChainId]?.[inputTokenAddress] : null;
+  const tokenBalance = balances[inputTokenAddress];
 
   const amountIsValid = useMemo(() => isValidAmount(inputAmount), [inputAmount]);
 
@@ -74,7 +72,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
     }
   }, [inputAmount, inputTokenInfo?.decimals, amountIsValid]);
 
-  const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.value);
+  const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.raw);
 
   useEffect(() => {
     if (isConnected && connectedAddress && !hasAutoFilledRef.current) {
@@ -92,7 +90,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
       return;
     }
     const finalRecipient = recipient.trim() || connectedAddress;
-    const tokenInfo = tokenConfig.TOKEN_INFO[inputTokenAddress];
+    const tokenInfo = tokenConfig.TOKEN_INFO[inputChainId]?.[inputTokenAddress];
     const decimals = tokenInfo?.decimals || 18;
     const inputAmountRaw = parseUnits(inputAmount, decimals);
 
@@ -190,22 +188,15 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
                 </option>
               ))}
             </select>
-            <select
-              id='input-token-select'
+            <TokenSelect
+              tokens={inputTokens}
+              tokenInfo={tokenConfig.TOKEN_INFO[inputChainId] || {}}
+              balances={balances}
               value={inputTokenAddress}
-              onChange={(e) => setInputTokenAddress(e.target.value)}
+              onChange={setInputTokenAddress}
               disabled={isDisabled}
-              className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {inputTokens.map((token) => {
-                const info = tokenConfig.TOKEN_INFO[token];
-                return (
-                  <option key={token} value={token}>
-                    {info?.symbol || token.slice(0, 8)}
-                  </option>
-                );
-              })}
-            </select>
+              dataTestId='input-token-select'
+            />
           </div>
 
           <div className='flex flex-col gap-3'>
@@ -225,22 +216,15 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
                 </option>
               ))}
             </select>
-            <select
-              id='output-token-select'
+            <TokenSelect
+              tokens={outputTokens}
+              tokenInfo={tokenConfig.TOKEN_INFO[outputChainId] || {}}
+              balances={outputBalances}
               value={outputTokenAddress}
-              onChange={(e) => setOutputTokenAddress(e.target.value)}
+              onChange={setOutputTokenAddress}
               disabled={isDisabled}
-              className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {outputTokens.map((token) => {
-                const info = tokenConfig.TOKEN_INFO[token];
-                return (
-                  <option key={token} value={token}>
-                    {info?.symbol || token.slice(0, 8)}
-                  </option>
-                );
-              })}
-            </select>
+              dataTestId='output-token-select'
+            />
           </div>
         </div>
 
@@ -258,11 +242,6 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
             disabled={isDisabled}
             className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
-          {isConnected && (
-            <p className='text-sm text-accent mt-1 flex items-center gap-1'>
-              Balance: {isBalanceLoading ? <SpinnerIcon className='w-3 h-3' /> : displayBalance}
-            </p>
-          )}
         </div>
 
         <button

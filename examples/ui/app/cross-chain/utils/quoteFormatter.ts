@@ -1,7 +1,12 @@
 import { UNKNOWN_TOKEN_SYMBOL, NOT_AVAILABLE } from '../constants';
 import { getProviderDisplayName } from '../services/sdk';
 import { formatAmount, formatPercentage, formatETA, formatUsdAmount } from './formatting';
-import type { ExecutableQuote, AssetInfo } from '@wonderland/interop-cross-chain';
+import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
+
+interface TokenMeta {
+  symbol: string;
+  decimals: number;
+}
 
 export interface FormattedQuoteData {
   inputAmount: string;
@@ -31,10 +36,10 @@ export function formatQuoteData(
   outputTokenAddress: string,
   inputChainId: number,
   outputChainId: number,
-  tokenMetadata: Record<string, AssetInfo>,
+  tokenMetadata: Record<number, Record<string, TokenMeta>>,
 ): FormattedQuoteData {
-  const inputTokenInfo = tokenMetadata[inputTokenAddress];
-  const outputTokenInfo = tokenMetadata[outputTokenAddress];
+  const inputTokenInfo = tokenMetadata[inputChainId]?.[inputTokenAddress];
+  const outputTokenInfo = tokenMetadata[outputChainId]?.[outputTokenAddress];
 
   const preview = quote.preview;
   const inputPreview = preview?.inputs?.[0];
@@ -49,8 +54,7 @@ export function formatQuoteData(
     : NOT_AVAILABLE;
 
   const eta = quote.eta ? formatETA(quote.eta) : NOT_AVAILABLE;
-  const provider = quote.provider || '';
-  const providerDisplayName = getProviderDisplayName(provider);
+  const providerDisplayName = getProviderDisplayName(quote._providerId);
 
   // Extract fee information from metadata (provider-specific structure)
   let feeTotal: string | undefined;
@@ -163,7 +167,7 @@ export function formatQuoteData(
     inputSymbol: inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL,
     outputSymbol: outputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL,
     eta,
-    provider,
+    provider: quote._providerId,
     providerDisplayName,
     feeTotal,
     feeTotalUsd,

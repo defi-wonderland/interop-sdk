@@ -5,6 +5,8 @@ import {
   PERCENTAGE_DECIMALS,
   USD_DISPLAY_DECIMALS,
 } from '../constants/display';
+import type { TokenBalance } from '../stores/balanceStore';
+import type { UITokenInfo } from '../types/assets';
 
 const SECONDS_PER_MINUTE = 60;
 
@@ -115,4 +117,47 @@ export function formatDate(date: Date | string): string {
 export function formatMessageWithDate(message: string): string {
   const isoDateRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z/g;
   return message.replace(isoDateRegex, (isoDate) => formatDate(isoDate));
+}
+
+const DUST_THRESHOLD = 0.0001;
+const COMPACT_THRESHOLD = 1000;
+
+const preciseFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 });
+const compactFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+
+/**
+ * Formats a token balance for compact display
+ * @returns Formatted string (e.g., "0", "<0.0001", "1.2345", "1,234.56")
+ */
+export function formatTokenBalance(balance: TokenBalance | undefined): string {
+  if (!balance) return '-';
+  const num = parseFloat(balance.formatted);
+  if (num === 0) return '0';
+  if (num < DUST_THRESHOLD) return `<${DUST_THRESHOLD}`;
+  if (num >= COMPACT_THRESHOLD) return compactFormat.format(num);
+  return preciseFormat.format(num);
+}
+
+/**
+ * Returns the display symbol for a token.
+ * For now, tokens only available via OIF provider are prefixed with "mock".
+ */
+export function getDisplaySymbol(info: UITokenInfo | undefined, address: string): string {
+  if (!info) return address.slice(0, 8);
+  const isOifOnly = info.providers.length === 1 && info.providers[0] === 'oif';
+  return isOifOnly ? `mock${info.symbol}` : info.symbol;
+}
+
+/**
+ * Sorts tokens by balance descending. Tokens without balances go last.
+ */
+export function sortTokensByBalance(tokens: readonly string[], balances: Record<string, TokenBalance>): string[] {
+  return [...tokens].sort((a, b) => {
+    const hasA = a in balances;
+    const hasB = b in balances;
+    if (!hasA && !hasB) return 0;
+    if (!hasA) return 1;
+    if (!hasB) return -1;
+    return parseFloat(balances[b].formatted) - parseFloat(balances[a].formatted);
+  });
 }

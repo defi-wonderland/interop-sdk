@@ -1,6 +1,8 @@
-import { GetQuoteRequest } from "@openintentsframework/oif-specs";
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
+import { decodeAddress } from "@wonderland/interop-addresses";
 import { Hex } from "viem";
 
+import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import {
     AssetDiscoveryOptions,
     createAssetDiscoveryService,
@@ -67,6 +69,46 @@ class ProviderExecutor {
         this.trackerFactory = trackerFactory ?? new OrderTrackerFactory();
     }
 
+    /**
+     * Check whether a provider supports all assets in the quote request.
+     * Returns false if any input or output asset is not supported, avoiding unnecessary HTTP calls.
+     */
+    private async supportsRequestedAssets(
+        provider: CrossChainProvider,
+        params: GetQuoteRequest,
+    ): Promise<boolean> {
+        try {
+            const discovery = createAssetDiscoveryService(provider);
+            if (!discovery) return true;
+
+            const { inputs, outputs } = params.intent;
+            const uniqueAssets = [...new Set([...inputs, ...outputs].map((e) => e.asset))];
+
+            const assetPromises = uniqueAssets.map((asset) => {
+                const decoded = decodeAddress(asset as Hex);
+                return discovery.isAssetSupported(Number(decoded.chainReference), asset);
+            });
+
+            const results = await Promise.all(assetPromises);
+
+            return results.every((result) => result !== null);
+        } catch (error) {
+            if (error instanceof AssetDiscoveryFailure) {
+                console.warn(
+                    `[ProviderExecutor] Asset discovery failed for ${provider.getProviderId()}: ${error.message}`,
+                    error.details,
+                );
+            } else {
+                console.warn(
+                    `[ProviderExecutor] Unexpected error checking asset support for ${provider.getProviderId()}:`,
+                    error,
+                );
+            }
+            // If discovery fails, don't block — let the quote request proceed
+            return true;
+        }
+    }
+
     private splitQuotesAndErrors(quotes: (ExecutableQuote | GetQuotesError)[]): GetQuotesResponse {
         return {
             quotes: quotes.filter((quote) => "order" in quote) as ExecutableQuote[],
@@ -83,10 +125,15 @@ class ProviderExecutor {
         const resultQuotes = await Promise.all(
             Object.values(this.providers).map(async (provider) => {
                 try {
+                    const isSupported = await this.supportsRequestedAssets(provider, params);
+                    if (!isSupported) {
+                        return [];
+                    }
+
                     const quotesPromise = provider.getQuotes(params).then((quotes) =>
                         quotes.map((quote) => ({
                             ...quote,
-                            provider: provider.getProviderId(),
+                            _providerId: provider.getProviderId(),
                         })),
                     );
 
@@ -119,6 +166,28 @@ class ProviderExecutor {
             quotes: this.sortingStrategy.sort(response.quotes),
             errors: response.errors,
         };
+    }
+
+    /**
+     * Submit a signed order to the appropriate provider.
+     * Looks up the provider from the quote's provider field and delegates.
+     *
+     * @param quote - The executable quote containing the order
+     * @param signature - The EIP-712 signature (hex or bytes)
+     * @returns The post order response (contains orderId for tracking)
+     */
+    async submitSignedOrder(
+        quote: ExecutableQuote,
+        signature: Hex | Uint8Array,
+    ): Promise<PostOrderResponse> {
+        const providerId = quote._providerId;
+
+        const provider = this.providers[providerId];
+        if (!provider) {
+            throw new ProviderNotFound(providerId);
+        }
+
+        return provider.submitSignedOrder(quote, signature);
     }
 
     /**

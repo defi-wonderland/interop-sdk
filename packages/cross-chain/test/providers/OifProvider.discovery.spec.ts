@@ -14,7 +14,12 @@ describe("OifProvider - Asset Discovery", () => {
         headers: { Authorization: "Bearer token" },
     };
 
-    describe("getDiscoveryConfig", () => {
+    /**
+     * Skipped — OifProvider uses custom-api workaround until solver aligns GET /api/tokens with oif-specs.
+     * Unskip when solver response matches spec and we revert to type: "oif".
+     * @see https://github.com/openintentsframework/oif-solver/issues/295
+     */
+    describe.skip("getDiscoveryConfig", () => {
         it("should return OIF discovery config with base URL", () => {
             const provider = new OifProvider(validConfig);
 

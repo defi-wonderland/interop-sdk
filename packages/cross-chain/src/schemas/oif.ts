@@ -219,36 +219,28 @@ export const getOrderRequestSchema = z.object({
     id: z.string().describe("Unique ID assigned to the order upon submission"),
 });
 
+// NOTE: Actual solver response diverges from oif-specs GetOrderResponse
+// (uses orderId not id, no inputAmounts/outputAmounts/settlement, etc.)
+// See https://github.com/openintentsframework/oif-solver/issues/288
+// #111: status accepts object format from OIF solver
 export const getOrderResponseSchema = z.object({
     orderId: z.string(),
-    status: orderStatusSchema,
-    quoteId: z.string(),
-    solverId: z.string(),
-    userAddress: z.string(),
-    inputs: z.array(
-        z.object({
-            asset: z.string(),
-            amount: z.string(),
-        }),
-    ),
-    outputs: z.array(
-        z.object({
-            asset: z.string(),
-            amount: z.string(),
-        }),
-    ),
-    createdAt: z.number(),
-    expiresAt: z.number(),
-    fillTxHash: z.string().optional(),
-    claimTxHash: z.string().optional(),
-    executionDetails: z
-        .object({
-            filledAt: z.number().optional(),
-            claimedAt: z.number().optional(),
-            gasUsed: z.string().optional(),
-            totalDuration: z.number().optional(),
-        })
+    status: z.union([orderStatusSchema, z.record(z.unknown())]),
+    // WORKAROUND: Solver sends ISO strings, spec says unix seconds. Accepts both.
+    createdAt: z
+        .preprocess(
+            (v) => (typeof v === "string" ? Math.floor(new Date(v).getTime() / 1000) : v),
+            z.number(),
+        )
         .optional(),
+    updatedAt: z
+        .preprocess(
+            (v) => (typeof v === "string" ? Math.floor(new Date(v).getTime() / 1000) : v),
+            z.number(),
+        )
+        .optional(),
+    fillTxHash: z.string().optional(),
+    fillTransaction: z.object({ hash: z.string().optional() }).passthrough().nullable().optional(),
 });
 
 export const oifEscrowOrderSchema = z.object({
