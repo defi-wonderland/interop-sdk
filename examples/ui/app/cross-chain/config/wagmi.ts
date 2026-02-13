@@ -1,8 +1,8 @@
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 import { injectedWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
-import { createE2EProvider, e2eConnector } from '@wonderland/walletless';
 import { createConfig, http, cookieStorage, createStorage } from 'wagmi';
 import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
+import { e2eWallet } from './e2eConnector';
 import type { Chain } from 'viem/chains';
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
@@ -15,30 +15,13 @@ function getWallets() {
   return [injectedWallet];
 }
 
-export const e2eTestProvider = createE2EProvider({
-  chains: TESTNET_CHAINS,
-  rpcUrls: TESTNET_RPC_URLS,
-  debug: true,
-});
-
-// Expose provider to window for E2E test control
-if (typeof window !== 'undefined' && isE2E) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).__e2eTestProvider = e2eTestProvider;
-}
-
 export function createWagmiConfig(isTestnet: boolean) {
   const chains: readonly [Chain, ...Chain[]] = isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS;
   const rpcUrls = isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
   const transports = Object.fromEntries(chains.map((chain) => [chain.id, http(rpcUrls[chain.id])]));
 
   if (isE2E) {
-    return createConfig({
-      chains,
-      ssr: true,
-      connectors: [e2eConnector({ provider: e2eTestProvider })],
-      transports,
-    });
+    return e2eWallet;
   }
 
   const connectors = connectorsForWallets([{ groupName: 'Recommended', wallets: getWallets() }], {
