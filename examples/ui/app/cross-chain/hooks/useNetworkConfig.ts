@@ -21,7 +21,7 @@ export function useTokenConfig() {
 
     if (!discoveryContext?.discoveredAssets) {
       return {
-        SUPPORTED_TOKEN_BY_CHAIN_ID: {} as Record<string, readonly string[]>,
+        SUPPORTED_TOKEN_BY_CHAIN_ID: {} as Record<number, readonly string[]>,
         TOKEN_INFO: {} as Record<string, AssetInfo>,
         isDiscovered: false,
         isDiscovering: discoveryContext?.isDiscovering ?? true,
@@ -31,12 +31,13 @@ export function useTokenConfig() {
 
     const { tokensByChain, tokenMetadata } = discoveryContext.discoveredAssets;
 
-    const filteredTokensByChain: Record<string, readonly string[]> = {};
+    // Use numeric chain IDs as keys so SwapForm can look up tokens by chain ID directly
+    const filteredTokensByChain: Record<number, readonly string[]> = {};
 
     for (const chainId of configuredChainIds) {
       const key = toCaip2ChainId(chainId);
       if (tokensByChain[key]?.length > 0) {
-        filteredTokensByChain[key] = tokensByChain[key];
+        filteredTokensByChain[chainId] = tokensByChain[key];
       }
     }
 

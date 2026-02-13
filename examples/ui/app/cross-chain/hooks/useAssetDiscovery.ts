@@ -13,6 +13,8 @@ interface UseAssetDiscoveryResult {
   error: Error | null;
   /** Timestamp when assets were last fetched */
   lastFetchedAt: number | null;
+  /** Retry discovery (useful after failures) */
+  retry: () => void;
 }
 
 /**
@@ -61,5 +63,8 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
     }
   }, [enabled, fetchAssets]);
 
-  return useMemo(() => ({ assets, isLoading, error, lastFetchedAt }), [assets, isLoading, error, lastFetchedAt]);
+  return useMemo(
+    () => ({ assets, isLoading, error, lastFetchedAt, retry: fetchAssets }),
+    [assets, isLoading, error, lastFetchedAt, fetchAssets],
+  );
 }

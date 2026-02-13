@@ -23,12 +23,13 @@ export function DiscoveryLoading({ message = 'Discovering available assets...' }
 
 interface DiscoveryErrorProps {
   error: Error;
+  onRetry?: () => void;
 }
 
 /**
  * Error state when discovery fails
  */
-export function DiscoveryError({ error }: DiscoveryErrorProps) {
+export function DiscoveryError({ error, onRetry }: DiscoveryErrorProps) {
   return (
     <div className='rounded-3xl border border-error/30 bg-error/5 p-6'>
       <div className='flex flex-col items-center justify-center gap-4 py-8'>
@@ -40,7 +41,16 @@ export function DiscoveryError({ error }: DiscoveryErrorProps) {
           <p className='text-text-tertiary text-sm max-w-xs'>
             {error.message || 'Unable to fetch supported tokens from the protocol.'}
           </p>
-          <p className='text-text-tertiary text-xs mt-2'>Please refresh the page to try again.</p>
+          {onRetry ? (
+            <button
+              onClick={onRetry}
+              className='mt-3 px-4 py-2 rounded-xl bg-accent text-white text-sm font-medium hover:bg-accent-hover transition-colors cursor-pointer'
+            >
+              Try Again
+            </button>
+          ) : (
+            <p className='text-text-tertiary text-xs mt-2'>Please refresh the page to try again.</p>
+          )}
         </div>
       </div>
     </div>

@@ -54,13 +54,14 @@ export function useQuotes(): UseQuotesReturn {
         tokenConfig.TOKEN_INFO,
       );
 
-      // Convert addresses to EIP-7930 interoperable format
-      const [userAddress, inputAssetAddress, receiverAddress, outputAssetAddress] = await Promise.all([
+      // Convert user/recipient addresses to EIP-7930 interoperable format
+      // Token addresses from asset discovery are already in interop format
+      const [userAddress, receiverAddress] = await Promise.all([
         toInteropAddress(params.sender, params.inputChainId),
-        toInteropAddress(params.inputTokenAddress, params.inputChainId),
         toInteropAddress(params.recipient, params.outputChainId),
-        toInteropAddress(params.outputTokenAddress, params.outputChainId),
       ]);
+      const inputAssetAddress = params.inputTokenAddress;
+      const outputAssetAddress = params.outputTokenAddress;
 
       // Convert to OIF GetQuoteRequest format
       const getQuoteRequest = {

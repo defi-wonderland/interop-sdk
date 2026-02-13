@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { decodeAddress } from '@wonderland/interop-addresses';
 import { Footer, Navigation } from '../components';
 import {
   DiscoveryLoading,
@@ -18,6 +19,7 @@ import {
 } from './components';
 import { useOrderExecution, useChainConfig } from './hooks';
 import { useQuotes } from './hooks/useQuotes';
+import { useDiscoveredAssets } from './providers';
 import { STEP } from './types/execution';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address } from 'viem';
@@ -31,6 +33,7 @@ export function CrossChainClient() {
   const { quotes, errors, isLoading, fetchQuotes, clearQuotes } = useQuotes();
   const { state: executionState, execute, reset: resetExecution } = useOrderExecution();
   const chainConfig = useChainConfig();
+  const { retryDiscovery } = useDiscoveredAssets();
 
   const [selectedInputToken, setSelectedInputToken] = useState<string>('');
   const [selectedOutputToken, setSelectedOutputToken] = useState<string>('');
@@ -71,7 +74,9 @@ export function CrossChainClient() {
   };
 
   const handleExecuteQuote = async (quote: ExecutableQuote) => {
-    const result = await execute(quote, selectedInputToken as Address, inputAmountRaw, inputChainId, outputChainId);
+    const decoded = decodeAddress(selectedInputToken as `0x${string}`);
+    const rawTokenAddress = (decoded.address ?? selectedInputToken) as Address;
+    const result = await execute(quote, rawTokenAddress, inputAmountRaw, inputChainId, outputChainId);
     if (result.userRejected) {
       setToast({ message: 'Transaction rejected', type: 'info' });
     }
@@ -109,7 +114,7 @@ export function CrossChainClient() {
                 {chainConfig.isDiscovering && <DiscoveryLoading />}
 
                 {!chainConfig.isDiscovering && chainConfig.discoveryError && (
-                  <DiscoveryError error={chainConfig.discoveryError} />
+                  <DiscoveryError error={chainConfig.discoveryError} onRetry={retryDiscovery} />
                 )}
 
                 {chainConfig.isDiscovered &&
