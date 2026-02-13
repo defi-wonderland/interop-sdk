@@ -71,7 +71,14 @@ export function CrossChainClient() {
   };
 
   const handleExecuteQuote = async (quote: ExecutableQuote) => {
-    const result = await execute(quote, selectedInputToken as Address, inputAmountRaw, inputChainId, outputChainId);
+    const result = await execute(
+      quote,
+      selectedInputToken as Address,
+      selectedOutputToken as Address,
+      inputAmountRaw,
+      inputChainId,
+      outputChainId,
+    );
     if (result.userRejected) {
       setToast({ message: 'Transaction rejected', type: 'info' });
     }

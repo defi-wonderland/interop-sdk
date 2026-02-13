@@ -1,6 +1,7 @@
 export { useQuotes } from './useQuotes';
 export { useOrderExecution } from './useOrderExecution';
-export { useAssetDiscovery, type DiscoveredAssets } from './useAssetDiscovery';
+export { useAssetDiscovery } from './useAssetDiscovery';
+export type { DiscoveredAssets, UITokenInfo } from '../types/assets';
 export { useTokenConfig, useChainConfig, useRpcUrls } from './useNetworkConfig';
 export {
   STEP,

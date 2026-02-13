@@ -8,6 +8,7 @@ import {
   submitBridgeTransaction,
   trackOrder,
 } from '../services/orderExecution';
+import { useBalanceStore } from '../stores/balanceStore';
 import { STEP, isTerminal, type BridgeState, type ChainContext, type ExecuteResult } from '../types/execution';
 import { isUserRejectionError, parseError } from '../utils/errorMessages';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
@@ -18,6 +19,7 @@ interface UseOrderExecutionReturn {
   execute: (
     quote: ExecutableQuote,
     inputTokenAddress: Address,
+    outputTokenAddress: Address,
     inputAmount: bigint,
     originChainId: number,
     destinationChainId: number,
@@ -54,10 +56,13 @@ export function useOrderExecution(): UseOrderExecutionReturn {
   const isTracking = state.step === STEP.TRACKING;
   const isComplete = isTerminal(state);
 
+  const updateBalances = useBalanceStore((s) => s.updateBalances);
+
   const execute = useCallback(
     async (
       quote: ExecutableQuote,
       inputTokenAddress: Address,
+      outputTokenAddress: Address,
       inputAmount: bigint,
       originChainId: number,
       destinationChainId: number,
@@ -139,6 +144,18 @@ export function useOrderExecution(): UseOrderExecutionReturn {
 
         await trackOrder(providerId, txHash, chainContext, abortControllerRef.current?.signal, setState);
 
+        if (address) {
+          updateBalances(address, [
+            { chainId: originChainId, token: inputTokenAddress },
+            { chainId: destinationChainId, token: outputTokenAddress },
+          ]).catch((err) => {
+            console.warn(
+              `[useOrderExecution] Balance refresh failed (origin: ${originChainId}, dest: ${destinationChainId}):`,
+              err,
+            );
+          });
+        }
+
         return { success: true };
       } catch (err) {
         if (isUserRejectionError(err)) {
@@ -159,7 +176,7 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         return { success: false };
       }
     },
-    [isConnected, address, walletChainId, config, switchChainAsync],
+    [isConnected, address, walletChainId, config, switchChainAsync, updateBalances],
   );
 
   const reset = useCallback(() => {
