@@ -87,31 +87,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * Returns a pre-processed DiscoveredAssets structure ready for consumption.
      */
     async getSupportedAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
-        if (!options?.forceRefresh) {
-            if (this.isCacheValid()) {
-                return this.transformToDiscoveredAssets(this.cache!.data, options?.chainIds);
-            }
-            if (this.inFlight) {
-                const result = await this.inFlight;
-                return this.transformToDiscoveredAssets(result, options?.chainIds);
-            }
-        }
-
-        const requestTimeout = options?.timeout ?? this.timeout;
-
-        this.inFlight = this.fetchAssets(requestTimeout)
-            .then((result) => {
-                this.cache = {
-                    data: result,
-                    expiresAt: Date.now() + this.cacheTtl,
-                };
-                return result;
-            })
-            .finally(() => {
-                this.inFlight = null;
-            });
-
-        const result = await this.inFlight;
+        const result = await this.resolveResult(options);
         return this.transformToDiscoveredAssets(result, options?.chainIds);
     }
 
@@ -163,32 +139,46 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * Get raw discovery result (internal use for helper methods)
      */
     private async getRawResult(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
+        const result = await this.resolveResult(options);
+        return this.applyFilter(result, options?.chainIds);
+    }
+
+    /**
+     * Single shared fetch path that manages cache, in-flight deduplication,
+     * and fetching. Both getSupportedAssets and getRawResult delegate here
+     * so only one code path ever creates/clears this.inFlight.
+     */
+    private async resolveResult(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
         if (!options?.forceRefresh) {
             if (this.isCacheValid()) {
-                return this.applyFilter(this.cache!.data, options?.chainIds);
+                return this.cache!.data;
             }
             if (this.inFlight) {
-                const result = await this.inFlight;
-                return this.applyFilter(result, options?.chainIds);
+                return this.inFlight;
             }
         }
 
         const requestTimeout = options?.timeout ?? this.timeout;
 
-        this.inFlight = this.fetchAssets(requestTimeout)
-            .then((result) => {
-                this.cache = {
-                    data: result,
-                    expiresAt: Date.now() + this.cacheTtl,
-                };
-                return result;
-            })
-            .finally(() => {
-                this.inFlight = null;
-            });
+        const promise = this.fetchAssets(requestTimeout).then((result) => {
+            this.cache = {
+                data: result,
+                expiresAt: Date.now() + this.cacheTtl,
+            };
+            return result;
+        });
 
-        const result = await this.inFlight;
-        return this.applyFilter(result, options?.chainIds);
+        this.inFlight = promise;
+
+        promise
+            .finally(() => {
+                if (this.inFlight === promise) {
+                    this.inFlight = null;
+                }
+            })
+            .catch(() => {});
+
+        return promise;
     }
 
     private applyFilter(result: AssetDiscoveryResult, chainIds?: number[]): AssetDiscoveryResult {
