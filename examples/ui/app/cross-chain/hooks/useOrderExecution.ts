@@ -114,6 +114,18 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         // Common: track order
         await trackOrder(quote._providerId, trackingId, chainContext, abortControllerRef.current?.signal, setState);
 
+        if (address) {
+          updateBalances(address, [
+            { chainId: originChainId, token: inputTokenAddress },
+            { chainId: destinationChainId, token: outputTokenAddress },
+          ]).catch((err) => {
+            console.warn(
+              `[useOrderExecution] Balance refresh failed (origin: ${originChainId}, dest: ${destinationChainId}):`,
+              err,
+            );
+          });
+        }
+
         return { success: true };
       } catch (err) {
         if (isUserRejectionError(err)) {
