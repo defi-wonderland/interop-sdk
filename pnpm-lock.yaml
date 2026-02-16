@@ -380,8 +380,8 @@ importers:
                 specifier: 8.50.0
                 version: 8.50.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.6.2)
             "@wonderland/walletless":
-                specifier: 1.1.0
-                version: 1.1.0(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))
+                specifier: 1.2.0
+                version: 1.2.0(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))
             dotenv:
                 specifier: 16.4.7
                 version: 16.4.7
@@ -1579,6 +1579,13 @@ packages:
         resolution:
             {
                 integrity: sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==,
+            }
+        engines: { node: ">=6.9.0" }
+
+    "@babel/runtime@7.28.6":
+        resolution:
+            {
+                integrity: sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==,
             }
         engines: { node: ">=6.9.0" }
 
@@ -7097,10 +7104,10 @@ packages:
                 integrity: sha512-IfX8mdaK9dyy578yJ22V7J8Hd0wArLf1JHyA5xK4+RFDUMj3JeBUBccEWoGjZaA0ZU1GgTw1YcqBZFisQyxb6g==,
             }
 
-    "@wonderland/walletless@1.1.0":
+    "@wonderland/walletless@1.2.0":
         resolution:
             {
-                integrity: sha512-P00T9rYqKzwqIOigiURtcZ0Vh0x1kqy/VXQjpPUPxrv2GUrmH9cuAKCjnfBl+VBF0+JkXr0EEtWEJhy+kUvVOw==,
+                integrity: sha512-e0zX5uOq65XBJ0KcBgd7rGY2JWsqugHw1FJQsY3EKqsfXVmPpBlH9Fk7DHlDS6C1uDQv6R4uSQl5oNCe0h+l8Q==,
             }
         engines: { node: ">=20" }
         peerDependencies:
@@ -10149,6 +10156,12 @@ packages:
         resolution:
             {
                 integrity: sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA==,
+            }
+
+    eventemitter3@5.0.4:
+        resolution:
+            {
+                integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==,
             }
 
     events@3.3.0:
@@ -14736,6 +14749,12 @@ packages:
                 integrity: sha512-rytDAoiXr3+t6OIP3WGlDd0ouCUG1iCWzkcY3++Nreuoi17y6T5i/zRhe6uYfoVcxq6YU+sBtJouuRDsq8vvqA==,
             }
 
+    preact@10.28.3:
+        resolution:
+            {
+                integrity: sha512-tCmoRkPQLpBeWzpmbhryairGnhW9tKV6c6gr/w+RhoRoKEJwsjzipwp//1oCpGPOchvSLaAPlpcJi9MwMmoPyA==,
+            }
+
     prelude-ls@1.2.1:
         resolution:
             {
@@ -15724,6 +15743,14 @@ packages:
         resolution:
             {
                 integrity: sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==,
+            }
+        engines: { node: ">=10" }
+        hasBin: true
+
+    semver@7.7.4:
+        resolution:
+            {
+                integrity: sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==,
             }
         engines: { node: ">=10" }
         hasBin: true
@@ -17842,6 +17869,21 @@ packages:
             utf-8-validate:
                 optional: true
 
+    ws@8.19.0:
+        resolution:
+            {
+                integrity: sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==,
+            }
+        engines: { node: ">=10.0.0" }
+        peerDependencies:
+            bufferutil: ^4.0.1
+            utf-8-validate: ">=5.0.2"
+        peerDependenciesMeta:
+            bufferutil:
+                optional: true
+            utf-8-validate:
+                optional: true
+
     wsl-utils@0.1.0:
         resolution:
             {
@@ -19584,6 +19626,8 @@ snapshots:
 
     "@babel/runtime@7.28.4": {}
 
+    "@babel/runtime@7.28.6": {}
+
     "@babel/template@7.27.2":
         dependencies:
             "@babel/code-frame": 7.27.1
@@ -19779,9 +19823,9 @@ snapshots:
             clsx: 1.2.1
             eth-block-tracker: 7.1.0
             eth-json-rpc-filters: 6.0.1
-            eventemitter3: 5.0.1
+            eventemitter3: 5.0.4
             keccak: 3.0.4
-            preact: 10.28.0
+            preact: 10.28.3
             sha.js: 2.4.12
         transitivePeerDependencies:
             - supports-color
@@ -21634,7 +21678,7 @@ snapshots:
             "@ethereumjs/tx": 4.2.0
             "@types/debug": 4.1.12
             debug: 4.4.3
-            semver: 7.7.3
+            semver: 7.7.4
             superstruct: 1.0.4
         transitivePeerDependencies:
             - supports-color
@@ -23098,7 +23142,7 @@ snapshots:
 
     "@slorber/react-helmet-async@1.3.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             invariant: 2.2.4
             prop-types: 15.8.1
             react: 19.1.0
@@ -24536,7 +24580,7 @@ snapshots:
             - typescript
             - utf-8-validate
 
-    "@wonderland/walletless@1.1.0(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))":
+    "@wonderland/walletless@1.2.0(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))":
         dependencies:
             viem: 2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76)
             wagmi: 2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
@@ -26650,6 +26694,8 @@ snapshots:
 
     eventemitter3@5.0.1: {}
 
+    eventemitter3@5.0.4: {}
+
     events@3.3.0: {}
 
     eventsource-parser@3.0.6: {}
@@ -27811,7 +27857,7 @@ snapshots:
             whatwg-encoding: 3.1.1
             whatwg-mimetype: 4.0.0
             whatwg-url: 14.2.0
-            ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+            ws: 8.19.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
             xml-name-validator: 5.0.0
         transitivePeerDependencies:
             - bufferutil
@@ -29757,6 +29803,8 @@ snapshots:
 
     preact@10.28.0: {}
 
+    preact@10.28.3: {}
+
     prelude-ls@1.2.1: {}
 
     prettier-linter-helpers@1.0.0:
@@ -30449,6 +30497,8 @@ snapshots:
     semver@7.6.3: {}
 
     semver@7.7.3: {}
+
+    semver@7.7.4: {}
 
     send@0.19.0:
         dependencies:
@@ -31954,6 +32004,12 @@ snapshots:
         optionalDependencies:
             bufferutil: 4.0.9
             utf-8-validate: 5.0.10
+
+    ws@8.19.0(bufferutil@4.0.9)(utf-8-validate@5.0.10):
+        optionalDependencies:
+            bufferutil: 4.0.9
+            utf-8-validate: 5.0.10
+        optional: true
 
     wsl-utils@0.1.0:
         dependencies:

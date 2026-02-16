@@ -49,7 +49,7 @@
     "@types/react-dom": "19.2.3",
     "@typescript-eslint/eslint-plugin": "8.50.0",
     "@typescript-eslint/parser": "8.50.0",
-    "@wonderland/walletless": "1.1.0",
+    "@wonderland/walletless": "1.2.0",
     "dotenv": "16.4.7",
     "eslint": "9.39.2",
     "eslint-config-prettier": "9.1.0",

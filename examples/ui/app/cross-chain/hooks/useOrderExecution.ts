@@ -148,8 +148,8 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         updateBalances(address!, [
           { chainId: originChainId, token: inputTokenAddress },
           { chainId: destinationChainId, token: outputTokenAddress },
-        ]).catch((balanceErr: unknown) => {
-          console.warn('[useOrderExecution] Balance refresh failed:', balanceErr);
+        ]).catch((err) => {
+          console.warn('[useOrderExecution] Balance refresh failed:', err);
         });
       }
     },
