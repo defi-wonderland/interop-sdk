@@ -54,7 +54,6 @@ export function useQuotes(): UseQuotesReturn {
     setErrors([]);
 
     try {
-      // Convert amount to smallest unit (wei/smallest unit)
       const chainTokenInfo = tokenConfig.TOKEN_INFO[params.inputChainId] ?? {};
       const amountInSmallestUnit = convertAmountToSmallestUnit(
         params.inputAmount,
@@ -62,16 +61,13 @@ export function useQuotes(): UseQuotesReturn {
         chainTokenInfo,
       );
 
-      // Convert user/recipient addresses to EIP-7930 interoperable format
-      // Token addresses from asset discovery are already in interop format
-      const [userAddress, receiverAddress] = await Promise.all([
+      const [userAddress, receiverAddress, inputAssetAddress, outputAssetAddress] = await Promise.all([
         toInteropAddress(params.sender, params.inputChainId),
         toInteropAddress(params.recipient, params.outputChainId),
+        toInteropAddress(params.inputTokenAddress, params.inputChainId),
+        toInteropAddress(params.outputTokenAddress, params.outputChainId),
       ]);
-      const inputAssetAddress = params.inputTokenAddress;
-      const outputAssetAddress = params.outputTokenAddress;
 
-      // Convert to OIF GetQuoteRequest format
       const getQuoteRequest = {
         user: userAddress,
         intent: {

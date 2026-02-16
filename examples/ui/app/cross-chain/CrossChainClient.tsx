@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { decodeAddress } from '@wonderland/interop-addresses';
 import { Footer, Navigation } from '../components';
 import {
   DiscoveryLoading,
@@ -74,13 +73,9 @@ export function CrossChainClient() {
   };
 
   const handleExecuteQuote = async (quote: ExecutableQuote) => {
-    // Decode the input token address for EIP-7930 compatibility (used for approvals)
-    const decoded = decodeAddress(selectedInputToken as `0x${string}`);
-    const rawInputAddress = (decoded.address ?? selectedInputToken) as Address;
-
     const result = await execute(
       quote,
-      rawInputAddress,
+      selectedInputToken as Address,
       selectedOutputToken as Address,
       inputAmountRaw,
       inputChainId,
