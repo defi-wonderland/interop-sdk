@@ -5,7 +5,7 @@ import {
     OrderFailureReason,
     OrderStatus,
 } from "../internal.js";
-import { FillTimeoutError } from "./EventBasedFillWatcher.js";
+import { FillFailedError, FillTimeoutError } from "./EventBasedFillWatcher.js";
 
 /**
  * Configuration for API-based (offchain) fill watching
@@ -54,6 +54,8 @@ export interface APIBasedFillWatcherConfig<TResponse = unknown, TMetadata = unkn
         status: OrderStatus;
         failureReason?: OrderFailureReason;
         metadata?: TMetadata;
+        /** Fill tx hash when available from intermediate statuses (e.g. executing) */
+        fillTxHash?: string;
     };
 }
 
@@ -137,6 +139,7 @@ export class APIBasedFillWatcher<TResponse = unknown, TMetadata = unknown> imple
         fillEvent: FillEvent<TMetadata> | null;
         status: OrderStatus;
         failureReason?: OrderFailureReason;
+        fillTxHash?: string;
     }> {
         const endpoint = this.config.buildEndpoint(params);
         const url = `${this.config.baseUrl}${endpoint}`;
@@ -164,10 +167,8 @@ export class APIBasedFillWatcher<TResponse = unknown, TMetadata = unknown> imple
 
             const data = (await response.json()) as TResponse;
 
-            const { event, status, failureReason, metadata } = this.config.extractFillEvent(
-                data,
-                params,
-            );
+            const { event, status, failureReason, metadata, fillTxHash } =
+                this.config.extractFillEvent(data, params);
 
             const fillEvent = event
                 ? metadata
@@ -175,7 +176,7 @@ export class APIBasedFillWatcher<TResponse = unknown, TMetadata = unknown> imple
                     : (event as FillEvent<TMetadata>)
                 : null;
 
-            return { fillEvent, status, failureReason };
+            return { fillEvent, status, failureReason, fillTxHash };
         } catch (error) {
             console.error(
                 `Error fetching fill from API: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -204,11 +205,28 @@ export class APIBasedFillWatcher<TResponse = unknown, TMetadata = unknown> imple
         const pollingInterval = this.config.pollingInterval || 5000;
         const startTime = Date.now();
 
+        const terminalFailures = new Set([OrderStatus.Failed, OrderStatus.Refunded]);
+        const terminalSuccess = new Set([OrderStatus.Finalized]);
+
         while (Date.now() - startTime < timeout) {
-            const { fillEvent } = await this.getFill(params);
+            const { fillEvent, status, failureReason } = await this.getFill(params);
 
             if (fillEvent) {
                 return fillEvent;
+            }
+
+            if (terminalFailures.has(status)) {
+                throw new FillFailedError(params.orderId, status, failureReason);
+            }
+
+            // Finalized/Settled but extractFillEvent couldn't build a FillEvent (e.g. missing fillTxHash)
+            // Stop polling — don't loop forever on a terminal status
+            if (terminalSuccess.has(status)) {
+                throw new FillFailedError(
+                    params.orderId,
+                    status,
+                    "Order finalized but fill transaction hash unavailable",
+                );
             }
 
             await new Promise((resolve) => setTimeout(resolve, pollingInterval));

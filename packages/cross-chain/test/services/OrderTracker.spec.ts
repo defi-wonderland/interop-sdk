@@ -450,6 +450,119 @@ describe("OrderTracker", () => {
         });
     });
 
+    describe("watchOrder by orderId (escrow path)", () => {
+        const mockOrderId =
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hex;
+
+        function collectUpdates(items: OrderTrackerYield[]): OrderTrackingUpdate[] {
+            return items
+                .filter(
+                    (
+                        item,
+                    ): item is {
+                        type: typeof OrderTrackerYieldType.Update;
+                        update: OrderTrackingUpdate;
+                    } => item.type === OrderTrackerYieldType.Update,
+                )
+                .map((item) => item.update);
+        }
+
+        it("should yield finalized via getFill polling (not waitForFill)", async () => {
+            const mockFillEventData = createMockFillEvent();
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: mockFillEventData,
+                status: OrderStatus.Finalized,
+            });
+
+            const items: OrderTrackerYield[] = [];
+            for await (const item of tracker.watchOrder({
+                orderId: mockOrderId,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 10000,
+            })) {
+                items.push(item);
+            }
+
+            const updates = collectUpdates(items);
+            expect(updates.at(-1)?.status).toBe(OrderStatus.Finalized);
+            expect(updates.at(-1)?.fillTxHash).toBe(mockFillEventData.fillTxHash);
+            expect(mockFillWatcher.getFill).toHaveBeenCalled();
+            expect(mockFillWatcher.waitForFill).not.toHaveBeenCalled();
+        });
+
+        it("should yield intermediate fillTxHash before finalization", async () => {
+            vi.useFakeTimers();
+
+            const mockFillTxHash =
+                "0xaaaa567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hex;
+
+            let callCount = 0;
+            vi.mocked(mockFillWatcher.getFill).mockImplementation(async () => {
+                callCount++;
+                if (callCount === 1) {
+                    return {
+                        fillEvent: null,
+                        status: OrderStatus.Pending,
+                        fillTxHash: mockFillTxHash,
+                    };
+                }
+                return {
+                    fillEvent: createMockFillEvent({ fillTxHash: mockFillTxHash }),
+                    status: OrderStatus.Finalized,
+                    fillTxHash: mockFillTxHash,
+                };
+            });
+
+            const items: OrderTrackerYield[] = [];
+            // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+            const done = (async () => {
+                for await (const item of tracker.watchOrder({
+                    orderId: mockOrderId,
+                    originChainId: mockOriginChainId,
+                    destinationChainId: mockDestinationChainId,
+                    timeout: 30000,
+                })) {
+                    items.push(item);
+                }
+            })();
+
+            // Advance past the polling interval to trigger the second getFill call
+            await vi.advanceTimersByTimeAsync(6000);
+            await done;
+
+            const updates = collectUpdates(items);
+            const intermediate = updates.find(
+                (u) => u.fillTxHash && u.status !== OrderStatus.Finalized,
+            );
+            expect(intermediate).toBeDefined();
+            expect(intermediate?.fillTxHash).toBe(mockFillTxHash);
+            expect(intermediate?.message).toContain("fill tx detected");
+            expect(updates.at(-1)?.status).toBe(OrderStatus.Finalized);
+        });
+
+        it("should yield failed on terminal failure status", async () => {
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: null,
+                status: OrderStatus.Failed,
+                failureReason: OrderFailureReason.Unknown,
+            });
+
+            const items: OrderTrackerYield[] = [];
+            for await (const item of tracker.watchOrder({
+                orderId: mockOrderId,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 10000,
+            })) {
+                items.push(item);
+            }
+
+            const updates = collectUpdates(items);
+            expect(updates.at(-1)?.status).toBe(OrderStatus.Failed);
+        });
+    });
+
     describe("startTracking with event emission", () => {
         it("should emit specific status events during tracking", async () => {
             const mockOpenedIntent = createMockOpenedIntent();

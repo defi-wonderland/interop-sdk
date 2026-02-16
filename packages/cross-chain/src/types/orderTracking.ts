@@ -96,7 +96,7 @@ export interface FillEvent<TMetadata = unknown> {
     /** Transaction hash where the fill occurred */
     fillTxHash: Hex;
     /** Block number where the fill occurred */
-    blockNumber: bigint;
+    blockNumber?: bigint;
     /** Timestamp of the fill */
     timestamp: number;
     /** Origin chain ID */
@@ -104,9 +104,9 @@ export interface FillEvent<TMetadata = unknown> {
     /** ERC-7683 order identifier (bytes32) */
     orderId: Hex;
     /** Relayer/filler who executed the order */
-    relayer: Address;
+    relayer?: Address;
     /** Recipient of the filled order */
-    recipient: Address;
+    recipient?: Address;
     /**
      * Optional metadata from API responses
      * Can include: solver info, fees, routes, multi-hop data, etc.

@@ -22,6 +22,7 @@ export const WALLET_ACTION = {
   SWITCHING: 'switching',
   CHECKING: 'checking',
   APPROVING: 'approving',
+  SIGNING: 'signing',
   SUBMITTING: 'submitting',
   CONFIRMING: 'confirming',
 } as const;
@@ -49,13 +50,13 @@ export interface ChainContext {
 export type BridgeState =
   | { step: typeof STEP.IDLE }
   | ({ step: typeof STEP.WALLET; action: WalletAction; txHash?: Hex } & Partial<ChainContext>)
-  | ({ step: typeof STEP.TRACKING; update: OrderTrackingUpdate; txHash: Hex } & ChainContext)
-  | ({ step: typeof STEP.DONE; update: OrderTrackingUpdate; txHash: Hex } & ChainContext)
+  | ({ step: typeof STEP.TRACKING; update: OrderTrackingUpdate; txHash?: Hex } & ChainContext)
+  | ({ step: typeof STEP.DONE; update: OrderTrackingUpdate; txHash?: Hex } & ChainContext)
   | ({
       step: typeof STEP.TIMEOUT;
       update: OrderTrackingUpdate;
       timeout: OrderTrackerTimeoutPayload;
-      txHash: Hex;
+      txHash?: Hex;
     } & ChainContext)
   | ({
       step: typeof STEP.ERROR;

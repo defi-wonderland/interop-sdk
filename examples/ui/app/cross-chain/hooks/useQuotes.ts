@@ -22,15 +22,22 @@ interface QuoteParams {
   inputAmount: string;
 }
 
-interface GetQuotesError {
+export interface GetQuotesError {
   errorMsg: string;
   error: Error;
+}
+
+export enum QuoteStatus {
+  IDLE = 'idle',
+  LOADING = 'loading',
+  SUCCESS = 'success',
+  ERROR = 'error',
 }
 
 interface UseQuotesReturn {
   quotes: ExecutableQuote[];
   errors: GetQuotesError[];
-  isLoading: boolean;
+  status: QuoteStatus;
   fetchQuotes: (params: QuoteParams) => Promise<void>;
   clearQuotes: () => void;
 }
@@ -39,10 +46,10 @@ export function useQuotes(): UseQuotesReturn {
   const tokenConfig = useTokenConfig();
   const [quotes, setQuotes] = useState<ExecutableQuote[]>([]);
   const [errors, setErrors] = useState<GetQuotesError[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState<QuoteStatus>(QuoteStatus.IDLE);
 
   const fetchQuotes = async (params: QuoteParams) => {
-    setIsLoading(true);
+    setStatus(QuoteStatus.LOADING);
     setQuotes([]);
     setErrors([]);
 
@@ -96,21 +103,24 @@ export function useQuotes(): UseQuotesReturn {
         setErrors(response.errors);
       }
     } catch (error) {
+      setStatus(QuoteStatus.ERROR);
       setErrors([
         {
           errorMsg: 'Failed to fetch quotes',
           error: error instanceof Error ? error : new Error(String(error)),
         },
       ]);
-    } finally {
-      setIsLoading(false);
+      return;
     }
+
+    setStatus(QuoteStatus.SUCCESS);
   };
 
   const clearQuotes = useCallback(() => {
     setQuotes([]);
     setErrors([]);
+    setStatus(QuoteStatus.IDLE);
   }, []);
 
-  return { quotes, errors, isLoading, fetchQuotes, clearQuotes };
+  return { quotes, errors, status, fetchQuotes, clearQuotes };
 }
