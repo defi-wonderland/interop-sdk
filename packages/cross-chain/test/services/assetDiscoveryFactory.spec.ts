@@ -1,3 +1,4 @@
+import { toChainIdentifier } from "@wonderland/interop-addresses";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -9,7 +10,6 @@ import {
     NetworkAssets,
     OIFAssetDiscoveryConfig,
     StaticAssetDiscoveryConfig,
-    toCaip2ChainId,
 } from "../../src/internal.js";
 
 // Mock provider that supports discovery
@@ -179,8 +179,8 @@ describe("AssetDiscoveryFactory", () => {
 
             // Verify it returns DiscoveredAssets
             const result = await service.getSupportedAssets();
-            expect(result.chainIds).toContain(toCaip2ChainId(1));
-            expect(result.chainIds).toContain(toCaip2ChainId(137));
+            expect(result.chainIds).toContain(toChainIdentifier(1));
+            expect(result.chainIds).toContain(toChainIdentifier(137));
         });
     });
 });
@@ -218,8 +218,8 @@ describe("Static Asset Discovery Service", () => {
         const result = await service.getSupportedAssets();
 
         expect(result.chainIds).toHaveLength(1);
-        expect(result.chainIds).toContain(toCaip2ChainId(1));
-        expect(result.tokensByChain[toCaip2ChainId(1)]).toHaveLength(2);
+        expect(result.chainIds).toContain(toChainIdentifier(1));
+        expect(result.tokensByChain[toChainIdentifier(1) as string]).toHaveLength(2);
     });
 
     it("should return assets for a specific chain", async () => {
@@ -331,17 +331,17 @@ describe("Static Asset Discovery Service with AssetDiscoveryOptions", () => {
             const result = await service.getSupportedAssets();
 
             expect(result.chainIds).toHaveLength(3);
-            expect(result.chainIds).toContain(toCaip2ChainId(1));
-            expect(result.chainIds).toContain(toCaip2ChainId(137));
-            expect(result.chainIds).toContain(toCaip2ChainId(42161));
+            expect(result.chainIds).toContain(toChainIdentifier(1));
+            expect(result.chainIds).toContain(toChainIdentifier(137));
+            expect(result.chainIds).toContain(toChainIdentifier(42161));
         });
 
         it("should filter by chainIds when provided", async () => {
             const result = await service.getSupportedAssets({ chainIds: [1, 42161] });
 
             expect(result.chainIds).toHaveLength(2);
-            expect(result.chainIds).toContain(toCaip2ChainId(1));
-            expect(result.chainIds).toContain(toCaip2ChainId(42161));
+            expect(result.chainIds).toContain(toChainIdentifier(1));
+            expect(result.chainIds).toContain(toChainIdentifier(42161));
         });
 
         it("should return empty when chainIds filter matches nothing", async () => {
@@ -354,7 +354,7 @@ describe("Static Asset Discovery Service with AssetDiscoveryOptions", () => {
             const result = await service.getSupportedAssets({ chainIds: [137] });
 
             expect(result.chainIds).toHaveLength(1);
-            expect(result.chainIds).toContain(toCaip2ChainId(137));
+            expect(result.chainIds).toContain(toChainIdentifier(137));
         });
 
         it("should include tokenMetadata in filtered result", async () => {

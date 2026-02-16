@@ -25,6 +25,5 @@ export {
     AssetDiscoveryFactory,
     createAssetDiscoveryService,
     createOIFAssetDiscoveryService,
-    toCaip2ChainId,
     isSignableOifOrder,
 } from "./internal.js";

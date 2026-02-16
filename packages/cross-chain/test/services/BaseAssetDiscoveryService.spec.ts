@@ -1,3 +1,4 @@
+import { toChainIdentifier } from "@wonderland/interop-addresses";
 import { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -6,7 +7,6 @@ import {
     AssetDiscoveryResult,
     BaseAssetDiscoveryService,
     BaseAssetDiscoveryServiceConfig,
-    toCaip2ChainId,
 } from "../../src/internal.js";
 
 /**
@@ -172,15 +172,15 @@ describe("BaseAssetDiscoveryService", () => {
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
             expect(result.chainIds).toHaveLength(1);
-            expect(result.chainIds).toContain(toCaip2ChainId(1));
+            expect(result.chainIds).toContain(toChainIdentifier(1));
         });
 
         it("should return all chains when chainIds is not provided", async () => {
             const result = await service.getSupportedAssets();
 
             expect(result.chainIds).toHaveLength(2);
-            expect(result.chainIds).toContain(toCaip2ChainId(1));
-            expect(result.chainIds).toContain(toCaip2ChainId(137));
+            expect(result.chainIds).toContain(toChainIdentifier(1));
+            expect(result.chainIds).toContain(toChainIdentifier(137));
         });
 
         it("should return empty when chainIds matches nothing", async () => {
@@ -198,7 +198,7 @@ describe("BaseAssetDiscoveryService", () => {
             // Second call with filter should return filtered cached result
             const filtered = await service.getSupportedAssets({ chainIds: [137] });
             expect(filtered.chainIds).toHaveLength(1);
-            expect(filtered.chainIds).toContain(toCaip2ChainId(137));
+            expect(filtered.chainIds).toContain(toChainIdentifier(137));
 
             // Only one fetch should have occurred
             expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -278,10 +278,10 @@ describe("BaseAssetDiscoveryService", () => {
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
             expect(result1.chainIds).toHaveLength(1);
-            expect(result1.chainIds).toContain(toCaip2ChainId(1));
+            expect(result1.chainIds).toContain(toChainIdentifier(1));
 
             expect(result2.chainIds).toHaveLength(1);
-            expect(result2.chainIds).toContain(toCaip2ChainId(137));
+            expect(result2.chainIds).toContain(toChainIdentifier(137));
         });
     });
 

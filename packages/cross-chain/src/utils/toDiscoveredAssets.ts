@@ -1,11 +1,12 @@
+import { toChainIdentifier } from "@wonderland/interop-addresses";
+
 import type { AssetDiscoveryResult, AssetInfo, DiscoveredAssets } from "../internal.js";
-import { toCaip2ChainId } from "./chainHelpers.js";
 
 /**
  * Convert one or more AssetDiscoveryResults into a lookup-friendly
  * DiscoveredAssets structure.
  *
- * Chain grouping uses CAIP-2 keys. Token metadata is flat (interop
+ * Chain grouping uses CAIP-350 keys. Token metadata is flat (interop
  * addresses are globally unique). Addresses are kept in EIP-7930 format.
  *
  * @internal Used by BaseAssetDiscoveryService - not exported publicly
@@ -25,7 +26,7 @@ export function toDiscoveredAssets(
             const { chainId, assets } = network;
             if (filterChainIds && !filterChainIds.includes(chainId)) continue;
 
-            const key = toCaip2ChainId(chainId);
+            const key = toChainIdentifier(chainId) as string;
             chainKeySet.add(key);
             tokensByChain[key] ??= [];
 

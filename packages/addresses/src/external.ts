@@ -24,6 +24,9 @@ export {
     validateChecksum,
 } from "./address/index.js";
 
+// Chain identifier helper
+export { toChainIdentifier } from "./address/chainIdentifier.js";
+
 // Name layer functions (direct access, not via provider)
 export { parseName, formatName, resolveChainFromRegistry } from "./name/index.js";
 

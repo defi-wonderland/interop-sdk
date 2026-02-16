@@ -77,18 +77,19 @@ export interface AssetDiscoveryResult {
  * Aggregated view of discovered assets from one or more providers,
  * indexed for fast lookup by chain and interop address.
  *
- * Chain keys use CAIP-2 format (e.g. "eip155:1", "eip155:42161").
+ * Chain keys use CAIP-350 format (e.g. "eip155:1", "eip155:42161").
  * All addresses use the EIP-7930 interop format.
  *
- * Use `toCaip2ChainId(chainId)` to convert a numeric chain ID to a CAIP-2 identifier.
+ * Use `toChainIdentifier(chainId)` from `@wonderland/interop-addresses` to
+ * convert a numeric chain ID to a CAIP-350 identifier.
  * Use `decodeAddress` from `@wonderland/interop-addresses` to get the
  * plain address when needed for display or wallet interaction.
  */
 export interface DiscoveredAssets {
-    /** Token interop addresses grouped by CAIP-2 chain identifier */
+    /** Token interop addresses grouped by CAIP-350 chain identifier */
     tokensByChain: Record<string, readonly string[]>;
     /** Token metadata (AssetInfo) keyed by interop address (globally unique) */
     tokenMetadata: Record<string, AssetInfo>;
-    /** All discovered CAIP-2 chain identifiers, sorted */
+    /** All discovered CAIP-350 chain identifiers, sorted */
     chainIds: string[];
 }

@@ -1,3 +1,4 @@
+import { toChainIdentifier } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ZodError } from "zod";
@@ -6,7 +7,6 @@ import {
     AssetDiscoveryFailure,
     CustomApiAssetDiscoveryService,
     NetworkAssets,
-    toCaip2ChainId,
 } from "../../src/internal.js";
 
 vi.mock("axios");
@@ -84,11 +84,11 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             // Returns DiscoveredAssets format
             expect(result.chainIds).toHaveLength(2);
-            expect(result.chainIds).toContain(toCaip2ChainId(1));
-            expect(result.chainIds).toContain(toCaip2ChainId(137));
+            expect(result.chainIds).toContain(toChainIdentifier(1));
+            expect(result.chainIds).toContain(toChainIdentifier(137));
 
             // Verify tokensByChain has the expected tokens
-            const ethTokens = result.tokensByChain[toCaip2ChainId(1)];
+            const ethTokens = result.tokensByChain[toChainIdentifier(1) as string];
             expect(ethTokens).toHaveLength(2);
         });
 
@@ -131,7 +131,7 @@ describe("CustomApiAssetDiscoveryService", () => {
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
             expect(result.chainIds).toHaveLength(1);
-            expect(result.chainIds).toContain(toCaip2ChainId(1));
+            expect(result.chainIds).toContain(toChainIdentifier(1));
         });
 
         it("should handle empty response array", async () => {
@@ -562,10 +562,10 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             // Each result should have its own filter applied
             expect(result1.chainIds).toHaveLength(1);
-            expect(result1.chainIds).toContain(toCaip2ChainId(1));
+            expect(result1.chainIds).toContain(toChainIdentifier(1));
 
             expect(result2.chainIds).toHaveLength(1);
-            expect(result2.chainIds).toContain(toCaip2ChainId(137));
+            expect(result2.chainIds).toContain(toChainIdentifier(137));
         });
     });
 });
