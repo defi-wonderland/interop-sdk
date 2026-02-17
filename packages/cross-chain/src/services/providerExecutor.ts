@@ -296,17 +296,6 @@ class ProviderExecutor {
      *
      * @param options - Discovery options (chain filtering, caching)
      * @returns Aggregated discovered assets
-     *
-     * @example
-     * ```typescript
-     * const discovered = await executor.discoverAssets({ chainIds: [1, 42161] });
-     *
-     * // Get tokens for Ethereum using CAIP-2 key
-     * const ethTokens = discovered.tokensByChain["eip155:1"];
-     *
-     * // Get metadata for a specific token (flat lookup)
-     * const usdc = discovered.tokenMetadata["0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"];
-     * ```
      */
     async discoverAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
         const promises = Object.values(this.providers).map(async (provider) => {
