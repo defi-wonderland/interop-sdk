@@ -90,6 +90,4 @@ export interface DiscoveredAssets {
     tokensByChain: Record<string, readonly string[]>;
     /** Token metadata (AssetInfo) keyed by interop address (globally unique) */
     tokenMetadata: Record<string, AssetInfo>;
-    /** All discovered CAIP-350 chain identifiers, sorted */
-    chainIds: string[];
 }

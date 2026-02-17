@@ -45,7 +45,7 @@ function transformToUiAssets(providerResults: ProviderDiscoveryResult[]): Discov
   const chainIdSet = new Set<number>();
 
   for (const { providerId, result } of providerResults) {
-    for (const caip2ChainId of result.chainIds) {
+    for (const caip2ChainId of Object.keys(result.tokensByChain)) {
       const numericChainId = parseCaip2ChainId(caip2ChainId);
       if (numericChainId === null) continue;
 

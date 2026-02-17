@@ -171,34 +171,33 @@ describe("BaseAssetDiscoveryService", () => {
         it("should filter by chainIds", async () => {
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
-            expect(result.chainIds).toHaveLength(1);
-            expect(result.chainIds).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
         });
 
         it("should return all chains when chainIds is not provided", async () => {
             const result = await service.getSupportedAssets();
 
-            expect(result.chainIds).toHaveLength(2);
-            expect(result.chainIds).toContain(toChainIdentifier(1));
-            expect(result.chainIds).toContain(toChainIdentifier(137));
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
         });
 
         it("should return empty when chainIds matches nothing", async () => {
             const result = await service.getSupportedAssets({ chainIds: [999] });
 
-            expect(result.chainIds).toHaveLength(0);
             expect(Object.keys(result.tokensByChain)).toHaveLength(0);
         });
 
         it("should apply filter to cached result", async () => {
             // First call populates cache with all chains
             const full = await service.getSupportedAssets();
-            expect(full.chainIds).toHaveLength(2);
+            expect(Object.keys(full.tokensByChain)).toHaveLength(2);
 
             // Second call with filter should return filtered cached result
             const filtered = await service.getSupportedAssets({ chainIds: [137] });
-            expect(filtered.chainIds).toHaveLength(1);
-            expect(filtered.chainIds).toContain(toChainIdentifier(137));
+            expect(Object.keys(filtered.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(filtered.tokensByChain)).toContain(toChainIdentifier(137));
 
             // Only one fetch should have occurred
             expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -227,8 +226,8 @@ describe("BaseAssetDiscoveryService", () => {
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
             // Both results should be equivalent
-            expect(result1.chainIds).toHaveLength(2);
-            expect(result2.chainIds).toHaveLength(2);
+            expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
+            expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
         });
 
         it("should not dedupe concurrent forceRefresh calls", async () => {
@@ -242,8 +241,8 @@ describe("BaseAssetDiscoveryService", () => {
             // forceRefresh bypasses in-flight dedup, so each call triggers a separate fetch
             expect(fetchMock).toHaveBeenCalledTimes(2);
 
-            expect(result1.chainIds).toHaveLength(2);
-            expect(result2.chainIds).toHaveLength(2);
+            expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
+            expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
         });
 
         it("should clear in-flight state on failure and allow retry", async () => {
@@ -257,7 +256,7 @@ describe("BaseAssetDiscoveryService", () => {
             const result = await service.getSupportedAssets();
 
             expect(fetchMock).toHaveBeenCalledTimes(2);
-            expect(result.chainIds).toHaveLength(2);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
         });
 
         it("should apply different chainIds filters to same deduped result", async () => {
@@ -277,11 +276,11 @@ describe("BaseAssetDiscoveryService", () => {
 
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
-            expect(result1.chainIds).toHaveLength(1);
-            expect(result1.chainIds).toContain(toChainIdentifier(1));
+            expect(Object.keys(result1.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(result1.tokensByChain)).toContain(toChainIdentifier(1));
 
-            expect(result2.chainIds).toHaveLength(1);
-            expect(result2.chainIds).toContain(toChainIdentifier(137));
+            expect(Object.keys(result2.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(result2.tokensByChain)).toContain(toChainIdentifier(137));
         });
     });
 

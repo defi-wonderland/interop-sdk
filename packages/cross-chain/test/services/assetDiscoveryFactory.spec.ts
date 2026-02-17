@@ -179,8 +179,8 @@ describe("AssetDiscoveryFactory", () => {
 
             // Verify it returns DiscoveredAssets
             const result = await service.getSupportedAssets();
-            expect(result.chainIds).toContain(toChainIdentifier(1));
-            expect(result.chainIds).toContain(toChainIdentifier(137));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
         });
     });
 });
@@ -217,8 +217,8 @@ describe("Static Asset Discovery Service", () => {
     it("should return DiscoveredAssets", async () => {
         const result = await service.getSupportedAssets();
 
-        expect(result.chainIds).toHaveLength(1);
-        expect(result.chainIds).toContain(toChainIdentifier(1));
+        expect(Object.keys(result.tokensByChain)).toHaveLength(1);
+        expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
         expect(result.tokensByChain[toChainIdentifier(1) as string]).toHaveLength(2);
     });
 
@@ -330,31 +330,31 @@ describe("Static Asset Discovery Service with AssetDiscoveryOptions", () => {
         it("should return all chains when no chainIds filter is provided", async () => {
             const result = await service.getSupportedAssets();
 
-            expect(result.chainIds).toHaveLength(3);
-            expect(result.chainIds).toContain(toChainIdentifier(1));
-            expect(result.chainIds).toContain(toChainIdentifier(137));
-            expect(result.chainIds).toContain(toChainIdentifier(42161));
+            expect(Object.keys(result.tokensByChain)).toHaveLength(3);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(42161));
         });
 
         it("should filter by chainIds when provided", async () => {
             const result = await service.getSupportedAssets({ chainIds: [1, 42161] });
 
-            expect(result.chainIds).toHaveLength(2);
-            expect(result.chainIds).toContain(toChainIdentifier(1));
-            expect(result.chainIds).toContain(toChainIdentifier(42161));
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(42161));
         });
 
         it("should return empty when chainIds filter matches nothing", async () => {
             const result = await service.getSupportedAssets({ chainIds: [999] });
 
-            expect(result.chainIds).toHaveLength(0);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(0);
         });
 
         it("should return single chain when chainIds has one matching ID", async () => {
             const result = await service.getSupportedAssets({ chainIds: [137] });
 
-            expect(result.chainIds).toHaveLength(1);
-            expect(result.chainIds).toContain(toChainIdentifier(137));
+            expect(Object.keys(result.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
         });
 
         it("should include tokenMetadata in filtered result", async () => {

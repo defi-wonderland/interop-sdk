@@ -19,7 +19,6 @@ export function toDiscoveredAssets(
 ): DiscoveredAssets {
     const tokensByChain: Record<string, string[]> = {};
     const tokenMetadata: Record<string, AssetInfo> = {};
-    const chainKeySet = new Set<string>();
 
     for (const result of results) {
         for (const network of result.networks) {
@@ -27,7 +26,6 @@ export function toDiscoveredAssets(
             if (filterChainIds && !filterChainIds.includes(chainId)) continue;
 
             const key = toChainIdentifier(chainId) as string;
-            chainKeySet.add(key);
             tokensByChain[key] ??= [];
 
             for (const asset of assets) {
@@ -49,7 +47,6 @@ export function toDiscoveredAssets(
     return {
         tokensByChain,
         tokenMetadata,
-        chainIds: Array.from(chainKeySet).sort(),
     };
 }
 
@@ -65,14 +62,8 @@ export function toDiscoveredAssets(
 export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAssets {
     const tokensByChain: Record<string, string[]> = {};
     const tokenMetadata: Record<string, AssetInfo> = {};
-    const chainKeySet = new Set<string>();
 
     for (const source of sources) {
-        // Merge chain IDs
-        for (const chainKey of source.chainIds) {
-            chainKeySet.add(chainKey);
-        }
-
         // Merge tokens by chain
         for (const [chainKey, tokens] of Object.entries(source.tokensByChain)) {
             tokensByChain[chainKey] ??= [];
@@ -90,6 +81,5 @@ export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAs
     return {
         tokensByChain,
         tokenMetadata,
-        chainIds: Array.from(chainKeySet).sort(),
     };
 }

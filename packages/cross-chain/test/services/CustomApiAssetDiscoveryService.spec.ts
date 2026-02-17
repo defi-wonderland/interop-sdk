@@ -83,9 +83,9 @@ describe("CustomApiAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledWith(assetsEndpoint, expect.anything());
 
             // Returns DiscoveredAssets format
-            expect(result.chainIds).toHaveLength(2);
-            expect(result.chainIds).toContain(toChainIdentifier(1));
-            expect(result.chainIds).toContain(toChainIdentifier(137));
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
 
             // Verify tokensByChain has the expected tokens
             const ethTokens = result.tokensByChain[toChainIdentifier(1) as string];
@@ -130,8 +130,8 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
-            expect(result.chainIds).toHaveLength(1);
-            expect(result.chainIds).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
         });
 
         it("should handle empty response array", async () => {
@@ -143,7 +143,7 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             const result = await service.getSupportedAssets();
 
-            expect(result.chainIds).toHaveLength(0);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(0);
         });
 
         it("should include custom headers in requests", async () => {
@@ -489,8 +489,8 @@ describe("CustomApiAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(1);
 
             // Both results should be equivalent
-            expect(result1.chainIds).toHaveLength(2);
-            expect(result2.chainIds).toHaveLength(2);
+            expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
+            expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
         });
 
         it("should not dedupe concurrent forceRefresh calls", async () => {
@@ -510,8 +510,8 @@ describe("CustomApiAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(2);
 
             // Both results should be equivalent
-            expect(result1.chainIds).toHaveLength(2);
-            expect(result2.chainIds).toHaveLength(2);
+            expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
+            expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
         });
 
         it("should clear in-flight state on failure and allow retry", async () => {
@@ -532,7 +532,7 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             // Should have made two API calls total
             expect(axios.get).toHaveBeenCalledTimes(2);
-            expect(result.chainIds).toHaveLength(2);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
         });
 
         it("should apply chainIds filter to deduped result", async () => {
@@ -561,11 +561,11 @@ describe("CustomApiAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(1);
 
             // Each result should have its own filter applied
-            expect(result1.chainIds).toHaveLength(1);
-            expect(result1.chainIds).toContain(toChainIdentifier(1));
+            expect(Object.keys(result1.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(result1.tokensByChain)).toContain(toChainIdentifier(1));
 
-            expect(result2.chainIds).toHaveLength(1);
-            expect(result2.chainIds).toContain(toChainIdentifier(137));
+            expect(Object.keys(result2.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(result2.tokensByChain)).toContain(toChainIdentifier(137));
         });
     });
 });

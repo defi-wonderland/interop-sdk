@@ -312,7 +312,7 @@ class ProviderExecutor {
         const results = settled.filter(Boolean) as DiscoveredAssets[];
 
         if (results.length === 0) {
-            return { tokensByChain: {}, tokenMetadata: {}, chainIds: [] };
+            return { tokensByChain: {}, tokenMetadata: {} };
         }
 
         return mergeDiscoveredAssets(results);

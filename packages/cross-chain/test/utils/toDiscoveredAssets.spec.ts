@@ -49,10 +49,10 @@ describe("toDiscoveredAssets", () => {
             });
         });
 
-        it("should populate chainIds with CAIP-2 format", () => {
+        it("should populate tokensByChain keys with CAIP-2 format", () => {
             const result = toDiscoveredAssets([mockResult]);
 
-            expect(result.chainIds).toEqual(["eip155:1"]);
+            expect(Object.keys(result.tokensByChain)).toEqual(["eip155:1"]);
         });
     });
 
@@ -139,7 +139,7 @@ describe("toDiscoveredAssets", () => {
 
             const result = toDiscoveredAssets([multiChainResult], [1]);
 
-            expect(result.chainIds).toEqual(["eip155:1"]);
+            expect(Object.keys(result.tokensByChain)).toEqual(["eip155:1"]);
             expect(result.tokensByChain["eip155:1"]).toBeDefined();
             expect(result.tokensByChain["eip155:42161"]).toBeUndefined();
             expect(result.tokenMetadata[USDC_ETH]).toBeDefined();
@@ -149,7 +149,6 @@ describe("toDiscoveredAssets", () => {
         it("should return empty result when no chains match filter", () => {
             const result = toDiscoveredAssets([mockResult], [999]);
 
-            expect(result.chainIds).toEqual([]);
             expect(Object.keys(result.tokensByChain)).toHaveLength(0);
             expect(Object.keys(result.tokenMetadata)).toHaveLength(0);
         });
@@ -161,12 +160,11 @@ describe("toDiscoveredAssets", () => {
 
             expect(result.tokensByChain).toEqual({});
             expect(result.tokenMetadata).toEqual({});
-            expect(result.chainIds).toEqual([]);
         });
     });
 
     describe("multiple chains", () => {
-        it("should sort chainIds lexicographically", () => {
+        it("should have chain keys in tokensByChain", () => {
             const multiChainResult: AssetDiscoveryResult = {
                 networks: [
                     {
@@ -184,8 +182,7 @@ describe("toDiscoveredAssets", () => {
 
             const result = toDiscoveredAssets([multiChainResult]);
 
-            // Lexicographic sort: "eip155:1" < "eip155:42161"
-            expect(result.chainIds).toEqual(["eip155:1", "eip155:42161"]);
+            expect(Object.keys(result.tokensByChain).sort()).toEqual(["eip155:1", "eip155:42161"]);
         });
 
         it("should maintain separate token lists per chain", () => {
