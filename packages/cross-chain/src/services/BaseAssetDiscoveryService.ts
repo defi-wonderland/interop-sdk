@@ -88,17 +88,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      */
     async getSupportedAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
         const result = await this.resolveResult(options);
-        return this.transformToDiscoveredAssets(result, options?.chainIds);
-    }
-
-    /**
-     * Transform raw discovery result to DiscoveredAssets format
-     */
-    private transformToDiscoveredAssets(
-        result: AssetDiscoveryResult,
-        chainIds?: number[],
-    ): DiscoveredAssets {
-        return toDiscoveredAssets([result], chainIds);
+        return toDiscoveredAssets([result], options?.chainIds);
     }
 
     /**
