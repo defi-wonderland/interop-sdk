@@ -1,4 +1,5 @@
 import { parseUnits } from 'viem';
+import type { TokenInfo } from '@wonderland/interop-cross-chain';
 
 /**
  * Converts a human-readable amount to the smallest unit (wei/smallest unit)
@@ -10,10 +11,10 @@ import { parseUnits } from 'viem';
 export function convertAmountToSmallestUnit(
   amount: string,
   tokenAddress: string,
-  tokenMetadata: Record<string, { decimals: number }>,
+  tokenMetadata: Record<string, TokenInfo>,
 ): string {
   const token = tokenMetadata[tokenAddress];
-  const decimals = token?.decimals || 18;
+  const decimals = token.decimals || 18;
 
   try {
     const parsed = parseUnits(amount, decimals);
