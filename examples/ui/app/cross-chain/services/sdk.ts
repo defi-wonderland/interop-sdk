@@ -3,7 +3,6 @@ import {
   createCrossChainProvider,
   createProviderExecutor,
   OrderTrackerFactory,
-  createAssetDiscoveryService,
   type AssetDiscoveryService,
   type CrossChainProvider,
 } from '@wonderland/interop-cross-chain';
@@ -54,6 +53,7 @@ const trackerFactory = new OrderTrackerFactory({ rpcUrls: RPC_URLS });
  * Cross-chain executor singleton
  * - Fetches quotes from all providers
  * - Handles intent tracking for any provider via track() method
+ * - Asset discovery services are created and prefetched on construction
  */
 export const crossChainExecutor = createProviderExecutor({
   providers,
@@ -70,20 +70,11 @@ export function getProviderDisplayName(providerId: string): string {
   return config?.displayName || providerId;
 }
 
-const assetDiscoveryServices: Map<string, AssetDiscoveryService> = new Map();
-
-providers.forEach((provider: CrossChainProvider) => {
-  const service = createAssetDiscoveryService(provider);
-  if (service) {
-    assetDiscoveryServices.set(provider.getProviderId(), service);
-  }
-});
-
 /**
- * Get all asset discovery services
+ * Get all asset discovery services (pre-warmed by the executor)
  */
 export function getAssetDiscoveryServices(): Map<string, AssetDiscoveryService> {
-  return assetDiscoveryServices;
+  return crossChainExecutor.getDiscoveryServices();
 }
 
 /**
@@ -92,5 +83,5 @@ export function getAssetDiscoveryServices(): Map<string, AssetDiscoveryService> 
  * @returns The asset discovery service or undefined if not supported
  */
 export function getAssetDiscoveryService(providerId: string): AssetDiscoveryService | undefined {
-  return assetDiscoveryServices.get(providerId);
+  return crossChainExecutor.getDiscoveryServices().get(providerId);
 }

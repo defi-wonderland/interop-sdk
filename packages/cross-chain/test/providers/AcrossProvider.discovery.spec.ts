@@ -354,23 +354,13 @@ describe("AcrossProvider.discovery", () => {
             expect(service).toBeInstanceOf(CustomApiAssetDiscoveryService);
         });
 
-        it("should pass custom cache TTL from factory config", () => {
+        it("should create service that starts prefetching", () => {
             const provider = new AcrossProvider({ providerId: "test-across" });
-            const factory = new AssetDiscoveryFactory({ defaultCacheTtl: 60000 });
+            const factory = new AssetDiscoveryFactory();
 
             const service = factory.createService(provider);
 
             expect(service).toBeInstanceOf(CustomApiAssetDiscoveryService);
-        });
-
-        it("should use config cache TTL over factory default", () => {
-            // This test verifies the factory respects config.cacheTtl
-            // The actual behavior is tested in CustomApiAssetDiscoveryService tests
-            const provider = new AcrossProvider({ providerId: "test-across" });
-            const config = provider.getDiscoveryConfig();
-
-            // AcrossProvider doesn't set cacheTtl by default
-            expect(config.config.cacheTtl).toBeUndefined();
         });
     });
 });

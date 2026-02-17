@@ -14,9 +14,7 @@ interface UseAssetDiscoveryResult {
   isLoading: boolean;
   /** Error if discovery failed */
   error: Error | null;
-  /** Timestamp when assets were last fetched */
-  lastFetchedAt: number | null;
-  /** Retry discovery (useful after failures) */
+  /** Retry discovery after a failure */
   retry: () => void;
 }
 
@@ -55,7 +53,6 @@ function transformToUiAssets(providerResults: ProviderDiscoveryResult[]): Discov
       }
 
       for (const interopAddress of interopAddresses) {
-        // Decode EIP-7930 interop address to raw EVM address
         let rawAddress: string;
         try {
           const decoded = decodeAddress(interopAddress as Hex);
@@ -96,9 +93,9 @@ function transformToUiAssets(providerResults: ProviderDiscoveryResult[]): Discov
 /**
  * Hook to discover supported assets from all providers.
  *
- * Uses individual AssetDiscoveryService instances per provider, aggregates results,
- * and transforms them to a UI-friendly DiscoveredAssets structure with numeric chain
- * IDs and decoded EVM addresses.
+ * Assets are permanently cached by the SDK after the first successful fetch.
+ * The services are already prefetching when the executor is created, so by the
+ * time this hook mounts the data is often ready immediately.
  *
  * @param options.chainIds - Filter results to specific chain IDs.
  *   **Must be a stable reference** (e.g. via useMemo) to avoid re-triggering the effect.
@@ -110,7 +107,6 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
   const [assets, setAssets] = useState<DiscoveredAssets | null>(null);
   const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<Error | null>(null);
-  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
 
   const fetchAssets = useCallback(async () => {
     if (!enabled) return;
@@ -138,7 +134,6 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
       }
 
       setAssets(transformToUiAssets(providerResults));
-      setLastFetchedAt(Date.now());
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
@@ -152,8 +147,5 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
     }
   }, [enabled, fetchAssets]);
 
-  return useMemo(
-    () => ({ assets, isLoading, error, lastFetchedAt, retry: fetchAssets }),
-    [assets, isLoading, error, lastFetchedAt, fetchAssets],
-  );
+  return useMemo(() => ({ assets, isLoading, error, retry: fetchAssets }), [assets, isLoading, error, fetchAssets]);
 }

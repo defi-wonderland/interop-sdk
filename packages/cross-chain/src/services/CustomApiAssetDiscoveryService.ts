@@ -27,7 +27,7 @@ export interface CustomApiAssetDiscoveryServiceConfig extends BaseAssetDiscovery
  *
  * Fetches supported assets from custom API endpoints and transforms them
  * using a protocol-specific parseResponse function.
- * Includes in-memory caching with configurable TTL.
+ * Results are cached permanently after the first fetch.
  */
 export class CustomApiAssetDiscoveryService extends BaseAssetDiscoveryService {
     private readonly assetsEndpoint: string;

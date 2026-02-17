@@ -11,23 +11,10 @@ import {
 } from "../internal.js";
 
 /**
- * Configuration for the Asset Discovery Factory
- */
-export interface AssetDiscoveryFactoryConfig {
-    /**
-     * Default cache TTL in milliseconds.
-     * Asset lists rarely change, so the default is Infinity.
-     * Use `forceRefresh: true` to explicitly refresh when needed.
-     * @default Infinity
-     */
-    defaultCacheTtl?: number;
-}
-
-/**
  * Factory for creating AssetDiscoveryService instances
  *
- * Similar to IntentTrackerFactory, this creates the appropriate service
- * based on the provider's discovery configuration.
+ * Creates the appropriate service based on the provider's discovery configuration
+ * and immediately starts prefetching so data is ready when needed.
  *
  * @example
  * ```typescript
@@ -37,20 +24,16 @@ export interface AssetDiscoveryFactoryConfig {
  * const service = factory.createService(oifProvider);
  *
  * if (service) {
+ *   // Data is already being fetched in the background
  *   const assets = await service.getSupportedAssets();
- *   console.log(`Found ${assets.networks.length} chains`);
  * }
  * ```
  */
 export class AssetDiscoveryFactory {
-    private readonly config: AssetDiscoveryFactoryConfig;
-
-    constructor(config?: AssetDiscoveryFactoryConfig) {
-        this.config = config ?? {};
-    }
-
     /**
      * Create an AssetDiscoveryService for a provider
+     *
+     * The returned service starts prefetching immediately.
      *
      * @param provider - The provider to create a service for
      * @returns AssetDiscoveryService instance, or null if provider doesn't support discovery
@@ -62,7 +45,9 @@ export class AssetDiscoveryFactory {
             return null;
         }
 
-        return this.createServiceFromConfig(config, provider.getProviderId());
+        const service = this.createServiceFromConfig(config, provider.getProviderId());
+        service.prefetch();
+        return service;
     }
 
     /**
@@ -108,7 +93,6 @@ export class AssetDiscoveryFactory {
             solverId: config.config.solverId,
             providerId,
             headers: config.config.headers,
-            cacheTtl: config.config.cacheTtl ?? this.config.defaultCacheTtl,
             timeout: config.config.timeout,
         });
     }
@@ -125,7 +109,6 @@ export class AssetDiscoveryFactory {
             parseResponse: config.config.parseResponse,
             providerId,
             headers: config.config.headers,
-            cacheTtl: config.config.cacheTtl ?? this.config.defaultCacheTtl,
             timeout: config.config.timeout,
         });
     }
@@ -135,6 +118,7 @@ export class AssetDiscoveryFactory {
  * Create an OIF Asset Discovery Service directly
  *
  * Use this when you have the solver URL available.
+ * The service starts prefetching immediately.
  *
  * @param config - Service configuration including base URL
  * @returns Configured OIF Asset Discovery Service
@@ -146,28 +130,30 @@ export class AssetDiscoveryFactory {
  *   providerId: "my-solver",
  * });
  *
+ * // Data is already being fetched in the background
  * const assets = await service.getSupportedAssets();
  * ```
  */
 export function createOIFAssetDiscoveryService(
     config: OIFAssetDiscoveryServiceConfig,
 ): OIFAssetDiscoveryService {
-    return new OIFAssetDiscoveryService(config);
+    const service = new OIFAssetDiscoveryService(config);
+    service.prefetch();
+    return service;
 }
 
 /**
  * Create an Asset Discovery Service for a provider
  *
  * Convenience function that creates a factory and service in one call.
+ * The service starts prefetching immediately.
  *
  * @param provider - The provider to create a service for
- * @param factoryConfig - Optional factory configuration
  * @returns AssetDiscoveryService instance, or null if provider doesn't support discovery
  */
 export function createAssetDiscoveryService(
     provider: CrossChainProvider,
-    factoryConfig?: AssetDiscoveryFactoryConfig,
 ): AssetDiscoveryService | null {
-    const factory = new AssetDiscoveryFactory(factoryConfig);
+    const factory = new AssetDiscoveryFactory();
     return factory.createService(provider);
 }

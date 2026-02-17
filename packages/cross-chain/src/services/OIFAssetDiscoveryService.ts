@@ -35,7 +35,7 @@ export interface OIFAssetDiscoveryServiceConfig extends BaseAssetDiscoveryServic
  * OIF Asset Discovery Service Implementation
  *
  * Fetches supported assets from OIF-compliant solvers using the standard
- * /api/tokens endpoint. Includes in-memory caching with configurable TTL.
+ * /api/tokens endpoint. Results are cached permanently after the first fetch.
  *
  * WORKAROUND: When solverId is provided, uses GET /v1/solvers/{solverId}
  * instead of spec-compliant GET /api/tokens (solver response uses `tokens` instead of `assets`).

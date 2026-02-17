@@ -5,7 +5,7 @@ export class StaticAssetDiscoveryService extends BaseAssetDiscoveryService {
     private readonly networks: NetworkAssets[];
 
     constructor(networks: NetworkAssets[], providerId: string) {
-        super({ providerId, cacheTtl: Infinity });
+        super({ providerId });
         this.networks = networks;
     }
 

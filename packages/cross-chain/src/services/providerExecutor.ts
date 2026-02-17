@@ -4,8 +4,9 @@ import { Hex } from "viem";
 
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import {
+    AssetDiscoveryFactory,
     AssetDiscoveryOptions,
-    createAssetDiscoveryService,
+    AssetDiscoveryService,
     CrossChainProvider,
     DiscoveredAssets,
     ExecutableQuote,
@@ -49,6 +50,7 @@ class ProviderExecutor {
     private readonly timeoutMs: number;
     private readonly trackerFactory: OrderTrackerFactory;
     private readonly trackerCache: Map<string, OrderTracker> = new Map();
+    private readonly discoveryCache: Map<string, AssetDiscoveryService> = new Map();
 
     /**
      * Constructor - internal use only, prefer createProviderExecutor() factory
@@ -67,18 +69,45 @@ class ProviderExecutor {
         this.sortingStrategy = sortingStrategy ?? getDefaultSortingStrategy();
         this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
         this.trackerFactory = trackerFactory ?? new OrderTrackerFactory();
+
+        this.initDiscoveryServices(providers);
+    }
+
+    /**
+     * Create and cache discovery services for all providers that support it.
+     * Each service starts prefetching immediately via the factory.
+     */
+    private initDiscoveryServices(providers: CrossChainProvider[]): void {
+        const factory = new AssetDiscoveryFactory();
+        for (const provider of providers) {
+            const service = factory.createService(provider);
+            if (service) {
+                this.discoveryCache.set(provider.getProviderId(), service);
+            }
+        }
+    }
+
+    /**
+     * Get the cached discovery services (already prefetching or resolved).
+     *
+     * Useful for consumers (e.g. UI) that want to share the same pre-warmed
+     * service instances rather than creating their own.
+     */
+    getDiscoveryServices(): Map<string, AssetDiscoveryService> {
+        return this.discoveryCache;
     }
 
     /**
      * Check whether a provider supports all assets in the quote request.
      * Returns false if any input or output asset is not supported, avoiding unnecessary HTTP calls.
+     * Uses the pre-warmed discovery cache so this is typically instant.
      */
     private async supportsRequestedAssets(
         provider: CrossChainProvider,
         params: GetQuoteRequest,
     ): Promise<boolean> {
         try {
-            const discovery = createAssetDiscoveryService(provider);
+            const discovery = this.discoveryCache.get(provider.getProviderId());
             if (!discovery) return true;
 
             const { inputs, outputs } = params.intent;
@@ -292,19 +321,18 @@ class ProviderExecutor {
      *
      * Aggregates asset discovery results from all registered providers into
      * a single DiscoveredAssets structure with CAIP-2 chain keys and flat
-     * token metadata.
+     * token metadata. Uses the pre-warmed discovery cache so results are
+     * typically available immediately.
      *
-     * @param options - Discovery options (chain filtering, caching)
+     * @param options - Discovery options (chain filtering)
      * @returns Aggregated discovered assets
      */
     async discoverAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
-        const promises = Object.values(this.providers).map((provider) => {
-            const service = createAssetDiscoveryService(provider);
-            if (!service) return null;
-            return service.getSupportedAssets(options);
-        });
+        const promises = Array.from(this.discoveryCache.values()).map((service) =>
+            service.getSupportedAssets(options),
+        );
 
-        const settled = await Promise.allSettled(promises.filter(Boolean));
+        const settled = await Promise.allSettled(promises);
         const results = settled
             .filter(
                 (

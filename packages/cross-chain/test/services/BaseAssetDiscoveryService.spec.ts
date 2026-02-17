@@ -82,7 +82,6 @@ describe("BaseAssetDiscoveryService", () => {
         service = new TestAssetDiscoveryService(
             {
                 providerId,
-                cacheTtl: 60_000,
                 timeout: 10_000,
             },
             fetchMock,
@@ -90,18 +89,10 @@ describe("BaseAssetDiscoveryService", () => {
     });
 
     afterEach(() => {
-        service.clearCache();
         vi.clearAllMocks();
     });
 
     describe("default config values", () => {
-        it("should use default cacheTtl when not provided", () => {
-            const defaultService = new TestAssetDiscoveryService({ providerId }, fetchMock);
-            expect(BaseAssetDiscoveryService.DEFAULT_CACHE_TTL).toBe(Infinity);
-            // We can't directly access private fields, but we can verify behavior
-            expect(defaultService).toBeDefined();
-        });
-
         it("should use default timeout when not provided", () => {
             const defaultService = new TestAssetDiscoveryService({ providerId }, fetchMock);
             expect(BaseAssetDiscoveryService.DEFAULT_TIMEOUT).toBe(30_000);
@@ -109,12 +100,12 @@ describe("BaseAssetDiscoveryService", () => {
         });
     });
 
-    describe("caching behavior", () => {
+    describe("permanent caching", () => {
         it("should fetch on first call (cache miss)", async () => {
             await service.getSupportedAssets();
 
             expect(fetchMock).toHaveBeenCalledTimes(1);
-            expect(fetchMock).toHaveBeenCalledWith(10_000); // configured timeout
+            expect(fetchMock).toHaveBeenCalledWith(10_000);
         });
 
         it("should return cached result on subsequent calls (cache hit)", async () => {
@@ -125,45 +116,93 @@ describe("BaseAssetDiscoveryService", () => {
             expect(fetchMock).toHaveBeenCalledTimes(1);
         });
 
-        it("should fetch again after cache expires", async () => {
+        it("should never re-fetch once cached", async () => {
             vi.useFakeTimers();
 
             await service.getSupportedAssets();
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
-            // Advance time past cache TTL
-            vi.advanceTimersByTime(60_001);
+            // Advance time by a very large amount — cache should still hold
+            vi.advanceTimersByTime(999_999_999);
 
             await service.getSupportedAssets();
-            expect(fetchMock).toHaveBeenCalledTimes(2);
+            expect(fetchMock).toHaveBeenCalledTimes(1);
 
             vi.useRealTimers();
         });
-
-        it("should bypass cache when forceRefresh is true", async () => {
-            await service.getSupportedAssets();
-            expect(fetchMock).toHaveBeenCalledTimes(1);
-
-            await service.getSupportedAssets({ forceRefresh: true });
-            expect(fetchMock).toHaveBeenCalledTimes(2);
-        });
-
-        it("should use custom timeout from options over config timeout", async () => {
-            await service.getSupportedAssets({ timeout: 5_000 });
-
-            expect(fetchMock).toHaveBeenCalledWith(5_000);
-        });
     });
 
-    describe("clearCache", () => {
-        it("should clear cache and allow fresh fetch", async () => {
+    describe("prefetch", () => {
+        it("should start fetching immediately without awaiting", () => {
+            let resolvePromise: (value: AssetDiscoveryResult) => void;
+            const delayedPromise = new Promise<AssetDiscoveryResult>((resolve) => {
+                resolvePromise = resolve;
+            });
+            fetchMock.mockReturnValueOnce(delayedPromise);
+
+            service.prefetch();
+
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+
+            // Resolve to avoid dangling promise
+            resolvePromise!(mockResult);
+        });
+
+        it("should be a no-op when cache is already populated", async () => {
             await service.getSupportedAssets();
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
-            service.clearCache();
+            service.prefetch();
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+        });
 
-            await service.getSupportedAssets();
+        it("should be a no-op when a fetch is already in flight", () => {
+            let resolvePromise: (value: AssetDiscoveryResult) => void;
+            const delayedPromise = new Promise<AssetDiscoveryResult>((resolve) => {
+                resolvePromise = resolve;
+            });
+            fetchMock.mockReturnValueOnce(delayedPromise);
+
+            service.prefetch();
+            service.prefetch();
+            service.prefetch();
+
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+
+            resolvePromise!(mockResult);
+        });
+
+        it("should populate cache so subsequent getSupportedAssets is instant", async () => {
+            let resolvePromise: (value: AssetDiscoveryResult) => void;
+            const delayedPromise = new Promise<AssetDiscoveryResult>((resolve) => {
+                resolvePromise = resolve;
+            });
+            fetchMock.mockReturnValueOnce(delayedPromise);
+
+            service.prefetch();
+            resolvePromise!(mockResult);
+
+            // Give the promise microtask a chance to settle
+            await new Promise((r) => setTimeout(r, 0));
+
+            const result = await service.getSupportedAssets();
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
+        });
+
+        it("should not prevent retry after prefetch failure", async () => {
+            fetchMock.mockRejectedValueOnce(new Error("Network error"));
+
+            service.prefetch();
+
+            // Wait for the rejection to settle
+            await new Promise((r) => setTimeout(r, 0));
+
+            fetchMock.mockResolvedValueOnce(mockResult);
+
+            const result = await service.getSupportedAssets();
             expect(fetchMock).toHaveBeenCalledTimes(2);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
         });
     });
 
@@ -226,21 +265,6 @@ describe("BaseAssetDiscoveryService", () => {
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
             // Both results should be equivalent
-            expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
-            expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
-        });
-
-        it("should not dedupe concurrent forceRefresh calls", async () => {
-            fetchMock.mockResolvedValue(mockResult);
-
-            const promise1 = service.getSupportedAssets({ forceRefresh: true });
-            const promise2 = service.getSupportedAssets({ forceRefresh: true });
-
-            const [result1, result2] = await Promise.all([promise1, promise2]);
-
-            // forceRefresh bypasses in-flight dedup, so each call triggers a separate fetch
-            expect(fetchMock).toHaveBeenCalledTimes(2);
-
             expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
             expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
         });

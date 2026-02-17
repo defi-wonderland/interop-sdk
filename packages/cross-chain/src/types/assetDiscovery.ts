@@ -56,10 +56,6 @@ export interface GetAssetsResponse {
 export interface AssetDiscoveryOptions {
     /** Filter by chain ID(s) */
     chainIds?: number[];
-    /** Force refresh even if cached */
-    forceRefresh?: boolean;
-    /** Request timeout in milliseconds */
-    timeout?: number;
 }
 
 /**
