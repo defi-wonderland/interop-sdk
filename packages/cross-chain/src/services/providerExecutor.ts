@@ -298,21 +298,24 @@ class ProviderExecutor {
      * @returns Aggregated discovered assets
      */
     async discoverAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
-        const promises = Object.values(this.providers).map(async (provider) => {
-            try {
-                const service = createAssetDiscoveryService(provider);
-                if (!service) return null;
-                return await service.getSupportedAssets(options);
-            } catch {
-                return null;
-            }
+        const promises = Object.values(this.providers).map((provider) => {
+            const service = createAssetDiscoveryService(provider);
+            if (!service) return null;
+            return service.getSupportedAssets(options);
         });
 
-        const settled = await Promise.all(promises);
-        const results = settled.filter(Boolean) as DiscoveredAssets[];
+        const settled = await Promise.allSettled(promises.filter(Boolean));
+        const results = settled
+            .filter(
+                (
+                    outcome,
+                ): outcome is PromiseSettledResult<DiscoveredAssets> & { status: "fulfilled" } =>
+                    outcome.status === "fulfilled",
+            )
+            .map((outcome) => outcome.value);
 
         if (results.length === 0) {
-            return { tokensByChain: {}, tokenMetadata: {} };
+            return { tokensByChain: {}, tokenMetadata: {} } as DiscoveredAssets;
         }
 
         return mergeDiscoveredAssets(results);
