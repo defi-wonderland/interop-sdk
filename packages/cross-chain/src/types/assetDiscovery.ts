@@ -10,6 +10,7 @@
  */
 
 import type { Address } from "@openintentsframework/oif-specs";
+import type { ChainIdentifier } from "@wonderland/interop-addresses";
 
 /**
  * Asset metadata information
@@ -87,7 +88,7 @@ export interface AssetDiscoveryResult {
  */
 export interface DiscoveredAssets {
     /** Token interop addresses grouped by CAIP-350 chain identifier */
-    tokensByChain: Record<string, readonly string[]>;
+    tokensByChain: Record<ChainIdentifier, readonly Address[]>;
     /** Token metadata (AssetInfo) keyed by interop address (globally unique) */
-    tokenMetadata: Record<string, AssetInfo>;
+    tokenMetadata: Record<Address, AssetInfo>;
 }

@@ -47,7 +47,7 @@ export function toDiscoveredAssets(
     return {
         tokensByChain,
         tokenMetadata,
-    };
+    } as DiscoveredAssets;
 }
 
 /**
@@ -81,5 +81,5 @@ export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAs
     return {
         tokensByChain,
         tokenMetadata,
-    };
+    } as DiscoveredAssets;
 }

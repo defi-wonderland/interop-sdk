@@ -20,9 +20,8 @@ export interface AssetDiscoveryService {
      * Get all supported assets across all chains
      *
      * Returns a pre-processed DiscoveredAssets structure with:
-     * - tokensByChain: CAIP-2 chain keys → EIP-7930 token addresses
+     * - tokensByChain: CAIP-350 chain identifier keys → EIP-7930 token addresses
      * - tokenMetadata: flat lookup by interop address → AssetInfo
-     * - chainIds: sorted CAIP-2 identifiers
      *
      * @param options - Discovery options (filtering, caching)
      * @returns Aggregated discovery result ready for consumption

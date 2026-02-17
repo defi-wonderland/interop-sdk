@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { decodeAddress } from '@wonderland/interop-addresses';
+import { ChainIdentifier, decodeAddress, fromChainIdentifier } from '@wonderland/interop-addresses';
 import { getAssetDiscoveryServices } from '../services/sdk';
 import type { DiscoveredAssets, UITokenInfo } from '../types/assets';
 import type { DiscoveredAssets as SdkDiscoveredAssets } from '@wonderland/interop-cross-chain';
@@ -26,17 +26,7 @@ interface ProviderDiscoveryResult {
 }
 
 /**
- * Parse a CAIP-2 chain identifier (e.g. "eip155:1") to a numeric chain ID.
- */
-function parseCaip2ChainId(caip2: string): number | null {
-  const parts = caip2.split(':');
-  if (parts.length !== 2) return null;
-  const num = Number(parts[1]);
-  return Number.isNaN(num) ? null : num;
-}
-
-/**
- * Transform SDK discovery results (CAIP-2 keyed, EIP-7930 addresses) to UI-friendly format
+ * Transform SDK discovery results (CAIP-350 keyed, EIP-7930 addresses) to UI-friendly format
  * (numeric chain IDs, decoded EVM addresses, provider attribution).
  */
 function transformToUiAssets(providerResults: ProviderDiscoveryResult[]): DiscoveredAssets {
@@ -45,13 +35,17 @@ function transformToUiAssets(providerResults: ProviderDiscoveryResult[]): Discov
   const chainIdSet = new Set<number>();
 
   for (const { providerId, result } of providerResults) {
-    for (const caip2ChainId of Object.keys(result.tokensByChain)) {
-      const numericChainId = parseCaip2ChainId(caip2ChainId);
-      if (numericChainId === null) continue;
+    for (const chainIdentifier of Object.keys(result.tokensByChain) as ChainIdentifier[]) {
+      let numericChainId: number;
+      try {
+        numericChainId = fromChainIdentifier(chainIdentifier).chainReference;
+      } catch {
+        continue;
+      }
 
       chainIdSet.add(numericChainId);
 
-      const interopAddresses = result.tokensByChain[caip2ChainId] ?? [];
+      const interopAddresses = result.tokensByChain[chainIdentifier] ?? [];
 
       if (!supportedTokensByChain[numericChainId]) {
         supportedTokensByChain[numericChainId] = [];
