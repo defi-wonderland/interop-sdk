@@ -55,7 +55,7 @@ export function useOrderExecution(): UseOrderExecutionReturn {
   const isTracking = state.step === STEP.TRACKING;
   const isComplete = isTerminal(state);
 
-  const updateBalances = useBalanceStore((s) => s.updateBalances);
+  const { updateBalances } = useBalanceStore();
 
   const execute = useCallback(
     async (
@@ -118,10 +118,10 @@ export function useOrderExecution(): UseOrderExecutionReturn {
           updateBalances(address, [
             { chainId: originChainId, token: inputTokenAddress },
             { chainId: destinationChainId, token: outputTokenAddress },
-          ]).catch((err) => {
+          ]).catch((balanceErr: unknown) => {
             console.warn(
               `[useOrderExecution] Balance refresh failed (origin: ${originChainId}, dest: ${destinationChainId}):`,
-              err,
+              balanceErr,
             );
           });
         }

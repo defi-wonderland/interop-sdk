@@ -6,8 +6,10 @@ import {
     AssetDiscoveryOptions,
     AssetDiscoveryResult,
     AssetInfo,
+    DiscoveredAssets,
     NetworkAssets,
 } from "../types/assetDiscovery.js";
+import { toDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
 
 /**
  * Shared configuration for all asset discovery services
@@ -18,8 +20,10 @@ export interface BaseAssetDiscoveryServiceConfig {
     /** Optional custom headers for API requests */
     headers?: Record<string, string>;
     /**
-     * Cache TTL in milliseconds
-     * @default 300000 (5 minutes)
+     * Cache TTL in milliseconds.
+     * Asset lists rarely change, so the default is Infinity (cache never expires).
+     * Use `forceRefresh: true` to explicitly refresh when needed.
+     * @default Infinity
      */
     cacheTtl?: number;
     /**
@@ -55,7 +59,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
     private cache: CacheEntry | null = null;
     private inFlight: Promise<AssetDiscoveryResult> | null = null;
 
-    static readonly DEFAULT_CACHE_TTL = 5 * 60 * 1000;
+    static readonly DEFAULT_CACHE_TTL = Infinity;
     static readonly DEFAULT_TIMEOUT = 30_000;
 
     constructor(config: BaseAssetDiscoveryServiceConfig) {
@@ -76,36 +80,15 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * @throws AssetDiscoveryFailure on any fetch or parse error
      */
     protected abstract fetchAssets(timeout: number): Promise<AssetDiscoveryResult>;
+
     /**
      * Get all supported assets across all chains
+     *
+     * Returns a pre-processed DiscoveredAssets structure ready for consumption.
      */
-    async getSupportedAssets(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
-        if (!options?.forceRefresh) {
-            if (this.isCacheValid()) {
-                return this.applyFilter(this.cache!.data, options?.chainIds);
-            }
-            if (this.inFlight) {
-                const result = await this.inFlight;
-                return this.applyFilter(result, options?.chainIds);
-            }
-        }
-
-        const requestTimeout = options?.timeout ?? this.timeout;
-
-        this.inFlight = this.fetchAssets(requestTimeout)
-            .then((result) => {
-                this.cache = {
-                    data: result,
-                    expiresAt: Date.now() + this.cacheTtl,
-                };
-                return result;
-            })
-            .finally(() => {
-                this.inFlight = null;
-            });
-
-        const result = await this.inFlight;
-        return this.applyFilter(result, options?.chainIds);
+    async getSupportedAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
+        const result = await this.resolveResult(options);
+        return toDiscoveredAssets([result], options?.chainIds);
     }
 
     /**
@@ -115,11 +98,8 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
         chainId: number,
         options?: AssetDiscoveryOptions,
     ): Promise<NetworkAssets | null> {
-        const result = await this.getSupportedAssets({
-            ...options,
-            chainIds: [chainId],
-        });
-        return result.networks.find((n) => n.chainId === chainId) ?? null;
+        const rawResult = await this.getRawResult(options);
+        return rawResult.networks.find((n) => n.chainId === chainId) ?? null;
     }
 
     /**
@@ -141,8 +121,64 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * Get the list of supported chain IDs
      */
     async getSupportedChainIds(options?: AssetDiscoveryOptions): Promise<number[]> {
-        const result = await this.getSupportedAssets(options);
-        return result.networks.map((n) => n.chainId);
+        const rawResult = await this.getRawResult(options);
+        return rawResult.networks.map((n) => n.chainId);
+    }
+
+    /**
+     * Get raw discovery result (internal use for helper methods)
+     */
+    private async getRawResult(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
+        const result = await this.resolveResult(options);
+        return this.applyFilter(result, options?.chainIds);
+    }
+
+    /**
+     * Single shared fetch path that manages cache, in-flight deduplication,
+     * and fetching. Both getSupportedAssets and getRawResult delegate here
+     * so only one code path ever creates/clears this.inFlight.
+     */
+    private async resolveResult(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
+        if (!options?.forceRefresh) {
+            if (this.isCacheValid()) {
+                return this.cache!.data;
+            }
+            if (this.inFlight) {
+                return this.inFlight;
+            }
+        }
+
+        const requestTimeout = options?.timeout ?? this.timeout;
+
+        const promise = this.fetchAssets(requestTimeout).then((result) => {
+            this.cache = {
+                data: result,
+                expiresAt: Date.now() + this.cacheTtl,
+            };
+            return result;
+        });
+
+        this.inFlight = promise;
+
+        promise
+            .finally(() => {
+                if (this.inFlight === promise) {
+                    this.inFlight = null;
+                }
+            })
+            .catch(() => {});
+
+        return promise;
+    }
+
+    private applyFilter(result: AssetDiscoveryResult, chainIds?: number[]): AssetDiscoveryResult {
+        if (!chainIds?.length) return result;
+
+        const chainIdSet = new Set(chainIds);
+        return {
+            ...result,
+            networks: result.networks.filter((n) => chainIdSet.has(n.chainId)),
+        };
     }
 
     /**
@@ -213,15 +249,5 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
 
     private isCacheValid(): boolean {
         return this.cache !== null && Date.now() < this.cache.expiresAt;
-    }
-
-    private applyFilter(result: AssetDiscoveryResult, chainIds?: number[]): AssetDiscoveryResult {
-        if (!chainIds?.length) return result;
-
-        const chainIdSet = new Set(chainIds);
-        return {
-            ...result,
-            networks: result.networks.filter((n) => chainIdSet.has(n.chainId)),
-        };
     }
 }

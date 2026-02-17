@@ -1,4 +1,5 @@
 import type { Checksum } from "./checksum.js";
+import { ChainTypeName } from "../constants/interopAddress.js";
 
 /**
  * Binary variant of InteroperableAddress.
@@ -80,3 +81,24 @@ export type Address<T extends InteroperableAddress = InteroperableAddress> = T e
  * Example: `0xabc123...@eip155:1#4CA88C9C`
  */
 export type InteroperableName = `${string}@${string}:${string}#${Checksum}`;
+
+/**
+ * CAIP-350 chain identifier text representation.
+ *
+ * Format: `<namespace>:<chainReference>` (e.g. `"eip155:1"`, `"solana:101"`).
+ *
+ * @see https://standards.chainagnostic.org/CAIPs/caip-350#chain-identifier-text-representation
+ */
+export type ChainIdentifier = `${ChainTypeName}:${number}`;
+
+/**
+ * Parsed components of a CAIP-350 chain identifier.
+ *
+ * @see https://standards.chainagnostic.org/CAIPs/caip-350#chain-identifier-text-representation
+ */
+export interface ChainIdentifierParts {
+    /** Numeric chain reference (e.g. 1, 42161) */
+    chainReference: number;
+    /** Chain type namespace (e.g. "eip155", "solana") */
+    chainType: ChainTypeName;
+}

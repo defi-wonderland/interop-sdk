@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
-import { useBalanceStore } from '../stores/balanceStore';
+import { useBalanceStore, type TokenBalance } from '../stores/balanceStore';
 import { isValidAmount, sanitizeAmountInput } from '../utils/amountValidation';
 import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
@@ -53,8 +53,9 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
     [outputChainId, tokenConfig],
   );
 
-  const balances = useBalanceStore((state) => state.balances[inputChainId]) ?? {};
-  const outputBalances = useBalanceStore((state) => state.balances[outputChainId]) ?? {};
+  const { balances: allBalances } = useBalanceStore();
+  const balances: Record<string, TokenBalance> = allBalances[inputChainId] ?? {};
+  const outputBalances: Record<string, TokenBalance> = allBalances[outputChainId] ?? {};
 
   const inputTokenInfo = inputTokenAddress ? tokenConfig.TOKEN_INFO[inputChainId]?.[inputTokenAddress] : null;
   const tokenBalance = balances[inputTokenAddress];

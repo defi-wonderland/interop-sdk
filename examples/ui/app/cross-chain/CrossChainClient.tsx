@@ -18,6 +18,7 @@ import {
 } from './components';
 import { useOrderExecution, useChainConfig } from './hooks';
 import { useQuotes, QuoteStatus } from './hooks/useQuotes';
+import { useDiscoveredAssets } from './providers';
 import { STEP } from './types/execution';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address } from 'viem';
@@ -31,6 +32,7 @@ export function CrossChainClient() {
   const { quotes, errors, status: quoteStatus, fetchQuotes, clearQuotes } = useQuotes();
   const { state: executionState, execute, reset: resetExecution } = useOrderExecution();
   const chainConfig = useChainConfig();
+  const { retryDiscovery } = useDiscoveredAssets();
 
   const [selectedInputToken, setSelectedInputToken] = useState<string>('');
   const [selectedOutputToken, setSelectedOutputToken] = useState<string>('');
@@ -116,7 +118,7 @@ export function CrossChainClient() {
                 {chainConfig.isDiscovering && <DiscoveryLoading />}
 
                 {!chainConfig.isDiscovering && chainConfig.discoveryError && (
-                  <DiscoveryError error={chainConfig.discoveryError} onRetry={() => chainConfig.refetchAssets()} />
+                  <DiscoveryError error={chainConfig.discoveryError} onRetry={retryDiscovery} />
                 )}
 
                 {chainConfig.isDiscovered &&

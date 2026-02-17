@@ -93,9 +93,9 @@ export abstract class CrossChainProvider {
      *     type: "oif",
      *     config: {
      *       baseUrl: "https://api.solver.example.com",
-     *       // Optional: custom headers and cache TTL
+     *       // Optional: custom headers (cache TTL defaults to Infinity)
      *       // headers: { "Authorization": "Bearer ..." },
-     *       // cacheTtl: 300000, // 5 minutes
+     *       // cacheTtl: 3600000, // 1 hour (default is Infinity)
      *     },
      *   };
      * }

@@ -1,3 +1,4 @@
+import { toChainIdentifier } from "@wonderland/interop-addresses";
 import { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -96,7 +97,7 @@ describe("BaseAssetDiscoveryService", () => {
     describe("default config values", () => {
         it("should use default cacheTtl when not provided", () => {
             const defaultService = new TestAssetDiscoveryService({ providerId }, fetchMock);
-            expect(BaseAssetDiscoveryService.DEFAULT_CACHE_TTL).toBe(5 * 60 * 1000);
+            expect(BaseAssetDiscoveryService.DEFAULT_CACHE_TTL).toBe(Infinity);
             // We can't directly access private fields, but we can verify behavior
             expect(defaultService).toBeDefined();
         });
@@ -167,34 +168,36 @@ describe("BaseAssetDiscoveryService", () => {
     });
 
     describe("chainIds filtering", () => {
-        it("should filter networks by chainIds", async () => {
+        it("should filter by chainIds", async () => {
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
-            expect(result.networks).toHaveLength(1);
-            expect(result.networks[0]?.chainId).toBe(1);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
         });
 
-        it("should return all networks when chainIds is not provided", async () => {
+        it("should return all chains when chainIds is not provided", async () => {
             const result = await service.getSupportedAssets();
 
-            expect(result.networks).toHaveLength(2);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
         });
 
-        it("should return empty networks array when chainIds matches nothing", async () => {
+        it("should return empty when chainIds matches nothing", async () => {
             const result = await service.getSupportedAssets({ chainIds: [999] });
 
-            expect(result.networks).toHaveLength(0);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(0);
         });
 
         it("should apply filter to cached result", async () => {
-            // First call populates cache with all networks
+            // First call populates cache with all chains
             const full = await service.getSupportedAssets();
-            expect(full.networks).toHaveLength(2);
+            expect(Object.keys(full.tokensByChain)).toHaveLength(2);
 
             // Second call with filter should return filtered cached result
             const filtered = await service.getSupportedAssets({ chainIds: [137] });
-            expect(filtered.networks).toHaveLength(1);
-            expect(filtered.networks[0]?.chainId).toBe(137);
+            expect(Object.keys(filtered.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(filtered.tokensByChain)).toContain(toChainIdentifier(137));
 
             // Only one fetch should have occurred
             expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -223,8 +226,8 @@ describe("BaseAssetDiscoveryService", () => {
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
             // Both results should be equivalent
-            expect(result1.networks).toHaveLength(2);
-            expect(result2.networks).toHaveLength(2);
+            expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
+            expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
         });
 
         it("should not dedupe concurrent forceRefresh calls", async () => {
@@ -238,8 +241,8 @@ describe("BaseAssetDiscoveryService", () => {
             // forceRefresh bypasses in-flight dedup, so each call triggers a separate fetch
             expect(fetchMock).toHaveBeenCalledTimes(2);
 
-            expect(result1.networks).toHaveLength(2);
-            expect(result2.networks).toHaveLength(2);
+            expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
+            expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
         });
 
         it("should clear in-flight state on failure and allow retry", async () => {
@@ -253,7 +256,7 @@ describe("BaseAssetDiscoveryService", () => {
             const result = await service.getSupportedAssets();
 
             expect(fetchMock).toHaveBeenCalledTimes(2);
-            expect(result.networks).toHaveLength(2);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
         });
 
         it("should apply different chainIds filters to same deduped result", async () => {
@@ -273,11 +276,11 @@ describe("BaseAssetDiscoveryService", () => {
 
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
-            expect(result1.networks).toHaveLength(1);
-            expect(result1.networks[0]?.chainId).toBe(1);
+            expect(Object.keys(result1.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(result1.tokensByChain)).toContain(toChainIdentifier(1));
 
-            expect(result2.networks).toHaveLength(1);
-            expect(result2.networks[0]?.chainId).toBe(137);
+            expect(Object.keys(result2.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(result2.tokensByChain)).toContain(toChainIdentifier(137));
         });
     });
 

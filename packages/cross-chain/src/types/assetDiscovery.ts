@@ -10,6 +10,7 @@
  */
 
 import type { Address } from "@openintentsframework/oif-specs";
+import type { ChainIdentifier } from "@wonderland/interop-addresses";
 
 /**
  * Asset metadata information
@@ -71,4 +72,23 @@ export interface AssetDiscoveryResult {
     fetchedAt: number;
     /** Provider ID that returned this data */
     providerId: string;
+}
+
+/**
+ * Aggregated view of discovered assets from one or more providers,
+ * indexed for fast lookup by chain and interop address.
+ *
+ * Chain keys use CAIP-350 format (e.g. "eip155:1", "eip155:42161").
+ * All addresses use the EIP-7930 interop format.
+ *
+ * Use `toChainIdentifier(chainId)` from `@wonderland/interop-addresses` to
+ * convert a numeric chain ID to a CAIP-350 identifier.
+ * Use `decodeAddress` from `@wonderland/interop-addresses` to get the
+ * plain address when needed for display or wallet interaction.
+ */
+export interface DiscoveredAssets {
+    /** Token interop addresses grouped by CAIP-350 chain identifier */
+    tokensByChain: Record<ChainIdentifier, readonly Address[]>;
+    /** Token metadata (AssetInfo) keyed by interop address (globally unique) */
+    tokenMetadata: Record<Address, AssetInfo>;
 }

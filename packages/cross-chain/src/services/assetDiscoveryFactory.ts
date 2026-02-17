@@ -15,8 +15,10 @@ import {
  */
 export interface AssetDiscoveryFactoryConfig {
     /**
-     * Default cache TTL in milliseconds
-     * @default 300000 (5 minutes)
+     * Default cache TTL in milliseconds.
+     * Asset lists rarely change, so the default is Infinity.
+     * Use `forceRefresh: true` to explicitly refresh when needed.
+     * @default Infinity
      */
     defaultCacheTtl?: number;
 }

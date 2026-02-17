@@ -4,8 +4,12 @@ import { Hex } from "viem";
 
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import {
+    AssetDiscoveryOptions,
+    createAssetDiscoveryService,
     CrossChainProvider,
+    DiscoveredAssets,
     ExecutableQuote,
+    mergeDiscoveredAssets,
     OrderTracker,
     OrderTrackerFactory,
     OrderTrackingInfo,
@@ -15,7 +19,6 @@ import {
     WatchOrderParams,
 } from "../internal.js";
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
-import { createAssetDiscoveryService } from "./assetDiscoveryFactory.js";
 
 type GetQuotesError = {
     errorMsg: string;
@@ -282,6 +285,40 @@ class ProviderExecutor {
     }): Promise<OrderTrackingInfo> {
         const tracker = this.getOrCreateTracker(params.providerId);
         return tracker.getOrderStatus(params.txHash, params.originChainId);
+    }
+
+    /**
+     * Discover supported assets from all providers
+     *
+     * Aggregates asset discovery results from all registered providers into
+     * a single DiscoveredAssets structure with CAIP-2 chain keys and flat
+     * token metadata.
+     *
+     * @param options - Discovery options (chain filtering, caching)
+     * @returns Aggregated discovered assets
+     */
+    async discoverAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
+        const promises = Object.values(this.providers).map((provider) => {
+            const service = createAssetDiscoveryService(provider);
+            if (!service) return null;
+            return service.getSupportedAssets(options);
+        });
+
+        const settled = await Promise.allSettled(promises.filter(Boolean));
+        const results = settled
+            .filter(
+                (
+                    outcome,
+                ): outcome is PromiseSettledResult<DiscoveredAssets> & { status: "fulfilled" } =>
+                    outcome.status === "fulfilled",
+            )
+            .map((outcome) => outcome.value);
+
+        if (results.length === 0) {
+            return { tokensByChain: {}, tokenMetadata: {} } as DiscoveredAssets;
+        }
+
+        return mergeDiscoveredAssets(results);
     }
 
     /**

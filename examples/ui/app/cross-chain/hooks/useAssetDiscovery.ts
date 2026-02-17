@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { decodeAddress } from '@wonderland/interop-addresses';
+import { ChainIdentifier, decodeAddress, fromChainIdentifier } from '@wonderland/interop-addresses';
 import { getAssetDiscoveryServices } from '../services/sdk';
 import type { DiscoveredAssets, UITokenInfo } from '../types/assets';
-import type { AssetDiscoveryResult } from '@wonderland/interop-cross-chain';
+import type { DiscoveredAssets as SdkDiscoveredAssets } from '@wonderland/interop-cross-chain';
 import type { Hex } from 'viem';
 
 interface UseAssetDiscoveryResult {
@@ -14,67 +14,71 @@ interface UseAssetDiscoveryResult {
   isLoading: boolean;
   /** Error if discovery failed */
   error: Error | null;
-  /** Refetch assets (force refresh) */
-  refetch: () => Promise<void>;
   /** Timestamp when assets were last fetched */
   lastFetchedAt: number | null;
+  /** Retry discovery (useful after failures) */
+  retry: () => void;
 }
 
-interface ProviderAssetResult {
+interface ProviderDiscoveryResult {
   providerId: string;
-  result: AssetDiscoveryResult;
+  result: SdkDiscoveredAssets;
 }
 
 /**
- * Transform SDK discovery results to UI-friendly format
- * Handles EIP-7930 address decoding and tracks provider attribution
+ * Transform SDK discovery results (CAIP-350 keyed, EIP-7930 addresses) to UI-friendly format
+ * (numeric chain IDs, decoded EVM addresses, provider attribution).
  */
-function transformDiscoveryResult(providerResults: ProviderAssetResult[], filterChainIds?: number[]): DiscoveredAssets {
+function transformToUiAssets(providerResults: ProviderDiscoveryResult[]): DiscoveredAssets {
   const supportedTokensByChain: Record<number, string[]> = {};
   const tokenInfo: Record<number, Record<string, UITokenInfo>> = {};
   const chainIdSet = new Set<number>();
 
   for (const { providerId, result } of providerResults) {
-    for (const network of result.networks) {
-      const { chainId, assets } = network;
-
-      if (filterChainIds && !filterChainIds.includes(chainId)) {
+    for (const chainIdentifier of Object.keys(result.tokensByChain) as ChainIdentifier[]) {
+      let numericChainId: number;
+      try {
+        numericChainId = fromChainIdentifier(chainIdentifier).chainReference;
+      } catch {
         continue;
       }
 
-      chainIdSet.add(chainId);
+      chainIdSet.add(numericChainId);
 
-      if (!supportedTokensByChain[chainId]) {
-        supportedTokensByChain[chainId] = [];
+      const interopAddresses = result.tokensByChain[chainIdentifier] ?? [];
+
+      if (!supportedTokensByChain[numericChainId]) {
+        supportedTokensByChain[numericChainId] = [];
       }
-      if (!tokenInfo[chainId]) {
-        tokenInfo[chainId] = {};
+      if (!tokenInfo[numericChainId]) {
+        tokenInfo[numericChainId] = {};
       }
 
-      for (const asset of assets) {
+      for (const interopAddress of interopAddresses) {
+        // Decode EIP-7930 interop address to raw EVM address
         let rawAddress: string;
         try {
-          const decoded = decodeAddress(asset.address as Hex);
-          rawAddress = decoded.address ?? asset.address;
+          const decoded = decodeAddress(interopAddress as Hex);
+          rawAddress = decoded.address ?? interopAddress;
         } catch {
-          rawAddress = asset.address;
+          rawAddress = interopAddress;
         }
 
-        const normalizedAddress = rawAddress;
-
-        if (!supportedTokensByChain[chainId].includes(normalizedAddress)) {
-          supportedTokensByChain[chainId].push(normalizedAddress);
+        if (!supportedTokensByChain[numericChainId].includes(rawAddress)) {
+          supportedTokensByChain[numericChainId].push(rawAddress);
         }
 
-        const existing = tokenInfo[chainId][normalizedAddress];
+        const sdkMeta = result.tokenMetadata[interopAddress];
+
+        const existing = tokenInfo[numericChainId][rawAddress];
         if (existing) {
           if (!existing.providers.includes(providerId)) {
             existing.providers.push(providerId);
           }
         } else {
-          tokenInfo[chainId][normalizedAddress] = {
-            symbol: asset.symbol,
-            decimals: asset.decimals,
+          tokenInfo[numericChainId][rawAddress] = {
+            symbol: sdkMeta?.symbol ?? 'UNKNOWN',
+            decimals: sdkMeta?.decimals ?? 18,
             providers: [providerId],
           };
         }
@@ -92,8 +96,12 @@ function transformDiscoveryResult(providerResults: ProviderAssetResult[], filter
 /**
  * Hook to discover supported assets from all providers.
  *
+ * Uses individual AssetDiscoveryService instances per provider, aggregates results,
+ * and transforms them to a UI-friendly DiscoveredAssets structure with numeric chain
+ * IDs and decoded EVM addresses.
+ *
  * @param options.chainIds - Filter results to specific chain IDs.
- *   **Must be a stable reference** (e.g. via useMemo) to avoid infinite refetches.
+ *   **Must be a stable reference** (e.g. via useMemo) to avoid re-triggering the effect.
  * @param options.enabled - Whether to enable discovery (default: true)
  */
 export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boolean }): UseAssetDiscoveryResult {
@@ -104,47 +112,39 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
   const [error, setError] = useState<Error | null>(null);
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
 
-  const fetchAssets = useCallback(
-    async (forceRefresh = false) => {
-      if (!enabled) return;
+  const fetchAssets = useCallback(async () => {
+    if (!enabled) return;
 
-      setIsLoading(true);
-      setError(null);
+    setIsLoading(true);
+    setError(null);
 
-      try {
-        const services = getAssetDiscoveryServices();
-        const promises = Array.from(services.entries()).map(async ([providerId, service]) => {
-          try {
-            const result = await service.getSupportedAssets({
-              chainIds,
-              forceRefresh,
-            });
-            return { providerId, result };
-          } catch (err) {
-            console.warn(`Asset discovery failed for provider ${providerId}:`, err);
-            return null;
-          }
-        });
-
-        const settled = await Promise.all(promises);
-        const providerResults = settled.filter(Boolean) as ProviderAssetResult[];
-
-        if (providerResults.length === 0) {
-          throw new Error('No assets discovered from any provider');
+    try {
+      const services = getAssetDiscoveryServices();
+      const promises = Array.from(services.entries()).map(async ([providerId, service]) => {
+        try {
+          const result = await service.getSupportedAssets({ chainIds });
+          return { providerId, result };
+        } catch (err) {
+          console.warn(`Asset discovery failed for provider ${providerId}:`, err);
+          return null;
         }
+      });
 
-        setAssets(transformDiscoveryResult(providerResults, chainIds));
-        setLastFetchedAt(Date.now());
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error(String(err)));
-      } finally {
-        setIsLoading(false);
+      const settled = await Promise.all(promises);
+      const providerResults = settled.filter((r): r is ProviderDiscoveryResult => r !== null);
+
+      if (providerResults.length === 0) {
+        throw new Error('No assets discovered from any provider');
       }
-    },
-    [enabled, chainIds],
-  );
 
-  const refetch = useCallback(() => fetchAssets(true), [fetchAssets]);
+      setAssets(transformToUiAssets(providerResults));
+      setLastFetchedAt(Date.now());
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [enabled, chainIds]);
 
   useEffect(() => {
     if (enabled) {
@@ -153,7 +153,7 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
   }, [enabled, fetchAssets]);
 
   return useMemo(
-    () => ({ assets, isLoading, error, refetch, lastFetchedAt }),
-    [assets, isLoading, error, refetch, lastFetchedAt],
+    () => ({ assets, isLoading, error, lastFetchedAt, retry: fetchAssets }),
+    [assets, isLoading, error, lastFetchedAt, fetchAssets],
   );
 }

@@ -13,10 +13,10 @@ interface AssetDiscoveryContextValue {
   isDiscovering: boolean;
   /** Error if discovery failed */
   discoveryError: Error | null;
-  /** Refetch assets */
-  refetchAssets: () => Promise<void>;
   /** When assets were last fetched */
   lastFetchedAt: number | null;
+  /** Retry asset discovery */
+  retryDiscovery: () => void;
 }
 
 const AssetDiscoveryContext = createContext<AssetDiscoveryContextValue | null>(null);
@@ -34,7 +34,7 @@ export function AssetDiscoveryProvider({ children }: AssetDiscoveryProviderProps
 
   const chainIds = useMemo(() => (isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS).map((c) => c.id), [isTestnet]);
 
-  const { assets, isLoading, error, refetch, lastFetchedAt } = useAssetDiscovery({
+  const { assets, isLoading, error, lastFetchedAt, retry } = useAssetDiscovery({
     chainIds,
     enabled: true,
   });
@@ -44,10 +44,10 @@ export function AssetDiscoveryProvider({ children }: AssetDiscoveryProviderProps
       discoveredAssets: assets,
       isDiscovering: isLoading,
       discoveryError: error,
-      refetchAssets: refetch,
       lastFetchedAt,
+      retryDiscovery: retry,
     }),
-    [assets, isLoading, error, refetch, lastFetchedAt],
+    [assets, isLoading, error, lastFetchedAt, retry],
   );
 
   return <AssetDiscoveryContext.Provider value={value}>{children}</AssetDiscoveryContext.Provider>;

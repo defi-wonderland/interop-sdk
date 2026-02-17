@@ -1,3 +1,4 @@
+import { toChainIdentifier } from "@wonderland/interop-addresses";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -176,10 +177,10 @@ describe("AssetDiscoveryFactory", () => {
 
             expect(service).not.toBeNull();
 
-            // Verify it returns the static data
+            // Verify it returns DiscoveredAssets
             const result = await service.getSupportedAssets();
-            expect(result.networks).toEqual(mockNetworks);
-            expect(result.providerId).toBe("test-provider");
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
         });
     });
 });
@@ -213,12 +214,12 @@ describe("Static Asset Discovery Service", () => {
         );
     });
 
-    it("should return all supported assets", async () => {
+    it("should return DiscoveredAssets", async () => {
         const result = await service.getSupportedAssets();
 
-        expect(result.networks).toHaveLength(1);
-        expect(result.networks[0]?.chainId).toBe(1);
-        expect(result.networks[0]?.assets).toHaveLength(2);
+        expect(Object.keys(result.tokensByChain)).toHaveLength(1);
+        expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+        expect(result.tokensByChain[toChainIdentifier(1) as string]).toHaveLength(2);
     });
 
     it("should return assets for a specific chain", async () => {
@@ -326,38 +327,40 @@ describe("Static Asset Discovery Service with AssetDiscoveryOptions", () => {
     });
 
     describe("getSupportedAssets with options", () => {
-        it("should return all networks when no chainIds filter is provided", async () => {
+        it("should return all chains when no chainIds filter is provided", async () => {
             const result = await service.getSupportedAssets();
 
-            expect(result.networks).toHaveLength(3);
-            expect(result.networks.map((n) => n.chainId)).toEqual([1, 137, 42161]);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(3);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(42161));
         });
 
-        it("should filter networks by chainIds when provided", async () => {
+        it("should filter by chainIds when provided", async () => {
             const result = await service.getSupportedAssets({ chainIds: [1, 42161] });
 
-            expect(result.networks).toHaveLength(2);
-            expect(result.networks.map((n) => n.chainId)).toEqual([1, 42161]);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(42161));
         });
 
-        it("should return empty networks array when chainIds filter matches nothing", async () => {
+        it("should return empty when chainIds filter matches nothing", async () => {
             const result = await service.getSupportedAssets({ chainIds: [999] });
 
-            expect(result.networks).toHaveLength(0);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(0);
         });
 
-        it("should return single network when chainIds has one matching ID", async () => {
+        it("should return single chain when chainIds has one matching ID", async () => {
             const result = await service.getSupportedAssets({ chainIds: [137] });
 
-            expect(result.networks).toHaveLength(1);
-            expect(result.networks[0]?.chainId).toBe(137);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(1);
+            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
         });
 
-        it("should include fetchedAt and providerId in filtered result", async () => {
+        it("should include tokenMetadata in filtered result", async () => {
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
-            expect(result.fetchedAt).toBeGreaterThan(0);
-            expect(result.providerId).toBe("test-provider");
+            expect(Object.keys(result.tokenMetadata).length).toBeGreaterThan(0);
         });
     });
 

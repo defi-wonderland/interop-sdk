@@ -8,6 +8,8 @@ export type {
     InteroperableAddressText,
     BinaryAddress,
     InteroperableName,
+    ChainIdentifier,
+    ChainIdentifierParts,
 } from "./types/index.js";
 
 export type { ParsedInteroperableNameResult, ParseNameOptions } from "./name/index.js";
@@ -23,6 +25,9 @@ export {
     validateInteroperableAddress,
     validateChecksum,
 } from "./address/index.js";
+
+// Chain identifier helpers
+export { toChainIdentifier, fromChainIdentifier } from "./address/chainIdentifier.js";
 
 // Name layer functions (direct access, not via provider)
 export { parseName, formatName, resolveChainFromRegistry } from "./name/index.js";

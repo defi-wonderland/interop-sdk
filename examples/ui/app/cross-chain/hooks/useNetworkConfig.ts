@@ -31,15 +31,14 @@ export function useTokenConfig() {
 
     const { supportedTokensByChain, tokenInfo } = discoveryContext.discoveredAssets;
 
+    // Use numeric chain IDs as keys so SwapForm can look up tokens by chain ID directly
     const filteredTokensByChain: Record<number, readonly string[]> = {};
     const filteredTokenInfo: Record<number, Record<string, UITokenInfo>> = {};
 
     for (const chainId of configuredChainIds) {
       if (supportedTokensByChain[chainId]?.length > 0) {
         filteredTokensByChain[chainId] = supportedTokensByChain[chainId];
-      }
-      if (tokenInfo[chainId] && Object.keys(tokenInfo[chainId]).length > 0) {
-        filteredTokenInfo[chainId] = tokenInfo[chainId];
+        filteredTokenInfo[chainId] = tokenInfo[chainId] ?? {};
       }
     }
 
@@ -66,7 +65,6 @@ export function useChainConfig() {
   return useMemo(() => {
     const allConfiguredChains = isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS;
     const discoveryError = discoveryContext?.discoveryError ?? null;
-    const refetchAssets = discoveryContext?.refetchAssets ?? (async () => {});
 
     if (!discoveryContext?.discoveredAssets) {
       return {
@@ -77,7 +75,6 @@ export function useChainConfig() {
         isDiscovered: false,
         isDiscovering: discoveryContext?.isDiscovering ?? true,
         discoveryError,
-        refetchAssets,
         getChain: () => undefined,
         getExplorerTxUrl: () => undefined,
       };
@@ -118,7 +115,6 @@ export function useChainConfig() {
       isDiscovered: true,
       isDiscovering: false,
       discoveryError,
-      refetchAssets,
       getChain,
       getExplorerTxUrl,
     };

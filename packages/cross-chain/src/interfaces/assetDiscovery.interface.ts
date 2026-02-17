@@ -7,8 +7,8 @@
 
 import type {
     AssetDiscoveryOptions,
-    AssetDiscoveryResult,
     AssetInfo,
+    DiscoveredAssets,
     NetworkAssets,
 } from "../types/assetDiscovery.js";
 
@@ -19,10 +19,14 @@ export interface AssetDiscoveryService {
     /**
      * Get all supported assets across all chains
      *
+     * Returns a pre-processed DiscoveredAssets structure with:
+     * - tokensByChain: CAIP-350 chain identifier keys → EIP-7930 token addresses
+     * - tokenMetadata: flat lookup by interop address → AssetInfo
+     *
      * @param options - Discovery options (filtering, caching)
-     * @returns Discovery result with networks and assets
+     * @returns Aggregated discovery result ready for consumption
      */
-    getSupportedAssets(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult>;
+    getSupportedAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets>;
     /**
      * Get supported assets for a specific chain
      *
@@ -65,8 +69,10 @@ export interface BaseApiDiscoveryConfig {
     /** Optional custom headers for API requests */
     headers?: Record<string, string>;
     /**
-     * Cache TTL in milliseconds
-     * @default 300000 (5 minutes)
+     * Cache TTL in milliseconds.
+     * Asset lists rarely change, so the default is Infinity (cache never expires).
+     * Use `forceRefresh: true` to explicitly refresh when needed.
+     * @default Infinity
      */
     cacheTtl?: number;
     /**
