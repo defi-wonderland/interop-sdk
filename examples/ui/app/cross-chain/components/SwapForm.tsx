@@ -53,9 +53,8 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
     [outputChainId, tokenConfig],
   );
 
-  const { balances: allBalances } = useBalanceStore();
-  const balances: Record<string, TokenBalance> = allBalances[inputChainId] ?? {};
-  const outputBalances: Record<string, TokenBalance> = allBalances[outputChainId] ?? {};
+  const balances: Record<string, TokenBalance> = useBalanceStore((state) => state.balances[inputChainId]) ?? {};
+  const outputBalances: Record<string, TokenBalance> = useBalanceStore((state) => state.balances[outputChainId]) ?? {};
 
   const inputTokenInfo = inputTokenAddress ? tokenConfig.TOKEN_INFO[inputChainId]?.[inputTokenAddress] : null;
   const tokenBalance = balances[inputTokenAddress];
