@@ -165,9 +165,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
             disabled={isDisabled}
             className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
-          <p className='text-xs text-text-tertiary mt-1'>
-            Supports interoperable addresses (e.g., alice.eth@base-sepolia). Leave empty to use your wallet address.
-          </p>
+          <p className='text-xs text-text-tertiary mt-1'>Leave empty to use your wallet address.</p>
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
