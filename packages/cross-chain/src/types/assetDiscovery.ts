@@ -71,6 +71,18 @@ export interface AssetDiscoveryResult {
 }
 
 /**
+ * Asset info enriched with provider attribution.
+ *
+ * Extends AssetInfo with a `providers` array that lists which provider IDs
+ * reported this asset. Useful for knowing which bridges/solvers can handle
+ * a particular token.
+ */
+export interface DiscoveredAssetInfo extends AssetInfo {
+    /** Provider IDs that reported this asset */
+    providers: string[];
+}
+
+/**
  * Aggregated view of discovered assets from one or more providers,
  * indexed for fast lookup by chain and interop address.
  *
@@ -85,6 +97,19 @@ export interface AssetDiscoveryResult {
 export interface DiscoveredAssets {
     /** Token interop addresses grouped by CAIP-350 chain identifier */
     tokensByChain: Record<ChainIdentifier, readonly Address[]>;
-    /** Token metadata (AssetInfo) keyed by interop address (globally unique) */
-    tokenMetadata: Record<Address, AssetInfo>;
+    /** Token metadata keyed by interop address (globally unique), with provider attribution */
+    tokenMetadata: Record<Address, DiscoveredAssetInfo>;
+}
+
+/**
+ * Query parameters for finding providers that support a specific route.
+ *
+ * Both addresses use EIP-7930 interop format, which encodes the chain ID
+ * inside the address itself -- so only two params are needed.
+ */
+export interface RouteQuery {
+    /** Origin asset in EIP-7930 interop address format */
+    originAsset: Address;
+    /** Destination asset in EIP-7930 interop address format */
+    destinationAsset: Address;
 }

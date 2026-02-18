@@ -1,6 +1,6 @@
 import { toChainIdentifier } from "@wonderland/interop-addresses";
 
-import type { AssetDiscoveryResult, AssetInfo, DiscoveredAssets } from "../internal.js";
+import type { AssetDiscoveryResult, DiscoveredAssetInfo, DiscoveredAssets } from "../internal.js";
 
 /**
  * Convert one or more AssetDiscoveryResults into a lookup-friendly
@@ -8,6 +8,8 @@ import type { AssetDiscoveryResult, AssetInfo, DiscoveredAssets } from "../inter
  *
  * Chain grouping uses CAIP-350 keys. Token metadata is flat (interop
  * addresses are globally unique). Addresses are kept in EIP-7930 format.
+ * Each metadata entry includes a `providers` array listing which provider IDs
+ * reported the asset.
  *
  * @internal Used by BaseAssetDiscoveryService - not exported publicly
  * @param results - Discovery results from one or more providers
@@ -18,7 +20,7 @@ export function toDiscoveredAssets(
     filterChainIds?: number[],
 ): DiscoveredAssets {
     const tokensByChain: Record<string, string[]> = {};
-    const tokenMetadata: Record<string, AssetInfo> = {};
+    const tokenMetadata: Record<string, DiscoveredAssetInfo> = {};
 
     for (const result of results) {
         for (const network of result.networks) {
@@ -35,11 +37,19 @@ export function toDiscoveredAssets(
                     tokensByChain[key].push(addr);
                 }
 
-                tokenMetadata[addr] = {
-                    address: asset.address,
-                    symbol: asset.symbol,
-                    decimals: asset.decimals,
-                };
+                const existing = tokenMetadata[addr];
+                if (existing) {
+                    if (!existing.providers.includes(result.providerId)) {
+                        existing.providers.push(result.providerId);
+                    }
+                } else {
+                    tokenMetadata[addr] = {
+                        address: asset.address,
+                        symbol: asset.symbol,
+                        decimals: asset.decimals,
+                        providers: [result.providerId],
+                    };
+                }
             }
         }
     }
@@ -54,17 +64,17 @@ export function toDiscoveredAssets(
  * Merge multiple DiscoveredAssets into a single structure.
  *
  * Used by ProviderExecutor to combine results from multiple providers.
- * Deduplicates tokens by address (last-write-wins for metadata).
+ * Deduplicates tokens by address; merges `providers` arrays (first-write-wins
+ * for symbol/decimals, union for providers).
  *
  * @internal Used by ProviderExecutor - not exported publicly
  * @param sources - Array of DiscoveredAssets to merge
  */
 export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAssets {
     const tokensByChain: Record<string, string[]> = {};
-    const tokenMetadata: Record<string, AssetInfo> = {};
+    const tokenMetadata: Record<string, DiscoveredAssetInfo> = {};
 
     for (const source of sources) {
-        // Merge tokens by chain
         for (const [chainKey, tokens] of Object.entries(source.tokensByChain)) {
             tokensByChain[chainKey] ??= [];
             for (const token of tokens) {
@@ -74,8 +84,18 @@ export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAs
             }
         }
 
-        // Merge metadata (last-write-wins)
-        Object.assign(tokenMetadata, source.tokenMetadata);
+        for (const [addr, meta] of Object.entries(source.tokenMetadata)) {
+            const existing = tokenMetadata[addr];
+            if (existing) {
+                for (const pid of meta.providers) {
+                    if (!existing.providers.includes(pid)) {
+                        existing.providers.push(pid);
+                    }
+                }
+            } else {
+                tokenMetadata[addr] = { ...meta, providers: [...meta.providers] };
+            }
+        }
     }
 
     return {

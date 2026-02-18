@@ -16,6 +16,7 @@ import {
     OrderTrackingInfo,
     ProviderNotFound,
     ProviderTimeout,
+    RouteQuery,
     SortingStrategy,
     WatchOrderParams,
 } from "../internal.js";
@@ -85,16 +86,6 @@ class ProviderExecutor {
                 this.discoveryCache.set(provider.getProviderId(), service);
             }
         }
-    }
-
-    /**
-     * Get the cached discovery services (already prefetching or resolved).
-     *
-     * Useful for consumers (e.g. UI) that want to share the same pre-warmed
-     * service instances rather than creating their own.
-     */
-    getDiscoveryServices(): Map<string, AssetDiscoveryService> {
-        return this.discoveryCache;
     }
 
     /**
@@ -347,6 +338,37 @@ class ProviderExecutor {
         }
 
         return mergeDiscoveredAssets(results);
+    }
+
+    /**
+     * Find which providers support a given origin/destination route.
+     *
+     * Both assets use EIP-7930 interop addresses (which encode chain ID),
+     * so the lookup is two direct hits into `tokenMetadata`. Discovery data
+     * is pre-warmed at construction, so this resolves near-instantly.
+     *
+     * @param query - Route query with origin and destination interop addresses
+     * @returns Array of provider IDs that support the route
+     *
+     * @example
+     * ```typescript
+     * const providers = await executor.getProvidersForRoute({
+     *   originAsset: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+     *   destinationAsset: "0x00010000A4B10101af88d065e77c8cC2239327C5EDb3A432268e5831",
+     * });
+     * ```
+     */
+    async getProvidersForRoute(query: RouteQuery): Promise<string[]> {
+        const assets = await this.discoverAssets();
+
+        const originMeta = assets.tokenMetadata[query.originAsset];
+        const destMeta = assets.tokenMetadata[query.destinationAsset];
+
+        if (!originMeta || !destMeta) {
+            return [];
+        }
+
+        return originMeta.providers.filter((p) => destMeta.providers.includes(p));
     }
 
     /**
