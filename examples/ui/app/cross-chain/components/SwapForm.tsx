@@ -45,6 +45,14 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   );
   const [inputAmount, setInputAmount] = useState('');
 
+  const inputChains = useMemo(
+    () => chainConfig.SUPPORTED_CHAINS.filter((c) => c.id !== outputChainId),
+    [chainConfig.SUPPORTED_CHAINS, outputChainId],
+  );
+  const outputChains = useMemo(
+    () => chainConfig.SUPPORTED_CHAINS.filter((c) => c.id !== inputChainId),
+    [chainConfig.SUPPORTED_CHAINS, inputChainId],
+  );
   const inputTokens = useMemo(
     () => tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[inputChainId] || [],
     [inputChainId, tokenConfig],
@@ -193,7 +201,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
               disabled={isDisabled}
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {chainConfig.SUPPORTED_CHAINS.map((c) => (
+              {inputChains.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
@@ -221,7 +229,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
               disabled={isDisabled}
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {chainConfig.SUPPORTED_CHAINS.map((c) => (
+              {outputChains.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
