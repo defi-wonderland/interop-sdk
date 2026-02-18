@@ -124,7 +124,6 @@ class ProviderExecutor {
                     error,
                 );
             }
-            // If discovery fails, don't block — let the quote request proceed
             return true;
         }
     }
