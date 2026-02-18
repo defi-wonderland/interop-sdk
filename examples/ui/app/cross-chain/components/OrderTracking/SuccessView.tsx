@@ -6,7 +6,8 @@ export function SuccessView({ state, onReset }: SuccessViewProps) {
   const chainConfig = useChainConfig();
   const originChain = chainConfig.getChain(state.originChainId);
   const destinationChain = chainConfig.getChain(state.destinationChainId);
-  const originTxUrl = chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
+  const openTxHash = state.update.openTxHash ?? state.txHash;
+  const originTxUrl = chainConfig.getExplorerTxUrl(state.originChainId, openTxHash);
   const fillTxHash = state.update.fillTxHash;
   const fillTxUrl = chainConfig.getExplorerTxUrl(state.destinationChainId, fillTxHash);
 
@@ -25,7 +26,7 @@ export function SuccessView({ state, onReset }: SuccessViewProps) {
 
       {/* Transaction links */}
       <div className='space-y-2 mb-4'>
-        {state.txHash && originTxUrl && (
+        {openTxHash && originTxUrl && (
           <a
             href={originTxUrl}
             target='_blank'
@@ -41,7 +42,7 @@ export function SuccessView({ state, onReset }: SuccessViewProps) {
             </div>
             <div className='flex items-center justify-between text-text-tertiary group-hover:text-accent'>
               <span className='text-sm font-mono'>
-                {state.txHash.slice(0, 10)}...{state.txHash.slice(-8)}
+                {openTxHash.slice(0, 10)}...{openTxHash.slice(-8)}
               </span>
               <ExternalLinkIcon />
             </div>
