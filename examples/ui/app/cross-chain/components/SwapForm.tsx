@@ -20,11 +20,12 @@ interface SwapFormProps {
     inputAmount: string;
     inputAmountRaw: bigint;
   }) => void;
+  onInputChange?: () => void;
   isLoading?: boolean;
   isDisabled?: boolean;
 }
 
-export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: SwapFormProps) {
+export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisabled = false }: SwapFormProps) {
   const { address: connectedAddress, isConnected } = useAccount();
   const chainConfig = useChainConfig();
   const tokenConfig = useTokenConfig();
@@ -112,6 +113,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
     if (tokens.length > 0) {
       setInputTokenAddress(tokens[0]);
     }
+    onInputChange?.();
   };
 
   const handleOutputChainChange = (chainId: number) => {
@@ -120,6 +122,17 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
     if (tokens.length > 0) {
       setOutputTokenAddress(tokens[0]);
     }
+    onInputChange?.();
+  };
+
+  const handleInputTokenChange = (address: string) => {
+    setInputTokenAddress(address);
+    onInputChange?.();
+  };
+
+  const handleOutputTokenChange = (address: string) => {
+    setOutputTokenAddress(address);
+    onInputChange?.();
   };
 
   const canSubmit =
@@ -191,7 +204,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               tokenInfo={tokenConfig.TOKEN_INFO[inputChainId] || {}}
               balances={balances}
               value={inputTokenAddress}
-              onChange={setInputTokenAddress}
+              onChange={handleInputTokenChange}
               disabled={isDisabled}
               dataTestId='input-token-select'
             />
@@ -219,7 +232,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               tokenInfo={tokenConfig.TOKEN_INFO[outputChainId] || {}}
               balances={outputBalances}
               value={outputTokenAddress}
-              onChange={setOutputTokenAddress}
+              onChange={handleOutputTokenChange}
               disabled={isDisabled}
               dataTestId='output-token-select'
             />

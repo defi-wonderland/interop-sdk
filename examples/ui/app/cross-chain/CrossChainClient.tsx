@@ -86,6 +86,11 @@ export function CrossChainClient() {
     }
   };
 
+  const handleInputChange = useCallback(() => {
+    setSelectedQuote(null);
+    clearQuotes();
+  }, [clearQuotes]);
+
   const handleReset = useCallback(() => {
     resetExecution();
     setSelectedQuote(null);
@@ -128,6 +133,7 @@ export function CrossChainClient() {
                 {chainConfig.isDiscovered && chainConfig.SUPPORTED_CHAINS.length > 0 && (
                   <SwapForm
                     onSubmit={handleSubmit}
+                    onInputChange={handleInputChange}
                     isLoading={quoteStatus === QuoteStatus.LOADING}
                     isDisabled={isExecutionStarted}
                   />
