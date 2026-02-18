@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
     AcrossProvider,
@@ -354,13 +354,17 @@ describe("AcrossProvider.discovery", () => {
             expect(service).toBeInstanceOf(CustomApiAssetDiscoveryService);
         });
 
-        it("should create service that starts prefetching", () => {
+        it("should start prefetching on creation", () => {
+            const prefetchSpy = vi.spyOn(CustomApiAssetDiscoveryService.prototype, "prefetch");
+
             const provider = new AcrossProvider({ providerId: "test-across" });
             const factory = new AssetDiscoveryFactory();
 
-            const service = factory.createService(provider);
+            factory.createService(provider);
 
-            expect(service).toBeInstanceOf(CustomApiAssetDiscoveryService);
+            expect(prefetchSpy).toHaveBeenCalledOnce();
+
+            prefetchSpy.mockRestore();
         });
     });
 });
