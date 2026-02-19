@@ -1,5 +1,4 @@
 import { createE2EProvider, e2eConnector as e2eConnector } from '@wonderland/walletless';
-import { baseSepolia, sepolia } from 'viem/chains';
 import { createConfig, http } from 'wagmi';
 import { TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
 
@@ -16,11 +15,11 @@ if (typeof window !== 'undefined' && isE2E) {
   (globalThis as any).__e2eTestProvider = e2eTestProvider;
 }
 
+const transports = Object.fromEntries(TESTNET_CHAINS.map((chain) => [chain.id, http(TESTNET_RPC_URLS[chain.id])]));
+
 export const e2eWallet = createConfig({
   chains: TESTNET_CHAINS,
+  ssr: true,
   connectors: [e2eConnector({ provider: e2eTestProvider })],
-  transports: {
-    [sepolia.id]: http(TESTNET_RPC_URLS[sepolia.id]),
-    [baseSepolia.id]: http(TESTNET_RPC_URLS[baseSepolia.id]),
-  },
+  transports,
 });
