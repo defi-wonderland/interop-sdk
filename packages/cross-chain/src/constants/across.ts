@@ -1,6 +1,8 @@
 import { getAddress, Hex } from "viem";
 import { arbitrum, arbitrumSepolia, base, baseSepolia, sepolia } from "viem/chains";
 
+import { NetworkAssets, toEVMInteropAddress } from "../internal.js";
+
 export const ACROSS_ORDER_DATA_TYPE =
     "0x9df4b782e7bbc178b3b93bfe8aafb909e84e39484d7f3c59f400f1b4691f85e2";
 
@@ -170,3 +172,62 @@ export const ACROSS_SPOKE_POOL_DEPOSIT_ABI = [
 export const ACROSS_UNSUPPORTED_CHAIN_IDS: ReadonlySet<number> = new Set([
     34268394551451, // Solana mainnet
 ]);
+
+/**
+ * Hardcoded testnet tokens for Across.
+ * The Across testnet API (/swap/tokens) returns mainnet chain IDs,
+ * so we use a static list until that's fixed.
+ */
+export const ACROSS_TESTNET_TOKENS: NetworkAssets[] = [
+    {
+        chainId: 11155111, // Sepolia
+        assets: [
+            {
+                address: toEVMInteropAddress(
+                    11155111,
+                    "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
+                ),
+                symbol: "WETH",
+                decimals: 18,
+            },
+            {
+                address: toEVMInteropAddress(
+                    11155111,
+                    "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+                ),
+                symbol: "USDC",
+                decimals: 6,
+            },
+        ],
+    },
+    {
+        chainId: 84532, // Base Sepolia
+        assets: [
+            {
+                address: toEVMInteropAddress(84532, "0x4200000000000000000000000000000000000006"),
+                symbol: "WETH",
+                decimals: 18,
+            },
+            {
+                address: toEVMInteropAddress(84532, "0x036CbD53842c5426634e7929541eC2318f3dCF7e"),
+                symbol: "USDC",
+                decimals: 6,
+            },
+        ],
+    },
+    {
+        chainId: 421614, // Arbitrum Sepolia
+        assets: [
+            {
+                address: toEVMInteropAddress(421614, "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73"),
+                symbol: "WETH",
+                decimals: 18,
+            },
+            {
+                address: toEVMInteropAddress(421614, "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d"),
+                symbol: "USDC",
+                decimals: 6,
+            },
+        ],
+    },
+];

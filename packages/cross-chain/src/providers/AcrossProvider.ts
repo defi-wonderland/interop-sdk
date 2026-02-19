@@ -17,6 +17,7 @@ import { ZodError } from "zod";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
+    ACROSS_TESTNET_TOKENS,
     ACROSS_UNSUPPORTED_CHAIN_IDS,
     ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
     AcrossConfigs,
@@ -57,66 +58,6 @@ import {
     ProviderQuote,
     PublicClientManager,
 } from "../internal.js";
-
-function interopAddress(chainId: number, address: Address): Address {
-    return encodeAddress(
-        { version: 1, chainType: "eip155", chainReference: chainId.toString(), address },
-        { format: "hex" },
-    ) as Address;
-}
-
-/**
- * Hardcoded testnet tokens for Across.
- * The Across testnet API (/swap/tokens) returns mainnet chain IDs,
- * so we use a static list until that's fixed.
- */
-const ACROSS_TESTNET_TOKENS: NetworkAssets[] = [
-    {
-        chainId: 11155111, // Sepolia
-        assets: [
-            {
-                address: interopAddress(11155111, "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14"),
-                symbol: "WETH",
-                decimals: 18,
-            },
-            {
-                address: interopAddress(11155111, "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"),
-                symbol: "USDC",
-                decimals: 6,
-            },
-        ],
-    },
-    {
-        chainId: 84532, // Base Sepolia
-        assets: [
-            {
-                address: interopAddress(84532, "0x4200000000000000000000000000000000000006"),
-                symbol: "WETH",
-                decimals: 18,
-            },
-            {
-                address: interopAddress(84532, "0x036CbD53842c5426634e7929541eC2318f3dCF7e"),
-                symbol: "USDC",
-                decimals: 6,
-            },
-        ],
-    },
-    {
-        chainId: 421614, // Arbitrum Sepolia
-        assets: [
-            {
-                address: interopAddress(421614, "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73"),
-                symbol: "WETH",
-                decimals: 18,
-            },
-            {
-                address: interopAddress(421614, "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d"),
-                symbol: "USDC",
-                decimals: 6,
-            },
-        ],
-    },
-];
 
 /**
  * An implementation of the CrossChainProvider interface for the Across protocol
