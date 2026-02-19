@@ -222,13 +222,6 @@ export class OifProvider extends CrossChainProvider {
                         },
                     );
 
-                    if (response.status !== 200) {
-                        throw new ProviderExecuteFailure(
-                            "Failed to submit order to solver",
-                            `Unexpected status code: ${response.status}. SolverId: ${this.solverId}, QuoteId: ${request.quoteId}`,
-                        );
-                    }
-
                     return response.data;
                 } catch (e) {
                     lastErr = e;

@@ -1,7 +1,7 @@
 /**
  * WORKAROUND: OIF solver API never transitions to Finalized.
  * Verifies the fill tx receipt on-chain and promotes TRACKING → DONE.
- * Remove this file once the solver is fixed.
+ * Remove this file once https://github.com/openintentsframework/oif-aggregator/issues/113 is fixed.
  */
 import { useEffect, useState } from 'react';
 import { OrderStatus } from '@wonderland/interop-cross-chain';
@@ -12,15 +12,13 @@ import { BridgeState, STEP } from '~/cross-chain/hooks';
 
 const TRANSFER_TOPIC = toEventHash('event Transfer(address indexed from, address indexed to, uint256 value)');
 
-const POLL_INTERVAL_MS = 5_000; // 5 seconds
-
 /**
- * Fetches the fill tx receipt and calls onVerified if it contains a
- * successful Transfer to the recipient. Silently swallows errors (tx pending, RPC down).
+ * Waits for the fill tx receipt and calls onVerified if it contains a
+ * successful Transfer to the recipient. Errors are logged but not re-thrown.
  */
 function verifyFill(publicClient: PublicClient, fillTxHash: Hex, recipient: Address, onVerified: () => void): void {
   publicClient
-    .getTransactionReceipt({ hash: fillTxHash })
+    .waitForTransactionReceipt({ hash: fillTxHash })
     .then((receipt) => {
       if (receipt.status !== 'success') return;
       const filled = receipt.logs.some(
@@ -55,10 +53,8 @@ export function useFillWorkaround(state: BridgeState, abortTracking: () => void)
     };
 
     verifyFill(publicClient, fillTxHash, recipient, onVerified);
-    const interval = setInterval(() => verifyFill(publicClient, fillTxHash, recipient, onVerified), POLL_INTERVAL_MS);
     return () => {
       active = false;
-      clearInterval(interval);
     };
   }, [fillTxHash, publicClient, recipient, abortTracking]);
 
@@ -66,6 +62,7 @@ export function useFillWorkaround(state: BridgeState, abortTracking: () => void)
     return {
       step: STEP.DONE,
       update: { ...state.update, status: OrderStatus.Finalized },
+      txHash: state.txHash,
       originChainId: state.originChainId,
       destinationChainId: state.destinationChainId,
     };
