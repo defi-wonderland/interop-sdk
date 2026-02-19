@@ -1,3 +1,4 @@
+import { encodeAddress } from "@wonderland/interop-addresses";
 import { Address, Hex } from "viem";
 
 /**
@@ -19,4 +20,14 @@ import { Address, Hex } from "viem";
 export function bytes32ToAddress(bytes32: Hex): Address {
     // Take the last 40 characters (20 bytes = 40 hex chars)
     return `0x${bytes32.slice(-40)}` as Address;
+}
+
+/**
+ * Encode a raw address + chain ID into an EIP-7930 interoperable address (hex format).
+ */
+export function toEVMInteropAddress(chainId: number, address: Address): Address {
+    return encodeAddress(
+        { version: 1, chainType: "eip155", chainReference: chainId.toString(), address },
+        { format: "hex" },
+    ) as Address;
 }

@@ -9,8 +9,8 @@ export interface AcrossOrder {
         to: Address;
         data: string;
         gas: string;
-        maxFeePerGas: string;
-        maxPriorityFeePerGas: string;
+        maxFeePerGas?: string;
+        maxPriorityFeePerGas?: string;
     };
     metadata: object;
 }

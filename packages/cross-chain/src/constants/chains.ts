@@ -1,9 +1,9 @@
-import { arbitrum, arbitrumSepolia, base, baseSepolia, sepolia } from "viem/chains";
+import { arbitrum, arbitrumSepolia, base, baseSepolia, optimism, sepolia } from "viem/chains";
 
 /**
  * Mainnet chains
  */
-export const MAINNET_CHAINS = [base, arbitrum] as const;
+export const MAINNET_CHAINS = [base, arbitrum, optimism] as const;
 
 /**
  * Testnet chains

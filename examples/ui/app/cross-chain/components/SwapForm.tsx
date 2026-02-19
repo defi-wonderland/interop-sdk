@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
+import { useRouteSelection } from '../hooks/useRouteSelection';
 import { useBalanceStore, type TokenBalance } from '../stores/balanceStore';
 import { isValidAmount, sanitizeAmountInput } from '../utils/amountValidation';
 import { TokenSelect } from './TokenSelect';
@@ -20,37 +21,40 @@ interface SwapFormProps {
     inputAmount: string;
     inputAmountRaw: bigint;
   }) => void;
+  onInputChange?: () => void;
   isLoading?: boolean;
   isDisabled?: boolean;
 }
 
-export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: SwapFormProps) {
+export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisabled = false }: SwapFormProps) {
   const { address: connectedAddress, isConnected } = useAccount();
   const chainConfig = useChainConfig();
   const tokenConfig = useTokenConfig();
 
-  const getDefaultToken = (chainId: number): string => {
-    const tokens = tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
-    return tokens[0] || '';
-  };
+  const {
+    inputChainId,
+    outputChainId,
+    inputToken: inputTokenAddress,
+    outputToken: outputTokenAddress,
+    inputTokens,
+    outputTokens,
+    setInputChain,
+    setOutputChain,
+    setInputToken,
+    setOutputToken,
+  } = useRouteSelection(chainConfig.DEFAULT_INPUT_CHAIN_ID, chainConfig.DEFAULT_OUTPUT_CHAIN_ID);
 
   const [recipient, setRecipient] = useState('');
   const hasAutoFilledRef = useRef(false);
-  const [inputChainId, setInputChainId] = useState(chainConfig.DEFAULT_INPUT_CHAIN_ID);
-  const [outputChainId, setOutputChainId] = useState(chainConfig.DEFAULT_OUTPUT_CHAIN_ID);
-  const [inputTokenAddress, setInputTokenAddress] = useState(() => getDefaultToken(chainConfig.DEFAULT_INPUT_CHAIN_ID));
-  const [outputTokenAddress, setOutputTokenAddress] = useState(() =>
-    getDefaultToken(chainConfig.DEFAULT_OUTPUT_CHAIN_ID),
-  );
   const [inputAmount, setInputAmount] = useState('');
 
-  const inputTokens = useMemo(
-    () => tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[inputChainId] || [],
-    [inputChainId, tokenConfig],
+  const inputChains = useMemo(
+    () => chainConfig.SUPPORTED_CHAINS.filter((c) => c.id !== outputChainId),
+    [chainConfig.SUPPORTED_CHAINS, outputChainId],
   );
-  const outputTokens = useMemo(
-    () => tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[outputChainId] || [],
-    [outputChainId, tokenConfig],
+  const outputChains = useMemo(
+    () => chainConfig.SUPPORTED_CHAINS.filter((c) => c.id !== inputChainId),
+    [chainConfig.SUPPORTED_CHAINS, inputChainId],
   );
 
   const { balances: allBalances } = useBalanceStore();
@@ -90,8 +94,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
       return;
     }
     const finalRecipient = recipient.trim() || connectedAddress;
-    const tokenInfo = tokenConfig.TOKEN_INFO[inputChainId]?.[inputTokenAddress];
-    const decimals = tokenInfo?.decimals || 18;
+    const decimals = inputTokenInfo?.decimals || 18;
     const inputAmountRaw = parseUnits(inputAmount, decimals);
 
     onSubmit({
@@ -107,19 +110,23 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
   };
 
   const handleInputChainChange = (chainId: number) => {
-    setInputChainId(chainId);
-    const tokens = tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
-    if (tokens.length > 0) {
-      setInputTokenAddress(tokens[0]);
-    }
+    setInputChain(chainId);
+    onInputChange?.();
   };
 
   const handleOutputChainChange = (chainId: number) => {
-    setOutputChainId(chainId);
-    const tokens = tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
-    if (tokens.length > 0) {
-      setOutputTokenAddress(tokens[0]);
-    }
+    setOutputChain(chainId);
+    onInputChange?.();
+  };
+
+  const handleInputTokenChange = (address: string) => {
+    setInputToken(address);
+    onInputChange?.();
+  };
+
+  const handleOutputTokenChange = (address: string) => {
+    setOutputToken(address);
+    onInputChange?.();
   };
 
   const canSubmit =
@@ -159,15 +166,13 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
             type='text'
             value={recipient}
             onChange={(e) => setRecipient(e.target.value)}
-            placeholder='0x... or alice.eth@chain'
+            placeholder='0x...'
             autoComplete='off'
             data-1p-ignore
             disabled={isDisabled}
             className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
-          <p className='text-xs text-text-tertiary mt-1'>
-            Supports interoperable addresses (e.g., alice.eth@base-sepolia). Leave empty to use your wallet address.
-          </p>
+          <p className='text-xs text-text-tertiary mt-1'>Leave empty to use your wallet address.</p>
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
@@ -182,7 +187,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               disabled={isDisabled}
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {chainConfig.SUPPORTED_CHAINS.map((c) => (
+              {inputChains.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
@@ -193,7 +198,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               tokenInfo={tokenConfig.TOKEN_INFO[inputChainId] || {}}
               balances={balances}
               value={inputTokenAddress}
-              onChange={setInputTokenAddress}
+              onChange={handleInputTokenChange}
               disabled={isDisabled}
               dataTestId='input-token-select'
             />
@@ -210,7 +215,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               disabled={isDisabled}
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {chainConfig.SUPPORTED_CHAINS.map((c) => (
+              {outputChains.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
@@ -221,7 +226,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               tokenInfo={tokenConfig.TOKEN_INFO[outputChainId] || {}}
               balances={outputBalances}
               value={outputTokenAddress}
-              onChange={setOutputTokenAddress}
+              onChange={handleOutputTokenChange}
               disabled={isDisabled}
               dataTestId='output-token-select'
             />
@@ -229,9 +234,21 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
         </div>
 
         <div>
-          <label htmlFor='amount-input' className='text-sm font-medium text-text-secondary mb-2 block'>
-            Amount
-          </label>
+          <div className='flex items-center justify-between mb-2'>
+            <label htmlFor='amount-input' className='text-sm font-medium text-text-secondary'>
+              Amount
+            </label>
+            {tokenBalance && (
+              <button
+                type='button'
+                onClick={() => setInputAmount(tokenBalance.formatted)}
+                disabled={isDisabled}
+                className='text-xs text-accent hover:text-accent-hover font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                Max: {tokenBalance.formatted}
+              </button>
+            )}
+          </div>
           <input
             id='amount-input'
             type='text'

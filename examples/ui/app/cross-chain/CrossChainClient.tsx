@@ -19,6 +19,7 @@ import {
 import { useOrderExecution, useChainConfig } from './hooks';
 import { useQuotes, QuoteStatus } from './hooks/useQuotes';
 import { useDiscoveredAssets } from './providers';
+import { useFillWorkaround } from './services/orderExecution/fillDetection';
 import { STEP } from './types/execution';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address } from 'viem';
@@ -30,7 +31,9 @@ interface ToastState {
 
 export function CrossChainClient() {
   const { quotes, errors, status: quoteStatus, fetchQuotes, clearQuotes } = useQuotes();
-  const { state: executionState, execute, reset: resetExecution } = useOrderExecution();
+  const { state: rawExecutionState, execute, reset: resetExecution, abortTracking } = useOrderExecution();
+  // WORKAROUND: OIF solver never finalizes — promote TRACKING→DONE on fillTxHash. Remove when solver is fixed.
+  const executionState = useFillWorkaround(rawExecutionState, abortTracking);
   const chainConfig = useChainConfig();
   const { retryDiscovery } = useDiscoveredAssets();
 
@@ -86,6 +89,11 @@ export function CrossChainClient() {
     }
   };
 
+  const handleInputChange = useCallback(() => {
+    setSelectedQuote(null);
+    clearQuotes();
+  }, [clearQuotes]);
+
   const handleReset = useCallback(() => {
     resetExecution();
     setSelectedQuote(null);
@@ -128,6 +136,7 @@ export function CrossChainClient() {
                 {chainConfig.isDiscovered && chainConfig.SUPPORTED_CHAINS.length > 0 && (
                   <SwapForm
                     onSubmit={handleSubmit}
+                    onInputChange={handleInputChange}
                     isLoading={quoteStatus === QuoteStatus.LOADING}
                     isDisabled={isExecutionStarted}
                   />
