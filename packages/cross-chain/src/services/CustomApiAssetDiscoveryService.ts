@@ -43,32 +43,24 @@ export class CustomApiAssetDiscoveryService extends BaseAssetDiscoveryService {
      * Fetch assets from the custom API
      */
     protected async fetchAssets(timeout: number): Promise<AssetDiscoveryResult> {
-        try {
-            const response = await axios.get(this.assetsEndpoint, {
-                headers: this.headers ?? {},
-                timeout,
-            });
+        const response = await axios.get(this.assetsEndpoint, {
+            headers: this.headers ?? {},
+            timeout,
+        });
 
-            if (response.status !== 200) {
-                throw new AssetDiscoveryFailure(
-                    "Failed to fetch assets from custom API",
-                    `Unexpected status code: ${response.status}. URL: ${this.assetsEndpoint}`,
-                );
-            }
-
-            const networks = this.parseResponse(response.data);
-
-            return {
-                networks,
-                fetchedAt: Date.now(),
-                providerId: this.providerId,
-            };
-        } catch (error) {
-            if (error instanceof AssetDiscoveryFailure) {
-                throw error;
-            }
-
-            throw this.wrapError(error, "custom API", this.assetsEndpoint, timeout);
+        if (response.status !== 200) {
+            throw new AssetDiscoveryFailure(
+                "Failed to fetch assets from custom API",
+                `Unexpected status code: ${response.status}. URL: ${this.assetsEndpoint}`,
+            );
         }
+
+        const networks = this.parseResponse(response.data);
+
+        return {
+            networks,
+            fetchedAt: Date.now(),
+            providerId: this.providerId,
+        };
     }
 }

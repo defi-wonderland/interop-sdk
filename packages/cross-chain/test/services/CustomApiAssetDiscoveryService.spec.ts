@@ -244,8 +244,10 @@ describe("CustomApiAssetDiscoveryService", () => {
     });
 
     describe("error handling", () => {
-        it("should throw AssetDiscoveryFailure on general HTTP error", async () => {
-            const axiosError = new AxiosError("Request failed", "ERR_BAD_REQUEST");
+        it("should throw AssetDiscoveryFailure on general HTTP error with providerId", async () => {
+            const axiosError = new AxiosError("Request failed");
+            axiosError.code = "ERR_BAD_REQUEST";
+            axiosError.config = { url: assetsEndpoint } as never;
             axiosError.response = {
                 status: 500,
                 data: { message: "Internal server error" },
@@ -262,6 +264,7 @@ describe("CustomApiAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/Internal server error/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/api.custom.test/);
             }
@@ -290,17 +293,15 @@ describe("CustomApiAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
-                expect((error as AssetDiscoveryFailure).message).toBe(
-                    "Failed to fetch assets from custom API",
-                );
-                // Error details should include the Zod error message
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/Expected array/);
             }
         });
 
-        it("should throw AssetDiscoveryFailure on timeout with specific message", async () => {
+        it("should throw AssetDiscoveryFailure on timeout with providerId", async () => {
             const axiosError = new AxiosError("timeout of 30000ms exceeded");
             axiosError.code = "ECONNABORTED";
+            axiosError.config = { url: assetsEndpoint } as never;
             vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
 
             try {
@@ -308,14 +309,13 @@ describe("CustomApiAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
-                expect((error as AssetDiscoveryFailure).message).toBe(
-                    "Request to custom API timed out",
-                );
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/timed out/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/Timeout after/);
             }
         });
 
-        it("should throw AssetDiscoveryFailure on rate limit (429)", async () => {
+        it("should throw AssetDiscoveryFailure on rate limit (429) with providerId", async () => {
             const axiosError = new AxiosError("Too Many Requests", "ERR_BAD_REQUEST");
             axiosError.response = {
                 status: 429,
@@ -333,9 +333,8 @@ describe("CustomApiAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
-                expect((error as AssetDiscoveryFailure).message).toBe(
-                    "custom API rate limit exceeded",
-                );
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/rate limit/);
             }
         });
 

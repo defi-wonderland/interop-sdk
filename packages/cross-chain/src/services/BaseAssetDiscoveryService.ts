@@ -132,6 +132,10 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * Single shared fetch path that manages cache and in-flight deduplication.
      * Both getSupportedAssets and getRawResult delegate here so only one
      * code path ever creates/clears this.inFlight.
+     *
+     * Acts as the centralized error boundary: any error not already wrapped
+     * by a subclass is caught here and turned into an AssetDiscoveryFailure
+     * with provider attribution via {@link wrapError}.
      */
     private async resolveResult(): Promise<AssetDiscoveryResult> {
         if (this.cache) {
@@ -142,10 +146,16 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
             return this.inFlight;
         }
 
-        const promise = this.fetchAssets(this.timeout).then((result) => {
-            this.cache = result;
-            return result;
-        });
+        const promise = this.fetchAssets(this.timeout)
+            .then((result) => {
+                this.cache = result;
+                return result;
+            })
+            .catch((error: unknown) => {
+                const url =
+                    error instanceof AxiosError ? (error.config?.url ?? "unknown") : "unknown";
+                throw this.wrapError(error, url);
+            });
 
         this.inFlight = promise;
 
@@ -175,17 +185,11 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * Handles AxiosError (timeout, rate limit, response message extraction)
      * and generic errors uniformly.
      *
-     * @param error - The caught error
-     * @param context - Human-readable context (e.g. "OIF API", "custom API")
-     * @param url - The URL that was called (included in error details)
-     * @param timeout - The actual timeout used for the request (for accurate error messages)
+     * Called by {@link resolveResult} as the centralized safety net so that
+     * consumers always receive an AssetDiscoveryFailure regardless of what
+     * the subclass throws.
      */
-    protected wrapError(
-        error: unknown,
-        context: string,
-        url: string,
-        timeout: number,
-    ): AssetDiscoveryFailure {
+    private wrapError(error: unknown, url: string): AssetDiscoveryFailure {
         if (error instanceof AssetDiscoveryFailure) {
             return error;
         }
@@ -193,15 +197,15 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
         if (error instanceof AxiosError) {
             if (error.code === "ECONNABORTED") {
                 return new AssetDiscoveryFailure(
-                    `Request to ${context} timed out`,
-                    `Timeout after ${timeout}ms. URL: ${url}`,
+                    `Request to ${this.providerId} timed out`,
+                    `Timeout after ${this.timeout}ms. URL: ${url}`,
                     error.stack,
                 );
             }
 
             if (error.response?.status === 429) {
                 return new AssetDiscoveryFailure(
-                    `${context} rate limit exceeded`,
+                    `${this.providerId} rate limit exceeded`,
                     `Rate limited at ${url}`,
                     error.stack,
                 );
@@ -215,14 +219,14 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
                 "Failed to fetch assets";
 
             return new AssetDiscoveryFailure(
-                `Failed to fetch assets from ${context}`,
+                `Failed to fetch assets from ${this.providerId}`,
                 `${baseMessage}. URL: ${url}`,
                 error.stack,
             );
         }
 
         return new AssetDiscoveryFailure(
-            `Failed to fetch assets from ${context}`,
+            `Failed to fetch assets from ${this.providerId}`,
             `${String(error)}. URL: ${url}`,
             error instanceof Error ? error.stack : undefined,
         );

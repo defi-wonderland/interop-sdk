@@ -87,9 +87,7 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
                 providerId: this.providerId,
             };
         } catch (error) {
-            if (error instanceof AssetDiscoveryFailure) {
-                throw error;
-            }
+            if (error instanceof AssetDiscoveryFailure) throw error;
 
             if (error instanceof ZodError) {
                 throw new AssetDiscoveryFailure(
@@ -99,7 +97,7 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
                 );
             }
 
-            throw this.wrapError(error, "OIF API", url, timeout);
+            throw error;
         }
     }
 
@@ -112,32 +110,24 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
     private async fetchAssetsViaWorkaround(timeout: number): Promise<AssetDiscoveryResult> {
         const url = buildAggregatorSolverEndpoint(this.baseUrl, this.solverId!);
 
-        try {
-            const response = await axios.get(url, {
-                headers: this.headers ?? {},
-                timeout,
-            });
+        const response = await axios.get(url, {
+            headers: this.headers ?? {},
+            timeout,
+        });
 
-            if (response.status !== 200) {
-                throw new AssetDiscoveryFailure(
-                    "Failed to fetch assets from OIF solver",
-                    `Unexpected status code: ${response.status}. URL: ${url}`,
-                );
-            }
-
-            const networks = parseAggregatorSolverResponse(response.data);
-
-            return {
-                networks,
-                fetchedAt: Date.now(),
-                providerId: this.providerId,
-            };
-        } catch (error) {
-            if (error instanceof AssetDiscoveryFailure) {
-                throw error;
-            }
-
-            throw this.wrapError(error, "OIF solver (workaround)", url, timeout);
+        if (response.status !== 200) {
+            throw new AssetDiscoveryFailure(
+                "Failed to fetch assets from OIF solver",
+                `Unexpected status code: ${response.status}. URL: ${url}`,
+            );
         }
+
+        const networks = parseAggregatorSolverResponse(response.data);
+
+        return {
+            networks,
+            fetchedAt: Date.now(),
+            providerId: this.providerId,
+        };
     }
 }

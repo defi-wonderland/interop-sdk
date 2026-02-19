@@ -249,8 +249,10 @@ describe("OIFAssetDiscoveryService", () => {
     });
 
     describe("network and API errors", () => {
-        it("should wrap network errors in AssetDiscoveryFailure with context", async () => {
-            const axiosError = new AxiosError("timeout of 30000ms exceeded", "ECONNABORTED");
+        it("should wrap network errors in AssetDiscoveryFailure with providerId", async () => {
+            const axiosError = new AxiosError("timeout of 30000ms exceeded");
+            axiosError.code = "ECONNABORTED";
+            axiosError.config = { url: `${baseUrl}/api/tokens` } as never;
             vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
 
             try {
@@ -258,6 +260,7 @@ describe("OIFAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-solver/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/api.solver.test/);
             }
         });
@@ -280,6 +283,7 @@ describe("OIFAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-solver/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/Invalid API key/);
             }
         });

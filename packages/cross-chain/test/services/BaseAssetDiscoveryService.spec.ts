@@ -27,16 +27,6 @@ class TestAssetDiscoveryService extends BaseAssetDiscoveryService {
     protected async fetchAssets(timeout: number): Promise<AssetDiscoveryResult> {
         return this.fetchFn(timeout);
     }
-
-    // Expose wrapError for testing
-    public testWrapError(
-        error: unknown,
-        context: string,
-        url: string,
-        timeout: number = 30000,
-    ): AssetDiscoveryFailure {
-        return this.wrapError(error, context, url, timeout);
-    }
 }
 
 describe("BaseAssetDiscoveryService", () => {
@@ -272,7 +262,7 @@ describe("BaseAssetDiscoveryService", () => {
         it("should clear in-flight state on failure and allow retry", async () => {
             fetchMock.mockRejectedValueOnce(new Error("Network error"));
 
-            await expect(service.getSupportedAssets()).rejects.toThrow();
+            await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
 
             // Second call should attempt a new fetch
             fetchMock.mockResolvedValueOnce(mockResult);
@@ -377,33 +367,38 @@ describe("BaseAssetDiscoveryService", () => {
         });
     });
 
-    describe("wrapError", () => {
-        it("should return existing AssetDiscoveryFailure unchanged", () => {
+    describe("centralized error wrapping (resolveResult safety net)", () => {
+        it("should pass through AssetDiscoveryFailure from fetchAssets unchanged", async () => {
             const original = new AssetDiscoveryFailure("Original error", "details");
+            fetchMock.mockRejectedValueOnce(original);
 
-            const wrapped = service.testWrapError(original, "context", "http://test.url");
-
-            expect(wrapped).toBe(original);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBe(original);
+            }
         });
 
-        it("should wrap timeout errors (ECONNABORTED) with correct timeout value", () => {
-            const axiosError = new AxiosError("timeout", "ECONNABORTED");
-            const customTimeout = 15000;
+        it("should wrap timeout errors (ECONNABORTED) with providerId", async () => {
+            const axiosError = new AxiosError("timeout");
+            axiosError.code = "ECONNABORTED";
+            axiosError.config = { url: "http://test.url" } as never;
+            fetchMock.mockRejectedValueOnce(axiosError);
 
-            const wrapped = service.testWrapError(
-                axiosError,
-                "test API",
-                "http://test.url",
-                customTimeout,
-            );
-
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.message).toMatch(/timed out/);
-            expect(wrapped.details).toMatch(/15000ms/);
-            expect(wrapped.details).toMatch(/http:\/\/test.url/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/timed out/);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/10000ms/);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/http:\/\/test.url/);
+            }
         });
 
-        it("should wrap rate limit errors (429)", () => {
+        it("should wrap rate limit errors (429) with providerId", async () => {
             const axiosError = new AxiosError("rate limited", "ERR_BAD_REQUEST");
             axiosError.response = {
                 status: 429,
@@ -414,14 +409,19 @@ describe("BaseAssetDiscoveryService", () => {
                     ? C
                     : never,
             };
+            fetchMock.mockRejectedValueOnce(axiosError);
 
-            const wrapped = service.testWrapError(axiosError, "test API", "http://test.url");
-
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.message).toMatch(/rate limit/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/rate limit/);
+            }
         });
 
-        it("should extract error message from response data", () => {
+        it("should extract error message from AxiosError response data", async () => {
             const axiosError = new AxiosError("Request failed", "ERR_BAD_REQUEST");
             axiosError.response = {
                 status: 401,
@@ -432,37 +432,67 @@ describe("BaseAssetDiscoveryService", () => {
                     ? C
                     : never,
             };
+            fetchMock.mockRejectedValueOnce(axiosError);
 
-            const wrapped = service.testWrapError(axiosError, "test API", "http://test.url");
-
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.details).toMatch(/Invalid API key/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/Invalid API key/);
+            }
         });
 
-        it("should wrap generic AxiosError without response", () => {
+        it("should wrap generic AxiosError without response", async () => {
             const axiosError = new AxiosError("Network error", "ERR_NETWORK");
+            fetchMock.mockRejectedValueOnce(axiosError);
 
-            const wrapped = service.testWrapError(axiosError, "test API", "http://test.url");
-
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.details).toMatch(/Network error/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/Network error/);
+            }
         });
 
-        it("should wrap non-Axios errors", () => {
-            const genericError = new Error("Something went wrong");
+        it("should wrap non-Axios errors with providerId", async () => {
+            fetchMock.mockRejectedValueOnce(new Error("Something went wrong"));
 
-            const wrapped = service.testWrapError(genericError, "test API", "http://test.url");
-
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.details).toMatch(/Something went wrong/);
-            expect(wrapped.details).toMatch(/http:\/\/test.url/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/Something went wrong/);
+            }
         });
 
-        it("should handle non-Error objects", () => {
-            const wrapped = service.testWrapError("string error", "test API", "http://test.url");
+        it("should handle non-Error objects", async () => {
+            fetchMock.mockRejectedValueOnce("string error");
 
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.details).toMatch(/string error/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/string error/);
+            }
+        });
+
+        it("should fall back to 'unknown' URL when AxiosError has no config", async () => {
+            const axiosError = new AxiosError("timeout", "ECONNABORTED");
+            fetchMock.mockRejectedValueOnce(axiosError);
+
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/unknown/);
+            }
         });
     });
 });
