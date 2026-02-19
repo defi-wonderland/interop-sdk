@@ -64,8 +64,6 @@ export interface AssetDiscoveryOptions {
 export interface AssetDiscoveryResult {
     /** Supported networks with their assets */
     networks: NetworkAssets[];
-    /** When this data was fetched (Unix timestamp in milliseconds) */
-    fetchedAt: number;
     /** Provider ID that returned this data */
     providerId: string;
 }

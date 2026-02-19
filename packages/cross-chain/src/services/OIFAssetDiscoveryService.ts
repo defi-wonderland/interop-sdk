@@ -7,7 +7,7 @@ import {
 } from "../adapters/assetDiscoveryAdapter.js";
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import { getAssetsResponseSchema } from "../schemas/assetDiscovery.js";
-import { AssetDiscoveryResult } from "../types/assetDiscovery.js";
+import { NetworkAssets } from "../types/assetDiscovery.js";
 import {
     BaseAssetDiscoveryService,
     BaseAssetDiscoveryServiceConfig,
@@ -54,18 +54,18 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
     /**
      * Fetch assets from the OIF API
      */
-    protected async fetchAssets(timeout: number): Promise<AssetDiscoveryResult> {
+    protected async fetchAssets(): Promise<NetworkAssets[]> {
         // WORKAROUND: solver response doesn't match oif-specs yet (#295)
         if (this.solverId) {
-            return this.fetchAssetsViaWorkaround(timeout);
+            return this.fetchAssetsViaWorkaround();
         }
 
         const url = `${this.baseUrl}/api/tokens`;
 
         try {
             const response = await axios.get(url, {
-                headers: this.headers ?? {},
-                timeout,
+                headers: this.headers,
+                timeout: this.timeout,
             });
 
             if (response.status !== 200) {
@@ -75,17 +75,9 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
                 );
             }
 
-            // Validate response against schema
             const validated = getAssetsResponseSchema.parse(response.data);
 
-            // Convert from Record<string, NetworkAssets> to NetworkAssets[]
-            const networks = Object.values(validated.networks);
-
-            return {
-                networks,
-                fetchedAt: Date.now(),
-                providerId: this.providerId,
-            };
+            return Object.values(validated.networks);
         } catch (error) {
             if (error instanceof AssetDiscoveryFailure) throw error;
 
@@ -107,12 +99,12 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
      * Remove when solver aligns GET /api/tokens response with oif-specs.
      * @see https://github.com/openintentsframework/oif-solver/issues/295
      */
-    private async fetchAssetsViaWorkaround(timeout: number): Promise<AssetDiscoveryResult> {
+    private async fetchAssetsViaWorkaround(): Promise<NetworkAssets[]> {
         const url = buildAggregatorSolverEndpoint(this.baseUrl, this.solverId!);
 
         const response = await axios.get(url, {
-            headers: this.headers ?? {},
-            timeout,
+            headers: this.headers,
+            timeout: this.timeout,
         });
 
         if (response.status !== 200) {
@@ -122,12 +114,6 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
             );
         }
 
-        const networks = parseAggregatorSolverResponse(response.data);
-
-        return {
-            networks,
-            fetchedAt: Date.now(),
-            providerId: this.providerId,
-        };
+        return parseAggregatorSolverResponse(response.data);
     }
 }

@@ -1,4 +1,4 @@
-import { AssetDiscoveryResult, NetworkAssets } from "../types/assetDiscovery.js";
+import { NetworkAssets } from "../types/assetDiscovery.js";
 import { BaseAssetDiscoveryService } from "./BaseAssetDiscoveryService.js";
 
 export class StaticAssetDiscoveryService extends BaseAssetDiscoveryService {
@@ -9,11 +9,7 @@ export class StaticAssetDiscoveryService extends BaseAssetDiscoveryService {
         this.networks = networks;
     }
 
-    protected async fetchAssets(): Promise<AssetDiscoveryResult> {
-        return {
-            networks: this.networks,
-            fetchedAt: Date.now(),
-            providerId: this.providerId,
-        };
+    protected async fetchAssets(): Promise<NetworkAssets[]> {
+        return this.networks;
     }
 }

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
-import { AssetDiscoveryResult, NetworkAssets } from "../types/assetDiscovery.js";
+import { NetworkAssets } from "../types/assetDiscovery.js";
 import {
     BaseAssetDiscoveryService,
     BaseAssetDiscoveryServiceConfig,
@@ -42,10 +42,10 @@ export class CustomApiAssetDiscoveryService extends BaseAssetDiscoveryService {
     /**
      * Fetch assets from the custom API
      */
-    protected async fetchAssets(timeout: number): Promise<AssetDiscoveryResult> {
+    protected async fetchAssets(): Promise<NetworkAssets[]> {
         const response = await axios.get(this.assetsEndpoint, {
-            headers: this.headers ?? {},
-            timeout,
+            headers: this.headers,
+            timeout: this.timeout,
         });
 
         if (response.status !== 200) {
@@ -55,12 +55,6 @@ export class CustomApiAssetDiscoveryService extends BaseAssetDiscoveryService {
             );
         }
 
-        const networks = this.parseResponse(response.data);
-
-        return {
-            networks,
-            fetchedAt: Date.now(),
-            providerId: this.providerId,
-        };
+        return this.parseResponse(response.data);
     }
 }

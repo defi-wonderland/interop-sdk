@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     AssetDiscoveryFailure,
-    AssetDiscoveryResult,
     BaseAssetDiscoveryService,
     BaseAssetDiscoveryServiceConfig,
+    NetworkAssets,
 } from "../../src/internal.js";
 
 /**
@@ -14,61 +14,54 @@ import {
  * Allows tests to control what fetchAssets returns.
  */
 class TestAssetDiscoveryService extends BaseAssetDiscoveryService {
-    private fetchFn: (timeout: number) => Promise<AssetDiscoveryResult>;
+    private fetchFn: () => Promise<NetworkAssets[]>;
 
-    constructor(
-        config: BaseAssetDiscoveryServiceConfig,
-        fetchFn: (timeout: number) => Promise<AssetDiscoveryResult>,
-    ) {
+    constructor(config: BaseAssetDiscoveryServiceConfig, fetchFn: () => Promise<NetworkAssets[]>) {
         super(config);
         this.fetchFn = fetchFn;
     }
 
-    protected async fetchAssets(timeout: number): Promise<AssetDiscoveryResult> {
-        return this.fetchFn(timeout);
+    protected async fetchAssets(): Promise<NetworkAssets[]> {
+        return this.fetchFn();
     }
 }
 
 describe("BaseAssetDiscoveryService", () => {
     const providerId = "test-provider";
 
-    const mockResult: AssetDiscoveryResult = {
-        networks: [
-            {
-                chainId: 1,
-                assets: [
-                    {
-                        address: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-                        symbol: "USDC",
-                        decimals: 6,
-                    },
-                    {
-                        address: "0x000100000101C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-                        symbol: "WETH",
-                        decimals: 18,
-                    },
-                ],
-            },
-            {
-                chainId: 137,
-                assets: [
-                    {
-                        address: "0x00010000018902791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-                        symbol: "USDC",
-                        decimals: 6,
-                    },
-                ],
-            },
-        ],
-        fetchedAt: Date.now(),
-        providerId,
-    };
+    const mockNetworks: NetworkAssets[] = [
+        {
+            chainId: 1,
+            assets: [
+                {
+                    address: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    symbol: "USDC",
+                    decimals: 6,
+                },
+                {
+                    address: "0x000100000101C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    symbol: "WETH",
+                    decimals: 18,
+                },
+            ],
+        },
+        {
+            chainId: 137,
+            assets: [
+                {
+                    address: "0x00010000018902791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                    symbol: "USDC",
+                    decimals: 6,
+                },
+            ],
+        },
+    ];
 
     let service: TestAssetDiscoveryService;
     let fetchMock: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
-        fetchMock = vi.fn().mockResolvedValue(mockResult);
+        fetchMock = vi.fn().mockResolvedValue(mockNetworks);
         service = new TestAssetDiscoveryService(
             {
                 providerId,
@@ -95,7 +88,7 @@ describe("BaseAssetDiscoveryService", () => {
             await service.getSupportedAssets();
 
             expect(fetchMock).toHaveBeenCalledTimes(1);
-            expect(fetchMock).toHaveBeenCalledWith(10_000);
+            expect(fetchMock).toHaveBeenCalledWith();
         });
 
         it("should return cached result on subsequent calls (cache hit)", async () => {
@@ -124,8 +117,8 @@ describe("BaseAssetDiscoveryService", () => {
 
     describe("prefetch", () => {
         it("should start fetching immediately without awaiting", () => {
-            let resolvePromise: (value: AssetDiscoveryResult) => void;
-            const delayedPromise = new Promise<AssetDiscoveryResult>((resolve) => {
+            let resolvePromise: (value: NetworkAssets[]) => void;
+            const delayedPromise = new Promise<NetworkAssets[]>((resolve) => {
                 resolvePromise = resolve;
             });
             fetchMock.mockReturnValueOnce(delayedPromise);
@@ -135,7 +128,7 @@ describe("BaseAssetDiscoveryService", () => {
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
             // Resolve to avoid dangling promise
-            resolvePromise!(mockResult);
+            resolvePromise!(mockNetworks);
         });
 
         it("should be a no-op when cache is already populated", async () => {
@@ -147,8 +140,8 @@ describe("BaseAssetDiscoveryService", () => {
         });
 
         it("should be a no-op when a fetch is already in flight", () => {
-            let resolvePromise: (value: AssetDiscoveryResult) => void;
-            const delayedPromise = new Promise<AssetDiscoveryResult>((resolve) => {
+            let resolvePromise: (value: NetworkAssets[]) => void;
+            const delayedPromise = new Promise<NetworkAssets[]>((resolve) => {
                 resolvePromise = resolve;
             });
             fetchMock.mockReturnValueOnce(delayedPromise);
@@ -159,18 +152,18 @@ describe("BaseAssetDiscoveryService", () => {
 
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
-            resolvePromise!(mockResult);
+            resolvePromise!(mockNetworks);
         });
 
         it("should populate cache so subsequent getSupportedAssets is instant", async () => {
-            let resolvePromise: (value: AssetDiscoveryResult) => void;
-            const delayedPromise = new Promise<AssetDiscoveryResult>((resolve) => {
+            let resolvePromise: (value: NetworkAssets[]) => void;
+            const delayedPromise = new Promise<NetworkAssets[]>((resolve) => {
                 resolvePromise = resolve;
             });
             fetchMock.mockReturnValueOnce(delayedPromise);
 
             service.prefetch();
-            resolvePromise!(mockResult);
+            resolvePromise!(mockNetworks);
 
             // Give the promise microtask a chance to settle
             await new Promise((r) => setTimeout(r, 0));
@@ -188,7 +181,7 @@ describe("BaseAssetDiscoveryService", () => {
             // Wait for the rejection to settle
             await new Promise((r) => setTimeout(r, 0));
 
-            fetchMock.mockResolvedValueOnce(mockResult);
+            fetchMock.mockResolvedValueOnce(mockNetworks);
 
             const result = await service.getSupportedAssets();
             expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -235,8 +228,8 @@ describe("BaseAssetDiscoveryService", () => {
 
     describe("in-flight request deduplication", () => {
         it("should dedupe concurrent calls to a single fetch", async () => {
-            let resolvePromise: (value: AssetDiscoveryResult) => void;
-            const delayedPromise = new Promise<AssetDiscoveryResult>((resolve) => {
+            let resolvePromise: (value: NetworkAssets[]) => void;
+            const delayedPromise = new Promise<NetworkAssets[]>((resolve) => {
                 resolvePromise = resolve;
             });
 
@@ -247,7 +240,7 @@ describe("BaseAssetDiscoveryService", () => {
             const promise2 = service.getSupportedAssets();
 
             // Resolve the delayed promise
-            resolvePromise!(mockResult);
+            resolvePromise!(mockNetworks);
 
             const [result1, result2] = await Promise.all([promise1, promise2]);
 
@@ -265,7 +258,7 @@ describe("BaseAssetDiscoveryService", () => {
             await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
 
             // Second call should attempt a new fetch
-            fetchMock.mockResolvedValueOnce(mockResult);
+            fetchMock.mockResolvedValueOnce(mockNetworks);
 
             const result = await service.getSupportedAssets();
 
@@ -274,8 +267,8 @@ describe("BaseAssetDiscoveryService", () => {
         });
 
         it("should apply different chainIds filters to same deduped result", async () => {
-            let resolvePromise: (value: AssetDiscoveryResult) => void;
-            const delayedPromise = new Promise<AssetDiscoveryResult>((resolve) => {
+            let resolvePromise: (value: NetworkAssets[]) => void;
+            const delayedPromise = new Promise<NetworkAssets[]>((resolve) => {
                 resolvePromise = resolve;
             });
 
@@ -284,7 +277,7 @@ describe("BaseAssetDiscoveryService", () => {
             const promise1 = service.getSupportedAssets({ chainIds: [1] });
             const promise2 = service.getSupportedAssets({ chainIds: [137] });
 
-            resolvePromise!(mockResult);
+            resolvePromise!(mockNetworks);
 
             const [result1, result2] = await Promise.all([promise1, promise2]);
 

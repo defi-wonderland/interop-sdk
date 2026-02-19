@@ -38,7 +38,7 @@ export interface BaseAssetDiscoveryServiceConfig {
  */
 export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService {
     protected readonly providerId: string;
-    protected readonly headers?: Record<string, string>;
+    protected readonly headers: Record<string, string>;
     protected readonly timeout: number;
 
     private cache: AssetDiscoveryResult | null = null;
@@ -48,7 +48,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
 
     constructor(config: BaseAssetDiscoveryServiceConfig) {
         this.providerId = config.providerId;
-        this.headers = config.headers;
+        this.headers = config.headers ?? {};
         this.timeout = config.timeout ?? BaseAssetDiscoveryService.DEFAULT_TIMEOUT;
     }
 
@@ -56,13 +56,13 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * Fetch assets from the remote source.
      *
      * Called by the base when the cache is cold and no in-flight
-     * request exists.
+     * request exists. The base class handles metadata stamping
+     * (`providerId`) — subclasses only return the data.
      *
-     * @param timeout - Request timeout in milliseconds
-     * @returns The full, unfiltered discovery result
-     * @throws AssetDiscoveryFailure on any fetch or parse error
+     * @returns The list of network assets from the source
+     * @throws AssetDiscoveryFailure on any domain-specific error (e.g. validation)
      */
-    protected abstract fetchAssets(timeout: number): Promise<AssetDiscoveryResult>;
+    protected abstract fetchAssets(): Promise<NetworkAssets[]>;
 
     /**
      * Start fetching assets eagerly (fire-and-forget).
@@ -146,8 +146,12 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
             return this.inFlight;
         }
 
-        const promise = this.fetchAssets(this.timeout)
-            .then((result) => {
+        const promise = this.fetchAssets()
+            .then((networks) => {
+                const result: AssetDiscoveryResult = {
+                    networks,
+                    providerId: this.providerId,
+                };
                 this.cache = result;
                 return result;
             })
