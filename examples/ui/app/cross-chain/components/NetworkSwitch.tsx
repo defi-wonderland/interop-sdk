@@ -5,30 +5,40 @@ import { useIsTestnet, setNetworkAndReload } from '../providers';
 export function NetworkSwitch() {
   const isTestnet = useIsTestnet();
 
-  const handleToggle = () => {
-    setNetworkAndReload(!isTestnet);
-  };
-
   return (
-    <div className='flex items-center gap-2'>
-      <span className='text-sm text-gray-400'>{isTestnet ? 'Testnet' : 'Mainnet'}</span>
+    <div
+      className='relative flex items-center rounded-full bg-surface-secondary p-1'
+      role='radiogroup'
+      aria-label='Network selection'
+    >
+      <div
+        className='absolute top-1 bottom-1 rounded-full bg-accent transition-all duration-200 ease-out'
+        style={{
+          width: 'calc(50% - 4px)',
+          left: isTestnet ? 'calc(50% + 2px)' : '4px',
+        }}
+      />
+
       <button
-        onClick={handleToggle}
-        className={`
-          relative inline-flex h-6 w-11 items-center rounded-full
-          transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-          ${isTestnet ? 'bg-blue-600' : 'bg-gray-600'}
-        `}
-        role='switch'
-        aria-checked={isTestnet}
-        aria-label='Toggle between testnet and mainnet'
+        role='radio'
+        aria-checked={!isTestnet}
+        onClick={() => isTestnet && setNetworkAndReload(false)}
+        className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+          !isTestnet ? 'text-white' : 'text-text-secondary hover:text-text-primary'
+        }`}
       >
-        <span
-          className={`
-            inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-            ${isTestnet ? 'translate-x-6' : 'translate-x-1'}
-          `}
-        />
+        Mainnet
+      </button>
+
+      <button
+        role='radio'
+        aria-checked={isTestnet}
+        onClick={() => !isTestnet && setNetworkAndReload(true)}
+        className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+          isTestnet ? 'text-white' : 'text-text-secondary hover:text-text-primary'
+        }`}
+      >
+        Testnet
       </button>
     </div>
   );

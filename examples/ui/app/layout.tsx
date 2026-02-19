@@ -53,14 +53,21 @@ export const metadata: Metadata = {
   },
 };
 
+const getThemeFromLocalStorageScript = `try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang='en' data-theme='dark'>
+    <html lang='en' data-theme='dark' suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: getThemeFromLocalStorageScript,
+          }}
+        />
         <link rel='icon' href='/favicon.svg' type='image/svg+xml' sizes='any' />
         <link rel='icon' href='/favicon.ico' sizes='64x64' />
       </head>
