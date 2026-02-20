@@ -1,7 +1,7 @@
 'use client';
 
 import { NOT_AVAILABLE } from '../constants';
-import { useTokenConfig } from '../hooks/useNetworkConfig';
+import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { STEP, WALLET_ACTION, type BridgeState } from '../types/execution';
 import { formatQuoteData } from '../utils/quoteFormatter';
 import { Tooltip } from './Tooltip';
@@ -49,6 +49,9 @@ export function QuoteCard({
   onExecute,
 }: QuoteCardProps) {
   const tokenConfig = useTokenConfig();
+  const { getChain } = useChainConfig();
+  const inputChainName = getChain(inputChainId)?.name ?? `Chain ${inputChainId}`;
+  const outputChainName = getChain(outputChainId)?.name ?? `Chain ${outputChainId}`;
   const formatted = formatQuoteData(
     quote,
     inputTokenAddress,
@@ -243,10 +246,15 @@ export function QuoteCard({
           </div>
         </div>
 
-        {/* Bottom: Protocol avatar + name (smaller, horizontal) */}
-        <div className='flex items-center gap-2 pt-2 border-t border-border/50'>
-          <ProtocolAvatar providerName={formatted.providerDisplayName} size='sm' />
-          <span className='text-xs font-medium text-text-secondary'>{formatted.providerDisplayName}</span>
+        {/* Bottom: Protocol + route */}
+        <div className='flex items-center justify-between pt-2 border-t border-border/50'>
+          <div className='flex items-center gap-2'>
+            <ProtocolAvatar providerName={formatted.providerDisplayName} size='sm' />
+            <span className='text-xs font-medium text-text-secondary'>{formatted.providerDisplayName}</span>
+          </div>
+          <span className='text-xs text-text-tertiary'>
+            {inputChainName} → {outputChainName}
+          </span>
         </div>
       </button>
 
