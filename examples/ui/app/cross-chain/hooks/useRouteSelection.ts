@@ -10,30 +10,77 @@ function isAcrossWhitelisted(token: UITokenInfo): boolean {
   return !token.providers.includes('across') || ACROSS_WHITELISTED_SYMBOLS.has(token.symbol);
 }
 
-function filterTokens(
-  allTokens: readonly string[],
+/** All whitelisted tokens on a chain (for the input dropdown). */
+function availableTokens(addresses: readonly string[], tokenInfo: Record<string, UITokenInfo>): string[] {
+  return addresses.filter((addr) => {
+    const meta = tokenInfo[addr];
+    return !meta || isAcrossWhitelisted(meta);
+  });
+}
+
+/** Tokens reachable from the selected input via a shared provider (for the output dropdown). */
+function compatibleTokens(
+  addresses: readonly string[],
   tokenInfo: Record<string, UITokenInfo>,
-  requiredProviders?: string[],
-  inputSymbol?: string,
+  providers: string[],
+  inputSymbol: string | undefined,
 ): string[] {
-  return allTokens.filter((a) => {
-    const token = tokenInfo[a];
-    if (!token) return !requiredProviders;
-    if (requiredProviders && !token.providers.some((p) => requiredProviders.includes(p))) return false;
-    if (!isAcrossWhitelisted(token)) return false;
+  return addresses.filter((addr) => {
+    const meta = tokenInfo[addr];
+    if (!meta || !isAcrossWhitelisted(meta)) return false;
 
-    if (inputSymbol && requiredProviders) {
-      const sharedProviders = token.providers.filter((p) => requiredProviders.includes(p));
-      const onlyAcross = sharedProviders.length === 1 && sharedProviders[0] === 'across';
-      if (onlyAcross && token.symbol !== inputSymbol) return false;
-    }
+    const shared = meta.providers.filter((p) => providers.includes(p));
+    if (shared.length === 0) return false;
 
-    return true;
+    // Across can only bridge same-symbol (USDC→USDC), not swap (USDC→DAI)
+    const onlyViaAcross = shared.length === 1 && shared[0] === 'across';
+    return !(onlyViaAcross && meta.symbol !== inputSymbol);
   });
 }
 
 function pickFirst(tokens: string[], current: string): string {
   return tokens.includes(current) ? current : (tokens[0] ?? '');
+}
+
+/** If the current output chain has no compatible tokens for the input, switches to one that does. */
+function resolveOutputForInput(
+  inputChainId: number,
+  currentOutputChainId: number,
+  providers: string[],
+  inputSymbol: string | undefined,
+  currentOutputToken: string,
+  byChain: Record<number, readonly string[]>,
+  tokenInfo: Record<number, Record<string, UITokenInfo>>,
+): { outputChainId: number; outputToken: string } {
+  // Current output chain supports this input — keep it
+  const currentCompatible = compatibleTokens(
+    byChain[currentOutputChainId] || [],
+    tokenInfo[currentOutputChainId] || {},
+    providers,
+    inputSymbol,
+  );
+  if (currentCompatible.length > 0) {
+    return { outputChainId: currentOutputChainId, outputToken: pickFirst(currentCompatible, currentOutputToken) };
+  }
+
+  // Current chain has 0 compatible tokens — find the first chain that does
+  const alternativeChainId = Object.keys(byChain)
+    .map(Number)
+    .find((id) => {
+      if (id === inputChainId) return false;
+      return compatibleTokens(byChain[id] || [], tokenInfo[id] || {}, providers, inputSymbol).length > 0;
+    });
+  if (alternativeChainId === undefined) {
+    return { outputChainId: currentOutputChainId, outputToken: '' };
+  }
+
+  const alternativeTokens = compatibleTokens(
+    byChain[alternativeChainId] || [],
+    tokenInfo[alternativeChainId] || {},
+    providers,
+    inputSymbol,
+  );
+  return { outputChainId: alternativeChainId, outputToken: pickFirst(alternativeTokens, currentOutputToken) };
 }
 
 /**
@@ -55,7 +102,7 @@ export function useRouteSelection(defaultInputChainId: number, defaultOutputChai
   const inputTokens = useMemo(() => {
     const tokens = byChain[selection.inputChainId] || [];
     const info = tokenInfo[selection.inputChainId] || {};
-    return filterTokens(tokens, info);
+    return availableTokens(tokens, info);
   }, [byChain, tokenInfo, selection.inputChainId]);
 
   // Resolve effective input token (handles initial load / discovery)
@@ -67,7 +114,7 @@ export function useRouteSelection(defaultInputChainId: number, defaultOutputChai
     const providers = meta?.providers ?? [];
     const tokens = byChain[selection.outputChainId] || [];
     const info = tokenInfo[selection.outputChainId] || {};
-    return filterTokens(tokens, info, providers, meta?.symbol);
+    return compatibleTokens(tokens, info, providers, meta?.symbol);
   }, [byChain, tokenInfo, selection.inputChainId, inputToken, selection.outputChainId]);
 
   // Resolve effective output token
@@ -76,17 +123,18 @@ export function useRouteSelection(defaultInputChainId: number, defaultOutputChai
   const setInputChain = useCallback(
     (chainId: number) => {
       setSelection((prev) => {
-        const tokens = byChain[chainId] || [];
-        const info = tokenInfo[chainId] || {};
-        const newInput = pickFirst(filterTokens(tokens, info), prev.inputToken);
-
+        const newInput = pickFirst(availableTokens(byChain[chainId] || [], tokenInfo[chainId] || {}), prev.inputToken);
         const meta = tokenInfo[chainId]?.[newInput];
-        const providers = meta?.providers ?? [];
-        const outTokens = byChain[prev.outputChainId] || [];
-        const outInfo = tokenInfo[prev.outputChainId] || {};
-        const newOutput = pickFirst(filterTokens(outTokens, outInfo, providers, meta?.symbol), prev.outputToken);
-
-        return { ...prev, inputChainId: chainId, inputToken: newInput, outputToken: newOutput };
+        const { outputChainId, outputToken } = resolveOutputForInput(
+          chainId,
+          prev.outputChainId,
+          meta?.providers ?? [],
+          meta?.symbol,
+          prev.outputToken,
+          byChain,
+          tokenInfo,
+        );
+        return { ...prev, inputChainId: chainId, inputToken: newInput, outputChainId, outputToken };
       });
     },
     [byChain, tokenInfo],
@@ -99,7 +147,7 @@ export function useRouteSelection(defaultInputChainId: number, defaultOutputChai
         const providers = meta?.providers ?? [];
         const tokens = byChain[chainId] || [];
         const info = tokenInfo[chainId] || {};
-        const newOutput = pickFirst(filterTokens(tokens, info, providers, meta?.symbol), prev.outputToken);
+        const newOutput = pickFirst(compatibleTokens(tokens, info, providers, meta?.symbol), prev.outputToken);
 
         return { ...prev, outputChainId: chainId, outputToken: newOutput };
       });
@@ -111,12 +159,16 @@ export function useRouteSelection(defaultInputChainId: number, defaultOutputChai
     (address: string) => {
       setSelection((prev) => {
         const meta = tokenInfo[prev.inputChainId]?.[address];
-        const providers = meta?.providers ?? [];
-        const tokens = byChain[prev.outputChainId] || [];
-        const info = tokenInfo[prev.outputChainId] || {};
-        const newOutput = pickFirst(filterTokens(tokens, info, providers, meta?.symbol), prev.outputToken);
-
-        return { ...prev, inputToken: address, outputToken: newOutput };
+        const { outputChainId, outputToken } = resolveOutputForInput(
+          prev.inputChainId,
+          prev.outputChainId,
+          meta?.providers ?? [],
+          meta?.symbol,
+          prev.outputToken,
+          byChain,
+          tokenInfo,
+        );
+        return { ...prev, inputToken: address, outputChainId, outputToken };
       });
     },
     [byChain, tokenInfo],
