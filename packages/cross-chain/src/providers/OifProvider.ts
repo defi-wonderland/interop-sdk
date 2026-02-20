@@ -78,6 +78,14 @@ export class OifProvider extends CrossChainProvider {
     }
 
     /**
+     * HTTP request timeout per attempt in milliseconds (5 seconds).
+     * If the solver doesn't respond within this window the attempt is
+     * cancelled and retried (up to MAX_SUBMIT_RETRIES times).
+     */
+    private static readonly SUBMIT_TIMEOUT_MS = 5000;
+    private static readonly MAX_SUBMIT_RETRIES = 3;
+
+    /**
      * HTTP request timeout in milliseconds (30 seconds)
      */
     private static readonly REQUEST_TIMEOUT_MS = 30000;
@@ -201,26 +209,26 @@ export class OifProvider extends CrossChainProvider {
         const adaptedRequest = adaptPostOrderRequest(request, quote);
 
         try {
-            const response = await axios.post<PostOrderResponse>(
-                `${this.url}/v1/orders`,
-                adaptedRequest,
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        ...this.headers,
-                    },
-                    timeout: OifProvider.REQUEST_TIMEOUT_MS,
-                },
-            );
+            // Retry up to 3 times with 5s timeout per attempt
+            let lastErr: unknown;
+            for (let i = 0; i < OifProvider.MAX_SUBMIT_RETRIES; i++) {
+                try {
+                    const response = await axios.post<PostOrderResponse>(
+                        `${this.url}/v1/orders`,
+                        adaptedRequest,
+                        {
+                            headers: { "Content-Type": "application/json", ...this.headers },
+                            timeout: OifProvider.SUBMIT_TIMEOUT_MS,
+                        },
+                    );
 
-            if (response.status !== 200) {
-                throw new ProviderExecuteFailure(
-                    "Failed to submit order to solver",
-                    `Unexpected status code: ${response.status}. SolverId: ${this.solverId}, QuoteId: ${request.quoteId}`,
-                );
+                    return response.data;
+                } catch (e) {
+                    lastErr = e;
+                    if (e instanceof AxiosError && e.response && e.response.status < 500) break;
+                }
             }
-
-            return response.data;
+            throw lastErr;
         } catch (error) {
             if (error instanceof AxiosError) {
                 const errorData = error.response?.data as { message?: string };

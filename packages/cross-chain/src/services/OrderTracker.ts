@@ -4,6 +4,8 @@ import { Address, Hex } from "viem";
 import {
     FillWatcher,
     getChainById,
+    OpenedIntent,
+    OpenedIntentNotFoundError,
     OpenedIntentParser,
     OrderFailureReason,
     OrderStatus,
@@ -198,7 +200,26 @@ export class OrderTracker extends EventEmitter {
             return;
         }
 
-        const openedIntent = await this.openedIntentParser.getOpenedIntent(txHash, originChainId);
+        let openedIntent: OpenedIntent;
+        try {
+            openedIntent = await this.openedIntentParser.getOpenedIntent(txHash, originChainId);
+        } catch (error) {
+            if (error instanceof OpenedIntentNotFoundError) {
+                // Transaction succeeded (not reverted) but the expected deposit event
+                // was not found — likely an alternative bridge route (e.g. CCTP).
+                yield {
+                    type: OrderTrackerYieldType.Update,
+                    update: this.createUpdate({
+                        status: OrderStatus.Finalized,
+                        openTxHash: txHash,
+                        message:
+                            "Bridge transaction confirmed. Funds may take a few minutes to arrive.",
+                    }),
+                };
+                return;
+            }
+            throw error;
+        }
 
         lastUpdate = this.createUpdate({
             status: OrderStatus.Pending,

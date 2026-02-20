@@ -25,6 +25,7 @@ interface UseOrderExecutionReturn {
     destinationChainId: number,
   ) => Promise<ExecuteResult>;
   reset: () => void;
+  abortTracking: () => void;
   isPendingWallet: boolean;
   isTracking: boolean;
   isComplete: boolean;
@@ -156,18 +157,21 @@ export function useOrderExecution(): UseOrderExecutionReturn {
     [isConnected, address, walletChainId, config, switchChainAsync, updateBalances],
   );
 
+  const abortTracking = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
   const reset = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+    abortTracking();
     expectedWalletChainIdRef.current = null;
     setState(INITIAL_STATE);
-  }, []);
+  }, [abortTracking]);
 
   return {
     state,
     execute,
     reset,
+    abortTracking,
     isPendingWallet,
     isTracking,
     isComplete,

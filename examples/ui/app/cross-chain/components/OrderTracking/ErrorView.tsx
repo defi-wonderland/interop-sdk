@@ -73,7 +73,7 @@ export function ErrorView({ state, onReset }: ErrorViewProps) {
           onClick={onReset}
           className={`w-full py-3 px-4 text-sm font-medium rounded-lg border ${buttonBorder} ${textColor} transition-colors`}
         >
-          {isTimeout ? 'Check Status' : 'Try Again'}
+          Reset and Try Again
         </button>
       )}
     </div>

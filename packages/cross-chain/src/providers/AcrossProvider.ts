@@ -17,6 +17,7 @@ import { ZodError } from "zod";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
+    ACROSS_TESTNET_TOKENS,
     ACROSS_UNSUPPORTED_CHAIN_IDS,
     ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
     AcrossConfigs,
@@ -32,10 +33,10 @@ import {
     AcrossToken,
     acrossTokensResponseSchema,
     APIBasedFillWatcherConfig,
+    AssetDiscoveryConfig,
     AssetInfo,
     bytes32ToAddress,
     CrossChainProvider,
-    CustomApiAssetDiscoveryConfig,
     CustomEventOpenedIntentParserConfig,
     EventBasedFillWatcherConfig,
     ExecutableQuote,
@@ -654,7 +655,14 @@ export class AcrossProvider extends CrossChainProvider {
         };
     }
 
-    override getDiscoveryConfig(): CustomApiAssetDiscoveryConfig {
+    override getDiscoveryConfig(): AssetDiscoveryConfig {
+        if (this.isTestnet) {
+            return {
+                type: "static",
+                config: { networks: ACROSS_TESTNET_TOKENS },
+            };
+        }
+
         return {
             type: "custom-api",
             config: {

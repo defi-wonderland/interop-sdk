@@ -1,11 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { CustomApiAssetDiscoveryConfig, NetworkAssets } from "../../src/internal.js";
 import {
     AcrossProvider,
     acrossTokensResponseSchema,
     AssetDiscoveryFactory,
     CustomApiAssetDiscoveryService,
 } from "../../src/internal.js";
+
+/** Helper to get the custom-api config from a mainnet AcrossProvider */
+function getCustomApiConfig(provider: AcrossProvider): CustomApiAssetDiscoveryConfig["config"] {
+    const config = provider.getDiscoveryConfig();
+    if (config.type !== "custom-api") {
+        throw new Error(`Expected custom-api config, got ${config.type}`);
+    }
+    return config.config;
+}
 
 describe("AcrossProvider.discovery", () => {
     describe("getDiscoveryConfig", () => {
@@ -25,12 +35,12 @@ describe("AcrossProvider.discovery", () => {
                 isTestnet: false,
             });
 
-            const config = provider.getDiscoveryConfig();
+            const apiConfig = getCustomApiConfig(provider);
 
-            expect(config.config.assetsEndpoint).toBe("https://app.across.to/api/swap/tokens");
+            expect(apiConfig.assetsEndpoint).toBe("https://app.across.to/api/swap/tokens");
         });
 
-        it("should use correct endpoint based on testnet apiUrl", () => {
+        it("should use static config for testnet", () => {
             const provider = new AcrossProvider({
                 providerId: "test-across",
                 isTestnet: true,
@@ -38,7 +48,8 @@ describe("AcrossProvider.discovery", () => {
 
             const config = provider.getDiscoveryConfig();
 
-            expect(config.config.assetsEndpoint).toBe("https://testnet.across.to/api/swap/tokens");
+            expect(config.type).toBe("static");
+            expect(config.config).toHaveProperty("networks");
         });
 
         it("should use custom apiUrl when provided", () => {
@@ -48,9 +59,9 @@ describe("AcrossProvider.discovery", () => {
                 apiUrl: customUrl,
             });
 
-            const config = provider.getDiscoveryConfig();
+            const apiConfig = getCustomApiConfig(provider);
 
-            expect(config.config.assetsEndpoint).toBe(`${customUrl}/swap/tokens`);
+            expect(apiConfig.assetsEndpoint).toBe(`${customUrl}/swap/tokens`);
         });
 
         it("should not include auth headers (Across API is public)", () => {
@@ -58,16 +69,16 @@ describe("AcrossProvider.discovery", () => {
                 providerId: "test-across",
             });
 
-            const config = provider.getDiscoveryConfig();
+            const apiConfig = getCustomApiConfig(provider);
 
-            expect(config.config.headers).toBeUndefined();
+            expect(apiConfig.headers).toBeUndefined();
         });
     });
 
     describe("parseTokensResponse", () => {
         // Access the private static method via the config's parseResponse
         const provider = new AcrossProvider({ providerId: "test" });
-        const parseResponse = provider.getDiscoveryConfig().config.parseResponse;
+        const { parseResponse } = getCustomApiConfig(provider);
 
         it("should correctly group tokens by chain", () => {
             const mockTokens = [
@@ -94,14 +105,14 @@ describe("AcrossProvider.discovery", () => {
                 },
             ];
 
-            const result = parseResponse(mockTokens);
+            const result: NetworkAssets[] = parseResponse(mockTokens);
 
             expect(result).toHaveLength(2);
 
-            const ethereum = result.find((n) => n.chainId === 1);
+            const ethereum = result.find((n: NetworkAssets) => n.chainId === 1);
             expect(ethereum?.assets).toHaveLength(2);
 
-            const polygon = result.find((n) => n.chainId === 137);
+            const polygon = result.find((n: NetworkAssets) => n.chainId === 137);
             expect(polygon?.assets).toHaveLength(1);
         });
 
@@ -115,7 +126,7 @@ describe("AcrossProvider.discovery", () => {
                 },
             ];
 
-            const result = parseResponse(mockTokens);
+            const result: NetworkAssets[] = parseResponse(mockTokens);
             const asset = result[0]?.assets[0];
 
             // EIP-7930 address format should include chain info
@@ -125,7 +136,7 @@ describe("AcrossProvider.discovery", () => {
         });
 
         it("should handle empty array", () => {
-            const result = parseResponse([]);
+            const result: NetworkAssets[] = parseResponse([]);
 
             expect(result).toHaveLength(0);
         });
@@ -146,8 +157,8 @@ describe("AcrossProvider.discovery", () => {
                 },
             ];
 
-            const result = parseResponse(mockTokens);
-            const ethereum = result.find((n) => n.chainId === 1);
+            const result: NetworkAssets[] = parseResponse(mockTokens);
+            const ethereum = result.find((n: NetworkAssets) => n.chainId === 1);
 
             // Should only have one asset (deduplicated)
             expect(ethereum?.assets).toHaveLength(1);
@@ -165,7 +176,7 @@ describe("AcrossProvider.discovery", () => {
                 },
             ];
 
-            const result = parseResponse(mockTokens);
+            const result: NetworkAssets[] = parseResponse(mockTokens);
 
             expect(result).toHaveLength(1);
             expect(result[0]?.assets).toHaveLength(1);
@@ -182,7 +193,7 @@ describe("AcrossProvider.discovery", () => {
                 },
             ];
 
-            const result = parseResponse(mockTokens);
+            const result: NetworkAssets[] = parseResponse(mockTokens);
 
             expect(result).toHaveLength(1);
             expect(result[0]?.assets[0]?.symbol).toBe("USDC");

@@ -209,7 +209,7 @@ describe("OifProvider", () => {
                 response: { data: { message: "Solver rejected order" } },
             });
 
-            vi.mocked(axios.post).mockRejectedValueOnce(axiosError);
+            vi.mocked(axios.post).mockRejectedValue(axiosError);
 
             await expect(provider.submitSignedOrder(quote, mockSignature)).rejects.toThrow(
                 ProviderExecuteFailure,

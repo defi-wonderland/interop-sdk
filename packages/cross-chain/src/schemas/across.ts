@@ -50,8 +50,8 @@ export const AcrossSwapTxSchema = z.object({
     to: HexAddressSchema,
     data: z.string().refine((data) => isHex(data), { message: "Invalid hex data" }),
     gas: z.string().optional().default("0"),
-    maxFeePerGas: z.string(),
-    maxPriorityFeePerGas: z.string(),
+    maxFeePerGas: z.string().optional(),
+    maxPriorityFeePerGas: z.string().optional(),
 });
 
 export const AcrossGetQuoteResponseSchema = z.object({
