@@ -1,9 +1,9 @@
+import { isNativeAddress, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { crossChainExecutor } from '../sdk';
 import { handleTokenApproval } from './approval';
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
-import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address, Hex, PublicClient } from 'viem';
 import { BridgeState, ChainContext } from '~/cross-chain/hooks';
 
@@ -31,7 +31,9 @@ export const submitOifSignableOrder = async ({
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
   // Permit2 approval for escrow orders (3009 doesn't need approval)
-  if (quote.order.type === 'oif-escrow-v0') {
+  const isEscrowOrder = quote.order.type === 'oif-escrow-v0';
+  const isNativeInput = isNativeAddress(inputTokenAddress, 'eip155');
+  if (isEscrowOrder && !isNativeInput) {
     const PERMIT2 = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as Address;
     await handleTokenApproval(
       publicClient,
@@ -73,16 +75,22 @@ export const executeDirectTransaction = async ({
     throw new Error('Invalid quote: missing transaction data');
   }
 
-  await handleTokenApproval(
-    publicClient,
-    walletClient,
-    ownerAddress,
-    inputTokenAddress,
-    order.payload.to,
-    inputAmount,
-    chainContext,
-    onStateChange,
-  );
+  const isNativeInput = isNativeAddress(inputTokenAddress, 'eip155');
+
+  if (!isNativeInput) {
+    await handleTokenApproval(
+      publicClient,
+      walletClient,
+      ownerAddress,
+      inputTokenAddress,
+      order.payload.to,
+      inputAmount,
+      chainContext,
+      onStateChange,
+    );
+  }
+
+  const value = isNativeInput ? inputAmount : undefined;
 
   const txHash = await submitBridgeTransaction(
     publicClient,
@@ -91,6 +99,7 @@ export const executeDirectTransaction = async ({
     order.payload.data,
     chainContext,
     onStateChange,
+    value,
   );
 
   return { txHash };
