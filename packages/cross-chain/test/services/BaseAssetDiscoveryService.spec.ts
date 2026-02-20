@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     AssetDiscoveryFailure,
-    AssetDiscoveryResult,
     BaseAssetDiscoveryService,
     BaseAssetDiscoveryServiceConfig,
+    NetworkAssets,
 } from "../../src/internal.js";
 
 /**
@@ -14,75 +14,57 @@ import {
  * Allows tests to control what fetchAssets returns.
  */
 class TestAssetDiscoveryService extends BaseAssetDiscoveryService {
-    private fetchFn: (timeout: number) => Promise<AssetDiscoveryResult>;
+    private fetchFn: () => Promise<NetworkAssets[]>;
 
-    constructor(
-        config: BaseAssetDiscoveryServiceConfig,
-        fetchFn: (timeout: number) => Promise<AssetDiscoveryResult>,
-    ) {
+    constructor(config: BaseAssetDiscoveryServiceConfig, fetchFn: () => Promise<NetworkAssets[]>) {
         super(config);
         this.fetchFn = fetchFn;
     }
 
-    protected async fetchAssets(timeout: number): Promise<AssetDiscoveryResult> {
-        return this.fetchFn(timeout);
-    }
-
-    // Expose wrapError for testing
-    public testWrapError(
-        error: unknown,
-        context: string,
-        url: string,
-        timeout: number = 30000,
-    ): AssetDiscoveryFailure {
-        return this.wrapError(error, context, url, timeout);
+    protected async fetchAssets(): Promise<NetworkAssets[]> {
+        return this.fetchFn();
     }
 }
 
 describe("BaseAssetDiscoveryService", () => {
     const providerId = "test-provider";
 
-    const mockResult: AssetDiscoveryResult = {
-        networks: [
-            {
-                chainId: 1,
-                assets: [
-                    {
-                        address: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-                        symbol: "USDC",
-                        decimals: 6,
-                    },
-                    {
-                        address: "0x000100000101C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-                        symbol: "WETH",
-                        decimals: 18,
-                    },
-                ],
-            },
-            {
-                chainId: 137,
-                assets: [
-                    {
-                        address: "0x00010000018902791Bca1f2de4661ED88A30C99A7a9449Aa84174",
-                        symbol: "USDC",
-                        decimals: 6,
-                    },
-                ],
-            },
-        ],
-        fetchedAt: Date.now(),
-        providerId,
-    };
+    const mockNetworks: NetworkAssets[] = [
+        {
+            chainId: 1,
+            assets: [
+                {
+                    address: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    symbol: "USDC",
+                    decimals: 6,
+                },
+                {
+                    address: "0x000100000101C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    symbol: "WETH",
+                    decimals: 18,
+                },
+            ],
+        },
+        {
+            chainId: 137,
+            assets: [
+                {
+                    address: "0x00010000018902791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                    symbol: "USDC",
+                    decimals: 6,
+                },
+            ],
+        },
+    ];
 
     let service: TestAssetDiscoveryService;
     let fetchMock: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
-        fetchMock = vi.fn().mockResolvedValue(mockResult);
+        fetchMock = vi.fn().mockResolvedValue(mockNetworks);
         service = new TestAssetDiscoveryService(
             {
                 providerId,
-                cacheTtl: 60_000,
                 timeout: 10_000,
             },
             fetchMock,
@@ -90,18 +72,10 @@ describe("BaseAssetDiscoveryService", () => {
     });
 
     afterEach(() => {
-        service.clearCache();
         vi.clearAllMocks();
     });
 
     describe("default config values", () => {
-        it("should use default cacheTtl when not provided", () => {
-            const defaultService = new TestAssetDiscoveryService({ providerId }, fetchMock);
-            expect(BaseAssetDiscoveryService.DEFAULT_CACHE_TTL).toBe(Infinity);
-            // We can't directly access private fields, but we can verify behavior
-            expect(defaultService).toBeDefined();
-        });
-
         it("should use default timeout when not provided", () => {
             const defaultService = new TestAssetDiscoveryService({ providerId }, fetchMock);
             expect(BaseAssetDiscoveryService.DEFAULT_TIMEOUT).toBe(30_000);
@@ -109,12 +83,12 @@ describe("BaseAssetDiscoveryService", () => {
         });
     });
 
-    describe("caching behavior", () => {
+    describe("permanent caching", () => {
         it("should fetch on first call (cache miss)", async () => {
             await service.getSupportedAssets();
 
             expect(fetchMock).toHaveBeenCalledTimes(1);
-            expect(fetchMock).toHaveBeenCalledWith(10_000); // configured timeout
+            expect(fetchMock).toHaveBeenCalledWith();
         });
 
         it("should return cached result on subsequent calls (cache hit)", async () => {
@@ -125,45 +99,93 @@ describe("BaseAssetDiscoveryService", () => {
             expect(fetchMock).toHaveBeenCalledTimes(1);
         });
 
-        it("should fetch again after cache expires", async () => {
+        it("should never re-fetch once cached", async () => {
             vi.useFakeTimers();
 
             await service.getSupportedAssets();
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
-            // Advance time past cache TTL
-            vi.advanceTimersByTime(60_001);
+            // Advance time by a very large amount — cache should still hold
+            vi.advanceTimersByTime(999_999_999);
 
             await service.getSupportedAssets();
-            expect(fetchMock).toHaveBeenCalledTimes(2);
+            expect(fetchMock).toHaveBeenCalledTimes(1);
 
             vi.useRealTimers();
         });
-
-        it("should bypass cache when forceRefresh is true", async () => {
-            await service.getSupportedAssets();
-            expect(fetchMock).toHaveBeenCalledTimes(1);
-
-            await service.getSupportedAssets({ forceRefresh: true });
-            expect(fetchMock).toHaveBeenCalledTimes(2);
-        });
-
-        it("should use custom timeout from options over config timeout", async () => {
-            await service.getSupportedAssets({ timeout: 5_000 });
-
-            expect(fetchMock).toHaveBeenCalledWith(5_000);
-        });
     });
 
-    describe("clearCache", () => {
-        it("should clear cache and allow fresh fetch", async () => {
+    describe("prefetch", () => {
+        it("should start fetching immediately without awaiting", () => {
+            let resolvePromise: (value: NetworkAssets[]) => void;
+            const delayedPromise = new Promise<NetworkAssets[]>((resolve) => {
+                resolvePromise = resolve;
+            });
+            fetchMock.mockReturnValueOnce(delayedPromise);
+
+            service.prefetch();
+
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+
+            // Resolve to avoid dangling promise
+            resolvePromise!(mockNetworks);
+        });
+
+        it("should be a no-op when cache is already populated", async () => {
             await service.getSupportedAssets();
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
-            service.clearCache();
+            service.prefetch();
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+        });
 
-            await service.getSupportedAssets();
+        it("should be a no-op when a fetch is already in flight", () => {
+            let resolvePromise: (value: NetworkAssets[]) => void;
+            const delayedPromise = new Promise<NetworkAssets[]>((resolve) => {
+                resolvePromise = resolve;
+            });
+            fetchMock.mockReturnValueOnce(delayedPromise);
+
+            service.prefetch();
+            service.prefetch();
+            service.prefetch();
+
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+
+            resolvePromise!(mockNetworks);
+        });
+
+        it("should populate cache so subsequent getSupportedAssets is instant", async () => {
+            let resolvePromise: (value: NetworkAssets[]) => void;
+            const delayedPromise = new Promise<NetworkAssets[]>((resolve) => {
+                resolvePromise = resolve;
+            });
+            fetchMock.mockReturnValueOnce(delayedPromise);
+
+            service.prefetch();
+            resolvePromise!(mockNetworks);
+
+            // Give the promise microtask a chance to settle
+            await new Promise((r) => setTimeout(r, 0));
+
+            const result = await service.getSupportedAssets();
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
+        });
+
+        it("should not prevent retry after prefetch failure", async () => {
+            fetchMock.mockRejectedValueOnce(new Error("Network error"));
+
+            service.prefetch();
+
+            // Wait for the rejection to settle
+            await new Promise((r) => setTimeout(r, 0));
+
+            fetchMock.mockResolvedValueOnce(mockNetworks);
+
+            const result = await service.getSupportedAssets();
             expect(fetchMock).toHaveBeenCalledTimes(2);
+            expect(Object.keys(result.tokensByChain)).toHaveLength(2);
         });
     });
 
@@ -206,8 +228,8 @@ describe("BaseAssetDiscoveryService", () => {
 
     describe("in-flight request deduplication", () => {
         it("should dedupe concurrent calls to a single fetch", async () => {
-            let resolvePromise: (value: AssetDiscoveryResult) => void;
-            const delayedPromise = new Promise<AssetDiscoveryResult>((resolve) => {
+            let resolvePromise: (value: NetworkAssets[]) => void;
+            const delayedPromise = new Promise<NetworkAssets[]>((resolve) => {
                 resolvePromise = resolve;
             });
 
@@ -218,7 +240,7 @@ describe("BaseAssetDiscoveryService", () => {
             const promise2 = service.getSupportedAssets();
 
             // Resolve the delayed promise
-            resolvePromise!(mockResult);
+            resolvePromise!(mockNetworks);
 
             const [result1, result2] = await Promise.all([promise1, promise2]);
 
@@ -230,28 +252,13 @@ describe("BaseAssetDiscoveryService", () => {
             expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
         });
 
-        it("should not dedupe concurrent forceRefresh calls", async () => {
-            fetchMock.mockResolvedValue(mockResult);
-
-            const promise1 = service.getSupportedAssets({ forceRefresh: true });
-            const promise2 = service.getSupportedAssets({ forceRefresh: true });
-
-            const [result1, result2] = await Promise.all([promise1, promise2]);
-
-            // forceRefresh bypasses in-flight dedup, so each call triggers a separate fetch
-            expect(fetchMock).toHaveBeenCalledTimes(2);
-
-            expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
-            expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
-        });
-
         it("should clear in-flight state on failure and allow retry", async () => {
             fetchMock.mockRejectedValueOnce(new Error("Network error"));
 
-            await expect(service.getSupportedAssets()).rejects.toThrow();
+            await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
 
             // Second call should attempt a new fetch
-            fetchMock.mockResolvedValueOnce(mockResult);
+            fetchMock.mockResolvedValueOnce(mockNetworks);
 
             const result = await service.getSupportedAssets();
 
@@ -260,8 +267,8 @@ describe("BaseAssetDiscoveryService", () => {
         });
 
         it("should apply different chainIds filters to same deduped result", async () => {
-            let resolvePromise: (value: AssetDiscoveryResult) => void;
-            const delayedPromise = new Promise<AssetDiscoveryResult>((resolve) => {
+            let resolvePromise: (value: NetworkAssets[]) => void;
+            const delayedPromise = new Promise<NetworkAssets[]>((resolve) => {
                 resolvePromise = resolve;
             });
 
@@ -270,7 +277,7 @@ describe("BaseAssetDiscoveryService", () => {
             const promise1 = service.getSupportedAssets({ chainIds: [1] });
             const promise2 = service.getSupportedAssets({ chainIds: [137] });
 
-            resolvePromise!(mockResult);
+            resolvePromise!(mockNetworks);
 
             const [result1, result2] = await Promise.all([promise1, promise2]);
 
@@ -353,33 +360,38 @@ describe("BaseAssetDiscoveryService", () => {
         });
     });
 
-    describe("wrapError", () => {
-        it("should return existing AssetDiscoveryFailure unchanged", () => {
+    describe("centralized error wrapping (resolveResult safety net)", () => {
+        it("should pass through AssetDiscoveryFailure from fetchAssets unchanged", async () => {
             const original = new AssetDiscoveryFailure("Original error", "details");
+            fetchMock.mockRejectedValueOnce(original);
 
-            const wrapped = service.testWrapError(original, "context", "http://test.url");
-
-            expect(wrapped).toBe(original);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBe(original);
+            }
         });
 
-        it("should wrap timeout errors (ECONNABORTED) with correct timeout value", () => {
-            const axiosError = new AxiosError("timeout", "ECONNABORTED");
-            const customTimeout = 15000;
+        it("should wrap timeout errors (ECONNABORTED) with providerId", async () => {
+            const axiosError = new AxiosError("timeout");
+            axiosError.code = "ECONNABORTED";
+            axiosError.config = { url: "http://test.url" } as never;
+            fetchMock.mockRejectedValueOnce(axiosError);
 
-            const wrapped = service.testWrapError(
-                axiosError,
-                "test API",
-                "http://test.url",
-                customTimeout,
-            );
-
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.message).toMatch(/timed out/);
-            expect(wrapped.details).toMatch(/15000ms/);
-            expect(wrapped.details).toMatch(/http:\/\/test.url/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/timed out/);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/10000ms/);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/http:\/\/test.url/);
+            }
         });
 
-        it("should wrap rate limit errors (429)", () => {
+        it("should wrap rate limit errors (429) with providerId", async () => {
             const axiosError = new AxiosError("rate limited", "ERR_BAD_REQUEST");
             axiosError.response = {
                 status: 429,
@@ -390,14 +402,19 @@ describe("BaseAssetDiscoveryService", () => {
                     ? C
                     : never,
             };
+            fetchMock.mockRejectedValueOnce(axiosError);
 
-            const wrapped = service.testWrapError(axiosError, "test API", "http://test.url");
-
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.message).toMatch(/rate limit/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/rate limit/);
+            }
         });
 
-        it("should extract error message from response data", () => {
+        it("should extract error message from AxiosError response data", async () => {
             const axiosError = new AxiosError("Request failed", "ERR_BAD_REQUEST");
             axiosError.response = {
                 status: 401,
@@ -408,37 +425,67 @@ describe("BaseAssetDiscoveryService", () => {
                     ? C
                     : never,
             };
+            fetchMock.mockRejectedValueOnce(axiosError);
 
-            const wrapped = service.testWrapError(axiosError, "test API", "http://test.url");
-
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.details).toMatch(/Invalid API key/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/Invalid API key/);
+            }
         });
 
-        it("should wrap generic AxiosError without response", () => {
+        it("should wrap generic AxiosError without response", async () => {
             const axiosError = new AxiosError("Network error", "ERR_NETWORK");
+            fetchMock.mockRejectedValueOnce(axiosError);
 
-            const wrapped = service.testWrapError(axiosError, "test API", "http://test.url");
-
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.details).toMatch(/Network error/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/Network error/);
+            }
         });
 
-        it("should wrap non-Axios errors", () => {
-            const genericError = new Error("Something went wrong");
+        it("should wrap non-Axios errors with providerId", async () => {
+            fetchMock.mockRejectedValueOnce(new Error("Something went wrong"));
 
-            const wrapped = service.testWrapError(genericError, "test API", "http://test.url");
-
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.details).toMatch(/Something went wrong/);
-            expect(wrapped.details).toMatch(/http:\/\/test.url/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/Something went wrong/);
+            }
         });
 
-        it("should handle non-Error objects", () => {
-            const wrapped = service.testWrapError("string error", "test API", "http://test.url");
+        it("should handle non-Error objects", async () => {
+            fetchMock.mockRejectedValueOnce("string error");
 
-            expect(wrapped).toBeInstanceOf(AssetDiscoveryFailure);
-            expect(wrapped.details).toMatch(/string error/);
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/string error/);
+            }
+        });
+
+        it("should fall back to 'unknown' URL when AxiosError has no config", async () => {
+            const axiosError = new AxiosError("timeout", "ECONNABORTED");
+            fetchMock.mockRejectedValueOnce(axiosError);
+
+            try {
+                await service.getSupportedAssets();
+                expect.fail("Should have thrown");
+            } catch (error) {
+                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).details).toMatch(/unknown/);
+            }
         });
     });
 });

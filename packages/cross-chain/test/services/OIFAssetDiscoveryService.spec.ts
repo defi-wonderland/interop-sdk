@@ -1,6 +1,6 @@
 import { toChainIdentifier } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AssetDiscoveryFailure, OIFAssetDiscoveryService } from "../../src/internal.js";
 
@@ -50,10 +50,6 @@ describe("OIFAssetDiscoveryService", () => {
         });
     });
 
-    afterEach(() => {
-        service.clearCache();
-    });
-
     describe("getSupportedAssets", () => {
         it("should fetch, transform, and return DiscoveredAssets", async () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
@@ -78,7 +74,7 @@ describe("OIFAssetDiscoveryService", () => {
             expect(Object.keys(result.tokenMetadata)).toHaveLength(3); // 2 on chain 1 + 1 on chain 137
         });
 
-        it("should cache results and bypass cache when forceRefresh is true", async () => {
+        it("should cache results permanently after first fetch", async () => {
             vi.mocked(axios.get).mockResolvedValue({
                 status: 200,
                 data: mockApiResponse,
@@ -92,9 +88,9 @@ describe("OIFAssetDiscoveryService", () => {
             await service.getSupportedAssets();
             expect(axios.get).toHaveBeenCalledTimes(1);
 
-            // Third call with forceRefresh - should fetch again
-            await service.getSupportedAssets({ forceRefresh: true });
-            expect(axios.get).toHaveBeenCalledTimes(2);
+            // Third call - still cached
+            await service.getSupportedAssets();
+            expect(axios.get).toHaveBeenCalledTimes(1);
         });
 
         it("should filter by chainIds when provided", async () => {
@@ -253,8 +249,10 @@ describe("OIFAssetDiscoveryService", () => {
     });
 
     describe("network and API errors", () => {
-        it("should wrap network errors in AssetDiscoveryFailure with context", async () => {
-            const axiosError = new AxiosError("timeout of 30000ms exceeded", "ECONNABORTED");
+        it("should wrap network errors in AssetDiscoveryFailure with providerId", async () => {
+            const axiosError = new AxiosError("timeout of 30000ms exceeded");
+            axiosError.code = "ECONNABORTED";
+            axiosError.config = { url: `${baseUrl}/api/tokens` } as never;
             vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
 
             try {
@@ -262,6 +260,7 @@ describe("OIFAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-solver/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/api.solver.test/);
             }
         });
@@ -284,6 +283,7 @@ describe("OIFAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-solver/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/Invalid API key/);
             }
         });
@@ -315,27 +315,6 @@ describe("OIFAssetDiscoveryService", () => {
 
             // Should only make one API call
             expect(axios.get).toHaveBeenCalledTimes(1);
-
-            // Both results should be equivalent
-            expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
-            expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
-        });
-
-        it("should not dedupe concurrent forceRefresh calls", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
-
-            // Start two concurrent forceRefresh calls
-            const promise1 = service.getSupportedAssets({ forceRefresh: true });
-            const promise2 = service.getSupportedAssets({ forceRefresh: true });
-
-            // Both should resolve successfully
-            const [result1, result2] = await Promise.all([promise1, promise2]);
-
-            // forceRefresh bypasses in-flight dedup, so each call triggers a separate fetch
-            expect(axios.get).toHaveBeenCalledTimes(2);
 
             // Both results should be equivalent
             expect(Object.keys(result1.tokensByChain)).toHaveLength(2);

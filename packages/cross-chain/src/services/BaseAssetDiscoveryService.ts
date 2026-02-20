@@ -20,13 +20,6 @@ export interface BaseAssetDiscoveryServiceConfig {
     /** Optional custom headers for API requests */
     headers?: Record<string, string>;
     /**
-     * Cache TTL in milliseconds.
-     * Asset lists rarely change, so the default is Infinity (cache never expires).
-     * Use `forceRefresh: true` to explicitly refresh when needed.
-     * @default Infinity
-     */
-    cacheTtl?: number;
-    /**
      * Request timeout in milliseconds
      * @default 30000 (30 seconds)
      */
@@ -34,52 +27,54 @@ export interface BaseAssetDiscoveryServiceConfig {
 }
 
 /**
- * Cache entry for asset discovery
- */
-interface CacheEntry {
-    data: AssetDiscoveryResult;
-    expiresAt: number;
-}
-
-/**
  * Abstract base class for asset discovery services.
  *
- * Owns all shared behavior: TTL caching, in-flight request deduplication,
- * chain filtering, and convenience query methods.
+ * Owns all shared behavior: permanent caching, in-flight request deduplication,
+ * chain filtering, and convenience query methods. Asset lists are fetched once
+ * and cached forever — call `prefetch()` to start loading eagerly.
  *
  * Subclasses only need to implement `fetchAssets()` to define how data
  * is fetched and transformed from their specific source.
  */
 export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService {
     protected readonly providerId: string;
-    protected readonly headers?: Record<string, string>;
-    protected readonly cacheTtl: number;
+    protected readonly headers: Record<string, string>;
     protected readonly timeout: number;
 
-    private cache: CacheEntry | null = null;
+    private cache: AssetDiscoveryResult | null = null;
     private inFlight: Promise<AssetDiscoveryResult> | null = null;
 
-    static readonly DEFAULT_CACHE_TTL = Infinity;
     static readonly DEFAULT_TIMEOUT = 30_000;
 
     constructor(config: BaseAssetDiscoveryServiceConfig) {
         this.providerId = config.providerId;
-        this.headers = config.headers;
-        this.cacheTtl = config.cacheTtl ?? BaseAssetDiscoveryService.DEFAULT_CACHE_TTL;
+        this.headers = config.headers ?? {};
         this.timeout = config.timeout ?? BaseAssetDiscoveryService.DEFAULT_TIMEOUT;
     }
 
     /**
      * Fetch assets from the remote source.
      *
-     * Called by the base when the cache is cold/expired and no in-flight
-     * request exists.
+     * Called by the base when the cache is cold and no in-flight
+     * request exists. The base class handles metadata stamping
+     * (`providerId`) — subclasses only return the data.
      *
-     * @param timeout - Request timeout in milliseconds
-     * @returns The full, unfiltered discovery result
-     * @throws AssetDiscoveryFailure on any fetch or parse error
+     * @returns The list of network assets from the source
+     * @throws AssetDiscoveryFailure on any domain-specific error (e.g. validation)
      */
-    protected abstract fetchAssets(timeout: number): Promise<AssetDiscoveryResult>;
+    protected abstract fetchAssets(): Promise<NetworkAssets[]>;
+
+    /**
+     * Start fetching assets eagerly (fire-and-forget).
+     *
+     * If the cache is already populated or a request is in flight, this is a no-op.
+     * Call this right after construction so data is ready by the time
+     * `getSupportedAssets()` or any other query method is called.
+     */
+    prefetch(): void {
+        if (this.cache || this.inFlight) return;
+        this.resolveResult().catch(() => {});
+    }
 
     /**
      * Get all supported assets across all chains
@@ -87,7 +82,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * Returns a pre-processed DiscoveredAssets structure ready for consumption.
      */
     async getSupportedAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
-        const result = await this.resolveResult(options);
+        const result = await this.resolveResult();
         return toDiscoveredAssets([result], options?.chainIds);
     }
 
@@ -129,34 +124,42 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
      * Get raw discovery result (internal use for helper methods)
      */
     private async getRawResult(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
-        const result = await this.resolveResult(options);
+        const result = await this.resolveResult();
         return this.applyFilter(result, options?.chainIds);
     }
 
     /**
-     * Single shared fetch path that manages cache, in-flight deduplication,
-     * and fetching. Both getSupportedAssets and getRawResult delegate here
-     * so only one code path ever creates/clears this.inFlight.
+     * Single shared fetch path that manages cache and in-flight deduplication.
+     * Both getSupportedAssets and getRawResult delegate here so only one
+     * code path ever creates/clears this.inFlight.
+     *
+     * Acts as the centralized error boundary: any error not already wrapped
+     * by a subclass is caught here and turned into an AssetDiscoveryFailure
+     * with provider attribution via {@link wrapError}.
      */
-    private async resolveResult(options?: AssetDiscoveryOptions): Promise<AssetDiscoveryResult> {
-        if (!options?.forceRefresh) {
-            if (this.isCacheValid()) {
-                return this.cache!.data;
-            }
-            if (this.inFlight) {
-                return this.inFlight;
-            }
+    private async resolveResult(): Promise<AssetDiscoveryResult> {
+        if (this.cache) {
+            return this.cache;
         }
 
-        const requestTimeout = options?.timeout ?? this.timeout;
+        if (this.inFlight) {
+            return this.inFlight;
+        }
 
-        const promise = this.fetchAssets(requestTimeout).then((result) => {
-            this.cache = {
-                data: result,
-                expiresAt: Date.now() + this.cacheTtl,
-            };
-            return result;
-        });
+        const promise = this.fetchAssets()
+            .then((networks) => {
+                const result: AssetDiscoveryResult = {
+                    networks,
+                    providerId: this.providerId,
+                };
+                this.cache = result;
+                return result;
+            })
+            .catch((error: unknown) => {
+                const url =
+                    error instanceof AxiosError ? (error.config?.url ?? "unknown") : "unknown";
+                throw this.wrapError(error, url);
+            });
 
         this.inFlight = promise;
 
@@ -182,29 +185,15 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
     }
 
     /**
-     * Clear the cache and any in-flight request reference
-     */
-    clearCache(): void {
-        this.cache = null;
-        this.inFlight = null;
-    }
-
-    /**
      * Wrap an unknown error into a consistent AssetDiscoveryFailure.
      * Handles AxiosError (timeout, rate limit, response message extraction)
      * and generic errors uniformly.
      *
-     * @param error - The caught error
-     * @param context - Human-readable context (e.g. "OIF API", "custom API")
-     * @param url - The URL that was called (included in error details)
-     * @param timeout - The actual timeout used for the request (for accurate error messages)
+     * Called by {@link resolveResult} as the centralized safety net so that
+     * consumers always receive an AssetDiscoveryFailure regardless of what
+     * the subclass throws.
      */
-    protected wrapError(
-        error: unknown,
-        context: string,
-        url: string,
-        timeout: number,
-    ): AssetDiscoveryFailure {
+    private wrapError(error: unknown, url: string): AssetDiscoveryFailure {
         if (error instanceof AssetDiscoveryFailure) {
             return error;
         }
@@ -212,15 +201,15 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
         if (error instanceof AxiosError) {
             if (error.code === "ECONNABORTED") {
                 return new AssetDiscoveryFailure(
-                    `Request to ${context} timed out`,
-                    `Timeout after ${timeout}ms. URL: ${url}`,
+                    `Request to ${this.providerId} timed out`,
+                    `Timeout after ${this.timeout}ms. URL: ${url}`,
                     error.stack,
                 );
             }
 
             if (error.response?.status === 429) {
                 return new AssetDiscoveryFailure(
-                    `${context} rate limit exceeded`,
+                    `${this.providerId} rate limit exceeded`,
                     `Rate limited at ${url}`,
                     error.stack,
                 );
@@ -234,20 +223,16 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
                 "Failed to fetch assets";
 
             return new AssetDiscoveryFailure(
-                `Failed to fetch assets from ${context}`,
+                `Failed to fetch assets from ${this.providerId}`,
                 `${baseMessage}. URL: ${url}`,
                 error.stack,
             );
         }
 
         return new AssetDiscoveryFailure(
-            `Failed to fetch assets from ${context}`,
+            `Failed to fetch assets from ${this.providerId}`,
             `${String(error)}. URL: ${url}`,
             error instanceof Error ? error.stack : undefined,
         );
-    }
-
-    private isCacheValid(): boolean {
-        return this.cache !== null && Date.now() < this.cache.expiresAt;
     }
 }

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ChainIdentifier, decodeAddress, fromChainIdentifier } from '@wonderland/interop-addresses';
-import { getAssetDiscoveryServices } from '../services/sdk';
+import { type ChainIdentifier, decodeAddress, fromChainIdentifier } from '@wonderland/interop-addresses';
+import { crossChainExecutor } from '../services/sdk';
 import type { DiscoveredAssets, UITokenInfo } from '../types/assets';
 import type { DiscoveredAssets as SdkDiscoveredAssets } from '@wonderland/interop-cross-chain';
 import type { Hex } from 'viem';
@@ -14,74 +14,60 @@ interface UseAssetDiscoveryResult {
   isLoading: boolean;
   /** Error if discovery failed */
   error: Error | null;
-  /** Timestamp when assets were last fetched */
-  lastFetchedAt: number | null;
-  /** Retry discovery (useful after failures) */
+  /** Retry discovery after a failure */
   retry: () => void;
 }
 
-interface ProviderDiscoveryResult {
-  providerId: string;
-  result: SdkDiscoveredAssets;
-}
-
 /**
- * Transform SDK discovery results (CAIP-350 keyed, EIP-7930 addresses) to UI-friendly format
- * (numeric chain IDs, decoded EVM addresses, provider attribution).
+ * Transform SDK DiscoveredAssets (CAIP-350 keyed, EIP-7930 addresses) to UI-friendly format
+ * (numeric chain IDs, decoded EVM addresses). Provider attribution is read directly from
+ * tokenMetadata[addr].providers.
  */
-function transformToUiAssets(providerResults: ProviderDiscoveryResult[]): DiscoveredAssets {
+function transformToUiAssets(sdkAssets: SdkDiscoveredAssets): DiscoveredAssets {
   const supportedTokensByChain: Record<number, string[]> = {};
   const tokenInfo: Record<number, Record<string, UITokenInfo>> = {};
   const chainIdSet = new Set<number>();
 
-  for (const { providerId, result } of providerResults) {
-    for (const chainIdentifier of Object.keys(result.tokensByChain) as ChainIdentifier[]) {
-      let numericChainId: number;
+  for (const chainIdentifier of Object.keys(sdkAssets.tokensByChain) as ChainIdentifier[]) {
+    let numericChainId: number;
+    try {
+      numericChainId = fromChainIdentifier(chainIdentifier).chainReference;
+    } catch {
+      continue;
+    }
+
+    chainIdSet.add(numericChainId);
+
+    const interopAddresses = sdkAssets.tokensByChain[chainIdentifier] ?? [];
+
+    if (!supportedTokensByChain[numericChainId]) {
+      supportedTokensByChain[numericChainId] = [];
+    }
+    if (!tokenInfo[numericChainId]) {
+      tokenInfo[numericChainId] = {};
+    }
+
+    for (const interopAddress of interopAddresses) {
+      let rawAddress: string;
       try {
-        numericChainId = fromChainIdentifier(chainIdentifier).chainReference;
+        const decoded = decodeAddress(interopAddress as Hex);
+        rawAddress = decoded.address ?? interopAddress;
       } catch {
-        continue;
+        rawAddress = interopAddress;
       }
 
-      chainIdSet.add(numericChainId);
-
-      const interopAddresses = result.tokensByChain[chainIdentifier] ?? [];
-
-      if (!supportedTokensByChain[numericChainId]) {
-        supportedTokensByChain[numericChainId] = [];
-      }
-      if (!tokenInfo[numericChainId]) {
-        tokenInfo[numericChainId] = {};
+      if (!supportedTokensByChain[numericChainId].includes(rawAddress)) {
+        supportedTokensByChain[numericChainId].push(rawAddress);
       }
 
-      for (const interopAddress of interopAddresses) {
-        // Decode EIP-7930 interop address to raw EVM address
-        let rawAddress: string;
-        try {
-          const decoded = decodeAddress(interopAddress as Hex);
-          rawAddress = decoded.address ?? interopAddress;
-        } catch {
-          rawAddress = interopAddress;
-        }
+      const sdkMeta = sdkAssets.tokenMetadata[interopAddress];
 
-        if (!supportedTokensByChain[numericChainId].includes(rawAddress)) {
-          supportedTokensByChain[numericChainId].push(rawAddress);
-        }
-
-        const sdkMeta = result.tokenMetadata[interopAddress];
-
-        const existing = tokenInfo[numericChainId][rawAddress];
-        if (existing) {
-          if (!existing.providers.includes(providerId)) {
-            existing.providers.push(providerId);
-          }
-        } else {
-          tokenInfo[numericChainId][rawAddress] = {
-            symbol: sdkMeta?.symbol ?? 'UNKNOWN',
-            decimals: sdkMeta?.decimals ?? 18,
-            providers: [providerId],
-          };
-        }
+      if (!tokenInfo[numericChainId][rawAddress]) {
+        tokenInfo[numericChainId][rawAddress] = {
+          symbol: sdkMeta?.symbol ?? 'UNKNOWN',
+          decimals: sdkMeta?.decimals ?? 18,
+          providers: sdkMeta?.providers ? [...sdkMeta.providers] : [],
+        };
       }
     }
   }
@@ -96,9 +82,13 @@ function transformToUiAssets(providerResults: ProviderDiscoveryResult[]): Discov
 /**
  * Hook to discover supported assets from all providers.
  *
- * Uses individual AssetDiscoveryService instances per provider, aggregates results,
- * and transforms them to a UI-friendly DiscoveredAssets structure with numeric chain
- * IDs and decoded EVM addresses.
+ * Calls `executor.discoverAssets()` which aggregates across all providers,
+ * handles partial failures, and returns a merged DiscoveredAssets with
+ * per-asset provider attribution.
+ *
+ * Assets are permanently cached by the SDK after the first successful fetch.
+ * The services are already prefetching when the executor is created, so by the
+ * time this hook mounts the data is often ready immediately.
  *
  * @param options.chainIds - Filter results to specific chain IDs.
  *   **Must be a stable reference** (e.g. via useMemo) to avoid re-triggering the effect.
@@ -110,7 +100,6 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
   const [assets, setAssets] = useState<DiscoveredAssets | null>(null);
   const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<Error | null>(null);
-  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
 
   const fetchAssets = useCallback(async () => {
     if (!enabled) return;
@@ -119,26 +108,13 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
     setError(null);
 
     try {
-      const services = getAssetDiscoveryServices();
-      const promises = Array.from(services.entries()).map(async ([providerId, service]) => {
-        try {
-          const result = await service.getSupportedAssets({ chainIds });
-          return { providerId, result };
-        } catch (err) {
-          console.warn(`Asset discovery failed for provider ${providerId}:`, err);
-          return null;
-        }
-      });
+      const sdkAssets = await crossChainExecutor.discoverAssets({ chainIds });
 
-      const settled = await Promise.all(promises);
-      const providerResults = settled.filter((r): r is ProviderDiscoveryResult => r !== null);
-
-      if (providerResults.length === 0) {
+      if (Object.keys(sdkAssets.tokensByChain).length === 0) {
         throw new Error('No assets discovered from any provider');
       }
 
-      setAssets(transformToUiAssets(providerResults));
-      setLastFetchedAt(Date.now());
+      setAssets(transformToUiAssets(sdkAssets));
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
@@ -152,8 +128,5 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
     }
   }, [enabled, fetchAssets]);
 
-  return useMemo(
-    () => ({ assets, isLoading, error, lastFetchedAt, retry: fetchAssets }),
-    [assets, isLoading, error, lastFetchedAt, fetchAssets],
-  );
+  return useMemo(() => ({ assets, isLoading, error, retry: fetchAssets }), [assets, isLoading, error, fetchAssets]);
 }
