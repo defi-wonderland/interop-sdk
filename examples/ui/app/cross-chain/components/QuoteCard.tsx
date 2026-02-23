@@ -108,6 +108,7 @@ export function QuoteCard({
   const useUsdDisplay = hasFeeUsd || hasGasUsd;
   const showEta = formatted.eta !== NOT_AVAILABLE;
   const showCost = hasFee || hasGas || gasUnknown;
+  const showExecuteButton = isSelected && !hideExecuteButton;
 
   const baseClasses = 'p-3 rounded-xl border transition-all text-left w-full';
   const selectedClasses = isSelected
@@ -226,11 +227,13 @@ export function QuoteCard({
           />
         </div>
 
-        {/* Footer: Provider | ETA | Fees */}
-        <div className='flex items-center justify-between mt-2.5 pt-2 border-t border-border/30'>
+        {/* Footer: Provider | ETA + Fees | (spacer for execute button) */}
+        <div
+          className={`grid items-center mt-2.5 ${showExecuteButton && !isFinished ? 'grid-cols-[1fr_auto_7rem]' : 'grid-cols-[1fr_auto]'}`}
+        >
           <span className='text-[11px] font-medium text-text-tertiary'>{formatted.providerDisplayName}</span>
 
-          <div className='flex items-center gap-3'>
+          <div className='flex items-center gap-3 justify-end'>
             {showEta && (
               <div className='flex items-center gap-1 text-[11px] text-text-tertiary'>
                 <ClockIcon className='w-3 h-3 shrink-0' />
@@ -239,55 +242,67 @@ export function QuoteCard({
             )}
 
             {showCost && (
-              <div className='flex items-center gap-1 text-[11px] text-text-tertiary'>
-                <BoltIcon className='w-3 h-3 shrink-0' />
-                <span>
-                  {useUsdDisplay ? (
-                    <>
-                      {hasFeeUsd && <>{formatted.feeTotalUsd}</>}
-                      {hasFeeUsd && (hasGasUsd || gasUnknown) && ' + '}
-                      {hasGasUsd && <>{formatted.originGasUsd}</>}
-                      {gasUnknown && !hasGasUsd && (
-                        <Tooltip content='Gas estimated after approval' side='top' align='end'>
-                          <span className='inline-flex items-center gap-0.5 cursor-help'>
-                            gas TBD
-                            <QuestionIcon className='w-2.5 h-2.5' />
-                          </span>
-                        </Tooltip>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      {hasFee && (
-                        <>
-                          {formatted.feeTotal} {formatted.feeTokenSymbol || formatted.inputSymbol}
-                        </>
-                      )}
-                      {hasFee && (hasGas || gasUnknown) && ' + '}
-                      {hasGas && (
-                        <>
-                          {formatted.originGas} {formatted.originGasSymbol}
-                        </>
-                      )}
-                      {gasUnknown && !hasGas && (
-                        <Tooltip content='Gas estimated after approval' side='top' align='end'>
-                          <span className='inline-flex items-center gap-0.5 cursor-help'>
-                            gas TBD
-                            <QuestionIcon className='w-2.5 h-2.5' />
-                          </span>
-                        </Tooltip>
-                      )}
-                    </>
-                  )}
-                </span>
-              </div>
+              <>
+                {/* Compact cost for small screens */}
+                <div className='flex sm:hidden items-center gap-1 text-[11px] text-text-tertiary'>
+                  <BoltIcon className='w-3 h-3 shrink-0' />
+                  <span>{formatted.costCompact}</span>
+                </div>
+
+                {/* Full cost for wider screens */}
+                <div className='hidden sm:flex items-center gap-1 text-[11px] text-text-tertiary'>
+                  <BoltIcon className='w-3 h-3 shrink-0' />
+                  <span>
+                    {useUsdDisplay ? (
+                      <>
+                        {hasFeeUsd && <>{formatted.feeTotalUsd}</>}
+                        {hasFeeUsd && (hasGasUsd || gasUnknown) && ' + '}
+                        {hasGasUsd && <>{formatted.originGasUsd}</>}
+                        {gasUnknown && !hasGasUsd && (
+                          <Tooltip content='Gas estimated after approval' side='top' align='end'>
+                            <span className='inline-flex items-center gap-0.5 cursor-help'>
+                              gas TBD
+                              <QuestionIcon className='w-2.5 h-2.5' />
+                            </span>
+                          </Tooltip>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {hasFee && (
+                          <>
+                            {formatted.feeTotal} {formatted.feeTokenSymbol || formatted.inputSymbol}
+                          </>
+                        )}
+                        {hasFee && (hasGas || gasUnknown) && ' + '}
+                        {hasGas && (
+                          <>
+                            {formatted.originGas} {formatted.originGasSymbol}
+                          </>
+                        )}
+                        {gasUnknown && !hasGas && (
+                          <Tooltip content='Gas estimated after approval' side='top' align='end'>
+                            <span className='inline-flex items-center gap-0.5 cursor-help'>
+                              gas TBD
+                              <QuestionIcon className='w-2.5 h-2.5' />
+                            </span>
+                          </Tooltip>
+                        )}
+                      </>
+                    )}
+                  </span>
+                </div>
+              </>
             )}
           </div>
+
+          {/* Spacer for execute button on mobile */}
+          {showExecuteButton && !isFinished && <div className='sm:hidden' />}
         </div>
       </button>
 
       {/* Floating Execute Button */}
-      {isSelected && !isFinished && !hideExecuteButton && (
+      {showExecuteButton && !isFinished && (
         <button
           type='button'
           onClick={handleExecuteClick}
