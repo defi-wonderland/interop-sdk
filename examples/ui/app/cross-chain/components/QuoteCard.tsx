@@ -108,6 +108,7 @@ export function QuoteCard({
   const useUsdDisplay = hasFeeUsd || hasGasUsd;
   const showEta = formatted.eta !== NOT_AVAILABLE;
   const showCost = hasFee || hasGas || gasUnknown;
+  const showExecuteButton = isSelected && !hideExecuteButton;
 
   const baseClasses = 'p-3 rounded-xl border transition-all text-left w-full';
   const selectedClasses = isSelected
@@ -227,85 +228,81 @@ export function QuoteCard({
         </div>
 
         {/* Footer: Provider | ETA + Fees | (spacer for execute button) */}
-        {(() => {
-          const showButton = isSelected && !isFinished && !hideExecuteButton;
-          return (
-            <div
-              className={`grid items-center mt-2.5 ${showButton ? 'grid-cols-[1fr_auto_7rem]' : 'grid-cols-[1fr_auto]'}`}
-            >
-              <span className='text-[11px] font-medium text-text-tertiary'>{formatted.providerDisplayName}</span>
+        <div
+          className={`grid items-center mt-2.5 ${showExecuteButton && !isFinished ? 'grid-cols-[1fr_auto_7rem]' : 'grid-cols-[1fr_auto]'}`}
+        >
+          <span className='text-[11px] font-medium text-text-tertiary'>{formatted.providerDisplayName}</span>
 
-              <div className='flex items-center gap-3 justify-start md:justify-center'>
-                {showEta && (
-                  <div className='flex items-center gap-1 text-[11px] text-text-tertiary'>
-                    <ClockIcon className='w-3 h-3 shrink-0' />
-                    <span>{formatted.eta}</span>
-                  </div>
-                )}
+          <div className='flex items-center gap-3 justify-end'>
+            {showEta && (
+              <div className='flex items-center gap-1 text-[11px] text-text-tertiary'>
+                <ClockIcon className='w-3 h-3 shrink-0' />
+                <span>{formatted.eta}</span>
+              </div>
+            )}
 
-                {showCost && (
-                  <>
-                    {/* Compact cost for small screens */}
-                    <div className='flex sm:hidden items-center gap-1 text-[11px] text-text-tertiary'>
-                      <BoltIcon className='w-3 h-3 shrink-0' />
-                      <span>{formatted.costCompact}</span>
-                    </div>
+            {showCost && (
+              <>
+                {/* Compact cost for small screens */}
+                <div className='flex sm:hidden items-center gap-1 text-[11px] text-text-tertiary'>
+                  <BoltIcon className='w-3 h-3 shrink-0' />
+                  <span>{formatted.costCompact}</span>
+                </div>
 
-                    {/* Full cost for wider screens */}
-                    <div className='hidden sm:flex items-center gap-1 text-[11px] text-text-tertiary'>
-                      <BoltIcon className='w-3 h-3 shrink-0' />
-                      <span>
-                        {useUsdDisplay ? (
+                {/* Full cost for wider screens */}
+                <div className='hidden sm:flex items-center gap-1 text-[11px] text-text-tertiary'>
+                  <BoltIcon className='w-3 h-3 shrink-0' />
+                  <span>
+                    {useUsdDisplay ? (
+                      <>
+                        {hasFeeUsd && <>{formatted.feeTotalUsd}</>}
+                        {hasFeeUsd && (hasGasUsd || gasUnknown) && ' + '}
+                        {hasGasUsd && <>{formatted.originGasUsd}</>}
+                        {gasUnknown && !hasGasUsd && (
+                          <Tooltip content='Gas estimated after approval' side='top' align='end'>
+                            <span className='inline-flex items-center gap-0.5 cursor-help'>
+                              gas TBD
+                              <QuestionIcon className='w-2.5 h-2.5' />
+                            </span>
+                          </Tooltip>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {hasFee && (
                           <>
-                            {hasFeeUsd && <>{formatted.feeTotalUsd}</>}
-                            {hasFeeUsd && (hasGasUsd || gasUnknown) && ' + '}
-                            {hasGasUsd && <>{formatted.originGasUsd}</>}
-                            {gasUnknown && !hasGasUsd && (
-                              <Tooltip content='Gas estimated after approval' side='top' align='end'>
-                                <span className='inline-flex items-center gap-0.5 cursor-help'>
-                                  gas TBD
-                                  <QuestionIcon className='w-2.5 h-2.5' />
-                                </span>
-                              </Tooltip>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {hasFee && (
-                              <>
-                                {formatted.feeTotal} {formatted.feeTokenSymbol || formatted.inputSymbol}
-                              </>
-                            )}
-                            {hasFee && (hasGas || gasUnknown) && ' + '}
-                            {hasGas && (
-                              <>
-                                {formatted.originGas} {formatted.originGasSymbol}
-                              </>
-                            )}
-                            {gasUnknown && !hasGas && (
-                              <Tooltip content='Gas estimated after approval' side='top' align='end'>
-                                <span className='inline-flex items-center gap-0.5 cursor-help'>
-                                  gas TBD
-                                  <QuestionIcon className='w-2.5 h-2.5' />
-                                </span>
-                              </Tooltip>
-                            )}
+                            {formatted.feeTotal} {formatted.feeTokenSymbol || formatted.inputSymbol}
                           </>
                         )}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
+                        {hasFee && (hasGas || gasUnknown) && ' + '}
+                        {hasGas && (
+                          <>
+                            {formatted.originGas} {formatted.originGasSymbol}
+                          </>
+                        )}
+                        {gasUnknown && !hasGas && (
+                          <Tooltip content='Gas estimated after approval' side='top' align='end'>
+                            <span className='inline-flex items-center gap-0.5 cursor-help'>
+                              gas TBD
+                              <QuestionIcon className='w-2.5 h-2.5' />
+                            </span>
+                          </Tooltip>
+                        )}
+                      </>
+                    )}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
 
-              {showButton && <div />}
-            </div>
-          );
-        })()}
+          {/* Spacer for execute button on mobile */}
+          {showExecuteButton && !isFinished && <div className='sm:hidden' />}
+        </div>
       </button>
 
       {/* Floating Execute Button */}
-      {isSelected && !isFinished && !hideExecuteButton && (
+      {showExecuteButton && !isFinished && (
         <button
           type='button'
           onClick={handleExecuteClick}
