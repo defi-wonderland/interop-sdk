@@ -14,6 +14,7 @@ interface TokenSelectProps {
   onChange: (address: string) => void;
   disabled?: boolean;
   dataTestId?: string;
+  emptyMessage?: string;
 }
 
 interface TokenOptionProps {
@@ -37,7 +38,16 @@ function TokenOption({ address, info, balance, isSelected, onSelect }: TokenOpti
   );
 }
 
-export function TokenSelect({ tokens, tokenInfo, balances, value, onChange, disabled, dataTestId }: TokenSelectProps) {
+export function TokenSelect({
+  tokens,
+  tokenInfo,
+  balances,
+  value,
+  onChange,
+  disabled,
+  dataTestId,
+  emptyMessage = 'No tokens available',
+}: TokenSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -52,19 +62,24 @@ export function TokenSelect({ tokens, tokenInfo, balances, value, onChange, disa
   }, []);
 
   const sortedTokens = sortTokensByBalance(tokens, balances);
+  const isEmpty = sortedTokens.length === 0;
+  const isDisabled = disabled || isEmpty;
+  const label = isEmpty ? emptyMessage : getDisplaySymbol(tokenInfo[value], value);
 
   return (
     <div ref={containerRef} className='relative'>
       <button
         type='button'
-        onClick={() => !disabled && setIsOpen((prev) => !prev)}
-        disabled={disabled}
+        onClick={() => !isDisabled && setIsOpen((prev) => !prev)}
+        disabled={isDisabled}
         data-testid={dataTestId}
-        className={`w-full flex items-center justify-between px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm text-left focus:border-accent focus:ring-2 focus:ring-accent/20 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+        className={`w-full flex items-center justify-between px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm text-left focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
       >
-        <span className='font-medium'>{getDisplaySymbol(tokenInfo[value], value)}</span>
+        <span className={isEmpty ? 'text-text-tertiary' : 'font-medium'}>{label}</span>
         <div className='flex items-center gap-2'>
-          <span className='text-text-tertiary text-xs tabular-nums'>{formatTokenBalance(balances[value])}</span>
+          {!isEmpty && (
+            <span className='text-text-tertiary text-xs tabular-nums'>{formatTokenBalance(balances[value])}</span>
+          )}
           <ChevronDownIcon
             className={`w-4 h-4 text-text-tertiary transition-transform ${isOpen ? 'rotate-180' : ''}`}
           />

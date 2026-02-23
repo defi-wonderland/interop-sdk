@@ -241,6 +241,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
               onChange={handleOutputTokenChange}
               disabled={isDisabled}
               dataTestId='output-token-select'
+              emptyMessage='No route available'
             />
           </div>
         </div>
