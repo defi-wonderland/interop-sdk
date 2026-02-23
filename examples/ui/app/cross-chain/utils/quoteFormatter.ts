@@ -1,6 +1,6 @@
 import { UNKNOWN_TOKEN_SYMBOL, NOT_AVAILABLE } from '../constants';
 import { getProviderDisplayName } from '../services/sdk';
-import { formatAmount, formatPercentage, formatETA, formatUsdAmount } from './formatting';
+import { formatAmount, formatPercentage, formatETA, formatUsdAmount, formatUsdAmountCompact } from './formatting';
 import type { ExecutableQuote, TokenInfo } from '@wonderland/interop-cross-chain';
 
 export interface FormattedQuoteData {
@@ -20,6 +20,7 @@ export interface FormattedQuoteData {
   originGasSymbol?: string;
   hasOriginGas?: boolean; // True if originGas is present and non-zero (even if formatted value rounds to 0)
   gasSimulationFailed?: boolean;
+  costCompact?: string; // Compact total cost for mobile (e.g. "<$0.01")
 }
 
 /**
@@ -157,6 +158,11 @@ export function formatQuoteData(
     }
   }
 
+  const feeNum = feeTotalUsd ? parseFloat(feeTotalUsd.replace('$', '')) : 0;
+  const gasNum = originGasUsd ? parseFloat(originGasUsd.replace('$', '')) : 0;
+  const totalCost = feeNum + gasNum;
+  const costCompact = gasSimulationFailed && totalCost === 0 ? 'gas TBD' : formatUsdAmountCompact(totalCost);
+
   return {
     inputAmount,
     outputAmount,
@@ -174,5 +180,6 @@ export function formatQuoteData(
     originGasSymbol,
     hasOriginGas,
     gasSimulationFailed,
+    costCompact,
   };
 }

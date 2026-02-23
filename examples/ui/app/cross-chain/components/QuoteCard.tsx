@@ -226,64 +226,82 @@ export function QuoteCard({
           />
         </div>
 
-        {/* Footer: Provider | ETA | Fees */}
-        <div className='flex items-center justify-between mt-2.5 pt-2 border-t border-border/30'>
-          <span className='text-[11px] font-medium text-text-tertiary'>{formatted.providerDisplayName}</span>
+        {/* Footer: Provider | ETA + Fees | (spacer for execute button) */}
+        {(() => {
+          const showButton = isSelected && !isFinished && !hideExecuteButton;
+          return (
+            <div
+              className={`grid items-center mt-2.5 ${showButton ? 'grid-cols-[1fr_auto_7rem]' : 'grid-cols-[1fr_auto]'}`}
+            >
+              <span className='text-[11px] font-medium text-text-tertiary'>{formatted.providerDisplayName}</span>
 
-          <div className='flex items-center gap-3'>
-            {showEta && (
-              <div className='flex items-center gap-1 text-[11px] text-text-tertiary'>
-                <ClockIcon className='w-3 h-3 shrink-0' />
-                <span>{formatted.eta}</span>
-              </div>
-            )}
+              <div className='flex items-center gap-3 justify-start md:justify-center'>
+                {showEta && (
+                  <div className='flex items-center gap-1 text-[11px] text-text-tertiary'>
+                    <ClockIcon className='w-3 h-3 shrink-0' />
+                    <span>{formatted.eta}</span>
+                  </div>
+                )}
 
-            {showCost && (
-              <div className='flex items-center gap-1 text-[11px] text-text-tertiary'>
-                <BoltIcon className='w-3 h-3 shrink-0' />
-                <span>
-                  {useUsdDisplay ? (
-                    <>
-                      {hasFeeUsd && <>{formatted.feeTotalUsd}</>}
-                      {hasFeeUsd && (hasGasUsd || gasUnknown) && ' + '}
-                      {hasGasUsd && <>{formatted.originGasUsd}</>}
-                      {gasUnknown && !hasGasUsd && (
-                        <Tooltip content='Gas estimated after approval' side='top' align='end'>
-                          <span className='inline-flex items-center gap-0.5 cursor-help'>
-                            gas TBD
-                            <QuestionIcon className='w-2.5 h-2.5' />
-                          </span>
-                        </Tooltip>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      {hasFee && (
-                        <>
-                          {formatted.feeTotal} {formatted.feeTokenSymbol || formatted.inputSymbol}
-                        </>
-                      )}
-                      {hasFee && (hasGas || gasUnknown) && ' + '}
-                      {hasGas && (
-                        <>
-                          {formatted.originGas} {formatted.originGasSymbol}
-                        </>
-                      )}
-                      {gasUnknown && !hasGas && (
-                        <Tooltip content='Gas estimated after approval' side='top' align='end'>
-                          <span className='inline-flex items-center gap-0.5 cursor-help'>
-                            gas TBD
-                            <QuestionIcon className='w-2.5 h-2.5' />
-                          </span>
-                        </Tooltip>
-                      )}
-                    </>
-                  )}
-                </span>
+                {showCost && (
+                  <>
+                    {/* Compact cost for small screens */}
+                    <div className='flex sm:hidden items-center gap-1 text-[11px] text-text-tertiary'>
+                      <BoltIcon className='w-3 h-3 shrink-0' />
+                      <span>{formatted.costCompact}</span>
+                    </div>
+
+                    {/* Full cost for wider screens */}
+                    <div className='hidden sm:flex items-center gap-1 text-[11px] text-text-tertiary'>
+                      <BoltIcon className='w-3 h-3 shrink-0' />
+                      <span>
+                        {useUsdDisplay ? (
+                          <>
+                            {hasFeeUsd && <>{formatted.feeTotalUsd}</>}
+                            {hasFeeUsd && (hasGasUsd || gasUnknown) && ' + '}
+                            {hasGasUsd && <>{formatted.originGasUsd}</>}
+                            {gasUnknown && !hasGasUsd && (
+                              <Tooltip content='Gas estimated after approval' side='top' align='end'>
+                                <span className='inline-flex items-center gap-0.5 cursor-help'>
+                                  gas TBD
+                                  <QuestionIcon className='w-2.5 h-2.5' />
+                                </span>
+                              </Tooltip>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {hasFee && (
+                              <>
+                                {formatted.feeTotal} {formatted.feeTokenSymbol || formatted.inputSymbol}
+                              </>
+                            )}
+                            {hasFee && (hasGas || gasUnknown) && ' + '}
+                            {hasGas && (
+                              <>
+                                {formatted.originGas} {formatted.originGasSymbol}
+                              </>
+                            )}
+                            {gasUnknown && !hasGas && (
+                              <Tooltip content='Gas estimated after approval' side='top' align='end'>
+                                <span className='inline-flex items-center gap-0.5 cursor-help'>
+                                  gas TBD
+                                  <QuestionIcon className='w-2.5 h-2.5' />
+                                </span>
+                              </Tooltip>
+                            )}
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+
+              {showButton && <div />}
+            </div>
+          );
+        })()}
       </button>
 
       {/* Floating Execute Button */}

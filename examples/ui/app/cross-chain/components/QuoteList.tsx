@@ -140,7 +140,7 @@ export function QuoteList({
 
   return (
     <QuoteListWrapper errors={errors}>
-      <div className='p-3 pb-6 flex flex-col gap-4'>
+      <div className='px-3 pt-3 pb-1.5 flex flex-col gap-4'>
         {quotes.map((quote, index) => (
           <QuoteCard
             key={quote.quoteId || index}

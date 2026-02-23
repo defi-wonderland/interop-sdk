@@ -63,19 +63,31 @@ export function formatUsdAmount(amountUsd: string, decimals: number = USD_DISPLA
 }
 
 /**
+ * Formats a USD amount in compact form for space-constrained views.
+ * Targets at most 3 significant characters for the number portion:
+ */
+export function formatUsdAmountCompact(amountUsd: number): string {
+  if (amountUsd <= 0) return '$0';
+  if (amountUsd < 0.1) return '<$0.1';
+  if (amountUsd < 10) return `$${amountUsd.toFixed(1)}`;
+  if (amountUsd < 1000) return `$${Math.round(amountUsd)}`;
+  return `$${(amountUsd / 1000).toFixed(amountUsd < 10000 ? 1 : 0)}K`;
+}
+
+/**
  * Formats ETA from seconds to human-readable format
  * @param seconds - ETA in seconds
  * @returns Formatted ETA string (e.g., "5 min", "30 sec", "~1 sec")
  */
 export function formatETA(seconds: number): string {
   if (seconds < 1) {
-    return '~1 sec';
+    return '~1s';
   }
   if (seconds < SECONDS_PER_MINUTE) {
-    return `${Math.round(seconds)} sec`;
+    return `${Math.round(seconds)}s`;
   }
   const minutes = Math.round(seconds / SECONDS_PER_MINUTE);
-  return `${minutes} min`;
+  return `${minutes}m`;
 }
 
 /**
