@@ -78,8 +78,6 @@ export const getAssetsResponseSchema = z
  */
 export const assetDiscoveryOptionsSchema = z.object({
     chainIds: z.array(z.number().int().positive()).optional(),
-    forceRefresh: z.boolean().optional().default(false),
-    timeout: z.number().int().positive().optional().default(30000),
 });
 
 // Type exports from schemas

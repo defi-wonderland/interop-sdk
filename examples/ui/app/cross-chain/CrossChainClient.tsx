@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { isNativeAddress, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { Footer, Navigation } from '../components';
 import {
   DiscoveryLoading,
@@ -21,7 +22,6 @@ import { useQuotes, QuoteStatus } from './hooks/useQuotes';
 import { useDiscoveredAssets } from './providers';
 import { useFillWorkaround } from './services/orderExecution/fillDetection';
 import { STEP } from './types/execution';
-import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address } from 'viem';
 
 interface ToastState {
@@ -160,7 +160,11 @@ export function CrossChainClient() {
                         hideExecuteButton={true}
                       />
                     </div>
-                    <OrderTracking state={executionState} onReset={handleReset} />
+                    <OrderTracking
+                      state={executionState}
+                      onReset={handleReset}
+                      skipApproval={isNativeAddress(selectedInputToken, 'eip155')}
+                    />
                   </>
                 ) : (
                   <QuoteList

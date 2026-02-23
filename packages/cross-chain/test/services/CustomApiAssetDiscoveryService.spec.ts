@@ -1,6 +1,6 @@
 import { toChainIdentifier } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ZodError } from "zod";
 
 import {
@@ -67,10 +67,6 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
     });
 
-    afterEach(() => {
-        service.clearCache();
-    });
-
     describe("getSupportedAssets", () => {
         it("should fetch and return DiscoveredAssets", async () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
@@ -105,21 +101,6 @@ describe("CustomApiAssetDiscoveryService", () => {
             // Second call - should use cache
             await service.getSupportedAssets();
             expect(axios.get).toHaveBeenCalledTimes(1);
-        });
-
-        it("should bypass cache with forceRefresh: true", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
-
-            // First call
-            await service.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(1);
-
-            // Second call with forceRefresh
-            await service.getSupportedAssets({ forceRefresh: true });
-            expect(axios.get).toHaveBeenCalledTimes(2);
         });
 
         it("should filter by chain IDs", async () => {
@@ -263,8 +244,10 @@ describe("CustomApiAssetDiscoveryService", () => {
     });
 
     describe("error handling", () => {
-        it("should throw AssetDiscoveryFailure on general HTTP error", async () => {
-            const axiosError = new AxiosError("Request failed", "ERR_BAD_REQUEST");
+        it("should throw AssetDiscoveryFailure on general HTTP error with providerId", async () => {
+            const axiosError = new AxiosError("Request failed");
+            axiosError.code = "ERR_BAD_REQUEST";
+            axiosError.config = { url: assetsEndpoint } as never;
             axiosError.response = {
                 status: 500,
                 data: { message: "Internal server error" },
@@ -281,6 +264,7 @@ describe("CustomApiAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/Internal server error/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/api.custom.test/);
             }
@@ -309,17 +293,15 @@ describe("CustomApiAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
-                expect((error as AssetDiscoveryFailure).message).toBe(
-                    "Failed to fetch assets from custom API",
-                );
-                // Error details should include the Zod error message
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/Expected array/);
             }
         });
 
-        it("should throw AssetDiscoveryFailure on timeout with specific message", async () => {
+        it("should throw AssetDiscoveryFailure on timeout with providerId", async () => {
             const axiosError = new AxiosError("timeout of 30000ms exceeded");
             axiosError.code = "ECONNABORTED";
+            axiosError.config = { url: assetsEndpoint } as never;
             vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
 
             try {
@@ -327,14 +309,13 @@ describe("CustomApiAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
-                expect((error as AssetDiscoveryFailure).message).toBe(
-                    "Request to custom API timed out",
-                );
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/timed out/);
                 expect((error as AssetDiscoveryFailure).details).toMatch(/Timeout after/);
             }
         });
 
-        it("should throw AssetDiscoveryFailure on rate limit (429)", async () => {
+        it("should throw AssetDiscoveryFailure on rate limit (429) with providerId", async () => {
             const axiosError = new AxiosError("Too Many Requests", "ERR_BAD_REQUEST");
             axiosError.response = {
                 status: 429,
@@ -352,9 +333,8 @@ describe("CustomApiAssetDiscoveryService", () => {
                 expect.fail("Should have thrown");
             } catch (error) {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
-                expect((error as AssetDiscoveryFailure).message).toBe(
-                    "custom API rate limit exceeded",
-                );
+                expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
+                expect((error as AssetDiscoveryFailure).message).toMatch(/rate limit/);
             }
         });
 
@@ -374,70 +354,8 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
     });
 
-    describe("cache management", () => {
-        it("should respect custom cache TTL", async () => {
-            const shortCacheTtl = 100; // 100ms
-            const serviceWithShortCache = new CustomApiAssetDiscoveryService({
-                assetsEndpoint,
-                parseResponse: mockParseResponse,
-                providerId,
-                cacheTtl: shortCacheTtl,
-            });
-
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
-
-            // First call
-            await serviceWithShortCache.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(1);
-
-            // Wait for cache to expire
-            await new Promise((resolve) => setTimeout(resolve, shortCacheTtl + 10));
-
-            // Second call - cache should be expired
-            await serviceWithShortCache.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(2);
-        });
-
-        it("clearCache() method should clear the cache", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
-
-            // First call
-            await service.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(1);
-
-            // Clear cache
-            service.clearCache();
-
-            // Second call - should fetch again
-            await service.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(2);
-        });
-    });
-
-    describe("custom timeout", () => {
-        it("should use provided timeout option", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
-
-            await service.getSupportedAssets({ timeout: 5000 });
-
-            expect(axios.get).toHaveBeenCalledWith(
-                assetsEndpoint,
-                expect.objectContaining({
-                    timeout: 5000,
-                }),
-            );
-        });
-
-        it("should use configured timeout when not provided in options", async () => {
+    describe("configured timeout", () => {
+        it("should use configured timeout for API requests", async () => {
             const serviceWithTimeout = new CustomApiAssetDiscoveryService({
                 assetsEndpoint,
                 parseResponse: mockParseResponse,
@@ -487,27 +405,6 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             // Should only make one API call
             expect(axios.get).toHaveBeenCalledTimes(1);
-
-            // Both results should be equivalent
-            expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
-            expect(Object.keys(result2.tokensByChain)).toHaveLength(2);
-        });
-
-        it("should not dedupe concurrent forceRefresh calls", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
-
-            // Start two concurrent forceRefresh calls
-            const promise1 = service.getSupportedAssets({ forceRefresh: true });
-            const promise2 = service.getSupportedAssets({ forceRefresh: true });
-
-            // Both should resolve successfully
-            const [result1, result2] = await Promise.all([promise1, promise2]);
-
-            // forceRefresh bypasses in-flight dedup, so each call triggers a separate fetch
-            expect(axios.get).toHaveBeenCalledTimes(2);
 
             // Both results should be equivalent
             expect(Object.keys(result1.tokensByChain)).toHaveLength(2);

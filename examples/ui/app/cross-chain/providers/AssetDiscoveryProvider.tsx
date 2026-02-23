@@ -13,9 +13,7 @@ interface AssetDiscoveryContextValue {
   isDiscovering: boolean;
   /** Error if discovery failed */
   discoveryError: Error | null;
-  /** When assets were last fetched */
-  lastFetchedAt: number | null;
-  /** Retry asset discovery */
+  /** Retry asset discovery after a failure */
   retryDiscovery: () => void;
 }
 
@@ -34,7 +32,7 @@ export function AssetDiscoveryProvider({ children }: AssetDiscoveryProviderProps
 
   const chainIds = useMemo(() => (isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS).map((c) => c.id), [isTestnet]);
 
-  const { assets, isLoading, error, lastFetchedAt, retry } = useAssetDiscovery({
+  const { assets, isLoading, error, retry } = useAssetDiscovery({
     chainIds,
     enabled: true,
   });
@@ -44,10 +42,9 @@ export function AssetDiscoveryProvider({ children }: AssetDiscoveryProviderProps
       discoveredAssets: assets,
       isDiscovering: isLoading,
       discoveryError: error,
-      lastFetchedAt,
       retryDiscovery: retry,
     }),
-    [assets, isLoading, error, lastFetchedAt, retry],
+    [assets, isLoading, error, retry],
   );
 
   return <AssetDiscoveryContext.Provider value={value}>{children}</AssetDiscoveryContext.Provider>;

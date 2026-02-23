@@ -1,17 +1,9 @@
 import { decodeAddress } from '@wonderland/interop-addresses';
+import { isNativeAddress } from '@wonderland/interop-cross-chain';
 import { createPublicClient, type Address, erc20Abi, formatUnits, http, type Hex, isAddress } from 'viem';
 import { ALL_CHAINS } from '../constants/chains';
 import type { BalanceTarget, TokenBalance } from '../stores/balanceStore';
 import type { DiscoveredAssets } from '../types/assets';
-
-const NATIVE_TOKEN_ADDRESSES = new Set([
-  '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-  '0x0000000000000000000000000000000000000000',
-]);
-
-function isNativeToken(address: string): boolean {
-  return NATIVE_TOKEN_ADDRESSES.has(address.toLowerCase());
-}
 
 // TODO: SDK will return EIP-7930 interop addresses — all addresses will need decoding
 function resolveEvmAddress(address: string): Address {
@@ -85,8 +77,8 @@ export class AssetService {
     if (tokens.length === 0) return {};
 
     const owner = resolveEvmAddress(userAddress);
-    const nativeTokens = tokens.filter(isNativeToken);
-    const erc20Tokens = tokens.filter((t) => !isNativeToken(t));
+    const nativeTokens = tokens.filter((t) => isNativeAddress(t, 'eip155'));
+    const erc20Tokens = tokens.filter((t) => !isNativeAddress(t, 'eip155'));
     const balances: Record<string, TokenBalance> = {};
 
     const client = this.getClient(chainId);

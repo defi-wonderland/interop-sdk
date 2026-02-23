@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { CustomApiAssetDiscoveryConfig, NetworkAssets } from "../../src/internal.js";
 import {
@@ -365,23 +365,17 @@ describe("AcrossProvider.discovery", () => {
             expect(service).toBeInstanceOf(CustomApiAssetDiscoveryService);
         });
 
-        it("should pass custom cache TTL from factory config", () => {
+        it("should start prefetching on creation", () => {
+            const prefetchSpy = vi.spyOn(CustomApiAssetDiscoveryService.prototype, "prefetch");
+
             const provider = new AcrossProvider({ providerId: "test-across" });
-            const factory = new AssetDiscoveryFactory({ defaultCacheTtl: 60000 });
+            const factory = new AssetDiscoveryFactory();
 
-            const service = factory.createService(provider);
+            factory.createService(provider);
 
-            expect(service).toBeInstanceOf(CustomApiAssetDiscoveryService);
-        });
+            expect(prefetchSpy).toHaveBeenCalledOnce();
 
-        it("should use config cache TTL over factory default", () => {
-            // This test verifies the factory respects config.cacheTtl
-            // The actual behavior is tested in CustomApiAssetDiscoveryService tests
-            const provider = new AcrossProvider({ providerId: "test-across" });
-            const apiConfig = getCustomApiConfig(provider);
-
-            // AcrossProvider doesn't set cacheTtl by default
-            expect(apiConfig.cacheTtl).toBeUndefined();
+            prefetchSpy.mockRestore();
         });
     });
 });

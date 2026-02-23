@@ -111,33 +111,6 @@ describe("AssetDiscoveryFactory", () => {
             expect(service).not.toBeNull();
         });
 
-        it("should pass factory defaultCacheTtl to OIF service", () => {
-            const factory = new AssetDiscoveryFactory({ defaultCacheTtl: 60000 });
-
-            class OifConfigProvider extends CrossChainProvider {
-                readonly protocolName = "oif-mock";
-                readonly providerId = "oif-mock-provider";
-                getQuotes = vi.fn();
-                submitSignedOrder = vi.fn();
-                getTrackingConfig = vi.fn();
-                override getDiscoveryConfig(): OIFAssetDiscoveryConfig {
-                    return {
-                        type: "oif" as const,
-                        config: {
-                            baseUrl: "https://api.solver.test",
-                            // No cacheTtl - should use factory default
-                        },
-                    };
-                }
-            }
-
-            const provider = new OifConfigProvider();
-            const service = factory.createService(provider);
-
-            // Service should be created (we can't easily verify the TTL without exposing it)
-            expect(service).not.toBeNull();
-        });
-
         it("should create CustomApiAssetDiscoveryService for custom-api config", () => {
             const factory = new AssetDiscoveryFactory();
 

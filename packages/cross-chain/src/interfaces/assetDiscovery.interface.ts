@@ -17,13 +17,21 @@ import type {
  */
 export interface AssetDiscoveryService {
     /**
+     * Start fetching assets eagerly (fire-and-forget).
+     *
+     * If the cache is already populated or a request is in flight, this is a no-op.
+     * Call this right after construction so data is ready by the time query methods
+     * are called.
+     */
+    prefetch(): void;
+    /**
      * Get all supported assets across all chains
      *
      * Returns a pre-processed DiscoveredAssets structure with:
      * - tokensByChain: CAIP-350 chain identifier keys → EIP-7930 token addresses
      * - tokenMetadata: flat lookup by interop address → AssetInfo
      *
-     * @param options - Discovery options (filtering, caching)
+     * @param options - Discovery options (filtering)
      * @returns Aggregated discovery result ready for consumption
      */
     getSupportedAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets>;
@@ -68,13 +76,6 @@ export interface AssetDiscoveryService {
 export interface BaseApiDiscoveryConfig {
     /** Optional custom headers for API requests */
     headers?: Record<string, string>;
-    /**
-     * Cache TTL in milliseconds.
-     * Asset lists rarely change, so the default is Infinity (cache never expires).
-     * Use `forceRefresh: true` to explicitly refresh when needed.
-     * @default Infinity
-     */
-    cacheTtl?: number;
     /**
      * Request timeout in milliseconds
      * @default 30000 (30 seconds)
