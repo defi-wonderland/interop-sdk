@@ -43,7 +43,7 @@ export function Navigation() {
   const navLinks = getEnabledApps();
 
   return (
-    <nav className='w-full border-b border-border bg-surface/50 backdrop-blur-sm sticky top-0 z-10'>
+    <nav className='w-full border-b border-border bg-surface/50 backdrop-blur-sm sticky top-0 z-30'>
       <div className='max-w-5xl mx-auto px-4 sm:px-6'>
         <div className='flex items-center justify-between h-16'>
           <Link
