@@ -181,13 +181,40 @@ See [.changeset/README.md](./.changeset/README.md) for more details.
 
 ## Contributing
 
-Wonderland is a team of top Web3 researchers, developers, and operators who believe that the future needs to be open-source, permissionless, and decentralized.
+This project is maintained by [Wonderland](https://wonderland.xyz) — a team of top Web3 researchers, developers, and operators who believe that the future needs to be open-source, permissionless, and decentralized. We welcome outside contributions.
 
-[Wonderland](https://wonderland.xyz), but Wonderland is here to make it better.
+-   **Large changes** — please open an issue first to discuss your proposal before investing time in a PR.
+-   **Small changes** (bug fixes, typos, minor improvements) — PRs are welcome directly.
+
+### Submitting a Pull Request
+
+1. Fork the repo and create your branch from `dev`.
+2. Make your changes and ensure `pnpm build`, `pnpm lint`, and `pnpm test` pass.
+3. If your change modifies a publishable package (`packages/addresses`, `packages/cross-chain`, or `apps/sdk`), create a changeset:
+    ```bash
+    pnpm changeset
+    ```
+    Select the affected packages, choose the appropriate bump level (patch / minor / major), and write a short description. Commit the generated `.changeset/*.md` file with your PR.
+4. If your change adds or modifies public API surface, update the relevant documentation:
+    - Package README (`packages/*/README.md`)
+    - Docs site (`apps/docs/docs/`)
+    - Inline JSDoc on exported functions and types
+5. Run `/review-interop-sdk` (see below) to catch common issues before requesting human review.
+6. Open your PR against `dev` and fill in the template.
 
 ### 💻 Conventional Commits
 
 We follow the Conventional Commits [specification](https://www.conventionalcommits.org/en/v1.0.0/#specification).
+
+### 🔍 Code Review Skill
+
+This repo includes a shared review skill at [`.claude/skills/review-interop-sdk/`](./.claude/skills/review-interop-sdk/). Invoke it from any compatible AI agent to get a project-aware review of your changes:
+
+```
+/review-interop-sdk
+```
+
+It checks the current branch diff (or a specific PR) against the project's TypeScript rules, changeset policy, documentation requirements, and test coverage expectations.
 
 ## License
 

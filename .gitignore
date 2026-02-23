@@ -60,7 +60,14 @@ lcov.info
 .cursor
 
 # claude
-.claude/
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/review-interop-sdk/
+!.claude/rules
+.claude/rules/*
+!.claude/rules/backend
+!.claude/rules/frontend
 
 # playwright mcp
 .playwright-mcp/
