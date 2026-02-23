@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { parseUnits } from 'viem';
+import { isNativeAddress } from '@wonderland/interop-cross-chain';
+import { formatUnits, parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { useRouteSelection } from '../hooks/useRouteSelection';
@@ -76,6 +77,18 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   }, [inputAmount, inputTokenInfo?.decimals, amountIsValid]);
 
   const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.raw);
+
+  const handleMaxClick = () => {
+    if (!tokenBalance) return;
+    if (isNativeAddress(inputTokenAddress, 'eip155')) {
+      // Reserve a small amount for gas fees
+      const GAS_BUFFER = parseUnits('0.00005', 18);
+      const max = tokenBalance.raw > GAS_BUFFER ? tokenBalance.raw - GAS_BUFFER : 0n;
+      setInputAmount(formatUnits(max, 18));
+    } else {
+      setInputAmount(tokenBalance.formatted);
+    }
+  };
 
   useEffect(() => {
     if (isConnected && connectedAddress && !hasAutoFilledRef.current) {
@@ -240,7 +253,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
             {tokenBalance && (
               <button
                 type='button'
-                onClick={() => setInputAmount(tokenBalance.formatted)}
+                onClick={handleMaxClick}
                 disabled={isDisabled}
                 className='text-xs text-accent hover:text-accent-hover font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
               >

@@ -27,21 +27,31 @@ function StepIndicator({ isCurrent, isPassed }: { isCurrent: boolean; isPassed: 
   return <div className={`${baseClasses} bg-surface-secondary border-2 border-border`} />;
 }
 
-export function ProgressView({ state }: ProgressViewProps) {
+export function ProgressView({ state, skipApproval }: ProgressViewProps) {
   const chainConfig = useChainConfig();
   const message = getProgressMessage(state);
   const originTxUrl = chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
   const fillTxHash = state.step === STEP.TRACKING ? state.update.fillTxHash : undefined;
   const fillTxUrl = chainConfig.getExplorerTxUrl(state.destinationChainId, fillTxHash);
 
-  // Determine current step index: 0=approval, 1=submit, 2=tracking
-  const currentStep = isApprovalPhase(state) ? 0 : isSubmitPhase(state) ? 1 : 2;
-
-  const steps = [
-    { id: 'approval', label: 'Approval' },
+  const allSteps = [
+    ...(!skipApproval ? [{ id: 'approval', label: 'Approval' }] : []),
     { id: 'submit', label: 'Submit' },
     { id: 'tracking', label: state.step === STEP.TRACKING ? getStateLabel(state) : 'Tracking' },
-  ].map((step, i) => ({ ...step, isCurrent: i === currentStep, isPassed: i < currentStep }));
+  ];
+
+  let currentStep: number;
+  if (skipApproval) {
+    currentStep = isSubmitPhase(state) ? 0 : 1;
+  } else if (isApprovalPhase(state)) {
+    currentStep = 0;
+  } else if (isSubmitPhase(state)) {
+    currentStep = 1;
+  } else {
+    currentStep = 2;
+  }
+
+  const steps = allSteps.map((step, i) => ({ ...step, isCurrent: i === currentStep, isPassed: i < currentStep }));
 
   return (
     <div className='p-4 rounded-xl border border-border bg-surface'>

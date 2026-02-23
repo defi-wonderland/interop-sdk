@@ -26,4 +26,5 @@ export {
     createAssetDiscoveryService,
     createOIFAssetDiscoveryService,
     isSignableOifOrder,
+    isNativeAddress,
 } from "./internal.js";
