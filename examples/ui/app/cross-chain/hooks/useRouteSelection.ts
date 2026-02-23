@@ -42,45 +42,22 @@ function pickFirst(tokens: string[], current: string): string {
   return tokens.includes(current) ? current : (tokens[0] ?? '');
 }
 
-/** If the current output chain has no compatible tokens for the input, switches to one that does. */
-function resolveOutputForInput(
-  inputChainId: number,
+/** Resolves the output token for the current output chain. Returns '' if no compatible tokens exist. */
+function resolveOutputToken(
   currentOutputChainId: number,
   providers: string[],
   inputSymbol: string | undefined,
   currentOutputToken: string,
   byChain: Record<number, readonly string[]>,
   tokenInfo: Record<number, Record<string, UITokenInfo>>,
-): { outputChainId: number; outputToken: string } {
-  // Current output chain supports this input — keep it
-  const currentCompatible = compatibleTokens(
+): string {
+  const compatible = compatibleTokens(
     byChain[currentOutputChainId] || [],
     tokenInfo[currentOutputChainId] || {},
     providers,
     inputSymbol,
   );
-  if (currentCompatible.length > 0) {
-    return { outputChainId: currentOutputChainId, outputToken: pickFirst(currentCompatible, currentOutputToken) };
-  }
-
-  // Current chain has 0 compatible tokens — find the first chain that does
-  const alternativeChainId = Object.keys(byChain)
-    .map(Number)
-    .find((id) => {
-      if (id === inputChainId) return false;
-      return compatibleTokens(byChain[id] || [], tokenInfo[id] || {}, providers, inputSymbol).length > 0;
-    });
-  if (alternativeChainId === undefined) {
-    return { outputChainId: currentOutputChainId, outputToken: '' };
-  }
-
-  const alternativeTokens = compatibleTokens(
-    byChain[alternativeChainId] || [],
-    tokenInfo[alternativeChainId] || {},
-    providers,
-    inputSymbol,
-  );
-  return { outputChainId: alternativeChainId, outputToken: pickFirst(alternativeTokens, currentOutputToken) };
+  return pickFirst(compatible, currentOutputToken);
 }
 
 /**
@@ -125,8 +102,7 @@ export function useRouteSelection(defaultInputChainId: number, defaultOutputChai
       setSelection((prev) => {
         const newInput = pickFirst(availableTokens(byChain[chainId] || [], tokenInfo[chainId] || {}), prev.inputToken);
         const meta = tokenInfo[chainId]?.[newInput];
-        const { outputChainId, outputToken } = resolveOutputForInput(
-          chainId,
+        const outputToken = resolveOutputToken(
           prev.outputChainId,
           meta?.providers ?? [],
           meta?.symbol,
@@ -134,7 +110,7 @@ export function useRouteSelection(defaultInputChainId: number, defaultOutputChai
           byChain,
           tokenInfo,
         );
-        return { ...prev, inputChainId: chainId, inputToken: newInput, outputChainId, outputToken };
+        return { ...prev, inputChainId: chainId, inputToken: newInput, outputToken };
       });
     },
     [byChain, tokenInfo],
@@ -159,8 +135,7 @@ export function useRouteSelection(defaultInputChainId: number, defaultOutputChai
     (address: string) => {
       setSelection((prev) => {
         const meta = tokenInfo[prev.inputChainId]?.[address];
-        const { outputChainId, outputToken } = resolveOutputForInput(
-          prev.inputChainId,
+        const outputToken = resolveOutputToken(
           prev.outputChainId,
           meta?.providers ?? [],
           meta?.symbol,
@@ -168,7 +143,7 @@ export function useRouteSelection(defaultInputChainId: number, defaultOutputChai
           byChain,
           tokenInfo,
         );
-        return { ...prev, inputToken: address, outputChainId, outputToken };
+        return { ...prev, inputToken: address, outputToken };
       });
     },
     [byChain, tokenInfo],
