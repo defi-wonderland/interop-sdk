@@ -1,5 +1,13 @@
 # @defi-wonderland/interop-addresses
 
+## 0.4.0
+
+### Minor Changes
+
+-   eacacee: Implement CAIP-350 for chain ID and interop addresses ERC-7930 (#161)
+-   5befe5b: Add experimental onchain chain registry support via cid.eth (#157)
+-   00d4c68: Faster ENS resolution with custom RPCs (#131)
+
 ## 0.3.0
 
 ### Minor Changes
