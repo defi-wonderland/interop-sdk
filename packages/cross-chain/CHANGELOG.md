@@ -4,14 +4,24 @@
 
 ### Minor Changes
 
--   feat: add mainnet/testnet switch support
+-   8969f6c: OIF provider full integration (#162)
+-   e4a952f: Integrate OIF provider with asset discovery validation (#163)
+-   f5924a4: Adapters for OIF typed data and gasless order lifecycle tracking (#158)
+-   354c6c1: Add OIF asset discovery service (#143)
+-   ba1d024: Across asset discovery (#156)
+-   cc2d5ca: Native ETH bridge support (#170)
+-   eacacee: Implement CAIP-350 for chain ID and interop addresses ERC-7930 (#161)
+-   df5ecaf: API order tracking (#137)
+-   f616315: Implement OIF payload validation for all order types (#130)
+-   fb9a209: Mainnet/testnet switch support (#136)
 
-    -   Add `isTestnet` config option (optional, defaults to `false`)
-    -   Make `apiUrl` optional (auto-selects based on `isTestnet`)
-    -   Testnet: https://testnet.across.to/api
-    -   Mainnet: https://app.across.to/api
-    -   Remove unused `dependencies` parameter from `createCrossChainProvider`
-    -   Make `config` parameter optional for Across provider (defaults to mainnet)
+### Patch Changes
+
+-   0d2a4f1: Improve asset discovery services with permanent caching (#167)
+-   e709abd: Cross chain demo feedback (#168)
+-   a13a045: Docs findings and simplify provider instance (#142)
+-   Updated dependencies [eacacee]
+    -   @wonderland/interop-addresses@0.4.0
 
 ## 0.2.2
 
