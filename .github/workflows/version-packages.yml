@@ -1,0 +1,46 @@
+name: Version Packages
+
+on:
+    push:
+        branches:
+            - dev
+
+concurrency:
+    group: ${{github.workflow}}-${{github.ref}}
+    cancel-in-progress: true
+
+permissions:
+    contents: write
+    pull-requests: write
+
+jobs:
+    version:
+        name: Create or update Version Packages PR
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out github repository
+              uses: actions/checkout@v4
+
+            - name: Check for pending changesets
+              id: check
+              run: |
+                  COUNT=$(find .changeset -name '*.md' ! -name README.md | wc -l | tr -d ' ')
+                  echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+            - name: Setup environment
+              if: steps.check.outputs.count != '0'
+              uses: ./.github/actions/setup
+
+            - name: Install dependencies
+              if: steps.check.outputs.count != '0'
+              run: pnpm install --frozen-lockfile
+
+            - name: Create Version Packages PR
+              if: steps.check.outputs.count != '0'
+              uses: changesets/action@v1
+              with:
+                  title: "chore: version packages"
+                  commit: "chore: version packages"
+                  version: pnpm version-packages
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
