@@ -1,4 +1,6 @@
-import { FillEvent, GetFillParams } from "../internal.js";
+import { FillEvent, GetFillParams, OrderFailureReason, OrderStatus } from "../internal.js";
+import { APIBasedFillWatcherConfig } from "../services/APIBasedFillWatcher.js";
+import { EventBasedFillWatcherConfig } from "../services/EventBasedFillWatcher.js";
 
 export interface FillWatcher {
     /**
@@ -6,9 +8,14 @@ export interface FillWatcher {
      * Performs a single query to check for fill events
      *
      * @param params - Parameters for getting the fill
-     * @returns Fill event data if found, null if not yet filled
+     * @returns Fill event data (null if not filled), order status, and optional failure reason
      */
-    getFill(params: GetFillParams): Promise<FillEvent | null>;
+    getFill(params: GetFillParams): Promise<{
+        fillEvent: FillEvent | null;
+        status: OrderStatus;
+        failureReason?: OrderFailureReason;
+        fillTxHash?: string;
+    }>;
 
     /**
      * Wait for a fill with timeout
@@ -21,3 +28,11 @@ export interface FillWatcher {
      */
     waitForFill(params: GetFillParams, timeout?: number): Promise<FillEvent>;
 }
+
+/**
+ * Union type supporting both onchain and API-based tracking
+ */
+export type FillWatcherConfig = EventBasedFillWatcherConfig | APIBasedFillWatcherConfig;
+
+// Re-export for convenience
+export type { APIBasedFillWatcherConfig, EventBasedFillWatcherConfig };

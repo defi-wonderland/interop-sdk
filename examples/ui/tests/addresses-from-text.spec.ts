@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { NETWORK_ERROR_MESSAGE } from '../app/utils/address-conversion.js';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/addresses');
@@ -10,9 +11,9 @@ test.describe('"From text" tab - Convert address', () => {
     await page.getByRole('textbox', { name: 'Interoperable Name' }).fill('vitalik.eth@eth');
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
-    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'Advanced: Text & Meta Fields' })).toBeVisible({ timeout: 10_000 });
   });
 
   test('Use example chips', async ({ page }) => {
@@ -25,9 +26,9 @@ test.describe('"From text" tab - Convert address', () => {
       await page.getByRole('button', { name: locator }).click();
       await page.getByRole('button', { name: 'Convert' }).click();
 
-      await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
-      await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
-      await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole('heading', { name: 'Advanced: Text & Meta Fields' })).toBeVisible({ timeout: 10_000 });
     }
   });
 });
@@ -78,5 +79,25 @@ test.describe('"From text" tab - Input validations', () => {
 
     await expect(page.getByText('EVM address must be a valid Ethereum address')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
+  });
+});
+
+test.describe('Error handling', () => {
+  test('displays user-friendly error message on network failure', async ({ page }) => {
+    // Abort server action requests to simulate network failure
+    await page.route('**/addresses', async (route) => {
+      const headers = route.request().headers();
+      if (headers['next-action']) {
+        return route.abort('failed');
+      }
+      return route.continue();
+    });
+
+    await page.getByRole('textbox', { name: 'Interoperable Name' }).fill('vitalik.eth@eth');
+    await page.getByRole('button', { name: 'Convert' }).click();
+
+    const errorContainer = page.getByTestId('error-container');
+    await expect(errorContainer).toBeVisible();
+    await expect(errorContainer).toContainText(NETWORK_ERROR_MESSAGE);
   });
 });

@@ -4,10 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount, useConfig, useSwitchChain } from 'wagmi';
 import {
   ensureCorrectChain,
-  handleTokenApproval,
-  submitBridgeTransaction,
+  executeDirectTransaction,
+  submitOifSignableOrder,
   trackOrder,
 } from '../services/orderExecution';
+import { useBalanceStore } from '../stores/balanceStore';
 import { STEP, isTerminal, type BridgeState, type ChainContext, type ExecuteResult } from '../types/execution';
 import { isUserRejectionError, parseError } from '../utils/errorMessages';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
@@ -18,11 +19,13 @@ interface UseOrderExecutionReturn {
   execute: (
     quote: ExecutableQuote,
     inputTokenAddress: Address,
+    outputTokenAddress: Address,
     inputAmount: bigint,
     originChainId: number,
     destinationChainId: number,
   ) => Promise<ExecuteResult>;
   reset: () => void;
+  abortTracking: () => void;
   isPendingWallet: boolean;
   isTracking: boolean;
   isComplete: boolean;
@@ -38,7 +41,6 @@ export function useOrderExecution(): UseOrderExecutionReturn {
   const [state, setState] = useState<BridgeState>(INITIAL_STATE);
   const abortControllerRef = useRef<AbortController | null>(null);
   const expectedWalletChainIdRef = useRef<number | null>(null);
-
   useEffect(() => {
     const isInErrorState = state.step === STEP.ERROR;
     const isExpectingSwitch = expectedWalletChainIdRef.current !== null;
@@ -54,10 +56,13 @@ export function useOrderExecution(): UseOrderExecutionReturn {
   const isTracking = state.step === STEP.TRACKING;
   const isComplete = isTerminal(state);
 
+  const { updateBalances } = useBalanceStore();
+
   const execute = useCallback(
     async (
       quote: ExecutableQuote,
       inputTokenAddress: Address,
+      outputTokenAddress: Address,
       inputAmount: bigint,
       originChainId: number,
       destinationChainId: number,
@@ -81,27 +86,8 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         return { success: false };
       }
 
-      const order = quote.order as {
-        type?: string;
-        payload?: {
-          to?: Address;
-          data?: Hex;
-          chainId?: number;
-        };
-      };
-
-      if (!order?.payload?.to || !order?.payload?.data) {
-        setState({
-          step: STEP.ERROR,
-          error: new Error('Invalid quote: missing transaction data'),
-          message: 'Invalid quote: missing transaction data',
-        });
-        return { success: false };
-      }
-
-      const spenderAddress = order.payload.to;
-
       try {
+        // Common: ensure wallet is on the correct chain
         const { walletClient, publicClient } = await ensureCorrectChain(
           config,
           walletChainId,
@@ -109,35 +95,37 @@ export function useOrderExecution(): UseOrderExecutionReturn {
           switchChainAsync,
           setState,
         );
-
         expectedWalletChainIdRef.current = null;
 
-        await handleTokenApproval(
-          publicClient,
+        // Branch: OIF signable vs direct transaction
+        const isSignable = quote.order.type === 'oif-escrow-v0' || quote.order.type === 'oif-3009-v0';
+        const executeFlow = isSignable ? submitOifSignableOrder : executeDirectTransaction;
+
+        const trackingId = await executeFlow({
+          quote,
           walletClient,
-          address,
+          publicClient,
+          ownerAddress: address,
           inputTokenAddress,
-          spenderAddress,
           inputAmount,
           chainContext,
-          setState,
-        );
+          onStateChange: setState,
+        });
 
-        const txHash = await submitBridgeTransaction(
-          publicClient,
-          walletClient,
-          order.payload.to,
-          order.payload.data,
-          chainContext,
-          setState,
-        );
+        // Common: track order
+        await trackOrder(quote._providerId, trackingId, chainContext, abortControllerRef.current?.signal, setState);
 
-        const providerId = quote.provider;
-        if (!providerId) {
-          throw new Error('Quote missing provider identifier');
+        if (address) {
+          updateBalances(address, [
+            { chainId: originChainId, token: inputTokenAddress },
+            { chainId: destinationChainId, token: outputTokenAddress },
+          ]).catch((balanceErr: unknown) => {
+            console.warn(
+              `[useOrderExecution] Balance refresh failed (origin: ${originChainId}, dest: ${destinationChainId}):`,
+              balanceErr,
+            );
+          });
         }
-
-        await trackOrder(providerId, txHash, chainContext, abortControllerRef.current?.signal, setState);
 
         return { success: true };
       } catch (err) {
@@ -157,23 +145,33 @@ export function useOrderExecution(): UseOrderExecutionReturn {
           ...chainContext,
         });
         return { success: false };
+      } finally {
+        updateBalances(address!, [
+          { chainId: originChainId, token: inputTokenAddress },
+          { chainId: destinationChainId, token: outputTokenAddress },
+        ]).catch((err) => {
+          console.warn('[useOrderExecution] Balance refresh failed:', err);
+        });
       }
     },
-    [isConnected, address, walletChainId, config, switchChainAsync],
+    [isConnected, address, walletChainId, config, switchChainAsync, updateBalances],
   );
 
+  const abortTracking = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
   const reset = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+    abortTracking();
     expectedWalletChainIdRef.current = null;
     setState(INITIAL_STATE);
-  }, []);
+  }, [abortTracking]);
 
   return {
     state,
     execute,
     reset,
+    abortTracking,
     isPendingWallet,
     isTracking,
     isComplete,

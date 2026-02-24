@@ -1,11 +1,14 @@
 import { ChainTypeName, ChainTypeName as ChainTypeNameEnum } from "../constants/interopAddress.js";
 import { InvalidChainIdentifier, InvalidChainType } from "../internal.js";
 import { isValidChain, isValidChainType } from "./isValidChain.js";
+import { resolveChainFromRegistry } from "./resolveChainFromRegistry.js";
 import { shortnameToChainId } from "./shortnameToChainId.js";
 
 export interface ResolveChainInput {
     chainType?: string;
     chainReference?: string;
+    /** Experimental: ENS-based chain registry domain (e.g., "cid.eth", "on.eth") */
+    useExperimentalChainRegistry?: string;
 }
 
 export interface ResolvedChain {
@@ -27,7 +30,7 @@ export interface ResolvedChain {
  * @throws {InvalidChainIdentifier} If chainReference can't be resolved or chain combination is invalid
  */
 export const resolveChain = async (input: ResolveChainInput): Promise<ResolvedChain> => {
-    const { chainType, chainReference } = input;
+    const { chainType, chainReference, useExperimentalChainRegistry } = input;
 
     // Case 1: Both chainType and chainReference provided
     if (chainType && chainReference) {
@@ -64,6 +67,19 @@ export const resolveChain = async (input: ResolveChainInput): Promise<ResolvedCh
 
     // Case 3: Only chainReference provided - resolve it
     if (chainReference) {
+        // Try onchain registry first if registry domain is provided
+        if (useExperimentalChainRegistry) {
+            const registryResult = await resolveChainFromRegistry(
+                chainReference,
+                useExperimentalChainRegistry,
+            );
+            if (registryResult) {
+                return registryResult;
+            }
+            // Fall through to offchain resolution if onchain fails
+        }
+
+        // Offchain resolution via chainid.network
         const resolvedChainId = await shortnameToChainId(chainReference);
         if (resolvedChainId) {
             return {

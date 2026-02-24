@@ -12,12 +12,11 @@ test.describe('Build tab - Convert address', () => {
 
     await page.getByRole('button', { name: 'Chain' }).click();
     await page.getByText('Ethereum Mainnet').first().click();
-
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
     await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Advanced: Text & Meta Fields' })).toBeVisible();
   });
 
   test('Use example chips', async ({ page }) => {
@@ -26,15 +25,14 @@ test.describe('Build tab - Convert address', () => {
       'nick.eth (Arbitrum One)',
       '0x8335...A02913 (Base)',
     ];
-
     for (const locator of exampleChips) {
       await page.getByRole('button', { name: locator }).click();
       await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled();
       await page.getByRole('button', { name: 'Convert' }).click();
 
-      await expect(page.getByRole('button', { name: 'Convert' })).toBeEnabled({ timeout: 30000 });
-      await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();
-      await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole('heading', { name: 'Binary Format' })).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole('heading', { name: 'Advanced: Text & Meta Fields' })).toBeVisible({ timeout: 10_000 });
     }
   });
 });
@@ -64,6 +62,7 @@ test.describe('Build tab - Address input validations', () => {
     await page.getByRole('button', { name: 'Chain' }).click();
     await page.waitForTimeout(5000);
     await page.getByText('Ethereum Mainnet').last().click();
+    await expect(page.getByRole('textbox', { name: 'Address' })).toBeEmpty();
 
     await expect(page.getByRole('button', { name: 'Convert' })).toBeDisabled();
   });
@@ -72,11 +71,14 @@ test.describe('Build tab - Address input validations', () => {
     await page
       .getByRole('textbox', { name: 'Address' })
       .fill('0x1234567890AbcdEF1234567890aBcdef12345678');
+    await expect(page.getByRole('button', { name: 'Chain' })).toHaveText('Select chain...');
 
     await expect(page.getByRole('button', { name: 'Convert' })).toBeDisabled();
   });
 
   test('Convert button is disabled when both inputs are empty', async ({ page }) => {
+    await expect(page.getByRole('textbox', { name: 'Address' })).toBeEmpty();
+    await expect(page.getByRole('button', { name: 'Chain' })).toHaveText('Select chain...');
     await expect(page.getByRole('button', { name: 'Convert' })).toBeDisabled();
   });
 

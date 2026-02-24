@@ -11,3 +11,4 @@ export * from "./ProviderExecuteFailure.exception.js";
 export * from "./ProviderTimeout.exception.js";
 export * from "./ProviderConfigFailure.exception.js";
 export * from "./OpenedIntentNotFound.exception.js";
+export * from "./AssetDiscoveryFailure.exception.js";

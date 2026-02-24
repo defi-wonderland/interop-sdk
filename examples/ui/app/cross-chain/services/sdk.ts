@@ -3,6 +3,7 @@ import {
   createCrossChainProvider,
   createProviderExecutor,
   OrderTrackerFactory,
+  type CrossChainProvider,
 } from '@wonderland/interop-cross-chain';
 import { MAINNET_RPC_URLS, TESTNET_RPC_URLS } from '../constants/chains';
 import { getIsTestnet } from '../providers';
@@ -10,26 +11,37 @@ import { getIsTestnet } from '../providers';
 const IS_TESTNET = getIsTestnet();
 const RPC_URLS = IS_TESTNET ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
 
+const OIF_API_URL = 'https://oif-api.openzeppelin.com/api';
+const OIF_SOLVER_ID = IS_TESTNET ? 'testnet-solver' : 'mainnet-solver';
+
 /**
  * Provider configuration with display names
  */
 const PROVIDER_CONFIGS = [
   {
-    protocol: PROTOCOLS.ACROSS,
     providerId: 'across',
     displayName: 'Across Protocol',
+  },
+  {
+    providerId: 'oif',
+    displayName: 'OIF Sample Solver',
   },
 ];
 
 /**
- * Cross-chain providers - created based on network configuration
+ * Cross-chain providers
  */
-const providers = PROVIDER_CONFIGS.map((config) =>
-  createCrossChainProvider(config.protocol, {
+const providers: CrossChainProvider[] = [
+  createCrossChainProvider(PROTOCOLS.ACROSS, {
     isTestnet: IS_TESTNET,
-    providerId: config.providerId,
+    providerId: 'across',
   }),
-);
+  createCrossChainProvider(PROTOCOLS.OIF, {
+    solverId: OIF_SOLVER_ID,
+    url: OIF_API_URL,
+    providerId: 'oif',
+  }),
+];
 
 /**
  * Order tracker factory - handles tracking for any provider
@@ -40,6 +52,7 @@ const trackerFactory = new OrderTrackerFactory({ rpcUrls: RPC_URLS });
  * Cross-chain executor singleton
  * - Fetches quotes from all providers
  * - Handles intent tracking for any provider via track() method
+ * - Asset discovery via discoverAssets() / getProvidersForRoute()
  */
 export const crossChainExecutor = createProviderExecutor({
   providers,

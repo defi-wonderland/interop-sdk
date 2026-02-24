@@ -4,7 +4,7 @@ title: Advanced Usage
 
 ## Provider Executor
 
-For complex scenarios, use the ProviderExecutor to manage multiple providers with sorting, timeout handling, and built-in intent tracking.
+For complex scenarios, use the ProviderExecutor to manage multiple providers with sorting, timeout handling, and built-in order tracking.
 
 ### Minimal Setup
 
@@ -24,7 +24,7 @@ const executor = createProviderExecutor({
 import {
     createCrossChainProvider,
     createProviderExecutor,
-    IntentTrackerFactory,
+    OrderTrackerFactory,
     SortingStrategyFactory,
 } from "@wonderland/interop-cross-chain";
 
@@ -34,7 +34,7 @@ const executor = createProviderExecutor({
     providers: [acrossProvider],
     sortingStrategy: SortingStrategyFactory.createStrategy("bestOutput"),
     timeoutMs: 15000,
-    trackerFactory: new IntentTrackerFactory({
+    trackerFactory: new OrderTrackerFactory({
         rpcUrls: {
             11155111: "https://sepolia.infura.io/v3/YOUR_API_KEY",
             84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY",
@@ -78,11 +78,13 @@ response.errors.forEach((error) => {
 
 For more details on the Provider Executor configuration, see the [API Reference](./api.md#provider-executor).
 
-## Intent Tracking
+## Order Tracking
 
-The executor includes built-in intent tracking when configured with a `trackerFactory`. After executing a transaction, use `executor.track()` to monitor the cross-chain transfer:
+The executor includes built-in order tracking when configured with a `trackerFactory`. After executing a transaction, use `executor.track()` to monitor the cross-chain transfer:
 
 ```typescript
+import { OrderStatus, OrderTrackerEvent } from "@wonderland/interop-cross-chain";
+
 // Execute the transaction
 const quote = response.quotes[0];
 const hash = await walletClient.sendTransaction(quote.preparedTransaction);
@@ -96,10 +98,11 @@ const tracker = executor.track({
     timeout: 300000, // 5 minutes
 });
 
-tracker.on("opened", (update) => console.log("Order opened:", update.orderId));
-tracker.on("filled", (update) => console.log("Filled!", update.fillTxHash));
-tracker.on("expired", (update) => console.log("Transfer expired"));
-tracker.on("error", (error) => console.error("Tracking error:", error));
+tracker.on(OrderStatus.Pending, (update) => console.log("Pending:", update.message));
+tracker.on(OrderStatus.Finalized, (update) => console.log("Finalized!", update.fillTxHash));
+tracker.on(OrderStatus.Failed, (update) => console.log("Failed:", update.failureReason));
+tracker.on(OrderTrackerEvent.Timeout, (payload) => console.log("Timeout:", payload.message));
+tracker.on(OrderTrackerEvent.Error, (error) => console.error("Tracking error:", error));
 ```
 
 ### One-Time Status Check
@@ -107,19 +110,19 @@ tracker.on("error", (error) => console.error("Tracking error:", error));
 For a simple status check without event-based tracking:
 
 ```typescript
-const status = await executor.getIntentStatus({
+const status = await executor.getOrderStatus({
     txHash: "0x...",
     providerId: "across",
     originChainId: 11155111,
 });
 
-console.log(status.status); // 'opening' | 'opened' | 'filling' | 'filled' | 'expired'
+console.log(status.status); // OrderStatus
 if (status.fillEvent) {
     console.log(`Filled by: ${status.fillEvent.relayer}`);
 }
 ```
 
-For more details, see [Intent Tracking](./intent-tracking.md).
+For more details, see [Order Tracking](./intent-tracking.md).
 
 ## Error Handling
 
@@ -158,7 +161,7 @@ try {
 
 1. Always check both `quotes` and `errors` in the executor response
 2. Use sorting strategies to get the best quotes first
-3. Use Intent Tracker to monitor cross-chain transfers
+3. Use `OrderTracker` to monitor cross-chain transfers
 4. Handle errors appropriately using the provided error types
 5. Set appropriate timeouts for quote requests
 6. Test your implementation on testnet before moving to production

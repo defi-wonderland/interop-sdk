@@ -9,25 +9,30 @@ export interface AcrossOrder {
         to: Address;
         data: string;
         gas: string;
-        maxFeePerGas: string;
-        maxPriorityFeePerGas: string;
+        maxFeePerGas?: string;
+        maxPriorityFeePerGas?: string;
     };
     metadata: object;
 }
 
-export interface QuoteWithAcross extends Omit<Quote, "order"> {
+/**
+ * A quote returned by a provider, before the executor enriches it.
+ * Extends the OIF Quote type to also accept Across orders.
+ */
+export interface ProviderQuote extends Omit<Quote, "order"> {
     order: Order | AcrossOrder;
+    preparedTransaction?: PrepareTransactionRequestReturnType;
 }
 
 /**
- * An executable quote is a quote that has been prepared for execution
- * @description An executable quote is a quote that has been prepared for execution
- * @example
- * {
- *   ...quote,
- *   preparedTransaction: PrepareTransactionRequestReturnType,
- * }
+ * A quote ready for execution — enriched by ProviderExecutor.getQuotes()
+ * with the SDK executor identifier for internal routing.
  */
-export interface ExecutableQuote extends QuoteWithAcross {
-    preparedTransaction?: PrepareTransactionRequestReturnType;
+export interface ExecutableQuote extends ProviderQuote {
+    /**
+     * @internal Identifies which SDK executor handles this quote (submit, tracking).
+     * Kept separate from `provider` (the solver's original value, part of HMAC)
+     * so the quote can be sent back to the solver unmodified.
+     */
+    _providerId: string;
 }

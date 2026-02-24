@@ -1,8 +1,7 @@
 import { UNKNOWN_TOKEN_SYMBOL, NOT_AVAILABLE } from '../constants';
 import { getProviderDisplayName } from '../services/sdk';
-import { formatAmount, formatPercentage, formatETA, formatUsdAmount } from './formatting';
-import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
-import type { TokenInfo } from '@wonderland/interop-cross-chain';
+import { formatAmount, formatPercentage, formatETA, formatUsdAmount, formatUsdAmountCompact } from './formatting';
+import type { ExecutableQuote, TokenInfo } from '@wonderland/interop-cross-chain';
 
 export interface FormattedQuoteData {
   inputAmount: string;
@@ -21,6 +20,7 @@ export interface FormattedQuoteData {
   originGasSymbol?: string;
   hasOriginGas?: boolean; // True if originGas is present and non-zero (even if formatted value rounds to 0)
   gasSimulationFailed?: boolean;
+  costCompact?: string; // Compact total cost for mobile (e.g. "<$0.01")
 }
 
 /**
@@ -32,10 +32,10 @@ export function formatQuoteData(
   outputTokenAddress: string,
   inputChainId: number,
   outputChainId: number,
-  tokenInfo: Record<number, Record<string, TokenInfo>>,
+  tokenMetadata: Record<number, Record<string, TokenInfo>>,
 ): FormattedQuoteData {
-  const inputTokenInfo = tokenInfo[inputChainId]?.[inputTokenAddress];
-  const outputTokenInfo = tokenInfo[outputChainId]?.[outputTokenAddress];
+  const inputTokenInfo = tokenMetadata[inputChainId]?.[inputTokenAddress];
+  const outputTokenInfo = tokenMetadata[outputChainId]?.[outputTokenAddress];
 
   const preview = quote.preview;
   const inputPreview = preview?.inputs?.[0];
@@ -50,8 +50,8 @@ export function formatQuoteData(
     : NOT_AVAILABLE;
 
   const eta = quote.eta ? formatETA(quote.eta) : NOT_AVAILABLE;
-  const provider = quote.provider || '';
-  const providerDisplayName = getProviderDisplayName(provider);
+  const effectiveProviderId = quote._providerId || (quote.order as { type?: string })?.type || 'unknown';
+  const providerDisplayName = getProviderDisplayName(effectiveProviderId);
 
   // Extract fee information from metadata (provider-specific structure)
   let feeTotal: string | undefined;
@@ -158,13 +158,18 @@ export function formatQuoteData(
     }
   }
 
+  const feeNum = feeTotalUsd ? parseFloat(feeTotalUsd.replace('$', '')) : 0;
+  const gasNum = originGasUsd ? parseFloat(originGasUsd.replace('$', '')) : 0;
+  const totalCost = feeNum + gasNum;
+  const costCompact = gasSimulationFailed && totalCost === 0 ? 'gas TBD' : formatUsdAmountCompact(totalCost);
+
   return {
     inputAmount,
     outputAmount,
     inputSymbol: inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL,
     outputSymbol: outputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL,
     eta,
-    provider,
+    provider: effectiveProviderId,
     providerDisplayName,
     feeTotal,
     feeTotalUsd,
@@ -175,5 +180,6 @@ export function formatQuoteData(
     originGasSymbol,
     hasOriginGas,
     gasSimulationFailed,
+    costCompact,
   };
 }

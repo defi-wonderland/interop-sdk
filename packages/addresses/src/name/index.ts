@@ -58,17 +58,23 @@ export interface ParsedInteroperableNameResult<
  * const result2 = await parseName("vitalik.eth@eip155:1", { representation: "binary" });
  * ```
  */
+export interface ParseNameOptions {
+    representation?: "binary" | "text";
+    /** Experimental: ENS-based chain registry domain (e.g., "cid.eth", "on.eth") */
+    useExperimentalChainRegistry?: string;
+}
+
 export function parseName(
     input: string | ParsedInteropNameComponents,
-    opts: { representation: "binary" },
+    opts: ParseNameOptions & { representation: "binary" },
 ): Promise<ParsedInteroperableNameResult<InteroperableAddressBinary>>;
 export function parseName(
     input: string | ParsedInteropNameComponents,
-    opts?: { representation?: "text" },
+    opts?: ParseNameOptions & { representation?: "text" },
 ): Promise<ParsedInteroperableNameResult<InteroperableAddressText>>;
 export async function parseName(
     input: string | ParsedInteropNameComponents,
-    opts?: { representation?: "binary" | "text" },
+    opts?: ParseNameOptions,
 ): Promise<ParsedInteroperableNameResult> {
     const representation = opts?.representation ?? "text";
     // If string, parse it first; otherwise use parsed components directly
@@ -89,6 +95,7 @@ export async function parseName(
     const resolvedChain = await resolveChain({
         chainType: parsed.chainType,
         chainReference: parsed.chainReference,
+        useExperimentalChainRegistry: opts?.useExperimentalChainRegistry,
     });
     const resolvedChainType = resolvedChain.chainType;
     const resolvedChainRef = resolvedChain.chainReference;
@@ -223,4 +230,5 @@ export const formatName = (
 export { isValidChain, isValidChainType, isViemChainId } from "./isValidChain.js";
 export { resolveAddress } from "./resolveENS.js";
 export { resolveChain } from "./resolveChain.js";
+export { resolveChainFromRegistry } from "./resolveChainFromRegistry.js";
 export { shortnameToChainId } from "./shortnameToChainId.js";

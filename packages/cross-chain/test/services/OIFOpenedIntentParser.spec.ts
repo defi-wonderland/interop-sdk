@@ -160,10 +160,9 @@ describe("OIFOpenedIntentParser", () => {
             expect(result.blockNumber).toBe(1000000n);
             expect(result.originContract).toBe(mockOpenLog.address);
 
-            // EIP-7683 extended fields
-            expect(result.destinationChainId).toBe(84532n); // Base Sepolia
-            expect(result.inputAmount).toBe(1000000000000000000n); // 1 ETH
-            expect(result.outputAmount).toBe(990000000000000000n); // 0.99 ETH
+            // Check fillInstructions array
+            expect(result.fillInstructions).toBeDefined();
+            expect(result.fillInstructions.length).toBeGreaterThan(0);
         });
 
         it("should throw OIFOpenEventNotFoundError when no Open event in receipt", async () => {

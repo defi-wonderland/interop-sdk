@@ -1,8 +1,12 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { isNativeAddress, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { Footer, Navigation } from '../components';
 import {
+  DiscoveryLoading,
+  DiscoveryError,
+  DiscoveryEmpty,
   NetworkSwitch,
   OrderTracking,
   QuoteCard,
@@ -13,10 +17,11 @@ import {
   TooltipProvider,
   type ToastType,
 } from './components';
-import { useOrderExecution } from './hooks';
-import { useQuotes } from './hooks/useQuotes';
+import { useOrderExecution, useChainConfig } from './hooks';
+import { useQuotes, QuoteStatus } from './hooks/useQuotes';
+import { useDiscoveredAssets } from './providers';
+import { useFillWorkaround } from './services/orderExecution/fillDetection';
 import { STEP } from './types/execution';
-import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address } from 'viem';
 
 interface ToastState {
@@ -25,8 +30,12 @@ interface ToastState {
 }
 
 export function CrossChainClient() {
-  const { quotes, errors, isLoading, fetchQuotes, clearQuotes } = useQuotes();
-  const { state: executionState, execute, reset: resetExecution } = useOrderExecution();
+  const { quotes, errors, status: quoteStatus, fetchQuotes, clearQuotes } = useQuotes();
+  const { state: rawExecutionState, execute, reset: resetExecution, abortTracking } = useOrderExecution();
+  // WORKAROUND: OIF solver never finalizes — promote TRACKING→DONE on fillTxHash. Remove when solver is fixed.
+  const executionState = useFillWorkaround(rawExecutionState, abortTracking);
+  const chainConfig = useChainConfig();
+  const { retryDiscovery } = useDiscoveredAssets();
 
   const [selectedInputToken, setSelectedInputToken] = useState<string>('');
   const [selectedOutputToken, setSelectedOutputToken] = useState<string>('');
@@ -35,8 +44,6 @@ export function CrossChainClient() {
   const [inputChainId, setInputChainId] = useState<number>(0);
   const [outputChainId, setOutputChainId] = useState<number>(0);
   const [toast, setToast] = useState<ToastState | null>(null);
-
-  // Determine if execution has started (not idle)
   const isExecutionStarted = executionState.step !== STEP.IDLE;
 
   const closeToast = useCallback(() => {
@@ -69,11 +76,23 @@ export function CrossChainClient() {
   };
 
   const handleExecuteQuote = async (quote: ExecutableQuote) => {
-    const result = await execute(quote, selectedInputToken as Address, inputAmountRaw, inputChainId, outputChainId);
+    const result = await execute(
+      quote,
+      selectedInputToken as Address,
+      selectedOutputToken as Address,
+      inputAmountRaw,
+      inputChainId,
+      outputChainId,
+    );
     if (result.userRejected) {
       setToast({ message: 'Transaction rejected', type: 'info' });
     }
   };
+
+  const handleInputChange = useCallback(() => {
+    setSelectedQuote(null);
+    clearQuotes();
+  }, [clearQuotes]);
 
   const handleReset = useCallback(() => {
     resetExecution();
@@ -89,7 +108,6 @@ export function CrossChainClient() {
         <div className='flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 py-12 sm:px-6 sm:py-16'>
           <div className='flex-1 flex flex-col gap-12'>
             <header className='flex flex-col items-center gap-4 text-center relative'>
-              {/* Network Switch in top right */}
               <div className='absolute top-0 right-0'>
                 <NetworkSwitch />
               </div>
@@ -103,20 +121,32 @@ export function CrossChainClient() {
               </p>
             </header>
 
-            {/* Two-column layout */}
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 items-start'>
-              {/* Left column: Form and Quote Details */}
               <div className='flex flex-col gap-6'>
-                <SwapForm onSubmit={handleSubmit} isLoading={isLoading} isDisabled={isExecutionStarted} />
+                {chainConfig.isDiscovering && <DiscoveryLoading />}
 
-                {/* Show Quote Details only when not in tracking mode */}
+                {!chainConfig.isDiscovering && chainConfig.discoveryError && (
+                  <DiscoveryError error={chainConfig.discoveryError} onRetry={retryDiscovery} />
+                )}
+
+                {chainConfig.isDiscovered &&
+                  !chainConfig.discoveryError &&
+                  chainConfig.SUPPORTED_CHAINS.length === 0 && <DiscoveryEmpty />}
+
+                {chainConfig.isDiscovered && chainConfig.SUPPORTED_CHAINS.length > 0 && (
+                  <SwapForm
+                    onSubmit={handleSubmit}
+                    onInputChange={handleInputChange}
+                    isLoading={quoteStatus === QuoteStatus.LOADING}
+                    isDisabled={isExecutionStarted}
+                  />
+                )}
+
                 {selectedQuote && !isExecutionStarted && <QuoteDetails quote={selectedQuote} />}
               </div>
 
-              {/* Right column: Quotes List or Isolated Selected Quote + Tracking */}
               <div className='flex flex-col gap-4'>
                 {isExecutionStarted && selectedQuote ? (
-                  // Isolated selected quote + tracking during execution
                   <>
                     <div className='rounded-xl border border-border bg-background/50 p-4'>
                       <h3 className='text-sm font-semibold text-text-primary mb-3'>Selected Quote</h3>
@@ -130,20 +160,23 @@ export function CrossChainClient() {
                         hideExecuteButton={true}
                       />
                     </div>
-                    <OrderTracking state={executionState} onReset={handleReset} />
+                    <OrderTracking
+                      state={executionState}
+                      onReset={handleReset}
+                      skipApproval={isNativeAddress(selectedInputToken, 'eip155')}
+                    />
                   </>
                 ) : (
-                  // Normal quote list
                   <QuoteList
                     quotes={quotes}
                     errors={errors}
+                    status={quoteStatus}
                     inputTokenAddress={selectedInputToken}
                     outputTokenAddress={selectedOutputToken}
                     inputChainId={inputChainId}
                     outputChainId={outputChainId}
                     selectedQuoteId={selectedQuote?.quoteId}
                     executionState={executionState}
-                    isLoading={isLoading}
                     onSelectQuote={handleSelectQuote}
                     onExecuteQuote={handleExecuteQuote}
                   />
@@ -155,7 +188,6 @@ export function CrossChainClient() {
           <Footer />
         </div>
 
-        {/* Toast notifications */}
         {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
       </div>
     </TooltipProvider>

@@ -1,14 +1,22 @@
-import { GetQuoteRequest } from "@openintentsframework/oif-specs";
+import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
+import { decodeAddress } from "@wonderland/interop-addresses";
 import { Hex } from "viem";
 
+import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import {
+    AssetDiscoveryFactory,
+    AssetDiscoveryOptions,
+    AssetDiscoveryService,
     CrossChainProvider,
+    DiscoveredAssets,
     ExecutableQuote,
+    mergeDiscoveredAssets,
     OrderTracker,
     OrderTrackerFactory,
     OrderTrackingInfo,
     ProviderNotFound,
     ProviderTimeout,
+    RouteQuery,
     SortingStrategy,
     WatchOrderParams,
 } from "../internal.js";
@@ -43,6 +51,7 @@ class ProviderExecutor {
     private readonly timeoutMs: number;
     private readonly trackerFactory: OrderTrackerFactory;
     private readonly trackerCache: Map<string, OrderTracker> = new Map();
+    private readonly discoveryCache: Map<string, AssetDiscoveryService> = new Map();
 
     /**
      * Constructor - internal use only, prefer createProviderExecutor() factory
@@ -61,6 +70,62 @@ class ProviderExecutor {
         this.sortingStrategy = sortingStrategy ?? getDefaultSortingStrategy();
         this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
         this.trackerFactory = trackerFactory ?? new OrderTrackerFactory();
+
+        this.initDiscoveryServices(providers);
+    }
+
+    /**
+     * Create and cache discovery services for all providers that support it.
+     * Each service starts prefetching immediately via the factory.
+     */
+    private initDiscoveryServices(providers: CrossChainProvider[]): void {
+        const factory = new AssetDiscoveryFactory();
+        for (const provider of providers) {
+            const service = factory.createService(provider);
+            if (service) {
+                this.discoveryCache.set(provider.getProviderId(), service);
+            }
+        }
+    }
+
+    /**
+     * Check whether a provider supports all assets in the quote request.
+     * Returns false if any input or output asset is not supported, avoiding unnecessary HTTP calls.
+     * Uses the pre-warmed discovery cache so this is typically instant.
+     */
+    private async supportsRequestedAssets(
+        provider: CrossChainProvider,
+        params: GetQuoteRequest,
+    ): Promise<boolean> {
+        try {
+            const discovery = this.discoveryCache.get(provider.getProviderId());
+            if (!discovery) return true;
+
+            const { inputs, outputs } = params.intent;
+            const uniqueAssets = [...new Set([...inputs, ...outputs].map((e) => e.asset))];
+
+            const assetPromises = uniqueAssets.map((asset) => {
+                const decoded = decodeAddress(asset as Hex);
+                return discovery.isAssetSupported(Number(decoded.chainReference), asset);
+            });
+
+            const results = await Promise.all(assetPromises);
+
+            return results.every((result) => result !== null);
+        } catch (error) {
+            if (error instanceof AssetDiscoveryFailure) {
+                console.warn(
+                    `[ProviderExecutor] Asset discovery failed for ${provider.getProviderId()}: ${error.message}`,
+                    error.details,
+                );
+            } else {
+                console.warn(
+                    `[ProviderExecutor] Unexpected error checking asset support for ${provider.getProviderId()}:`,
+                    error,
+                );
+            }
+            return true;
+        }
     }
 
     private splitQuotesAndErrors(quotes: (ExecutableQuote | GetQuotesError)[]): GetQuotesResponse {
@@ -79,10 +144,15 @@ class ProviderExecutor {
         const resultQuotes = await Promise.all(
             Object.values(this.providers).map(async (provider) => {
                 try {
+                    const isSupported = await this.supportsRequestedAssets(provider, params);
+                    if (!isSupported) {
+                        return [];
+                    }
+
                     const quotesPromise = provider.getQuotes(params).then((quotes) =>
                         quotes.map((quote) => ({
                             ...quote,
-                            provider: provider.getProviderId(),
+                            _providerId: provider.getProviderId(),
                         })),
                     );
 
@@ -115,6 +185,28 @@ class ProviderExecutor {
             quotes: this.sortingStrategy.sort(response.quotes),
             errors: response.errors,
         };
+    }
+
+    /**
+     * Submit a signed order to the appropriate provider.
+     * Looks up the provider from the quote's provider field and delegates.
+     *
+     * @param quote - The executable quote containing the order
+     * @param signature - The EIP-712 signature (hex or bytes)
+     * @returns The post order response (contains orderId for tracking)
+     */
+    async submitSignedOrder(
+        quote: ExecutableQuote,
+        signature: Hex | Uint8Array,
+    ): Promise<PostOrderResponse> {
+        const providerId = quote._providerId;
+
+        const provider = this.providers[providerId];
+        if (!provider) {
+            throw new ProviderNotFound(providerId);
+        }
+
+        return provider.submitSignedOrder(quote, signature);
     }
 
     /**
@@ -212,6 +304,70 @@ class ProviderExecutor {
     }): Promise<OrderTrackingInfo> {
         const tracker = this.getOrCreateTracker(params.providerId);
         return tracker.getOrderStatus(params.txHash, params.originChainId);
+    }
+
+    /**
+     * Discover supported assets from all providers
+     *
+     * Aggregates asset discovery results from all registered providers into
+     * a single DiscoveredAssets structure with CAIP-2 chain keys and flat
+     * token metadata. Uses the pre-warmed discovery cache so results are
+     * typically available immediately.
+     *
+     * @param options - Discovery options (chain filtering)
+     * @returns Aggregated discovered assets
+     */
+    async discoverAssets(options?: AssetDiscoveryOptions): Promise<DiscoveredAssets> {
+        const promises = Array.from(this.discoveryCache.values()).map((service) =>
+            service.getSupportedAssets(options),
+        );
+
+        const settled = await Promise.allSettled(promises);
+        const results = settled
+            .filter(
+                (
+                    outcome,
+                ): outcome is PromiseSettledResult<DiscoveredAssets> & { status: "fulfilled" } =>
+                    outcome.status === "fulfilled",
+            )
+            .map((outcome) => outcome.value);
+
+        if (results.length === 0) {
+            return { tokensByChain: {}, tokenMetadata: {} } as DiscoveredAssets;
+        }
+
+        return mergeDiscoveredAssets(results);
+    }
+
+    /**
+     * Find which providers support a given origin/destination route.
+     *
+     * Both assets use EIP-7930 interop addresses (which encode chain ID),
+     * so the lookup is two direct hits into `tokenMetadata`. Discovery data
+     * is pre-warmed at construction, so this resolves near-instantly.
+     *
+     * @param query - Route query with origin and destination interop addresses
+     * @returns Array of provider IDs that support the route
+     *
+     * @example
+     * ```typescript
+     * const providers = await executor.getProvidersForRoute({
+     *   originAsset: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+     *   destinationAsset: "0x00010000A4B10101af88d065e77c8cC2239327C5EDb3A432268e5831",
+     * });
+     * ```
+     */
+    async getProvidersForRoute(query: RouteQuery): Promise<string[]> {
+        const assets = await this.discoverAssets();
+
+        const originMeta = assets.tokenMetadata[query.originAsset];
+        const destMeta = assets.tokenMetadata[query.destinationAsset];
+
+        if (!originMeta || !destMeta) {
+            return [];
+        }
+
+        return originMeta.providers.filter((p) => destMeta.providers.includes(p));
     }
 
     /**

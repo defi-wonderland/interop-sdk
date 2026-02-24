@@ -1,5 +1,5 @@
 import { type ParsedInteroperableNameResult } from '@wonderland/interop-addresses';
-import { parseNameAction } from '../actions/parse-name';
+import { parseNameAction, type ParseNameActionOptions } from '../actions/parse-name';
 import { parseInteroperableAddressForDisplay } from './demo-helpers';
 import type { ParsedBinary, ParsedInteroperableName } from './demo-helpers';
 
@@ -13,10 +13,22 @@ export interface ConversionResult {
   parsedResult: ParsedInteroperableNameResult;
 }
 
-export async function convertFromReadable(interoperableName: string): Promise<ConversionResult> {
+export interface ConversionOptions {
+  /** Experimental: ENS-based chain registry domain (e.g., "cid.eth") */
+  useExperimentalChainRegistry?: string;
+}
+
+export async function convertFromReadable(
+  interoperableName: string,
+  options?: ConversionOptions,
+): Promise<ConversionResult> {
   let result;
+  const parseOptions: ParseNameActionOptions | undefined = options?.useExperimentalChainRegistry
+    ? { useExperimentalChainRegistry: options.useExperimentalChainRegistry }
+    : undefined;
+
   try {
-    result = await parseNameAction(interoperableName);
+    result = await parseNameAction(interoperableName, parseOptions);
   } catch {
     throw new Error(NETWORK_ERROR_MESSAGE);
   }

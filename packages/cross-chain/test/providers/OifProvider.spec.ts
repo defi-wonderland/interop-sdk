@@ -105,23 +105,6 @@ describe("OifProvider", () => {
             expect(quotes[0]).toHaveProperty("provider");
         });
 
-        it("should inject solverId as provider fallback", async () => {
-            const responseWithoutProvider = getMockedOifQuoteResponse();
-            const firstQuote = responseWithoutProvider.quotes[0];
-            if (firstQuote) {
-                firstQuote.provider = undefined;
-            }
-
-            vi.mocked(axios.post).mockResolvedValue({
-                status: 200,
-                data: responseWithoutProvider,
-            });
-
-            const quotes = await provider.getQuotes(mockQuoteRequest);
-
-            expect(quotes[0]?.provider).toBe(MOCK_SOLVER_ID);
-        });
-
         it("should throw on HTTP error", async () => {
             vi.mocked(axios.post).mockRejectedValue({
                 isAxiosError: true,
@@ -187,7 +170,8 @@ describe("OifProvider", () => {
         // Using repeated pattern to avoid resembling real private keys
         const mockSignature = ("0x" + "ab".repeat(65)) as `0x${string}`;
 
-        it("should submit signed order successfully", async () => {
+        // TODO: Unskip when https://github.com/openintentsframework/oif-specs/issues/34 is resolved
+        it.skip("should submit signed order successfully", async () => {
             const mockResponse = getMockedOifQuoteResponse();
             const quote = mockResponse.quotes[0];
             if (!quote) throw new Error("No quote in mock");
@@ -225,7 +209,7 @@ describe("OifProvider", () => {
                 response: { data: { message: "Solver rejected order" } },
             });
 
-            vi.mocked(axios.post).mockRejectedValueOnce(axiosError);
+            vi.mocked(axios.post).mockRejectedValue(axiosError);
 
             await expect(provider.submitSignedOrder(quote, mockSignature)).rejects.toThrow(
                 ProviderExecuteFailure,

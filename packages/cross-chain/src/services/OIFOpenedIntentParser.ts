@@ -14,18 +14,16 @@ import {
 
 /**
  * Parser for OIF (Open Intent Framework) standard Open events.
- * For protocols that emit the standard EIP-7683 Open event.
+ * For protocols that emit the standard ERC-7683 Open event.
  *
- * Extracts data from the EIP-7683 ResolvedCrossChainOrder struct:
- * - destinationChainId from fillInstructions[0]
- * - inputAmount from maxSpent[0] (first input token)
- * - outputAmount from minReceived[0] (first output token)
+ * Extracts the complete ERC-7683 ResolvedCrossChainOrder struct including:
+ * - All fields from the spec (user, originChainId, openDeadline, fillDeadline, orderId)
+ * - Full arrays: maxSpent[], minReceived[], fillInstructions[]
+ * - SDK metadata: txHash, blockNumber, originContract
  *
- * NOTE: This implementation currently supports single-token intents only.
- * EIP-7683 allows multi-token intents (multiple entries in maxSpent/minReceived),
- * but this parser only extracts the first token from each array.
+ * Fully supports multi-token and multi-chain intents as defined in ERC-7683.
  *
- * @see https://eips.ethereum.org/EIPS/eip-7683
+ * @see https://www.erc7683.org/spec
  */
 export class OIFOpenedIntentParser implements OpenedIntentParser {
     constructor(private readonly dependencies: OpenedIntentParserDependencies) {}
@@ -37,12 +35,13 @@ export class OIFOpenedIntentParser implements OpenedIntentParser {
     /**
      * Parse OIF Open event from a transaction and return OpenedIntent.
      *
-     * Extracts the full intent data from the EIP-7683 Open event including
-     * destination chain, input amounts, and output amounts.
+     * Extracts the complete ERC-7683 ResolvedCrossChainOrder struct from the Open event,
+     * including all arrays (maxSpent, minReceived, fillInstructions) for full multi-token
+     * and multi-chain support.
      *
      * @param txHash - Transaction hash to parse
      * @param chainId - Chain ID where the transaction occurred
-     * @returns Complete opened intent data
+     * @returns Complete opened intent data matching ERC-7683 spec
      * @throws {OIFOpenEventNotFoundError} If Open event is not found
      * @throws {InvalidOpenEventError} If Open event data is malformed
      */
@@ -74,50 +73,43 @@ export class OIFOpenedIntentParser implements OpenedIntentParser {
                 throw new InvalidOpenEventError("Missing orderId or resolvedOrder");
             }
 
-            // Validate fillInstructions exist for destination chain
-            const firstFillInstruction = resolvedOrder.fillInstructions?.[0];
-            if (!firstFillInstruction) {
+            if (!resolvedOrder.maxSpent || resolvedOrder.maxSpent.length === 0) {
+                throw new InvalidOpenEventError("Missing maxSpent in Open event");
+            }
+            if (!resolvedOrder.minReceived || resolvedOrder.minReceived.length === 0) {
+                throw new InvalidOpenEventError("Missing minReceived in Open event");
+            }
+            if (!resolvedOrder.fillInstructions || resolvedOrder.fillInstructions.length === 0) {
                 throw new InvalidOpenEventError("Missing fillInstructions in Open event");
             }
 
-            // Extract destination chain from first fill instruction
-            // TODO: Multi-token support - handle multiple fill instructions for different destination chains
-            const destinationChainId = firstFillInstruction.destinationChainId;
-
-            // Extract input amount from first maxSpent entry (what user is spending)
-            // TODO: Multi-token support - EIP-7683 allows multiple input tokens in maxSpent[].
-            //       Current implementation only uses the first token. For multi-token intents,
-            //       consider returning the full array or a structured object with per-token amounts.
-            const firstInput = resolvedOrder.maxSpent?.[0];
-            if (!firstInput) {
-                throw new InvalidOpenEventError("Missing maxSpent in Open event");
-            }
-            const inputAmount = firstInput.amount;
-
-            // Extract output amount from first minReceived entry (what user will receive)
-            // TODO: Multi-token support - EIP-7683 allows multiple output tokens in minReceived[].
-            //       Current implementation only uses the first token. For multi-token intents,
-            //       consider returning the full array or a structured object with per-token amounts.
-            const firstOutput = resolvedOrder.minReceived?.[0];
-            if (!firstOutput) {
-                throw new InvalidOpenEventError("Missing minReceived in Open event");
-            }
-            const outputAmount = firstOutput.amount;
-
-            // Convert orderId bytes32 to bigint for depositId
-            const depositId = BigInt(orderId);
+            const maxSpent = resolvedOrder.maxSpent.map((output) => ({
+                ...output,
+                chainId: Number(output.chainId),
+            }));
+            const minReceived = resolvedOrder.minReceived.map((output) => ({
+                ...output,
+                chainId: Number(output.chainId),
+            }));
+            const fillInstructions = resolvedOrder.fillInstructions.map((instruction) => ({
+                ...instruction,
+                destinationChainId: Number(instruction.destinationChainId),
+            }));
 
             return {
+                // ERC-7683 ResolvedCrossChainOrder fields
+                user: resolvedOrder.user,
+                originChainId: Number(resolvedOrder.originChainId),
+                openDeadline: resolvedOrder.openDeadline,
+                fillDeadline: resolvedOrder.fillDeadline,
                 orderId,
+                maxSpent,
+                minReceived,
+                fillInstructions,
+                // SDK metadata fields
                 txHash,
                 blockNumber: receipt.blockNumber,
                 originContract: openLog.address,
-                user: resolvedOrder.user,
-                fillDeadline: resolvedOrder.fillDeadline,
-                depositId,
-                destinationChainId,
-                inputAmount,
-                outputAmount,
             };
         } catch (error) {
             if (

@@ -1,5 +1,6 @@
 'use client';
 
+import { QuoteStatus } from '../hooks/useQuotes';
 import { ErrorList } from './ErrorList';
 import { QuoteCard } from './QuoteCard';
 import { SwapIcon, BoltIcon, ClockIcon } from './icons';
@@ -14,13 +15,13 @@ interface ErrorItem {
 interface QuoteListProps {
   quotes: ExecutableQuote[];
   errors: ErrorItem[];
+  status: QuoteStatus;
   inputTokenAddress: string;
   outputTokenAddress: string;
   inputChainId: number;
   outputChainId: number;
   selectedQuoteId?: string;
   executionState?: BridgeState;
-  isLoading?: boolean;
   onSelectQuote?: (quote: ExecutableQuote) => void;
   onExecuteQuote?: (quote: ExecutableQuote) => void;
 }
@@ -46,6 +47,20 @@ function QuotePlaceholder() {
           <span>Fast settlement times</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+function NoQuotesFound() {
+  return (
+    <div className='flex flex-col items-center justify-center py-12 px-6 text-center h-full'>
+      <div className='w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mb-4'>
+        <SwapIcon className='w-8 h-8 text-warning' />
+      </div>
+      <h3 className='text-lg font-semibold text-text-primary mb-2'>No Routes Found</h3>
+      <p className='text-sm text-text-secondary max-w-sm'>
+        No providers returned routes for this token pair. Try a different combination.
+      </p>
     </div>
   );
 }
@@ -97,17 +112,17 @@ function QuoteListWrapper({ children, errors }: { children: React.ReactNode; err
 export function QuoteList({
   quotes,
   errors,
+  status,
   inputTokenAddress,
   outputTokenAddress,
   inputChainId,
   outputChainId,
   selectedQuoteId,
   executionState,
-  isLoading = false,
   onSelectQuote,
   onExecuteQuote,
 }: QuoteListProps) {
-  if (isLoading) {
+  if (status === QuoteStatus.LOADING) {
     return (
       <QuoteListWrapper errors={errors}>
         <QuoteListLoading />
@@ -118,14 +133,14 @@ export function QuoteList({
   if (quotes.length === 0) {
     return (
       <QuoteListWrapper errors={errors}>
-        <QuotePlaceholder />
+        {status === QuoteStatus.IDLE ? <QuotePlaceholder /> : <NoQuotesFound />}
       </QuoteListWrapper>
     );
   }
 
   return (
     <QuoteListWrapper errors={errors}>
-      <div className='p-3 pb-6 flex flex-col gap-4'>
+      <div className='px-3 pt-3 pb-1.5 flex flex-col gap-4'>
         {quotes.map((quote, index) => (
           <QuoteCard
             key={quote.quoteId || index}

@@ -113,7 +113,13 @@ if (selectedQuote?.preparedTransaction) {
     -   `.getProviderId()` – Returns the provider identifier.
     -   `.getQuotes(params)` – Fetch quotes for a cross-chain request (OIF GetQuoteRequest format).
     -   `.submitSignedOrder(quote, signature)` – Submit a signed order to the provider (throws MethodNotImplemented for providers that don't support it, like Across).
-    -   `.getTrackingConfig()` – Get configuration for intent tracking.
+    -   `.getTrackingConfig()` – Get configuration for order tracking.
+
+### Tracking Notes (Across)
+
+-   **Mainnet**: fill tracking defaults to **API-based polling** via the Across API.
+-   **Testnet**: fill tracking defaults to **event-based watching** (Across testnet API is not reliable).
+-   The SDK still parses the **origin-chain open event**, so provide an origin-chain RPC URL for robust tracking.
 
 ### Provider Executor
 
@@ -121,9 +127,56 @@ if (selectedQuote?.preparedTransaction) {
     -   Config: `{ providers: CrossChainProvider[], sortingStrategy?, timeoutMs?, trackerFactory? }`
 -   `ProviderExecutor`
     -   `.getQuotes(params)` – Get quotes from all providers (params: GetQuoteRequest, returns: GetQuotesResponse).
-    -   `.prepareTracking(providerId)` – Prepare intent tracking for a provider.
+    -   `.prepareTracking(providerId)` – Prepare order tracking for a provider.
     -   `.track(params)` – Track an existing transaction.
-    -   `.getIntentStatus(params)` – Get current status without watching.
+    -   `.getOrderStatus(params)` – Get current status without watching.
+
+### Asset Discovery
+
+The SDK provides utilities to discover supported assets from providers. All discovery methods return a pre-processed `DiscoveredAssets` structure ready for consumption.
+
+**Via ProviderExecutor (recommended):**
+
+```typescript
+import { toChainIdentifier } from "@wonderland/interop-addresses";
+import { createProviderExecutor } from "@wonderland/interop-cross-chain";
+
+const executor = createProviderExecutor({ providers: [acrossProvider] });
+
+// Discover assets from all configured providers
+const discovered = await executor.discoverAssets({ chainIds: [1, 42161] });
+
+// Get tokens for Ethereum using CAIP-350 chain identifier
+const ethTokens = discovered.tokensByChain[toChainIdentifier(1)]; // "eip155:1"
+
+// Get metadata for a specific token (flat lookup by interop address)
+const usdc = discovered.tokenMetadata["0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"];
+console.log(usdc.symbol); // "USDC"
+console.log(usdc.decimals); // 6
+```
+
+**Via individual service:**
+
+```typescript
+import { toChainIdentifier } from "@wonderland/interop-addresses";
+import { createAssetDiscoveryService } from "@wonderland/interop-cross-chain";
+
+const service = createAssetDiscoveryService(provider);
+const discovered = await service.getSupportedAssets(); // Returns DiscoveredAssets directly
+
+const ethTokens = discovered.tokensByChain[toChainIdentifier(1)];
+```
+
+**Key concepts:**
+
+-   **CAIP-350 chain identifiers**: Chain identifiers use CAIP-350 format (e.g., `"eip155:1"` for Ethereum mainnet). Use `toChainIdentifier(numericChainId)` from `@wonderland/interop-addresses` to convert from viem's numeric chain ID.
+-   **EIP-7930 interop addresses**: All addresses in `tokensByChain` and `tokenMetadata` use the EIP-7930 interoperable format. Use `decodeAddress` from `@wonderland/interop-addresses` when you need the plain `0x` address for display or wallet interaction.
+-   **Flat metadata**: `tokenMetadata` is keyed directly by interop address (globally unique), not nested by chain.
+
+**Types:**
+
+-   `DiscoveredAssets` – Aggregated discovery result with `tokensByChain`, `tokenMetadata`, and `chainIds`.
+-   `AssetInfo` – Token metadata: `{ address, symbol, decimals }`.
 
 ### Types
 

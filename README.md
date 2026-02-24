@@ -135,7 +135,7 @@ const quotes = await provider.getQuotes({
         outputs: [{ receiver: "0x0001000149d4114...", asset: "0x0001000149d4114..." }],
         swapType: "exact-input",
     },
-    supportedTypes: ["oif-escrow-v0"],
+    supportedTypes: ["across"], // required by OIF request shape; ignored by Across
 });
 
 // OIF provider requires configuration

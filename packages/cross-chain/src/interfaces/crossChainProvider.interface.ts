@@ -1,9 +1,10 @@
 import type { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import type { Hex } from "viem";
 
-import type { FillWatcherConfig } from "../services/EventBasedFillWatcher.js";
+import type { AssetDiscoveryConfig } from "./assetDiscovery.interface.js";
+import type { FillWatcherConfig } from "./fillWatcher.interface.js";
 import type { OpenedIntentParserConfig } from "./openedIntentParser.interface.js";
-import type { ExecutableQuote } from "./quotes.interface.js";
+import type { ExecutableQuote, ProviderQuote } from "./quotes.interface.js";
 
 export abstract class CrossChainProvider {
     /**
@@ -12,7 +13,8 @@ export abstract class CrossChainProvider {
     abstract protocolName: string;
 
     /**
-     * The provider identifier in case we have more than one provider with the same protocol name
+     * Unique identifier for this provider instance.
+     * Distinct from `quote.provider` which is the solver's self-identification
      */
     abstract providerId: string;
 
@@ -26,7 +28,7 @@ export abstract class CrossChainProvider {
     }
 
     /**
-     * Get the provider identifier for the provider
+     * Get the provider identifier
      * @returns The provider identifier
      * @final Never override this method
      */
@@ -39,7 +41,7 @@ export abstract class CrossChainProvider {
      * @param params - The parameters for get quote request
      * @returns A quote for the request
      */
-    abstract getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]>;
+    abstract getQuotes(params: GetQuoteRequest): Promise<ProviderQuote[]>;
 
     /**
      * Submit a signed order to the provider
@@ -68,4 +70,37 @@ export abstract class CrossChainProvider {
         /** Configuration for watching fill events */
         fillWatcherConfig: FillWatcherConfig;
     };
+
+    /**
+     * Get the configuration for asset discovery
+     *
+     * This method allows providers to declare support for asset discovery.
+     * Returns null if discovery is not supported (default behavior).
+     *
+     * Providers that support discovery should override this method to return
+     * an appropriate configuration:
+     * - { type: "oif", config: { baseUrl: "..." } } for OIF-compliant solvers
+     *   (baseUrl is required and points to the solver's API endpoint)
+     * - { type: "custom-api", config: {...} } for custom APIs
+     * - { type: "static", config: {...} } for static asset lists
+     *
+     * @returns Asset discovery configuration, or null if not supported
+     *
+     * @example OIF Provider (baseUrl is required for the factory to create the service):
+     * ```typescript
+     * getDiscoveryConfig() {
+     *   return {
+     *     type: "oif",
+     *     config: {
+     *       baseUrl: "https://api.solver.example.com",
+     *       // Optional: custom headers, timeout
+     *       // headers: { "Authorization": "Bearer ..." },
+     *     },
+     *   };
+     * }
+     * ```
+     */
+    getDiscoveryConfig(): AssetDiscoveryConfig | null {
+        return null;
+    }
 }

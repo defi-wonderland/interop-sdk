@@ -1,17 +1,8 @@
-import { getChainId } from '@wonderland/interop-addresses';
 import { viemChainNameMap } from './viem-chains';
 
-export async function formatChainReference(chainReference: string, fullAddress: string): Promise<string> {
-  const parsedChainId = parseInt(chainReference, 10);
+export function formatChainReference(chainReference: string): string {
+  const chainId = parseInt(chainReference, 10);
+  const chainName = !isNaN(chainId) ? viemChainNameMap[chainId] : undefined;
 
-  if (!isNaN(parsedChainId) && viemChainNameMap[parsedChainId]) {
-    return `${chainReference} (${viemChainNameMap[parsedChainId]})`;
-  }
-
-  const resolvedChainId = Number(await getChainId(fullAddress));
-  const chainName = viemChainNameMap[resolvedChainId];
-
-  if (chainName) return `${chainReference} (${chainName})`;
-
-  return chainReference;
+  return chainName ? `${chainReference} (${chainName})` : chainReference;
 }

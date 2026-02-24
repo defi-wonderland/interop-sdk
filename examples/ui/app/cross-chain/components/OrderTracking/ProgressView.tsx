@@ -27,19 +27,31 @@ function StepIndicator({ isCurrent, isPassed }: { isCurrent: boolean; isPassed: 
   return <div className={`${baseClasses} bg-surface-secondary border-2 border-border`} />;
 }
 
-export function ProgressView({ state }: ProgressViewProps) {
+export function ProgressView({ state, skipApproval }: ProgressViewProps) {
   const chainConfig = useChainConfig();
   const message = getProgressMessage(state);
   const originTxUrl = chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
+  const fillTxHash = state.step === STEP.TRACKING ? state.update.fillTxHash : undefined;
+  const fillTxUrl = chainConfig.getExplorerTxUrl(state.destinationChainId, fillTxHash);
 
-  // Determine current step index: 0=approval, 1=submit, 2=tracking
-  const currentStep = isApprovalPhase(state) ? 0 : isSubmitPhase(state) ? 1 : 2;
-
-  const steps = [
-    { id: 'approval', label: 'Approval' },
+  const allSteps = [
+    ...(!skipApproval ? [{ id: 'approval', label: 'Approval' }] : []),
     { id: 'submit', label: 'Submit' },
     { id: 'tracking', label: state.step === STEP.TRACKING ? getStateLabel(state) : 'Tracking' },
-  ].map((step, i) => ({ ...step, isCurrent: i === currentStep, isPassed: i < currentStep }));
+  ];
+
+  let currentStep: number;
+  if (skipApproval) {
+    currentStep = isSubmitPhase(state) ? 0 : 1;
+  } else if (isApprovalPhase(state)) {
+    currentStep = 0;
+  } else if (isSubmitPhase(state)) {
+    currentStep = 1;
+  } else {
+    currentStep = 2;
+  }
+
+  const steps = allSteps.map((step, i) => ({ ...step, isCurrent: i === currentStep, isPassed: i < currentStep }));
 
   return (
     <div className='p-4 rounded-xl border border-border bg-surface'>
@@ -75,18 +87,31 @@ export function ProgressView({ state }: ProgressViewProps) {
         })}
       </div>
 
-      {/* Transaction link during progress */}
-      {originTxUrl && (
-        <div className='mt-4 pt-3 border-t border-border'>
-          <a
-            href={originTxUrl}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-xs text-accent hover:underline flex items-center gap-1'
-          >
-            <span>View origin transaction</span>
-            <ExternalLinkIcon />
-          </a>
+      {/* Transaction links during progress */}
+      {(originTxUrl || fillTxUrl) && (
+        <div className='mt-4 pt-3 border-t border-border space-y-1.5'>
+          {originTxUrl && (
+            <a
+              href={originTxUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-xs text-accent hover:underline flex items-center gap-1'
+            >
+              <span>View origin transaction</span>
+              <ExternalLinkIcon />
+            </a>
+          )}
+          {fillTxUrl && (
+            <a
+              href={fillTxUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-xs text-accent hover:underline flex items-center gap-1'
+            >
+              <span>View fill transaction</span>
+              <ExternalLinkIcon />
+            </a>
+          )}
         </div>
       )}
     </div>

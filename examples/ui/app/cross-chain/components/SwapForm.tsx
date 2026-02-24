@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { parseUnits } from 'viem';
-import { useAccount, useBalance } from 'wagmi';
+import { isNativeAddress } from '@wonderland/interop-cross-chain';
+import { formatUnits, parseUnits } from 'viem';
+import { useAccount } from 'wagmi';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
+import { useRouteSelection } from '../hooks/useRouteSelection';
+import { useBalanceStore, type TokenBalance } from '../stores/balanceStore';
 import { isValidAmount, sanitizeAmountInput } from '../utils/amountValidation';
-import { formatAmount } from '../utils/formatting';
+import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
-import { SpinnerIcon } from './icons';
 
 interface SwapFormProps {
   onSubmit: (params: {
@@ -20,47 +22,47 @@ interface SwapFormProps {
     inputAmount: string;
     inputAmountRaw: bigint;
   }) => void;
+  onInputChange?: () => void;
   isLoading?: boolean;
   isDisabled?: boolean;
 }
 
-export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: SwapFormProps) {
+export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisabled = false }: SwapFormProps) {
   const { address: connectedAddress, isConnected } = useAccount();
   const chainConfig = useChainConfig();
   const tokenConfig = useTokenConfig();
 
-  const getDefaultToken = (chainId: number): string => {
-    const tokens = tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
-    return tokens[0] || '';
-  };
+  const {
+    inputChainId,
+    outputChainId,
+    inputToken: inputTokenAddress,
+    outputToken: outputTokenAddress,
+    inputTokens,
+    outputTokens,
+    setInputChain,
+    setOutputChain,
+    setInputToken,
+    setOutputToken,
+  } = useRouteSelection(chainConfig.DEFAULT_INPUT_CHAIN_ID, chainConfig.DEFAULT_OUTPUT_CHAIN_ID);
 
   const [recipient, setRecipient] = useState('');
   const hasAutoFilledRef = useRef(false);
-  const [inputChainId, setInputChainId] = useState<number>(chainConfig.DEFAULT_INPUT_CHAIN_ID);
-  const [outputChainId, setOutputChainId] = useState<number>(chainConfig.DEFAULT_OUTPUT_CHAIN_ID);
-  const [inputTokenAddress, setInputTokenAddress] = useState(() => getDefaultToken(chainConfig.DEFAULT_INPUT_CHAIN_ID));
-  const [outputTokenAddress, setOutputTokenAddress] = useState(() =>
-    getDefaultToken(chainConfig.DEFAULT_OUTPUT_CHAIN_ID),
-  );
   const [inputAmount, setInputAmount] = useState('');
 
-  const inputTokens = useMemo(
-    () => tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[inputChainId] || [],
-    [inputChainId, tokenConfig],
+  const inputChains = useMemo(
+    () => chainConfig.SUPPORTED_CHAINS.filter((c) => c.id !== outputChainId),
+    [chainConfig.SUPPORTED_CHAINS, outputChainId],
   );
-  const outputTokens = useMemo(
-    () => tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[outputChainId] || [],
-    [outputChainId, tokenConfig],
+  const outputChains = useMemo(
+    () => chainConfig.SUPPORTED_CHAINS.filter((c) => c.id !== inputChainId),
+    [chainConfig.SUPPORTED_CHAINS, inputChainId],
   );
 
-  const { data: tokenBalance, isLoading: isBalanceLoading } = useBalance({
-    address: isConnected ? connectedAddress : undefined,
-    token: inputTokenAddress as `0x${string}` | undefined,
-    chainId: inputChainId,
-  });
+  const balances: Record<string, TokenBalance> = useBalanceStore((state) => state.balances[inputChainId]) ?? {};
+  const outputBalances: Record<string, TokenBalance> = useBalanceStore((state) => state.balances[outputChainId]) ?? {};
 
   const inputTokenInfo = inputTokenAddress ? tokenConfig.TOKEN_INFO[inputChainId]?.[inputTokenAddress] : null;
-  const displayBalance = tokenBalance ? formatAmount(tokenBalance.value.toString(), inputTokenInfo?.decimals) : '-';
+  const tokenBalance = balances[inputTokenAddress];
 
   const amountIsValid = useMemo(() => isValidAmount(inputAmount), [inputAmount]);
 
@@ -74,7 +76,19 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
     }
   }, [inputAmount, inputTokenInfo?.decimals, amountIsValid]);
 
-  const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.value);
+  const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.raw);
+
+  const handleMaxClick = () => {
+    if (!tokenBalance) return;
+    if (isNativeAddress(inputTokenAddress, 'eip155')) {
+      // Reserve a small amount for gas fees
+      const GAS_BUFFER = parseUnits('0.00005', 18);
+      const max = tokenBalance.raw > GAS_BUFFER ? tokenBalance.raw - GAS_BUFFER : 0n;
+      setInputAmount(formatUnits(max, 18));
+    } else {
+      setInputAmount(tokenBalance.formatted);
+    }
+  };
 
   useEffect(() => {
     if (isConnected && connectedAddress && !hasAutoFilledRef.current) {
@@ -92,8 +106,7 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
       return;
     }
     const finalRecipient = recipient.trim() || connectedAddress;
-    const tokenInfo = tokenConfig.TOKEN_INFO[inputChainId]?.[inputTokenAddress];
-    const decimals = tokenInfo?.decimals || 18;
+    const decimals = inputTokenInfo?.decimals || 18;
     const inputAmountRaw = parseUnits(inputAmount, decimals);
 
     onSubmit({
@@ -109,19 +122,23 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
   };
 
   const handleInputChainChange = (chainId: number) => {
-    setInputChainId(chainId);
-    const tokens = tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
-    if (tokens.length > 0) {
-      setInputTokenAddress(tokens[0]);
-    }
+    setInputChain(chainId);
+    onInputChange?.();
   };
 
   const handleOutputChainChange = (chainId: number) => {
-    setOutputChainId(chainId);
-    const tokens = tokenConfig.SUPPORTED_TOKEN_BY_CHAIN_ID[chainId] || [];
-    if (tokens.length > 0) {
-      setOutputTokenAddress(tokens[0]);
-    }
+    setOutputChain(chainId);
+    onInputChange?.();
+  };
+
+  const handleInputTokenChange = (address: string) => {
+    setInputToken(address);
+    onInputChange?.();
+  };
+
+  const handleOutputTokenChange = (address: string) => {
+    setOutputToken(address);
+    onInputChange?.();
   };
 
   const canSubmit =
@@ -161,15 +178,13 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
             type='text'
             value={recipient}
             onChange={(e) => setRecipient(e.target.value)}
-            placeholder='0x... or alice.eth@chain'
+            placeholder='0x...'
             autoComplete='off'
             data-1p-ignore
             disabled={isDisabled}
             className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
-          <p className='text-xs text-text-tertiary mt-1'>
-            Supports interoperable addresses (e.g., alice.eth@base-sepolia). Leave empty to use your wallet address.
-          </p>
+          <p className='text-xs text-text-tertiary mt-1'>Leave empty to use your wallet address.</p>
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
@@ -184,28 +199,21 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               disabled={isDisabled}
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {chainConfig.SUPPORTED_CHAINS.map((c) => (
+              {inputChains.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
-            <select
-              id='input-token-select'
+            <TokenSelect
+              tokens={inputTokens}
+              tokenInfo={tokenConfig.TOKEN_INFO[inputChainId] || {}}
+              balances={balances}
               value={inputTokenAddress}
-              onChange={(e) => setInputTokenAddress(e.target.value)}
+              onChange={handleInputTokenChange}
               disabled={isDisabled}
-              className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {inputTokens.map((token) => {
-                const info = tokenConfig.TOKEN_INFO[inputChainId]?.[token];
-                return (
-                  <option key={token} value={token}>
-                    {info?.symbol || token.slice(0, 8)}
-                  </option>
-                );
-              })}
-            </select>
+              dataTestId='input-token-select'
+            />
           </div>
 
           <div className='flex flex-col gap-3'>
@@ -219,35 +227,41 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
               disabled={isDisabled}
               className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {chainConfig.SUPPORTED_CHAINS.map((c) => (
+              {outputChains.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
-            <select
-              id='output-token-select'
+            <TokenSelect
+              tokens={outputTokens}
+              tokenInfo={tokenConfig.TOKEN_INFO[outputChainId] || {}}
+              balances={outputBalances}
               value={outputTokenAddress}
-              onChange={(e) => setOutputTokenAddress(e.target.value)}
+              onChange={handleOutputTokenChange}
               disabled={isDisabled}
-              className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {outputTokens.map((token) => {
-                const info = tokenConfig.TOKEN_INFO[outputChainId]?.[token];
-                return (
-                  <option key={token} value={token}>
-                    {info?.symbol || token.slice(0, 8)}
-                  </option>
-                );
-              })}
-            </select>
+              dataTestId='output-token-select'
+              emptyMessage='No route available'
+            />
           </div>
         </div>
 
         <div>
-          <label htmlFor='amount-input' className='text-sm font-medium text-text-secondary mb-2 block'>
-            Amount
-          </label>
+          <div className='flex items-center justify-between mb-2'>
+            <label htmlFor='amount-input' className='text-sm font-medium text-text-secondary'>
+              Amount
+            </label>
+            {tokenBalance && (
+              <button
+                type='button'
+                onClick={handleMaxClick}
+                disabled={isDisabled}
+                className='text-xs text-accent hover:text-accent-hover font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                Max: {tokenBalance.formatted}
+              </button>
+            )}
+          </div>
           <input
             id='amount-input'
             type='text'
@@ -258,11 +272,6 @@ export function SwapForm({ onSubmit, isLoading = false, isDisabled = false }: Sw
             disabled={isDisabled}
             className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
-          {isConnected && (
-            <p className='text-sm text-accent mt-1 flex items-center gap-1'>
-              Balance: {isBalanceLoading ? <SpinnerIcon className='w-3 h-3' /> : displayBalance}
-            </p>
-          )}
         </div>
 
         <button

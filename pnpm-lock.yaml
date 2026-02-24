@@ -9,7 +9,7 @@ importers:
         devDependencies:
             "@changesets/cli":
                 specifier: 2.29.8
-                version: 2.29.8(@types/node@20.3.1)
+                version: 2.29.8(@types/node@22.13.14)
             "@commitlint/config-conventional":
                 specifier: 20.2.0
                 version: 20.2.0
@@ -17,8 +17,8 @@ importers:
                 specifier: 4.7.0
                 version: 4.7.0(prettier@3.3.3)
             "@types/node":
-                specifier: 20.3.1
-                version: 20.3.1
+                specifier: 22.13.14
+                version: 22.13.14
             "@typescript-eslint/eslint-plugin":
                 specifier: 7.18.0
                 version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.56.0)(typescript@5.5.4))(eslint@8.56.0)(typescript@5.5.4)
@@ -27,10 +27,10 @@ importers:
                 version: 7.18.0(eslint@8.56.0)(typescript@5.5.4)
             "@vitest/coverage-v8":
                 specifier: 4.0.16
-                version: 4.0.16(vitest@4.0.16(@opentelemetry/api@1.9.0)(@types/node@20.3.1)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1))
+                version: 4.0.16(vitest@4.0.16(@opentelemetry/api@1.9.0)(@types/node@22.13.14)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1))
             commitlint:
                 specifier: 20.2.0
-                version: 20.2.0(@types/node@20.3.1)(typescript@5.5.4)
+                version: 20.2.0(@types/node@22.13.14)(typescript@5.5.4)
             eslint:
                 specifier: 8.56.0
                 version: 8.56.0
@@ -60,7 +60,7 @@ importers:
                 version: 5.5.4
             vitest:
                 specifier: 4.0.16
-                version: 4.0.16(@opentelemetry/api@1.9.0)(@types/node@20.3.1)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1)
+                version: 4.0.16(@opentelemetry/api@1.9.0)(@types/node@22.13.14)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1)
 
     apps/addresses-landing-page:
         dependencies:
@@ -342,6 +342,9 @@ importers:
             wagmi:
                 specifier: 2.14.11
                 version: 2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+            zustand:
+                specifier: 5.0.3
+                version: 5.0.3(@types/react@19.2.7)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0))
         devDependencies:
             "@eslint/compat":
                 specifier: 2.0.0
@@ -377,8 +380,8 @@ importers:
                 specifier: 8.50.0
                 version: 8.50.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.6.2)
             "@wonderland/walletless":
-                specifier: 1.1.0
-                version: 1.1.0(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))
+                specifier: 1.2.0
+                version: 1.2.0(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))
             dotenv:
                 specifier: 16.4.7
                 version: 16.4.7
@@ -458,7 +461,7 @@ importers:
         devDependencies:
             ts-to-zod:
                 specifier: 3.1.0
-                version: 3.1.0(@types/node@25.0.3)
+                version: 3.1.0(@types/node@22.13.14)
             typescript:
                 specifier: 5.5.4
                 version: 5.5.4
@@ -1576,6 +1579,13 @@ packages:
         resolution:
             {
                 integrity: sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==,
+            }
+        engines: { node: ">=6.9.0" }
+
+    "@babel/runtime@7.28.6":
+        resolution:
+            {
+                integrity: sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA==,
             }
         engines: { node: ">=6.9.0" }
 
@@ -6347,22 +6357,16 @@ packages:
                 integrity: sha512-w+tIMs3rq2afQdsPJlODhoUEKzFP1ayaoyl1CcnwtIlsVe7K7bA1NGm4s3PraqTLlXnbIN84zuBlxBWo1u9BLw==,
             }
 
-    "@types/node@20.3.1":
+    "@types/node@22.13.14":
         resolution:
             {
-                integrity: sha512-EhcH/wvidPy1WeML3TtYFGR83UzjxeWRen9V402T8aUGYsCHOmfoisV3ZSg03gAFIbLq8TnWOJ0f4cALtnSEUg==,
+                integrity: sha512-Zs/Ollc1SJ8nKUAgc7ivOEdIBM8JAKgrqqUYi2J997JuKO7/tpQC+WCetQ1sypiKCQWHdvdg9wBNpUPEWZae7w==,
             }
 
     "@types/node@22.7.4":
         resolution:
             {
                 integrity: sha512-y+NPi1rFzDs1NdQHHToqeiX2TIS79SWEAw9GYhkkx8bD0ChpfqC+n2j5OXOCpzfojBEBt6DnEnnG9MY0zk1XLg==,
-            }
-
-    "@types/node@25.0.3":
-        resolution:
-            {
-                integrity: sha512-W609buLVRVmeW693xKfzHeIV6nJGGz98uCPfeXI1ELMLXVeKYZ9m15fAMSaUPBHYLGFsVRcMmSCksQOrZV9BYA==,
             }
 
     "@types/prismjs@1.26.5":
@@ -7100,10 +7104,10 @@ packages:
                 integrity: sha512-IfX8mdaK9dyy578yJ22V7J8Hd0wArLf1JHyA5xK4+RFDUMj3JeBUBccEWoGjZaA0ZU1GgTw1YcqBZFisQyxb6g==,
             }
 
-    "@wonderland/walletless@1.1.0":
+    "@wonderland/walletless@1.2.0":
         resolution:
             {
-                integrity: sha512-P00T9rYqKzwqIOigiURtcZ0Vh0x1kqy/VXQjpPUPxrv2GUrmH9cuAKCjnfBl+VBF0+JkXr0EEtWEJhy+kUvVOw==,
+                integrity: sha512-e0zX5uOq65XBJ0KcBgd7rGY2JWsqugHw1FJQsY3EKqsfXVmPpBlH9Fk7DHlDS6C1uDQv6R4uSQl5oNCe0h+l8Q==,
             }
         engines: { node: ">=20" }
         peerDependencies:
@@ -10152,6 +10156,12 @@ packages:
         resolution:
             {
                 integrity: sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA==,
+            }
+
+    eventemitter3@5.0.4:
+        resolution:
+            {
+                integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==,
             }
 
     events@3.3.0:
@@ -14739,6 +14749,12 @@ packages:
                 integrity: sha512-rytDAoiXr3+t6OIP3WGlDd0ouCUG1iCWzkcY3++Nreuoi17y6T5i/zRhe6uYfoVcxq6YU+sBtJouuRDsq8vvqA==,
             }
 
+    preact@10.28.3:
+        resolution:
+            {
+                integrity: sha512-tCmoRkPQLpBeWzpmbhryairGnhW9tKV6c6gr/w+RhoRoKEJwsjzipwp//1oCpGPOchvSLaAPlpcJi9MwMmoPyA==,
+            }
+
     prelude-ls@1.2.1:
         resolution:
             {
@@ -15727,6 +15743,14 @@ packages:
         resolution:
             {
                 integrity: sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==,
+            }
+        engines: { node: ">=10" }
+        hasBin: true
+
+    semver@7.7.4:
+        resolution:
+            {
+                integrity: sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==,
             }
         engines: { node: ">=10" }
         hasBin: true
@@ -16935,10 +16959,10 @@ packages:
                 integrity: sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==,
             }
 
-    undici-types@7.16.0:
+    undici-types@6.20.0:
         resolution:
             {
-                integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==,
+                integrity: sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==,
             }
 
     unicode-canonical-property-names-ecmascript@2.0.1:
@@ -17845,6 +17869,21 @@ packages:
             utf-8-validate:
                 optional: true
 
+    ws@8.19.0:
+        resolution:
+            {
+                integrity: sha512-blAT2mjOEIi0ZzruJfIhb3nps74PRWTCz1IjglWEEpQl5XS/UNama6u2/rjFkDDouqr4L67ry+1aGIALViWjDg==,
+            }
+        engines: { node: ">=10.0.0" }
+        peerDependencies:
+            bufferutil: ^4.0.1
+            utf-8-validate: ">=5.0.2"
+        peerDependenciesMeta:
+            bufferutil:
+                optional: true
+            utf-8-validate:
+                optional: true
+
     wsl-utils@0.1.0:
         resolution:
             {
@@ -17991,6 +18030,27 @@ packages:
         resolution:
             {
                 integrity: sha512-LE+VcmbartOPM+auOjCCLQOsQ05zUTp8RkgwRzefUk+2jISdMMFnxvyTjA4YNWr5ZGXYbVsEMZosttuxUBkojQ==,
+            }
+        engines: { node: ">=12.20.0" }
+        peerDependencies:
+            "@types/react": ">=18.0.0"
+            immer: ">=9.0.6"
+            react: ">=18.0.0"
+            use-sync-external-store: ">=1.2.0"
+        peerDependenciesMeta:
+            "@types/react":
+                optional: true
+            immer:
+                optional: true
+            react:
+                optional: true
+            use-sync-external-store:
+                optional: true
+
+    zustand@5.0.3:
+        resolution:
+            {
+                integrity: sha512-14fwWQtU3pH4dE0dOpdMiWjddcH+QzKIgk1cl8epwSE7yag43k/AD/m4L6+K7DytAOr9gGBe3/EXj9g7cdostg==,
             }
         engines: { node: ">=12.20.0" }
         peerDependencies:
@@ -19566,6 +19626,8 @@ snapshots:
 
     "@babel/runtime@7.28.4": {}
 
+    "@babel/runtime@7.28.6": {}
+
     "@babel/template@7.27.2":
         dependencies:
             "@babel/code-frame": 7.27.1
@@ -19622,7 +19684,7 @@ snapshots:
         dependencies:
             "@changesets/types": 6.1.0
 
-    "@changesets/cli@2.29.8(@types/node@20.3.1)":
+    "@changesets/cli@2.29.8(@types/node@22.13.14)":
         dependencies:
             "@changesets/apply-release-plan": 7.0.14
             "@changesets/assemble-release-plan": 6.0.9
@@ -19638,7 +19700,7 @@ snapshots:
             "@changesets/should-skip-package": 0.1.2
             "@changesets/types": 6.1.0
             "@changesets/write": 0.4.0
-            "@inquirer/external-editor": 1.0.3(@types/node@20.3.1)
+            "@inquirer/external-editor": 1.0.3(@types/node@22.13.14)
             "@manypkg/get-packages": 1.1.3
             ansi-colors: 4.1.3
             ci-info: 3.9.0
@@ -19761,9 +19823,9 @@ snapshots:
             clsx: 1.2.1
             eth-block-tracker: 7.1.0
             eth-json-rpc-filters: 6.0.1
-            eventemitter3: 5.0.1
+            eventemitter3: 5.0.4
             keccak: 3.0.4
-            preact: 10.28.0
+            preact: 10.28.3
             sha.js: 2.4.12
         transitivePeerDependencies:
             - supports-color
@@ -19778,11 +19840,11 @@ snapshots:
     "@colors/colors@1.5.0":
         optional: true
 
-    "@commitlint/cli@20.2.0(@types/node@20.3.1)(typescript@5.5.4)":
+    "@commitlint/cli@20.2.0(@types/node@22.13.14)(typescript@5.5.4)":
         dependencies:
             "@commitlint/format": 20.2.0
             "@commitlint/lint": 20.2.0
-            "@commitlint/load": 20.2.0(@types/node@20.3.1)(typescript@5.5.4)
+            "@commitlint/load": 20.2.0(@types/node@22.13.14)(typescript@5.5.4)
             "@commitlint/read": 20.2.0
             "@commitlint/types": 20.2.0
             tinyexec: 1.0.2
@@ -19829,7 +19891,7 @@ snapshots:
             "@commitlint/rules": 20.2.0
             "@commitlint/types": 20.2.0
 
-    "@commitlint/load@20.2.0(@types/node@20.3.1)(typescript@5.5.4)":
+    "@commitlint/load@20.2.0(@types/node@22.13.14)(typescript@5.5.4)":
         dependencies:
             "@commitlint/config-validator": 20.2.0
             "@commitlint/execute-rule": 20.0.0
@@ -19837,7 +19899,7 @@ snapshots:
             "@commitlint/types": 20.2.0
             chalk: 5.6.2
             cosmiconfig: 9.0.0(typescript@5.5.4)
-            cosmiconfig-typescript-loader: 6.2.0(@types/node@20.3.1)(cosmiconfig@9.0.0(typescript@5.5.4))(typescript@5.5.4)
+            cosmiconfig-typescript-loader: 6.2.0(@types/node@22.13.14)(cosmiconfig@9.0.0(typescript@5.5.4))(typescript@5.5.4)
             lodash.isplainobject: 4.0.6
             lodash.merge: 4.6.2
             lodash.uniq: 4.5.0
@@ -21345,19 +21407,12 @@ snapshots:
     "@img/sharp-win32-x64@0.34.5":
         optional: true
 
-    "@inquirer/external-editor@1.0.3(@types/node@20.3.1)":
+    "@inquirer/external-editor@1.0.3(@types/node@22.13.14)":
         dependencies:
             chardet: 2.1.1
             iconv-lite: 0.7.1
         optionalDependencies:
-            "@types/node": 20.3.1
-
-    "@inquirer/external-editor@1.0.3(@types/node@25.0.3)":
-        dependencies:
-            chardet: 2.1.1
-            iconv-lite: 0.7.1
-        optionalDependencies:
-            "@types/node": 25.0.3
+            "@types/node": 22.13.14
 
     "@isaacs/fs-minipass@4.0.1":
         dependencies:
@@ -21372,7 +21427,7 @@ snapshots:
             "@jest/schemas": 29.6.3
             "@types/istanbul-lib-coverage": 2.0.6
             "@types/istanbul-reports": 3.0.4
-            "@types/node": 25.0.3
+            "@types/node": 22.13.14
             "@types/yargs": 17.0.35
             chalk: 4.1.2
 
@@ -21623,7 +21678,7 @@ snapshots:
             "@ethereumjs/tx": 4.2.0
             "@types/debug": 4.1.12
             debug: 4.4.3
-            semver: 7.7.3
+            semver: 7.7.4
             superstruct: 1.0.4
         transitivePeerDependencies:
             - supports-color
@@ -23087,7 +23142,7 @@ snapshots:
 
     "@slorber/react-helmet-async@1.3.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             invariant: 2.2.4
             prop-types: 15.8.1
             react: 19.1.0
@@ -23439,11 +23494,11 @@ snapshots:
     "@types/body-parser@1.19.6":
         dependencies:
             "@types/connect": 3.4.38
-            "@types/node": 25.0.3
+            "@types/node": 22.13.14
 
     "@types/bonjour@3.5.13":
         dependencies:
-            "@types/node": 22.7.4
+            "@types/node": 22.13.14
 
     "@types/chai@5.2.3":
         dependencies:
@@ -23453,15 +23508,15 @@ snapshots:
     "@types/connect-history-api-fallback@1.5.4":
         dependencies:
             "@types/express-serve-static-core": 4.19.7
-            "@types/node": 22.7.4
+            "@types/node": 22.13.14
 
     "@types/connect@3.4.38":
         dependencies:
-            "@types/node": 25.0.3
+            "@types/node": 22.13.14
 
     "@types/conventional-commits-parser@5.0.2":
         dependencies:
-            "@types/node": 20.3.1
+            "@types/node": 22.13.14
 
     "@types/d3-array@3.2.2": {}
 
@@ -23604,7 +23659,7 @@ snapshots:
 
     "@types/express-serve-static-core@4.19.7":
         dependencies:
-            "@types/node": 22.7.4
+            "@types/node": 22.13.14
             "@types/qs": 6.14.0
             "@types/range-parser": 1.2.7
             "@types/send": 1.2.1
@@ -23634,7 +23689,7 @@ snapshots:
 
     "@types/http-proxy@1.17.17":
         dependencies:
-            "@types/node": 25.0.3
+            "@types/node": 22.13.14
 
     "@types/istanbul-lib-coverage@2.0.6": {}
 
@@ -23662,21 +23717,19 @@ snapshots:
 
     "@types/node-forge@1.3.14":
         dependencies:
-            "@types/node": 25.0.3
+            "@types/node": 22.13.14
 
     "@types/node@12.20.55": {}
 
     "@types/node@17.0.45": {}
 
-    "@types/node@20.3.1": {}
+    "@types/node@22.13.14":
+        dependencies:
+            undici-types: 6.20.0
 
     "@types/node@22.7.4":
         dependencies:
             undici-types: 6.19.8
-
-    "@types/node@25.0.3":
-        dependencies:
-            undici-types: 7.16.0
 
     "@types/prismjs@1.26.5": {}
 
@@ -23713,16 +23766,16 @@ snapshots:
 
     "@types/sax@1.2.7":
         dependencies:
-            "@types/node": 17.0.45
+            "@types/node": 22.13.14
 
     "@types/send@0.17.6":
         dependencies:
             "@types/mime": 1.3.5
-            "@types/node": 22.7.4
+            "@types/node": 22.13.14
 
     "@types/send@1.2.1":
         dependencies:
-            "@types/node": 22.7.4
+            "@types/node": 22.13.14
 
     "@types/serve-index@1.9.4":
         dependencies:
@@ -23731,12 +23784,12 @@ snapshots:
     "@types/serve-static@1.15.10":
         dependencies:
             "@types/http-errors": 2.0.5
-            "@types/node": 22.7.4
+            "@types/node": 22.13.14
             "@types/send": 0.17.6
 
     "@types/sockjs@0.3.36":
         dependencies:
-            "@types/node": 22.7.4
+            "@types/node": 22.13.14
 
     "@types/trusted-types@2.0.7": {}
 
@@ -23746,7 +23799,7 @@ snapshots:
 
     "@types/ws@8.18.1":
         dependencies:
-            "@types/node": 22.7.4
+            "@types/node": 22.13.14
 
     "@types/yargs-parser@21.0.3": {}
 
@@ -23976,7 +24029,7 @@ snapshots:
 
     "@vercel/oidc@3.0.5": {}
 
-    "@vitest/coverage-v8@4.0.16(vitest@4.0.16(@opentelemetry/api@1.9.0)(@types/node@20.3.1)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1))":
+    "@vitest/coverage-v8@4.0.16(vitest@4.0.16(@opentelemetry/api@1.9.0)(@types/node@22.13.14)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1))":
         dependencies:
             "@bcoe/v8-coverage": 1.0.2
             "@vitest/utils": 4.0.16
@@ -23989,7 +24042,7 @@ snapshots:
             obug: 2.1.1
             std-env: 3.10.0
             tinyrainbow: 3.0.3
-            vitest: 4.0.16(@opentelemetry/api@1.9.0)(@types/node@20.3.1)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1)
+            vitest: 4.0.16(@opentelemetry/api@1.9.0)(@types/node@22.13.14)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1)
         transitivePeerDependencies:
             - supports-color
 
@@ -24002,13 +24055,13 @@ snapshots:
             chai: 6.2.1
             tinyrainbow: 3.0.3
 
-    "@vitest/mocker@4.0.16(vite@7.3.0(@types/node@20.3.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1))":
+    "@vitest/mocker@4.0.16(vite@7.3.0(@types/node@22.13.14)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1))":
         dependencies:
             "@vitest/spy": 4.0.16
             estree-walker: 3.0.3
             magic-string: 0.30.21
         optionalDependencies:
-            vite: 7.3.0(@types/node@20.3.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1)
+            vite: 7.3.0(@types/node@22.13.14)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1)
 
     "@vitest/pretty-format@4.0.16":
         dependencies:
@@ -24527,7 +24580,7 @@ snapshots:
             - typescript
             - utf-8-validate
 
-    "@wonderland/walletless@1.1.0(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))":
+    "@wonderland/walletless@1.2.0(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))":
         dependencies:
             viem: 2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76)
             wagmi: 2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
@@ -25269,9 +25322,9 @@ snapshots:
 
     commander@8.3.0: {}
 
-    commitlint@20.2.0(@types/node@20.3.1)(typescript@5.5.4):
+    commitlint@20.2.0(@types/node@22.13.14)(typescript@5.5.4):
         dependencies:
-            "@commitlint/cli": 20.2.0(@types/node@20.3.1)(typescript@5.5.4)
+            "@commitlint/cli": 20.2.0(@types/node@22.13.14)(typescript@5.5.4)
             "@commitlint/types": 20.2.0
         transitivePeerDependencies:
             - "@types/node"
@@ -25380,9 +25433,9 @@ snapshots:
         dependencies:
             layout-base: 2.0.1
 
-    cosmiconfig-typescript-loader@6.2.0(@types/node@20.3.1)(cosmiconfig@9.0.0(typescript@5.5.4))(typescript@5.5.4):
+    cosmiconfig-typescript-loader@6.2.0(@types/node@22.13.14)(cosmiconfig@9.0.0(typescript@5.5.4))(typescript@5.5.4):
         dependencies:
-            "@types/node": 20.3.1
+            "@types/node": 22.13.14
             cosmiconfig: 9.0.0(typescript@5.5.4)
             jiti: 2.6.1
             typescript: 5.5.4
@@ -26632,7 +26685,7 @@ snapshots:
 
     eval@0.1.8:
         dependencies:
-            "@types/node": 22.7.4
+            "@types/node": 22.13.14
             require-like: 0.1.2
 
     eventemitter2@6.4.9: {}
@@ -26640,6 +26693,8 @@ snapshots:
     eventemitter3@4.0.7: {}
 
     eventemitter3@5.0.1: {}
+
+    eventemitter3@5.0.4: {}
 
     events@3.3.0: {}
 
@@ -27435,9 +27490,9 @@ snapshots:
             react: 19.2.0
             react-dom: 19.2.0(react@19.2.0)
 
-    inquirer@8.2.7(@types/node@25.0.3):
+    inquirer@8.2.7(@types/node@22.13.14):
         dependencies:
-            "@inquirer/external-editor": 1.0.3(@types/node@25.0.3)
+            "@inquirer/external-editor": 1.0.3(@types/node@22.13.14)
             ansi-escapes: 4.3.2
             chalk: 4.1.2
             cli-cursor: 3.1.0
@@ -27738,7 +27793,7 @@ snapshots:
     jest-util@29.7.0:
         dependencies:
             "@jest/types": 29.6.3
-            "@types/node": 25.0.3
+            "@types/node": 22.13.14
             chalk: 4.1.2
             ci-info: 3.9.0
             graceful-fs: 4.2.11
@@ -27746,13 +27801,13 @@ snapshots:
 
     jest-worker@27.5.1:
         dependencies:
-            "@types/node": 25.0.3
+            "@types/node": 22.13.14
             merge-stream: 2.0.0
             supports-color: 8.1.1
 
     jest-worker@29.7.0:
         dependencies:
-            "@types/node": 25.0.3
+            "@types/node": 22.13.14
             jest-util: 29.7.0
             merge-stream: 2.0.0
             supports-color: 8.1.1
@@ -27802,7 +27857,7 @@ snapshots:
             whatwg-encoding: 3.1.1
             whatwg-mimetype: 4.0.0
             whatwg-url: 14.2.0
-            ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+            ws: 8.19.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
             xml-name-validator: 5.0.0
         transitivePeerDependencies:
             - bufferutil
@@ -29748,6 +29803,8 @@ snapshots:
 
     preact@10.28.0: {}
 
+    preact@10.28.3: {}
+
     prelude-ls@1.2.1: {}
 
     prettier-linter-helpers@1.0.0:
@@ -30441,6 +30498,8 @@ snapshots:
 
     semver@7.7.3: {}
 
+    semver@7.7.4: {}
+
     send@0.19.0:
         dependencies:
             debug: 2.6.9
@@ -31078,7 +31137,7 @@ snapshots:
 
     ts-dedent@2.2.0: {}
 
-    ts-to-zod@3.1.0(@types/node@25.0.3):
+    ts-to-zod@3.1.0(@types/node@22.13.14):
         dependencies:
             "@oclif/command": 1.8.36(@oclif/config@1.18.17)
             "@oclif/config": 1.18.17
@@ -31089,7 +31148,7 @@ snapshots:
             case: 1.6.3
             chokidar: 3.6.0
             fs-extra: 9.1.0
-            inquirer: 8.2.7(@types/node@25.0.3)
+            inquirer: 8.2.7(@types/node@22.13.14)
             lodash: 4.17.21
             lz-string: 1.5.0
             ora: 5.4.1
@@ -31231,7 +31290,7 @@ snapshots:
 
     undici-types@6.19.8: {}
 
-    undici-types@7.16.0: {}
+    undici-types@6.20.0: {}
 
     unicode-canonical-property-names-ecmascript@2.0.1: {}
 
@@ -31539,7 +31598,7 @@ snapshots:
             - utf-8-validate
             - zod
 
-    vite@7.3.0(@types/node@20.3.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1):
+    vite@7.3.0(@types/node@22.13.14)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1):
         dependencies:
             esbuild: 0.27.2
             fdir: 6.5.0(picomatch@4.0.3)
@@ -31548,17 +31607,17 @@ snapshots:
             rollup: 4.53.5
             tinyglobby: 0.2.15
         optionalDependencies:
-            "@types/node": 20.3.1
+            "@types/node": 22.13.14
             fsevents: 2.3.3
             jiti: 2.6.1
             lightningcss: 1.30.2
             terser: 5.40.0
             yaml: 2.5.1
 
-    vitest@4.0.16(@opentelemetry/api@1.9.0)(@types/node@20.3.1)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1):
+    vitest@4.0.16(@opentelemetry/api@1.9.0)(@types/node@22.13.14)(jiti@2.6.1)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1):
         dependencies:
             "@vitest/expect": 4.0.16
-            "@vitest/mocker": 4.0.16(vite@7.3.0(@types/node@20.3.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1))
+            "@vitest/mocker": 4.0.16(vite@7.3.0(@types/node@22.13.14)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1))
             "@vitest/pretty-format": 4.0.16
             "@vitest/runner": 4.0.16
             "@vitest/snapshot": 4.0.16
@@ -31575,11 +31634,11 @@ snapshots:
             tinyexec: 1.0.2
             tinyglobby: 0.2.15
             tinyrainbow: 3.0.3
-            vite: 7.3.0(@types/node@20.3.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1)
+            vite: 7.3.0(@types/node@22.13.14)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.40.0)(yaml@2.5.1)
             why-is-node-running: 2.3.0
         optionalDependencies:
             "@opentelemetry/api": 1.9.0
-            "@types/node": 20.3.1
+            "@types/node": 22.13.14
             jsdom: 26.1.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
         transitivePeerDependencies:
             - jiti
@@ -31946,6 +32005,12 @@ snapshots:
             bufferutil: 4.0.9
             utf-8-validate: 5.0.10
 
+    ws@8.19.0(bufferutil@4.0.9)(utf-8-validate@5.0.10):
+        optionalDependencies:
+            bufferutil: 4.0.9
+            utf-8-validate: 5.0.10
+        optional: true
+
     wsl-utils@0.1.0:
         dependencies:
             is-wsl: 3.1.0
@@ -32018,6 +32083,12 @@ snapshots:
     zod@4.1.13: {}
 
     zustand@5.0.0(@types/react@19.2.7)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0)):
+        optionalDependencies:
+            "@types/react": 19.2.7
+            react: 19.1.0
+            use-sync-external-store: 1.4.0(react@19.1.0)
+
+    zustand@5.0.3(@types/react@19.2.7)(react@19.1.0)(use-sync-external-store@1.4.0(react@19.1.0)):
         optionalDependencies:
             "@types/react": 19.2.7
             react: 19.1.0

@@ -5,18 +5,16 @@ import type { TokenInfo } from '@wonderland/interop-cross-chain';
  * Converts a human-readable amount to the smallest unit (wei/smallest unit)
  * @param amount - Human-readable amount (e.g., "0.01")
  * @param tokenAddress - Token address to get decimals from
- * @param chainId - Chain ID where the token exists
- * @param tokenInfo - Token info map by chain ID and token address
+ * @param tokenMetadata - Token metadata map keyed by address
  * @returns Amount in smallest unit as string
  */
 export function convertAmountToSmallestUnit(
   amount: string,
   tokenAddress: string,
-  chainId: number,
-  tokenInfo: Record<number, Record<string, TokenInfo>>,
+  tokenMetadata: Record<string, TokenInfo>,
 ): string {
-  const token = tokenInfo[chainId]?.[tokenAddress];
-  const decimals = token?.decimals || 18;
+  const token = tokenMetadata[tokenAddress];
+  const decimals = token.decimals || 18;
 
   try {
     const parsed = parseUnits(amount, decimals);

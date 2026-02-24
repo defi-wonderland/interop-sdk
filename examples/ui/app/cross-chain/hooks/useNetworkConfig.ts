@@ -1,40 +1,99 @@
 import { useMemo } from 'react';
-import {
-  MAINNET_SUPPORTED_TOKEN_BY_CHAIN_ID,
-  TESTNET_SUPPORTED_TOKEN_BY_CHAIN_ID,
-  MAINNET_TOKEN_INFO,
-  TESTNET_TOKEN_INFO,
-  type TokenInfo,
-} from '@wonderland/interop-cross-chain';
 import { base, arbitrum, sepolia, baseSepolia, type Chain } from 'viem/chains';
 import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
-import { useIsTestnet } from '../providers';
+import { useIsTestnet, useDiscoveredAssetsSafe } from '../providers';
+import type { UITokenInfo } from '../types/assets';
 
 /**
  * Hook to get network-specific token configuration
+ *
+ * Returns discovered assets filtered by the UI's configured chains.
+ * Only shows tokens/chains that are:
+ * 1. Configured by the UI (in MAINNET_CHAINS or TESTNET_CHAINS)
+ * 2. AND supported by the protocol (returned by asset discovery)
  */
 export function useTokenConfig() {
   const isTestnet = useIsTestnet();
-  return useMemo(
-    () => ({
-      SUPPORTED_TOKEN_BY_CHAIN_ID: (isTestnet
-        ? TESTNET_SUPPORTED_TOKEN_BY_CHAIN_ID
-        : MAINNET_SUPPORTED_TOKEN_BY_CHAIN_ID) as Record<number, readonly string[]>,
-      TOKEN_INFO: (isTestnet ? TESTNET_TOKEN_INFO : MAINNET_TOKEN_INFO) as Record<number, Record<string, TokenInfo>>,
-    }),
-    [isTestnet],
-  );
+  const discoveryContext = useDiscoveredAssetsSafe();
+
+  return useMemo(() => {
+    const configuredChainIds = (isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS).map((c) => c.id);
+
+    if (!discoveryContext?.discoveredAssets) {
+      return {
+        SUPPORTED_TOKEN_BY_CHAIN_ID: {} as Record<number, readonly string[]>,
+        TOKEN_INFO: {} as Record<number, Record<string, UITokenInfo>>,
+        isDiscovered: false,
+        isDiscovering: discoveryContext?.isDiscovering ?? true,
+        discoveryError: discoveryContext?.discoveryError ?? null,
+      };
+    }
+
+    const { supportedTokensByChain, tokenInfo } = discoveryContext.discoveredAssets;
+
+    // Use numeric chain IDs as keys so SwapForm can look up tokens by chain ID directly
+    const filteredTokensByChain: Record<number, readonly string[]> = {};
+    const filteredTokenInfo: Record<number, Record<string, UITokenInfo>> = {};
+
+    for (const chainId of configuredChainIds) {
+      if (supportedTokensByChain[chainId]?.length > 0) {
+        filteredTokensByChain[chainId] = supportedTokensByChain[chainId];
+        filteredTokenInfo[chainId] = tokenInfo[chainId] ?? {};
+      }
+    }
+
+    return {
+      SUPPORTED_TOKEN_BY_CHAIN_ID: filteredTokensByChain,
+      TOKEN_INFO: filteredTokenInfo,
+      isDiscovered: true,
+      isDiscovering: false,
+      discoveryError: null,
+    };
+  }, [isTestnet, discoveryContext]);
 }
 
 /**
  * Hook to get network-specific chain configuration
+ *
+ * Returns chains filtered by discovery results.
+ * Only shows chains that have discovered assets available.
  */
 export function useChainConfig() {
   const isTestnet = useIsTestnet();
+  const discoveryContext = useDiscoveredAssetsSafe();
+
   return useMemo(() => {
-    const SUPPORTED_CHAINS = isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS;
-    const DEFAULT_INPUT_CHAIN_ID = isTestnet ? sepolia.id : base.id;
-    const DEFAULT_OUTPUT_CHAIN_ID = isTestnet ? baseSepolia.id : arbitrum.id;
+    const allConfiguredChains = isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS;
+    const discoveryError = discoveryContext?.discoveryError ?? null;
+
+    if (!discoveryContext?.discoveredAssets) {
+      return {
+        SUPPORTED_CHAINS: [] as Chain[],
+        ALL_CONFIGURED_CHAINS: allConfiguredChains,
+        DEFAULT_INPUT_CHAIN_ID: isTestnet ? sepolia.id : base.id,
+        DEFAULT_OUTPUT_CHAIN_ID: isTestnet ? baseSepolia.id : arbitrum.id,
+        isDiscovered: false,
+        isDiscovering: discoveryContext?.isDiscovering ?? true,
+        discoveryError,
+        getChain: () => undefined,
+        getExplorerTxUrl: () => undefined,
+      };
+    }
+
+    const { supportedChainIds } = discoveryContext.discoveredAssets;
+
+    const SUPPORTED_CHAINS = allConfiguredChains.filter((chain) => supportedChainIds.includes(chain.id));
+
+    const defaultInput = isTestnet ? sepolia.id : base.id;
+    const defaultOutput = isTestnet ? baseSepolia.id : arbitrum.id;
+
+    const DEFAULT_INPUT_CHAIN_ID = SUPPORTED_CHAINS.some((c) => c.id === defaultInput)
+      ? defaultInput
+      : (SUPPORTED_CHAINS[0]?.id ?? defaultInput);
+
+    const DEFAULT_OUTPUT_CHAIN_ID = SUPPORTED_CHAINS.some((c) => c.id === defaultOutput)
+      ? defaultOutput
+      : (SUPPORTED_CHAINS[1]?.id ?? SUPPORTED_CHAINS[0]?.id ?? defaultOutput);
 
     const getChain = (chainId?: number): Chain | undefined => {
       if (!chainId) return undefined;
@@ -50,12 +109,16 @@ export function useChainConfig() {
 
     return {
       SUPPORTED_CHAINS,
+      ALL_CONFIGURED_CHAINS: allConfiguredChains,
       DEFAULT_INPUT_CHAIN_ID,
       DEFAULT_OUTPUT_CHAIN_ID,
+      isDiscovered: true,
+      isDiscovering: false,
+      discoveryError,
       getChain,
       getExplorerTxUrl,
     };
-  }, [isTestnet]);
+  }, [isTestnet, discoveryContext]);
 }
 
 /**
