@@ -1,8 +1,6 @@
 import { findTokenCaseInsensitive, type RouteParams } from './routeParams';
 import type { UITokenInfo } from '../types/assets';
 
-// TODO: Replace with dynamic lookup via Across /available-routes endpoint.
-// See: https://docs.across.to/reference/api-reference
 const ACROSS_WHITELISTED_SYMBOLS = new Set(['USDC', 'USDT', 'WETH', 'DAI', 'ETH']);
 
 export interface Selection {
