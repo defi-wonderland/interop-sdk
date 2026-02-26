@@ -1,0 +1,16 @@
+{
+    "name": "@wonderland/interop-cross-chain-shishi",
+    "version": "0.0.0",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "test": "vitest"
+    },
+    "dependencies": {
+        "viem": "^2.0.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0"
+    }
+}
