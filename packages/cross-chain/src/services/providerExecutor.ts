@@ -1,7 +1,14 @@
-import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
-import { decodeAddress } from "@wonderland/interop-addresses";
-import { Hex } from "viem";
+import type { Hex } from "viem";
 
+import type { InteropAccountId } from "../types/interopAccountId.js";
+import type {
+    ExecutableQuote,
+    GetQuotesError,
+    GetQuotesResponse,
+    StepResult,
+    SubmitOrderResponse,
+} from "../types/quote.js";
+import type { QuoteRequest } from "../types/quoteRequest.js";
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import {
     AssetDiscoveryFactory,
@@ -9,7 +16,6 @@ import {
     AssetDiscoveryService,
     CrossChainProvider,
     DiscoveredAssets,
-    ExecutableQuote,
     mergeDiscoveredAssets,
     OrderTracker,
     OrderTrackerFactory,
@@ -21,16 +27,7 @@ import {
     WatchOrderParams,
 } from "../internal.js";
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
-
-type GetQuotesError = {
-    errorMsg: string;
-    error: Error;
-};
-
-interface GetQuotesResponse {
-    quotes: ExecutableQuote[];
-    errors: GetQuotesError[];
-}
+import { fromInteropAccountId } from "../utils/interopAccountId.js";
 
 interface ProviderExecutorConfig {
     providers: CrossChainProvider[];
@@ -95,21 +92,25 @@ class ProviderExecutor {
      */
     private async supportsRequestedAssets(
         provider: CrossChainProvider,
-        params: GetQuoteRequest,
+        params: QuoteRequest,
     ): Promise<boolean> {
         try {
             const discovery = this.discoveryCache.get(provider.getProviderId());
             if (!discovery) return true;
 
-            const { inputs, outputs } = params.intent;
-            const uniqueAssets = [...new Set([...inputs, ...outputs].map((e) => e.asset))];
+            // Extract unique assets from SDK QuoteRequest
+            const assets: InteropAccountId[] = [
+                ...params.intent.inputs.map((i) => i.asset),
+                ...params.intent.outputs.map((o) => o.asset),
+            ];
 
-            const assetPromises = uniqueAssets.map((asset) => {
-                const decoded = decodeAddress(asset as Hex);
-                return discovery.isAssetSupported(Number(decoded.chainReference), asset);
+            const checks = assets.map((asset) => {
+                // Need ERC-7930 for discovery service (it still uses wire format)
+                const hex = fromInteropAccountId(asset);
+                return discovery.isAssetSupported(asset.chainId, hex);
             });
 
-            const results = await Promise.all(assetPromises);
+            const results = await Promise.all(checks);
 
             return results.every((result) => result !== null);
         } catch (error) {
@@ -136,11 +137,15 @@ class ProviderExecutor {
     }
 
     /**
-     * Get quotes for a cross-chain action from all providers
-     * @param params - The parameters for the action
-     * @returns The quotes for the action
+     * Get quotes for a cross-chain action from all providers.
+     *
+     * Passes the SDK {@link QuoteRequest} directly to providers. Each provider
+     * handles its own conversion to wire format internally.
+     *
+     * @param params - The SDK quote request
+     * @returns Sorted quotes and any errors
      */
-    async getQuotes(params: GetQuoteRequest): Promise<GetQuotesResponse> {
+    async getQuotes(params: QuoteRequest): Promise<GetQuotesResponse> {
         const resultQuotes = await Promise.all(
             Object.values(this.providers).map(async (provider) => {
                 try {
@@ -150,10 +155,12 @@ class ProviderExecutor {
                     }
 
                     const quotesPromise = provider.getQuotes(params).then((quotes) =>
-                        quotes.map((quote) => ({
-                            ...quote,
-                            _providerId: provider.getProviderId(),
-                        })),
+                        quotes.map(
+                            (quote): ExecutableQuote => ({
+                                ...quote,
+                                _providerId: provider.getProviderId(),
+                            }),
+                        ),
                     );
 
                     let timeout: NodeJS.Timeout;
@@ -188,17 +195,30 @@ class ProviderExecutor {
     }
 
     /**
-     * Submit a signed order to the appropriate provider.
-     * Looks up the provider from the quote's provider field and delegates.
+     * Submit a signature-step order to the solver.
      *
-     * @param quote - The executable quote containing the order
-     * @param signature - The EIP-712 signature (hex or bytes)
-     * @returns The post order response (contains orderId for tracking)
+     * Only applies to **signature-step** orders (escrow, 3009, resource-lock)
+     * where the solver needs the user's EIP-712 signature to authorize the intent.
+     *
+     * For **transaction-step** orders (user-open, Across), do NOT call this method —
+     * the tx is already on-chain and the solver sees it directly. Use
+     * {@link prepareTracking} to monitor progress.
+     *
+     * Also accepts an array of {@link StepResult} for future multi-step orders
+     * with multiple signature steps.
+     *
+     * @example Single signature step (most common)
+     * ```typescript
+     * const sig = await wallet.signTypedData(quote.order.steps[0].signaturePayload);
+     * const { orderId } = await executor.submitOrder(quote, sig);
+     * ```
+     *
+     * @throws {Error} If the order has no signature steps
      */
-    async submitSignedOrder(
+    async submitOrder(
         quote: ExecutableQuote,
-        signature: Hex | Uint8Array,
-    ): Promise<PostOrderResponse> {
+        signatureOrResults: Hex | StepResult[],
+    ): Promise<SubmitOrderResponse> {
         const providerId = quote._providerId;
 
         const provider = this.providers[providerId];
@@ -206,7 +226,20 @@ class ProviderExecutor {
             throw new ProviderNotFound(providerId);
         }
 
-        return provider.submitSignedOrder(quote, signature);
+        // Extract the signature
+        let signature: Hex;
+        if (typeof signatureOrResults === "string") {
+            signature = signatureOrResults;
+        } else {
+            const sigResult = signatureOrResults.find((r) => r.signature);
+            if (!sigResult?.signature) {
+                throw new Error("No signature found in step results");
+            }
+            signature = sigResult.signature;
+        }
+
+        // Delegate to provider
+        return provider.submitOrder(quote, signature);
     }
 
     /**

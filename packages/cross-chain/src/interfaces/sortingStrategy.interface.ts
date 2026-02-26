@@ -1,4 +1,4 @@
-import { ExecutableQuote } from "./quotes.interface.js";
+import type { ExecutableQuote } from "../types/quote.js";
 
 export abstract class SortingStrategy {
     abstract readonly name: string;

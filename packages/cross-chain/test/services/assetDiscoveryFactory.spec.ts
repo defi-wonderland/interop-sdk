@@ -18,7 +18,7 @@ class MockDiscoveryProvider extends CrossChainProvider {
     readonly providerId = "mock-provider";
 
     getQuotes = vi.fn();
-    submitSignedOrder = vi.fn();
+    submitOrder = vi.fn();
     getTrackingConfig = vi.fn();
 
     override getDiscoveryConfig(): StaticAssetDiscoveryConfig {
@@ -36,7 +36,7 @@ class MockNoDiscoveryProvider extends CrossChainProvider {
     readonly providerId = "mock-no-discovery-provider";
 
     getQuotes = vi.fn();
-    submitSignedOrder = vi.fn();
+    submitOrder = vi.fn();
     getTrackingConfig = vi.fn();
     // Uses default getDiscoveryConfig which returns null
 }
@@ -92,7 +92,7 @@ describe("AssetDiscoveryFactory", () => {
                 readonly protocolName = "oif-mock";
                 readonly providerId = "oif-mock-provider";
                 getQuotes = vi.fn();
-                submitSignedOrder = vi.fn();
+                submitOrder = vi.fn();
                 getTrackingConfig = vi.fn();
                 override getDiscoveryConfig(): OIFAssetDiscoveryConfig {
                     return {
@@ -118,7 +118,7 @@ describe("AssetDiscoveryFactory", () => {
                 readonly protocolName = "custom";
                 readonly providerId = "custom-provider";
                 getQuotes = vi.fn();
-                submitSignedOrder = vi.fn();
+                submitOrder = vi.fn();
                 getTrackingConfig = vi.fn();
                 override getDiscoveryConfig(): CustomApiAssetDiscoveryConfig {
                     return {

@@ -9,7 +9,7 @@
 import type { PostOrderRequest } from "@openintentsframework/oif-specs";
 import type { Hex } from "viem";
 
-import type { ExecutableQuote } from "../interfaces/quotes.interface.js";
+import type { ProviderExecutableQuote } from "../interfaces/quotes.interface.js";
 import { prefixSignatureForOrderType } from "./signaturePrefixAdapter.js";
 
 /**
@@ -17,14 +17,14 @@ import { prefixSignatureForOrderType } from "./signaturePrefixAdapter.js";
  * Will be replaced by oif-specs PostOrderRequest when solver is updated
  */
 interface OifSolverPostOrderRequest {
-    quoteResponse: Omit<ExecutableQuote, "preparedTransaction" | "_providerId">;
+    quoteResponse: Omit<ProviderExecutableQuote, "preparedTransaction" | "_providerId">;
     signature: Hex;
 }
 
 /** Adapts oif-specs PostOrderRequest to current OIF solver format */
 export function adaptPostOrderRequest(
     request: PostOrderRequest,
-    originalQuote: ExecutableQuote,
+    originalQuote: ProviderExecutableQuote,
 ): OifSolverPostOrderRequest {
     const signatureHex = `0x${Buffer.from(request.signature).toString("hex")}` as Hex;
 

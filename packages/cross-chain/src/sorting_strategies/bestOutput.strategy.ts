@@ -1,4 +1,5 @@
-import { ExecutableQuote, SortingStrategy } from "../internal.js";
+import type { ExecutableQuote } from "../types/quote.js";
+import { SortingStrategy } from "../internal.js";
 
 export class BestOutputStrategy extends SortingStrategy {
     readonly name: string = "Best Output";

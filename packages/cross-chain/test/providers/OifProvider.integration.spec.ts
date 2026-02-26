@@ -61,7 +61,7 @@ describe("OifProvider Integration Tests", () => {
                 data: mockPostOrderResponse,
             });
 
-            const result = await provider.submitSignedOrder(quote, signature);
+            const result = await provider.submitOrder(quote, signature);
 
             expect(result).toEqual(mockPostOrderResponse);
 

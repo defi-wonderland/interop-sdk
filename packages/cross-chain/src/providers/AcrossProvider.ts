@@ -1,5 +1,4 @@
-import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
-import { decodeAddress, encodeAddress } from "@wonderland/interop-addresses";
+import { encodeAddress } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import {
     AbiEvent,
@@ -14,6 +13,8 @@ import {
 } from "viem";
 import { ZodError } from "zod";
 
+import type { Quote } from "../types/quote.js";
+import type { QuoteRequest } from "../types/quoteRequest.js";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
@@ -28,8 +29,6 @@ import {
     AcrossGetQuoteResponse,
     AcrossGetQuoteResponseSchema,
     AcrossMetadata,
-    AcrossOIFGetQuoteParams,
-    AcrossOIFGetQuoteParamsSchema,
     AcrossToken,
     acrossTokensResponseSchema,
     APIBasedFillWatcherConfig,
@@ -39,7 +38,6 @@ import {
     CrossChainProvider,
     CustomEventOpenedIntentParserConfig,
     EventBasedFillWatcherConfig,
-    ExecutableQuote,
     FillEvent,
     FillWatcherConfig,
     getAcrossApiUrl,
@@ -53,9 +51,7 @@ import {
     OrderStatus,
     parseAbiEncodedFields,
     ProviderConfigFailure,
-    ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
-    ProviderQuote,
     PublicClientManager,
 } from "../internal.js";
 
@@ -101,43 +97,6 @@ export class AcrossProvider extends CrossChainProvider {
 
     private getPublicClient(chain: Chain): PublicClient {
         return this.clientManager.getClient(chain);
-    }
-
-    /**
-     * Parse an interop address to a viem address and chain id
-     * @param address - The binary interop address (hex string) to parse
-     * @returns The viem address and chain id
-     */
-    private parseInteropAddress(address: string): { address: Address; chain: number } {
-        const decoded = decodeAddress(address as Hex);
-        if (!decoded.address) {
-            throw new Error("Address field is required");
-        }
-        if (!decoded.chainReference) {
-            throw new Error("Chain reference is required");
-        }
-        return {
-            address: decoded.address as Address,
-            chain: Number(decoded.chainReference),
-        };
-    }
-
-    /**
-     * Generate an interop address from a viem address and chain id
-     * @param address - The viem address
-     * @param chain - The chain id
-     * @returns The interop address
-     */
-    private generateInteropAddress(address: Address, chain: number): string {
-        return encodeAddress(
-            {
-                version: 1,
-                chainType: "eip155",
-                chainReference: chain.toString(),
-                address,
-            },
-            { format: "hex" },
-        ) as string;
     }
 
     /**
@@ -189,89 +148,6 @@ export class AcrossProvider extends CrossChainProvider {
         }
     }
 
-    private async convertOifParamsToAcrossParams(
-        params: AcrossOIFGetQuoteParams,
-    ): Promise<AcrossGetQuoteParams> {
-        try {
-            const userParsed = this.parseInteropAddress(params.user);
-
-            const { inputs, outputs } = params.intent;
-            const inputParsed = this.parseInteropAddress(inputs[0].asset);
-            const outputParsed = this.parseInteropAddress(outputs[0].asset);
-            const recipientParsed = this.parseInteropAddress(outputs[0].receiver);
-            const swapType = params.intent.swapType || "exact-input";
-            const amount = swapType === "exact-input" ? inputs[0].amount : outputs[0].amount;
-
-            return AcrossGetQuoteParamsSchema.parse({
-                tradeType: params.intent.swapType || "exact-input",
-                inputToken: inputParsed.address,
-                amount,
-                outputToken: outputParsed.address,
-                originChainId: inputParsed.chain,
-                destinationChainId: outputParsed.chain,
-                depositor: userParsed.address,
-                recipient: recipientParsed.address,
-            });
-        } catch (error) {
-            if (error instanceof ZodError) {
-                throw new ProviderGetQuoteFailure(
-                    "Failed to parse Across OIF quote request",
-                    error.message,
-                    error.stack,
-                );
-            }
-            throw new ProviderGetQuoteFailure(
-                "Failed to convert Across OIF quote request to Across params",
-                String(error),
-                error instanceof Error ? error.stack : undefined,
-            );
-        }
-    }
-
-    private async convertAcrossSwapToOifQuote(
-        request: AcrossOIFGetQuoteParams,
-        response: AcrossGetQuoteResponse,
-    ): Promise<Omit<ProviderQuote, "preparedTransaction">> {
-        const { inputs, outputs } = request.intent;
-
-        return {
-            order: {
-                type: "across",
-                payload: response.swapTx,
-                metadata: {},
-            },
-            preview: {
-                inputs: [
-                    {
-                        user: inputs[0].user,
-                        asset: this.generateInteropAddress(
-                            response.inputToken.address,
-                            response.inputToken.chainId,
-                        ),
-                        amount: response.inputAmount,
-                    },
-                ],
-                outputs: [
-                    {
-                        receiver: outputs[0].receiver,
-                        asset: this.generateInteropAddress(
-                            response.outputToken.address,
-                            response.outputToken.chainId,
-                        ),
-                        amount: response.expectedOutputAmount,
-                    },
-                ],
-            },
-            quoteId: response.id,
-            eta: response.expectedFillTime,
-            partialFill: false,
-            failureHandling: "refund-automatic",
-            metadata: {
-                acrossResponse: response,
-            },
-        };
-    }
-
     /**
      * Prepare the transaction using the swapTx from the Across API
      */
@@ -296,29 +172,99 @@ export class AcrossProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      */
-    async getQuotes(params: GetQuoteRequest): Promise<ProviderQuote[]> {
+    async getQuotes(params: QuoteRequest): Promise<Quote[]> {
         try {
-            const parsedParams = AcrossOIFGetQuoteParamsSchema.parse(params);
-
-            const acrossGetQuote = await this.convertOifParamsToAcrossParams(parsedParams);
-            const acrossQuote = await this.getAcrossQuote(acrossGetQuote);
-            const oifQuote = await this.convertAcrossSwapToOifQuote(parsedParams, acrossQuote);
-
-            const preparedTransaction = await this.prepareTransaction(acrossQuote);
-
-            const providerQuote: ProviderQuote = {
-                ...oifQuote,
-                preparedTransaction,
+            // Read SDK types directly — no ERC-7930 decoding
+            const input = params.intent.inputs[0]!;
+            const output = params.intent.outputs[0]!;
+            const recipient = output.recipient ?? {
+                chainId: output.asset.chainId,
+                address: params.user.address,
             };
 
-            return [providerQuote];
+            const acrossParams = AcrossGetQuoteParamsSchema.parse({
+                tradeType: params.intent.swapType || "exact-input",
+                inputToken: input.asset.address,
+                amount:
+                    params.intent.swapType === "exact-output"
+                        ? (output.amount ?? "0")
+                        : (input.amount ?? "0"),
+                outputToken: output.asset.address,
+                originChainId: input.asset.chainId,
+                destinationChainId: output.asset.chainId,
+                depositor: params.user.address,
+                recipient: recipient.address,
+            });
+
+            const acrossResponse = await this.getAcrossQuote(acrossParams);
+            const preparedTx = await this.prepareTransaction(acrossResponse);
+
+            // Build SDK Quote directly
+            const quote: Quote = {
+                order: {
+                    steps: [
+                        {
+                            kind: "transaction",
+                            chainId: acrossResponse.swapTx.chainId,
+                            transaction: {
+                                to: acrossResponse.swapTx.to,
+                                data: acrossResponse.swapTx.data,
+                                gas: preparedTx?.gas?.toString() ?? acrossResponse.swapTx.gas,
+                                ...(preparedTx?.maxFeePerGas && {
+                                    maxFeePerGas: preparedTx.maxFeePerGas.toString(),
+                                }),
+                                ...(preparedTx?.maxPriorityFeePerGas && {
+                                    maxPriorityFeePerGas:
+                                        preparedTx.maxPriorityFeePerGas.toString(),
+                                }),
+                            },
+                        },
+                    ],
+                    metadata: {
+                        simulationSuccess: acrossResponse.swapTx.simulationSuccess,
+                    },
+                },
+                preview: {
+                    inputs: [
+                        {
+                            account: { chainId: input.asset.chainId, address: params.user.address },
+                            asset: {
+                                chainId: acrossResponse.inputToken.chainId,
+                                address: acrossResponse.inputToken.address,
+                            },
+                            amount: acrossResponse.inputAmount,
+                        },
+                    ],
+                    outputs: [
+                        {
+                            account: recipient,
+                            asset: {
+                                chainId: acrossResponse.outputToken.chainId,
+                                address: acrossResponse.outputToken.address,
+                            },
+                            amount: acrossResponse.expectedOutputAmount,
+                        },
+                    ],
+                },
+                provider: this.providerId,
+                quoteId: acrossResponse.id,
+                eta: acrossResponse.expectedFillTime,
+                partialFill: false,
+                failureHandling: "refund-automatic",
+                metadata: { acrossResponse },
+            };
+
+            return [quote];
         } catch (error) {
             if (error instanceof ZodError) {
                 throw new ProviderGetQuoteFailure(
-                    "Failed to parse Across OIF quote request",
+                    "Failed to parse Across quote request",
                     error.message,
                     error.stack,
                 );
+            }
+            if (error instanceof ProviderGetQuoteFailure) {
+                throw error;
             }
             throw new ProviderGetQuoteFailure(
                 "Failed to get Across quotes",
@@ -326,18 +272,6 @@ export class AcrossProvider extends CrossChainProvider {
                 error instanceof Error ? error.stack : undefined,
             );
         }
-    }
-
-    /**
-     * @inheritdoc
-     */
-    async submitSignedOrder(
-        _quote: ExecutableQuote,
-        _signature: Hex | Uint8Array,
-    ): Promise<PostOrderResponse> {
-        throw new ProviderExecuteNotImplemented(
-            "Across provider does not support submitSignedOrder",
-        );
     }
 
     /**

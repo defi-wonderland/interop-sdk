@@ -1,23 +1,26 @@
 import {
-    GetQuoteRequest,
     GetQuoteResponse,
+    Order as OifOrder,
     PostOrderRequest,
     PostOrderResponse,
-    Quote,
 } from "@openintentsframework/oif-specs";
 import axios, { AxiosError } from "axios";
-import { bytesToHex, Hex, hexToBytes, PrepareTransactionRequestReturnType } from "viem";
+import { Hex, hexToBytes } from "viem";
 import { ZodError } from "zod";
 
+import type { ProviderExecutableQuote } from "../interfaces/quotes.interface.js";
+import type { Quote, SubmitOrderResponse } from "../types/quote.js";
+import type { QuoteRequest } from "../types/quoteRequest.js";
 import {
     adaptOrderStatus,
     adaptPostOrderRequest,
     adaptTypedDataPayload,
 } from "../adapters/index.js";
+import { adaptQuote } from "../adapters/quoteAdapter.js";
+import { adaptQuoteRequest } from "../adapters/quoteRequestAdapter.js";
 import {
     APIBasedFillWatcherConfig,
     CrossChainProvider,
-    ExecutableQuote,
     FillEvent,
     FillWatcherConfig,
     GetFillParams,
@@ -91,37 +94,24 @@ export class OifProvider extends CrossChainProvider {
     private static readonly REQUEST_TIMEOUT_MS = 30000;
 
     /**
-     * Prepare transaction for user-mode submission
-     * @param quote - The quote containing order data
-     * @returns Transaction request for user-open orders, undefined otherwise
-     */
-    private prepareTransaction(quote: Quote): PrepareTransactionRequestReturnType | undefined {
-        try {
-            if (quote.order.type !== "oif-user-open-v0") {
-                return undefined;
-            }
-
-            return {
-                to: quote.order.openIntentTx.to as Hex,
-                data: bytesToHex(quote.order.openIntentTx.data),
-            } as PrepareTransactionRequestReturnType;
-        } catch {
-            return undefined;
-        }
-    }
-
-    /**
      * @inheritdoc
      */
-    async getQuotes(params: GetQuoteRequest): Promise<ProviderQuote[]> {
+    async getQuotes(params: QuoteRequest): Promise<Quote[]> {
         try {
-            const response = await axios.post<GetQuoteResponse>(`${this.url}/v1/quotes`, params, {
-                headers: {
-                    "Content-Type": "application/json",
-                    ...this.headers,
+            // 1. Convert SDK → OIF wire format
+            const oifRequest = adaptQuoteRequest(params);
+
+            const response = await axios.post<GetQuoteResponse>(
+                `${this.url}/v1/quotes`,
+                oifRequest,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...this.headers,
+                    },
+                    timeout: OifProvider.REQUEST_TIMEOUT_MS,
                 },
-                timeout: OifProvider.REQUEST_TIMEOUT_MS,
-            });
+            );
 
             if (response.status !== 200) {
                 throw new ProviderGetQuoteFailure(
@@ -134,10 +124,10 @@ export class OifProvider extends CrossChainProvider {
             getQuoteResponseSchema.parse(response.data);
             const { quotes } = response.data as GetQuoteResponse;
 
+            // 2. Map OIF quotes → ProviderQuote (with typedData normalization)
             const providerQuotes: ProviderQuote[] = quotes.map((quote): ProviderQuote => {
                 // WORKAROUND #286: Normalize EIP-712 typed data for viem compatibility
                 const adaptedQuote = adaptTypedDataPayload(quote);
-                const preparedTransaction = this.prepareTransaction(adaptedQuote);
 
                 return {
                     ...adaptedQuote,
@@ -145,11 +135,18 @@ export class OifProvider extends CrossChainProvider {
                         ...adaptedQuote.metadata,
                         ...(this.adapterMetadata && { adapterMetadata: this.adapterMetadata }),
                     },
-                    preparedTransaction,
                 };
             });
 
-            return providerQuotes;
+            // 3. Convert to SDK quotes, stashing originals in metadata
+            return providerQuotes.map((pq) => {
+                const sdkQuote = adaptQuote(pq);
+                sdkQuote.metadata = {
+                    ...sdkQuote.metadata,
+                    _oifProviderQuote: pq,
+                };
+                return sdkQuote;
+            });
         } catch (error) {
             if (error instanceof AxiosError) {
                 const errorData = error.response?.data as { message?: string };
@@ -187,29 +184,39 @@ export class OifProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      */
-    async submitSignedOrder(
-        quote: ExecutableQuote,
-        signature: Hex | Uint8Array,
-    ): Promise<PostOrderResponse> {
-        if (!isSignableOifOrder(quote.order)) {
-            throw new ProviderExecuteNotImplemented(
-                `Execute not supported for order type: ${quote.order.type}`,
+    override async submitOrder(quote: Quote, signature: Hex): Promise<SubmitOrderResponse> {
+        // 1. Retrieve the original OIF wire-format quote stashed in metadata
+        const providerQuote = quote.metadata?._oifProviderQuote as ProviderQuote | undefined;
+        if (!providerQuote) {
+            throw new ProviderExecuteFailure(
+                "Missing OIF provider quote in metadata — was this quote obtained from OifProvider.getQuotes()?",
+                `quoteId: ${quote.quoteId}`,
             );
         }
 
-        const signatureBytes = typeof signature === "string" ? hexToBytes(signature) : signature;
+        if (!isSignableOifOrder(providerQuote.order as OifOrder)) {
+            throw new ProviderExecuteNotImplemented(
+                `Execute not supported for order type: ${(providerQuote.order as { type: string }).type}`,
+            );
+        }
+
+        // 2. Build OIF PostOrderRequest using original wire-format quote
+        const signatureBytes = hexToBytes(signature);
 
         const request: PostOrderRequest = {
-            order: quote.order,
+            order: providerQuote.order as OifOrder,
             signature: signatureBytes,
-            quoteId: quote.quoteId,
+            quoteId: providerQuote.quoteId,
         };
 
-        // WORKAROUND #34, #109: Adapt request for current OIF solver
-        const adaptedRequest = adaptPostOrderRequest(request, quote);
+        const pExecQuote = {
+            ...providerQuote,
+            _providerId: this.providerId,
+        } as ProviderExecutableQuote;
+        const adaptedRequest = adaptPostOrderRequest(request, pExecQuote);
 
+        // 3. POST to solver with retry
         try {
-            // Retry up to 3 times with 5s timeout per attempt
             let lastErr: unknown;
             for (let i = 0; i < OifProvider.MAX_SUBMIT_RETRIES; i++) {
                 try {
@@ -222,7 +229,13 @@ export class OifProvider extends CrossChainProvider {
                         },
                     );
 
-                    return response.data;
+                    // 4. Convert OIF PostOrderResponse → SDK SubmitOrderResponse
+                    const oifResponse = response.data;
+                    return {
+                        orderId: (oifResponse.orderId ?? "") as Hex,
+                        status: oifResponse.status,
+                        message: oifResponse.message,
+                    };
                 } catch (e) {
                     lastErr = e;
                     if (e instanceof AxiosError && e.response && e.response.status < 500) break;

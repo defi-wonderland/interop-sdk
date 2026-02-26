@@ -1,4 +1,5 @@
-import { ExecutableQuote, SortingStrategy } from "../internal.js";
+import type { ExecutableQuote } from "../types/quote.js";
+import { SortingStrategy } from "../internal.js";
 
 export class LowerEtaStrategy extends SortingStrategy {
     readonly name: string = "Lower Eta";

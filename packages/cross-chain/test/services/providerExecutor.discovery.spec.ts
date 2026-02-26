@@ -17,7 +17,7 @@ function createMockProvider(
         getProviderId: vi.fn(() => providerId),
         getProtocolName: vi.fn(() => providerId),
         getQuotes: vi.fn(() => Promise.resolve([])),
-        submitSignedOrder: vi.fn(),
+        submitOrder: vi.fn(),
         getTrackingConfig: vi.fn(),
         getDiscoveryConfig: vi.fn(() => discoveryConfig),
     } as unknown as CrossChainProvider;

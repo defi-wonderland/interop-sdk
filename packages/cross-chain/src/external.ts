@@ -25,6 +25,17 @@ export {
     AssetDiscoveryFactory,
     createAssetDiscoveryService,
     createOIFAssetDiscoveryService,
-    isSignableOifOrder,
     isNativeAddress,
+    // Step-based helpers
+    getSignatureSteps,
+    getTransactionSteps,
+    isSignatureOnlyOrder,
+    isTransactionOnlyOrder,
+    // Address conversion
+    toInteropAccountId,
+    fromInteropAccountId,
+    // Type adapters (SDK ↔ OIF wire format)
+    adaptQuoteRequest,
+    adaptOifOrder,
+    adaptQuote,
 } from "./internal.js";

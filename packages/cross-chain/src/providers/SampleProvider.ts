@@ -1,15 +1,9 @@
-import { GetQuoteRequest, PostOrderResponse, Quote } from "@openintentsframework/oif-specs";
-import { Address, Hex, PrepareTransactionRequestReturnType } from "viem";
+import { Address } from "viem";
 
 import type { FillWatcherConfig } from "../interfaces/fillWatcher.interface.js";
-import {
-    CrossChainProvider,
-    ExecutableQuote,
-    OpenedIntentParserConfig,
-    ProviderQuote,
-} from "../internal.js";
-// TODO: REMOVE THIS IMPORT WHEN OIF-SPECS IS UPDATED WITH SCHEMAS
-import { getQuoteRequestSchema } from "../schemas/oif.js";
+import type { Quote } from "../types/quote.js";
+import type { QuoteRequest } from "../types/quoteRequest.js";
+import { CrossChainProvider, OpenedIntentParserConfig } from "../internal.js";
 
 interface SampleGetQuoteParams {
     input: {
@@ -39,11 +33,11 @@ export class SampleProvider extends CrossChainProvider {
         super();
     }
 
-    async convertOifParamsToSampleParams(_params: GetQuoteRequest): Promise<SampleGetQuoteParams> {
+    async convertParamsToSampleParams(_params: QuoteRequest): Promise<SampleGetQuoteParams> {
         throw new Error("Not implemented");
     }
 
-    async convertSampleResponseToOifResponse(_response: SampleGetQuoteResponse): Promise<Quote> {
+    async convertSampleResponseToQuote(_response: SampleGetQuoteResponse): Promise<Quote> {
         throw new Error("Not implemented");
     }
 
@@ -54,27 +48,12 @@ export class SampleProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      */
-    async getQuotes(params: GetQuoteRequest): Promise<ProviderQuote[]> {
-        const parsedParams = getQuoteRequestSchema.parse(params);
-        const sampleParams = await this.convertOifParamsToSampleParams(parsedParams);
+    async getQuotes(params: QuoteRequest): Promise<Quote[]> {
+        const sampleParams = await this.convertParamsToSampleParams(params);
         const sampleQuote = await this.getSampleQuote(sampleParams);
-        const oifQuote = await this.convertSampleResponseToOifResponse(sampleQuote);
-        const providerQuote: ProviderQuote = {
-            ...oifQuote,
-            preparedTransaction: "0x" as unknown as PrepareTransactionRequestReturnType,
-        };
+        const quote = await this.convertSampleResponseToQuote(sampleQuote);
 
-        return [providerQuote];
-    }
-
-    /**
-     * @inheritdoc
-     */
-    async submitSignedOrder(
-        _quote: ExecutableQuote,
-        _signature: Hex | Uint8Array,
-    ): Promise<PostOrderResponse> {
-        throw new Error("Not implemented");
+        return [quote];
     }
 
     /**

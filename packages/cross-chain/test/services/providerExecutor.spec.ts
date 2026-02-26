@@ -1,8 +1,13 @@
-import { GetQuoteRequest } from "@openintentsframework/oif-specs";
-import { encodeAddress } from "@wonderland/interop-addresses";
 import { Address, Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type {
+    ExecutableQuote,
+    Quote,
+    StepResult,
+    SubmitOrderResponse,
+} from "../../src/types/quote.js";
+import type { QuoteRequest } from "../../src/types/quoteRequest.js";
 import {
     AcrossProvider,
     createProviderExecutor,
@@ -12,9 +17,9 @@ import {
 } from "../../src/external.js";
 import {
     CrossChainProvider,
-    ExecutableQuote,
     OrderStatus,
     ProviderGetQuoteFailure,
+    ProviderNotFound,
 } from "../../src/internal.js";
 import { createMockFillEvent } from "../mocks/orderTracking.js";
 
@@ -25,139 +30,123 @@ const OUTPUT_TOKEN_ADDRESS = "0x4200000000000000000000000000000000000006" as Add
 const INPUT_CHAIN_ID = 11155111;
 const OUTPUT_CHAIN_ID = 84532;
 
-// Convert to interop addresses using synchronous encodeAddress
-const USER_INTEROP_ADDRESS = encodeAddress(
-    {
-        version: 1,
-        chainType: "eip155",
-        chainReference: INPUT_CHAIN_ID.toString(),
-        address: USER_ADDRESS,
-    },
-    { format: "hex" },
-) as string;
-
-const RECEIVER_INTEROP_ADDRESS = encodeAddress(
-    {
-        version: 1,
-        chainType: "eip155",
-        chainReference: OUTPUT_CHAIN_ID.toString(),
-        address: RECEIVER_ADDRESS,
-    },
-    { format: "hex" },
-) as string;
-
-const INPUT_TOKEN_INTEROP_ADDRESS = encodeAddress(
-    {
-        version: 1,
-        chainType: "eip155",
-        chainReference: INPUT_CHAIN_ID.toString(),
-        address: INPUT_TOKEN_ADDRESS,
-    },
-    { format: "hex" },
-) as string;
-
-const OUTPUT_TOKEN_INTEROP_ADDRESS = encodeAddress(
-    {
-        version: 1,
-        chainType: "eip155",
-        chainReference: OUTPUT_CHAIN_ID.toString(),
-        address: OUTPUT_TOKEN_ADDRESS,
-    },
-    { format: "hex" },
-) as string;
-
-const mockExecutableQuoteA: ExecutableQuote = {
+// Mock SDK Quotes — these are what providers return now
+const mockSdkQuoteA: Quote = {
     order: {
-        type: "across",
-        payload: {
-            simulationSuccess: true,
-            chainId: INPUT_CHAIN_ID,
-            to: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5" as Address,
-            data: "0x1234567890abcdef",
-            gas: "250000",
-            maxFeePerGas: "100000000000",
-            maxPriorityFeePerGas: "2000000000",
-        },
-        metadata: {},
+        steps: [
+            {
+                kind: "transaction",
+                chainId: INPUT_CHAIN_ID,
+                transaction: {
+                    to: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
+                    data: "0x1234567890abcdef",
+                    gas: "250000",
+                    maxFeePerGas: "100000000000",
+                    maxPriorityFeePerGas: "2000000000",
+                },
+            },
+        ],
+        metadata: { simulationSuccess: true },
     },
     preview: {
-        inputs: [{ user: USER_INTEROP_ADDRESS, asset: INPUT_TOKEN_INTEROP_ADDRESS, amount: "100" }],
+        inputs: [
+            {
+                account: { chainId: INPUT_CHAIN_ID, address: USER_ADDRESS },
+                asset: { chainId: INPUT_CHAIN_ID, address: INPUT_TOKEN_ADDRESS },
+                amount: "100",
+            },
+        ],
         outputs: [
             {
-                receiver: RECEIVER_INTEROP_ADDRESS,
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS,
+                account: { chainId: OUTPUT_CHAIN_ID, address: RECEIVER_ADDRESS },
+                asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN_ADDRESS },
                 amount: "95",
             },
         ],
     },
+    provider: "mockProviderA",
     partialFill: false,
     quoteId: "quoteA",
     failureHandling: "refund-automatic",
 };
 
-const mockExecutableQuoteB: ExecutableQuote = {
+const mockSdkQuoteB: Quote = {
     order: {
-        type: "across",
-        payload: {
-            simulationSuccess: true,
-            chainId: INPUT_CHAIN_ID,
-            to: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5" as Address,
-            data: "0xabcdef1234567890",
-            gas: "250000",
-            maxFeePerGas: "100000000000",
-            maxPriorityFeePerGas: "2000000000",
-        },
-        metadata: {},
+        steps: [
+            {
+                kind: "transaction",
+                chainId: INPUT_CHAIN_ID,
+                transaction: {
+                    to: "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5",
+                    data: "0xabcdef1234567890",
+                    gas: "250000",
+                    maxFeePerGas: "100000000000",
+                    maxPriorityFeePerGas: "2000000000",
+                },
+            },
+        ],
+        metadata: { simulationSuccess: true },
     },
     preview: {
-        inputs: [{ user: USER_INTEROP_ADDRESS, asset: INPUT_TOKEN_INTEROP_ADDRESS, amount: "100" }],
+        inputs: [
+            {
+                account: { chainId: INPUT_CHAIN_ID, address: USER_ADDRESS },
+                asset: { chainId: INPUT_CHAIN_ID, address: INPUT_TOKEN_ADDRESS },
+                amount: "100",
+            },
+        ],
         outputs: [
             {
-                receiver: RECEIVER_INTEROP_ADDRESS,
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS,
+                account: { chainId: OUTPUT_CHAIN_ID, address: RECEIVER_ADDRESS },
+                asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN_ADDRESS },
                 amount: "98",
             },
         ],
     },
+    provider: "mockProviderB",
     partialFill: false,
     quoteId: "quoteB",
     failureHandling: "refund-automatic",
-    preparedTransaction: undefined,
+};
+
+const mockSubmitResponse: SubmitOrderResponse = {
+    orderId: "0xorder123" as Hex,
+    status: "received",
 };
 
 const mockProviderA = {
     protocolName: "mockProviderA",
     getProviderId: vi.fn(() => "mockProviderA"),
-    getQuotes: vi.fn(() => Promise.resolve([mockExecutableQuoteA])),
+    getQuotes: vi.fn(() => Promise.resolve([mockSdkQuoteA])),
+    submitOrder: vi.fn(() => Promise.resolve(mockSubmitResponse)),
 } as unknown as CrossChainProvider;
 
 const mockProviderB = {
     protocolName: "mockProviderB",
     getProviderId: vi.fn(() => "mockProviderB"),
-    getQuotes: vi.fn(() => Promise.resolve([mockExecutableQuoteB])),
+    getQuotes: vi.fn(() => Promise.resolve([mockSdkQuoteB])),
+    submitOrder: vi.fn(() => Promise.resolve({ orderId: "0xorder456" as Hex, status: "received" })),
 } as unknown as CrossChainProvider;
 
 describe("ProviderExecutor", () => {
-    const mockGetQuoteRequest: GetQuoteRequest = {
-        user: USER_INTEROP_ADDRESS,
+    // New SDK-style quote request
+    const mockQuoteRequest: QuoteRequest = {
+        user: { chainId: INPUT_CHAIN_ID, address: USER_ADDRESS },
         intent: {
-            intentType: "oif-swap",
             inputs: [
                 {
-                    user: USER_INTEROP_ADDRESS,
-                    asset: INPUT_TOKEN_INTEROP_ADDRESS,
+                    asset: { chainId: INPUT_CHAIN_ID, address: INPUT_TOKEN_ADDRESS },
                     amount: "100",
                 },
             ],
             outputs: [
                 {
-                    receiver: RECEIVER_INTEROP_ADDRESS,
-                    asset: OUTPUT_TOKEN_INTEROP_ADDRESS,
+                    asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN_ADDRESS },
+                    recipient: { chainId: OUTPUT_CHAIN_ID, address: RECEIVER_ADDRESS },
                 },
             ],
             swapType: "exact-input",
         },
-        supportedTypes: ["across"],
     };
 
     beforeEach(() => {
@@ -195,19 +184,19 @@ describe("ProviderExecutor", () => {
             const providerExecutor = createProviderExecutor({
                 providers: [mockProviderA, mockProviderB],
             });
-            const { quotes } = await providerExecutor.getQuotes(mockGetQuoteRequest);
+            const { quotes } = await providerExecutor.getQuotes(mockQuoteRequest);
 
             expect(quotes).toHaveLength(2);
         });
 
         it("return a list of quotes with errors", async () => {
-            vi.mocked(mockProviderA.getQuotes).mockRejectedValue(
+            vi.mocked(mockProviderA.getQuotes).mockRejectedValueOnce(
                 new ProviderGetQuoteFailure("Mocked Error A"),
             );
             const providerExecutor = createProviderExecutor({
                 providers: [mockProviderA, mockProviderB],
             });
-            const { quotes, errors } = await providerExecutor.getQuotes(mockGetQuoteRequest);
+            const { quotes, errors } = await providerExecutor.getQuotes(mockQuoteRequest);
 
             expect(quotes).toHaveLength(1);
             expect(errors).toHaveLength(1);
@@ -215,14 +204,123 @@ describe("ProviderExecutor", () => {
             expect(errors[0]?.error).toBeInstanceOf(Error);
         });
 
-        it("call to getQuotes for each provider", async () => {
+        it("passes SDK QuoteRequest directly to providers", async () => {
             const providerExecutor = createProviderExecutor({
                 providers: [mockProviderA, mockProviderB],
             });
-            await providerExecutor.getQuotes(mockGetQuoteRequest);
+            await providerExecutor.getQuotes(mockQuoteRequest);
 
-            expect(mockProviderA.getQuotes).toHaveBeenCalledWith(mockGetQuoteRequest);
-            expect(mockProviderB.getQuotes).toHaveBeenCalledWith(mockGetQuoteRequest);
+            // Providers receive SDK QuoteRequest directly
+            expect(mockProviderA.getQuotes).toHaveBeenCalledTimes(1);
+            expect(mockProviderB.getQuotes).toHaveBeenCalledTimes(1);
+
+            // Verify the SDK request is passed directly (no OIF conversion)
+            const request = vi.mocked(mockProviderA.getQuotes).mock.calls[0]![0];
+            expect(request).toHaveProperty("intent.inputs");
+            expect(request).toHaveProperty("user.chainId", INPUT_CHAIN_ID);
+            expect(request).toHaveProperty("user.address", USER_ADDRESS);
+        });
+
+        it("wraps provider quotes as ExecutableQuotes with _providerId", async () => {
+            const providerExecutor = createProviderExecutor({
+                providers: [mockProviderA],
+            });
+            const { quotes } = await providerExecutor.getQuotes(mockQuoteRequest);
+
+            expect(quotes).toHaveLength(1);
+            expect(quotes[0]!._providerId).toBe("mockProviderA");
+            expect(quotes[0]!.order).toEqual(mockSdkQuoteA.order);
+            expect(quotes[0]!.preview).toEqual(mockSdkQuoteA.preview);
+        });
+    });
+
+    describe("submitOrder", () => {
+        const mockSignatureQuote: ExecutableQuote = {
+            order: {
+                steps: [
+                    {
+                        kind: "signature",
+                        chainId: INPUT_CHAIN_ID,
+                        signaturePayload: {
+                            signatureType: "eip712",
+                            domain: { name: "Permit2", chainId: INPUT_CHAIN_ID },
+                            primaryType: "PermitBatchWitnessTransferFrom",
+                            types: {},
+                            message: {},
+                        },
+                    },
+                ],
+                lock: { type: "oif-escrow" },
+            },
+            preview: {
+                inputs: [
+                    {
+                        account: { chainId: INPUT_CHAIN_ID, address: USER_ADDRESS },
+                        asset: { chainId: INPUT_CHAIN_ID, address: INPUT_TOKEN_ADDRESS },
+                        amount: "100",
+                    },
+                ],
+                outputs: [
+                    {
+                        account: { chainId: OUTPUT_CHAIN_ID, address: RECEIVER_ADDRESS },
+                        asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN_ADDRESS },
+                        amount: "95",
+                    },
+                ],
+            },
+            provider: "mockProviderA",
+            _providerId: "mockProviderA",
+        };
+
+        it("submits a raw Hex signature to the provider", async () => {
+            const executor = createProviderExecutor({ providers: [mockProviderA] });
+            const signature = "0xdeadbeef" as Hex;
+
+            await executor.submitOrder(mockSignatureQuote, signature);
+
+            expect(mockProviderA.submitOrder).toHaveBeenCalledOnce();
+            expect(mockProviderA.submitOrder).toHaveBeenCalledWith(mockSignatureQuote, signature);
+        });
+
+        it("extracts signature from StepResult[]", async () => {
+            const executor = createProviderExecutor({ providers: [mockProviderA] });
+            const stepResults: StepResult[] = [{ stepIndex: 0, signature: "0xcafebabe" as Hex }];
+
+            await executor.submitOrder(mockSignatureQuote, stepResults);
+
+            expect(mockProviderA.submitOrder).toHaveBeenCalledWith(
+                mockSignatureQuote,
+                "0xcafebabe",
+            );
+        });
+
+        it("throws when StepResult[] has no signatures", async () => {
+            const executor = createProviderExecutor({ providers: [mockProviderA] });
+            const emptyResults: StepResult[] = [];
+
+            await expect(executor.submitOrder(mockSignatureQuote, emptyResults)).rejects.toThrow(
+                "No signature found in step results",
+            );
+        });
+
+        it("throws ProviderNotFound for unknown provider", async () => {
+            const executor = createProviderExecutor({ providers: [mockProviderA] });
+            const unknownQuote: ExecutableQuote = {
+                ...mockSignatureQuote,
+                _providerId: "nonexistent",
+            };
+
+            await expect(executor.submitOrder(unknownQuote, "0xdeadbeef" as Hex)).rejects.toThrow(
+                ProviderNotFound,
+            );
+        });
+
+        it("returns the provider response", async () => {
+            const executor = createProviderExecutor({ providers: [mockProviderA] });
+
+            const result = await executor.submitOrder(mockSignatureQuote, "0xdeadbeef" as Hex);
+
+            expect(result).toEqual(mockSubmitResponse);
         });
     });
 

@@ -1,7 +1,7 @@
 import type { GetQuoteRequest } from "@openintentsframework/oif-specs";
 
-import { ExecutableQuote } from "../internal.js";
+import type { ProviderExecutableQuote } from "./quotes.interface.js";
 
 export interface IntentValidator {
-    validateIntent(userIntent: GetQuoteRequest, quote: ExecutableQuote): Promise<boolean>;
+    validateIntent(userIntent: GetQuoteRequest, quote: ProviderExecutableQuote): Promise<boolean>;
 }

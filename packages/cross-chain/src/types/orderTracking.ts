@@ -201,7 +201,7 @@ export interface WatchOrderByTxHash extends WatchOrderBase {
 /** Watch by orderId (escrow orders) */
 export interface WatchOrderByOrderId extends WatchOrderBase {
     txHash?: never;
-    /** Order ID from submitSignedOrder() */
+    /** Order ID from submitOrder() */
     orderId: Hex;
     /** Required - no order to parse */
     destinationChainId: number;
