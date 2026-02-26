@@ -18,33 +18,55 @@ This document lists all cross-chain providers supported by the Interop SDK.
 You can create custom providers by extending the `CrossChainProvider` abstract class:
 
 ```typescript
-import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
-import {
-    CrossChainProvider,
-    ExecutableQuote,
+import type {
     FillWatcherConfig,
     OpenedIntentParserConfig,
-    ProviderExecuteNotImplemented,
+    Quote,
+    QuoteRequest,
 } from "@wonderland/interop-cross-chain";
-import { Hex } from "viem";
+import { CrossChainProvider } from "@wonderland/interop-cross-chain";
 
 class MyCustomProvider extends CrossChainProvider {
     readonly protocolName = "my-protocol";
     readonly providerId = "my-protocol-1";
 
-    async getQuotes(params: GetQuoteRequest): Promise<ExecutableQuote[]> {
-        // Implement quote fetching logic
-        // Return array of ExecutableQuote with preparedTransaction
+    async getQuotes(params: QuoteRequest): Promise<Quote[]> {
+        // params.user is { chainId, address } — no ERC-7930 hex
+        // Return SDK-friendly Quote[] with step-based orders
+        return [
+            {
+                order: {
+                    steps: [
+                        {
+                            kind: "transaction",
+                            chainId: params.user.chainId,
+                            transaction: { to: "0x...", data: "0x..." },
+                        },
+                    ],
+                },
+                preview: {
+                    inputs: [
+                        {
+                            account: params.user,
+                            asset: params.intent.inputs[0].asset,
+                            amount: "1000000",
+                        },
+                    ],
+                    outputs: [
+                        {
+                            account: params.user,
+                            asset: params.intent.outputs[0].asset,
+                            amount: "990000",
+                        },
+                    ],
+                },
+                provider: this.providerId,
+            },
+        ];
     }
 
-    async submitSignedOrder(
-        quote: ExecutableQuote,
-        signature: Hex | Uint8Array,
-    ): Promise<PostOrderResponse> {
-        // Implement signed order submission for gasless execution
-        // Throw if not supported:
-        throw new ProviderExecuteNotImplemented("submitSignedOrder not supported");
-    }
+    // submitOrder() is optional — default throws ProviderExecuteNotImplemented.
+    // Override only if your provider supports solver-based submission (gasless).
 
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;

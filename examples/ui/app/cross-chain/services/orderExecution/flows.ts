@@ -1,4 +1,9 @@
-import { isNativeAddress, type ExecutableQuote } from '@wonderland/interop-cross-chain';
+import {
+  isNativeAddress,
+  type ExecutableQuote,
+  type SignatureStep,
+  type TransactionStep,
+} from '@wonderland/interop-cross-chain';
 import { crossChainExecutor } from '../sdk';
 import { handleTokenApproval } from './approval';
 import { submitBridgeTransaction } from './bridge';
@@ -20,8 +25,11 @@ interface FlowParams {
   onStateChange: (state: BridgeState) => void;
 }
 
-export const submitOifSignableOrder = async ({
+const PERMIT2 = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as Address;
+
+export const executeSignatureStep = async ({
   quote,
+  step,
   walletClient,
   publicClient,
   ownerAddress,
@@ -29,12 +37,11 @@ export const submitOifSignableOrder = async ({
   inputAmount,
   chainContext,
   onStateChange,
-}: FlowParams): Promise<TrackingIdentifier> => {
-  // Permit2 approval for escrow orders (3009 doesn't need approval)
-  const isEscrowOrder = quote.order.type === 'oif-escrow-v0';
+}: FlowParams & { step: SignatureStep }): Promise<TrackingIdentifier> => {
+  // Escrow lock requires Permit2 approval (3009/compact don't)
+  const isEscrowLock = quote.order.lock?.type === 'oif-escrow';
   const isNativeInput = isNativeAddress(inputTokenAddress, 'eip155');
-  if (isEscrowOrder && !isNativeInput) {
-    const PERMIT2 = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as Address;
+  if (isEscrowLock && !isNativeInput) {
     await handleTokenApproval(
       publicClient,
       walletClient,
@@ -51,14 +58,15 @@ export const submitOifSignableOrder = async ({
     executor: crossChainExecutor,
     walletClient,
     quote,
+    step,
     chainContext,
     onStateChange,
   });
   return { orderId };
 };
 
-export const executeDirectTransaction = async ({
-  quote,
+export const executeTransactionStep = async ({
+  step,
   walletClient,
   publicClient,
   ownerAddress,
@@ -66,12 +74,10 @@ export const executeDirectTransaction = async ({
   inputAmount,
   chainContext,
   onStateChange,
-}: FlowParams): Promise<TrackingIdentifier> => {
-  const order = quote.order as {
-    payload?: { to?: Address; data?: Hex };
-  };
+}: Omit<FlowParams, 'quote'> & { step: TransactionStep }): Promise<TrackingIdentifier> => {
+  const { to, data } = step.transaction;
 
-  if (!order?.payload?.to || !order?.payload?.data) {
+  if (!to || !data) {
     throw new Error('Invalid quote: missing transaction data');
   }
 
@@ -83,7 +89,7 @@ export const executeDirectTransaction = async ({
       walletClient,
       ownerAddress,
       inputTokenAddress,
-      order.payload.to,
+      to as Address,
       inputAmount,
       chainContext,
       onStateChange,
@@ -95,8 +101,8 @@ export const executeDirectTransaction = async ({
   const txHash = await submitBridgeTransaction(
     publicClient,
     walletClient,
-    order.payload.to,
-    order.payload.data,
+    to as Address,
+    data as Hex,
     chainContext,
     onStateChange,
     value,

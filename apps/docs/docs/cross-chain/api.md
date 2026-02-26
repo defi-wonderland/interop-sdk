@@ -48,40 +48,29 @@ An abstract class that defines the interface for cross-chain protocol providers.
     const providerId = provider.getProviderId(); // e.g., "across-1"
     ```
 
--   **getQuotes**(params: GetQuoteRequest): Promise\<ExecutableQuote[]\>
+-   **getQuotes**(params: QuoteRequest): Promise\<Quote[]\>
 
-    Fetches quotes for a cross-chain operation.
+    Fetches quotes from this provider using SDK-friendly types.
 
     ```typescript
     const quotes = await provider.getQuotes({
-        user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
+        user: { chainId: 11155111, address: "0xYourAddress..." },
         intent: {
-            intentType: "oif-swap",
             inputs: [
-                {
-                    user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                    asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                    amount: "1000000000000000000",
-                },
+                { asset: { chainId: 11155111, address: "0xInputToken..." }, amount: "1000000" },
             ],
-            outputs: [
-                {
-                    receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                    asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-                },
-            ],
+            outputs: [{ asset: { chainId: 84532, address: "0xOutputToken..." } }],
             swapType: "exact-input",
         },
-        supportedTypes: ["across"], // provider-specific: "across", "oif-escrow-v0", "oif-user-open-v0"
     });
     ```
 
--   **submitSignedOrder**(quote: ExecutableQuote, signature: Hex): Promise\<PostOrderResponse\>
+-   **submitOrder**(quote: Quote, signature: Hex): Promise\<SubmitOrderResponse\>
 
-    Submits a signed order for gasless execution.
+    Submits a signed order for gasless execution. Only implemented by providers that support solver submission (e.g., OIF). Throws `ProviderExecuteNotImplemented` by default.
 
     ```typescript
-    const response = await provider.submitSignedOrder(quote, signature);
+    const response = await provider.submitOrder(quote, signature);
     ```
 
 -   **getTrackingConfig**(): TrackingConfig
@@ -121,31 +110,29 @@ A utility for managing multiple cross-chain providers and executing operations a
 
 A class that manages multiple cross-chain providers and coordinates their operations.
 
--   **getQuotes**(params: GetQuoteRequest): Promise\<GetQuotesResponse\>
+-   **getQuotes**(params: QuoteRequest): Promise\<GetQuotesResponse\>
 
-    Retrieves quotes from all available providers for a given operation.
+    Retrieves quotes from all available providers. Accepts SDK-friendly `QuoteRequest` with `InteropAccountId` addresses.
 
     ```typescript
     const response = await executor.getQuotes({
-        user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
+        user: { chainId: 11155111, address: "0xYourAddress..." },
         intent: {
-            intentType: "oif-swap",
             inputs: [
                 {
-                    user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                    asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
+                    asset: { chainId: 11155111, address: "0xInputToken..." },
                     amount: "1000000000000000000",
                 },
             ],
             outputs: [
                 {
-                    receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                    asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
+                    asset: { chainId: 84532, address: "0xOutputToken..." },
+                    // recipient defaults to user on the output chain if omitted
                 },
             ],
             swapType: "exact-input",
         },
-        supportedTypes: ["across"], // provider-specific: "across", "oif-escrow-v0", "oif-user-open-v0"
+        supportedLocks: ["oif-escrow"], // optional: filter by lock mechanism
     });
 
     // Handle results
@@ -153,6 +140,21 @@ A class that manages multiple cross-chain providers and coordinates their operat
         const bestQuote = response.quotes[0];
     }
     response.errors.forEach((error) => console.error(error.errorMsg));
+    ```
+
+-   **submitOrder**(quote: ExecutableQuote, signatureOrResults: Hex | StepResult[]): Promise\<SubmitOrderResponse\>
+
+    Submits a signature-step order to the solver. For transaction-step orders, send the transaction directly instead.
+
+    ```typescript
+    // Single signature (most common)
+    const step = quote.order.steps[0]; // SignatureStep
+    const signature = await walletClient.signTypedData(step.signaturePayload);
+    const { orderId } = await executor.submitOrder(quote, signature);
+
+    // Or with StepResult[] for multi-step orders
+    const results = [{ stepIndex: 0, signature }];
+    await executor.submitOrder(quote, results);
     ```
 
 -   **track**(params: TrackParams): OrderTracker
@@ -262,13 +264,105 @@ A class that tracks cross-chain orders through their lifecycle.
 
 ### Types
 
+#### InteropAccountId
+
+A readable chain-aware account/asset identifier that replaces opaque ERC-7930 hex in the public API.
+
+```typescript
+interface InteropAccountId {
+    chainId: number; // EVM chain ID
+    address: string; // EIP-55 checksummed hex address
+}
+```
+
+#### QuoteRequest
+
+SDK-friendly quote request with `InteropAccountId` addresses.
+
+```typescript
+interface QuoteRequest {
+    user: InteropAccountId;
+    intent: {
+        inputs: Array<{ asset: InteropAccountId; amount?: string }>;
+        outputs: Array<{
+            asset: InteropAccountId;
+            amount?: string;
+            recipient?: InteropAccountId; // defaults to user on output chain
+            calldata?: string;
+        }>;
+        swapType?: "exact-input" | "exact-output";
+    };
+    supportedLocks?: string[]; // e.g. ["oif-escrow", "compact-resource-lock"]
+}
+```
+
 #### ExecutableQuote
+
+A quote with a step-based order and readable preview addresses.
 
 ```typescript
 interface ExecutableQuote {
-    order: Quote["order"];
-    provider?: string;
-    preparedTransaction?: PrepareTransactionRequestReturnType;
+    order: Order;
+    preview: {
+        inputs: Array<{ account: InteropAccountId; asset: InteropAccountId; amount: string }>;
+        outputs: Array<{ account: InteropAccountId; asset: InteropAccountId; amount: string }>;
+    };
+    provider: string;
+    eta?: number;
+    validUntil?: number;
+    quoteId?: string;
+    failureHandling?: string;
+    partialFill?: boolean;
+    metadata?: Record<string, unknown>;
+    /** @internal */ _providerId: string;
+}
+```
+
+#### Order
+
+A unified order describing what the user must do. Steps are ordered — execute sequentially.
+
+```typescript
+interface Order {
+    steps: (SignatureStep | TransactionStep)[];
+    lock?: { type: string; contracts?: string[] };
+    checks?: {
+        allowances?: Array<{
+            token: InteropAccountId;
+            owner: string;
+            spender: string;
+            required: string;
+        }>;
+    };
+    metadata?: Record<string, unknown>;
+}
+
+interface SignatureStep {
+    kind: "signature";
+    chainId: number;
+    description?: string;
+    signaturePayload: {
+        signatureType: "eip712";
+        domain: Record<string, unknown>;
+        primaryType: string;
+        types: Record<string, Array<{ name: string; type: string }>>;
+        message: Record<string, unknown>;
+    };
+    metadata?: Record<string, unknown>;
+}
+
+interface TransactionStep {
+    kind: "transaction";
+    chainId: number;
+    description?: string;
+    transaction: {
+        to: string;
+        data: string;
+        value?: string;
+        gas?: string;
+        maxFeePerGas?: string;
+        maxPriorityFeePerGas?: string;
+    };
 }
 ```
 
@@ -322,6 +416,39 @@ interface FillEvent {
     orderId: Hex;
     relayer: Address;
     recipient: Address;
+}
+```
+
+### Utilities
+
+-   **toInteropAccountId**(hex: string): InteropAccountId — Decode an ERC-7930 hex address into `{ chainId, address }`.
+-   **fromInteropAccountId**(id: InteropAccountId): Address — Encode an `InteropAccountId` to ERC-7930 hex.
+-   **getSignatureSteps**(order: Order): SignatureStep[] — Get all signature steps from an order.
+-   **getTransactionSteps**(order: Order): TransactionStep[] — Get all transaction steps from an order.
+-   **isSignatureOnlyOrder**(order: Order): boolean — Check if an order requires only signatures.
+-   **isTransactionOnlyOrder**(order: Order): boolean — Check if an order requires only transactions.
+
+```typescript
+import {
+    fromInteropAccountId,
+    getSignatureSteps,
+    isSignatureOnlyOrder,
+    toInteropAccountId,
+} from "@wonderland/interop-cross-chain";
+
+// Convert between ERC-7930 hex and readable format
+const id = toInteropAccountId("0x00010000010114a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48");
+// { chainId: 1, address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" }
+
+const hex = fromInteropAccountId({
+    chainId: 8453,
+    address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+});
+
+// Inspect order steps
+const sigSteps = getSignatureSteps(quote.order);
+if (isSignatureOnlyOrder(quote.order)) {
+    // Only needs signatures, no user transactions
 }
 ```
 

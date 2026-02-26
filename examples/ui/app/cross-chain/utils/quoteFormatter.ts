@@ -50,7 +50,7 @@ export function formatQuoteData(
     : NOT_AVAILABLE;
 
   const eta = quote.eta ? formatETA(quote.eta) : NOT_AVAILABLE;
-  const effectiveProviderId = quote._providerId || (quote.order as { type?: string })?.type || 'unknown';
+  const effectiveProviderId = quote._providerId || quote.provider || 'unknown';
   const providerDisplayName = getProviderDisplayName(effectiveProviderId);
 
   // Extract fee information from metadata (provider-specific structure)
@@ -150,12 +150,9 @@ export function formatQuoteData(
   // Check if gas simulation failed (affects whether gas estimates are reliable)
   let gasSimulationFailed = false;
 
-  const order = quote.order as { payload?: { simulationSuccess?: boolean } };
-  if (order?.payload) {
-    const simulationSuccess = order.payload.simulationSuccess !== false; // Default to true if not specified
-    if (!simulationSuccess) {
-      gasSimulationFailed = true;
-    }
+  const orderMeta = quote.order.metadata as { simulationSuccess?: boolean } | undefined;
+  if (orderMeta && orderMeta.simulationSuccess === false) {
+    gasSimulationFailed = true;
   }
 
   const feeNum = feeTotalUsd ? parseFloat(feeTotalUsd.replace('$', '')) : 0;

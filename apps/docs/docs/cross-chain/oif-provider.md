@@ -27,95 +27,107 @@ const oifProvider = createCrossChainProvider("oif", {
 
 ## Execution Modes
 
-The provider offers intent-based cross-chain operations with two execution modes:
-
-### Protocol Mode (Gasless)
-
-User signs EIP-712 message, solver executes on their behalf:
+The provider offers intent-based cross-chain operations with two execution modes. Use the `ProviderExecutor` to get quotes with SDK-friendly types:
 
 ```typescript
+import { createProviderExecutor } from "@wonderland/interop-cross-chain";
 import { createWalletClient, http } from "viem";
 import { base } from "viem/chains";
 
-const quotes = await oifProvider.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
+const executor = createProviderExecutor({ providers: [oifProvider] });
+const walletClient = createWalletClient({ account, chain: base, transport: http() });
+```
+
+### Protocol Mode (Gasless)
+
+User signs EIP-712 message, solver executes on their behalf. The quote's order contains a **signature step**:
+
+```typescript
+const response = await executor.getQuotes({
+    user: { chainId: 8453, address: "0xYourAddress..." },
     intent: {
-        intentType: "oif-swap",
         inputs: [
             {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
+                asset: { chainId: 8453, address: "0xInputToken..." },
                 amount: "1000000",
             },
         ],
         outputs: [
             {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
+                asset: { chainId: 1, address: "0xOutputToken..." },
             },
         ],
         swapType: "exact-input",
     },
-    supportedTypes: ["oif-escrow-v0"],
+    supportedLocks: ["oif-escrow"],
 });
 
-const quote = quotes[0];
-const walletClient = createWalletClient({ account, chain: base, transport: http() });
-const { domain, primaryType, message, types } = quote.order.payload;
-const signature = await walletClient.signTypedData({ domain, primaryType, message, types });
-await oifProvider.submitSignedOrder(quote, signature);
+const quote = response.quotes[0];
+const step = quote.order.steps[0]; // SignatureStep
+
+if (step.kind === "signature") {
+    const signature = await walletClient.signTypedData(step.signaturePayload);
+    await executor.submitOrder(quote, signature);
+}
 ```
 
 ### User Mode (User Pays Gas)
 
-User executes transaction directly. The `preparedTransaction` is included automatically in the quote:
+User executes transaction directly. The quote's order contains a **transaction step**:
 
 ```typescript
-const quotes = await oifProvider.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
+const response = await executor.getQuotes({
+    user: { chainId: 8453, address: "0xYourAddress..." },
     intent: {
-        intentType: "oif-swap",
         inputs: [
             {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
+                asset: { chainId: 8453, address: "0xInputToken..." },
                 amount: "1000000",
             },
         ],
         outputs: [
             {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
+                asset: { chainId: 1, address: "0xOutputToken..." },
             },
         ],
-        originSubmission: { mode: "user" },
         swapType: "exact-input",
     },
-    supportedTypes: ["oif-user-open-v0"],
+    // No supportedLocks filter — user-open orders are always included
 });
 
-const quote = quotes[0];
-if (quote.preparedTransaction) {
-    await walletClient.sendTransaction(quote.preparedTransaction);
+const quote = response.quotes[0];
+const step = quote.order.steps[0]; // TransactionStep
+
+if (step.kind === "transaction") {
+    await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+    });
 }
 ```
 
 ## Approvals
 
-Access approval information from quotes:
+Access approval information from the step-based order:
 
 ```typescript
-// Protocol mode (oif-escrow-v0) - typically Permit2
-const spender = quote.order.payload.message.spender;
+// Protocol mode — check the lock mechanism for escrow orders
+if (quote.order.lock?.type === "oif-escrow") {
+    // Permit2 approval needed for escrow lock
+}
 
-// User mode (oif-user-open-v0)
-const { token, user, spender, required } = quote.order.checks.allowances[0];
+// User mode — check pre-conditions
+if (quote.order.checks?.allowances) {
+    const { token, spender, required } = quote.order.checks.allowances[0];
+    // token is an InteropAccountId: { chainId, address }
+}
 ```
 
-## Supported Order Types
+## Lock Mechanisms
 
--   `oif-escrow-v0` - Gasless execution via solver
--   `oif-user-open-v0` - User executes transaction directly
+-   `oif-escrow` — Gasless execution via solver (Permit2-based escrow + EIP-3009 authorization)
+-   `compact-resource-lock` — Compact resource locking
+-   No lock — User-open orders (user submits tx directly, always available)
 
 ## Payload Validation
 

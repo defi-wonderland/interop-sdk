@@ -1,16 +1,8 @@
 import { useState, useCallback } from 'react';
-import { nameToBinary } from '@wonderland/interop-addresses';
 import { crossChainExecutor } from '../services/sdk';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
 import { useTokenConfig } from './useNetworkConfig';
-import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
-
-/**
- * Converts a hex address to EIP-7930 interoperable address format
- */
-async function toInteropAddress(address: string, chainId: number): Promise<string> {
-  return (await nameToBinary(`${address}@eip155:${chainId}`, { format: 'hex' })) as string;
-}
+import type { ExecutableQuote, QuoteRequest } from '@wonderland/interop-cross-chain';
 
 interface QuoteParams {
   sender: string;
@@ -61,36 +53,29 @@ export function useQuotes(): UseQuotesReturn {
         chainTokenInfo,
       );
 
-      const [userAddress, receiverAddress, inputAssetAddress, outputAssetAddress] = await Promise.all([
-        toInteropAddress(params.sender, params.inputChainId),
-        toInteropAddress(params.recipient, params.outputChainId),
-        toInteropAddress(params.inputTokenAddress, params.inputChainId),
-        toInteropAddress(params.outputTokenAddress, params.outputChainId),
-      ]);
-
-      const getQuoteRequest = {
-        user: userAddress,
+      const quoteRequest: QuoteRequest = {
+        user: { chainId: params.inputChainId, address: params.sender },
         intent: {
-          intentType: 'oif-swap' as const,
           inputs: [
             {
-              user: userAddress,
-              asset: inputAssetAddress,
+              asset: { chainId: params.inputChainId, address: params.inputTokenAddress },
               amount: amountInSmallestUnit,
             },
           ],
           outputs: [
             {
-              receiver: receiverAddress,
-              asset: outputAssetAddress,
+              asset: { chainId: params.outputChainId, address: params.outputTokenAddress },
+              ...(params.recipient !== params.sender && {
+                recipient: { chainId: params.outputChainId, address: params.recipient },
+              }),
             },
           ],
-          swapType: 'exact-input' as const,
+          swapType: 'exact-input',
         },
-        supportedTypes: ['oif-escrow-v0'],
+        supportedLocks: ['oif-escrow'],
       };
 
-      const response = await crossChainExecutor.getQuotes(getQuoteRequest);
+      const response = await crossChainExecutor.getQuotes(quoteRequest);
 
       if (response.quotes?.length) {
         setQuotes(response.quotes);

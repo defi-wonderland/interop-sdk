@@ -60,50 +60,10 @@ See the provider-specific documentation for configuration options:
 
 ### Getting Quotes
 
-All providers support fetching quotes for cross-chain operations using the OIF format:
+Use the `ProviderExecutor` to fetch quotes from one or more providers. Addresses use readable `{ chainId, address }` objects instead of opaque ERC-7930 hex:
 
 ```typescript
-const quotes = await provider.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-    intent: {
-        intentType: "oif-swap",
-        inputs: [
-            {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                amount: "1000000000000000000", // 1 token (in wei)
-            },
-        ],
-        outputs: [
-            {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-            },
-        ],
-        swapType: "exact-input",
-    },
-    supportedTypes: ["oif-escrow-v0"], // or provider-specific types
-});
-
-const quote = quotes[0]; // Select the first quote
-```
-
-### Executing Transactions
-
-After getting a quote, execute the transaction using the prepared transaction:
-
-```typescript
-if (quote.preparedTransaction) {
-    const hash = await walletClient.sendTransaction(quote.preparedTransaction);
-    console.log("Transaction sent:", hash);
-}
-```
-
-### Using Multiple Providers
-
-For comparing quotes across providers, use the `ProviderExecutor`:
-
-```typescript
+import type { QuoteRequest } from "@wonderland/interop-cross-chain";
 import { createProviderExecutor } from "@wonderland/interop-cross-chain";
 
 const executor = createProviderExecutor({
@@ -111,10 +71,48 @@ const executor = createProviderExecutor({
 });
 
 const response = await executor.getQuotes({
-    /* ... */
+    user: { chainId: 11155111, address: "0xYourAddress..." },
+    intent: {
+        inputs: [
+            {
+                asset: { chainId: 11155111, address: "0xInputToken..." },
+                amount: "1000000000000000000", // 1 token (in smallest unit)
+            },
+        ],
+        outputs: [
+            {
+                asset: { chainId: 84532, address: "0xOutputToken..." },
+            },
+        ],
+        swapType: "exact-input",
+    },
+    supportedLocks: ["oif-escrow"], // optional: filter by lock mechanism
 });
-// response.quotes - sorted quotes from all providers
-// response.errors - any provider errors
+
+// response.quotes — sorted quotes from all providers
+// response.errors — any provider errors
+const quote = response.quotes[0];
+```
+
+### Executing Orders
+
+Quotes return a step-based `order` describing what the user must do. Each step is either a **signature** (sign EIP-712 typed data) or a **transaction** (send a tx on-chain):
+
+```typescript
+const step = quote.order.steps[0];
+
+if (step.kind === "signature") {
+    // Protocol mode (gasless): sign and submit to solver
+    const signature = await walletClient.signTypedData(step.signaturePayload);
+    await executor.submitOrder(quote, signature);
+} else if (step.kind === "transaction") {
+    // User mode: send the transaction directly
+    const hash = await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+    });
+    console.log("Transaction sent:", hash);
+}
 ```
 
 See [Advanced Usage](./advanced-usage.md) for sorting strategies and timeout configuration.

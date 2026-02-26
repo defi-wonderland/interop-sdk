@@ -62,7 +62,7 @@ const binaryAddress2 = await nameToBinary("alice.eth@eip155:1#ABCD1234");
 ### Cross-Chain Operations
 
 ```typescript
-import { createCrossChainProvider } from "@wonderland/interop";
+import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { mainnet } from "viem/chains";
 
@@ -74,32 +74,30 @@ const provider = createCrossChainProvider("across");
 // Or with testnet config
 const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
 
-// Get quotes using OIF format (addresses must be EIP-7930 binary format: 0x0001...)
-// Use nameToBinary() from @wonderland/interop-addresses to convert human-readable addresses
-const quotes = await provider.getQuotes({
-    user: "0x0001000aa36a7114...", // binary format address
+// Get quotes — addresses use readable { chainId, address } objects
+const executor = createProviderExecutor({ providers: [provider] });
+
+const response = await executor.getQuotes({
+    user: { chainId: 1, address: "0xYourAddress..." },
     intent: {
-        intentType: "oif-swap",
         inputs: [
             {
-                user: "0x0001000aa36a7114...",
-                asset: "0x0001000aa36a7114...",
+                asset: { chainId: 1, address: "0xInputToken..." },
                 amount: "1000000000000000000",
             },
         ],
         outputs: [
             {
-                receiver: "0x0001000149d4114...",
-                asset: "0x0001000149d4114...",
+                asset: { chainId: 8453, address: "0xOutputToken..." },
             },
         ],
         swapType: "exact-input",
     },
-    supportedTypes: ["oif-escrow-v0"],
+    supportedLocks: ["oif-escrow"], // optional: filter by lock mechanism
 });
 
-// Execute the quote
-const quote = quotes[0];
+const quote = response.quotes[0];
+const step = quote.order.steps[0];
 const walletClient = createWalletClient({
     chain: mainnet,
     transport: http("https://..."),
@@ -107,15 +105,17 @@ const walletClient = createWalletClient({
 });
 
 // Option 1 - User Mode: send transaction directly (Across, OIF user-open)
-if (quote?.preparedTransaction) {
-    const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+if (step.kind === "transaction") {
+    const hash = await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+    });
 }
 
 // Option 2 - Protocol Mode: sign and submit order (OIF escrow - gasless for user)
-if (quote?.order.type === "oif-escrow-v0") {
-    const { domain, primaryType, message, types } = quote.order.payload;
-    const signature = await walletClient.signTypedData({ domain, primaryType, message, types });
-    await provider.submitSignedOrder(quote, signature);
+if (step.kind === "signature") {
+    const signature = await walletClient.signTypedData(step.signaturePayload);
+    await executor.submitOrder(quote, signature);
 }
 ```
 
@@ -156,8 +156,8 @@ const oifProvider = createCrossChainProvider("oif", {
 
 All providers implement these methods:
 
--   `.getQuotes(params)` – Returns `ExecutableQuote[]`. Fetch quotes for a cross-chain request (OIF GetQuoteRequest format).
--   `.submitSignedOrder(quote, signature)` – Submit a signed order (OIF escrow mode). Throws for Across.
+-   `.getQuotes(params)` – Fetch quotes using SDK-friendly `QuoteRequest`. Returns `Quote[]`.
+-   `.submitOrder(quote, signature)` – Submit a signed order. Throws `ProviderExecuteNotImplemented` by default (only OIF implements this).
 -   `.getProtocolName()` – Returns the protocol name.
 -   `.getProviderId()` – Returns the provider identifier.
 -   `.getTrackingConfig()` – Get configuration for intent tracking.
@@ -175,7 +175,12 @@ const executor = createProviderExecutor({
 
 // Returns { quotes: ExecutableQuote[], errors: GetQuotesError[] }
 const response = await executor.getQuotes({
-    /* ... */
+    user: { chainId: 1, address: "0xYourAddress..." },
+    intent: {
+        inputs: [{ asset: { chainId: 1, address: "0xInputToken..." }, amount: "1000000" }],
+        outputs: [{ asset: { chainId: 8453, address: "0xOutputToken..." } }],
+        swapType: "exact-input",
+    },
 });
 
 const bestQuote = response.quotes[0]; // Sorted by best output

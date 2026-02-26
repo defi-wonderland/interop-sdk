@@ -42,27 +42,24 @@ const executor = createProviderExecutor({
     }),
 });
 
-// Get quotes from all providers
+// Get quotes from all providers using SDK-friendly QuoteRequest
 const response = await executor.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
+    user: { chainId: 11155111, address: "0xYourAddress..." },
     intent: {
-        intentType: "oif-swap",
         inputs: [
             {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
+                asset: { chainId: 11155111, address: "0xInputToken..." },
                 amount: "1000000000000000000",
             },
         ],
         outputs: [
             {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
+                asset: { chainId: 84532, address: "0xOutputToken..." },
             },
         ],
         swapType: "exact-input",
     },
-    supportedTypes: ["across"],
+    supportedLocks: ["oif-escrow"], // optional: filter by lock mechanism
 });
 
 // Handle results
@@ -80,14 +77,19 @@ For more details on the Provider Executor configuration, see the [API Reference]
 
 ## Order Tracking
 
-The executor includes built-in order tracking when configured with a `trackerFactory`. After executing a transaction, use `executor.track()` to monitor the cross-chain transfer:
+The executor includes built-in order tracking when configured with a `trackerFactory`. After executing an order, use `executor.track()` to monitor the cross-chain transfer:
 
 ```typescript
 import { OrderStatus, OrderTrackerEvent } from "@wonderland/interop-cross-chain";
 
-// Execute the transaction
+// Execute the transaction step
 const quote = response.quotes[0];
-const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+const step = quote.order.steps[0];
+// Assumes a transaction-step order:
+const hash = await walletClient.sendTransaction({
+    to: step.transaction.to,
+    data: step.transaction.data,
+});
 
 // Track with real-time events
 const tracker = executor.track({
@@ -157,15 +159,46 @@ try {
 }
 ```
 
+## Step Helpers
+
+The SDK provides utility functions for inspecting order steps:
+
+```typescript
+import {
+    getSignatureSteps,
+    getTransactionSteps,
+    isSignatureOnlyOrder,
+    isTransactionOnlyOrder,
+} from "@wonderland/interop-cross-chain";
+
+const quote = response.quotes[0];
+
+if (isSignatureOnlyOrder(quote.order)) {
+    // Gasless: sign and submit to solver
+    const sigSteps = getSignatureSteps(quote.order);
+    const signature = await walletClient.signTypedData(sigSteps[0].signaturePayload);
+    await executor.submitOrder(quote, signature);
+} else if (isTransactionOnlyOrder(quote.order)) {
+    // User sends tx on-chain
+    const txSteps = getTransactionSteps(quote.order);
+    await walletClient.sendTransaction({
+        to: txSteps[0].transaction.to,
+        data: txSteps[0].transaction.data,
+    });
+}
+```
+
 ## Best Practices
 
 1. Always check both `quotes` and `errors` in the executor response
 2. Use sorting strategies to get the best quotes first
-3. Use `OrderTracker` to monitor cross-chain transfers
-4. Handle errors appropriately using the provided error types
-5. Set appropriate timeouts for quote requests
-6. Test your implementation on testnet before moving to production
-7. Provide custom RPC URLs for better reliability
+3. Inspect `order.steps[0].kind` to determine execution mode (`"signature"` vs `"transaction"`)
+4. Use `executor.submitOrder()` for signature-step orders; send transactions directly for transaction-step orders
+5. Use `OrderTracker` to monitor cross-chain transfers
+6. Handle errors appropriately using the provided error types
+7. Set appropriate timeouts for quote requests
+8. Test your implementation on testnet before moving to production
+9. Provide custom RPC URLs for better reliability
 
 ## Reference
 

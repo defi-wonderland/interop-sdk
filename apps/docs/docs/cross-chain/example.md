@@ -56,29 +56,26 @@ const executor = createProviderExecutor({
 
 ## 4. Retrieve a Cross-Chain Quote
 
-Request a quote for a cross-chain transfer using OIF GetQuoteRequest format.
+Request a quote using the SDK-friendly `QuoteRequest` format. Addresses use `{ chainId, address }` objects:
 
 ```js
 const response = await executor.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
+    user: { chainId: 11155111, address: privateAccount.address },
     intent: {
-        intentType: "oif-swap",
         inputs: [
             {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                amount: "100000000000000000", // 0.1 in wei
+                asset: { chainId: 11155111, address: "0xInputToken..." },
+                amount: "100000000000000000", // 0.1 in smallest unit
             },
         ],
         outputs: [
             {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
+                asset: { chainId: 84532, address: "0xOutputToken..." },
+                // recipient defaults to user on the output chain
             },
         ],
         swapType: "exact-input",
     },
-    supportedTypes: ["across"],
 });
 
 // Check for errors
@@ -93,23 +90,31 @@ if (response.quotes.length === 0) {
 }
 ```
 
-## 5. Execute the Cross-Chain Transaction
+## 5. Execute the Cross-Chain Order
 
-Execute the quote using your wallet client:
+Each quote contains a step-based `order`. Inspect the first step to determine the execution mode:
 
 ```js
-// Select the quote you prefer (e.g., first one)
 const quote = response.quotes[0];
+const step = quote.order.steps[0];
 
-if (quote.preparedTransaction) {
+if (step.kind === "signature") {
+    // Protocol mode (gasless): sign EIP-712 data and submit to solver
+    console.log("Signing order...");
+    const signature = await walletClient.signTypedData(step.signaturePayload);
+    const { orderId } = await executor.submitOrder(quote, signature);
+    console.log("Order submitted:", orderId);
+} else if (step.kind === "transaction") {
+    // User mode: send the transaction on-chain
     console.log("Sending transaction...");
-    const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+    const hash = await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+    });
     console.log("Transaction sent:", hash);
 
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     console.log("Transaction confirmed:", receipt.status === "success" ? "Success" : "Failed");
-} else {
-    console.error("No prepared transaction in quote");
 }
 ```
 

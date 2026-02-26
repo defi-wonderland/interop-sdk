@@ -32,36 +32,38 @@ const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
 ## Getting Quotes
 
+Use the `ProviderExecutor` for SDK-friendly types with readable addresses:
+
 ```typescript
-const quotes = await acrossProvider.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
+import { createProviderExecutor } from "@wonderland/interop-cross-chain";
+
+const executor = createProviderExecutor({ providers: [acrossProvider] });
+
+const response = await executor.getQuotes({
+    user: { chainId: 11155111, address: "0xYourAddress..." },
     intent: {
-        intentType: "oif-swap",
         inputs: [
             // Across only supports single input/output
             {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                amount: "1000000000000000000", // 1 token (in wei)
+                asset: { chainId: 11155111, address: "0xInputToken..." },
+                amount: "1000000000000000000", // 1 token (in smallest unit)
             },
         ],
         outputs: [
             {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
+                asset: { chainId: 84532, address: "0xOutputToken..." },
             },
         ],
         swapType: "exact-input",
     },
-    supportedTypes: ["across"], // Required by OIF interface, value is ignored by Across
 });
 
-const quote = quotes[0]; // Select the first quote
+const quote = response.quotes[0]; // Select the first quote
 ```
 
 ## Executing Transactions
 
-After getting a quote, execute the transaction using the prepared transaction:
+Across quotes return a **transaction step** — send the transaction directly:
 
 ```typescript
 import { createWalletClient, http } from "viem";
@@ -73,8 +75,13 @@ const walletClient = createWalletClient({
     account: yourAccount,
 });
 
-if (quote.preparedTransaction) {
-    const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+const step = quote.order.steps[0]; // TransactionStep
+
+if (step.kind === "transaction") {
+    const hash = await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+    });
     console.log("Transaction sent:", hash);
 }
 ```

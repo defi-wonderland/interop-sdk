@@ -35,6 +35,7 @@ Available scripts that can be run using `pnpm`:
 ## Usage
 
 ```typescript
+import type { QuoteRequest } from "@wonderland/interop-cross-chain";
 import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { sepolia } from "viem/chains";
@@ -70,35 +71,40 @@ const executor = createProviderExecutor({
     providers: [acrossProvider, oifProvider],
 });
 
-// Get quotes using OIF GetQuoteRequest format
-// Addresses must be EIP-7930 binary format (0x0001...)
-// Use nameToBinary() from @wonderland/interop-addresses to convert
+// Get quotes — addresses use readable { chainId, address } objects
 const response = await executor.getQuotes({
-    user: "0x0001000aa36a7114...",
+    user: { chainId: 11155111, address: "0xYourAddress..." },
     intent: {
-        intentType: "oif-swap",
         inputs: [
             {
-                user: "0x0001000aa36a7114...",
-                asset: "0x0001000aa36a7114...",
+                asset: { chainId: 11155111, address: "0xInputToken..." },
                 amount: "1000000000000000000",
             },
         ],
         outputs: [
             {
-                receiver: "0x0001000149d4114...",
-                asset: "0x0001000149d4114...",
+                asset: { chainId: 84532, address: "0xOutputToken..." },
             },
         ],
         swapType: "exact-input",
     },
-    supportedTypes: ["oif-escrow-v0"],
+    supportedLocks: ["oif-escrow"], // optional: filter by lock mechanism
 });
 
-// Execute the selected quote
-const selectedQuote = response.quotes[0];
-if (selectedQuote?.preparedTransaction) {
-    const hash = await walletClient.sendTransaction(selectedQuote.preparedTransaction);
+// Execute based on the order's step type
+const quote = response.quotes[0];
+const step = quote.order.steps[0];
+
+if (step.kind === "signature") {
+    // Protocol mode (gasless): sign EIP-712 and submit to solver
+    const signature = await walletClient.signTypedData(step.signaturePayload);
+    await executor.submitOrder(quote, signature);
+} else if (step.kind === "transaction") {
+    // User mode: send the transaction directly
+    const hash = await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+    });
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
 }
 ```
@@ -111,8 +117,8 @@ if (selectedQuote?.preparedTransaction) {
 -   `CrossChainProvider` (abstract class)
     -   `.getProtocolName()` – Returns the protocol name.
     -   `.getProviderId()` – Returns the provider identifier.
-    -   `.getQuotes(params)` – Fetch quotes for a cross-chain request (OIF GetQuoteRequest format).
-    -   `.submitSignedOrder(quote, signature)` – Submit a signed order to the provider (throws MethodNotImplemented for providers that don't support it, like Across).
+    -   `.getQuotes(params)` – Fetch quotes using SDK-friendly `QuoteRequest`. Returns `Quote[]`.
+    -   `.submitOrder(quote, signature)` – Submit a signed order to the provider. Throws `ProviderExecuteNotImplemented` by default (only OIF implements this).
     -   `.getTrackingConfig()` – Get configuration for order tracking.
 
 ### Tracking Notes (Across)
@@ -126,7 +132,8 @@ if (selectedQuote?.preparedTransaction) {
 -   `createProviderExecutor(config)` – Create an executor for batch quoting and execution.
     -   Config: `{ providers: CrossChainProvider[], sortingStrategy?, timeoutMs?, trackerFactory? }`
 -   `ProviderExecutor`
-    -   `.getQuotes(params)` – Get quotes from all providers (params: GetQuoteRequest, returns: GetQuotesResponse).
+    -   `.getQuotes(params)` – Get quotes from all providers (params: `QuoteRequest`, returns: `GetQuotesResponse`).
+    -   `.submitOrder(quote, signature)` – Submit a signature-step order to the solver. Accepts a `Hex` signature or `StepResult[]`.
     -   `.prepareTracking(providerId)` – Prepare order tracking for a provider.
     -   `.track(params)` – Track an existing transaction.
     -   `.getOrderStatus(params)` – Get current status without watching.
@@ -180,10 +187,20 @@ const ethTokens = discovered.tokensByChain[toChainIdentifier(1)];
 
 ### Types
 
--   `GetQuoteRequest` – OIF-compliant quote request (see `@openintentsframework/oif-specs`).
+-   `QuoteRequest` – SDK-friendly quote request with `InteropAccountId` addresses and `supportedLocks`.
+-   `InteropAccountId` – `{ chainId: number, address: string }` — replaces opaque ERC-7930 hex in the public API.
+-   `ExecutableQuote` – Quote with step-based `Order` and `preview`.
+-   `Order` – Unified order with sequential `steps[]` of `SignatureStep` or `TransactionStep`.
 -   `GetQuotesResponse` – Response containing `{ quotes: ExecutableQuote[], errors: GetQuotesError[] }`.
--   `ExecutableQuote` – Quote with optional `preparedTransaction` for execution.
--   `ProviderExecutorConfig`, `OrderTrackerConfig`, and more (see exported types).
+
+### Utilities
+
+-   `toInteropAccountId(hex)` – Decode ERC-7930 hex to `InteropAccountId`.
+-   `fromInteropAccountId(id)` – Encode `InteropAccountId` to ERC-7930 hex.
+-   `getSignatureSteps(order)` – Get all signature steps from an order.
+-   `getTransactionSteps(order)` – Get all transaction steps from an order.
+-   `isSignatureOnlyOrder(order)` – Check if an order only requires signatures.
+-   `isTransactionOnlyOrder(order)` – Check if an order only requires transactions.
 
 ## OIF Provider
 
@@ -209,51 +226,60 @@ const provider = createCrossChainProvider("oif", {
     url: "https://...",
 });
 
-// Get quotes using OIF GetQuoteRequest format
-// Addresses must be EIP-7930 binary format (0x0001...)
-const response = await provider.getQuotes({
-    user: "0x00010000000114...",
+// Get quotes via the executor
+const executor = createProviderExecutor({ providers: [provider] });
+
+const response = await executor.getQuotes({
+    user: { chainId: 1, address: "0xYourAddress..." },
     intent: {
-        intentType: "oif-swap",
         inputs: [
             {
-                user: "0x00010000000114...",
-                asset: "0x00010000000114...",
+                asset: { chainId: 1, address: "0xInputToken..." },
                 amount: "1000000",
             },
         ],
         outputs: [
             {
-                receiver: "0x00010000000114...",
-                asset: "0x00010000000114...",
+                asset: { chainId: 8453, address: "0xOutputToken..." },
             },
         ],
         swapType: "exact-input",
     },
-    supportedTypes: ["oif-escrow-v0"],
+    supportedLocks: ["oif-escrow"],
 });
 
+const quote = response.quotes[0];
+const step = quote.order.steps[0];
+
 // Protocol Mode: Sign and submit order (gasless for user)
-const { domain, primaryType, message, types } = response[0].order.payload;
-const signature = await walletClient.signTypedData({ domain, primaryType, message, types });
-await provider.submitSignedOrder(response[0], signature);
+if (step.kind === "signature") {
+    const signature = await walletClient.signTypedData(step.signaturePayload);
+    await executor.submitOrder(quote, signature);
+}
 
 // User Mode: Execute transaction directly (user pays gas)
-if (response[0]?.preparedTransaction) {
-    await walletClient.sendTransaction(response[0].preparedTransaction);
+if (step.kind === "transaction") {
+    await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+    });
 }
 ```
 
 ### Approval Requirements
 
-Access approval info directly from the quote:
+Access approval info from the step-based order:
 
 ```typescript
-// Protocol mode (oif-escrow-v0)
-const spender = quote.order.payload.message.spender;
+// Protocol mode — check the lock mechanism
+if (quote.order.lock?.type === "oif-escrow") {
+    // Permit2 approval needed for escrow lock
+}
 
-// User mode (oif-user-open-v0)
-const { spender, token, required } = quote.order.checks.allowances[0];
+// User mode — check pre-conditions
+if (quote.order.checks?.allowances) {
+    const { token, spender, required } = quote.order.checks.allowances[0];
+}
 ```
 
 ## Payload Validation

@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount, useConfig, useSwitchChain } from 'wagmi';
 import {
   ensureCorrectChain,
-  executeDirectTransaction,
-  submitOifSignableOrder,
+  executeSignatureStep,
+  executeTransactionStep,
   trackOrder,
 } from '../services/orderExecution';
 import { useBalanceStore } from '../stores/balanceStore';
@@ -97,11 +97,13 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         );
         expectedWalletChainIdRef.current = null;
 
-        // Branch: OIF signable vs direct transaction
-        const isSignable = quote.order.type === 'oif-escrow-v0' || quote.order.type === 'oif-3009-v0';
-        const executeFlow = isSignable ? submitOifSignableOrder : executeDirectTransaction;
+        // Execute the first step of the order
+        const step = quote.order.steps[0];
+        if (!step) {
+          throw new Error('Invalid quote: order has no steps');
+        }
 
-        const trackingId = await executeFlow({
+        const flowParams = {
           quote,
           walletClient,
           publicClient,
@@ -110,7 +112,12 @@ export function useOrderExecution(): UseOrderExecutionReturn {
           inputAmount,
           chainContext,
           onStateChange: setState,
-        });
+        };
+
+        const trackingId =
+          step.kind === 'signature'
+            ? await executeSignatureStep({ ...flowParams, step })
+            : await executeTransactionStep({ ...flowParams, step });
 
         // Common: track order
         await trackOrder(quote._providerId, trackingId, chainContext, abortControllerRef.current?.signal, setState);
