@@ -23,14 +23,17 @@ export class SettlerIntentValidator implements IntentValidator {
 
         // Validate ALL transaction steps against validSettlers
         for (const step of order.steps) {
-            if (step.kind === "transaction" && step.transaction?.to) {
+            if (step.kind === "transaction") {
+                if (!step.transaction?.to) {
+                    return false;
+                }
                 if (!this.validSettlers.includes(step.transaction.to as Address)) {
                     return false;
                 }
             }
         }
 
-        // At least one transaction step must exist and all must target valid settlers
-        return order.steps.some((s) => s.kind === "transaction");
+        // At least one transaction step with a valid target must exist
+        return order.steps.some((s) => s.kind === "transaction" && !!s.transaction?.to);
     }
 }

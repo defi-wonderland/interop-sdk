@@ -182,13 +182,23 @@ export class AcrossProvider extends CrossChainProvider {
                 address: params.user.address,
             };
 
+            const swapType = params.intent.swapType || "exact-input";
+
+            if (swapType === "exact-output" && !output.amount) {
+                throw new ProviderGetQuoteFailure(
+                    "exact-output swap requires output.amount to be specified",
+                );
+            }
+            if (swapType === "exact-input" && !input.amount) {
+                throw new ProviderGetQuoteFailure(
+                    "exact-input swap requires input.amount to be specified",
+                );
+            }
+
             const acrossParams = AcrossGetQuoteParamsSchema.parse({
-                tradeType: params.intent.swapType || "exact-input",
+                tradeType: swapType,
                 inputToken: input.asset.address,
-                amount:
-                    params.intent.swapType === "exact-output"
-                        ? (output.amount ?? "0")
-                        : (input.amount ?? "0"),
+                amount: swapType === "exact-output" ? output.amount! : input.amount!,
                 outputToken: output.asset.address,
                 originChainId: input.asset.chainId,
                 destinationChainId: output.asset.chainId,

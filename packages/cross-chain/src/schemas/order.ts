@@ -62,7 +62,7 @@ export const OrderChecksSchema = z.object({
 // ── Order ────────────────────────────────────────────────
 
 export const OrderSchema = z.object({
-    steps: z.array(StepSchema),
+    steps: z.array(StepSchema).min(1),
     lock: LockMechanismSchema.optional(),
     checks: OrderChecksSchema.optional(),
     metadata: z.record(z.unknown()).optional(),
