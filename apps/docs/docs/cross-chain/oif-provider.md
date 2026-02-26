@@ -66,7 +66,8 @@ const quote = response.quotes[0];
 const step = quote.order.steps[0]; // SignatureStep
 
 if (step.kind === "signature") {
-    const signature = await walletClient.signTypedData(step.signaturePayload);
+    const { signatureType, ...typedData } = step.signaturePayload;
+    const signature = await walletClient.signTypedData(typedData);
     await executor.submitOrder(quote, signature);
 }
 ```
@@ -102,6 +103,7 @@ if (step.kind === "transaction") {
     await walletClient.sendTransaction({
         to: step.transaction.to,
         data: step.transaction.data,
+        ...(step.transaction.value && { value: BigInt(step.transaction.value) }),
     });
 }
 ```

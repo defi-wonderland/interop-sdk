@@ -209,6 +209,9 @@ export class AcrossProvider extends CrossChainProvider {
                             transaction: {
                                 to: acrossResponse.swapTx.to,
                                 data: acrossResponse.swapTx.data,
+                                ...(acrossResponse.swapTx.value && {
+                                    value: acrossResponse.swapTx.value,
+                                }),
                                 gas: preparedTx?.gas?.toString() ?? acrossResponse.swapTx.gas,
                                 ...(preparedTx?.maxFeePerGas && {
                                     maxFeePerGas: preparedTx.maxFeePerGas.toString(),

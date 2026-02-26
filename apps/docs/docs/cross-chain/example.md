@@ -101,7 +101,8 @@ const step = quote.order.steps[0];
 if (step.kind === "signature") {
     // Protocol mode (gasless): sign EIP-712 data and submit to solver
     console.log("Signing order...");
-    const signature = await walletClient.signTypedData(step.signaturePayload);
+    const { signatureType, ...typedData } = step.signaturePayload;
+    const signature = await walletClient.signTypedData(typedData);
     const { orderId } = await executor.submitOrder(quote, signature);
     console.log("Order submitted:", orderId);
 } else if (step.kind === "transaction") {
@@ -110,6 +111,7 @@ if (step.kind === "signature") {
     const hash = await walletClient.sendTransaction({
         to: step.transaction.to,
         data: step.transaction.data,
+        ...(step.transaction.value && { value: BigInt(step.transaction.value) }),
     });
     console.log("Transaction sent:", hash);
 

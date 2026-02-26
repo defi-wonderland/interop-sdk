@@ -103,13 +103,15 @@ const step = quote.order.steps[0];
 
 if (step.kind === "signature") {
     // Protocol mode (gasless): sign and submit to solver
-    const signature = await walletClient.signTypedData(step.signaturePayload);
+    const { signatureType, ...typedData } = step.signaturePayload;
+    const signature = await walletClient.signTypedData(typedData);
     await executor.submitOrder(quote, signature);
 } else if (step.kind === "transaction") {
     // User mode: send the transaction directly
     const hash = await walletClient.sendTransaction({
         to: step.transaction.to,
         data: step.transaction.data,
+        ...(step.transaction.value && { value: BigInt(step.transaction.value) }),
     });
     console.log("Transaction sent:", hash);
 }

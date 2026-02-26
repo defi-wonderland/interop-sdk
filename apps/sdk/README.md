@@ -109,12 +109,14 @@ if (step.kind === "transaction") {
     const hash = await walletClient.sendTransaction({
         to: step.transaction.to,
         data: step.transaction.data,
+        ...(step.transaction.value && { value: BigInt(step.transaction.value) }),
     });
 }
 
 // Option 2 - Protocol Mode: sign and submit order (OIF escrow - gasless for user)
 if (step.kind === "signature") {
-    const signature = await walletClient.signTypedData(step.signaturePayload);
+    const { signatureType, ...typedData } = step.signaturePayload;
+    const signature = await walletClient.signTypedData(typedData);
     await executor.submitOrder(quote, signature);
 }
 ```

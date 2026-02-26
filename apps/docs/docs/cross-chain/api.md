@@ -149,7 +149,8 @@ A class that manages multiple cross-chain providers and coordinates their operat
     ```typescript
     // Single signature (most common)
     const step = quote.order.steps[0]; // SignatureStep
-    const signature = await walletClient.signTypedData(step.signaturePayload);
+    const { signatureType, ...typedData } = step.signaturePayload;
+    const signature = await walletClient.signTypedData(typedData);
     const { orderId } = await executor.submitOrder(quote, signature);
 
     // Or with StepResult[] for multi-step orders

@@ -231,8 +231,13 @@ export class OifProvider extends CrossChainProvider {
 
                     // 4. Convert OIF PostOrderResponse → SDK SubmitOrderResponse
                     const oifResponse = response.data;
+                    if (!oifResponse.orderId) {
+                        throw new Error(
+                            `Solver returned no orderId (status: ${oifResponse.status})`,
+                        );
+                    }
                     return {
-                        orderId: (oifResponse.orderId ?? "") as Hex,
+                        orderId: oifResponse.orderId as Hex,
                         status: oifResponse.status,
                         message: oifResponse.message,
                     };

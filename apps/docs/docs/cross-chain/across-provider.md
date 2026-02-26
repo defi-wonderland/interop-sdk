@@ -81,6 +81,7 @@ if (step.kind === "transaction") {
     const hash = await walletClient.sendTransaction({
         to: step.transaction.to,
         data: step.transaction.data,
+        ...(step.transaction.value && { value: BigInt(step.transaction.value) }),
     });
     console.log("Transaction sent:", hash);
 }

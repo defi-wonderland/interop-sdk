@@ -89,6 +89,7 @@ const step = quote.order.steps[0];
 const hash = await walletClient.sendTransaction({
     to: step.transaction.to,
     data: step.transaction.data,
+    ...(step.transaction.value && { value: BigInt(step.transaction.value) }),
 });
 
 // Track with real-time events
@@ -176,7 +177,8 @@ const quote = response.quotes[0];
 if (isSignatureOnlyOrder(quote.order)) {
     // Gasless: sign and submit to solver
     const sigSteps = getSignatureSteps(quote.order);
-    const signature = await walletClient.signTypedData(sigSteps[0].signaturePayload);
+    const { signatureType, ...typedData } = sigSteps[0].signaturePayload;
+    const signature = await walletClient.signTypedData(typedData);
     await executor.submitOrder(quote, signature);
 } else if (isTransactionOnlyOrder(quote.order)) {
     // User sends tx on-chain
@@ -184,6 +186,7 @@ if (isSignatureOnlyOrder(quote.order)) {
     await walletClient.sendTransaction({
         to: txSteps[0].transaction.to,
         data: txSteps[0].transaction.data,
+        ...(txSteps[0].transaction.value && { value: BigInt(txSteps[0].transaction.value) }),
     });
 }
 ```
