@@ -6,8 +6,8 @@ import type {
     Quote,
     StepResult,
     SubmitOrderResponse,
-} from "../../src/types/quote.js";
-import type { QuoteRequest } from "../../src/types/quoteRequest.js";
+} from "../../src/core/types/quote.js";
+import type { QuoteRequest } from "../../src/core/types/quoteRequest.js";
 import {
     AcrossProvider,
     createProviderExecutor,

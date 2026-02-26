@@ -2,6 +2,7 @@ import { Hex } from "viem";
 import { baseSepolia, sepolia } from "viem/chains";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { FillTimeoutError } from "../../src/core/services/EventBasedFillWatcher.js";
 import {
     FillWatcher,
     OpenedIntentParser,
@@ -14,7 +15,6 @@ import {
     OrderTrackingUpdate,
     WatchOrderParams,
 } from "../../src/internal.js";
-import { FillTimeoutError } from "../../src/services/EventBasedFillWatcher.js";
 import { createMockFillEvent, createMockOpenedIntent } from "../mocks/orderTracking.js";
 
 describe("OrderTracker", () => {

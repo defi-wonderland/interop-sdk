@@ -1,7 +1,7 @@
 import { encodeAddress } from "@wonderland/interop-addresses";
 import { describe, expect, it } from "vitest";
 
-import { fromInteropAccountId, toInteropAccountId } from "../../src/utils/interopAccountId.js";
+import { fromInteropAccountId, toInteropAccountId } from "../../src/core/utils/interopAccountId.js";
 
 // Known addresses for deterministic tests
 const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";

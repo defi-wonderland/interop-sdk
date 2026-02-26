@@ -3,7 +3,7 @@ import { createPublicClient, http, HttpTransport, PublicClient } from "viem";
 import { baseSepolia, sepolia } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { PublicClientManager } from "../../src/utils/publicClientManager.js";
+import { PublicClientManager } from "../../src/core/utils/publicClientManager.js";
 
 vi.mock("viem", async () => {
     return {

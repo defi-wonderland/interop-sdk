@@ -3,7 +3,7 @@ import axios from "axios";
 import { createPublicClient, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { QuoteRequest } from "../../src/types/quoteRequest.js";
+import type { QuoteRequest } from "../../src/core/types/quoteRequest.js";
 import { AcrossProvider } from "../../src/external.js";
 import { getMockedAcrossApiResponse } from "../mocks/acrossApi.js";
 import { CHAIN_IDS, TEST_ADDRESSES, TEST_AMOUNTS, TESTNET_TOKENS } from "../mocks/fixtures.js";

@@ -19,7 +19,8 @@ sequenceDiagram
     sdk-->>-dev: { quotes, errors }
 
     Note over dev,tracker: Execution Phase
-    dev->>+rpc: sendTransaction(quote.preparedTransaction)
+    dev->>dev: step = quote.order.steps[0]
+    dev->>+rpc: sendTransaction(step.transaction)
     rpc-->>-dev: Transaction Hash
 
     Note over dev,tracker: Tracking Phase
@@ -40,7 +41,7 @@ The developer requests a quote from the SDK, which queries the provider protocol
 
 ### 2. Execution Phase
 
-After selecting a quote, the developer sends the prepared transaction to the blockchain.
+After selecting a quote, the developer executes the order's steps. A step is either a `transaction` (user sends an onchain tx) or a `signature` (user signs EIP-712 typed data and submits to the solver).
 
 ### 3. Tracking Phase
 

@@ -1,7 +1,7 @@
 import { encodeAddress } from "@wonderland/interop-addresses";
 import { describe, expect, it } from "vitest";
 
-import { adaptOifOrder } from "../../src/adapters/orderAdapter.js";
+import { adaptOifOrder } from "../../src/protocols/oif/adapters/orderAdapter.js";
 
 function toErc7930(chainId: number, address: string): string {
     return encodeAddress(

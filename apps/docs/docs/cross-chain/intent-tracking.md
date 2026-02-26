@@ -62,7 +62,14 @@ After sending the transaction, use `executor.track()` for real-time updates:
 import { OrderStatus, OrderTrackerEvent } from "@wonderland/interop-cross-chain";
 
 const quote = response.quotes[0];
-const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+const step = quote.order.steps[0];
+
+// Send the transaction (Across returns a transaction step)
+const hash = await walletClient.sendTransaction({
+    to: step.transaction.to,
+    data: step.transaction.data,
+    ...(step.transaction.value && { value: BigInt(step.transaction.value) }),
+});
 
 const tracker = executor.track({
     txHash: hash,

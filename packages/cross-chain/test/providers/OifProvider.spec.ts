@@ -2,7 +2,7 @@ import axios from "axios";
 import { Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { QuoteRequest } from "../../src/types/quoteRequest.js";
+import type { QuoteRequest } from "../../src/core/types/quoteRequest.js";
 import {
     OifProvider,
     ProviderExecuteFailure,

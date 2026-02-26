@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { Order, SignatureStep, TransactionStep } from "../../src/types/order.js";
+import type { Order, SignatureStep, TransactionStep } from "../../src/core/types/order.js";
 import {
     getSignatureSteps,
     getTransactionSteps,
     isSignatureOnlyOrder,
     isTransactionOnlyOrder,
-} from "../../src/utils/stepHelpers.js";
+} from "../../src/core/utils/stepHelpers.js";
 
 const mockTxStep: TransactionStep = {
     kind: "transaction",

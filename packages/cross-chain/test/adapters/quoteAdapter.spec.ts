@@ -2,8 +2,8 @@ import type { Address } from "viem";
 import { encodeAddress } from "@wonderland/interop-addresses";
 import { describe, expect, it } from "vitest";
 
-import type { ProviderQuote } from "../../src/interfaces/quotes.interface.js";
-import { adaptQuote } from "../../src/adapters/quoteAdapter.js";
+import type { ProviderQuote } from "../../src/protocols/oif/types.js";
+import { adaptQuote } from "../../src/protocols/oif/adapters/quoteAdapter.js";
 
 const USER_ADDRESS = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8" as Address;
 const RECEIVER_ADDRESS = "0x1111111111111111111111111111111111111111" as Address;
