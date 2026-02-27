@@ -12,7 +12,7 @@ export const RelayConfigSchema = z
         apiUrl: z.string().optional(),
         apiKey: z.string().optional(),
         source: z.string().optional(),
-        providerId: z.string().default(`relay_${uuidv4()}`),
+        providerId: z.string().default(() => `relay_${uuidv4()}`),
     })
     .describe("Configuration for the Relay provider");
 

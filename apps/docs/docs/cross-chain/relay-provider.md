@@ -85,6 +85,8 @@ const walletClient = createWalletClient({
 
 // Relay may return multi-step orders (e.g. approve + deposit)
 // Execute steps sequentially
+// NOTE: In production, validate step.transaction.to against trusted contract
+// addresses before sending to protect against compromised API responses.
 for (const step of quote.order.steps) {
     if (step.kind === "transaction") {
         const hash = await walletClient.sendTransaction({

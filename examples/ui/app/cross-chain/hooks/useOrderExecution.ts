@@ -101,6 +101,15 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         // step for execution. The UI's handleTokenApproval already handles
         // ERC-20 approvals independently, so intermediate approve steps are
         // redundant and can be skipped safely.
+        if (quote.order.steps.length > 1) {
+          console.warn(
+            `[useOrderExecution] Order has ${quote.order.steps.length} steps, using last step only. ` +
+              `Skipped steps: ${quote.order.steps
+                .slice(0, -1)
+                .map((s) => s.description ?? s.kind)
+                .join(', ')}`,
+          );
+        }
         const step = quote.order.steps[quote.order.steps.length - 1];
         if (!step) {
           throw new Error('Invalid quote: order has no steps');
@@ -124,7 +133,8 @@ export function useOrderExecution(): UseOrderExecutionReturn {
 
         // For providers that track by requestId (e.g. Relay), use orderId-based
         // tracking instead of txHash-based tracking.
-        const requestId = quote.metadata?.requestId as string | undefined;
+        const rawRequestId = quote.metadata?.requestId;
+        const requestId = typeof rawRequestId === 'string' ? rawRequestId : undefined;
         const trackingId = requestId ? { orderId: requestId as Hex } : stepResult;
 
         // Common: track order

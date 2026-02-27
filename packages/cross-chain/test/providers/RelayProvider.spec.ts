@@ -32,13 +32,19 @@ describe("RelayProvider", () => {
     });
 
     describe("constructor", () => {
-        it("should create provider with default config", () => {
+        it("creates provider with default config", () => {
             const p = new RelayProvider({});
             expect(p.protocolName).toBe("relay");
             expect(p.providerId).toMatch(/^relay_/);
         });
 
-        it("should create provider with custom config", () => {
+        it("generates unique providerId per instance when not specified", () => {
+            const p1 = new RelayProvider({});
+            const p2 = new RelayProvider({});
+            expect(p1.providerId).not.toBe(p2.providerId);
+        });
+
+        it("creates provider with custom config", () => {
             const p = new RelayProvider({
                 apiUrl: "https://custom.relay.url",
                 apiKey: "test-key",
@@ -49,7 +55,7 @@ describe("RelayProvider", () => {
             expect(p.providerId).toBe("custom-relay");
         });
 
-        it("should throw ProviderConfigFailure for invalid config", () => {
+        it("throws ProviderConfigFailure for invalid config", () => {
             expect(() => {
                 // @ts-expect-error - Testing invalid config
                 new RelayProvider({ isTestnet: "not-a-boolean" });
@@ -86,7 +92,7 @@ describe("RelayProvider", () => {
             },
         };
 
-        it("should call Relay API with correct parameters", async () => {
+        it("calls Relay API with correct parameters", async () => {
             await provider.getQuotes(baseRequest);
 
             expect(axios.post).toHaveBeenCalledWith(
@@ -109,7 +115,7 @@ describe("RelayProvider", () => {
             );
         });
 
-        it("should not include recipient when same as user", async () => {
+        it("omits recipient when same as user", async () => {
             const request: QuoteRequest = {
                 user: { chainId: CHAIN_IDS.SEPOLIA, address: TEST_ADDRESSES.USER },
                 intent: {
@@ -142,7 +148,7 @@ describe("RelayProvider", () => {
             expect(body.recipient).toBeUndefined();
         });
 
-        it("should handle exact-output swap type", async () => {
+        it("sends EXACT_OUTPUT trade type for exact-output swaps", async () => {
             const request: QuoteRequest = {
                 user: { chainId: CHAIN_IDS.SEPOLIA, address: TEST_ADDRESSES.USER },
                 intent: {
@@ -179,29 +185,35 @@ describe("RelayProvider", () => {
             expect(body.amount).toBe(TEST_AMOUNTS.ONE_ETHER.toString());
         });
 
-        it("should return SDK Quote with transaction step", async () => {
+        it("returns a transaction step", async () => {
             const quotes = await provider.getQuotes(baseRequest);
 
             expect(quotes).toHaveLength(1);
             const quote = quotes[0]!;
-
-            // Should have a transaction step
             expect(quote.order.steps.length).toBeGreaterThanOrEqual(1);
             expect(quote.order.steps[0]!.kind).toBe("transaction");
+        });
 
-            // Preview should have InteropAccountId format
+        it("formats preview with InteropAccountId accounts", async () => {
+            const quotes = await provider.getQuotes(baseRequest);
+            const quote = quotes[0]!;
+
             expect(quote.preview.inputs[0]!.account).toHaveProperty("chainId");
             expect(quote.preview.inputs[0]!.account).toHaveProperty("address");
             expect(quote.preview.outputs[0]!.account).toHaveProperty("chainId");
             expect(quote.preview.outputs[0]!.account).toHaveProperty("address");
+        });
 
-            // Should have quote metadata
+        it("sets correct provider metadata on quote", async () => {
+            const quotes = await provider.getQuotes(baseRequest);
+            const quote = quotes[0]!;
+
             expect(quote.provider).toBe("mocked");
             expect(quote.failureHandling).toBe("refund-automatic");
             expect(quote.partialFill).toBe(false);
         });
 
-        it("should extract requestId from response and include in metadata", async () => {
+        it("extracts requestId into quoteId and metadata", async () => {
             const quotes = await provider.getQuotes(baseRequest);
             const quote = quotes[0]!;
 
@@ -210,14 +222,14 @@ describe("RelayProvider", () => {
             expect(quote.metadata!.requestId).toBe("0xabc123def456");
         });
 
-        it("should extract eta from details.timeEstimate", async () => {
+        it("extracts eta from details.timeEstimate", async () => {
             const quotes = await provider.getQuotes(baseRequest);
             const quote = quotes[0]!;
 
             expect(quote.eta).toBe(30);
         });
 
-        it("should handle multi-step response (approve + deposit)", async () => {
+        it("produces two transaction steps for approve + deposit response", async () => {
             const multiStepResponse = getMockedRelayMultiStepResponse();
             vi.mocked(axios.post).mockResolvedValueOnce({
                 status: 200,
@@ -227,18 +239,27 @@ describe("RelayProvider", () => {
             const quotes = await provider.getQuotes(baseRequest);
             const quote = quotes[0]!;
 
-            // Should have 2 steps: approve + deposit
             expect(quote.order.steps).toHaveLength(2);
             expect(quote.order.steps[0]!.kind).toBe("transaction");
             expect(quote.order.steps[0]!.description).toBe("approve");
             expect(quote.order.steps[1]!.kind).toBe("transaction");
             expect(quote.order.steps[1]!.description).toBe("deposit");
+        });
 
-            // requestId should come from the deposit step
+        it("extracts requestId from the deposit step in multi-step response", async () => {
+            const multiStepResponse = getMockedRelayMultiStepResponse();
+            vi.mocked(axios.post).mockResolvedValueOnce({
+                status: 200,
+                data: multiStepResponse,
+            });
+
+            const quotes = await provider.getQuotes(baseRequest);
+            const quote = quotes[0]!;
+
             expect(quote.quoteId).toBe("0xrequest123");
         });
 
-        it("should return empty array when response contains signature steps", async () => {
+        it("returns empty array when response contains signature steps", async () => {
             const signatureResponse = getMockedRelayQuoteResponse({
                 steps: [
                     {
@@ -286,7 +307,7 @@ describe("RelayProvider", () => {
             expect(quotes).toHaveLength(0);
         });
 
-        it("should include auth headers when apiKey and source are set", async () => {
+        it("includes auth headers when apiKey and source are set", async () => {
             const authProvider = new RelayProvider({
                 apiUrl: MOCK_API_URL,
                 providerId: "auth-mocked",
@@ -302,7 +323,7 @@ describe("RelayProvider", () => {
             expect(config.headers["x-relay-source"]).toBe("test-dapp");
         });
 
-        it("should throw ProviderGetQuoteFailure on API error", async () => {
+        it("throws ProviderGetQuoteFailure on API error", async () => {
             vi.mocked(axios.post).mockRejectedValueOnce(
                 Object.assign(new Error("Request failed"), {
                     isAxiosError: true,
@@ -315,7 +336,7 @@ describe("RelayProvider", () => {
             await expect(provider.getQuotes(baseRequest)).rejects.toThrow(ProviderGetQuoteFailure);
         });
 
-        it("should throw ProviderGetQuoteFailure when exact-input has no input amount", async () => {
+        it("throws ProviderGetQuoteFailure when exact-input has no input amount", async () => {
             const request: QuoteRequest = {
                 user: { chainId: CHAIN_IDS.SEPOLIA, address: TEST_ADDRESSES.USER },
                 intent: {
@@ -343,7 +364,7 @@ describe("RelayProvider", () => {
             await expect(provider.getQuotes(request)).rejects.toThrow(ProviderGetQuoteFailure);
         });
 
-        it("should use preview amounts from details when available", async () => {
+        it("uses preview amounts from details when available", async () => {
             const quotes = await provider.getQuotes(baseRequest);
             const quote = quotes[0]!;
 
@@ -352,7 +373,7 @@ describe("RelayProvider", () => {
             expect(quote.preview.outputs[0]!.amount).toBe("990000000000000000");
         });
 
-        it("should include relay fees in metadata", async () => {
+        it("includes relay fees in metadata", async () => {
             const quotes = await provider.getQuotes(baseRequest);
             const quote = quotes[0]!;
 
@@ -361,7 +382,7 @@ describe("RelayProvider", () => {
     });
 
     describe("getTrackingConfig", () => {
-        it("should return valid tracking configuration", () => {
+        it("returns valid tracking configuration", () => {
             const config = provider.getTrackingConfig();
 
             expect(config.openedIntentParserConfig).toBeDefined();
@@ -370,104 +391,110 @@ describe("RelayProvider", () => {
             expect(config.fillWatcherConfig.type).toBe("api-based");
         });
 
-        it("should configure API-based fill watcher with correct polling interval", () => {
+        it("configures API-based fill watcher with correct polling interval", () => {
             const config = provider.getTrackingConfig();
 
-            if (config.fillWatcherConfig.type === "api-based") {
-                expect(config.fillWatcherConfig.pollingInterval).toBe(5000);
-                expect(typeof config.fillWatcherConfig.buildEndpoint).toBe("function");
-                expect(typeof config.fillWatcherConfig.extractFillEvent).toBe("function");
-            }
+            expect(config.fillWatcherConfig.type).toBe("api-based");
+            if (config.fillWatcherConfig.type !== "api-based") return;
+
+            expect(config.fillWatcherConfig.pollingInterval).toBe(5000);
+            expect(typeof config.fillWatcherConfig.buildEndpoint).toBe("function");
+            expect(typeof config.fillWatcherConfig.extractFillEvent).toBe("function");
         });
 
-        it("should build correct status endpoint with requestId", () => {
+        it("builds correct status endpoint with requestId", () => {
             const config = provider.getTrackingConfig();
 
-            if (config.fillWatcherConfig.type === "api-based") {
-                const endpoint = config.fillWatcherConfig.buildEndpoint({
+            expect(config.fillWatcherConfig.type).toBe("api-based");
+            if (config.fillWatcherConfig.type !== "api-based") return;
+
+            const endpoint = config.fillWatcherConfig.buildEndpoint({
+                orderId: "0xrequest123" as `0x${string}`,
+                originChainId: CHAIN_IDS.SEPOLIA,
+                destinationChainId: CHAIN_IDS.BASE_SEPOLIA,
+            });
+            expect(endpoint).toBe("/intents/status/v3?requestId=0xrequest123");
+        });
+
+        it("maps success status to Finalized with fill event", () => {
+            const config = provider.getTrackingConfig();
+
+            expect(config.fillWatcherConfig.type).toBe("api-based");
+            if (config.fillWatcherConfig.type !== "api-based") return;
+
+            const result = config.fillWatcherConfig.extractFillEvent(
+                {
+                    status: "success",
+                    txHashes: ["0xfill123"],
+                },
+                {
                     orderId: "0xrequest123" as `0x${string}`,
                     originChainId: CHAIN_IDS.SEPOLIA,
                     destinationChainId: CHAIN_IDS.BASE_SEPOLIA,
-                });
-                expect(endpoint).toBe("/intents/status/v3?requestId=0xrequest123");
-            }
+                },
+            );
+            expect(result.status).toBe(OrderStatus.Finalized);
+            expect(result.event).not.toBeNull();
+            expect(result.event!.fillTxHash).toBe("0xfill123");
         });
 
-        it("should map success status to Finalized", () => {
+        it("maps failure status to Failed", () => {
             const config = provider.getTrackingConfig();
 
-            if (config.fillWatcherConfig.type === "api-based") {
+            expect(config.fillWatcherConfig.type).toBe("api-based");
+            if (config.fillWatcherConfig.type !== "api-based") return;
+
+            const result = config.fillWatcherConfig.extractFillEvent(
+                { status: "failure" },
+                {
+                    orderId: "0xrequest123" as `0x${string}`,
+                    originChainId: CHAIN_IDS.SEPOLIA,
+                    destinationChainId: CHAIN_IDS.BASE_SEPOLIA,
+                },
+            );
+            expect(result.status).toBe(OrderStatus.Failed);
+            expect(result.failureReason).toBe(OrderFailureReason.Unknown);
+            expect(result.event).toBeNull();
+        });
+
+        it("maps refunded status to Refunded", () => {
+            const config = provider.getTrackingConfig();
+
+            expect(config.fillWatcherConfig.type).toBe("api-based");
+            if (config.fillWatcherConfig.type !== "api-based") return;
+
+            const result = config.fillWatcherConfig.extractFillEvent(
+                { status: "refunded" },
+                {
+                    orderId: "0xrequest123" as `0x${string}`,
+                    originChainId: CHAIN_IDS.SEPOLIA,
+                    destinationChainId: CHAIN_IDS.BASE_SEPOLIA,
+                },
+            );
+            expect(result.status).toBe(OrderStatus.Refunded);
+        });
+
+        it("maps pending/waiting statuses to Pending", () => {
+            const config = provider.getTrackingConfig();
+
+            expect(config.fillWatcherConfig.type).toBe("api-based");
+            if (config.fillWatcherConfig.type !== "api-based") return;
+
+            for (const status of ["waiting", "pending", "submitted", "delayed"] as const) {
                 const result = config.fillWatcherConfig.extractFillEvent(
-                    {
-                        status: "success",
-                        txHashes: ["0xfill123"],
-                    },
+                    { status },
                     {
                         orderId: "0xrequest123" as `0x${string}`,
                         originChainId: CHAIN_IDS.SEPOLIA,
                         destinationChainId: CHAIN_IDS.BASE_SEPOLIA,
                     },
                 );
-                expect(result.status).toBe(OrderStatus.Finalized);
-                expect(result.event).not.toBeNull();
-                expect(result.event!.fillTxHash).toBe("0xfill123");
-            }
-        });
-
-        it("should map failure status to Failed", () => {
-            const config = provider.getTrackingConfig();
-
-            if (config.fillWatcherConfig.type === "api-based") {
-                const result = config.fillWatcherConfig.extractFillEvent(
-                    { status: "failure" },
-                    {
-                        orderId: "0xrequest123" as `0x${string}`,
-                        originChainId: CHAIN_IDS.SEPOLIA,
-                        destinationChainId: CHAIN_IDS.BASE_SEPOLIA,
-                    },
-                );
-                expect(result.status).toBe(OrderStatus.Failed);
-                expect(result.failureReason).toBe(OrderFailureReason.Unknown);
+                expect(result.status).toBe(OrderStatus.Pending);
                 expect(result.event).toBeNull();
             }
         });
 
-        it("should map refunded status to Refunded", () => {
-            const config = provider.getTrackingConfig();
-
-            if (config.fillWatcherConfig.type === "api-based") {
-                const result = config.fillWatcherConfig.extractFillEvent(
-                    { status: "refunded" },
-                    {
-                        orderId: "0xrequest123" as `0x${string}`,
-                        originChainId: CHAIN_IDS.SEPOLIA,
-                        destinationChainId: CHAIN_IDS.BASE_SEPOLIA,
-                    },
-                );
-                expect(result.status).toBe(OrderStatus.Refunded);
-            }
-        });
-
-        it("should map pending/waiting statuses to Pending", () => {
-            const config = provider.getTrackingConfig();
-
-            if (config.fillWatcherConfig.type === "api-based") {
-                for (const status of ["waiting", "pending", "submitted", "delayed"] as const) {
-                    const result = config.fillWatcherConfig.extractFillEvent(
-                        { status },
-                        {
-                            orderId: "0xrequest123" as `0x${string}`,
-                            originChainId: CHAIN_IDS.SEPOLIA,
-                            destinationChainId: CHAIN_IDS.BASE_SEPOLIA,
-                        },
-                    );
-                    expect(result.status).toBe(OrderStatus.Pending);
-                    expect(result.event).toBeNull();
-                }
-            }
-        });
-
-        it("should pass auth headers to fill watcher config", () => {
+        it("passes auth headers to fill watcher config", () => {
             const authProvider = new RelayProvider({
                 apiUrl: MOCK_API_URL,
                 providerId: "auth-mocked",
@@ -477,13 +504,14 @@ describe("RelayProvider", () => {
 
             const config = authProvider.getTrackingConfig();
 
-            if (config.fillWatcherConfig.type === "api-based") {
-                expect(config.fillWatcherConfig.apiKey).toBe("test-key");
-                expect(config.fillWatcherConfig.headers).toEqual({
-                    Authorization: "Bearer test-key",
-                    "x-relay-source": "test-dapp",
-                });
-            }
+            expect(config.fillWatcherConfig.type).toBe("api-based");
+            if (config.fillWatcherConfig.type !== "api-based") return;
+
+            expect(config.fillWatcherConfig.apiKey).toBe("test-key");
+            expect(config.fillWatcherConfig.headers).toEqual({
+                Authorization: "Bearer test-key",
+                "x-relay-source": "test-dapp",
+            });
         });
     });
 });

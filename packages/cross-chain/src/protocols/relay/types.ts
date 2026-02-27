@@ -18,7 +18,7 @@ export type RelayIntentStatus =
 /**
  * Relay Intent Status Response
  * From: GET https://api.relay.link/intents/status/v3
- * @see https://docs.relay.link/references/api/get-intent-status-v2
+ * @see https://docs.relay.link/references/api/get-intent-status-v3
  */
 export interface RelayIntentStatusResponse {
     /** Intent status */
