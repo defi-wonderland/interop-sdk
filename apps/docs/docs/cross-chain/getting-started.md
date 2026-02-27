@@ -11,6 +11,7 @@ The `cross-chain` package provides a standardized interface for interacting with
 -   Quote fetching for cross-chain operations
 -   Order tracking from initiation to completion
 -   Multi-provider quote aggregation and comparison
+-   Step-based order model (signature and transaction steps)
 -   Standardized provider interface for integrating different bridge protocols
 -   Type-safe interactions with comprehensive TypeScript support
 
@@ -60,58 +61,72 @@ See the provider-specific documentation for configuration options:
 
 ### Getting Quotes
 
-All providers support fetching quotes for cross-chain operations using the OIF format:
+All providers support fetching quotes using the SDK `QuoteRequest` format:
 
 ```typescript
-const quotes = await provider.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-    intent: {
-        intentType: "oif-swap",
-        inputs: [
-            {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                amount: "1000000000000000000", // 1 token (in wei)
-            },
-        ],
-        outputs: [
-            {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-            },
-        ],
-        swapType: "exact-input",
-    },
-    supportedTypes: ["oif-escrow-v0"], // or provider-specific types
-});
+import type { QuoteRequest } from "@wonderland/interop-cross-chain";
 
+const request: QuoteRequest = {
+    user: "0xYourAddress",
+    input: {
+        chainId: 1,
+        assetAddress: "0xInputToken",
+        amount: "1000000000000000000", // 1 token (in wei)
+    },
+    output: {
+        chainId: 42161,
+        assetAddress: "0xOutputToken",
+        recipient: "0xRecipient",
+    },
+    swapType: "exact-input",
+};
+
+const quotes = await provider.getQuotes(request);
 const quote = quotes[0]; // Select the first quote
 ```
 
 ### Executing Transactions
 
-After getting a quote, execute the transaction using the prepared transaction:
+After getting a quote, execute based on the order's step type:
 
 ```typescript
-if (quote.preparedTransaction) {
-    const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+import {
+    getSignatureSteps,
+    getTransactionSteps,
+    isSignatureOnlyOrder,
+} from "@wonderland/interop-cross-chain";
+
+if (isSignatureOnlyOrder(quote.order)) {
+    // Protocol mode: sign EIP-712 typed data (gasless for user)
+    const step = getSignatureSteps(quote.order)[0];
+    const { signatureType, ...typedData } = step.signaturePayload;
+    const signature = await walletClient.signTypedData(typedData);
+    await provider.submitOrder(quote, signature);
+} else {
+    // User mode: send transaction directly
+    const step = getTransactionSteps(quote.order)[0];
+    const hash = await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+        value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+    });
     console.log("Transaction sent:", hash);
 }
 ```
 
 ### Using Multiple Providers
 
-For comparing quotes across providers, use the `ProviderExecutor`:
+For comparing quotes across providers, use the `Aggregator`:
 
 ```typescript
-import { createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createAggregator } from "@wonderland/interop-cross-chain";
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider, oifProvider],
 });
 
-const response = await executor.getQuotes({
-    /* ... */
+const response = await aggregator.getQuotes({
+    /* QuoteRequest ... */
 });
 // response.quotes - sorted quotes from all providers
 // response.errors - any provider errors

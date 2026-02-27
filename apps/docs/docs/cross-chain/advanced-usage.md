@@ -2,18 +2,18 @@
 title: Advanced Usage
 ---
 
-## Provider Executor
+## Aggregator
 
-For complex scenarios, use the ProviderExecutor to manage multiple providers with sorting, timeout handling, and built-in order tracking.
+For complex scenarios, use the Aggregator to manage multiple providers with sorting, timeout handling, and built-in order tracking.
 
 ### Minimal Setup
 
 ```typescript
-import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createAggregator, createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider],
 });
 ```
@@ -21,16 +21,17 @@ const executor = createProviderExecutor({
 ### Full Configuration
 
 ```typescript
+import type { QuoteRequest } from "@wonderland/interop-cross-chain";
 import {
+    createAggregator,
     createCrossChainProvider,
-    createProviderExecutor,
     OrderTrackerFactory,
     SortingStrategyFactory,
 } from "@wonderland/interop-cross-chain";
 
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider],
     sortingStrategy: SortingStrategyFactory.createStrategy("bestOutput"),
     timeoutMs: 15000,
@@ -43,26 +44,19 @@ const executor = createProviderExecutor({
 });
 
 // Get quotes from all providers
-const response = await executor.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-    intent: {
-        intentType: "oif-swap",
-        inputs: [
-            {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                amount: "1000000000000000000",
-            },
-        ],
-        outputs: [
-            {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-            },
-        ],
-        swapType: "exact-input",
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress",
+    input: {
+        chainId: 11155111,
+        assetAddress: "0xInputToken",
+        amount: "1000000000000000000",
     },
-    supportedTypes: ["across"],
+    output: {
+        chainId: 84532,
+        assetAddress: "0xOutputToken",
+        recipient: "0xRecipient",
+    },
+    swapType: "exact-input",
 });
 
 // Handle results
@@ -76,21 +70,30 @@ response.errors.forEach((error) => {
 });
 ```
 
-For more details on the Provider Executor configuration, see the [API Reference](./api.md#provider-executor).
+For more details on the Aggregator configuration, see the [API Reference](./api.md#aggregator).
 
 ## Order Tracking
 
-The executor includes built-in order tracking when configured with a `trackerFactory`. After executing a transaction, use `executor.track()` to monitor the cross-chain transfer:
+The aggregator includes built-in order tracking when configured with a `trackerFactory`. After executing a transaction, use `aggregator.track()` to monitor the cross-chain transfer:
 
 ```typescript
-import { OrderStatus, OrderTrackerEvent } from "@wonderland/interop-cross-chain";
+import {
+    getTransactionSteps,
+    OrderStatus,
+    OrderTrackerEvent,
+} from "@wonderland/interop-cross-chain";
 
 // Execute the transaction
 const quote = response.quotes[0];
-const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+const step = getTransactionSteps(quote.order)[0];
+const hash = await walletClient.sendTransaction({
+    to: step.transaction.to,
+    data: step.transaction.data,
+    value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+});
 
 // Track with real-time events
-const tracker = executor.track({
+const tracker = aggregator.track({
     txHash: hash,
     providerId: quote.provider, // e.g., "across"
     originChainId: 11155111,
@@ -110,7 +113,7 @@ tracker.on(OrderTrackerEvent.Error, (error) => console.error("Tracking error:", 
 For a simple status check without event-based tracking:
 
 ```typescript
-const status = await executor.getOrderStatus({
+const status = await aggregator.getOrderStatus({
     txHash: "0x...",
     providerId: "across",
     originChainId: 11155111,
@@ -139,7 +142,7 @@ import {
 } from "@wonderland/interop-cross-chain";
 
 try {
-    const response = await executor.getQuotes({
+    const response = await aggregator.getQuotes({
         /* ... */
     });
 } catch (error) {
@@ -159,7 +162,7 @@ try {
 
 ## Best Practices
 
-1. Always check both `quotes` and `errors` in the executor response
+1. Always check both `quotes` and `errors` in the aggregator response
 2. Use sorting strategies to get the best quotes first
 3. Use `OrderTracker` to monitor cross-chain transfers
 4. Handle errors appropriately using the provided error types

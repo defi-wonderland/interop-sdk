@@ -7,7 +7,7 @@ The SDK includes **order tracking** to monitor cross-chain transfers from initia
 Tracking supports **two ways of observing the same lifecycle**, depending on the provider and how the order is created:
 
 -   **Onchain tracking**: derive tracking data from the origin transaction (e.g. ERC-7683 open event), then watch the fill on the destination chain.
--   **Offchain tracking**: query a provider API for order state transitions (e.g. polling an “order status / deposit status” endpoint).
+-   **Offchain tracking**: query a provider API for order state transitions (e.g. polling an "order status / deposit status" endpoint).
 
 ## Overview
 
@@ -23,7 +23,7 @@ The `OrderTracker` streams updates using the full OIF `OrderStatus` set (see the
 -   **Failed**
 -   **Refunded**
 
-In other words, you can subscribe to **any** `OrderStatus` via `tracker.on(OrderStatus.<status>, ...)` — the examples below just show the most common ones.
+In other words, you can subscribe to **any** `OrderStatus` via `tracker.on(OrderStatus.<status>, ...)` --- the examples below just show the most common ones.
 
 In addition, the tracker can emit:
 
@@ -32,18 +32,18 @@ In addition, the tracker can emit:
 
 ## Basic Usage
 
-The recommended way to track orders is through the `ProviderExecutor`, which handles tracker creation and caching automatically:
+The recommended way to track orders is through the `Aggregator`, which handles tracker creation and caching automatically:
 
 ```typescript
 import {
+    createAggregator,
     createCrossChainProvider,
-    createProviderExecutor,
     OrderTrackerFactory,
 } from "@wonderland/interop-cross-chain";
 
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider],
     trackerFactory: new OrderTrackerFactory({
         rpcUrls: {
@@ -56,15 +56,24 @@ const executor = createProviderExecutor({
 
 ### Tracking an Order
 
-After sending the transaction, use `executor.track()` for real-time updates:
+After sending the transaction, use `aggregator.track()` for real-time updates:
 
 ```typescript
-import { OrderStatus, OrderTrackerEvent } from "@wonderland/interop-cross-chain";
+import {
+    getTransactionSteps,
+    OrderStatus,
+    OrderTrackerEvent,
+} from "@wonderland/interop-cross-chain";
 
 const quote = response.quotes[0];
-const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+const step = getTransactionSteps(quote.order)[0];
+const hash = await walletClient.sendTransaction({
+    to: step.transaction.to,
+    data: step.transaction.data,
+    value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+});
 
-const tracker = executor.track({
+const tracker = aggregator.track({
     txHash: hash,
     providerId: quote.provider,
     originChainId: 11155111,
@@ -85,7 +94,7 @@ tracker.on(OrderTrackerEvent.Error, (error) => console.error("Error:", error));
 Check the current status of an order without watching:
 
 ```typescript
-const status = await executor.getOrderStatus({
+const status = await aggregator.getOrderStatus({
     txHash: "0xabc...",
     providerId: "across",
     originChainId: 11155111,
@@ -107,7 +116,7 @@ if (status.fillEvent) {
 
 ## Advanced: Standalone Tracker
 
-For advanced use cases, you can create a tracker directly without using the executor:
+For advanced use cases, you can create a tracker directly without using the aggregator:
 
 ```typescript
 import { createCrossChainProvider, createOrderTracker } from "@wonderland/interop-cross-chain";

@@ -11,7 +11,13 @@ This guide demonstrates how to execute a cross-chain intent using the SDK. The p
 First, import the required libraries and set up your environment variables, such as your private key and a generic RPC URL.
 
 ```js
-import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
+import {
+    createAggregator,
+    createCrossChainProvider,
+    getSignatureSteps,
+    getTransactionSteps,
+    isSignatureOnlyOrder,
+} from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
@@ -42,43 +48,36 @@ const walletClient = createWalletClient({
 });
 ```
 
-## 3. Set Up Cross-Chain Provider and Executor
+## 3. Set Up Cross-Chain Provider and Aggregator
 
-Initialize the cross-chain provider and executor, which will handle quoting and executing cross-chain transfers.
+Initialize the cross-chain provider and aggregator, which will handle quoting and executing cross-chain transfers.
 
 ```js
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider],
 });
 ```
 
 ## 4. Retrieve a Cross-Chain Quote
 
-Request a quote for a cross-chain transfer using OIF GetQuoteRequest format.
+Request a quote for a cross-chain transfer using the SDK `QuoteRequest` format.
 
 ```js
-const response = await executor.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-    intent: {
-        intentType: "oif-swap",
-        inputs: [
-            {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                amount: "100000000000000000", // 0.1 in wei
-            },
-        ],
-        outputs: [
-            {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-            },
-        ],
-        swapType: "exact-input",
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress",
+    input: {
+        chainId: 11155111,
+        assetAddress: "0xInputTokenAddress",
+        amount: "100000000000000000", // 0.1 in wei
     },
-    supportedTypes: ["across"],
+    output: {
+        chainId: 84532,
+        assetAddress: "0xOutputTokenAddress",
+        recipient: "0xRecipientAddress",
+    },
+    swapType: "exact-input",
 });
 
 // Check for errors
@@ -95,21 +94,31 @@ if (response.quotes.length === 0) {
 
 ## 5. Execute the Cross-Chain Transaction
 
-Execute the quote using your wallet client:
+Execute the quote based on its order step type:
 
 ```js
-// Select the quote you prefer (e.g., first one)
 const quote = response.quotes[0];
 
-if (quote.preparedTransaction) {
+if (isSignatureOnlyOrder(quote.order)) {
+    // Protocol mode: sign and submit (gasless for user)
+    const step = getSignatureSteps(quote.order)[0];
+    const { signatureType, ...typedData } = step.signaturePayload;
+    const signature = await walletClient.signTypedData(typedData);
+    await aggregator.submitOrder(quote, signature);
+    console.log("Order submitted via signature");
+} else {
+    // User mode: send transaction directly
+    const step = getTransactionSteps(quote.order)[0];
     console.log("Sending transaction...");
-    const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+    const hash = await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+        value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+    });
     console.log("Transaction sent:", hash);
 
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     console.log("Transaction confirmed:", receipt.status === "success" ? "Success" : "Failed");
-} else {
-    console.error("No prepared transaction in quote");
 }
 ```
 
