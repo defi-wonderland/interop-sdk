@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { type ChainIdentifier, decodeAddress, fromChainIdentifier } from '@wonderland/interop-addresses';
-import { crossChainExecutor } from '../services/sdk';
+import { crossChainAggregator } from '../services/sdk';
 import type { DiscoveredAssets, UITokenInfo } from '../types/assets';
 import type { DiscoveredAssets as SdkDiscoveredAssets } from '@wonderland/interop-cross-chain';
 import type { Hex } from 'viem';
@@ -108,7 +108,7 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
     setError(null);
 
     try {
-      const sdkAssets = await crossChainExecutor.discoverAssets({ chainIds });
+      const sdkAssets = await crossChainAggregator.discoverAssets({ chainIds });
 
       if (Object.keys(sdkAssets.tokensByChain).length === 0) {
         throw new Error('No assets discovered from any provider');

@@ -4,7 +4,7 @@ import {
   type SignatureStep,
   type TransactionStep,
 } from '@wonderland/interop-cross-chain';
-import { crossChainExecutor } from '../sdk';
+import { crossChainAggregator } from '../sdk';
 import { handleTokenApproval } from './approval';
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
@@ -55,7 +55,7 @@ export const executeSignatureStep = async ({
   }
 
   const { orderId } = await signAndSubmitOrder({
-    executor: crossChainExecutor,
+    executor: crossChainAggregator,
     walletClient,
     quote,
     step,

@@ -32,30 +32,23 @@ const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
 ## Getting Quotes
 
-Use the `ProviderExecutor` for SDK-friendly types with readable addresses:
+Use the `Aggregator` for SDK-friendly types with readable addresses:
 
 ```typescript
-import { createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createAggregator } from "@wonderland/interop-cross-chain";
 
-const executor = createProviderExecutor({ providers: [acrossProvider] });
+const aggregator = createAggregator({ providers: [acrossProvider] });
 
-const response = await executor.getQuotes({
-    user: { chainId: 11155111, address: "0xYourAddress..." },
-    intent: {
-        inputs: [
-            // Across only supports single input/output
-            {
-                asset: { chainId: 11155111, address: "0xInputToken..." },
-                amount: "1000000000000000000", // 1 token (in smallest unit)
-            },
-        ],
-        outputs: [
-            {
-                asset: { chainId: 84532, address: "0xOutputToken..." },
-            },
-        ],
-        swapType: "exact-input",
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress...",
+    input: {
+        asset: { chainId: 11155111, address: "0xInputToken..." },
+        amount: "1000000000000000000", // 1 token (in smallest unit)
     },
+    output: {
+        asset: { chainId: 84532, address: "0xOutputToken..." },
+    },
+    swapType: "exact-input",
 });
 
 const quote = response.quotes[0]; // Select the first quote

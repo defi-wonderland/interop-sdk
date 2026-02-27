@@ -23,6 +23,12 @@ export const OifProviderConfigSchema = z.object({
     headers: z.record(z.string()).optional(),
     adapterMetadata: z.record(z.unknown()).optional(),
     providerId: z.string().optional(),
+    /** Lock mechanisms to request from solver (default: all) */
+    supportedLocks: z.array(z.string()).optional(),
+    /** Submission modes: "user-transaction" (on-chain tx) vs "gasless" (signature only). Default: all */
+    submissionModes: z
+        .array(z.union([z.literal("user-transaction"), z.literal("gasless")]))
+        .optional(),
 });
 
 export { addressSchema };

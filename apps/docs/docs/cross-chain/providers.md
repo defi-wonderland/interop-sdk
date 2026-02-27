@@ -31,7 +31,8 @@ class MyCustomProvider extends CrossChainProvider {
     readonly providerId = "my-protocol-1";
 
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
-        // params.user is { chainId, address } — no ERC-7930 hex
+        // params.user is a plain EVM address string
+        // params.input / params.output are at the top level (no intent wrapper)
         // Return SDK-friendly Quote[] with step-based orders
         return [
             {
@@ -39,7 +40,7 @@ class MyCustomProvider extends CrossChainProvider {
                     steps: [
                         {
                             kind: "transaction",
-                            chainId: params.user.chainId,
+                            chainId: params.input.asset.chainId,
                             transaction: { to: "0x...", data: "0x..." },
                         },
                     ],
@@ -47,15 +48,15 @@ class MyCustomProvider extends CrossChainProvider {
                 preview: {
                     inputs: [
                         {
-                            account: params.user,
-                            asset: params.intent.inputs[0].asset,
+                            account: { chainId: params.input.asset.chainId, address: params.user },
+                            asset: params.input.asset,
                             amount: "1000000",
                         },
                     ],
                     outputs: [
                         {
-                            account: params.user,
-                            asset: params.intent.outputs[0].asset,
+                            account: { chainId: params.output.asset.chainId, address: params.user },
+                            asset: params.output.asset,
                             amount: "990000",
                         },
                     ],
@@ -83,4 +84,4 @@ See the [API Reference](./api.md) for more details on the provider interface.
 
 -   [API Reference](./api.md)
 -   [Getting Started](./getting-started.md)
--   [Provider Executor](./advanced-usage.md#provider-executor)
+-   [Aggregator](./advanced-usage.md#aggregator)

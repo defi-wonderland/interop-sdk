@@ -3,6 +3,7 @@ import { encodeAddress } from "@wonderland/interop-addresses";
 import { describe, expect, it } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/types/quoteRequest.js";
+import type { AdaptOptions } from "../../src/protocols/oif/adapters/quoteRequestAdapter.js";
 import { adaptQuoteRequest } from "../../src/protocols/oif/adapters/quoteRequestAdapter.js";
 
 const USER_ADDRESS = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8" as Address;
@@ -22,23 +23,17 @@ function toErc7930(chainId: number, address: string): string {
 
 describe("adaptQuoteRequest", () => {
     const baseRequest: QuoteRequest = {
-        user: { chainId: INPUT_CHAIN_ID, address: USER_ADDRESS },
-        intent: {
-            inputs: [
-                {
-                    asset: { chainId: INPUT_CHAIN_ID, address: INPUT_TOKEN },
-                    amount: "1000000",
-                },
-            ],
-            outputs: [
-                {
-                    asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN },
-                },
-            ],
+        user: USER_ADDRESS,
+        input: {
+            asset: { chainId: INPUT_CHAIN_ID, address: INPUT_TOKEN },
+            amount: "1000000",
+        },
+        output: {
+            asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN },
         },
     };
 
-    it("converts user to ERC-7930 format", () => {
+    it("converts user to ERC-7930 format on input chain", () => {
         const result = adaptQuoteRequest(baseRequest);
 
         const expectedUserHex = toErc7930(INPUT_CHAIN_ID, USER_ADDRESS);
@@ -72,10 +67,7 @@ describe("adaptQuoteRequest", () => {
     it("omits amount when not provided", () => {
         const request: QuoteRequest = {
             ...baseRequest,
-            intent: {
-                ...baseRequest.intent,
-                inputs: [{ asset: { chainId: INPUT_CHAIN_ID, address: INPUT_TOKEN } }],
-            },
+            input: { asset: { chainId: INPUT_CHAIN_ID, address: INPUT_TOKEN } },
         };
         const result = adaptQuoteRequest(request);
         expect(result.intent.inputs[0]!.amount).toBeUndefined();
@@ -98,14 +90,9 @@ describe("adaptQuoteRequest", () => {
     it("uses explicit recipient when provided", () => {
         const request: QuoteRequest = {
             ...baseRequest,
-            intent: {
-                ...baseRequest.intent,
-                outputs: [
-                    {
-                        asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN },
-                        recipient: { chainId: OUTPUT_CHAIN_ID, address: RECEIVER_ADDRESS },
-                    },
-                ],
+            output: {
+                asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN },
+                recipient: RECEIVER_ADDRESS,
             },
         };
         const result = adaptQuoteRequest(request);
@@ -117,14 +104,9 @@ describe("adaptQuoteRequest", () => {
     it("preserves output amount when provided", () => {
         const request: QuoteRequest = {
             ...baseRequest,
-            intent: {
-                ...baseRequest.intent,
-                outputs: [
-                    {
-                        asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN },
-                        amount: "5000000",
-                    },
-                ],
+            output: {
+                asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN },
+                amount: "5000000",
             },
         };
         const result = adaptQuoteRequest(request);
@@ -134,14 +116,9 @@ describe("adaptQuoteRequest", () => {
     it("preserves output calldata when provided", () => {
         const request: QuoteRequest = {
             ...baseRequest,
-            intent: {
-                ...baseRequest.intent,
-                outputs: [
-                    {
-                        asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN },
-                        calldata: "0xdeadbeef",
-                    },
-                ],
+            output: {
+                asset: { chainId: OUTPUT_CHAIN_ID, address: OUTPUT_TOKEN },
+                calldata: "0xdeadbeef",
             },
         };
         const result = adaptQuoteRequest(request);
@@ -156,14 +133,14 @@ describe("adaptQuoteRequest", () => {
     it("preserves explicit swapType", () => {
         const request: QuoteRequest = {
             ...baseRequest,
-            intent: { ...baseRequest.intent, swapType: "exact-output" },
+            swapType: "exact-output",
         };
         const result = adaptQuoteRequest(request);
         expect(result.intent.swapType).toBe("exact-output");
     });
 
     describe("supportedLocks → supportedTypes", () => {
-        it("returns all OIF order types when no supportedLocks", () => {
+        it("returns all OIF order types when no options provided", () => {
             const result = adaptQuoteRequest(baseRequest);
             expect(result.supportedTypes).toContain("oif-escrow-v0");
             expect(result.supportedTypes).toContain("oif-3009-v0");
@@ -171,12 +148,17 @@ describe("adaptQuoteRequest", () => {
             expect(result.supportedTypes).toContain("oif-user-open-v0");
         });
 
+        it("returns all OIF order types when options has empty supportedLocks", () => {
+            const result = adaptQuoteRequest(baseRequest, { supportedLocks: [] });
+            expect(result.supportedTypes).toContain("oif-escrow-v0");
+            expect(result.supportedTypes).toContain("oif-3009-v0");
+            expect(result.supportedTypes).toContain("oif-resource-lock-v0");
+            expect(result.supportedTypes).toContain("oif-user-open-v0");
+        });
+
         it("maps oif-escrow to escrow + 3009 types", () => {
-            const request: QuoteRequest = {
-                ...baseRequest,
-                supportedLocks: ["oif-escrow"],
-            };
-            const result = adaptQuoteRequest(request);
+            const options: AdaptOptions = { supportedLocks: ["oif-escrow"] };
+            const result = adaptQuoteRequest(baseRequest, options);
 
             expect(result.supportedTypes).toContain("oif-escrow-v0");
             expect(result.supportedTypes).toContain("oif-3009-v0");
@@ -185,32 +167,25 @@ describe("adaptQuoteRequest", () => {
         });
 
         it("maps compact-resource-lock to resource lock type", () => {
-            const request: QuoteRequest = {
-                ...baseRequest,
-                supportedLocks: ["compact-resource-lock"],
-            };
-            const result = adaptQuoteRequest(request);
+            const options: AdaptOptions = { supportedLocks: ["compact-resource-lock"] };
+            const result = adaptQuoteRequest(baseRequest, options);
 
             expect(result.supportedTypes).toContain("oif-resource-lock-v0");
             expect(result.supportedTypes).toContain("oif-user-open-v0");
             expect(result.supportedTypes).not.toContain("oif-escrow-v0");
         });
 
-        it("always includes oif-user-open-v0", () => {
-            const request: QuoteRequest = {
-                ...baseRequest,
-                supportedLocks: ["oif-escrow"],
-            };
-            const result = adaptQuoteRequest(request);
+        it("includes oif-user-open-v0 by default when locks are specified", () => {
+            const options: AdaptOptions = { supportedLocks: ["oif-escrow"] };
+            const result = adaptQuoteRequest(baseRequest, options);
             expect(result.supportedTypes).toContain("oif-user-open-v0");
         });
 
         it("combines multiple lock types", () => {
-            const request: QuoteRequest = {
-                ...baseRequest,
+            const options: AdaptOptions = {
                 supportedLocks: ["oif-escrow", "compact-resource-lock"],
             };
-            const result = adaptQuoteRequest(request);
+            const result = adaptQuoteRequest(baseRequest, options);
 
             expect(result.supportedTypes).toContain("oif-escrow-v0");
             expect(result.supportedTypes).toContain("oif-3009-v0");
@@ -219,15 +194,93 @@ describe("adaptQuoteRequest", () => {
         });
 
         it("ignores unknown lock types gracefully", () => {
-            const request: QuoteRequest = {
-                ...baseRequest,
-                supportedLocks: ["unknown-lock"],
-            };
-            const result = adaptQuoteRequest(request);
+            const options: AdaptOptions = { supportedLocks: ["unknown-lock"] };
+            const result = adaptQuoteRequest(baseRequest, options);
 
-            // Should still have user-open
+            // Should still have user-open (no lock required)
             expect(result.supportedTypes).toContain("oif-user-open-v0");
             expect(result.supportedTypes).toHaveLength(1);
+        });
+    });
+
+    describe("submissionModes filtering", () => {
+        it("includes all types when submissionModes is not set", () => {
+            const result = adaptQuoteRequest(baseRequest);
+            expect(result.supportedTypes).toContain("oif-user-open-v0");
+            expect(result.supportedTypes).toContain("oif-escrow-v0");
+            expect(result.supportedTypes).toContain("oif-3009-v0");
+            expect(result.supportedTypes).toContain("oif-resource-lock-v0");
+        });
+
+        it("includes all types when both user-transaction and gasless are allowed", () => {
+            const options: AdaptOptions = {
+                submissionModes: ["user-transaction", "gasless"],
+            };
+            const result = adaptQuoteRequest(baseRequest, options);
+
+            expect(result.supportedTypes).toContain("oif-user-open-v0");
+            expect(result.supportedTypes).toContain("oif-escrow-v0");
+            expect(result.supportedTypes).toContain("oif-3009-v0");
+            expect(result.supportedTypes).toContain("oif-resource-lock-v0");
+        });
+
+        it("excludes oif-user-open-v0 when only gasless mode is allowed", () => {
+            const options: AdaptOptions = { submissionModes: ["gasless"] };
+            const result = adaptQuoteRequest(baseRequest, options);
+
+            expect(result.supportedTypes).not.toContain("oif-user-open-v0");
+            expect(result.supportedTypes).toContain("oif-escrow-v0");
+            expect(result.supportedTypes).toContain("oif-3009-v0");
+            expect(result.supportedTypes).toContain("oif-resource-lock-v0");
+        });
+
+        it("excludes gasless types when only user-transaction mode is allowed", () => {
+            const options: AdaptOptions = { submissionModes: ["user-transaction"] };
+            const result = adaptQuoteRequest(baseRequest, options);
+
+            expect(result.supportedTypes).toContain("oif-user-open-v0");
+            expect(result.supportedTypes).not.toContain("oif-escrow-v0");
+            expect(result.supportedTypes).not.toContain("oif-3009-v0");
+            expect(result.supportedTypes).not.toContain("oif-resource-lock-v0");
+        });
+
+        it("returns empty array when no modes match any types", () => {
+            const options: AdaptOptions = {
+                supportedLocks: ["oif-escrow"],
+                submissionModes: ["user-transaction"],
+            };
+            const result = adaptQuoteRequest(baseRequest, options);
+
+            // oif-escrow locks give escrow-v0 + 3009-v0 (both gasless) + user-open
+            // user-transaction mode keeps only user-open, removes gasless types
+            expect(result.supportedTypes).toContain("oif-user-open-v0");
+            expect(result.supportedTypes).not.toContain("oif-escrow-v0");
+            expect(result.supportedTypes).not.toContain("oif-3009-v0");
+        });
+
+        it("combines supportedLocks and submissionModes filters", () => {
+            const options: AdaptOptions = {
+                supportedLocks: ["oif-escrow", "compact-resource-lock"],
+                submissionModes: ["gasless"],
+            };
+            const result = adaptQuoteRequest(baseRequest, options);
+
+            // All gasless lock types are included, user-open is excluded
+            expect(result.supportedTypes).toContain("oif-escrow-v0");
+            expect(result.supportedTypes).toContain("oif-3009-v0");
+            expect(result.supportedTypes).toContain("oif-resource-lock-v0");
+            expect(result.supportedTypes).not.toContain("oif-user-open-v0");
+        });
+
+        it("gasless-only with unknown locks yields empty supported types", () => {
+            const options: AdaptOptions = {
+                supportedLocks: ["unknown-lock"],
+                submissionModes: ["gasless"],
+            };
+            const result = adaptQuoteRequest(baseRequest, options);
+
+            // unknown-lock produces nothing, user-open is added but then removed by gasless filter
+            expect(result.supportedTypes).toHaveLength(0);
         });
     });
 });

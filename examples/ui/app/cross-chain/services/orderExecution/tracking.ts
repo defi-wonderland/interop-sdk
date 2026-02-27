@@ -1,7 +1,7 @@
 import { OrderStatus, OrderTrackerYieldType } from '@wonderland/interop-cross-chain';
 import { TIMEOUT_MS } from '../../constants';
 import { STEP, type BridgeState, type ChainContext } from '../../types/execution';
-import { crossChainExecutor } from '../sdk';
+import { crossChainAggregator } from '../sdk';
 import type { Hex } from 'viem';
 
 export class TrackingError extends Error {
@@ -30,7 +30,7 @@ export async function trackOrder(
   abortSignal: AbortSignal | undefined,
   onStateChange: (state: BridgeState) => void,
 ): Promise<void> {
-  const tracker = crossChainExecutor.prepareTracking(providerId);
+  const tracker = crossChainAggregator.prepareTracking(providerId);
   const txHash = 'txHash' in identifier ? identifier.txHash : undefined;
 
   try {

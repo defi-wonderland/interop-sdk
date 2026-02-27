@@ -15,7 +15,7 @@ The cross-chain package provides a standardized interface for interacting with c
 ## Quick Start
 
 ```typescript
-import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createAggregator, createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 // Create an OIF provider
 const provider = createCrossChainProvider("oif", {
@@ -23,26 +23,19 @@ const provider = createCrossChainProvider("oif", {
     url: "https://oif-api.example.com",
 });
 
-const executor = createProviderExecutor({ providers: [provider] });
+const aggregator = createAggregator({ providers: [provider] });
 
 // Get quotes for a cross-chain transfer
-const response = await executor.getQuotes({
-    user: { chainId: 1, address: "0xYourAddress..." },
-    intent: {
-        inputs: [
-            {
-                asset: { chainId: 1, address: "0xInputToken..." },
-                amount: "1000000000000000000",
-            },
-        ],
-        outputs: [
-            {
-                asset: { chainId: 8453, address: "0xOutputToken..." },
-            },
-        ],
-        swapType: "exact-input",
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress...",
+    input: {
+        asset: { chainId: 1, address: "0xInputToken..." },
+        amount: "1000000000000000000",
     },
-    supportedLocks: ["oif-escrow"],
+    output: {
+        asset: { chainId: 8453, address: "0xOutputToken..." },
+    },
+    swapType: "exact-input",
 });
 
 const quote = response.quotes[0];

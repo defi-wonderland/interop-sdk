@@ -53,6 +53,8 @@ export class OifProvider extends CrossChainProvider {
     private readonly url: string;
     private readonly headers?: Record<string, string>;
     private readonly adapterMetadata?: Record<string, unknown>;
+    private readonly supportedLocks?: string[];
+    private readonly submissionModes?: ("user-transaction" | "gasless")[];
 
     constructor(config: OifProviderConfig) {
         super();
@@ -64,6 +66,8 @@ export class OifProvider extends CrossChainProvider {
             this.headers = configParsed.headers;
             this.adapterMetadata = configParsed.adapterMetadata;
             this.providerId = configParsed.providerId ?? configParsed.solverId;
+            this.supportedLocks = configParsed.supportedLocks;
+            this.submissionModes = configParsed.submissionModes;
         } catch (error) {
             if (error instanceof ZodError) {
                 throw new ProviderConfigFailure(
@@ -99,7 +103,10 @@ export class OifProvider extends CrossChainProvider {
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
         try {
             // 1. Convert SDK → OIF wire format
-            const oifRequest = adaptQuoteRequest(params);
+            const oifRequest = adaptQuoteRequest(params, {
+                supportedLocks: this.supportedLocks,
+                submissionModes: this.submissionModes,
+            });
 
             const response = await axios.post<GetQuoteResponse>(
                 `${this.url}/v1/quotes`,

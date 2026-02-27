@@ -11,7 +11,7 @@ This guide demonstrates how to execute a cross-chain intent using the SDK. The p
 First, import the required libraries and set up your environment variables, such as your private key and a generic RPC URL.
 
 ```js
-import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createAggregator, createCrossChainProvider } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
@@ -42,40 +42,34 @@ const walletClient = createWalletClient({
 });
 ```
 
-## 3. Set Up Cross-Chain Provider and Executor
+## 3. Set Up Cross-Chain Provider and Aggregator
 
-Initialize the cross-chain provider and executor, which will handle quoting and executing cross-chain transfers.
+Initialize the cross-chain provider and aggregator, which will handle quoting and executing cross-chain transfers.
 
 ```js
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider],
 });
 ```
 
 ## 4. Retrieve a Cross-Chain Quote
 
-Request a quote using the SDK-friendly `QuoteRequest` format. Addresses use `{ chainId, address }` objects:
+Request a quote using the SDK-friendly `QuoteRequest` format. The `user` is a plain EVM address, and `input`/`output` are at the top level:
 
 ```js
-const response = await executor.getQuotes({
-    user: { chainId: 11155111, address: privateAccount.address },
-    intent: {
-        inputs: [
-            {
-                asset: { chainId: 11155111, address: "0xInputToken..." },
-                amount: "100000000000000000", // 0.1 in smallest unit
-            },
-        ],
-        outputs: [
-            {
-                asset: { chainId: 84532, address: "0xOutputToken..." },
-                // recipient defaults to user on the output chain
-            },
-        ],
-        swapType: "exact-input",
+const response = await aggregator.getQuotes({
+    user: privateAccount.address,
+    input: {
+        asset: { chainId: 11155111, address: "0xInputToken..." },
+        amount: "100000000000000000", // 0.1 in smallest unit
     },
+    output: {
+        asset: { chainId: 84532, address: "0xOutputToken..." },
+        // recipient defaults to user on the output chain
+    },
+    swapType: "exact-input",
 });
 
 // Check for errors
@@ -103,7 +97,7 @@ if (step.kind === "signature") {
     console.log("Signing order...");
     const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
-    const { orderId } = await executor.submitOrder(quote, signature);
+    const { orderId } = await aggregator.submitOrder(quote, signature);
     console.log("Order submitted:", orderId);
 } else if (step.kind === "transaction") {
     // User mode: send the transaction on-chain

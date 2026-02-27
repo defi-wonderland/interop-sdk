@@ -36,7 +36,7 @@ Available scripts that can be run using `pnpm`:
 
 ```typescript
 import type { QuoteRequest } from "@wonderland/interop-cross-chain";
-import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createAggregator, createCrossChainProvider } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { sepolia } from "viem/chains";
 
@@ -66,29 +66,22 @@ const oifProvider = createCrossChainProvider("oif", {
     url: "https://...",
 });
 
-// Create executor with providers (can mix Across, OIF, etc.)
-const executor = createProviderExecutor({
+// Create aggregator with providers (can mix Across, OIF, etc.)
+const aggregator = createAggregator({
     providers: [acrossProvider, oifProvider],
 });
 
-// Get quotes — addresses use readable { chainId, address } objects
-const response = await executor.getQuotes({
-    user: { chainId: 11155111, address: "0xYourAddress..." },
-    intent: {
-        inputs: [
-            {
-                asset: { chainId: 11155111, address: "0xInputToken..." },
-                amount: "1000000000000000000",
-            },
-        ],
-        outputs: [
-            {
-                asset: { chainId: 84532, address: "0xOutputToken..." },
-            },
-        ],
-        swapType: "exact-input",
+// Get quotes — user is a plain EVM address, input/output are at the top level
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress...",
+    input: {
+        asset: { chainId: 11155111, address: "0xInputToken..." },
+        amount: "1000000000000000000",
     },
-    supportedLocks: ["oif-escrow"], // optional: filter by lock mechanism
+    output: {
+        asset: { chainId: 84532, address: "0xOutputToken..." },
+    },
+    swapType: "exact-input",
 });
 
 // Execute based on the order's step type
@@ -99,7 +92,7 @@ if (step.kind === "signature") {
     // Protocol mode (gasless): sign EIP-712 and submit to solver
     const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
-    await executor.submitOrder(quote, signature);
+    await aggregator.submitOrder(quote, signature);
 } else if (step.kind === "transaction") {
     // User mode: send the transaction directly
     const hash = await walletClient.sendTransaction({
@@ -129,11 +122,11 @@ if (step.kind === "signature") {
 -   **Testnet**: fill tracking defaults to **event-based watching** (Across testnet API is not reliable).
 -   The SDK still parses the **origin-chain open event**, so provide an origin-chain RPC URL for robust tracking.
 
-### Provider Executor
+### Aggregator
 
--   `createProviderExecutor(config)` – Create an executor for batch quoting and execution.
+-   `createAggregator(config)` – Create an aggregator for batch quoting and execution.
     -   Config: `{ providers: CrossChainProvider[], sortingStrategy?, timeoutMs?, trackerFactory? }`
--   `ProviderExecutor`
+-   `Aggregator`
     -   `.getQuotes(params)` – Get quotes from all providers (params: `QuoteRequest`, returns: `GetQuotesResponse`).
     -   `.submitOrder(quote, signature)` – Submit a signature-step order to the solver. Accepts a `Hex` signature or `StepResult[]`.
     -   `.prepareTracking(providerId)` – Prepare order tracking for a provider.
@@ -144,16 +137,16 @@ if (step.kind === "signature") {
 
 The SDK provides utilities to discover supported assets from providers. All discovery methods return a pre-processed `DiscoveredAssets` structure ready for consumption.
 
-**Via ProviderExecutor (recommended):**
+**Via Aggregator (recommended):**
 
 ```typescript
 import { toChainIdentifier } from "@wonderland/interop-addresses";
-import { createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createAggregator } from "@wonderland/interop-cross-chain";
 
-const executor = createProviderExecutor({ providers: [acrossProvider] });
+const aggregator = createAggregator({ providers: [acrossProvider] });
 
 // Discover assets from all configured providers
-const discovered = await executor.discoverAssets({ chainIds: [1, 42161] });
+const discovered = await aggregator.discoverAssets({ chainIds: [1, 42161] });
 
 // Get tokens for Ethereum using CAIP-350 chain identifier
 const ethTokens = discovered.tokensByChain[toChainIdentifier(1)]; // "eip155:1"
@@ -189,8 +182,8 @@ const ethTokens = discovered.tokensByChain[toChainIdentifier(1)];
 
 ### Types
 
--   `QuoteRequest` – SDK-friendly quote request with `InteropAccountId` addresses and `supportedLocks`.
--   `InteropAccountId` – `{ chainId: number, address: string }` — replaces opaque ERC-7930 hex in the public API.
+-   `QuoteRequest` – SDK-friendly quote request with flat structure: `user` (string), singular `input`/`output`, and `swapType` at top level.
+-   `InteropAccountId` – `{ chainId: number, address: string }` — used for asset identifiers in `input`/`output`.
 -   `ExecutableQuote` – Quote with step-based `Order` and `preview`.
 -   `Order` – Unified order with sequential `steps[]` of `SignatureStep` or `TransactionStep`.
 -   `GetQuotesResponse` – Response containing `{ quotes: ExecutableQuote[], errors: GetQuotesError[] }`.
@@ -228,26 +221,19 @@ const provider = createCrossChainProvider("oif", {
     url: "https://...",
 });
 
-// Get quotes via the executor
-const executor = createProviderExecutor({ providers: [provider] });
+// Get quotes via the aggregator
+const aggregator = createAggregator({ providers: [provider] });
 
-const response = await executor.getQuotes({
-    user: { chainId: 1, address: "0xYourAddress..." },
-    intent: {
-        inputs: [
-            {
-                asset: { chainId: 1, address: "0xInputToken..." },
-                amount: "1000000",
-            },
-        ],
-        outputs: [
-            {
-                asset: { chainId: 8453, address: "0xOutputToken..." },
-            },
-        ],
-        swapType: "exact-input",
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress...",
+    input: {
+        asset: { chainId: 1, address: "0xInputToken..." },
+        amount: "1000000",
     },
-    supportedLocks: ["oif-escrow"],
+    output: {
+        asset: { chainId: 8453, address: "0xOutputToken..." },
+    },
+    swapType: "exact-input",
 });
 
 const quote = response.quotes[0];
@@ -257,7 +243,7 @@ const step = quote.order.steps[0];
 if (step.kind === "signature") {
     const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
-    await executor.submitOrder(quote, signature);
+    await aggregator.submitOrder(quote, signature);
 }
 
 // User Mode: Execute transaction directly (user pays gas)

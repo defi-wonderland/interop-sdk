@@ -174,15 +174,10 @@ export class AcrossProvider extends CrossChainProvider {
      */
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
         try {
-            // Read SDK types directly — no ERC-7930 decoding
-            const input = params.intent.inputs[0]!;
-            const output = params.intent.outputs[0]!;
-            const recipient = output.recipient ?? {
-                chainId: output.asset.chainId,
-                address: params.user.address,
-            };
+            const { input, output } = params;
+            const recipientAddress = output.recipient ?? params.user;
 
-            const swapType = params.intent.swapType || "exact-input";
+            const swapType = params.swapType || "exact-input";
 
             if (swapType === "exact-output" && !output.amount) {
                 throw new ProviderGetQuoteFailure(
@@ -202,8 +197,8 @@ export class AcrossProvider extends CrossChainProvider {
                 outputToken: output.asset.address,
                 originChainId: input.asset.chainId,
                 destinationChainId: output.asset.chainId,
-                depositor: params.user.address,
-                recipient: recipient.address,
+                depositor: params.user,
+                recipient: recipientAddress,
             });
 
             const acrossResponse = await this.getAcrossQuote(acrossParams);
@@ -240,7 +235,7 @@ export class AcrossProvider extends CrossChainProvider {
                 preview: {
                     inputs: [
                         {
-                            account: { chainId: input.asset.chainId, address: params.user.address },
+                            account: { chainId: input.asset.chainId, address: params.user },
                             asset: {
                                 chainId: acrossResponse.inputToken.chainId,
                                 address: acrossResponse.inputToken.address,
@@ -250,7 +245,10 @@ export class AcrossProvider extends CrossChainProvider {
                     ],
                     outputs: [
                         {
-                            account: recipient,
+                            account: {
+                                chainId: output.asset.chainId,
+                                address: recipientAddress,
+                            },
                             asset: {
                                 chainId: acrossResponse.outputToken.chainId,
                                 address: acrossResponse.outputToken.address,

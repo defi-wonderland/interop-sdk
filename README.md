@@ -109,7 +109,7 @@ const binaryHex = encodeAddress(
 The cross-chain package provides a standardized interface for cross-chain operations.
 
 ```typescript
-import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+import { createAggregator, createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 // Create a provider - Across works with no config (defaults to mainnet)
 // Mainnet: https://app.across.to/api
@@ -119,30 +119,28 @@ const provider = createCrossChainProvider("across");
 // Or with custom configuration for testnet
 const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
 
-// Get quotes using OIF format (addresses must be EIP-7930 binary format: 0x0001...)
-// Use nameToBinary() from @wonderland/interop-addresses to convert human-readable addresses
-const quotes = await provider.getQuotes({
-    user: "0x0001000aa36a7114...", // binary format address
-    intent: {
-        intentType: "oif-swap",
-        inputs: [
-            {
-                user: "0x0001000aa36a7114...",
-                asset: "0x0001000aa36a7114...",
-                amount: "1000000000000000000",
-            },
-        ],
-        outputs: [{ receiver: "0x0001000149d4114...", asset: "0x0001000149d4114..." }],
-        swapType: "exact-input",
-    },
-    supportedTypes: ["across"], // required by OIF request shape; ignored by Across
-});
-
 // OIF provider requires configuration
 const oifProvider = createCrossChainProvider("oif", {
     solverId: "my-solver",
     url: "https://oif-api.example.com",
 });
+
+// Create an aggregator to get quotes from multiple providers
+const aggregator = createAggregator({ providers: [provider, oifProvider] });
+
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress...",
+    input: {
+        asset: { chainId: 1, address: "0xInputToken..." },
+        amount: "1000000000000000000",
+    },
+    output: {
+        asset: { chainId: 8453, address: "0xOutputToken..." },
+    },
+    swapType: "exact-input",
+});
+
+const quote = response.quotes[0];
 ```
 
 ## Release Workflow

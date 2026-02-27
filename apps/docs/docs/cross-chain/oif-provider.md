@@ -6,13 +6,15 @@ The [OIF (Open Intents Framework)](https://github.com/BootNodeDev/intents-framew
 
 ## Configuration
 
-| Field             | Type   | Required | Description                        |
-| ----------------- | ------ | -------- | ---------------------------------- |
-| `solverId`        | string | Yes      | Solver identifier                  |
-| `url`             | string | Yes      | Solver API endpoint URL            |
-| `headers`         | object | No       | Custom HTTP headers                |
-| `adapterMetadata` | object | No       | Additional metadata for the solver |
-| `providerId`      | string | No       | Custom provider identifier         |
+| Field             | Type     | Required | Description                                               |
+| ----------------- | -------- | -------- | --------------------------------------------------------- |
+| `solverId`        | string   | Yes      | Solver identifier                                         |
+| `url`             | string   | Yes      | Solver API endpoint URL                                   |
+| `headers`         | object   | No       | Custom HTTP headers                                       |
+| `adapterMetadata` | object   | No       | Additional metadata for the solver                        |
+| `providerId`      | string   | No       | Custom provider identifier                                |
+| `supportedLocks`  | string[] | No       | Lock mechanisms to request (e.g. `["oif-escrow"]`)        |
+| `submissionModes` | string[] | No       | Submission modes: `"user-transaction"` and/or `"gasless"` |
 
 ## Creating the Provider
 
@@ -22,19 +24,21 @@ import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 const oifProvider = createCrossChainProvider("oif", {
     solverId: "my-solver",
     url: "https://oif-api.example.com",
+    supportedLocks: ["oif-escrow"], // optional: lock mechanisms to request
+    submissionModes: ["gasless"], // optional: "user-transaction" | "gasless"
 });
 ```
 
 ## Execution Modes
 
-The provider offers intent-based cross-chain operations with two execution modes. Use the `ProviderExecutor` to get quotes with SDK-friendly types:
+The provider offers intent-based cross-chain operations with two execution modes. Use the `Aggregator` to get quotes with SDK-friendly types:
 
 ```typescript
-import { createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createAggregator } from "@wonderland/interop-cross-chain";
 import { createWalletClient, http } from "viem";
 import { base } from "viem/chains";
 
-const executor = createProviderExecutor({ providers: [oifProvider] });
+const aggregator = createAggregator({ providers: [oifProvider] });
 const walletClient = createWalletClient({ account, chain: base, transport: http() });
 ```
 
@@ -43,23 +47,16 @@ const walletClient = createWalletClient({ account, chain: base, transport: http(
 User signs EIP-712 message, solver executes on their behalf. The quote's order contains a **signature step**:
 
 ```typescript
-const response = await executor.getQuotes({
-    user: { chainId: 8453, address: "0xYourAddress..." },
-    intent: {
-        inputs: [
-            {
-                asset: { chainId: 8453, address: "0xInputToken..." },
-                amount: "1000000",
-            },
-        ],
-        outputs: [
-            {
-                asset: { chainId: 1, address: "0xOutputToken..." },
-            },
-        ],
-        swapType: "exact-input",
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress...",
+    input: {
+        asset: { chainId: 8453, address: "0xInputToken..." },
+        amount: "1000000",
     },
-    supportedLocks: ["oif-escrow"],
+    output: {
+        asset: { chainId: 1, address: "0xOutputToken..." },
+    },
+    swapType: "exact-input",
 });
 
 const quote = response.quotes[0];
@@ -68,7 +65,7 @@ const step = quote.order.steps[0]; // SignatureStep
 if (step.kind === "signature") {
     const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
-    await executor.submitOrder(quote, signature);
+    await aggregator.submitOrder(quote, signature);
 }
 ```
 
@@ -77,23 +74,16 @@ if (step.kind === "signature") {
 User executes transaction directly. The quote's order contains a **transaction step**:
 
 ```typescript
-const response = await executor.getQuotes({
-    user: { chainId: 8453, address: "0xYourAddress..." },
-    intent: {
-        inputs: [
-            {
-                asset: { chainId: 8453, address: "0xInputToken..." },
-                amount: "1000000",
-            },
-        ],
-        outputs: [
-            {
-                asset: { chainId: 1, address: "0xOutputToken..." },
-            },
-        ],
-        swapType: "exact-input",
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress...",
+    input: {
+        asset: { chainId: 8453, address: "0xInputToken..." },
+        amount: "1000000",
     },
-    // No supportedLocks filter — user-open orders are always included
+    output: {
+        asset: { chainId: 1, address: "0xOutputToken..." },
+    },
+    swapType: "exact-input",
 });
 
 const quote = response.quotes[0];

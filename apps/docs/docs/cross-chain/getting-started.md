@@ -60,33 +60,26 @@ See the provider-specific documentation for configuration options:
 
 ### Getting Quotes
 
-Use the `ProviderExecutor` to fetch quotes from one or more providers. Addresses use readable `{ chainId, address }` objects instead of opaque ERC-7930 hex:
+Use the `Aggregator` to fetch quotes from one or more providers. The `user` is a plain EVM address, and `input`/`output` are at the top level:
 
 ```typescript
 import type { QuoteRequest } from "@wonderland/interop-cross-chain";
-import { createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createAggregator } from "@wonderland/interop-cross-chain";
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider, oifProvider],
 });
 
-const response = await executor.getQuotes({
-    user: { chainId: 11155111, address: "0xYourAddress..." },
-    intent: {
-        inputs: [
-            {
-                asset: { chainId: 11155111, address: "0xInputToken..." },
-                amount: "1000000000000000000", // 1 token (in smallest unit)
-            },
-        ],
-        outputs: [
-            {
-                asset: { chainId: 84532, address: "0xOutputToken..." },
-            },
-        ],
-        swapType: "exact-input",
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress...",
+    input: {
+        asset: { chainId: 11155111, address: "0xInputToken..." },
+        amount: "1000000000000000000", // 1 token (in smallest unit)
     },
-    supportedLocks: ["oif-escrow"], // optional: filter by lock mechanism
+    output: {
+        asset: { chainId: 84532, address: "0xOutputToken..." },
+    },
+    swapType: "exact-input",
 });
 
 // response.quotes — sorted quotes from all providers
@@ -105,7 +98,7 @@ if (step.kind === "signature") {
     // Protocol mode (gasless): sign and submit to solver
     const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
-    await executor.submitOrder(quote, signature);
+    await aggregator.submitOrder(quote, signature);
 } else if (step.kind === "transaction") {
     // User mode: send the transaction directly
     const hash = await walletClient.sendTransaction({

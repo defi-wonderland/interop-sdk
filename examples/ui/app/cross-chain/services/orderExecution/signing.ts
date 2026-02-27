@@ -1,10 +1,10 @@
 import { STEP, WALLET_ACTION, type BridgeState, type ChainContext } from '../../types/execution';
 import type { ConfiguredWalletClient } from './chainSetup';
-import type { ExecutableQuote, SignatureStep, ProviderExecutor } from '@wonderland/interop-cross-chain';
+import type { ExecutableQuote, SignatureStep, Aggregator } from '@wonderland/interop-cross-chain';
 import type { Hex } from 'viem';
 
 interface SignAndSubmitOrderParams {
-  executor: ProviderExecutor;
+  executor: Aggregator;
   walletClient: ConfiguredWalletClient;
   quote: ExecutableQuote;
   step: SignatureStep;

@@ -39,31 +39,22 @@ describe("AcrossProvider", () => {
     describe("getQuotes", () => {
         it("should call Across API with correct parameters", async () => {
             const request: QuoteRequest = {
-                user: { chainId: CHAIN_IDS.SEPOLIA, address: TEST_ADDRESSES.USER },
-                intent: {
-                    inputs: [
-                        {
-                            asset: {
-                                chainId: CHAIN_IDS.SEPOLIA,
-                                address: TESTNET_TOKENS.WETH_SEPOLIA,
-                            },
-                            amount: TEST_AMOUNTS.ONE_ETHER.toString(),
-                        },
-                    ],
-                    outputs: [
-                        {
-                            asset: {
-                                chainId: CHAIN_IDS.BASE_SEPOLIA,
-                                address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
-                            },
-                            recipient: {
-                                chainId: CHAIN_IDS.BASE_SEPOLIA,
-                                address: TEST_ADDRESSES.RECEIVER,
-                            },
-                        },
-                    ],
-                    swapType: "exact-input",
+                user: TEST_ADDRESSES.USER,
+                input: {
+                    asset: {
+                        chainId: CHAIN_IDS.SEPOLIA,
+                        address: TESTNET_TOKENS.WETH_SEPOLIA,
+                    },
+                    amount: TEST_AMOUNTS.ONE_ETHER.toString(),
                 },
+                output: {
+                    asset: {
+                        chainId: CHAIN_IDS.BASE_SEPOLIA,
+                        address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                    },
+                    recipient: TEST_ADDRESSES.RECEIVER,
+                },
+                swapType: "exact-input",
             };
 
             await provider.getQuotes(request);
@@ -84,31 +75,22 @@ describe("AcrossProvider", () => {
 
         it("should handle exact-output swap type", async () => {
             const request: QuoteRequest = {
-                user: { chainId: CHAIN_IDS.SEPOLIA, address: TEST_ADDRESSES.USER },
-                intent: {
-                    inputs: [
-                        {
-                            asset: {
-                                chainId: CHAIN_IDS.SEPOLIA,
-                                address: TESTNET_TOKENS.WETH_SEPOLIA,
-                            },
-                        },
-                    ],
-                    outputs: [
-                        {
-                            asset: {
-                                chainId: CHAIN_IDS.BASE_SEPOLIA,
-                                address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
-                            },
-                            recipient: {
-                                chainId: CHAIN_IDS.BASE_SEPOLIA,
-                                address: TEST_ADDRESSES.RECEIVER,
-                            },
-                            amount: TEST_AMOUNTS.ONE_ETHER.toString(),
-                        },
-                    ],
-                    swapType: "exact-output",
+                user: TEST_ADDRESSES.USER,
+                input: {
+                    asset: {
+                        chainId: CHAIN_IDS.SEPOLIA,
+                        address: TESTNET_TOKENS.WETH_SEPOLIA,
+                    },
                 },
+                output: {
+                    asset: {
+                        chainId: CHAIN_IDS.BASE_SEPOLIA,
+                        address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                    },
+                    recipient: TEST_ADDRESSES.RECEIVER,
+                    amount: TEST_AMOUNTS.ONE_ETHER.toString(),
+                },
+                swapType: "exact-output",
             };
 
             await provider.getQuotes(request);
@@ -129,31 +111,22 @@ describe("AcrossProvider", () => {
 
         it("should return SDK Quote with transaction step", async () => {
             const request: QuoteRequest = {
-                user: { chainId: CHAIN_IDS.SEPOLIA, address: TEST_ADDRESSES.USER },
-                intent: {
-                    inputs: [
-                        {
-                            asset: {
-                                chainId: CHAIN_IDS.SEPOLIA,
-                                address: TESTNET_TOKENS.WETH_SEPOLIA,
-                            },
-                            amount: TEST_AMOUNTS.ONE_ETHER.toString(),
-                        },
-                    ],
-                    outputs: [
-                        {
-                            asset: {
-                                chainId: CHAIN_IDS.BASE_SEPOLIA,
-                                address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
-                            },
-                            recipient: {
-                                chainId: CHAIN_IDS.BASE_SEPOLIA,
-                                address: TEST_ADDRESSES.RECEIVER,
-                            },
-                        },
-                    ],
-                    swapType: "exact-input",
+                user: TEST_ADDRESSES.USER,
+                input: {
+                    asset: {
+                        chainId: CHAIN_IDS.SEPOLIA,
+                        address: TESTNET_TOKENS.WETH_SEPOLIA,
+                    },
+                    amount: TEST_AMOUNTS.ONE_ETHER.toString(),
                 },
+                output: {
+                    asset: {
+                        chainId: CHAIN_IDS.BASE_SEPOLIA,
+                        address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                    },
+                    recipient: TEST_ADDRESSES.RECEIVER,
+                },
+                swapType: "exact-input",
             };
 
             const quotes = await provider.getQuotes(request);

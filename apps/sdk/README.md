@@ -62,7 +62,7 @@ const binaryAddress2 = await nameToBinary("alice.eth@eip155:1#ABCD1234");
 ### Cross-Chain Operations
 
 ```typescript
-import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop";
+import { createAggregator, createCrossChainProvider } from "@wonderland/interop";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { mainnet } from "viem/chains";
 
@@ -74,26 +74,19 @@ const provider = createCrossChainProvider("across");
 // Or with testnet config
 const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
 
-// Get quotes — addresses use readable { chainId, address } objects
-const executor = createProviderExecutor({ providers: [provider] });
+// Get quotes — user is a plain EVM address, input/output are at the top level
+const aggregator = createAggregator({ providers: [provider] });
 
-const response = await executor.getQuotes({
-    user: { chainId: 1, address: "0xYourAddress..." },
-    intent: {
-        inputs: [
-            {
-                asset: { chainId: 1, address: "0xInputToken..." },
-                amount: "1000000000000000000",
-            },
-        ],
-        outputs: [
-            {
-                asset: { chainId: 8453, address: "0xOutputToken..." },
-            },
-        ],
-        swapType: "exact-input",
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress...",
+    input: {
+        asset: { chainId: 1, address: "0xInputToken..." },
+        amount: "1000000000000000000",
     },
-    supportedLocks: ["oif-escrow"], // optional: filter by lock mechanism
+    output: {
+        asset: { chainId: 8453, address: "0xOutputToken..." },
+    },
+    swapType: "exact-input",
 });
 
 const quote = response.quotes[0];
@@ -117,7 +110,7 @@ if (step.kind === "transaction") {
 if (step.kind === "signature") {
     const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
-    await executor.submitOrder(quote, signature);
+    await aggregator.submitOrder(quote, signature);
 }
 ```
 
@@ -164,25 +157,23 @@ All providers implement these methods:
 -   `.getProviderId()` – Returns the provider identifier.
 -   `.getTrackingConfig()` – Get configuration for intent tracking.
 
-#### [ProviderExecutor](./src/services/providerExecutor.ts)
+#### [Aggregator](./src/services/aggregator.ts)
 
 For comparing quotes across multiple providers:
 
 ```typescript
-import { createProviderExecutor } from "@wonderland/interop";
+import { createAggregator } from "@wonderland/interop";
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider, oifProvider],
 });
 
 // Returns { quotes: ExecutableQuote[], errors: GetQuotesError[] }
-const response = await executor.getQuotes({
-    user: { chainId: 1, address: "0xYourAddress..." },
-    intent: {
-        inputs: [{ asset: { chainId: 1, address: "0xInputToken..." }, amount: "1000000" }],
-        outputs: [{ asset: { chainId: 8453, address: "0xOutputToken..." } }],
-        swapType: "exact-input",
-    },
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress...",
+    input: { asset: { chainId: 1, address: "0xInputToken..." }, amount: "1000000" },
+    output: { asset: { chainId: 8453, address: "0xOutputToken..." } },
+    swapType: "exact-input",
 });
 
 const bestQuote = response.quotes[0]; // Sorted by best output

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { crossChainExecutor } from '../services/sdk';
+import { crossChainAggregator } from '../services/sdk';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
 import { useTokenConfig } from './useNetworkConfig';
 import type { ExecutableQuote, QuoteRequest } from '@wonderland/interop-cross-chain';
@@ -54,28 +54,20 @@ export function useQuotes(): UseQuotesReturn {
       );
 
       const quoteRequest: QuoteRequest = {
-        user: { chainId: params.inputChainId, address: params.sender },
-        intent: {
-          inputs: [
-            {
-              asset: { chainId: params.inputChainId, address: params.inputTokenAddress },
-              amount: amountInSmallestUnit,
-            },
-          ],
-          outputs: [
-            {
-              asset: { chainId: params.outputChainId, address: params.outputTokenAddress },
-              ...(params.recipient !== params.sender && {
-                recipient: { chainId: params.outputChainId, address: params.recipient },
-              }),
-            },
-          ],
-          swapType: 'exact-input',
+        user: params.sender,
+        input: {
+          asset: { chainId: params.inputChainId, address: params.inputTokenAddress },
+          amount: amountInSmallestUnit,
         },
-        supportedLocks: ['oif-escrow'],
+        output: {
+          asset: { chainId: params.outputChainId, address: params.outputTokenAddress },
+          ...(params.recipient !== params.sender && {
+            recipient: params.recipient,
+          }),
+        },
       };
 
-      const response = await crossChainExecutor.getQuotes(quoteRequest);
+      const response = await crossChainAggregator.getQuotes(quoteRequest);
 
       if (response.quotes?.length) {
         setQuotes(response.quotes);

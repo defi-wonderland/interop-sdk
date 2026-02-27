@@ -10,12 +10,23 @@ import type { QuoteRequest } from "../../../core/types/quoteRequest.js";
 import { fromInteropAccountId } from "../../../core/utils/interopAccountId.js";
 
 /**
+ * Options passed from the provider to control OIF-specific request behaviour.
+ * These come from `OifProviderConfig`, not from the per-request `QuoteRequest`.
+ */
+export interface AdaptOptions {
+    /** Lock mechanisms to request from solver (default: all) */
+    supportedLocks?: string[];
+    /** Submission modes: "user-transaction" vs "gasless". Default: all */
+    submissionModes?: ("user-transaction" | "gasless")[];
+}
+
+/**
  * Maps SDK lock mechanism names to the OIF order type strings that use them.
  *
  * - `"oif-escrow"` → permit2-based escrow + EIP-3009 authorization (both use escrow settlement)
  * - `"compact-resource-lock"` → Compact resource locking
  *
- * `oif-user-open-v0` is always included (no lock mechanism; user submits tx directly).
+ * `oif-user-open-v0` is handled separately via `submissionModes`.
  */
 const LOCK_TO_ORDER_TYPES: Record<string, string[]> = {
     "oif-escrow": ["oif-escrow-v0", "oif-3009-v0"],
@@ -30,19 +41,40 @@ const ALL_OIF_ORDER_TYPES = [
     "oif-user-open-v0",
 ];
 
-function lockNamesToSupportedTypes(supportedLocks?: string[]): string[] {
+/** Gasless (signature-based) order types */
+const GASLESS_ORDER_TYPES = new Set(["oif-escrow-v0", "oif-3009-v0", "oif-resource-lock-v0"]);
+
+function toSupportedTypes(options?: AdaptOptions): string[] {
+    const { supportedLocks, submissionModes } = options ?? {};
+
+    // Step 1: Determine base types from lock filter
+    let types: Set<string>;
     if (!supportedLocks || supportedLocks.length === 0) {
-        return ALL_OIF_ORDER_TYPES;
+        types = new Set(ALL_OIF_ORDER_TYPES);
+    } else {
+        types = new Set<string>();
+        // user-open is always available (no lock required) — filtered by submissionModes below
+        types.add("oif-user-open-v0");
+        for (const lock of supportedLocks) {
+            const mapped = LOCK_TO_ORDER_TYPES[lock];
+            if (mapped) {
+                for (const t of mapped) types.add(t);
+            }
+        }
     }
 
-    const types = new Set<string>();
-    // user-open is always available (no lock required)
-    types.add("oif-user-open-v0");
+    // Step 2: Filter by submission mode
+    if (submissionModes && submissionModes.length > 0) {
+        const allowUserTx = submissionModes.includes("user-transaction");
+        const allowGasless = submissionModes.includes("gasless");
 
-    for (const lock of supportedLocks) {
-        const mapped = LOCK_TO_ORDER_TYPES[lock];
-        if (mapped) {
-            for (const t of mapped) types.add(t);
+        if (!allowUserTx) {
+            types.delete("oif-user-open-v0");
+        }
+        if (!allowGasless) {
+            for (const t of types) {
+                if (GASLESS_ORDER_TYPES.has(t)) types.delete(t);
+            }
         }
     }
 
@@ -53,43 +85,49 @@ function lockNamesToSupportedTypes(supportedLocks?: string[]): string[] {
  * Convert an SDK {@link QuoteRequest} to an OIF `GetQuoteRequest`.
  *
  * - Encodes `InteropAccountId` fields to ERC-7930 hex
- * - Derives `inputs[].user` from the top-level `user`
+ * - Derives `inputs[].user` from the top-level `user` address + input chain
  * - Defaults `outputs[].recipient` to user on the output chain
- * - Maps `supportedLocks` → `supportedTypes`
+ * - Maps `supportedLocks` + `submissionModes` from options → `supportedTypes`
  */
-export function adaptQuoteRequest(request: QuoteRequest): GetQuoteRequest {
-    const userHex = fromInteropAccountId(request.user);
+export function adaptQuoteRequest(request: QuoteRequest, options?: AdaptOptions): GetQuoteRequest {
+    const { input, output } = request;
 
-    const inputs = request.intent.inputs.map((input) => ({
-        user: fromInteropAccountId({
-            chainId: input.asset.chainId,
-            address: request.user.address,
-        }),
-        asset: fromInteropAccountId(input.asset),
-        ...(input.amount !== undefined && { amount: input.amount }),
-    }));
+    const userOnInputChain = fromInteropAccountId({
+        chainId: input.asset.chainId,
+        address: request.user,
+    });
 
-    const outputs = request.intent.outputs.map((output) => {
-        const recipient = output.recipient ?? {
-            chainId: output.asset.chainId,
-            address: request.user.address,
-        };
-        return {
-            receiver: fromInteropAccountId(recipient),
+    const inputs = [
+        {
+            user: userOnInputChain,
+            asset: fromInteropAccountId(input.asset),
+            ...(input.amount !== undefined && { amount: input.amount }),
+        },
+    ];
+
+    const recipientAddress = output.recipient ?? request.user;
+    const recipientId = {
+        chainId: output.asset.chainId,
+        address: recipientAddress,
+    };
+
+    const outputs = [
+        {
+            receiver: fromInteropAccountId(recipientId),
             asset: fromInteropAccountId(output.asset),
             ...(output.amount !== undefined && { amount: output.amount }),
             ...(output.calldata !== undefined && { calldata: output.calldata }),
-        };
-    });
+        },
+    ];
 
     return {
-        user: userHex,
+        user: userOnInputChain,
         intent: {
             intentType: "oif-swap" as const,
             inputs,
             outputs,
-            swapType: request.intent.swapType ?? "exact-input",
+            swapType: request.swapType ?? "exact-input",
         },
-        supportedTypes: lockNamesToSupportedTypes(request.supportedLocks),
+        supportedTypes: toSupportedTypes(options),
     };
 }

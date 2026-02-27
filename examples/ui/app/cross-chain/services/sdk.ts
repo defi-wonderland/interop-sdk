@@ -1,7 +1,7 @@
 import {
   PROTOCOLS,
   createCrossChainProvider,
-  createProviderExecutor,
+  createAggregator,
   OrderTrackerFactory,
   type CrossChainProvider,
 } from '@wonderland/interop-cross-chain';
@@ -40,6 +40,7 @@ const providers: CrossChainProvider[] = [
     solverId: OIF_SOLVER_ID,
     url: OIF_API_URL,
     providerId: 'oif',
+    supportedLocks: ['oif-escrow'],
   }),
 ];
 
@@ -49,12 +50,12 @@ const providers: CrossChainProvider[] = [
 const trackerFactory = new OrderTrackerFactory({ rpcUrls: RPC_URLS });
 
 /**
- * Cross-chain executor singleton
+ * Cross-chain aggregator singleton
  * - Fetches quotes from all providers
  * - Handles intent tracking for any provider via track() method
  * - Asset discovery via discoverAssets() / getProvidersForRoute()
  */
-export const crossChainExecutor = createProviderExecutor({
+export const crossChainAggregator = createAggregator({
   providers,
   trackerFactory,
 });

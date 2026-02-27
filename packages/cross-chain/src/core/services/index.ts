@@ -1,4 +1,4 @@
-export * from "./providerExecutor.js";
+export * from "./aggregator.js";
 export * from "./CustomEventOpenedIntentParser.js";
 export * from "./EventBasedFillWatcher.js";
 export * from "./APIBasedFillWatcher.js";

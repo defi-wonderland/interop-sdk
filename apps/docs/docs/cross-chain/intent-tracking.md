@@ -32,18 +32,18 @@ In addition, the tracker can emit:
 
 ## Basic Usage
 
-The recommended way to track orders is through the `ProviderExecutor`, which handles tracker creation and caching automatically:
+The recommended way to track orders is through the `Aggregator`, which handles tracker creation and caching automatically:
 
 ```typescript
 import {
+    createAggregator,
     createCrossChainProvider,
-    createProviderExecutor,
     OrderTrackerFactory,
 } from "@wonderland/interop-cross-chain";
 
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider],
     trackerFactory: new OrderTrackerFactory({
         rpcUrls: {
@@ -56,7 +56,7 @@ const executor = createProviderExecutor({
 
 ### Tracking an Order
 
-After sending the transaction, use `executor.track()` for real-time updates:
+After sending the transaction, use `aggregator.track()` for real-time updates:
 
 ```typescript
 import { OrderStatus, OrderTrackerEvent } from "@wonderland/interop-cross-chain";
@@ -71,7 +71,7 @@ const hash = await walletClient.sendTransaction({
     ...(step.transaction.value && { value: BigInt(step.transaction.value) }),
 });
 
-const tracker = executor.track({
+const tracker = aggregator.track({
     txHash: hash,
     providerId: quote.provider,
     originChainId: 11155111,
@@ -92,7 +92,7 @@ tracker.on(OrderTrackerEvent.Error, (error) => console.error("Error:", error));
 Check the current status of an order without watching:
 
 ```typescript
-const status = await executor.getOrderStatus({
+const status = await aggregator.getOrderStatus({
     txHash: "0xabc...",
     providerId: "across",
     originChainId: 11155111,
@@ -114,7 +114,7 @@ if (status.fillEvent) {
 
 ## Advanced: Standalone Tracker
 
-For advanced use cases, you can create a tracker directly without using the executor:
+For advanced use cases, you can create a tracker directly without using the aggregator:
 
 ```typescript
 import { createCrossChainProvider, createOrderTracker } from "@wonderland/interop-cross-chain";

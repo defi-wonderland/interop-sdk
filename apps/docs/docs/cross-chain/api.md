@@ -54,14 +54,10 @@ An abstract class that defines the interface for cross-chain protocol providers.
 
     ```typescript
     const quotes = await provider.getQuotes({
-        user: { chainId: 11155111, address: "0xYourAddress..." },
-        intent: {
-            inputs: [
-                { asset: { chainId: 11155111, address: "0xInputToken..." }, amount: "1000000" },
-            ],
-            outputs: [{ asset: { chainId: 84532, address: "0xOutputToken..." } }],
-            swapType: "exact-input",
-        },
+        user: "0xYourAddress...",
+        input: { asset: { chainId: 11155111, address: "0xInputToken..." }, amount: "1000000" },
+        output: { asset: { chainId: 84532, address: "0xOutputToken..." } },
+        swapType: "exact-input",
     });
     ```
 
@@ -81,24 +77,24 @@ An abstract class that defines the interface for cross-chain protocol providers.
     const config = provider.getTrackingConfig();
     ```
 
-### Provider Executor
+### Aggregator
 
 A utility for managing multiple cross-chain providers and executing operations across them.
 
 #### Methods
 
--   **createProviderExecutor**(config: ProviderExecutorConfig): ProviderExecutor
+-   **createAggregator**(config: AggregatorConfig): Aggregator
 
-    Creates an executor instance for managing multiple providers.
+    Creates an aggregator instance for managing multiple providers.
 
     ```typescript
     import {
-        createProviderExecutor,
+        createAggregator,
         OrderTrackerFactory,
         SortingStrategyFactory,
     } from "@wonderland/interop-cross-chain";
 
-    const executor = createProviderExecutor({
+    const aggregator = createAggregator({
         providers: [acrossProvider],
         sortingStrategy: SortingStrategyFactory.createStrategy("bestOutput"), // optional
         timeoutMs: 15000, // optional
@@ -106,33 +102,26 @@ A utility for managing multiple cross-chain providers and executing operations a
     });
     ```
 
-#### ProviderExecutor Class
+#### Aggregator Class
 
 A class that manages multiple cross-chain providers and coordinates their operations.
 
 -   **getQuotes**(params: QuoteRequest): Promise\<GetQuotesResponse\>
 
-    Retrieves quotes from all available providers. Accepts SDK-friendly `QuoteRequest` with `InteropAccountId` addresses.
+    Retrieves quotes from all available providers. Accepts SDK-friendly `QuoteRequest` with flat structure.
 
     ```typescript
-    const response = await executor.getQuotes({
-        user: { chainId: 11155111, address: "0xYourAddress..." },
-        intent: {
-            inputs: [
-                {
-                    asset: { chainId: 11155111, address: "0xInputToken..." },
-                    amount: "1000000000000000000",
-                },
-            ],
-            outputs: [
-                {
-                    asset: { chainId: 84532, address: "0xOutputToken..." },
-                    // recipient defaults to user on the output chain if omitted
-                },
-            ],
-            swapType: "exact-input",
+    const response = await aggregator.getQuotes({
+        user: "0xYourAddress...",
+        input: {
+            asset: { chainId: 11155111, address: "0xInputToken..." },
+            amount: "1000000000000000000",
         },
-        supportedLocks: ["oif-escrow"], // optional: filter by lock mechanism
+        output: {
+            asset: { chainId: 84532, address: "0xOutputToken..." },
+            // recipient defaults to user on the output chain if omitted
+        },
+        swapType: "exact-input",
     });
 
     // Handle results
@@ -151,11 +140,11 @@ A class that manages multiple cross-chain providers and coordinates their operat
     const step = quote.order.steps[0]; // SignatureStep
     const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
-    const { orderId } = await executor.submitOrder(quote, signature);
+    const { orderId } = await aggregator.submitOrder(quote, signature);
 
     // Or with StepResult[] for multi-step orders
     const results = [{ stepIndex: 0, signature }];
-    await executor.submitOrder(quote, results);
+    await aggregator.submitOrder(quote, results);
     ```
 
 -   **track**(params: TrackParams): OrderTracker
@@ -165,7 +154,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     ```typescript
     import { OrderStatus } from "@wonderland/interop-cross-chain";
 
-    const tracker = executor.track({
+    const tracker = aggregator.track({
         txHash: hash,
         providerId: quote.provider,
         originChainId: 11155111,
@@ -181,7 +170,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     Gets the current status of an order without watching.
 
     ```typescript
-    const status = await executor.getOrderStatus({
+    const status = await aggregator.getOrderStatus({
         txHash: "0x...",
         providerId: "across",
         originChainId: 11155111,
@@ -267,7 +256,7 @@ A class that tracks cross-chain orders through their lifecycle.
 
 #### InteropAccountId
 
-A readable chain-aware account/asset identifier that replaces opaque ERC-7930 hex in the public API.
+A readable chain-aware asset identifier used for `input` and `output` assets.
 
 ```typescript
 interface InteropAccountId {
@@ -278,22 +267,22 @@ interface InteropAccountId {
 
 #### QuoteRequest
 
-SDK-friendly quote request with `InteropAccountId` addresses.
+SDK-friendly quote request with a flat structure.
 
 ```typescript
 interface QuoteRequest {
-    user: InteropAccountId;
-    intent: {
-        inputs: Array<{ asset: InteropAccountId; amount?: string }>;
-        outputs: Array<{
-            asset: InteropAccountId;
-            amount?: string;
-            recipient?: InteropAccountId; // defaults to user on output chain
-            calldata?: string;
-        }>;
-        swapType?: "exact-input" | "exact-output";
+    user: string; // EVM address (e.g. "0xabc...")
+    input: {
+        asset: InteropAccountId;
+        amount?: string;
     };
-    supportedLocks?: string[]; // e.g. ["oif-escrow", "compact-resource-lock"]
+    output: {
+        asset: InteropAccountId;
+        amount?: string;
+        recipient?: string; // defaults to user; plain EVM address
+        calldata?: string;
+    };
+    swapType?: "exact-input" | "exact-output";
 }
 ```
 

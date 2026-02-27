@@ -14,30 +14,25 @@ export interface IntentOutput {
     asset: InteropAccountId;
     /** Amount in smallest unit (decimal string). Optional for exact-input swaps. */
     amount?: string;
-    /** Recipient — defaults to user on the output chain if omitted */
-    recipient?: InteropAccountId;
+    /** Recipient address — defaults to user. Chain implied by output.asset.chainId */
+    recipient?: string;
     /** Encoded function call for composability on delivery */
     calldata?: string;
-}
-
-/** The swap intent describing what goes in and what comes out. */
-export interface Intent {
-    inputs: IntentInput[];
-    outputs: IntentOutput[];
-    swapType?: "exact-input" | "exact-output";
 }
 
 /**
  * SDK-friendly quote request.
  *
- * Replaces oif-specs `GetQuoteRequest` with readable addresses and
- * cleaner field names.
+ * Flat structure with singular input/output for the common single-asset swap case.
+ * Use `InteropAccountId` for assets (chain + address) and a plain address string for the user.
  */
 export interface QuoteRequest {
-    /** The user requesting the quote */
-    user: InteropAccountId;
-    /** What the user wants to swap */
-    intent: Intent;
-    /** Lock mechanisms the user's wallet supports (e.g. "oif-escrow", "compact-resource-lock") */
-    supportedLocks?: string[];
+    /** User's EVM address (chain derived from input/output assets) */
+    user: string;
+    /** What the user sends */
+    input: IntentInput;
+    /** What the user receives */
+    output: IntentOutput;
+    /** Swap direction (default: "exact-input") */
+    swapType?: "exact-input" | "exact-output";
 }

@@ -2,18 +2,18 @@
 title: Advanced Usage
 ---
 
-## Provider Executor
+## Aggregator
 
-For complex scenarios, use the ProviderExecutor to manage multiple providers with sorting, timeout handling, and built-in order tracking.
+For complex scenarios, use the Aggregator to manage multiple providers with sorting, timeout handling, and built-in order tracking.
 
 ### Minimal Setup
 
 ```typescript
-import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createAggregator, createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider],
 });
 ```
@@ -22,15 +22,15 @@ const executor = createProviderExecutor({
 
 ```typescript
 import {
+    createAggregator,
     createCrossChainProvider,
-    createProviderExecutor,
     OrderTrackerFactory,
     SortingStrategyFactory,
 } from "@wonderland/interop-cross-chain";
 
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider],
     sortingStrategy: SortingStrategyFactory.createStrategy("bestOutput"),
     timeoutMs: 15000,
@@ -43,23 +43,16 @@ const executor = createProviderExecutor({
 });
 
 // Get quotes from all providers using SDK-friendly QuoteRequest
-const response = await executor.getQuotes({
-    user: { chainId: 11155111, address: "0xYourAddress..." },
-    intent: {
-        inputs: [
-            {
-                asset: { chainId: 11155111, address: "0xInputToken..." },
-                amount: "1000000000000000000",
-            },
-        ],
-        outputs: [
-            {
-                asset: { chainId: 84532, address: "0xOutputToken..." },
-            },
-        ],
-        swapType: "exact-input",
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress...",
+    input: {
+        asset: { chainId: 11155111, address: "0xInputToken..." },
+        amount: "1000000000000000000",
     },
-    supportedLocks: ["oif-escrow"], // optional: filter by lock mechanism
+    output: {
+        asset: { chainId: 84532, address: "0xOutputToken..." },
+    },
+    swapType: "exact-input",
 });
 
 // Handle results
@@ -73,11 +66,11 @@ response.errors.forEach((error) => {
 });
 ```
 
-For more details on the Provider Executor configuration, see the [API Reference](./api.md#provider-executor).
+For more details on the Aggregator configuration, see the [API Reference](./api.md#aggregator).
 
 ## Order Tracking
 
-The executor includes built-in order tracking when configured with a `trackerFactory`. After executing an order, use `executor.track()` to monitor the cross-chain transfer:
+The aggregator includes built-in order tracking when configured with a `trackerFactory`. After executing an order, use `aggregator.track()` to monitor the cross-chain transfer:
 
 ```typescript
 import { OrderStatus, OrderTrackerEvent } from "@wonderland/interop-cross-chain";
@@ -93,7 +86,7 @@ const hash = await walletClient.sendTransaction({
 });
 
 // Track with real-time events
-const tracker = executor.track({
+const tracker = aggregator.track({
     txHash: hash,
     providerId: quote.provider, // e.g., "across"
     originChainId: 11155111,
@@ -113,7 +106,7 @@ tracker.on(OrderTrackerEvent.Error, (error) => console.error("Tracking error:", 
 For a simple status check without event-based tracking:
 
 ```typescript
-const status = await executor.getOrderStatus({
+const status = await aggregator.getOrderStatus({
     txHash: "0x...",
     providerId: "across",
     originChainId: 11155111,
@@ -142,7 +135,7 @@ import {
 } from "@wonderland/interop-cross-chain";
 
 try {
-    const response = await executor.getQuotes({
+    const response = await aggregator.getQuotes({
         /* ... */
     });
 } catch (error) {
@@ -179,7 +172,7 @@ if (isSignatureOnlyOrder(quote.order)) {
     const sigSteps = getSignatureSteps(quote.order);
     const { signatureType, ...typedData } = sigSteps[0].signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
-    await executor.submitOrder(quote, signature);
+    await aggregator.submitOrder(quote, signature);
 } else if (isTransactionOnlyOrder(quote.order)) {
     // User sends tx on-chain
     const txSteps = getTransactionSteps(quote.order);
@@ -193,10 +186,10 @@ if (isSignatureOnlyOrder(quote.order)) {
 
 ## Best Practices
 
-1. Always check both `quotes` and `errors` in the executor response
+1. Always check both `quotes` and `errors` in the aggregator response
 2. Use sorting strategies to get the best quotes first
 3. Inspect `order.steps[0].kind` to determine execution mode (`"signature"` vs `"transaction"`)
-4. Use `executor.submitOrder()` for signature-step orders; send transactions directly for transaction-step orders
+4. Use `aggregator.submitOrder()` for signature-step orders; send transactions directly for transaction-step orders
 5. Use `OrderTracker` to monitor cross-chain transfers
 6. Handle errors appropriately using the provided error types
 7. Set appropriate timeouts for quote requests

@@ -29,7 +29,7 @@ import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
 import { fromInteropAccountId } from "../utils/interopAccountId.js";
 
-interface ProviderExecutorConfig {
+interface AggregatorConfig {
     providers: CrossChainProvider[];
     sortingStrategy?: SortingStrategy;
     timeoutMs?: number;
@@ -40,9 +40,9 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const getDefaultSortingStrategy = (): SortingStrategy => new BestOutputStrategy();
 
 /**
- * A service that get quotes in batches and executes cross-chain actions
+ * Aggregates quotes from multiple cross-chain providers and handles order submission and tracking.
  */
-class ProviderExecutor {
+class Aggregator {
     private readonly providers: Record<string, CrossChainProvider>;
     private readonly sortingStrategy: SortingStrategy;
     private readonly timeoutMs: number;
@@ -51,11 +51,11 @@ class ProviderExecutor {
     private readonly discoveryCache: Map<string, AssetDiscoveryService> = new Map();
 
     /**
-     * Constructor - internal use only, prefer createProviderExecutor() factory
+     * Constructor - internal use only, prefer createAggregator() factory
      * @internal
-     * @param config - Configuration for the executor
+     * @param config - Configuration for the aggregator
      */
-    constructor(config: ProviderExecutorConfig) {
+    constructor(config: AggregatorConfig) {
         const { providers, sortingStrategy, timeoutMs, trackerFactory } = config;
         this.providers = providers.reduce(
             (acc, provider) => {
@@ -98,11 +98,7 @@ class ProviderExecutor {
             const discovery = this.discoveryCache.get(provider.getProviderId());
             if (!discovery) return true;
 
-            // Extract unique assets from SDK QuoteRequest
-            const assets: InteropAccountId[] = [
-                ...params.intent.inputs.map((i) => i.asset),
-                ...params.intent.outputs.map((o) => o.asset),
-            ];
+            const assets: InteropAccountId[] = [params.input.asset, params.output.asset];
 
             const checks = assets.map((asset) => {
                 // Need ERC-7930 for discovery service (it still uses wire format)
@@ -116,12 +112,12 @@ class ProviderExecutor {
         } catch (error) {
             if (error instanceof AssetDiscoveryFailure) {
                 console.warn(
-                    `[ProviderExecutor] Asset discovery failed for ${provider.getProviderId()}: ${error.message}`,
+                    `[Aggregator] Asset discovery failed for ${provider.getProviderId()}: ${error.message}`,
                     error.details,
                 );
             } else {
                 console.warn(
-                    `[ProviderExecutor] Unexpected error checking asset support for ${provider.getProviderId()}:`,
+                    `[Aggregator] Unexpected error checking asset support for ${provider.getProviderId()}:`,
                     error,
                 );
             }
@@ -210,7 +206,7 @@ class ProviderExecutor {
      * @example Single signature step (most common)
      * ```typescript
      * const sig = await wallet.signTypedData(quote.order.steps[0].signaturePayload);
-     * const { orderId } = await executor.submitOrder(quote, sig);
+     * const { orderId } = await aggregator.submitOrder(quote, sig);
      * ```
      *
      * @throws {Error} If the order has no signature steps
@@ -252,12 +248,10 @@ class ProviderExecutor {
      *
      * @example
      * ```typescript
-     * const tracker = executor.prepareTracking('across');
+     * const tracker = aggregator.prepareTracking('across');
      *
      * tracker.on('finalized', (update) => console.log('Finalized!'));
      * tracker.on('failed', (update) => console.log('Failed'));
-     *
-     * const response = await executor.execute(quote, signer);
      *
      * await tracker.startTracking({
      *   txHash: response.txHash,
@@ -279,7 +273,7 @@ class ProviderExecutor {
      *
      * @example
      * ```typescript
-     * const tracker = executor.track({
+     * const tracker = aggregator.track({
      *   txHash: '0x123...',
      *   providerId: 'across',
      *   originChainId: 11155111,
@@ -321,7 +315,7 @@ class ProviderExecutor {
      *
      * @example
      * ```typescript
-     * const status = await executor.getOrderStatus({
+     * const status = await aggregator.getOrderStatus({
      *   txHash: '0x123...',
      *   providerId: 'across',
      *   originChainId: 11155111
@@ -384,7 +378,7 @@ class ProviderExecutor {
      *
      * @example
      * ```typescript
-     * const providers = await executor.getProvidersForRoute({
+     * const providers = await aggregator.getProvidersForRoute({
      *   originAsset: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
      *   destinationAsset: "0x00010000A4B10101af88d065e77c8cC2239327C5EDb3A432268e5831",
      * });
@@ -425,13 +419,13 @@ class ProviderExecutor {
 }
 
 /**
- * Create a provider executor
+ * Create a quote aggregator
  * @param config - Configuration including providers, sorting strategy, timeout, and optional tracker factory
- * @returns The provider executor
+ * @returns The aggregator
  *
  * @example
  * ```typescript
- * const executor = createProviderExecutor({
+ * const aggregator = createAggregator({
  *   providers: [new AcrossProvider()],
  *   trackerFactory: new OrderTrackerFactory({
  *     rpcUrls: { 11155111: 'https://...' }
@@ -439,8 +433,9 @@ class ProviderExecutor {
  * });
  * ```
  */
-const createProviderExecutor = (config: ProviderExecutorConfig): ProviderExecutor => {
-    return new ProviderExecutor(config);
+const createAggregator = (config: AggregatorConfig): Aggregator => {
+    return new Aggregator(config);
 };
 
-export { ProviderExecutor, createProviderExecutor };
+export { Aggregator, createAggregator };
+export type { AggregatorConfig };

@@ -48,22 +48,15 @@ describe("OifProvider", () => {
     describe("getQuotes", () => {
         // SDK-style QuoteRequest
         const mockQuoteRequest: QuoteRequest = {
-            user: { chainId: 1, address: OIF_ADDRESSES.USER },
-            intent: {
-                inputs: [
-                    {
-                        asset: { chainId: 1, address: OIF_ADDRESSES.TOKEN },
-                        amount: "1000000000000000000",
-                    },
-                ],
-                outputs: [
-                    {
-                        asset: { chainId: 1, address: OIF_ADDRESSES.OUTPUT_ASSET },
-                    },
-                ],
-                swapType: "exact-input",
+            user: OIF_ADDRESSES.USER,
+            input: {
+                asset: { chainId: 1, address: OIF_ADDRESSES.TOKEN },
+                amount: "1000000000000000000",
             },
-            supportedLocks: ["oif-escrow"],
+            output: {
+                asset: { chainId: 1, address: OIF_ADDRESSES.OUTPUT_ASSET },
+            },
+            swapType: "exact-input",
         };
 
         it("should call solver with correct endpoint", async () => {
@@ -154,7 +147,6 @@ describe("OifProvider", () => {
 
             const requestWithUserOpen: QuoteRequest = {
                 ...mockQuoteRequest,
-                supportedLocks: ["oif-escrow"],
             };
 
             const quotes = await provider.getQuotes(requestWithUserOpen);
@@ -174,22 +166,15 @@ describe("OifProvider", () => {
 
         // SDK-style QuoteRequest for getting quotes
         const mockQuoteRequest: QuoteRequest = {
-            user: { chainId: 1, address: OIF_ADDRESSES.USER },
-            intent: {
-                inputs: [
-                    {
-                        asset: { chainId: 1, address: OIF_ADDRESSES.TOKEN },
-                        amount: "1000000000000000000",
-                    },
-                ],
-                outputs: [
-                    {
-                        asset: { chainId: 1, address: OIF_ADDRESSES.OUTPUT_ASSET },
-                    },
-                ],
-                swapType: "exact-input",
+            user: OIF_ADDRESSES.USER,
+            input: {
+                asset: { chainId: 1, address: OIF_ADDRESSES.TOKEN },
+                amount: "1000000000000000000",
             },
-            supportedLocks: ["oif-escrow"],
+            output: {
+                asset: { chainId: 1, address: OIF_ADDRESSES.OUTPUT_ASSET },
+            },
+            swapType: "exact-input",
         };
 
         // TODO: Unskip when https://github.com/openintentsframework/oif-specs/issues/34 is resolved
