@@ -60,15 +60,24 @@ const acrossProvider = createCrossChainProvider("across");
 // Across with testnet config
 const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
 
+// Relay - config optional (defaults to mainnet: https://api.relay.link)
+const relayProvider = createCrossChainProvider("relay");
+
+// Relay with API key
+const relayWithKey = createCrossChainProvider("relay", {
+    apiKey: "your-api-key",
+    source: "my-app",
+});
+
 // OIF - config required
 const oifProvider = createCrossChainProvider("oif", {
     solverId: "my-solver",
     url: "https://...",
 });
 
-// Create executor with providers (can mix Across, OIF, etc.)
+// Create executor with providers (can mix Across, Relay, OIF, etc.)
 const executor = createProviderExecutor({
-    providers: [acrossProvider, oifProvider],
+    providers: [acrossProvider, relayProvider, oifProvider],
 });
 
 // Get quotes — addresses use readable { chainId, address } objects
@@ -115,13 +124,19 @@ if (step.kind === "signature") {
 
 ### Providers
 
--   `createCrossChainProvider(protocolName, config?)` – Create a provider for a supported protocol. Config is optional for Across (defaults to mainnet), required for OIF.
+-   `createCrossChainProvider(protocolName, config?)` – Create a provider for a supported protocol. Config is optional for Across and Relay (defaults to mainnet), required for OIF.
 -   `CrossChainProvider` (abstract class)
     -   `.getProtocolName()` – Returns the protocol name.
     -   `.getProviderId()` – Returns the provider identifier.
     -   `.getQuotes(params)` – Fetch quotes using SDK-friendly `QuoteRequest`. Returns `Quote[]`.
     -   `.submitOrder(quote, signature)` – Submit a signed order to the provider. Throws `ProviderExecuteNotImplemented` by default (only OIF implements this).
     -   `.getTrackingConfig()` – Get configuration for order tracking.
+
+### Tracking Notes (Relay)
+
+-   **Tracking by requestId**: Relay orders are tracked via `requestId` (from the quote metadata), not by transaction hash.
+-   **API polling**: Status is polled from `GET /intents/status/v3?requestId=<requestId>` every 5 seconds.
+-   Status mapping: `"success"` → Finalized, `"failure"` → Failed, `"refunded"/"refund"` → Refunded, all others → Pending.
 
 ### Tracking Notes (Across)
 
@@ -203,6 +218,75 @@ const ethTokens = discovered.tokensByChain[toChainIdentifier(1)];
 -   `getTransactionSteps(order)` – Get all transaction steps from an order.
 -   `isSignatureOnlyOrder(order)` – Check if an order only requires signatures.
 -   `isTransactionOnlyOrder(order)` – Check if an order only requires transactions.
+
+## Relay Provider
+
+The Relay Provider enables cross-chain token transfers and swaps using the [Relay](https://relay.link) bridge infrastructure.
+
+### Usage
+
+```typescript
+import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
+
+// Create Relay provider (config optional — defaults to mainnet)
+const provider = createCrossChainProvider("relay");
+
+// With API key and source
+const authedProvider = createCrossChainProvider("relay", {
+    apiKey: "your-api-key",
+    source: "my-app",
+});
+
+// Get quotes via the executor
+const executor = createProviderExecutor({ providers: [provider] });
+
+const response = await executor.getQuotes({
+    user: { chainId: 1, address: "0xYourAddress..." },
+    intent: {
+        inputs: [
+            {
+                asset: { chainId: 1, address: "0xInputToken..." },
+                amount: "1000000",
+            },
+        ],
+        outputs: [
+            {
+                asset: { chainId: 8453, address: "0xOutputToken..." },
+            },
+        ],
+        swapType: "exact-input",
+    },
+});
+
+const quote = response.quotes[0];
+
+// Relay returns transaction steps — send directly
+for (const step of quote.order.steps) {
+    if (step.kind === "transaction") {
+        await walletClient.sendTransaction({
+            to: step.transaction.to,
+            data: step.transaction.data,
+            ...(step.transaction.value && { value: BigInt(step.transaction.value) }),
+        });
+    }
+}
+```
+
+### Configuration
+
+| Field        | Type    | Required | Description                                 |
+| ------------ | ------- | -------- | ------------------------------------------- |
+| `isTestnet`  | boolean | No       | Use testnet API (default: false)            |
+| `apiUrl`     | string  | No       | Custom API endpoint URL                     |
+| `apiKey`     | string  | No       | Relay API key for authenticated requests    |
+| `source`     | string  | No       | Source identifier sent via `x-relay-source` |
+| `providerId` | string  | No       | Custom provider identifier                  |
+
+### Current Limitations (POC)
+
+-   Only transaction-based quotes are supported (signature steps are excluded)
+-   No asset discovery — `getDiscoveryConfig()` returns `null`
+-   No calldata validation
 
 ## OIF Provider
 

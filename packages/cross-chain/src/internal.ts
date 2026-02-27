@@ -13,6 +13,7 @@ export * from "./core/validators/index.js";
 // Protocols
 export * from "./protocols/oif/index.js";
 export * from "./protocols/across/index.js";
+export * from "./protocols/relay/index.js";
 export * from "./protocols/sample/index.js";
 
 // Factories (depend on both core and protocols)

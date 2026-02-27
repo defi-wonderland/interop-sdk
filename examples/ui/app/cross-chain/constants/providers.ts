@@ -15,6 +15,14 @@ export const PROVIDERS: ProviderConfig[] = [
       providerId: 'across',
     },
   },
+  {
+    id: PROTOCOLS.RELAY,
+    displayName: 'Relay',
+    config: {
+      apiUrl: process.env.NEXT_PUBLIC_RELAY_API_URL,
+      providerId: 'relay',
+    },
+  },
 ];
 
 /**

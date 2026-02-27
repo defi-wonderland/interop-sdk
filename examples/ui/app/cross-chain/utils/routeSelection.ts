@@ -1,7 +1,13 @@
 import { findTokenCaseInsensitive, type RouteParams } from './routeParams';
 import type { UITokenInfo } from '../types/assets';
 
-const ACROSS_WHITELISTED_SYMBOLS = new Set(['USDC', 'USDT', 'WETH', 'DAI', 'ETH']);
+// TODO: Replace with dynamic lookup via protocol-specific route endpoints.
+// See: https://docs.across.to/reference/api-reference
+// See: https://docs.relay.link/references/api/get-config
+const BRIDGE_WHITELISTED_SYMBOLS = new Set(['USDC', 'USDT', 'WETH', 'DAI', 'ETH']);
+
+/** Providers that share the same asset whitelist for the UI. */
+const WHITELISTED_PROVIDERS = new Set(['across', 'relay']);
 
 export interface Selection {
   inputChainId: number;
@@ -23,18 +29,18 @@ export interface RouteConfig {
   tokenInfo: TokenInfoByChain;
 }
 
-function passesAcrossFilter(token: UITokenInfo): boolean {
-  const isAcrossToken = token.providers.includes('across');
-  if (!isAcrossToken) return true;
-  return ACROSS_WHITELISTED_SYMBOLS.has(token.symbol);
+function passesBridgeFilter(token: UITokenInfo): boolean {
+  const isFromWhitelistedProvider = token.providers.some((p) => WHITELISTED_PROVIDERS.has(p));
+  if (!isFromWhitelistedProvider) return true;
+  return BRIDGE_WHITELISTED_SYMBOLS.has(token.symbol);
 }
 
-/** Tokens on a chain that pass the Across whitelist filter. */
+/** Tokens on a chain that pass the bridge whitelist filter. */
 function availableTokens(addresses: readonly string[], tokenInfo: Record<string, UITokenInfo>): string[] {
   return addresses.filter((addr) => {
     const meta = tokenInfo[addr];
     if (!meta) return true; // Not yet discovered — keep visible until metadata loads
-    return passesAcrossFilter(meta);
+    return passesBridgeFilter(meta);
   });
 }
 
@@ -47,7 +53,7 @@ function compatibleTokens(
 ): string[] {
   return addresses.filter((addr) => {
     const meta = tokenInfo[addr];
-    if (!meta || !passesAcrossFilter(meta)) return false;
+    if (!meta || !passesBridgeFilter(meta)) return false;
 
     const sharedProviders = meta.providers.filter((p) => inputProviders.includes(p));
     if (sharedProviders.length === 0) return false;

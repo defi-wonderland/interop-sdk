@@ -97,8 +97,11 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         );
         expectedWalletChainIdRef.current = null;
 
-        // Execute the first step of the order
-        const step = quote.order.steps[0];
+        // For multi-step orders (e.g. Relay's approve + deposit), use the last
+        // step for execution. The UI's handleTokenApproval already handles
+        // ERC-20 approvals independently, so intermediate approve steps are
+        // redundant and can be skipped safely.
+        const step = quote.order.steps[quote.order.steps.length - 1];
         if (!step) {
           throw new Error('Invalid quote: order has no steps');
         }
@@ -114,10 +117,15 @@ export function useOrderExecution(): UseOrderExecutionReturn {
           onStateChange: setState,
         };
 
-        const trackingId =
+        const stepResult =
           step.kind === 'signature'
             ? await executeSignatureStep({ ...flowParams, step })
             : await executeTransactionStep({ ...flowParams, step });
+
+        // For providers that track by requestId (e.g. Relay), use orderId-based
+        // tracking instead of txHash-based tracking.
+        const requestId = quote.metadata?.requestId as string | undefined;
+        const trackingId = requestId ? { orderId: requestId as Hex } : stepResult;
 
         // Common: track order
         await trackOrder(quote._providerId, trackingId, chainContext, abortControllerRef.current?.signal, setState);

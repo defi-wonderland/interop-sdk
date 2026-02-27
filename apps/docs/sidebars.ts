@@ -43,6 +43,7 @@ const sidebars: SidebarsConfig = {
                 "cross-chain/getting-started",
                 "cross-chain/providers",
                 "cross-chain/across-provider",
+                "cross-chain/relay-provider",
                 "cross-chain/oif-provider",
                 "cross-chain/example",
                 "cross-chain/flow",

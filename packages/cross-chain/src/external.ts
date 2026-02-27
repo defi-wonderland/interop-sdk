@@ -9,6 +9,7 @@ export { PERMIT2_TYPES, EIP3009_TYPES } from "./protocols/oif/constants.js";
 export {
     AcrossProvider,
     OifProvider,
+    RelayProvider,
     createCrossChainProvider,
     createProviderExecutor,
     ProviderExecutor,

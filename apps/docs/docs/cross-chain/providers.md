@@ -9,9 +9,8 @@ This document lists all cross-chain providers supported by the Interop SDK.
 | Provider                                | Status  | Description                                     |
 | --------------------------------------- | ------- | ----------------------------------------------- |
 | [Across Protocol](./across-provider.md) | Testnet | Cross-chain token transfers using Across bridge |
+| [Relay](./relay-provider.md)            | POC     | Cross-chain transfers and swaps using Relay     |
 | [OIF](./oif-provider.md)                | Active  | Direct integration with OIF-compliant solvers   |
-
-> Additional protocols are planned for future releases.
 
 ## Creating Custom Providers
 
