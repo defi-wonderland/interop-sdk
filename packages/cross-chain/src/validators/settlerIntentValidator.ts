@@ -9,6 +9,16 @@ export class SettlerIntentValidator implements IntentValidator {
         _userIntent: GetQuoteRequest,
         quote: ProviderExecutableQuote,
     ): Promise<boolean> {
-        return this.validSettlers.includes(quote.preparedTransaction?.to ?? "");
+        // For user-open orders, check the openIntentTx.to address
+        const order = quote.order as {
+            type: string;
+            openIntentTx?: { to: string };
+        };
+        if (order.type === "oif-user-open-v0" && order.openIntentTx?.to) {
+            return this.validSettlers.some(
+                (settler) => settler.toLowerCase() === order.openIntentTx!.to.toLowerCase(),
+            );
+        }
+        return false;
     }
 }

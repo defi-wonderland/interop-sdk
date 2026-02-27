@@ -65,7 +65,7 @@ export class OifProvider extends CrossChainProvider {
             this.headers = configParsed.headers;
             this.adapterMetadata = configParsed.adapterMetadata;
             this.providerId = configParsed.providerId ?? configParsed.solverId;
-            this.supportedLocks = configParsed.supportedLocks;
+            this.supportedLocks = configParsed.supportedLocks ?? ["oif-escrow"];
             this.submissionModes = configParsed.submissionModes;
         } catch (error) {
             if (error instanceof ZodError) {

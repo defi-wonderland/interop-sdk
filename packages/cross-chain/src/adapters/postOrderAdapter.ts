@@ -17,7 +17,7 @@ import { prefixSignatureForOrderType } from "./signaturePrefixAdapter.js";
  * Will be replaced by oif-specs PostOrderRequest when solver is updated
  */
 interface OifSolverPostOrderRequest {
-    quoteResponse: Omit<ProviderExecutableQuote, "preparedTransaction" | "_providerId">;
+    quoteResponse: Omit<ProviderExecutableQuote, "_providerId">;
     signature: Hex;
 }
 
@@ -32,7 +32,7 @@ export function adaptPostOrderRequest(
     const prefixedSignature = prefixSignatureForOrderType(signatureHex, request.order.type);
 
     // #109: OIF expects { quoteResponse, signature } not { order, signature, quoteId }
-    const { preparedTransaction, _providerId, ...quoteForSolver } = originalQuote;
+    const { _providerId, ...quoteForSolver } = originalQuote;
 
     return {
         quoteResponse: quoteForSolver,

@@ -150,15 +150,9 @@ export function formatQuoteData(
   // Check if gas simulation failed (affects whether gas estimates are reliable)
   let gasSimulationFailed = false;
 
-  // Across-specific: check simulationSuccess from stashed provider quote metadata
-  const acrossProviderQuote = metadata?._acrossProviderQuote as
-    | { order?: { payload?: { simulationSuccess?: boolean } } }
-    | undefined;
-  if (acrossProviderQuote?.order?.payload) {
-    const simulationSuccess = acrossProviderQuote.order.payload.simulationSuccess !== false;
-    if (!simulationSuccess) {
-      gasSimulationFailed = true;
-    }
+  // Across-specific: check simulationSuccess from metadata
+  if (metadata?.simulationSuccess === false) {
+    gasSimulationFailed = true;
   }
 
   const feeNum = feeTotalUsd ? parseFloat(feeTotalUsd.replace('$', '')) : 0;
