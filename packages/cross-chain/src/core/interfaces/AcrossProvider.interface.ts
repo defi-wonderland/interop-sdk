@@ -5,7 +5,7 @@ import {
     AcrossGetQuoteParamsSchema,
     AcrossGetQuoteResponseSchema,
     AcrossOIFGetQuoteParamsSchema,
-} from "../../protocols/across/schemas/across.js";
+} from "../../protocols/across/schemas.js";
 
 export type AcrossGetQuoteParams = z.infer<typeof AcrossGetQuoteParamsSchema>;
 

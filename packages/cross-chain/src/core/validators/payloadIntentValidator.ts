@@ -2,7 +2,7 @@ import type { GetQuoteRequest } from "@openintentsframework/oif-specs";
 
 import type { IntentValidator } from "../interfaces/intentValidator.interface.js";
 import type { ProviderExecutableQuote } from "../interfaces/quotes.interface.js";
-import { OIF_ORDER_TYPES } from "../../protocols/oif/constants/openIntentFramework.js";
+import { OIF_ORDER_TYPES } from "../../protocols/oif/constants.js";
 import { validateOifPayload } from "../../protocols/oif/validators/oifPayloadValidator.js";
 
 /**

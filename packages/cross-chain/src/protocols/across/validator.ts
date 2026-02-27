@@ -3,7 +3,7 @@ import type { Address, Hex } from "viem";
 import { getAddress, getChainId } from "@wonderland/interop-addresses";
 import { isAddressEqual } from "viem";
 
-import { decodeAcrossCalldata, DecodedAcrossParams } from "../utils/acrossCalldataDecoder.js";
+import { decodeAcrossCalldata, DecodedAcrossParams } from "./utils.js";
 
 /**
  * Validates Across calldata matches user intent.

@@ -9,7 +9,7 @@
 
 import { z } from "zod";
 
-import { addressSchema } from "../../protocols/oif/schemas/oif.js";
+import { addressSchema } from "../../protocols/oif/schemas.js";
 
 /**
  * Schema for asset metadata
