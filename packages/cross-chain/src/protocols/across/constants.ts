@@ -1,8 +1,8 @@
 import { getAddress, Hex } from "viem";
 import { arbitrum, arbitrumSepolia, base, baseSepolia, sepolia } from "viem/chains";
 
-import type { NetworkAssets } from "../../../core/types/assetDiscovery.js";
-import { toEVMInteropAddress } from "../../../core/utils/addressHelpers.js";
+import type { NetworkAssets } from "../../core/types/assetDiscovery.js";
+import { toEVMInteropAddress } from "../../core/utils/addressHelpers.js";
 
 export const ACROSS_ORDER_DATA_TYPE =
     "0x9df4b782e7bbc178b3b93bfe8aafb909e84e39484d7f3c59f400f1b4691f85e2";

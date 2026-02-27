@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { isHex } from "viem";
 import { z } from "zod";
 
-import { HexAddressSchema } from "../../../core/schemas/address.js";
+import { HexAddressSchema } from "../../core/schemas/address.js";
 import {
     failureHandlingModeSchema,
     inputSchema,
@@ -10,7 +10,7 @@ import {
     outputSchema,
     quotePreferenceSchema,
     swapTypeSchema,
-} from "../../oif/schemas/oif.js";
+} from "../oif/schemas.js";
 
 export const AcrossGetQuoteParamsSchema = z.object({
     tradeType: z

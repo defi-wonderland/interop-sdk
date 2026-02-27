@@ -7,8 +7,8 @@
  */
 import { decodeFunctionData, Hex, slice, toFunctionSelector } from "viem";
 
-import { bytes32ToAddress } from "../../../core/utils/addressHelpers.js";
-import { ACROSS_SPOKE_POOL_DEPOSIT_ABI } from "../constants/across.js";
+import { bytes32ToAddress } from "../../core/utils/addressHelpers.js";
+import { ACROSS_SPOKE_POOL_DEPOSIT_ABI } from "./constants.js";
 
 const DEPOSIT_SELECTOR = toFunctionSelector(ACROSS_SPOKE_POOL_DEPOSIT_ABI[0]);
 

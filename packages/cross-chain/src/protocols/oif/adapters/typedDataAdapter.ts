@@ -10,7 +10,7 @@
 import type { EIP712Types, Quote } from "@openintentsframework/oif-specs";
 
 import { isSignableOifOrder } from "../../../core/utils/orderTypeHelpers.js";
-import { EIP3009_TYPES, PERMIT2_TYPES } from "../constants/openIntentFramework.js";
+import { EIP3009_TYPES, PERMIT2_TYPES } from "../constants.js";
 
 const CANONICAL_TYPES: Record<string, EIP712Types> = {
     "oif-escrow-v0": PERMIT2_TYPES,

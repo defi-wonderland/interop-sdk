@@ -2,5 +2,5 @@ export * from "./provider.js";
 export * from "./adapters/index.js";
 export * from "./validators/index.js";
 export * from "./services/index.js";
-export * from "./schemas/index.js";
-export * from "./constants/index.js";
+export * from "./schemas.js";
+export * from "./constants.js";

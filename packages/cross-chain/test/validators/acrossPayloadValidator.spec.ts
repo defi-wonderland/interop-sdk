@@ -3,7 +3,7 @@ import { encodeAddress } from "@wonderland/interop-addresses";
 import { Address, Hex } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { validateAcrossPayload } from "../../src/protocols/across/validators/acrossPayloadValidator.js";
+import { validateAcrossPayload } from "../../src/protocols/across/validator.js";
 import { ACROSS_DEPOSIT_FIXTURE, CHAIN_IDS, MAINNET_TOKENS } from "../mocks/fixtures.js";
 
 const interopAddress = (chainId: number, address: Address): string =>
