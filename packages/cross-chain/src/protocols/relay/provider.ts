@@ -300,7 +300,7 @@ export class RelayProvider extends CrossChainProvider {
      * Get API-based fill watcher config for Relay
      * Uses Relay API to track intent status via requestId
      *
-     * @see https://docs.relay.link/references/api/get-intent-status-v2
+     * @see https://docs.relay.link/references/api/get-intents-status-v3
      */
     static getFillWatcherConfigAPI(
         apiUrl: string,
