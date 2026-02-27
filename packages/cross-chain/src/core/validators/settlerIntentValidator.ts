@@ -2,6 +2,7 @@ import type { Address, GetQuoteRequest } from "@openintentsframework/oif-specs";
 
 import type { IntentValidator } from "../interfaces/intentValidator.interface.js";
 import type { ProviderExecutableQuote } from "../interfaces/quotes.interface.js";
+import type { Order } from "../types/order.js";
 
 export class SettlerIntentValidator implements IntentValidator {
     constructor(private readonly validSettlers: readonly Address[]) {}
@@ -10,16 +11,26 @@ export class SettlerIntentValidator implements IntentValidator {
         _userIntent: GetQuoteRequest,
         quote: ProviderExecutableQuote,
     ): Promise<boolean> {
-        // For user-open orders, check the openIntentTx.to address
-        const order = quote.order as {
-            type: string;
-            openIntentTx?: { to: string };
-        };
-        if (order.type === "oif-user-open-v0" && order.openIntentTx?.to) {
-            return this.validSettlers.some(
-                (settler) => settler.toLowerCase() === order.openIntentTx!.to.toLowerCase(),
-            );
+        // Check step-based order (SDK Quote path — e.g. Across)
+        if (!quote.order || !("steps" in quote.order)) {
+            return false;
         }
-        return false;
+
+        const order = quote.order as Order;
+
+        // Validate ALL transaction steps against validSettlers
+        for (const step of order.steps) {
+            if (step.kind === "transaction") {
+                if (!step.transaction?.to) {
+                    return false;
+                }
+                if (!this.validSettlers.includes(step.transaction.to as Address)) {
+                    return false;
+                }
+            }
+        }
+
+        // At least one transaction step with a valid target must exist
+        return order.steps.some((s) => s.kind === "transaction" && !!s.transaction?.to);
     }
 }

@@ -11,6 +11,7 @@ import type {
     ExecutableQuote,
     GetQuotesError,
     GetQuotesResponse,
+    StepResult,
     SubmitOrderResponse,
 } from "../schemas/quote.js";
 import type { QuoteRequest } from "../schemas/quoteRequest.js";
@@ -82,7 +83,8 @@ class Aggregator {
 
     /**
      * Check whether a provider supports all assets in the quote request.
-     * Uses SDK InteropAccountId format internally.
+     * Returns false if any input or output asset is not supported, avoiding unnecessary HTTP calls.
+     * Uses the pre-warmed discovery cache so this is typically instant.
      */
     private async supportsRequestedAssets(
         provider: CrossChainProvider,
@@ -96,14 +98,14 @@ class Aggregator {
                 { chainId: params.input.chainId, address: params.input.assetAddress },
                 { chainId: params.output.chainId, address: params.output.assetAddress },
             ];
-            const uniqueInteropAddresses = [...new Set(assets.map((a) => fromInteropAccountId(a)))];
 
-            const assetPromises = uniqueInteropAddresses.map((interopAddr) => {
-                const asset = assets.find((a) => fromInteropAccountId(a) === interopAddr)!;
-                return discovery.isAssetSupported(asset.chainId, interopAddr);
+            const checks = assets.map((asset) => {
+                // Need ERC-7930 for discovery service (it still uses wire format)
+                const hex = fromInteropAccountId(asset);
+                return discovery.isAssetSupported(asset.chainId, hex);
             });
 
-            const results = await Promise.all(assetPromises);
+            const results = await Promise.all(checks);
             return results.every((result) => result !== null);
         } catch (error) {
             if (error instanceof AssetDiscoveryFailure) {
@@ -183,19 +185,34 @@ class Aggregator {
     }
 
     /**
-     * Submit a signed order to the appropriate provider.
-     * Looks up the provider from the quote's _providerId field and delegates.
+     * Submit a signature-step order to the solver.
      *
-     * @param quote - The executable quote containing the order
-     * @param signature - The EIP-712 signature (hex string)
-     * @returns The submit order response (contains orderId for tracking)
+     * Accepts either a single EIP-712 signature or an array of StepResult
+     * for future multi-step orders with multiple signature steps.
+     *
+     * @throws {Error} If the order has no signature steps
      */
-    async submitOrder(quote: ExecutableQuote, signature: Hex): Promise<SubmitOrderResponse> {
+    async submitOrder(
+        quote: ExecutableQuote,
+        signatureOrResults: Hex | StepResult[],
+    ): Promise<SubmitOrderResponse> {
         const providerId = quote._providerId;
 
         const provider = this.providers[providerId];
         if (!provider) {
             throw new ProviderNotFound(providerId);
+        }
+
+        // Extract the signature
+        let signature: Hex;
+        if (typeof signatureOrResults === "string") {
+            signature = signatureOrResults;
+        } else {
+            const sigResult = signatureOrResults.find((r) => r.signature);
+            if (!sigResult?.signature) {
+                throw new Error("No signature found in step results");
+            }
+            signature = sigResult.signature;
         }
 
         return provider.submitOrder(quote, signature);
