@@ -32,56 +32,49 @@ A set of classes and utilities for handling cross-chain operations through vario
 
 An abstract class that defines the interface for cross-chain protocol providers.
 
--   **getProtocolName**(): string
+-   **protocolName**: string
 
-    Returns the name of the protocol this provider implements.
-
-    ```typescript
-    const protocolName = provider.getProtocolName(); // e.g., "across"
-    ```
-
--   **getProviderId**(): string
-
-    Returns the unique provider instance ID.
+    The name of the protocol this provider implements.
 
     ```typescript
-    const providerId = provider.getProviderId(); // e.g., "across-1"
+    const protocolName = provider.protocolName; // e.g., "across"
     ```
 
--   **getQuotes**(params: GetQuoteRequest): Promise\<ExecutableQuote[]\>
+-   **providerId**: string
+
+    The unique provider instance ID.
+
+    ```typescript
+    const providerId = provider.providerId; // e.g., "across-1"
+    ```
+
+-   **getQuotes**(params: QuoteRequest): Promise\<Quote[]\>
 
     Fetches quotes for a cross-chain operation.
 
     ```typescript
     const quotes = await provider.getQuotes({
-        user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-        intent: {
-            intentType: "oif-swap",
-            inputs: [
-                {
-                    user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                    asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                    amount: "1000000000000000000",
-                },
-            ],
-            outputs: [
-                {
-                    receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                    asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-                },
-            ],
-            swapType: "exact-input",
+        user: "0xYourAddress",
+        input: {
+            chainId: 1,
+            assetAddress: "0xTokenAddress",
+            amount: "1000000000000000000",
         },
-        supportedTypes: ["across"], // provider-specific: "across", "oif-escrow-v0", "oif-user-open-v0"
+        output: {
+            chainId: 42161,
+            assetAddress: "0xOutputTokenAddress",
+            recipient: "0xRecipientAddress",
+        },
+        swapType: "exact-input",
     });
     ```
 
--   **submitSignedOrder**(quote: ExecutableQuote, signature: Hex): Promise\<PostOrderResponse\>
+-   **submitOrder**(quote: Quote, signature: Hex): Promise\<SubmitOrderResponse\>
 
     Submits a signed order for gasless execution.
 
     ```typescript
-    const response = await provider.submitSignedOrder(quote, signature);
+    const response = await provider.submitOrder(quote, signature);
     ```
 
 -   **getTrackingConfig**(): TrackingConfig
@@ -92,24 +85,24 @@ An abstract class that defines the interface for cross-chain protocol providers.
     const config = provider.getTrackingConfig();
     ```
 
-### Provider Executor
+### Aggregator
 
 A utility for managing multiple cross-chain providers and executing operations across them.
 
 #### Methods
 
--   **createProviderExecutor**(config: ProviderExecutorConfig): ProviderExecutor
+-   **createAggregator**(config: AggregatorConfig): Aggregator
 
-    Creates an executor instance for managing multiple providers.
+    Creates an aggregator instance for managing multiple providers.
 
     ```typescript
     import {
-        createProviderExecutor,
+        createAggregator,
         OrderTrackerFactory,
         SortingStrategyFactory,
     } from "@wonderland/interop-cross-chain";
 
-    const executor = createProviderExecutor({
+    const aggregator = createAggregator({
         providers: [acrossProvider],
         sortingStrategy: SortingStrategyFactory.createStrategy("bestOutput"), // optional
         timeoutMs: 15000, // optional
@@ -117,35 +110,28 @@ A utility for managing multiple cross-chain providers and executing operations a
     });
     ```
 
-#### ProviderExecutor Class
+#### Aggregator Class
 
 A class that manages multiple cross-chain providers and coordinates their operations.
 
--   **getQuotes**(params: GetQuoteRequest): Promise\<GetQuotesResponse\>
+-   **getQuotes**(params: QuoteRequest): Promise\<GetQuotesResponse\>
 
     Retrieves quotes from all available providers for a given operation.
 
     ```typescript
-    const response = await executor.getQuotes({
-        user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-        intent: {
-            intentType: "oif-swap",
-            inputs: [
-                {
-                    user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                    asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                    amount: "1000000000000000000",
-                },
-            ],
-            outputs: [
-                {
-                    receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                    asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-                },
-            ],
-            swapType: "exact-input",
+    const response = await aggregator.getQuotes({
+        user: "0xYourAddress",
+        input: {
+            chainId: 1,
+            assetAddress: "0xInputToken",
+            amount: "1000000000000000000",
         },
-        supportedTypes: ["across"], // provider-specific: "across", "oif-escrow-v0", "oif-user-open-v0"
+        output: {
+            chainId: 42161,
+            assetAddress: "0xOutputToken",
+            recipient: "0xRecipient",
+        },
+        swapType: "exact-input",
     });
 
     // Handle results
@@ -155,6 +141,14 @@ A class that manages multiple cross-chain providers and coordinates their operat
     response.errors.forEach((error) => console.error(error.errorMsg));
     ```
 
+-   **submitOrder**(quote: ExecutableQuote, signature: Hex): Promise\<SubmitOrderResponse\>
+
+    Submits a signed order for execution.
+
+    ```typescript
+    const response = await aggregator.submitOrder(quote, signature);
+    ```
+
 -   **track**(params: TrackParams): OrderTracker
 
     Starts tracking an executed transaction with real-time events.
@@ -162,7 +156,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     ```typescript
     import { OrderStatus } from "@wonderland/interop-cross-chain";
 
-    const tracker = executor.track({
+    const tracker = aggregator.track({
         txHash: hash,
         providerId: quote.provider,
         originChainId: 11155111,
@@ -178,7 +172,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     Gets the current status of an order without watching.
 
     ```typescript
-    const status = await executor.getOrderStatus({
+    const status = await aggregator.getOrderStatus({
         txHash: "0x...",
         providerId: "across",
         originChainId: 11155111,
@@ -262,13 +256,67 @@ A class that tracks cross-chain orders through their lifecycle.
 
 ### Types
 
+#### QuoteRequest
+
+```typescript
+interface QuoteRequest {
+    user: string;
+    input: {
+        chainId: number;
+        assetAddress: string;
+        amount?: string;
+    };
+    output: {
+        chainId: number;
+        assetAddress: string;
+        amount?: string;
+        recipient?: string;
+    };
+    swapType?: "exact-input" | "exact-output"; // default: "exact-input"
+}
+```
+
+#### Quote
+
+```typescript
+interface Quote {
+    order: Order;
+    preview: {
+        inputs: { chainId: number; accountAddress: string; assetAddress: string; amount: string }[];
+        outputs: {
+            chainId: number;
+            accountAddress: string;
+            assetAddress: string;
+            amount: string;
+        }[];
+    };
+    provider: string;
+    validUntil?: number; // quote validity (unix timestamp)
+    eta?: number; // estimated time to completion (seconds)
+    quoteId?: string;
+    failureHandling?: string;
+    partialFill?: boolean;
+    metadata?: Record<string, unknown>;
+}
+```
+
+#### Order
+
+```typescript
+interface Order {
+    steps: (SignatureStep | TransactionStep)[];
+    lock?: LockMechanism;
+    checks?: OrderChecks;
+    metadata?: Record<string, unknown>;
+}
+```
+
 #### ExecutableQuote
 
 ```typescript
-interface ExecutableQuote {
-    order: Quote["order"];
-    provider?: string;
-    preparedTransaction?: PrepareTransactionRequestReturnType;
+interface ExecutableQuote extends Quote {
+    /** @internal SDK routing field — identifies which provider handles this quote */
+    _providerId: string;
 }
 ```
 
