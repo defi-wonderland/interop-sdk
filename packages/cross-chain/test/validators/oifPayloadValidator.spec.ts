@@ -1,7 +1,7 @@
 import type { GetQuoteRequest, GetQuoteResponse, Order } from "@openintentsframework/oif-specs";
 import { describe, expect, it } from "vitest";
 
-import { validateOifPayload } from "../../src/validators/oifPayloadValidator.js";
+import { validateOifPayload } from "../../src/protocols/oif/validators/oifPayloadValidator.js";
 import {
     AMOUNTS,
     ATTACKER_ADDRESSES,
