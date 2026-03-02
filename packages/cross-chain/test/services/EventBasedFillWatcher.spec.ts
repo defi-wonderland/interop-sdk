@@ -3,6 +3,7 @@ import { AbiEvent, Address, createPublicClient, Hex, Log, PublicClient } from "v
 import { baseSepolia, sepolia } from "viem/chains";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { PublicClientManager } from "../../src/core/utils/publicClientManager.js";
 import {
     EventBasedFillWatcher,
     FillEvent,
@@ -10,7 +11,6 @@ import {
     FillWatcherConfig,
     GetFillParams,
 } from "../../src/internal.js";
-import { PublicClientManager } from "../../src/utils/publicClientManager.js";
 import { createMockFillEvent, createMockLog } from "../mocks/orderTracking.js";
 
 vi.mock("viem", async () => {

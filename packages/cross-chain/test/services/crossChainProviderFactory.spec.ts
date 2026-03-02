@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createCrossChainProvider } from "../../src/factories/crossChainProviderFactory.js";
 import { AcrossProvider, CrossChainProvider, UnsupportedProtocol } from "../../src/internal.js";
-import { createCrossChainProvider } from "../../src/services/crossChainProviderFactory.js";
 
 const MOCK_ACROSS_CONFIG = {
     apiUrl: "https://across.to/api",

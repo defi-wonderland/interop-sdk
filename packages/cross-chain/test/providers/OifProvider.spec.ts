@@ -2,7 +2,7 @@ import { PostOrderResponse, PostOrderResponseStatus } from "@openintentsframewor
 import axios from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { QuoteRequest } from "../../src/schemas/quoteRequest.js";
+import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
 import {
     OifProvider,
     ProviderExecuteFailure,
