@@ -22,14 +22,21 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         permissions: ['clipboard-read', 'clipboard-write'],
       },
-
     },
   ],
 
-  webServer: {
-    command: 'pnpm build && pnpm start',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: [
+    {
+      command: 'anvil --port 8545 --fork-url https://base-sepolia-rpc.publicnode.com --block-time 1 --silent',
+      port: 8545,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    {
+      command: 'pnpm build && pnpm start',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
+  ],
 });

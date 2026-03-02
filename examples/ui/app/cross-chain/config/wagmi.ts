@@ -3,10 +3,10 @@ import { injectedWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/
 import { createConfig, http, cookieStorage, createStorage } from 'wagmi';
 import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
 import { e2eWallet } from './e2eConnector';
+import { isE2E } from './publicClient';
 import type { Chain } from 'viem/chains';
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
-const isE2E = process.env.NEXT_PUBLIC_E2E === 'true';
 
 function getWallets() {
   if (projectId) {
