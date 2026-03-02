@@ -1,7 +1,7 @@
 import { decodeAddress } from '@wonderland/interop-addresses';
 import { isNativeAddress } from '@wonderland/interop-cross-chain';
-import { createPublicClient, type Address, erc20Abi, formatUnits, http, type Hex, isAddress } from 'viem';
-import { ALL_CHAINS } from '../constants/chains';
+import { type Address, erc20Abi, formatUnits, type Hex, isAddress } from 'viem';
+import { getPublicClient } from '../config/publicClient';
 import type { BalanceTarget, TokenBalance } from '../stores/balanceStore';
 import type { DiscoveredAssets } from '../types/assets';
 
@@ -15,9 +15,7 @@ function resolveEvmAddress(address: string): Address {
 
 export class AssetService {
   private getClient(chainId: number) {
-    const chain = ALL_CHAINS.find((c) => c.id === chainId);
-    if (!chain) throw new Error(`No chain configured for chainId ${chainId}`);
-    return createPublicClient({ chain, transport: http() });
+    return getPublicClient(chainId);
   }
 
   async fetchAllBalances(
