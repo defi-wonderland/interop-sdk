@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.e2e' });
 
 const anvilUrl = process.env.NEXT_PUBLIC_ANVIL_URL ?? 'http://127.0.0.1:8545';
-const anvilPort = Number(new URL(anvilUrl).port);
+const anvilPort = Number(new URL(anvilUrl).port) || 8545;
 const anvilForkRpc = process.env.ANVIL_FORK_RPC ?? 'https://base-sepolia-rpc.publicnode.com';
 
 export default defineConfig({
