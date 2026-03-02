@@ -15,9 +15,12 @@ test.describe('Mint mockUSDC', () => {
     const listbox = page.getByTestId('input-token-select-listbox');
     await listbox.getByText('USDC').last().click();
 
-    // Balance before minting
     const maxButton = page.getByTestId('max-balance-button');
-    await expect(maxButton).toContainText('0', { timeout: 10_000 });
+    await expect(maxButton).toBeVisible({ timeout: 10_000 });
+    const maxText = (await maxButton.textContent()) ?? '';
+
+    // Balance before minting
+    const balanceBefore = parseFloat(maxText.replace('Max: ', ''));
 
     const mintButton = page.getByTestId('mint-button');
     await mintButton.click();
@@ -25,6 +28,7 @@ test.describe('Mint mockUSDC', () => {
     await expect(mintButton).toContainText('Mint', { timeout: 30_000 });
 
     // Balance after minting
-    await expect(maxButton).toContainText('100', { timeout: 10_000 });
+    const expectedBalance = balanceBefore + 100;
+    await expect(maxButton).toHaveText(`Max: ${expectedBalance}`, { timeout: 10_000 });
   });
 });
