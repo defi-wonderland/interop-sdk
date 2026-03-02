@@ -3,6 +3,10 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.e2e' });
 
+const anvilUrl = process.env.NEXT_PUBLIC_ANVIL_URL ?? 'http://127.0.0.1:8545';
+const anvilPort = Number(new URL(anvilUrl).port);
+const anvilForkRpc = process.env.ANVIL_FORK_RPC ?? 'https://base-sepolia-rpc.publicnode.com';
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -27,8 +31,8 @@ export default defineConfig({
 
   webServer: [
     {
-      command: 'anvil --port 8545 --fork-url https://base-sepolia-rpc.publicnode.com --block-time 1 --silent',
-      port: 8545,
+      command: `anvil --port ${anvilPort} --fork-url ${anvilForkRpc} --block-time 1 --silent`,
+      port: anvilPort,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },

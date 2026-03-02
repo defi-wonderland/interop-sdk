@@ -7,7 +7,11 @@ import type { Address } from 'viem';
 /** Human-readable amount minted per click. */
 export const MINT_AMOUNT = '100';
 
-export function useMintToken(chainId: number, tokenAddress: string, decimals: number) {
+export function useMintToken(
+  chainId: number,
+  tokenAddress: string,
+  decimals: number,
+): { mint: () => Promise<void>; isLoading: boolean } {
   const [isLoading, setIsLoading] = useState(false);
   const { address, chainId: walletChainId } = useAccount();
   const config = useConfig();
@@ -29,8 +33,8 @@ export function useMintToken(chainId: number, tokenAddress: string, decimals: nu
         switchChainAsync,
       });
       await updateBalances(address, [{ chainId, token: tokenAddress }]);
-    } catch {
-      /* mint failed — user sees balance unchanged */
+    } catch (error) {
+      console.error('Mint failed:', error);
     } finally {
       setIsLoading(false);
     }

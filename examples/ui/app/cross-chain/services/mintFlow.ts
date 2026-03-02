@@ -25,7 +25,7 @@ export async function mintToken({
   amount,
   decimals,
   switchChainAsync,
-}: MintParams) {
+}: MintParams): Promise<void> {
   const { walletClient, publicClient } = await ensureCorrectChain(
     config,
     walletChainId,
