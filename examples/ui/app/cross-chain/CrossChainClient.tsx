@@ -44,6 +44,7 @@ export function CrossChainClient() {
   const [inputChainId, setInputChainId] = useState<number>(0);
   const [outputChainId, setOutputChainId] = useState<number>(0);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [lastQuoteParams, setLastQuoteParams] = useState<Parameters<typeof fetchQuotes>[0] | null>(null);
   const isExecutionStarted = executionState.step !== STEP.IDLE;
 
   const closeToast = useCallback(() => {
@@ -66,6 +67,7 @@ export function CrossChainClient() {
     setInputChainId(params.inputChainId);
     setOutputChainId(params.outputChainId);
     setSelectedQuote(null);
+    setLastQuoteParams(params);
     resetExecution();
     await fetchQuotes(params);
   };
@@ -91,6 +93,7 @@ export function CrossChainClient() {
 
   const handleInputChange = useCallback(() => {
     setSelectedQuote(null);
+    setLastQuoteParams(null);
     clearQuotes();
   }, [clearQuotes]);
 
@@ -179,6 +182,7 @@ export function CrossChainClient() {
                     executionState={executionState}
                     onSelectQuote={handleSelectQuote}
                     onExecuteQuote={handleExecuteQuote}
+                    onRetry={lastQuoteParams ? () => fetchQuotes(lastQuoteParams) : undefined}
                   />
                 )}
               </div>
