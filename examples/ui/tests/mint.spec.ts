@@ -24,8 +24,8 @@ test.describe('Mint mockUSDC', () => {
 
     const mintButton = page.getByTestId('mint-button');
     await mintButton.click();
-    await expect(mintButton).toContainText('Minting...');
-    await expect(mintButton).toContainText('Mint', { timeout: 30_000 });
+    await expect(mintButton).toHaveText('Minting...', { timeout: 10_000 });
+    await expect(mintButton).toHaveText('Mint 100 USDC', { timeout: 30_000 });
 
     // Balance after minting
     const expectedBalance = balanceBefore + 100;
