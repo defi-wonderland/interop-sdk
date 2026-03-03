@@ -1,4 +1,4 @@
-import type { ExecutableQuote } from "../types/quote.js";
+import type { ExecutableQuote } from "../schemas/quote.js";
 import { SortingStrategy } from "../interfaces/sortingStrategy.interface.js";
 
 export class LowerEtaStrategy extends SortingStrategy {

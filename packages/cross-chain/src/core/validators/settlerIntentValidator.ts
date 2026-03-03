@@ -2,7 +2,7 @@ import type { Address, GetQuoteRequest } from "@openintentsframework/oif-specs";
 
 import type { IntentValidator } from "../interfaces/intentValidator.interface.js";
 import type { ProviderExecutableQuote } from "../interfaces/quotes.interface.js";
-import type { Order } from "../types/order.js";
+import type { Order } from "../schemas/order.js";
 
 export class SettlerIntentValidator implements IntentValidator {
     constructor(private readonly validSettlers: readonly Address[]) {}
@@ -24,7 +24,11 @@ export class SettlerIntentValidator implements IntentValidator {
                 if (!step.transaction?.to) {
                     return false;
                 }
-                if (!this.validSettlers.includes(step.transaction.to as Address)) {
+                if (
+                    !this.validSettlers.some(
+                        (settler) => settler.toLowerCase() === step.transaction!.to!.toLowerCase(),
+                    )
+                ) {
                     return false;
                 }
             }

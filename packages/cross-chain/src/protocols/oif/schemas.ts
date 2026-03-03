@@ -10,6 +10,11 @@ import {
 } from "@openintentsframework/oif-specs";
 import { z } from "zod";
 
+import { AddressSchema } from "../../core/schemas/address.js";
+
+// Re-export so existing consumers of this module still work
+export { AddressSchema };
+
 /**
  * OIF Provider Configuration Schema
  */
@@ -22,13 +27,6 @@ export const OifProviderConfigSchema = z.object({
     supportedLocks: z.array(z.string()).optional(),
     submissionModes: z.array(z.enum(["user-transaction", "gasless"])).optional(),
 });
-
-export const addressSchema = z
-    .string()
-    .regex(/^0x0001[a-fA-F0-9]+$/)
-    .describe(
-        "Cross-chain compatible address format per EIP-7930 version 1 encoded format (0x0001 + chain ID + address) for\nunambiguous cross-chain identification.",
-    );
 
 export const amountSchema = z
     .string()
@@ -82,8 +80,8 @@ export const originSubmissionSchema = z.object({
 });
 
 export const inputSchema = z.object({
-    user: addressSchema.describe("The address providing the input assets"),
-    asset: addressSchema.describe("The token/asset being provided as input"),
+    user: AddressSchema.describe("The address providing the input assets"),
+    asset: AddressSchema.describe("The token/asset being provided as input"),
     amount: amountSchema
         .optional()
         .describe(
@@ -95,8 +93,8 @@ export const inputSchema = z.object({
 });
 
 export const outputSchema = z.object({
-    receiver: addressSchema.describe("The address that will receive the output assets"),
-    asset: addressSchema.describe("The token/asset to be received as output"),
+    receiver: AddressSchema.describe("The address that will receive the output assets"),
+    asset: AddressSchema.describe("The token/asset to be received as output"),
     amount: amountSchema
         .optional()
         .describe(
@@ -137,7 +135,7 @@ export const failureHandlingModeSchema = z
     );
 
 export const getQuoteRequestSchema = z.object({
-    user: addressSchema,
+    user: AddressSchema,
     intent: z.object({
         intentType: z.literal("oif-swap"),
         inputs: z.array(inputSchema),
@@ -204,7 +202,7 @@ export const postOrderResponseSchema = z.object({
 export const orderStatusSchema = z.nativeEnum(OrderStatus);
 
 export const assetAmountSchema = z.object({
-    asset: addressSchema.describe("The token/asset identifier, may include chain information"),
+    asset: AddressSchema.describe("The token/asset identifier, may include chain information"),
     amount: amountSchema.optional().describe("Token amount in smallest unit (wei, satoshi, etc.)"),
 });
 
@@ -259,16 +257,16 @@ export const oifEscrowOrderSchema = z.object({
 export const oifUserOpenIntentOrderSchema = z.object({
     type: z.literal("oif-user-open-v0"),
     openIntentTx: z.object({
-        to: addressSchema,
+        to: AddressSchema,
         data: z.instanceof(Uint8Array),
         gasRequired: z.string(),
     }),
     checks: z.object({
         allowances: z.array(
             z.object({
-                token: addressSchema,
-                user: addressSchema,
-                spender: addressSchema,
+                token: AddressSchema,
+                user: AddressSchema,
+                spender: AddressSchema,
                 required: amountSchema,
             }),
         ),

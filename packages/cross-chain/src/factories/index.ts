@@ -1,3 +1,4 @@
+export * from "./providers.js";
 export * from "./crossChainProviderFactory.js";
 export * from "./assetDiscoveryFactory.js";
 export * from "./sortingStrategyFactory.js";

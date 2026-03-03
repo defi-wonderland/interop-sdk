@@ -7,6 +7,10 @@ export * from "./core/constants/tokens.js";
 export { PERMIT2_TYPES, EIP3009_TYPES } from "./protocols/oif/constants.js";
 
 export {
+    // Protocol registry
+    PROTOCOLS,
+    type SupportedProtocols,
+    type SupportedProtocolsConfigs,
     // Providers
     AcrossProvider,
     OifProvider,

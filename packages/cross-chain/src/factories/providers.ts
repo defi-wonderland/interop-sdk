@@ -1,7 +1,4 @@
-import type { AcrossProvider } from "../../protocols/across/provider.js";
-import type { OifProvider } from "../../protocols/oif/provider.js";
-import type { AcrossConfigs } from "../interfaces/AcrossProvider.interface.js";
-import type { OifProviderConfig } from "../interfaces/OifProvider.interface.js";
+import type { AcrossConfigs, AcrossProvider, OifProvider, OifProviderConfig } from "../internal.js";
 
 export const PROTOCOLS = {
     ACROSS: "across",

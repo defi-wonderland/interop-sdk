@@ -2,12 +2,6 @@ import { Hex } from "viem";
 
 import type { AssetDiscoveryService } from "../interfaces/assetDiscovery.interface.js";
 import type {
-    AssetDiscoveryOptions,
-    DiscoveredAssets,
-    RouteQuery,
-} from "../types/assetDiscovery.js";
-import type { OrderTrackingInfo, WatchOrderParams } from "../types/orderTracking.js";
-import type {
     ExecutableQuote,
     GetQuotesError,
     GetQuotesResponse,
@@ -15,8 +9,15 @@ import type {
     SubmitOrderResponse,
 } from "../schemas/quote.js";
 import type { QuoteRequest } from "../schemas/quoteRequest.js";
-import { AssetDiscoveryFactory } from "../../factories/assetDiscoveryFactory.js";
-import { OrderTrackerFactory } from "../../factories/orderTrackerFactory.js";
+import type {
+    AssetDiscoveryOptions,
+    DiscoveredAssets,
+    RouteQuery,
+} from "../types/assetDiscovery.js";
+import type { OrderTrackingInfo, WatchOrderParams } from "../types/orderTracking.js";
+// Default factory imports via the internal barrel (cross-layer access).
+// Only used by createAggregator() when callers don't provide explicit factories.
+import { AssetDiscoveryFactory, OrderTrackerFactory } from "../../internal.js";
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import { ProviderNotFound } from "../errors/ProviderNotFound.exception.js";
 import { ProviderTimeout } from "../errors/ProviderTimeout.exception.js";
@@ -31,7 +32,12 @@ interface AggregatorConfig {
     providers: CrossChainProvider[];
     sortingStrategy?: SortingStrategy;
     timeoutMs?: number;
-    trackerFactory?: OrderTrackerFactory;
+    trackerFactory?: {
+        createTracker(provider: CrossChainProvider): OrderTracker;
+    };
+    discoveryFactory?: {
+        createService(provider: CrossChainProvider): AssetDiscoveryService | null;
+    };
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -46,7 +52,7 @@ class Aggregator {
     private readonly providers: Record<string, CrossChainProvider>;
     private readonly sortingStrategy: SortingStrategy;
     private readonly timeoutMs: number;
-    private readonly trackerFactory: OrderTrackerFactory;
+    private readonly trackerFactory: AggregatorConfig["trackerFactory"];
     private readonly trackerCache: Map<string, OrderTracker> = new Map();
     private readonly discoveryCache: Map<string, AssetDiscoveryService> = new Map();
 
@@ -56,7 +62,7 @@ class Aggregator {
      * @param config - Configuration for the aggregator
      */
     constructor(config: AggregatorConfig) {
-        const { providers, sortingStrategy, timeoutMs, trackerFactory } = config;
+        const { providers, sortingStrategy, timeoutMs, trackerFactory, discoveryFactory } = config;
         this.providers = providers.reduce(
             (acc, provider) => {
                 acc[provider.getProviderId()] = provider;
@@ -66,13 +72,17 @@ class Aggregator {
         );
         this.sortingStrategy = sortingStrategy ?? getDefaultSortingStrategy();
         this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
-        this.trackerFactory = trackerFactory ?? new OrderTrackerFactory();
+        this.trackerFactory = trackerFactory;
 
-        this.initDiscoveryServices(providers);
+        if (discoveryFactory) {
+            this.initDiscoveryServices(providers, discoveryFactory);
+        }
     }
 
-    private initDiscoveryServices(providers: CrossChainProvider[]): void {
-        const factory = new AssetDiscoveryFactory();
+    private initDiscoveryServices(
+        providers: CrossChainProvider[],
+        factory: NonNullable<AggregatorConfig["discoveryFactory"]>,
+    ): void {
         for (const provider of providers) {
             const service = factory.createService(provider);
             if (service) {
@@ -317,6 +327,11 @@ class Aggregator {
             throw new ProviderNotFound(providerId);
         }
 
+        if (!this.trackerFactory) {
+            throw new Error(
+                "No trackerFactory provided. Pass a trackerFactory in AggregatorConfig to use tracking.",
+            );
+        }
         const tracker = this.trackerFactory.createTracker(provider);
         this.trackerCache.set(providerId, tracker);
 
@@ -325,12 +340,20 @@ class Aggregator {
 }
 
 /**
- * Create an aggregator
- * @param config - Configuration including providers, sorting strategy, timeout, and optional tracker factory
+ * Create an aggregator with default factories.
+ *
+ * When `trackerFactory` or `discoveryFactory` are not provided, the defaults
+ * (OrderTrackerFactory, AssetDiscoveryFactory) are created automatically.
+ *
+ * @param config - Configuration including providers, sorting strategy, timeout, and optional factories
  * @returns The aggregator instance
  */
 const createAggregator = (config: AggregatorConfig): Aggregator => {
-    return new Aggregator(config);
+    return new Aggregator({
+        ...config,
+        trackerFactory: config.trackerFactory ?? new OrderTrackerFactory(),
+        discoveryFactory: config.discoveryFactory ?? new AssetDiscoveryFactory(),
+    });
 };
 
 export { Aggregator, createAggregator };

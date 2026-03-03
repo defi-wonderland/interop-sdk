@@ -9,13 +9,13 @@
 
 import { z } from "zod";
 
-import { addressSchema } from "../../protocols/oif/schemas.js";
+import { AddressSchema } from "./address.js";
 
 /**
  * Schema for asset metadata
  */
 export const assetInfoSchema = z.object({
-    address: addressSchema.describe(
+    address: AddressSchema.describe(
         "Asset address in EIP-7930 interoperable format for cross-chain compatibility.\nAll addresses are formatted with the 0x prefix.",
     ),
     symbol: z.string().describe('Asset symbol for display purposes (e.g., "USDC", "WETH", "USDT")'),
