@@ -1,3 +1,4 @@
+export * from "./aggregator.js";
 export * from "./providerExecutor.js";
 export * from "./OIFOpenedIntentParser.js";
 export * from "./CustomEventOpenedIntentParser.js";

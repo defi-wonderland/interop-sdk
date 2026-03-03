@@ -1,4 +1,3 @@
-import { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import { decodeAddress, encodeAddress } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import {
@@ -14,6 +13,10 @@ import {
 } from "viem";
 import { ZodError } from "zod";
 
+import type { Quote } from "../schemas/quote.js";
+import type { QuoteRequest } from "../schemas/quoteRequest.js";
+import { adaptQuote } from "../adapters/quoteAdapter.js";
+import { adaptQuoteRequest } from "../adapters/quoteRequestAdapter.js";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
@@ -39,7 +42,6 @@ import {
     CrossChainProvider,
     CustomEventOpenedIntentParserConfig,
     EventBasedFillWatcherConfig,
-    ExecutableQuote,
     FillEvent,
     FillWatcherConfig,
     getAcrossApiUrl,
@@ -53,7 +55,6 @@ import {
     OrderStatus,
     parseAbiEncodedFields,
     ProviderConfigFailure,
-    ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
     ProviderQuote,
     PublicClientManager,
@@ -295,10 +296,15 @@ export class AcrossProvider extends CrossChainProvider {
 
     /**
      * @inheritdoc
+     *
+     * Accepts SDK QuoteRequest, converts internally to OIF wire format
+     * for backward-compatible Across API integration.
      */
-    async getQuotes(params: GetQuoteRequest): Promise<ProviderQuote[]> {
+    async getQuotes(params: QuoteRequest): Promise<Quote[]> {
         try {
-            const parsedParams = AcrossOIFGetQuoteParamsSchema.parse(params);
+            // Convert SDK QuoteRequest → OIF GetQuoteRequest for existing Across logic
+            const oifRequest = adaptQuoteRequest(params);
+            const parsedParams = AcrossOIFGetQuoteParamsSchema.parse(oifRequest);
 
             const acrossGetQuote = await this.convertOifParamsToAcrossParams(parsedParams);
             const acrossQuote = await this.getAcrossQuote(acrossGetQuote);
@@ -311,7 +317,12 @@ export class AcrossProvider extends CrossChainProvider {
                 preparedTransaction,
             };
 
-            return [providerQuote];
+            const sdkQuote = adaptQuote(providerQuote);
+            sdkQuote.metadata = {
+                ...sdkQuote.metadata,
+                _acrossProviderQuote: providerQuote,
+            };
+            return [sdkQuote];
         } catch (error) {
             if (error instanceof ZodError) {
                 throw new ProviderGetQuoteFailure(
@@ -326,18 +337,6 @@ export class AcrossProvider extends CrossChainProvider {
                 error instanceof Error ? error.stack : undefined,
             );
         }
-    }
-
-    /**
-     * @inheritdoc
-     */
-    async submitSignedOrder(
-        _quote: ExecutableQuote,
-        _signature: Hex | Uint8Array,
-    ): Promise<PostOrderResponse> {
-        throw new ProviderExecuteNotImplemented(
-            "Across provider does not support submitSignedOrder",
-        );
     }
 
     /**

@@ -4,3 +4,7 @@ export * from "./across.js";
 export * from "./oif.js";
 export * from "./assetDiscovery.js";
 export * from "./acrossDiscovery.js";
+export * from "./interopAccountId.js";
+export * from "./order.js";
+export * from "./quoteRequest.js";
+export * from "./quote.js";

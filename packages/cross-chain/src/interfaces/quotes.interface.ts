@@ -17,6 +17,7 @@ export interface AcrossOrder {
 
 /**
  * A quote returned by a provider, before the executor enriches it.
+ * @internal Used by OifProvider and adapters for intermediate OIF wire-format data.
  * Extends the OIF Quote type to also accept Across orders.
  */
 export interface ProviderQuote extends Omit<Quote, "order"> {
@@ -25,14 +26,9 @@ export interface ProviderQuote extends Omit<Quote, "order"> {
 }
 
 /**
- * A quote ready for execution — enriched by ProviderExecutor.getQuotes()
- * with the SDK executor identifier for internal routing.
+ * @internal A provider-level executable quote — OIF wire format enriched with SDK routing.
+ * For the public SDK type, see {@link import("../types/quote.js").ExecutableQuote}.
  */
-export interface ExecutableQuote extends ProviderQuote {
-    /**
-     * @internal Identifies which SDK executor handles this quote (submit, tracking).
-     * Kept separate from `provider` (the solver's original value, part of HMAC)
-     * so the quote can be sent back to the solver unmodified.
-     */
+export interface ProviderExecutableQuote extends ProviderQuote {
     _providerId: string;
 }

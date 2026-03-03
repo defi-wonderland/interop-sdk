@@ -7,17 +7,24 @@ export * from "./constants/tokens.js";
 export { PERMIT2_TYPES, EIP3009_TYPES } from "./constants/openIntentFramework.js";
 
 export {
+    // Providers
     AcrossProvider,
     OifProvider,
     createCrossChainProvider,
+    // Aggregator (new) + deprecated aliases
+    Aggregator,
+    createAggregator,
     createProviderExecutor,
     ProviderExecutor,
+    // Tracking
     createOrderTracker,
     OrderTracker,
     OrderTrackerFactory,
     OIFOpenedIntentParser,
     CustomEventOpenedIntentParser,
+    // Sorting
     SortingStrategyFactory,
+    // Asset Discovery
     BaseAssetDiscoveryService,
     StaticAssetDiscoveryService,
     OIFAssetDiscoveryService,
@@ -25,6 +32,17 @@ export {
     AssetDiscoveryFactory,
     createAssetDiscoveryService,
     createOIFAssetDiscoveryService,
+    // Utilities
     isSignableOifOrder,
     isNativeAddress,
+    toInteropAccountId,
+    fromInteropAccountId,
+    getSignatureSteps,
+    getTransactionSteps,
+    isSignatureOnlyOrder,
+    isTransactionOnlyOrder,
+    // SDK type adapters
+    adaptQuoteRequest,
+    adaptOifOrder,
+    adaptQuote,
 } from "./internal.js";
