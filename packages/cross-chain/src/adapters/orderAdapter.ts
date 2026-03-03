@@ -111,17 +111,17 @@ function fromOifUserOpenOrder(order: {
             .map((a) => {
                 try {
                     const token = toInteropAccountId(a.token);
+                    const user = toInteropAccountId(a.user);
+                    const spender = toInteropAccountId(a.spender);
                     return {
                         chainId: token.chainId,
                         tokenAddress: token.address,
-                        owner: a.user,
-                        spender: a.spender,
+                        owner: user.address,
+                        spender: spender.address,
                         required: a.required,
                     };
                 } catch {
-                    console.warn(
-                        `[orderAdapter] Skipping allowance with invalid token: ${a.token}`,
-                    );
+                    console.warn(`[orderAdapter] Skipping allowance with invalid ERC-7930 address`);
                     return undefined;
                 }
             })

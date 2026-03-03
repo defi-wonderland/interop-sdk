@@ -1,10 +1,10 @@
-import { isSignableOifOrder, type ExecutableQuote, type ProviderExecutor } from '@wonderland/interop-cross-chain';
+import { getSignatureSteps, type Aggregator, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { STEP, WALLET_ACTION, type BridgeState, type ChainContext } from '../../types/execution';
 import type { ConfiguredWalletClient } from './chainSetup';
 import type { Hex } from 'viem';
 
 interface SignAndSubmitOrderParams {
-  executor: ProviderExecutor;
+  executor: Aggregator;
   walletClient: ConfiguredWalletClient;
   quote: ExecutableQuote;
   chainContext: ChainContext;
@@ -18,13 +18,13 @@ export const signAndSubmitOrder = async ({
   chainContext,
   onStateChange,
 }: SignAndSubmitOrderParams): Promise<{ orderId: Hex }> => {
-  const { order } = quote;
-  const isSignable = isSignableOifOrder(order);
-  if (!isSignable) {
-    throw new Error(`Unsupported order type for signing: ${order.type}`);
+  const sigSteps = getSignatureSteps(quote.order);
+  const sigStep = sigSteps[0];
+  if (!sigStep) {
+    throw new Error('No signature step found in order');
   }
 
-  const { domain, types, primaryType, message } = order.payload;
+  const { domain, types, primaryType, message } = sigStep.signaturePayload;
 
   onStateChange({ step: STEP.WALLET, action: WALLET_ACTION.SIGNING, ...chainContext });
 
@@ -37,7 +37,7 @@ export const signAndSubmitOrder = async ({
 
   onStateChange({ step: STEP.WALLET, action: WALLET_ACTION.SUBMITTING, ...chainContext });
 
-  const response = await executor.submitSignedOrder(quote, signature);
+  const response = await executor.submitOrder(quote, signature);
 
   if (!response.orderId) {
     throw new Error('Solver did not return an orderId');

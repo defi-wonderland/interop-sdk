@@ -1,10 +1,11 @@
-import type { GetQuoteRequest, PostOrderResponse } from "@openintentsframework/oif-specs";
 import type { Hex } from "viem";
 
+import type { Quote, SubmitOrderResponse } from "../schemas/quote.js";
+import type { QuoteRequest } from "../schemas/quoteRequest.js";
 import type { AssetDiscoveryConfig } from "./assetDiscovery.interface.js";
 import type { FillWatcherConfig } from "./fillWatcher.interface.js";
 import type { OpenedIntentParserConfig } from "./openedIntentParser.interface.js";
-import type { ExecutableQuote, ProviderQuote } from "./quotes.interface.js";
+import { ProviderExecuteNotImplemented } from "../errors/ProviderExecuteNotImplemented.exception.js";
 
 export abstract class CrossChainProvider {
     /**
@@ -37,23 +38,26 @@ export abstract class CrossChainProvider {
     }
 
     /**
-     * Get a quote for a cross-chain action
-     * @param params - The parameters for get quote request
-     * @returns A quote for the request
+     * Get quotes for a cross-chain action
+     * @param params - The SDK quote request with readable addresses
+     * @returns A list of quotes for the request
      */
-    abstract getQuotes(params: GetQuoteRequest): Promise<ProviderQuote[]>;
+    abstract getQuotes(params: QuoteRequest): Promise<Quote[]>;
 
     /**
-     * Submit a signed order to the provider
-     * @param quote - The quote containing the order
-     * @param signature - The EIP-712 signature (hex string or Uint8Array)
-     * @returns The post order response
+     * Submit a signed order to the provider.
+     *
+     * Default implementation throws {@link ProviderExecuteNotImplemented}.
+     * Override in providers that support signature-based order submission.
+     *
+     * @param _quote - The quote to submit
+     * @param _signature - The EIP-712 signature (hex string)
+     * @returns The submit order response
      * @throws ProviderExecuteNotImplemented if the provider doesn't support this method
      */
-    abstract submitSignedOrder(
-        quote: ExecutableQuote,
-        signature: Hex | Uint8Array,
-    ): Promise<PostOrderResponse>;
+    async submitOrder(_quote: Quote, _signature: Hex): Promise<SubmitOrderResponse> {
+        throw new ProviderExecuteNotImplemented(this.getProviderId());
+    }
 
     /**
      * Get the configuration for intent tracking

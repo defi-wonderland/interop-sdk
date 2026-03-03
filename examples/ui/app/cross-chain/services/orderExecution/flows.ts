@@ -1,4 +1,4 @@
-import { isNativeAddress, type ExecutableQuote } from '@wonderland/interop-cross-chain';
+import { isNativeAddress, getTransactionSteps, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { crossChainExecutor } from '../sdk';
 import { handleTokenApproval } from './approval';
 import { submitBridgeTransaction } from './bridge';
@@ -30,8 +30,8 @@ export const submitOifSignableOrder = async ({
   chainContext,
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
-  // Permit2 approval for escrow orders (3009 doesn't need approval)
-  const isEscrowOrder = quote.order.type === 'oif-escrow-v0';
+  // Permit2 approval for escrow lock orders (3009 doesn't need approval)
+  const isEscrowOrder = quote.order.lock?.type === 'oif-escrow';
   const isNativeInput = isNativeAddress(inputTokenAddress, 'eip155');
   if (isEscrowOrder && !isNativeInput) {
     const PERMIT2 = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as Address;
@@ -67,11 +67,10 @@ export const executeDirectTransaction = async ({
   chainContext,
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
-  const order = quote.order as {
-    payload?: { to?: Address; data?: Hex };
-  };
+  const txSteps = getTransactionSteps(quote.order);
+  const txStep = txSteps[0];
 
-  if (!order?.payload?.to || !order?.payload?.data) {
+  if (!txStep?.transaction?.to || !txStep?.transaction?.data) {
     throw new Error('Invalid quote: missing transaction data');
   }
 
@@ -83,7 +82,7 @@ export const executeDirectTransaction = async ({
       walletClient,
       ownerAddress,
       inputTokenAddress,
-      order.payload.to,
+      txStep.transaction.to as Address,
       inputAmount,
       chainContext,
       onStateChange,
@@ -95,8 +94,8 @@ export const executeDirectTransaction = async ({
   const txHash = await submitBridgeTransaction(
     publicClient,
     walletClient,
-    order.payload.to,
-    order.payload.data,
+    txStep.transaction.to as Address,
+    txStep.transaction.data as Hex,
     chainContext,
     onStateChange,
     value,

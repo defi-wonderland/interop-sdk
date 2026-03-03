@@ -7,12 +7,39 @@
 
 import type { Order as OifOrder } from "@openintentsframework/oif-specs";
 
-import type { ProviderQuote } from "../interfaces/quotes.interface.js";
+import type { AcrossOrder, ProviderQuote } from "../interfaces/quotes.interface.js";
+import type { Order } from "../schemas/order.js";
 import type { Quote, QuotePreviewEntry } from "../schemas/quote.js";
 import { toInteropAccountId } from "../utils/interopAccountId.js";
 import { adaptOifOrder } from "./orderAdapter.js";
 
 // ── Helpers ──────────────────────────────────────────────
+
+function adaptAcrossOrder(order: AcrossOrder): Order {
+    return {
+        steps: [
+            {
+                kind: "transaction",
+                chainId: order.payload.chainId,
+                transaction: {
+                    to: order.payload.to,
+                    data: order.payload.data,
+                    gas: order.payload.gas,
+                    ...(order.payload.maxFeePerGas && {
+                        maxFeePerGas: order.payload.maxFeePerGas,
+                    }),
+                    ...(order.payload.maxPriorityFeePerGas && {
+                        maxPriorityFeePerGas: order.payload.maxPriorityFeePerGas,
+                    }),
+                },
+            },
+        ],
+        ...(order.metadata &&
+            Object.keys(order.metadata).length > 0 && {
+                metadata: order.metadata as Record<string, unknown>,
+            }),
+    };
+}
 
 function adaptPreviewEntry(entry: {
     account: string;
@@ -44,7 +71,10 @@ function adaptPreviewEntry(entry: {
  * - Preserves all other quote fields
  */
 export function adaptQuote(providerQuote: ProviderQuote): Quote {
-    const order = adaptOifOrder(providerQuote.order as OifOrder);
+    const order =
+        (providerQuote.order as AcrossOrder).type === "across"
+            ? adaptAcrossOrder(providerQuote.order as AcrossOrder)
+            : adaptOifOrder(providerQuote.order as OifOrder);
 
     const preview = {
         inputs: providerQuote.preview.inputs

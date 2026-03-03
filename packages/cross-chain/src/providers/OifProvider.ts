@@ -1,23 +1,26 @@
 import {
-    GetQuoteRequest,
     GetQuoteResponse,
+    Order as OifOrder,
     PostOrderRequest,
     PostOrderResponse,
-    Quote,
 } from "@openintentsframework/oif-specs";
 import axios, { AxiosError } from "axios";
-import { bytesToHex, Hex, hexToBytes, PrepareTransactionRequestReturnType } from "viem";
+import { Hex, hexToBytes } from "viem";
 import { ZodError } from "zod";
 
+import type { ProviderExecutableQuote, ProviderQuote } from "../interfaces/quotes.interface.js";
+import type { Quote, SubmitOrderResponse } from "../schemas/quote.js";
+import type { QuoteRequest } from "../schemas/quoteRequest.js";
 import {
     adaptOrderStatus,
     adaptPostOrderRequest,
+    adaptQuote,
+    adaptQuoteRequest,
     adaptTypedDataPayload,
 } from "../adapters/index.js";
 import {
     APIBasedFillWatcherConfig,
     CrossChainProvider,
-    ExecutableQuote,
     FillEvent,
     FillWatcherConfig,
     GetFillParams,
@@ -33,7 +36,6 @@ import {
     ProviderExecuteFailure,
     ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
-    ProviderQuote,
 } from "../internal.js";
 import { isSignableOifOrder } from "../utils/orderTypeHelpers.js";
 
@@ -50,6 +52,8 @@ export class OifProvider extends CrossChainProvider {
     private readonly url: string;
     private readonly headers?: Record<string, string>;
     private readonly adapterMetadata?: Record<string, unknown>;
+    private readonly supportedLocks?: string[];
+    private readonly submissionModes?: ("user-transaction" | "gasless")[];
 
     constructor(config: OifProviderConfig) {
         super();
@@ -61,6 +65,8 @@ export class OifProvider extends CrossChainProvider {
             this.headers = configParsed.headers;
             this.adapterMetadata = configParsed.adapterMetadata;
             this.providerId = configParsed.providerId ?? configParsed.solverId;
+            this.supportedLocks = configParsed.supportedLocks;
+            this.submissionModes = configParsed.submissionModes;
         } catch (error) {
             if (error instanceof ZodError) {
                 throw new ProviderConfigFailure(
@@ -77,51 +83,32 @@ export class OifProvider extends CrossChainProvider {
         }
     }
 
-    /**
-     * HTTP request timeout per attempt in milliseconds (5 seconds).
-     * If the solver doesn't respond within this window the attempt is
-     * cancelled and retried (up to MAX_SUBMIT_RETRIES times).
-     */
     private static readonly SUBMIT_TIMEOUT_MS = 5000;
     private static readonly MAX_SUBMIT_RETRIES = 3;
-
-    /**
-     * HTTP request timeout in milliseconds (30 seconds)
-     */
     private static readonly REQUEST_TIMEOUT_MS = 30000;
-
-    /**
-     * Prepare transaction for user-mode submission
-     * @param quote - The quote containing order data
-     * @returns Transaction request for user-open orders, undefined otherwise
-     */
-    private prepareTransaction(quote: Quote): PrepareTransactionRequestReturnType | undefined {
-        try {
-            if (quote.order.type !== "oif-user-open-v0") {
-                return undefined;
-            }
-
-            return {
-                to: quote.order.openIntentTx.to as Hex,
-                data: bytesToHex(quote.order.openIntentTx.data),
-            } as PrepareTransactionRequestReturnType;
-        } catch {
-            return undefined;
-        }
-    }
 
     /**
      * @inheritdoc
      */
-    async getQuotes(params: GetQuoteRequest): Promise<ProviderQuote[]> {
+    async getQuotes(params: QuoteRequest): Promise<Quote[]> {
         try {
-            const response = await axios.post<GetQuoteResponse>(`${this.url}/v1/quotes`, params, {
-                headers: {
-                    "Content-Type": "application/json",
-                    ...this.headers,
-                },
-                timeout: OifProvider.REQUEST_TIMEOUT_MS,
+            // 1. Convert SDK → OIF wire format
+            const oifRequest = adaptQuoteRequest(params, {
+                supportedLocks: this.supportedLocks,
+                submissionModes: this.submissionModes,
             });
+
+            const response = await axios.post<GetQuoteResponse>(
+                `${this.url}/v1/quotes`,
+                oifRequest,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...this.headers,
+                    },
+                    timeout: OifProvider.REQUEST_TIMEOUT_MS,
+                },
+            );
 
             if (response.status !== 200) {
                 throw new ProviderGetQuoteFailure(
@@ -134,22 +121,27 @@ export class OifProvider extends CrossChainProvider {
             getQuoteResponseSchema.parse(response.data);
             const { quotes } = response.data as GetQuoteResponse;
 
+            // 2. Map OIF quotes → ProviderQuote (with typedData normalization)
             const providerQuotes: ProviderQuote[] = quotes.map((quote): ProviderQuote => {
-                // WORKAROUND #286: Normalize EIP-712 typed data for viem compatibility
                 const adaptedQuote = adaptTypedDataPayload(quote);
-                const preparedTransaction = this.prepareTransaction(adaptedQuote);
-
                 return {
                     ...adaptedQuote,
                     metadata: {
                         ...adaptedQuote.metadata,
                         ...(this.adapterMetadata && { adapterMetadata: this.adapterMetadata }),
                     },
-                    preparedTransaction,
                 };
             });
 
-            return providerQuotes;
+            // 3. Convert to SDK quotes, stashing originals in metadata
+            return providerQuotes.map((pq) => {
+                const sdkQuote = adaptQuote(pq);
+                sdkQuote.metadata = {
+                    ...sdkQuote.metadata,
+                    _oifProviderQuote: pq,
+                };
+                return sdkQuote;
+            });
         } catch (error) {
             if (error instanceof AxiosError) {
                 const errorData = error.response?.data as { message?: string };
@@ -158,9 +150,7 @@ export class OifProvider extends CrossChainProvider {
                     (error.cause as Error | undefined)?.message ||
                     error.message ||
                     "Failed to get OIF quotes";
-
                 const contextMessage = `${baseMessage}. SolverId: ${this.solverId}, URL: ${this.url}/v1/quotes`;
-
                 throw new ProviderGetQuoteFailure(
                     "Failed to get OIF quotes from solver",
                     contextMessage,
@@ -175,7 +165,6 @@ export class OifProvider extends CrossChainProvider {
             } else if (error instanceof ProviderGetQuoteFailure) {
                 throw error;
             }
-
             throw new ProviderGetQuoteFailure(
                 "Failed to get OIF quotes",
                 `${String(error)}. SolverId: ${this.solverId}`,
@@ -187,29 +176,35 @@ export class OifProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      */
-    async submitSignedOrder(
-        quote: ExecutableQuote,
-        signature: Hex | Uint8Array,
-    ): Promise<PostOrderResponse> {
-        if (!isSignableOifOrder(quote.order)) {
-            throw new ProviderExecuteNotImplemented(
-                `Execute not supported for order type: ${quote.order.type}`,
+    override async submitOrder(quote: Quote, signature: Hex): Promise<SubmitOrderResponse> {
+        const providerQuote = quote.metadata?._oifProviderQuote as ProviderQuote | undefined;
+        if (!providerQuote) {
+            throw new ProviderExecuteFailure(
+                "Missing OIF provider quote in metadata — was this quote obtained from OifProvider.getQuotes()?",
+                `quoteId: ${quote.quoteId}`,
             );
         }
 
-        const signatureBytes = typeof signature === "string" ? hexToBytes(signature) : signature;
+        if (!isSignableOifOrder(providerQuote.order as OifOrder)) {
+            throw new ProviderExecuteNotImplemented(
+                `Execute not supported for order type: ${(providerQuote.order as { type: string }).type}`,
+            );
+        }
 
+        const signatureBytes = hexToBytes(signature);
         const request: PostOrderRequest = {
-            order: quote.order,
+            order: providerQuote.order as OifOrder,
             signature: signatureBytes,
-            quoteId: quote.quoteId,
+            quoteId: providerQuote.quoteId,
         };
 
-        // WORKAROUND #34, #109: Adapt request for current OIF solver
-        const adaptedRequest = adaptPostOrderRequest(request, quote);
+        const pExecQuote = {
+            ...providerQuote,
+            _providerId: this.providerId,
+        } as ProviderExecutableQuote;
+        const adaptedRequest = adaptPostOrderRequest(request, pExecQuote);
 
         try {
-            // Retry up to 3 times with 5s timeout per attempt
             let lastErr: unknown;
             for (let i = 0; i < OifProvider.MAX_SUBMIT_RETRIES; i++) {
                 try {
@@ -222,10 +217,22 @@ export class OifProvider extends CrossChainProvider {
                         },
                     );
 
-                    return response.data;
+                    const oifResponse = response.data;
+                    if (!oifResponse.orderId) {
+                        throw new Error(
+                            `Solver returned no orderId (status: ${oifResponse.status})`,
+                        );
+                    }
+                    return {
+                        orderId: oifResponse.orderId as Hex,
+                        status: oifResponse.status,
+                        message: oifResponse.message,
+                    };
                 } catch (e) {
                     lastErr = e;
-                    if (e instanceof AxiosError && e.response && e.response.status < 500) break;
+                    // Only retry on server errors (5xx); break on client errors or non-network failures
+                    if (!(e instanceof AxiosError) || (e.response && e.response.status < 500))
+                        break;
                 }
             }
             throw lastErr;
@@ -237,9 +244,7 @@ export class OifProvider extends CrossChainProvider {
                     (error.cause as Error | undefined)?.message ||
                     error.message ||
                     "Failed to submit order";
-
                 const contextMessage = `${baseMessage}. SolverId: ${this.solverId}, QuoteId: ${request.quoteId}, URL: ${this.url}/v1/orders`;
-
                 throw new ProviderExecuteFailure(
                     "Failed to submit order to solver",
                     contextMessage,
@@ -248,7 +253,6 @@ export class OifProvider extends CrossChainProvider {
             } else if (error instanceof ProviderExecuteFailure) {
                 throw error;
             }
-
             throw new ProviderExecuteFailure(
                 "Failed to submit order to solver",
                 `${String(error)}. SolverId: ${this.solverId}, QuoteId: ${request.quoteId}`,
@@ -257,19 +261,11 @@ export class OifProvider extends CrossChainProvider {
         }
     }
 
-    /**
-     * Get the fill watcher configuration for OIF
-     * Uses OIF API for tracking (not onchain events)
-     *
-     * @note EIP-7683 does NOT define a standard Fill event, so we use the solver's
-     *       API endpoint for tracking: `GET /v1/orders/:orderId`
-     * @see https://github.com/openintentsframework/oif-solver/issues/288 for known response divergences
-     */
     static getFillWatcherConfig(baseUrl: string): APIBasedFillWatcherConfig<unknown> {
         return {
             type: "api-based",
             baseUrl,
-            pollingInterval: 5000, // Poll every 5 seconds
+            pollingInterval: 5000,
             retry: {
                 maxAttempts: 3,
                 initialDelay: 1000,
@@ -287,35 +283,20 @@ export class OifProvider extends CrossChainProvider {
                 metadata?: unknown;
                 fillTxHash?: string;
             } => {
-                // Validate response against schema
                 const validatedResponse = getOrderResponseSchema.parse(response);
-
-                // WORKAROUND #111: Normalize status (handles object format from OIF solver)
                 const status = adaptOrderStatus(validatedResponse.status);
 
-                // Determine failure reason for failed orders
                 let failureReason: OrderFailureReason | undefined;
                 if (status === OrderStatus.Failed) {
-                    // OIF doesn't provide specific failure reasons in the API
-                    // Default to Unknown for now
                     failureReason = OrderFailureReason.Unknown;
                 }
 
-                // fillTxHash appears from executing onwards, but only finalized is terminal.
-                // Matches oif-aggregator: poll until finalized.
                 const isFinalized = status === OrderStatus.Finalized;
-
-                // fillTxHash may be top-level or nested in fillTransaction.hash
                 const fillTxHash = (validatedResponse.fillTxHash ??
                     validatedResponse.fillTransaction?.hash) as Hex | undefined;
 
                 if (!isFinalized || !fillTxHash) {
-                    return {
-                        event: null,
-                        status,
-                        failureReason,
-                        fillTxHash,
-                    };
+                    return { event: null, status, failureReason, fillTxHash };
                 }
 
                 const event: FillEvent = {
@@ -328,48 +309,21 @@ export class OifProvider extends CrossChainProvider {
                     orderId: params.orderId,
                 };
 
-                // For OIF-compliant APIs, all data is in the typed response
-                // No separate metadata needed
                 return { event, status, failureReason };
             },
         };
     }
 
-    /**
-     * @inheritdoc
-     *
-     * Intent tracking for OIF providers:
-     *
-     * **Open event parsing**: ✅ Fully supported via OIFOpenedIntentParser.
-     *
-     * **Fill watching**: ✅ Supported via OIF API tracking endpoint.
-     * Uses `GET /v1/orders/:orderId` to track fill status.
-     *
-     * @note EIP-7683 does NOT define a standard Fill event, so onchain tracking is not possible.
-     *       We use the solver's API endpoint instead.
-     */
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
         fillWatcherConfig: FillWatcherConfig;
     } {
         return {
-            // Use standard OIF Open event parsing (EIP-7683)
             openedIntentParserConfig: { type: "oif" },
-            // Use API-based fill tracking via solver endpoint
             fillWatcherConfig: OifProvider.getFillWatcherConfig(this.url),
         };
     }
 
-    /**
-     * Get the configuration for asset discovery
-     *
-     * OIF providers use the standard OIF asset discovery API (GET /api/tokens)
-     * as defined in OIF Spec PR 31.
-     *
-     * @see https://github.com/openintentsframework/oif-specs/pull/31
-     *
-     * @returns OIF asset discovery configuration with base URL
-     */
     override getDiscoveryConfig(): OIFAssetDiscoveryConfig {
         return {
             type: "oif" as const,

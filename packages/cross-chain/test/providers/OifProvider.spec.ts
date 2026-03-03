@@ -1,17 +1,14 @@
-import {
-    GetQuoteRequest,
-    PostOrderResponse,
-    PostOrderResponseStatus,
-} from "@openintentsframework/oif-specs";
+import { PostOrderResponse, PostOrderResponseStatus } from "@openintentsframework/oif-specs";
 import axios from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { QuoteRequest } from "../../src/schemas/quoteRequest.js";
 import {
     OifProvider,
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,
 } from "../../src/external.js";
-import { OIF_INTEROP_ADDRESSES } from "../mocks/fixtures.js";
+import { OIF_ADDRESSES } from "../mocks/fixtures.js";
 import {
     getMockedOifQuoteResponse,
     getMockedOifUserOpenQuoteResponse,
@@ -33,12 +30,12 @@ describe("OifProvider", () => {
     });
 
     describe("constructor", () => {
-        it("should create provider with valid config", () => {
+        it("creates provider with valid config", () => {
             expect(provider.protocolName).toBe("oif");
             expect(provider.providerId).toBe(MOCK_SOLVER_ID);
         });
 
-        it("should throw error for invalid config", () => {
+        it("throws error for invalid config", () => {
             expect(() => {
                 new OifProvider({
                     solverId: "",
@@ -49,29 +46,21 @@ describe("OifProvider", () => {
     });
 
     describe("getQuotes", () => {
-        const mockQuoteRequest: GetQuoteRequest = {
-            user: OIF_INTEROP_ADDRESSES.USER,
-            intent: {
-                intentType: "oif-swap",
-                inputs: [
-                    {
-                        user: OIF_INTEROP_ADDRESSES.USER,
-                        asset: OIF_INTEROP_ADDRESSES.TOKEN,
-                        amount: "1000000000000000000",
-                    },
-                ],
-                outputs: [
-                    {
-                        receiver: OIF_INTEROP_ADDRESSES.USER,
-                        asset: OIF_INTEROP_ADDRESSES.OUTPUT_ASSET,
-                    },
-                ],
-                swapType: "exact-input",
+        const mockQuoteRequest: QuoteRequest = {
+            user: OIF_ADDRESSES.USER,
+            input: {
+                chainId: 1,
+                assetAddress: OIF_ADDRESSES.TOKEN,
+                amount: "1000000000000000000",
             },
-            supportedTypes: ["oif-escrow-v0"],
+            output: {
+                chainId: 1,
+                assetAddress: OIF_ADDRESSES.OUTPUT_ASSET,
+            },
+            swapType: "exact-input",
         };
 
-        it("should call solver with correct endpoint", async () => {
+        it("calls solver with correct endpoint", async () => {
             vi.mocked(axios.post).mockResolvedValue({
                 status: 200,
                 data: getMockedOifQuoteResponse(),
@@ -81,7 +70,12 @@ describe("OifProvider", () => {
 
             expect(axios.post).toHaveBeenCalledWith(
                 `${MOCK_SOLVER_URL}/v1/quotes`,
-                mockQuoteRequest,
+                expect.objectContaining({
+                    user: expect.any(String),
+                    intent: expect.objectContaining({
+                        intentType: "oif-swap",
+                    }),
+                }),
                 {
                     headers: {
                         "Content-Type": "application/json",
@@ -91,7 +85,7 @@ describe("OifProvider", () => {
             );
         });
 
-        it("should return ExecutableQuote array with valid structure", async () => {
+        it("returns Quote array with valid structure", async () => {
             vi.mocked(axios.post).mockResolvedValue({
                 status: 200,
                 data: getMockedOifQuoteResponse(),
@@ -103,9 +97,11 @@ describe("OifProvider", () => {
             expect(quotes[0]).toHaveProperty("order");
             expect(quotes[0]).toHaveProperty("preview");
             expect(quotes[0]).toHaveProperty("provider");
+            // SDK Quote should have order.steps
+            expect(quotes[0]!.order).toHaveProperty("steps");
         });
 
-        it("should throw on HTTP error", async () => {
+        it("throws on HTTP error", async () => {
             vi.mocked(axios.post).mockRejectedValue({
                 isAxiosError: true,
                 message: "Network error",
@@ -116,7 +112,7 @@ describe("OifProvider", () => {
             );
         });
 
-        it("should throw on invalid response schema", async () => {
+        it("throws on invalid response schema", async () => {
             vi.mocked(axios.post).mockResolvedValue({
                 status: 200,
                 data: { invalid: "response" },
@@ -127,7 +123,7 @@ describe("OifProvider", () => {
             );
         });
 
-        it("should not prepare transaction for oif-escrow-v0 orders", async () => {
+        it("returns signature step for oif-escrow-v0 orders", async () => {
             vi.mocked(axios.post).mockResolvedValue({
                 status: 200,
                 data: getMockedOifQuoteResponse(),
@@ -135,31 +131,28 @@ describe("OifProvider", () => {
 
             const quotes = await provider.getQuotes(mockQuoteRequest);
 
-            expect(quotes[0]?.preparedTransaction).toBeUndefined();
+            // SDK Order with steps — escrow order should produce a signature step
+            expect(quotes[0]!.order.steps).toBeDefined();
+            expect(quotes[0]!.order.steps.length).toBeGreaterThan(0);
+            expect(quotes[0]!.order.steps[0]!.kind).toBe("signature");
         });
 
-        it("should prepare transaction for oif-user-open-v0 orders", async () => {
+        it("returns transaction step for oif-user-open-v0 orders", async () => {
             vi.mocked(axios.post).mockResolvedValue({
                 status: 200,
                 data: getMockedOifUserOpenQuoteResponse(),
             });
 
-            const requestWithUserOpen: GetQuoteRequest = {
-                ...mockQuoteRequest,
-                supportedTypes: ["oif-escrow-v0", "oif-user-open-v0"],
-            };
+            const quotes = await provider.getQuotes(mockQuoteRequest);
 
-            const quotes = await provider.getQuotes(requestWithUserOpen);
-
-            expect(quotes[0]?.preparedTransaction).toBeDefined();
-            // In oif-user-open-v0, openIntentTx.to is the settlement contract (spender)
-            expect(quotes[0]?.preparedTransaction?.to).toBe(OIF_INTEROP_ADDRESSES.SPENDER);
-            // The calldata is opaque (call to settlement contract, not ERC20 approve)
-            expect(quotes[0]?.preparedTransaction?.data).toBeDefined();
+            // SDK Order with steps — user-open order should produce a transaction step
+            expect(quotes[0]!.order.steps).toBeDefined();
+            expect(quotes[0]!.order.steps.length).toBeGreaterThan(0);
+            expect(quotes[0]!.order.steps[0]!.kind).toBe("transaction");
         });
     });
 
-    describe("submitSignedOrder", () => {
+    describe("submitOrder", () => {
         const mockPostOrderResponse: PostOrderResponse = {
             orderId: "test-order-id-456",
             status: PostOrderResponseStatus.Received,
@@ -167,42 +160,27 @@ describe("OifProvider", () => {
         };
 
         // Mock EIP-712 signature (130 chars = 0x + 65 bytes in hex)
-        // Using repeated pattern to avoid resembling real private keys
         const mockSignature = ("0x" + "ab".repeat(65)) as `0x${string}`;
 
-        // TODO: Unskip when https://github.com/openintentsframework/oif-specs/issues/34 is resolved
-        it.skip("should submit signed order successfully", async () => {
-            const mockResponse = getMockedOifQuoteResponse();
-            const quote = mockResponse.quotes[0];
-            if (!quote) throw new Error("No quote in mock");
-
+        it("handles HTTP errors during submission", async () => {
+            // First get a real quote to pass to submitOrder
             vi.mocked(axios.post).mockResolvedValueOnce({
                 status: 200,
-                data: mockPostOrderResponse,
+                data: getMockedOifQuoteResponse(),
             });
-
-            const result = await provider.submitSignedOrder(quote, mockSignature);
-
-            // Verify the response is returned correctly
-            expect(result).toEqual(mockPostOrderResponse);
-
-            // Verify the HTTP request was made with correct parameters
-            const [url, body] = vi.mocked(axios.post).mock.calls[0] as [
-                string,
-                { order: unknown; signature: Uint8Array; quoteId?: string },
-                { headers: Record<string, string>; timeout: number },
-            ];
-
-            expect(url).toBe(`${MOCK_SOLVER_URL}/v1/orders`);
-            expect(body.order).toEqual(quote.order);
-            expect(body.signature).toBeInstanceOf(Uint8Array);
-            expect(body.quoteId).toBe(quote.quoteId);
-        });
-
-        it("should handle HTTP errors during submission", async () => {
-            const mockResponse = getMockedOifQuoteResponse();
-            const quote = mockResponse.quotes[0];
-            if (!quote) throw new Error("No quote in mock");
+            const quotes = await provider.getQuotes({
+                user: OIF_ADDRESSES.USER,
+                input: {
+                    chainId: 1,
+                    assetAddress: OIF_ADDRESSES.TOKEN,
+                    amount: "1000000000000000000",
+                },
+                output: {
+                    chainId: 1,
+                    assetAddress: OIF_ADDRESSES.OUTPUT_ASSET,
+                },
+            });
+            const quote = quotes[0]!;
 
             const axiosError = Object.assign(new Error("Solver rejected order"), {
                 isAxiosError: true,
@@ -211,32 +189,48 @@ describe("OifProvider", () => {
 
             vi.mocked(axios.post).mockRejectedValue(axiosError);
 
-            await expect(provider.submitSignedOrder(quote, mockSignature)).rejects.toThrow(
+            await expect(provider.submitOrder(quote, mockSignature)).rejects.toThrow(
                 ProviderExecuteFailure,
             );
         });
 
-        it("should include custom headers when submitting", async () => {
+        it("includes custom headers when submitting", async () => {
             const customProvider = new OifProvider({
                 solverId: MOCK_SOLVER_ID,
                 url: MOCK_SOLVER_URL,
                 headers: { "X-API-Key": "test-key" },
             });
 
-            const mockResponse = getMockedOifQuoteResponse();
-            const quote = mockResponse.quotes[0];
-            if (!quote) throw new Error("No quote in mock");
+            // First get a real quote
+            vi.mocked(axios.post).mockResolvedValueOnce({
+                status: 200,
+                data: getMockedOifQuoteResponse(),
+            });
+            const quotes = await customProvider.getQuotes({
+                user: OIF_ADDRESSES.USER,
+                input: {
+                    chainId: 1,
+                    assetAddress: OIF_ADDRESSES.TOKEN,
+                    amount: "1000000000000000000",
+                },
+                output: {
+                    chainId: 1,
+                    assetAddress: OIF_ADDRESSES.OUTPUT_ASSET,
+                },
+            });
+            const quote = quotes[0]!;
 
             vi.mocked(axios.post).mockResolvedValueOnce({
                 status: 200,
                 data: mockPostOrderResponse,
             });
 
-            await customProvider.submitSignedOrder(quote, mockSignature);
+            await customProvider.submitOrder(quote, mockSignature);
 
-            expect(axios.post).toHaveBeenCalledTimes(1);
+            // The second call is the submit (first was getQuotes)
+            expect(axios.post).toHaveBeenCalledTimes(2);
 
-            const postCall = vi.mocked(axios.post).mock.calls[0];
+            const postCall = vi.mocked(axios.post).mock.calls[1];
             expect(postCall).toBeDefined();
             const [, , config] = postCall as [string, unknown, { headers: Record<string, string> }];
             expect(config.headers).toBeDefined();

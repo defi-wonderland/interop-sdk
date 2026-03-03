@@ -156,6 +156,8 @@ describe("orderAdapter", () => {
     describe("adaptOifOrder — oif-user-open-v0", () => {
         const CONTRACT_ADDRESS = "0x1234567890123456789012345678901234567890";
         const TOKEN_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+        const USER_ADDRESS = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+        const SPENDER_ADDRESS = "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC";
 
         function createUserOpenOrder(overrides?: {
             to?: string;
@@ -189,8 +191,8 @@ describe("orderAdapter", () => {
                     allowances: overrides?.allowances ?? [
                         {
                             token: toErc7930(1, TOKEN_ADDRESS),
-                            user: "0xuser",
-                            spender: "0xspender",
+                            user: toErc7930(1, USER_ADDRESS),
+                            spender: toErc7930(1, SPENDER_ADDRESS),
                             required: "1000000",
                         },
                     ],
@@ -219,16 +221,17 @@ describe("orderAdapter", () => {
             expect(result.steps[0]!.chainId).toBe(1);
         });
 
-        it("converts allowances with ERC-7930 token addresses", () => {
+        it("converts allowances with ERC-7930 addresses", () => {
             const result = adaptOifOrder(createUserOpenOrder());
 
             expect(result.checks).toBeDefined();
             expect(result.checks!.allowances).toHaveLength(1);
-            expect(result.checks!.allowances![0]!.chainId).toBe(1);
-            expect(result.checks!.allowances![0]!.tokenAddress.toLowerCase()).toBe(
-                TOKEN_ADDRESS.toLowerCase(),
-            );
-            expect(result.checks!.allowances![0]!.required).toBe("1000000");
+            const allowance = result.checks!.allowances![0]!;
+            expect(allowance.chainId).toBe(1);
+            expect(allowance.tokenAddress.toLowerCase()).toBe(TOKEN_ADDRESS.toLowerCase());
+            expect(allowance.owner.toLowerCase()).toBe(USER_ADDRESS.toLowerCase());
+            expect(allowance.spender.toLowerCase()).toBe(SPENDER_ADDRESS.toLowerCase());
+            expect(allowance.required).toBe("1000000");
         });
 
         it("falls back to chainId 0 for non-ERC-7930 to address", () => {

@@ -19,6 +19,8 @@ export const OifProviderConfigSchema = z.object({
     headers: z.record(z.string()).optional(),
     adapterMetadata: z.record(z.unknown()).optional(),
     providerId: z.string().optional(),
+    supportedLocks: z.array(z.string()).optional(),
+    submissionModes: z.array(z.enum(["user-transaction", "gasless"])).optional(),
 });
 
 export const addressSchema = z

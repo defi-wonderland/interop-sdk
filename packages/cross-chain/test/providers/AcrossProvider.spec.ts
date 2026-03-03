@@ -1,55 +1,14 @@
 import type viem from "viem";
-import { encodeAddress } from "@wonderland/interop-addresses";
 import axios from "axios";
 import { createPublicClient, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { QuoteRequest } from "../../src/schemas/quoteRequest.js";
 import { AcrossProvider } from "../../src/external.js";
 import { getMockedAcrossApiResponse } from "../mocks/acrossApi.js";
 import { CHAIN_IDS, TEST_ADDRESSES, TEST_AMOUNTS, TESTNET_TOKENS } from "../mocks/fixtures.js";
 
 const MOCK_API_URL = "https://mocked.accross.url/api";
-
-// Build interop addresses for testnet scenario using encodeAddress
-const USER_INTEROP_ADDRESS = encodeAddress(
-    {
-        version: 1,
-        chainType: "eip155",
-        chainReference: CHAIN_IDS.SEPOLIA.toString(),
-        address: TEST_ADDRESSES.USER,
-    },
-    { format: "hex" },
-) as string;
-
-const RECEIVER_INTEROP_ADDRESS = encodeAddress(
-    {
-        version: 1,
-        chainType: "eip155",
-        chainReference: CHAIN_IDS.BASE_SEPOLIA.toString(),
-        address: TEST_ADDRESSES.RECEIVER,
-    },
-    { format: "hex" },
-) as string;
-
-const INPUT_TOKEN_INTEROP_ADDRESS = encodeAddress(
-    {
-        version: 1,
-        chainType: "eip155",
-        chainReference: CHAIN_IDS.SEPOLIA.toString(),
-        address: TESTNET_TOKENS.WETH_SEPOLIA,
-    },
-    { format: "hex" },
-) as string;
-
-const OUTPUT_TOKEN_INTEROP_ADDRESS = encodeAddress(
-    {
-        version: 1,
-        chainType: "eip155",
-        chainReference: CHAIN_IDS.BASE_SEPOLIA.toString(),
-        address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
-    },
-    { format: "hex" },
-) as string;
 
 vi.mock("axios");
 vi.mock("viem", async () => {
@@ -79,27 +38,22 @@ describe("AcrossProvider", () => {
 
     describe("getQuotes", () => {
         it("should call Across API with correct parameters", async () => {
-            await provider.getQuotes({
-                user: USER_INTEROP_ADDRESS,
-                intent: {
-                    intentType: "oif-swap",
-                    inputs: [
-                        {
-                            user: USER_INTEROP_ADDRESS,
-                            asset: INPUT_TOKEN_INTEROP_ADDRESS,
-                            amount: TEST_AMOUNTS.ONE_ETHER.toString(),
-                        },
-                    ],
-                    outputs: [
-                        {
-                            receiver: RECEIVER_INTEROP_ADDRESS,
-                            asset: OUTPUT_TOKEN_INTEROP_ADDRESS,
-                        },
-                    ],
-                    swapType: "exact-input",
+            const quoteRequest: QuoteRequest = {
+                user: TEST_ADDRESSES.USER,
+                input: {
+                    chainId: CHAIN_IDS.SEPOLIA,
+                    assetAddress: TESTNET_TOKENS.WETH_SEPOLIA,
+                    amount: TEST_AMOUNTS.ONE_ETHER.toString(),
                 },
-                supportedTypes: ["across"],
-            });
+                output: {
+                    chainId: CHAIN_IDS.BASE_SEPOLIA,
+                    assetAddress: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                    recipient: TEST_ADDRESSES.RECEIVER,
+                },
+                swapType: "exact-input",
+            };
+
+            await provider.getQuotes(quoteRequest);
 
             expect(axios.get).toHaveBeenCalledWith(`${MOCK_API_URL}/swap/approval`, {
                 params: {
@@ -116,27 +70,22 @@ describe("AcrossProvider", () => {
         });
 
         it("should handle exact-output swap type", async () => {
-            await provider.getQuotes({
-                user: USER_INTEROP_ADDRESS,
-                intent: {
-                    intentType: "oif-swap",
-                    inputs: [
-                        {
-                            user: USER_INTEROP_ADDRESS,
-                            asset: INPUT_TOKEN_INTEROP_ADDRESS,
-                        },
-                    ],
-                    outputs: [
-                        {
-                            receiver: RECEIVER_INTEROP_ADDRESS,
-                            asset: OUTPUT_TOKEN_INTEROP_ADDRESS,
-                            amount: TEST_AMOUNTS.ONE_ETHER.toString(),
-                        },
-                    ],
-                    swapType: "exact-output",
+            const quoteRequest: QuoteRequest = {
+                user: TEST_ADDRESSES.USER,
+                input: {
+                    chainId: CHAIN_IDS.SEPOLIA,
+                    assetAddress: TESTNET_TOKENS.WETH_SEPOLIA,
                 },
-                supportedTypes: ["across"],
-            });
+                output: {
+                    chainId: CHAIN_IDS.BASE_SEPOLIA,
+                    assetAddress: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                    amount: TEST_AMOUNTS.ONE_ETHER.toString(),
+                    recipient: TEST_ADDRESSES.RECEIVER,
+                },
+                swapType: "exact-output",
+            };
+
+            await provider.getQuotes(quoteRequest);
 
             expect(axios.get).toHaveBeenCalledWith(`${MOCK_API_URL}/swap/approval`, {
                 params: {

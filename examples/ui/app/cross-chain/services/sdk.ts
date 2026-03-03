@@ -1,7 +1,7 @@
 import {
   PROTOCOLS,
   createCrossChainProvider,
-  createProviderExecutor,
+  createAggregator,
   OrderTrackerFactory,
   type CrossChainProvider,
 } from '@wonderland/interop-cross-chain';
@@ -54,7 +54,7 @@ const trackerFactory = new OrderTrackerFactory({ rpcUrls: RPC_URLS });
  * - Handles intent tracking for any provider via track() method
  * - Asset discovery via discoverAssets() / getProvidersForRoute()
  */
-export const crossChainExecutor = createProviderExecutor({
+export const crossChainExecutor = createAggregator({
   providers,
   trackerFactory,
 });
