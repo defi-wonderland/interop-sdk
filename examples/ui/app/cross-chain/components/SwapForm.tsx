@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { isNativeAddress } from '@wonderland/interop-cross-chain';
 import { formatUnits, parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
+import { MINT_AMOUNT, useMintToken } from '../hooks/useMintToken';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { useRouteSelection } from '../hooks/useRouteSelection';
 import { useBalanceStore, type TokenBalance } from '../stores/balanceStore';
@@ -152,6 +153,12 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     !isDisabled &&
     !hasInsufficientBalance;
 
+  const isMintable = inputTokenInfo?.providers?.includes('oif') ?? false;
+  const { mint, isLoading: isMinting } = useMintToken(inputChainId, inputTokenAddress, inputTokenInfo?.decimals ?? 6);
+  const showMintButton = isMintable && isConnected;
+  const tokenSymbol = inputTokenInfo?.symbol ?? '';
+  const mintLabel = isMinting ? 'Minting...' : `Mint ${MINT_AMOUNT} ${tokenSymbol}`;
+
   const getButtonText = () => {
     if (!isConnected) return 'Connect Wallet';
     if (isLoading) return 'Fetching Quotes...';
@@ -248,14 +255,28 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
 
         <div>
           <div className='flex items-center justify-between mb-2'>
-            <label htmlFor='amount-input' className='text-sm font-medium text-text-secondary'>
-              Amount
-            </label>
+            <div className='flex items-center gap-3'>
+              <label htmlFor='amount-input' className='text-sm font-medium text-text-secondary'>
+                Amount
+              </label>
+              {showMintButton && (
+                <button
+                  type='button'
+                  onClick={mint}
+                  disabled={isMinting || isDisabled}
+                  data-testid='mint-button'
+                  className='text-xs text-accent hover:text-accent-hover font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  {mintLabel}
+                </button>
+              )}
+            </div>
             {tokenBalance && (
               <button
                 type='button'
                 onClick={handleMaxClick}
                 disabled={isDisabled}
+                data-testid='max-balance-button'
                 className='text-xs text-accent hover:text-accent-hover font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
               >
                 Max: {tokenBalance.formatted}

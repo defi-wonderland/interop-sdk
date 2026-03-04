@@ -37,6 +37,9 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
 
+            - name: Install Foundry
+              uses: foundry-rs/foundry-toolchain@v1
+
             - name: Install Playwright Browsers
               run: pnpm exec playwright install chromium --with-deps
 
@@ -44,6 +47,8 @@ jobs:
               run: pnpm exec playwright test
               env:
                   NEXT_PUBLIC_E2E: "true"
+                  NEXT_PUBLIC_ANVIL_URL: "http://127.0.0.1:8545"
+                  NEXT_PUBLIC_ANVIL_CHAIN_ID: "84532"
                   MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
 
             - uses: actions/upload-artifact@v4
