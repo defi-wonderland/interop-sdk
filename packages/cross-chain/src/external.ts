@@ -49,4 +49,7 @@ export {
     adaptQuoteRequest,
     adaptOifOrder,
     adaptQuote,
+    // SDK schema types
+    type ExecutableQuote,
+    type QuoteRequest,
 } from "./internal.js";
