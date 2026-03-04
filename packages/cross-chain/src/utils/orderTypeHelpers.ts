@@ -5,11 +5,9 @@ import type {
     Order,
 } from "@openintentsframework/oif-specs";
 
-import type { AcrossOrder } from "../interfaces/quotes.interface.js";
-
 export type SignableOifOrder = OifEscrowOrder | Oif3009Order | OifResourceLockOrder;
 
-export function isSignableOifOrder(order: Order | AcrossOrder): order is SignableOifOrder {
+export function isSignableOifOrder(order: Order): order is SignableOifOrder {
     return (
         order.type === "oif-escrow-v0" ||
         order.type === "oif-3009-v0" ||
