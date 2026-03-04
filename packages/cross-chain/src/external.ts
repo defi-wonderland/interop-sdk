@@ -1,21 +1,23 @@
-export * from "./errors/index.js";
-export * from "./interfaces/index.js";
-export * from "./types/index.js";
-export * from "./sorting_strategies/index.js";
-export * from "./constants/chains.js";
-export * from "./constants/tokens.js";
-export { PERMIT2_TYPES, EIP3009_TYPES } from "./constants/openIntentFramework.js";
+export * from "./core/errors/index.js";
+export * from "./core/interfaces/index.js";
+export * from "./core/types/index.js";
+export * from "./core/sorting_strategies/index.js";
+export * from "./core/constants/chains.js";
+export * from "./core/constants/tokens.js";
+export { PERMIT2_TYPES, EIP3009_TYPES } from "./protocols/oif/constants.js";
 
 export {
+    // Protocol registry
+    PROTOCOLS,
+    type SupportedProtocols,
+    type SupportedProtocolsConfigs,
     // Providers
     AcrossProvider,
     OifProvider,
     createCrossChainProvider,
-    // Aggregator (new) + deprecated aliases
+    // Aggregator
     Aggregator,
     createAggregator,
-    createProviderExecutor,
-    ProviderExecutor,
     // Tracking
     createOrderTracker,
     OrderTracker,
@@ -45,4 +47,7 @@ export {
     adaptQuoteRequest,
     adaptOifOrder,
     adaptQuote,
+    // SDK schema types
+    type ExecutableQuote,
+    type QuoteRequest,
 } from "./internal.js";

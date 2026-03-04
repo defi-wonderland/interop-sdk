@@ -2,9 +2,9 @@ import type { Address } from "viem";
 import { encodeAddress } from "@wonderland/interop-addresses";
 import { describe, expect, it } from "vitest";
 
-import type { AdaptOptions } from "../../src/adapters/quoteRequestAdapter.js";
-import type { QuoteRequest } from "../../src/schemas/quoteRequest.js";
-import { adaptQuoteRequest } from "../../src/adapters/quoteRequestAdapter.js";
+import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
+import type { AdaptOptions } from "../../src/protocols/oif/adapters/quoteRequestAdapter.js";
+import { adaptQuoteRequest } from "../../src/protocols/oif/adapters/quoteRequestAdapter.js";
 
 const USER_ADDRESS = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8" as Address;
 const INPUT_TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as Address;

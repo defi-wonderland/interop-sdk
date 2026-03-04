@@ -1,7 +1,7 @@
 import { Hex } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { bytes32ToAddress } from "../../src/utils/addressHelpers.js";
+import { bytes32ToAddress } from "../../src/core/utils/addressHelpers.js";
 
 describe("addressHelpers", () => {
     describe("bytes32ToAddress", () => {
