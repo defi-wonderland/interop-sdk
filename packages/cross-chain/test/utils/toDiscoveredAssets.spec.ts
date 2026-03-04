@@ -4,8 +4,11 @@ import type {
     AssetDiscoveryResult,
     AssetInfo,
     NetworkAssets,
-} from "../../src/types/assetDiscovery.js";
-import { mergeDiscoveredAssets, toDiscoveredAssets } from "../../src/utils/toDiscoveredAssets.js";
+} from "../../src/core/types/assetDiscovery.js";
+import {
+    mergeDiscoveredAssets,
+    toDiscoveredAssets,
+} from "../../src/core/utils/toDiscoveredAssets.js";
 
 const USDC_ETH = "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const WETH_ETH = "0x000100000101C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";

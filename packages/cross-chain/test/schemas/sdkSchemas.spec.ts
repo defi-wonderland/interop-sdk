@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { InteropAccountIdSchema } from "../../src/schemas/interopAccountId.js";
-import { OrderSchema, StepSchema } from "../../src/schemas/order.js";
-import { QuoteSchema } from "../../src/schemas/quote.js";
-import { QuoteRequestSchema } from "../../src/schemas/quoteRequest.js";
+import { InteropAccountIdSchema } from "../../src/core/schemas/interopAccountId.js";
+import { OrderSchema, StepSchema } from "../../src/core/schemas/order.js";
+import { QuoteSchema } from "../../src/core/schemas/quote.js";
+import { QuoteRequestSchema } from "../../src/core/schemas/quoteRequest.js";
 
 describe("InteropAccountIdSchema", () => {
     it("accepts valid account ID", () => {

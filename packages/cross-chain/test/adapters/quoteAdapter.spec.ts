@@ -1,8 +1,8 @@
 import { encodeAddress } from "@wonderland/interop-addresses";
 import { describe, expect, it } from "vitest";
 
-import type { ProviderQuote } from "../../src/interfaces/quotes.interface.js";
-import { adaptQuote } from "../../src/adapters/quoteAdapter.js";
+import type { ProviderQuote } from "../../src/core/interfaces/quotes.interface.js";
+import { adaptQuote } from "../../src/protocols/oif/adapters/quoteAdapter.js";
 
 function toErc7930(chainId: number, address: string): string {
     return encodeAddress(
