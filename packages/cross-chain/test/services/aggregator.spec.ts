@@ -5,10 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     AcrossProvider,
-    createProviderExecutor,
+    Aggregator,
+    createAggregator,
     OrderTracker,
     OrderTrackerFactory,
-    ProviderExecutor,
 } from "../../src/external.js";
 import {
     CrossChainProvider,
@@ -137,7 +137,7 @@ const mockProviderB = {
     getQuotes: vi.fn(() => Promise.resolve([mockExecutableQuoteB])),
 } as unknown as CrossChainProvider;
 
-describe("ProviderExecutor", () => {
+describe("Aggregator", () => {
     const mockGetQuoteRequest: GetQuoteRequest = {
         user: USER_INTEROP_ADDRESS,
         intent: {
@@ -164,22 +164,22 @@ describe("ProviderExecutor", () => {
         vi.clearAllMocks();
     });
 
-    describe("createProviderExecutor", () => {
+    describe("createAggregator", () => {
         it("create a provider executor", () => {
-            const providerExecutor = createProviderExecutor({
+            const aggregator = createAggregator({
                 providers: [mockProviderA, mockProviderB],
             });
-            expect(providerExecutor).toBeDefined();
-            expect(providerExecutor).toBeInstanceOf(ProviderExecutor);
+            expect(aggregator).toBeDefined();
+            expect(aggregator).toBeInstanceOf(Aggregator);
         });
 
         it("contains the providers in the executor", () => {
-            const providerExecutor = createProviderExecutor({
+            const aggregator = createAggregator({
                 providers: [mockProviderA, mockProviderB],
             });
             expect(
                 (
-                    providerExecutor as unknown as {
+                    aggregator as unknown as {
                         providers: Record<string, CrossChainProvider>;
                     }
                 ).providers,
@@ -192,10 +192,10 @@ describe("ProviderExecutor", () => {
 
     describe("getQuotes", () => {
         it("return a list of quotes", async () => {
-            const providerExecutor = createProviderExecutor({
+            const aggregator = createAggregator({
                 providers: [mockProviderA, mockProviderB],
             });
-            const { quotes } = await providerExecutor.getQuotes(mockGetQuoteRequest);
+            const { quotes } = await aggregator.getQuotes(mockGetQuoteRequest);
 
             expect(quotes).toHaveLength(2);
         });
@@ -204,10 +204,10 @@ describe("ProviderExecutor", () => {
             vi.mocked(mockProviderA.getQuotes).mockRejectedValue(
                 new ProviderGetQuoteFailure("Mocked Error A"),
             );
-            const providerExecutor = createProviderExecutor({
+            const aggregator = createAggregator({
                 providers: [mockProviderA, mockProviderB],
             });
-            const { quotes, errors } = await providerExecutor.getQuotes(mockGetQuoteRequest);
+            const { quotes, errors } = await aggregator.getQuotes(mockGetQuoteRequest);
 
             expect(quotes).toHaveLength(1);
             expect(errors).toHaveLength(1);
@@ -216,10 +216,10 @@ describe("ProviderExecutor", () => {
         });
 
         it("call to getQuotes for each provider", async () => {
-            const providerExecutor = createProviderExecutor({
+            const aggregator = createAggregator({
                 providers: [mockProviderA, mockProviderB],
             });
-            await providerExecutor.getQuotes(mockGetQuoteRequest);
+            await aggregator.getQuotes(mockGetQuoteRequest);
 
             expect(mockProviderA.getQuotes).toHaveBeenCalledWith(mockGetQuoteRequest);
             expect(mockProviderB.getQuotes).toHaveBeenCalledWith(mockGetQuoteRequest);
@@ -232,13 +232,13 @@ describe("ProviderExecutor", () => {
 
         describe("getOrderStatus", () => {
             it("returns order status for a given transaction", async () => {
-                const providerExecutor = createProviderExecutor({
+                const aggregator = createAggregator({
                     providers: [
                         new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
                     ],
                 });
 
-                const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+                const tracker = aggregator.prepareTracking(MOCK_PROVIDER_ID);
                 const getOrderStatusSpy = vi.spyOn(tracker, "getOrderStatus");
 
                 const mockFillEvent = createMockFillEvent({
@@ -259,7 +259,7 @@ describe("ProviderExecutor", () => {
 
                 getOrderStatusSpy.mockResolvedValue(mockStatus);
 
-                const result = await providerExecutor.getOrderStatus({
+                const result = await aggregator.getOrderStatus({
                     txHash: "0xdef456" as Hex,
                     providerId: MOCK_PROVIDER_ID,
                     originChainId: 11155111,
@@ -270,14 +270,14 @@ describe("ProviderExecutor", () => {
             });
 
             it("throws error for unsupported provider", async () => {
-                const providerExecutor = createProviderExecutor({
+                const aggregator = createAggregator({
                     providers: [
                         new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
                     ],
                 });
 
                 await expect(
-                    providerExecutor.getOrderStatus({
+                    aggregator.getOrderStatus({
                         txHash: "0xabc123" as Hex,
                         providerId: "unsupported",
                         originChainId: 11155111,
@@ -286,13 +286,13 @@ describe("ProviderExecutor", () => {
             });
 
             it("uses cached tracker instance", async () => {
-                const providerExecutor = createProviderExecutor({
+                const aggregator = createAggregator({
                     providers: [
                         new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
                     ],
                 });
 
-                const tracker1 = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+                const tracker1 = aggregator.prepareTracking(MOCK_PROVIDER_ID);
                 const getOrderStatusSpy = vi.spyOn(tracker1, "getOrderStatus").mockResolvedValue({
                     status: OrderStatus.Pending,
                     orderId: "0xorder1" as Hex,
@@ -306,7 +306,7 @@ describe("ProviderExecutor", () => {
                     fillInstructions: [],
                 });
 
-                await providerExecutor.getOrderStatus({
+                await aggregator.getOrderStatus({
                     txHash: "0xtx1" as Hex,
                     providerId: MOCK_PROVIDER_ID,
                     originChainId: 11155111,
@@ -318,26 +318,26 @@ describe("ProviderExecutor", () => {
 
         describe("prepareTracking", () => {
             it("returns an OrderTracker instance", () => {
-                const providerExecutor = createProviderExecutor({
+                const aggregator = createAggregator({
                     providers: [
                         new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
                     ],
                 });
 
-                const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+                const tracker = aggregator.prepareTracking(MOCK_PROVIDER_ID);
 
                 expect(tracker).toBeInstanceOf(OrderTracker);
             });
 
             it("caches tracker instances per provider", () => {
-                const providerExecutor = createProviderExecutor({
+                const aggregator = createAggregator({
                     providers: [
                         new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
                     ],
                 });
 
-                const tracker1 = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
-                const tracker2 = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+                const tracker1 = aggregator.prepareTracking(MOCK_PROVIDER_ID);
+                const tracker2 = aggregator.prepareTracking(MOCK_PROVIDER_ID);
 
                 expect(tracker1).toBe(tracker2);
             });
@@ -345,13 +345,13 @@ describe("ProviderExecutor", () => {
 
         describe("track", () => {
             it("returns an OrderTracker instance", () => {
-                const providerExecutor = createProviderExecutor({
+                const aggregator = createAggregator({
                     providers: [
                         new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
                     ],
                 });
 
-                const tracker = providerExecutor.track({
+                const tracker = aggregator.track({
                     txHash: "0xabc123" as Hex,
                     providerId: MOCK_PROVIDER_ID,
                     originChainId: 11155111,
@@ -362,20 +362,20 @@ describe("ProviderExecutor", () => {
             });
 
             it("uses cached tracker for same provider", () => {
-                const providerExecutor = createProviderExecutor({
+                const aggregator = createAggregator({
                     providers: [
                         new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
                     ],
                 });
 
-                const tracker1 = providerExecutor.track({
+                const tracker1 = aggregator.track({
                     txHash: "0xabc123" as Hex,
                     providerId: MOCK_PROVIDER_ID,
                     originChainId: 11155111,
                     destinationChainId: 84532,
                 });
 
-                const tracker2 = providerExecutor.track({
+                const tracker2 = aggregator.track({
                     txHash: "0xdef456" as Hex,
                     providerId: MOCK_PROVIDER_ID,
                     originChainId: 11155111,
@@ -386,14 +386,14 @@ describe("ProviderExecutor", () => {
             });
 
             it("throws error for unsupported provider", () => {
-                const providerExecutor = createProviderExecutor({
+                const aggregator = createAggregator({
                     providers: [
                         new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
                     ],
                 });
 
                 expect(() => {
-                    providerExecutor.track({
+                    aggregator.track({
                         txHash: "0xabc123" as Hex,
                         providerId: "unsupported",
                         originChainId: 11155111,
@@ -418,12 +418,12 @@ describe("ProviderExecutor", () => {
                 });
                 const createTrackerSpy = vi.spyOn(customFactory, "createTracker");
 
-                const providerExecutor = createProviderExecutor({
+                const aggregator = createAggregator({
                     providers: [provider],
                     trackerFactory: customFactory,
                 });
 
-                const tracker = providerExecutor.prepareTracking(MOCK_PROVIDER_ID);
+                const tracker = aggregator.prepareTracking(MOCK_PROVIDER_ID);
 
                 expect(tracker).toBeInstanceOf(OrderTracker);
                 expect(createTrackerSpy).toHaveBeenCalledOnce();
@@ -449,14 +449,14 @@ describe("ProviderExecutor", () => {
                     providerId: "across-b",
                 });
 
-                const providerExecutor = createProviderExecutor({
+                const aggregator = createAggregator({
                     providers: [providerA, providerB],
                     trackerFactory: customFactory,
                 });
 
-                const tracker1 = providerExecutor.prepareTracking("across-a");
-                const tracker2 = providerExecutor.prepareTracking("across-a");
-                providerExecutor.prepareTracking("across-b");
+                const tracker1 = aggregator.prepareTracking("across-a");
+                const tracker2 = aggregator.prepareTracking("across-a");
+                aggregator.prepareTracking("across-b");
 
                 expect(createTrackerSpy).toHaveBeenCalledTimes(2);
                 expect(createTrackerSpy).toHaveBeenCalledWith(providerA);

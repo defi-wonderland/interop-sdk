@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createProviderExecutor, CrossChainProvider } from "../../src/internal.js";
+import { createAggregator, CrossChainProvider } from "../../src/internal.js";
 
 // EIP-7930 test addresses
 const USDC_ETH = "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
@@ -23,7 +23,7 @@ function createMockProvider(
     } as unknown as CrossChainProvider;
 }
 
-describe("ProviderExecutor - Asset Discovery", () => {
+describe("Aggregator - Asset Discovery", () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -57,7 +57,7 @@ describe("ProviderExecutor - Asset Discovery", () => {
                 },
             });
 
-            const executor = createProviderExecutor({
+            const executor = createAggregator({
                 providers: [providerA, providerB],
             });
 
@@ -84,7 +84,7 @@ describe("ProviderExecutor - Asset Discovery", () => {
 
             const providerB = createMockProvider("no-discovery", null);
 
-            const executor = createProviderExecutor({
+            const executor = createAggregator({
                 providers: [providerA, providerB],
             });
 
@@ -98,7 +98,7 @@ describe("ProviderExecutor - Asset Discovery", () => {
             const providerA = createMockProvider("no-discovery-a", null);
             const providerB = createMockProvider("no-discovery-b", null);
 
-            const executor = createProviderExecutor({
+            const executor = createAggregator({
                 providers: [providerA, providerB],
             });
 
@@ -126,7 +126,7 @@ describe("ProviderExecutor - Asset Discovery", () => {
                 config: { networks: [] },
             });
 
-            const executor = createProviderExecutor({
+            const executor = createAggregator({
                 providers: [providerA, providerB],
             });
 
@@ -163,7 +163,7 @@ describe("ProviderExecutor - Asset Discovery", () => {
                 },
             });
 
-            const executor = createProviderExecutor({
+            const executor = createAggregator({
                 providers: [provider],
             });
 
@@ -192,7 +192,7 @@ describe("ProviderExecutor - Asset Discovery", () => {
                 },
             });
 
-            const executor = createProviderExecutor({
+            const executor = createAggregator({
                 providers: [provider],
             });
 
@@ -217,7 +217,7 @@ describe("ProviderExecutor - Asset Discovery", () => {
                 },
             });
 
-            const executor = createProviderExecutor({
+            const executor = createAggregator({
                 providers: [provider],
             });
 
@@ -242,7 +242,7 @@ describe("ProviderExecutor - Asset Discovery", () => {
                 },
             });
 
-            const executor = createProviderExecutor({
+            const executor = createAggregator({
                 providers: [provider],
             });
 
@@ -279,7 +279,7 @@ describe("ProviderExecutor - Asset Discovery", () => {
                 },
             });
 
-            const executor = createProviderExecutor({
+            const executor = createAggregator({
                 providers: [providerA, providerB],
             });
 
@@ -326,7 +326,7 @@ describe("ProviderExecutor - Asset Discovery", () => {
                 },
             });
 
-            const executor = createProviderExecutor({
+            const executor = createAggregator({
                 providers: [providerA, providerB],
             });
 

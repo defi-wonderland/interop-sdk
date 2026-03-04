@@ -15,9 +15,6 @@ import type {
     RouteQuery,
 } from "../types/assetDiscovery.js";
 import type { OrderTrackingInfo, WatchOrderParams } from "../types/orderTracking.js";
-// Default factory imports via the internal barrel (cross-layer access).
-// Only used by createAggregator() when callers don't provide explicit factories.
-import { AssetDiscoveryFactory, OrderTrackerFactory } from "../../internal.js";
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import { ProviderNotFound } from "../errors/ProviderNotFound.exception.js";
 import { ProviderTimeout } from "../errors/ProviderTimeout.exception.js";
@@ -46,7 +43,7 @@ const getDefaultSortingStrategy = (): SortingStrategy => new BestOutputStrategy(
 /**
  * Aggregates quotes from multiple providers and manages order execution and tracking.
  *
- * Replaces the former ProviderExecutor with SDK-native types.
+ * Uses SDK-native types throughout.
  */
 class Aggregator {
     private readonly providers: Record<string, CrossChainProvider>;
@@ -339,22 +336,5 @@ class Aggregator {
     }
 }
 
-/**
- * Create an aggregator with default factories.
- *
- * When `trackerFactory` or `discoveryFactory` are not provided, the defaults
- * (OrderTrackerFactory, AssetDiscoveryFactory) are created automatically.
- *
- * @param config - Configuration including providers, sorting strategy, timeout, and optional factories
- * @returns The aggregator instance
- */
-const createAggregator = (config: AggregatorConfig): Aggregator => {
-    return new Aggregator({
-        ...config,
-        trackerFactory: config.trackerFactory ?? new OrderTrackerFactory(),
-        discoveryFactory: config.discoveryFactory ?? new AssetDiscoveryFactory(),
-    });
-};
-
-export { Aggregator, createAggregator };
+export { Aggregator };
 export type { AggregatorConfig };

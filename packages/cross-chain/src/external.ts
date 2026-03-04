@@ -15,11 +15,9 @@ export {
     AcrossProvider,
     OifProvider,
     createCrossChainProvider,
-    // Aggregator (new) + deprecated aliases
+    // Aggregator
     Aggregator,
     createAggregator,
-    createProviderExecutor,
-    ProviderExecutor,
     // Tracking
     createOrderTracker,
     OrderTracker,

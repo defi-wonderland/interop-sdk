@@ -67,11 +67,11 @@ export function toDiscoveredAssets(
 /**
  * Merge multiple DiscoveredAssets into a single structure.
  *
- * Used by ProviderExecutor to combine results from multiple providers.
+ * Used by Aggregator to combine results from multiple providers.
  * Deduplicates tokens by address; merges `providers` arrays (first-write-wins
  * for symbol/decimals, union for providers).
  *
- * @internal Used by ProviderExecutor - not exported publicly
+ * @internal Used by Aggregator - not exported publicly
  * @param sources - Array of DiscoveredAssets to merge
  */
 export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAssets {
