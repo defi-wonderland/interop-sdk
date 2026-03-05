@@ -184,7 +184,7 @@ export const RelayQuoteResponseSchema = z.object({
     steps: z.array(RelayQuoteStepSchema).min(1),
     fees: RelayFeesSchema,
     details: RelayDetailsSchema,
-    protocol: z.object({ v2: RelayProtocolV2Schema.optional() }),
+    protocol: z.object({ v2: RelayProtocolV2Schema.optional() }).optional(),
 });
 
 // ── Relay Error Responses ──────────────────────────────

@@ -261,9 +261,10 @@ describe("RelayQuoteResponseSchema", () => {
         expect(() => RelayQuoteResponseSchema.parse(noDetails)).toThrow(ZodError);
     });
 
-    it("should reject a response without required protocol", () => {
+    it("should accept a response without protocol (same-chain swaps)", () => {
         const { protocol: _, ...noProtocol } = buildQuoteResponse();
-        expect(() => RelayQuoteResponseSchema.parse(noProtocol)).toThrow(ZodError);
+        const result = RelayQuoteResponseSchema.parse(noProtocol);
+        expect(result.protocol).toBeUndefined();
     });
 
     it("should reject an invalid address format in step item data", () => {
