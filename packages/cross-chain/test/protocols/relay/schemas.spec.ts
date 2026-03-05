@@ -201,13 +201,13 @@ function buildQuoteResponse(overrides?: Record<string, unknown>): Record<string,
 // ── Quote Response Tests ─────────────────────────────────
 
 describe("RelayQuoteResponseSchema", () => {
-    it("should accept a valid quote response", () => {
+    it("accepts a valid quote response", () => {
         const result = RelayQuoteResponseSchema.parse(buildQuoteResponse());
         expect(result.steps).toHaveLength(1);
         expect(result.steps[0]!.requestId).toBe(REQUEST_ID);
     });
 
-    it("should accept a full response with all optional fields", () => {
+    it("accepts a full response with all optional fields", () => {
         const response = buildQuoteResponse({
             fees: {
                 gas: buildFee(GAS_FEE_AMOUNT, GAS_FEE_USD),
@@ -237,7 +237,7 @@ describe("RelayQuoteResponseSchema", () => {
         expect(result.protocol.v2.orderId).toBe(ORDER_ID);
     });
 
-    it("should accept a step with depositAddress", () => {
+    it("accepts a step with depositAddress", () => {
         const response = buildQuoteResponse({
             steps: [buildStep({ depositAddress: DEPOSIT_ADDRESS })],
         });
@@ -245,29 +245,29 @@ describe("RelayQuoteResponseSchema", () => {
         expect(result.steps[0]!.depositAddress).toBe(DEPOSIT_ADDRESS);
     });
 
-    it("should reject a response with empty steps", () => {
+    it("rejects a response with empty steps", () => {
         expect(() => RelayQuoteResponseSchema.parse(buildQuoteResponse({ steps: [] }))).toThrow(
             ZodError,
         );
     });
 
-    it("should reject a response without required fees", () => {
+    it("rejects a response without required fees", () => {
         const { fees: _, ...noFees } = buildQuoteResponse();
         expect(() => RelayQuoteResponseSchema.parse(noFees)).toThrow(ZodError);
     });
 
-    it("should reject a response without required details", () => {
+    it("rejects a response without required details", () => {
         const { details: _, ...noDetails } = buildQuoteResponse();
         expect(() => RelayQuoteResponseSchema.parse(noDetails)).toThrow(ZodError);
     });
 
-    it("should accept a response without protocol (same-chain swaps)", () => {
+    it("accepts a response without protocol (same-chain swaps)", () => {
         const { protocol: _, ...noProtocol } = buildQuoteResponse();
         const result = RelayQuoteResponseSchema.parse(noProtocol);
         expect(result.protocol).toBeUndefined();
     });
 
-    it("should reject an invalid address format in step item data", () => {
+    it("rejects an invalid address format in step item data", () => {
         const response = buildQuoteResponse({
             steps: [
                 buildStep({
@@ -282,7 +282,7 @@ describe("RelayQuoteResponseSchema", () => {
         expect(() => RelayQuoteResponseSchema.parse(response)).toThrow(ZodError);
     });
 
-    it("should reject a step with missing requestId", () => {
+    it("rejects a step with missing requestId", () => {
         const step = buildStep();
         const { requestId: _, ...stepWithoutId } = step;
         expect(() =>
@@ -290,7 +290,7 @@ describe("RelayQuoteResponseSchema", () => {
         ).toThrow(ZodError);
     });
 
-    it("should accept a step with kind 'signature'", () => {
+    it("accepts a step with kind 'signature'", () => {
         const response = buildQuoteResponse({
             steps: [buildStep({ kind: "signature" })],
         });
@@ -298,7 +298,7 @@ describe("RelayQuoteResponseSchema", () => {
         expect(result.steps[0]!.kind).toBe("signature");
     });
 
-    it("should accept a step item with status 'complete'", () => {
+    it("accepts a step item with status 'complete'", () => {
         const response = buildQuoteResponse({
             steps: [buildStep({ items: [buildStepItem({ status: "complete" })] })],
         });
@@ -306,14 +306,14 @@ describe("RelayQuoteResponseSchema", () => {
         expect(result.steps[0]!.items[0]!.status).toBe("complete");
     });
 
-    it("should strip unknown fields from response", () => {
+    it("strips unknown fields from response", () => {
         const result = RelayQuoteResponseSchema.parse(
             buildQuoteResponse({ unknownTopLevel: "stripped" }),
         );
         expect(result).not.toHaveProperty("unknownTopLevel");
     });
 
-    it("should reject a step with empty items array", () => {
+    it("rejects a step with empty items array", () => {
         expect(() =>
             RelayQuoteResponseSchema.parse(
                 buildQuoteResponse({ steps: [buildStep({ items: [] })] }),
@@ -321,7 +321,7 @@ describe("RelayQuoteResponseSchema", () => {
         ).toThrow(ZodError);
     });
 
-    it("should reject an invalid step kind", () => {
+    it("rejects an invalid step kind", () => {
         expect(() =>
             RelayQuoteResponseSchema.parse(
                 buildQuoteResponse({ steps: [buildStep({ kind: "unknown-kind" })] }),
@@ -329,7 +329,7 @@ describe("RelayQuoteResponseSchema", () => {
         ).toThrow(ZodError);
     });
 
-    it("should reject an invalid step item status", () => {
+    it("rejects an invalid step item status", () => {
         expect(() =>
             RelayQuoteResponseSchema.parse(
                 buildQuoteResponse({
@@ -344,14 +344,14 @@ describe("RelayQuoteResponseSchema", () => {
 
 describe("RelayIntentStatusResponseSchema", () => {
     it.each(["waiting", "pending", "submitted", "success", "failure", "refund"] as const)(
-        "should accept status '%s'",
+        "accepts status '%s'",
         (status) => {
             const result = RelayIntentStatusResponseSchema.parse({ status });
             expect(result.status).toBe(status);
         },
     );
 
-    it("should accept a full status response with all fields", () => {
+    it("accepts a full status response with all fields", () => {
         const result = RelayIntentStatusResponseSchema.parse({
             status: "success",
             details: SAMPLE_STATUS_DETAILS,
@@ -366,7 +366,7 @@ describe("RelayIntentStatusResponseSchema", () => {
         expect(result.txHashes).toEqual([SAMPLE_OUT_TX_HASH]);
     });
 
-    it("should reject an invalid status value", () => {
+    it("rejects an invalid status value", () => {
         expect(() => RelayIntentStatusResponseSchema.parse({ status: "invalid" })).toThrow(
             ZodError,
         );
@@ -376,7 +376,7 @@ describe("RelayIntentStatusResponseSchema", () => {
 // ── Error Response Tests ─────────────────────────────────
 
 describe("RelayBadRequestResponseSchema", () => {
-    it("should accept a minimal bad request response", () => {
+    it("accepts a minimal bad request response", () => {
         const result = RelayBadRequestResponseSchema.parse({
             message: SAMPLE_ERROR_MESSAGE,
             errorCode: SAMPLE_ERROR_CODE,
@@ -385,7 +385,7 @@ describe("RelayBadRequestResponseSchema", () => {
         expect(result.errorCode).toBe(SAMPLE_ERROR_CODE);
     });
 
-    it("should accept a full bad request response with failedCallData", () => {
+    it("accepts a full bad request response with failedCallData", () => {
         const result = RelayBadRequestResponseSchema.parse({
             message: SAMPLE_ERROR_MESSAGE,
             errorCode: SAMPLE_ERROR_CODE,
@@ -403,7 +403,7 @@ describe("RelayBadRequestResponseSchema", () => {
         expect(result.approxSimulatedBlock).toBe(SAMPLE_SIMULATED_BLOCK);
     });
 
-    it("should reject a response without errorCode", () => {
+    it("rejects a response without errorCode", () => {
         expect(() =>
             RelayBadRequestResponseSchema.parse({ message: SAMPLE_ERROR_MESSAGE }),
         ).toThrow(ZodError);
@@ -411,7 +411,7 @@ describe("RelayBadRequestResponseSchema", () => {
 });
 
 describe("RelayUnauthorizedResponseSchema", () => {
-    it("should accept a valid unauthorized response", () => {
+    it("accepts a valid unauthorized response", () => {
         const result = RelayUnauthorizedResponseSchema.parse({
             message: SAMPLE_ERROR_MESSAGE,
             errorCode: SAMPLE_ERROR_CODE,
@@ -419,7 +419,7 @@ describe("RelayUnauthorizedResponseSchema", () => {
         expect(result.message).toBe(SAMPLE_ERROR_MESSAGE);
     });
 
-    it("should reject a response without errorCode", () => {
+    it("rejects a response without errorCode", () => {
         expect(() =>
             RelayUnauthorizedResponseSchema.parse({ message: SAMPLE_ERROR_MESSAGE }),
         ).toThrow(ZodError);
@@ -427,20 +427,20 @@ describe("RelayUnauthorizedResponseSchema", () => {
 });
 
 describe("RelayRateLimitedResponseSchema", () => {
-    it("should accept a valid rate limited response", () => {
+    it("accepts a valid rate limited response", () => {
         const result = RelayRateLimitedResponseSchema.parse({
             message: SAMPLE_ERROR_MESSAGE,
         });
         expect(result.message).toBe(SAMPLE_ERROR_MESSAGE);
     });
 
-    it("should reject a response without message", () => {
+    it("rejects a response without message", () => {
         expect(() => RelayRateLimitedResponseSchema.parse({})).toThrow(ZodError);
     });
 });
 
 describe("RelayServerErrorResponseSchema", () => {
-    it("should accept a minimal server error response", () => {
+    it("accepts a minimal server error response", () => {
         const result = RelayServerErrorResponseSchema.parse({
             message: SAMPLE_ERROR_MESSAGE,
             errorCode: SAMPLE_ERROR_CODE,
@@ -448,7 +448,7 @@ describe("RelayServerErrorResponseSchema", () => {
         expect(result.message).toBe(SAMPLE_ERROR_MESSAGE);
     });
 
-    it("should accept a server error response with requestId", () => {
+    it("accepts a server error response with requestId", () => {
         const result = RelayServerErrorResponseSchema.parse({
             message: SAMPLE_ERROR_MESSAGE,
             errorCode: SAMPLE_ERROR_CODE,
@@ -457,7 +457,7 @@ describe("RelayServerErrorResponseSchema", () => {
         expect(result.requestId).toBe(REQUEST_ID);
     });
 
-    it("should reject a response without errorCode", () => {
+    it("rejects a response without errorCode", () => {
         expect(() =>
             RelayServerErrorResponseSchema.parse({ message: SAMPLE_ERROR_MESSAGE }),
         ).toThrow(ZodError);
