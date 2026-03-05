@@ -229,12 +229,12 @@ describe("RelayQuoteResponseSchema", () => {
 
         const result = RelayQuoteResponseSchema.parse(response);
 
-        expect(result.details.expandedPriceImpact.swap.usd).toBe(SAMPLE_PRICE_IMPACT_USD);
-        expect(result.details.slippageTolerance.origin.percent).toBe(SAMPLE_SLIPPAGE_PERCENT);
-        expect(result.details.route.origin.router).toBe(SAMPLE_ROUTER);
-        expect(result.details.refundCurrency?.amount).toBe(INPUT_AMOUNT);
-        expect(result.details.fallbackType).toBe(SAMPLE_FALLBACK_TYPE);
-        expect(result.protocol.v2.orderId).toBe(ORDER_ID);
+        expect(result.details?.expandedPriceImpact?.swap?.usd).toBe(SAMPLE_PRICE_IMPACT_USD);
+        expect(result.details?.slippageTolerance?.origin?.percent).toBe(SAMPLE_SLIPPAGE_PERCENT);
+        expect(result.details?.route?.origin?.router).toBe(SAMPLE_ROUTER);
+        expect(result.details?.refundCurrency?.amount).toBe(INPUT_AMOUNT);
+        expect(result.details?.fallbackType).toBe(SAMPLE_FALLBACK_TYPE);
+        expect(result.protocol?.v2?.orderId).toBe(ORDER_ID);
     });
 
     it("accepts a step with depositAddress", () => {
@@ -251,14 +251,16 @@ describe("RelayQuoteResponseSchema", () => {
         );
     });
 
-    it("rejects a response without required fees", () => {
+    it("accepts a response without fees", () => {
         const { fees: _, ...noFees } = buildQuoteResponse();
-        expect(() => RelayQuoteResponseSchema.parse(noFees)).toThrow(ZodError);
+        const result = RelayQuoteResponseSchema.parse(noFees);
+        expect(result.fees).toBeUndefined();
     });
 
-    it("rejects a response without required details", () => {
+    it("accepts a response without details", () => {
         const { details: _, ...noDetails } = buildQuoteResponse();
-        expect(() => RelayQuoteResponseSchema.parse(noDetails)).toThrow(ZodError);
+        const result = RelayQuoteResponseSchema.parse(noDetails);
+        expect(result.details).toBeUndefined();
     });
 
     it("accepts a response without protocol (same-chain swaps)", () => {
