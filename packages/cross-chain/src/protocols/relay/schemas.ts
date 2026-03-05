@@ -30,13 +30,7 @@ const RelayCurrencyAmountSchema = z.object({
 });
 
 /** Schema for a single fee entry. */
-const RelayFeeSchema = z.object({
-    currency: RelayCurrencySchema.optional(),
-    amount: z.string().optional(),
-    amountFormatted: z.string().optional(),
-    amountUsd: z.string().optional(),
-    minimumAmount: z.string().optional(),
-});
+const RelayFeeSchema = RelayCurrencyAmountSchema;
 
 /** Schema for transaction data inside a step item. */
 const RelayStepItemDataSchema = z.object({
@@ -56,23 +50,49 @@ const RelayStepCheckSchema = z.object({
     method: z.string(),
 });
 
-/** Schema for a single item within a step. */
-const RelayStepItemSchema = z.object({
+/** Schema for a check object inside a step item. */
+const RelayStepItemBaseSchema = z.object({
     status: z.enum(["complete", "incomplete"]),
-    data: RelayStepItemDataSchema,
     check: RelayStepCheckSchema.optional(),
 });
 
-/** Schema for a single step in a Relay quote response. */
-export const RelayQuoteStepSchema = z.object({
-    id: z.string(),
+/** Schema for a transaction step in a Relay quote response. */
+const RelayTransactionStepItemSchema = RelayStepItemBaseSchema.extend({
+    data: RelayStepItemDataSchema,
+});
+
+/** Schema for a signature step item in a Relay quote response. */
+const RelaySignatureStepItemSchema = RelayStepItemBaseSchema.extend({
+    data: z.record(z.unknown()),
+});
+
+/** Schema for a transaction step in a Relay quote response. */
+export const RelayTransactionStepSchema = z.object({
+    id: z.enum(["deposit", "approve", "authorize", "authorize1", "authorize2", "swap", "send"]),
     action: z.string(),
     description: z.string(),
-    kind: z.enum(["transaction", "signature"]),
+    kind: z.literal("transaction"),
     requestId: z.string().min(1),
     depositAddress: z.string().optional(),
-    items: z.array(RelayStepItemSchema).min(1),
+    items: z.array(RelayTransactionStepItemSchema).min(1),
 });
+
+/** Schema for a signature step in a Relay quote response. */
+export const RelaySignatureStepSchema = z.object({
+    id: z.enum(["deposit", "approve", "authorize", "authorize1", "authorize2", "swap", "send"]),
+    action: z.string(),
+    description: z.string(),
+    kind: z.literal("signature"),
+    requestId: z.string().min(1),
+    depositAddress: z.string().optional(),
+    items: z.array(RelaySignatureStepItemSchema).min(1),
+});
+
+/** Schema for a single step in a Relay quote response. */
+export const RelayQuoteStepSchema = z.discriminatedUnion("kind", [
+    RelayTransactionStepSchema,
+    RelaySignatureStepSchema,
+]);
 
 /** Schema for the fees breakdown in a quote response. */
 const RelayFeesSchema = z.object({
@@ -107,7 +127,7 @@ const RelayRouteLegSchema = z.object({
 
 /** Schema for the details object in a quote response. */
 const RelayDetailsSchema = z.object({
-    operation: z.string().optional(),
+    operation: z.enum(["send", "swap", "wrap", "unwrap", "bridge"]).optional(),
     sender: z.string().optional(),
     recipient: z.string().optional(),
     currencyIn: RelayCurrencyAmountSchema.optional(),
@@ -151,7 +171,7 @@ const RelayProtocolV2Schema = z.object({
     orderData: z.unknown().optional(),
     paymentDetails: z
         .object({
-            chainId: z.union([z.number().int().positive(), z.string()]).optional(),
+            chainId: z.string().optional(),
             depository: z.string().optional(),
             currency: z.string().optional(),
             amount: z.string().optional(),
@@ -162,9 +182,9 @@ const RelayProtocolV2Schema = z.object({
 /** Schema for the Relay POST `/quote/v2` response body. */
 export const RelayQuoteResponseSchema = z.object({
     steps: z.array(RelayQuoteStepSchema).min(1),
-    fees: RelayFeesSchema.optional(),
-    details: RelayDetailsSchema.optional(),
-    protocol: z.object({ v2: RelayProtocolV2Schema.optional() }).optional(),
+    fees: RelayFeesSchema,
+    details: RelayDetailsSchema,
+    protocol: z.object({ v2: RelayProtocolV2Schema.optional() }),
 });
 
 // ── Relay Error Responses ──────────────────────────────
@@ -172,7 +192,7 @@ export const RelayQuoteResponseSchema = z.object({
 /** Schema for the Relay 400 Bad Request response. */
 export const RelayBadRequestResponseSchema = z.object({
     message: z.string(),
-    errorCode: z.string().optional(),
+    errorCode: z.string(),
     errorData: z.string().optional(),
     requestId: z.string().optional(),
     approxSimulatedBlock: z.number().optional(),
@@ -200,7 +220,7 @@ export const RelayRateLimitedResponseSchema = z.object({
 /** Schema for the Relay 500 Server Error response. */
 export const RelayServerErrorResponseSchema = z.object({
     message: z.string(),
-    errorCode: z.string().optional(),
+    errorCode: z.string(),
     requestId: z.string().optional(),
 });
 
