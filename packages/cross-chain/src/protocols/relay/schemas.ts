@@ -45,6 +45,9 @@ const RelayStepItemDataSchema = z.object({
     data: z.string(),
     value: z.string().optional(),
     chainId: z.number().int().positive(),
+    gas: z.string().optional(),
+    maxFeePerGas: z.string().optional(),
+    maxPriorityFeePerGas: z.string().optional(),
 });
 
 /** Schema for a check object that tells the client how to poll status. */
@@ -133,7 +136,7 @@ const RelayDetailsSchema = z.object({
     userBalance: z.string().optional(),
     fallbackType: z.string().optional(),
     isFixedRate: z.boolean().optional(),
-    fixedRateFee: z.string().optional(),
+    fixedRateFee: z.object({ usd: z.string() }).optional(),
     route: z
         .object({
             origin: RelayRouteLegSchema.optional(),
@@ -169,7 +172,7 @@ export const RelayQuoteResponseSchema = z.object({
 /** Schema for the Relay 400 Bad Request response. */
 export const RelayBadRequestResponseSchema = z.object({
     message: z.string(),
-    errorCode: z.string(),
+    errorCode: z.string().optional(),
     errorData: z.string().optional(),
     requestId: z.string().optional(),
     approxSimulatedBlock: z.number().optional(),
@@ -197,7 +200,7 @@ export const RelayRateLimitedResponseSchema = z.object({
 /** Schema for the Relay 500 Server Error response. */
 export const RelayServerErrorResponseSchema = z.object({
     message: z.string(),
-    errorCode: z.string(),
+    errorCode: z.string().optional(),
     requestId: z.string().optional(),
 });
 
@@ -213,6 +216,7 @@ export const RelayIntentStatusEnum = z.enum([
     "refunded",
     "failure",
     "refund",
+    "unknown",
 ]);
 
 /** Schema for the Relay GET `/intents/status/v3` response body. */
