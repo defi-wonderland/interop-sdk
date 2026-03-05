@@ -182,8 +182,8 @@ const RelayProtocolV2Schema = z.object({
 /** Schema for the Relay POST `/quote/v2` response body. */
 export const RelayQuoteResponseSchema = z.object({
     steps: z.array(RelayQuoteStepSchema).min(1),
-    fees: RelayFeesSchema,
-    details: RelayDetailsSchema,
+    fees: RelayFeesSchema.optional(),
+    details: RelayDetailsSchema.optional(),
     protocol: z.object({ v2: RelayProtocolV2Schema.optional() }).optional(),
 });
 
