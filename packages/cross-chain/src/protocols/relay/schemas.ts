@@ -12,7 +12,7 @@ const RelayAppFeeSchema = z.object({
 
 /** Schema for a destination call transaction in a quote request. */
 const RelayTxSchema = z.object({
-    to: z.string(),
+    to: addressString,
     value: z.string().optional(),
     data: z.string().optional(),
     originalTxValue: z.string().optional(),
@@ -21,7 +21,7 @@ const RelayTxSchema = z.object({
 /** Schema for an EIP-7702 authorization entry. */
 const RelayAuthorizationSchema = z.object({
     chainId: z.number(),
-    address: z.string(),
+    address: addressString,
     nonce: z.number(),
     yParity: z.number(),
     r: z.string(),
@@ -47,7 +47,7 @@ export const RelayQuoteRequestSchema = z.object({
         })
         .optional(),
     referrer: z.string().optional(),
-    referrerAddress: z.string().optional(),
+    referrerAddress: addressString.optional(),
     refundTo: z.string().optional(),
     topupGas: z.boolean().optional(),
     topupGasAmount: z.string().optional(),
@@ -383,3 +383,52 @@ export type RelayRateLimitedResponse = z.infer<typeof RelayRateLimitedResponseSc
 
 /** Relay 500 Server Error response. */
 export type RelayServerErrorResponse = z.infer<typeof RelayServerErrorResponseSchema>;
+
+/** Request body for the Relay POST `/transactions/index` endpoint. */
+export type RelayIndexTransactionRequest = z.infer<typeof RelayIndexTransactionRequestSchema>;
+
+/** Response from the Relay POST `/transactions/index` endpoint. */
+export type RelayIndexTransactionResponse = z.infer<typeof RelayIndexTransactionResponseSchema>;
+
+// ── Relay Currencies v2 (Discovery) ────────────────────
+
+/** Schema for the Relay POST `/currencies/v2` request body. */
+export const RelayCurrenciesRequestSchema = z.object({
+    defaultList: z.boolean().optional(),
+    chainIds: z.array(z.number().int().positive()).optional(),
+    term: z.string().optional(),
+    address: z.string().optional(),
+    currencyId: z.string().optional(),
+    tokens: z.array(z.string()).optional(),
+    verified: z.boolean().optional(),
+    limit: z.number().int().positive().max(100).optional(),
+    includeAllChains: z.boolean().optional(),
+    useExternalSearch: z.boolean().optional(),
+    depositAddressOnly: z.boolean().optional(),
+});
+
+/** Schema for a single currency entry from Relay's `POST /currencies/v2` endpoint. */
+export const RelayCurrencyEntrySchema = z.object({
+    chainId: z.number().int().positive(),
+    address: z.string(),
+    symbol: z.string().min(1),
+    name: z.string(),
+    decimals: z.number().int().min(0).max(255),
+    vmType: z.enum(["bvm", "evm", "svm", "tvm", "tonvm", "suivm", "hypevm", "lvm"]).optional(),
+    metadata: z
+        .object({
+            logoURI: z.string().optional(),
+            verified: z.boolean().optional(),
+            isNative: z.boolean().optional(),
+        })
+        .optional(),
+});
+
+/** Schema for the full `/currencies/v2` response (array of currency entries). */
+export const RelayCurrenciesResponseSchema = z.array(RelayCurrencyEntrySchema);
+
+/** Request body for the Relay POST `/currencies/v2` endpoint. */
+export type RelayCurrenciesRequest = z.infer<typeof RelayCurrenciesRequestSchema>;
+
+/** A single currency entry from Relay's `/currencies/v2` endpoint. */
+export type RelayCurrencyEntry = z.infer<typeof RelayCurrencyEntrySchema>;
