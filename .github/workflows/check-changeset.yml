@@ -1,0 +1,30 @@
+name: Check Changeset
+
+on:
+    pull_request:
+        types: [opened, synchronize, reopened]
+        branches:
+            - dev
+
+jobs:
+    check-changeset:
+        name: Require changeset for package changes
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out github repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Check for changeset
+              run: |
+                  PACKAGES='^(packages/addresses|packages/cross-chain|apps/sdk)/(src/|package\.json|tsconfig\.)'
+
+                  HAS_PKG_CHANGES=$(git diff --name-only origin/dev...HEAD | grep -E "$PACKAGES" || true)
+                  [ -z "$HAS_PKG_CHANGES" ] && echo "No package changes." && exit 0
+
+                  HAS_CHANGESET=$(git diff --name-only --diff-filter=A origin/dev...HEAD | grep -E '^\.changeset/.+\.md$' | grep -v README.md || true)
+                  [ -n "$HAS_CHANGESET" ] && echo "Changeset found." && exit 0
+
+                  echo "::error::Missing changeset. Run 'pnpm changeset' and commit the generated file."
+                  exit 1
