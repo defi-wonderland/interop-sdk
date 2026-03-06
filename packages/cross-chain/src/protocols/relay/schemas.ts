@@ -2,7 +2,87 @@ import { z } from "zod";
 
 import { addressString } from "../../core/schemas/common.js";
 
-// ── Relay Quote v2 ──────────────────────────────────────
+// ── Relay Quote v2 Request ─────────────────────────────
+
+/** Schema for an app fee entry in a quote request. */
+const RelayAppFeeSchema = z.object({
+    recipient: z.string(),
+    fee: z.string(),
+});
+
+/** Schema for a destination call transaction in a quote request. */
+const RelayTxSchema = z.object({
+    to: z.string(),
+    value: z.string().optional(),
+    data: z.string().optional(),
+    originalTxValue: z.string().optional(),
+});
+
+/** Schema for an EIP-7702 authorization entry. */
+const RelayAuthorizationSchema = z.object({
+    chainId: z.number(),
+    address: z.string(),
+    nonce: z.number(),
+    yParity: z.number(),
+    r: z.string(),
+    s: z.string(),
+});
+
+/** Schema for the Relay POST `/quote/v2` request body. */
+export const RelayQuoteRequestSchema = z.object({
+    user: z.string(),
+    recipient: z.string().optional(),
+    originChainId: z.number(),
+    destinationChainId: z.number(),
+    originCurrency: z.string(),
+    destinationCurrency: z.string(),
+    amount: z.string().regex(/^[0-9]+$/),
+    tradeType: z.enum(["EXACT_INPUT", "EXACT_OUTPUT", "EXPECTED_OUTPUT"]),
+    txs: z.array(RelayTxSchema).optional(),
+    txsGasLimit: z.number().optional(),
+    authorizationList: z.array(RelayAuthorizationSchema).optional(),
+    additionalData: z
+        .object({
+            userPublicKey: z.string().optional(),
+        })
+        .optional(),
+    referrer: z.string().optional(),
+    referrerAddress: z.string().optional(),
+    refundTo: z.string().optional(),
+    topupGas: z.boolean().optional(),
+    topupGasAmount: z.string().optional(),
+    useReceiver: z.boolean().optional(),
+    enableTrueExactOutput: z.boolean().optional(),
+    explicitDeposit: z.boolean().optional(),
+    useExternalLiquidity: z.boolean().optional(),
+    useFallbacks: z.boolean().optional(),
+    usePermit: z.boolean().optional(),
+    permitExpiry: z.number().optional(),
+    useDepositAddress: z.boolean().optional(),
+    strict: z.boolean().optional(),
+    slippageTolerance: z.string().optional(),
+    latePaymentSlippageTolerance: z.string().optional(),
+    appFees: z.array(RelayAppFeeSchema).optional(),
+    gasLimitForDepositSpecifiedTxs: z.number().optional(),
+    forceSolverExecution: z.boolean().optional(),
+    subsidizeFees: z.boolean().optional(),
+    maxSubsidizationAmount: z.string().optional(),
+    subsidizeRent: z.boolean().optional(),
+    includedSwapSources: z.array(z.string()).optional(),
+    excludedSwapSources: z.array(z.string()).optional(),
+    includedOriginSwapSources: z.array(z.string()).optional(),
+    includedDestinationSwapSources: z.array(z.string()).optional(),
+    originGasOverhead: z.number().optional(),
+    depositFeePayer: z.string().optional(),
+    maxRouteLength: z.number().optional(),
+    useSharedAccounts: z.boolean().optional(),
+    includeComputeUnitLimit: z.boolean().optional(),
+    overridePriceImpact: z.boolean().optional(),
+    disableOriginSwaps: z.boolean().optional(),
+    fixedRate: z.string().optional(),
+});
+
+// ── Relay Quote v2 Response ────────────────────────────
 
 /** Schema for currency metadata inside a Relay response. */
 const RelayCurrencySchema = z.object({
@@ -226,6 +306,11 @@ export const RelayServerErrorResponseSchema = z.object({
 
 // ── Relay Intent Status v3 ──────────────────────────────
 
+/** Schema for the Relay GET `/intents/status/v3` query parameters. */
+export const RelayIntentStatusRequestSchema = z.object({
+    requestId: z.string().optional(),
+});
+
 /** Valid Relay intent statuses as documented in the API. */
 export const RelayIntentStatusEnum = z.enum([
     "refund",
@@ -249,11 +334,17 @@ export const RelayIntentStatusResponseSchema = z.object({
 
 // ── Types ───────────────────────────────────────────────
 
+/** Request body for the Relay POST `/quote/v2` endpoint. */
+export type RelayQuoteRequest = z.infer<typeof RelayQuoteRequestSchema>;
+
 /** A single step in a Relay quote response. */
 export type RelayQuoteStep = z.infer<typeof RelayQuoteStepSchema>;
 
 /** Response from the Relay POST `/quote/v2` endpoint. */
 export type RelayQuoteResponse = z.infer<typeof RelayQuoteResponseSchema>;
+
+/** Query parameters for the Relay GET `/intents/status/v3` endpoint. */
+export type RelayIntentStatusRequest = z.infer<typeof RelayIntentStatusRequestSchema>;
 
 /** Status of a Relay intent. */
 export type RelayIntentStatus = z.infer<typeof RelayIntentStatusEnum>;
