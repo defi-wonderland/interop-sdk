@@ -363,3 +363,28 @@ export type RelayRateLimitedResponse = z.infer<typeof RelayRateLimitedResponseSc
 
 /** Relay 500 Server Error response. */
 export type RelayServerErrorResponse = z.infer<typeof RelayServerErrorResponseSchema>;
+
+// ── Relay Currencies v2 (Discovery) ────────────────────
+
+/** Schema for a single currency entry from Relay's `POST /currencies/v2` endpoint. */
+export const RelayCurrencyEntrySchema = z.object({
+    chainId: z.number().int().positive(),
+    address: z.string(),
+    symbol: z.string().min(1),
+    name: z.string(),
+    decimals: z.number().int().min(0).max(255),
+    vmType: z.enum(["bvm", "evm", "svm", "tvm", "tonvm", "suivm", "hypevm", "lvm"]).optional(),
+    metadata: z
+        .object({
+            logoURI: z.string().optional(),
+            verified: z.boolean().optional(),
+            isNative: z.boolean().optional(),
+        })
+        .optional(),
+});
+
+/** Schema for the full `/currencies/v2` response (array of currency entries). */
+export const RelayCurrenciesResponseSchema = z.array(RelayCurrencyEntrySchema);
+
+/** A single currency entry from Relay's `/currencies/v2` endpoint. */
+export type RelayCurrencyEntry = z.infer<typeof RelayCurrencyEntrySchema>;
