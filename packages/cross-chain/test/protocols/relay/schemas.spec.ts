@@ -3,7 +3,9 @@ import { ZodError } from "zod";
 
 import {
     RelayBadRequestResponseSchema,
+    RelayIntentStatusRequestSchema,
     RelayIntentStatusResponseSchema,
+    RelayQuoteRequestSchema,
     RelayQuoteResponseSchema,
     RelayRateLimitedResponseSchema,
     RelayServerErrorResponseSchema,
@@ -197,6 +199,75 @@ function buildQuoteResponse(overrides?: Record<string, unknown>): Record<string,
         ...overrides,
     };
 }
+
+// ── Quote Request Tests ──────────────────────────────────
+
+describe("RelayQuoteRequestSchema", () => {
+    const VALID_REQUEST = {
+        user: VALID_ADDRESS,
+        originChainId: ORIGIN_CHAIN_ID,
+        destinationChainId: DESTINATION_CHAIN_ID,
+        originCurrency: VALID_ADDRESS,
+        destinationCurrency: VALID_ADDRESS,
+        amount: INPUT_AMOUNT,
+        tradeType: "EXACT_INPUT" as const,
+    };
+
+    it("accepts a minimal valid request", () => {
+        const result = RelayQuoteRequestSchema.parse(VALID_REQUEST);
+        expect(result.user).toBe(VALID_ADDRESS);
+        expect(result.tradeType).toBe("EXACT_INPUT");
+    });
+
+    it("accepts a request with all optional fields", () => {
+        const result = RelayQuoteRequestSchema.parse({
+            ...VALID_REQUEST,
+            recipient: VALID_ADDRESS,
+            slippageTolerance: "50",
+            appFees: [{ recipient: VALID_ADDRESS, fee: "100" }],
+            txs: [{ to: VALID_ADDRESS, value: "0", data: "0x" }],
+            usePermit: false,
+            topupGas: true,
+            topupGasAmount: "2000000",
+            referrer: "my-app",
+            subsidizeFees: false,
+        });
+        expect(result.recipient).toBe(VALID_ADDRESS);
+        expect(result.slippageTolerance).toBe("50");
+        expect(result.appFees).toHaveLength(1);
+    });
+
+    it("rejects an invalid tradeType", () => {
+        expect(() =>
+            RelayQuoteRequestSchema.parse({ ...VALID_REQUEST, tradeType: "INVALID" }),
+        ).toThrow(ZodError);
+    });
+
+    it("rejects a non-numeric amount", () => {
+        expect(() => RelayQuoteRequestSchema.parse({ ...VALID_REQUEST, amount: "abc" })).toThrow(
+            ZodError,
+        );
+    });
+
+    it("rejects a request missing required fields", () => {
+        const { user: _, ...noUser } = VALID_REQUEST;
+        expect(() => RelayQuoteRequestSchema.parse(noUser)).toThrow(ZodError);
+    });
+});
+
+// ── Intent Status Request Tests ─────────────────────────
+
+describe("RelayIntentStatusRequestSchema", () => {
+    it("accepts a request with requestId", () => {
+        const result = RelayIntentStatusRequestSchema.parse({ requestId: REQUEST_ID });
+        expect(result.requestId).toBe(REQUEST_ID);
+    });
+
+    it("accepts an empty request", () => {
+        const result = RelayIntentStatusRequestSchema.parse({});
+        expect(result.requestId).toBeUndefined();
+    });
+});
 
 // ── Quote Response Tests ─────────────────────────────────
 
