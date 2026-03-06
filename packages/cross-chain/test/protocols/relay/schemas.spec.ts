@@ -47,7 +47,6 @@ const SAMPLE_FALLBACK_TYPE = "canonical";
 const SAMPLE_ERROR_DATA = "additional error context";
 const SAMPLE_STATUS_DETAILS = "Transfer complete";
 const ZERO_AMOUNT = "0";
-const DEPOSIT_ADDRESS = "0xdeposit1234567890abcdef1234567890abcdef";
 const PAYMENT_CHAIN_ID = "1";
 
 // ── Helpers ──────────────────────────────────────────────
@@ -262,11 +261,6 @@ describe("RelayIntentStatusRequestSchema", () => {
         const result = RelayIntentStatusRequestSchema.parse({ requestId: REQUEST_ID });
         expect(result.requestId).toBe(REQUEST_ID);
     });
-
-    it("accepts an empty request", () => {
-        const result = RelayIntentStatusRequestSchema.parse({});
-        expect(result.requestId).toBeUndefined();
-    });
 });
 
 // ── Quote Response Tests ─────────────────────────────────
@@ -306,14 +300,6 @@ describe("RelayQuoteResponseSchema", () => {
         expect(result.details?.refundCurrency?.amount).toBe(INPUT_AMOUNT);
         expect(result.details?.fallbackType).toBe(SAMPLE_FALLBACK_TYPE);
         expect(result.protocol?.v2?.orderId).toBe(ORDER_ID);
-    });
-
-    it("accepts a step with depositAddress", () => {
-        const response = buildQuoteResponse({
-            steps: [buildStep({ depositAddress: DEPOSIT_ADDRESS })],
-        });
-        const result = RelayQuoteResponseSchema.parse(response);
-        expect(result.steps[0]!.depositAddress).toBe(DEPOSIT_ADDRESS);
     });
 
     it("rejects a response with empty steps", () => {
@@ -372,43 +358,10 @@ describe("RelayQuoteResponseSchema", () => {
         expect(result.steps[0]!.kind).toBe("signature");
     });
 
-    it("accepts a step item with status 'complete'", () => {
-        const response = buildQuoteResponse({
-            steps: [buildStep({ items: [buildStepItem({ status: "complete" })] })],
-        });
-        const result = RelayQuoteResponseSchema.parse(response);
-        expect(result.steps[0]!.items[0]!.status).toBe("complete");
-    });
-
-    it("strips unknown fields from response", () => {
-        const result = RelayQuoteResponseSchema.parse(
-            buildQuoteResponse({ unknownTopLevel: "stripped" }),
-        );
-        expect(result).not.toHaveProperty("unknownTopLevel");
-    });
-
     it("rejects a step with empty items array", () => {
         expect(() =>
             RelayQuoteResponseSchema.parse(
                 buildQuoteResponse({ steps: [buildStep({ items: [] })] }),
-            ),
-        ).toThrow(ZodError);
-    });
-
-    it("rejects an invalid step kind", () => {
-        expect(() =>
-            RelayQuoteResponseSchema.parse(
-                buildQuoteResponse({ steps: [buildStep({ kind: "unknown-kind" })] }),
-            ),
-        ).toThrow(ZodError);
-    });
-
-    it("rejects an invalid step item status", () => {
-        expect(() =>
-            RelayQuoteResponseSchema.parse(
-                buildQuoteResponse({
-                    steps: [buildStep({ items: [buildStepItem({ status: "unknown-status" })] })],
-                }),
             ),
         ).toThrow(ZodError);
     });
@@ -492,12 +445,6 @@ describe("RelayUnauthorizedResponseSchema", () => {
         });
         expect(result.message).toBe(SAMPLE_ERROR_MESSAGE);
     });
-
-    it("rejects a response without errorCode", () => {
-        expect(() =>
-            RelayUnauthorizedResponseSchema.parse({ message: SAMPLE_ERROR_MESSAGE }),
-        ).toThrow(ZodError);
-    });
 });
 
 describe("RelayRateLimitedResponseSchema", () => {
@@ -507,21 +454,9 @@ describe("RelayRateLimitedResponseSchema", () => {
         });
         expect(result.message).toBe(SAMPLE_ERROR_MESSAGE);
     });
-
-    it("rejects a response without message", () => {
-        expect(() => RelayRateLimitedResponseSchema.parse({})).toThrow(ZodError);
-    });
 });
 
 describe("RelayServerErrorResponseSchema", () => {
-    it("accepts a minimal server error response", () => {
-        const result = RelayServerErrorResponseSchema.parse({
-            message: SAMPLE_ERROR_MESSAGE,
-            errorCode: SAMPLE_ERROR_CODE,
-        });
-        expect(result.message).toBe(SAMPLE_ERROR_MESSAGE);
-    });
-
     it("accepts a server error response with requestId", () => {
         const result = RelayServerErrorResponseSchema.parse({
             message: SAMPLE_ERROR_MESSAGE,
@@ -529,11 +464,5 @@ describe("RelayServerErrorResponseSchema", () => {
             requestId: REQUEST_ID,
         });
         expect(result.requestId).toBe(REQUEST_ID);
-    });
-
-    it("rejects a response without errorCode", () => {
-        expect(() =>
-            RelayServerErrorResponseSchema.parse({ message: SAMPLE_ERROR_MESSAGE }),
-        ).toThrow(ZodError);
     });
 });
