@@ -1,5 +1,16 @@
-import type { AcrossConfigs, CrossChainProvider, OifProviderConfig } from "../internal.js";
-import { AcrossProvider, OifProvider, PROTOCOLS, UnsupportedProtocol } from "../internal.js";
+import type {
+    AcrossConfigs,
+    CrossChainProvider,
+    OifProviderConfig,
+    RelayConfigs,
+} from "../internal.js";
+import {
+    AcrossProvider,
+    OifProvider,
+    PROTOCOLS,
+    RelayProvider,
+    UnsupportedProtocol,
+} from "../internal.js";
 
 /**
  * Creates a CrossChainProvider for Across protocol
@@ -20,6 +31,15 @@ export function createCrossChainProvider(
     config: OifProviderConfig,
 ): CrossChainProvider;
 /**
+ * Creates a CrossChainProvider for Relay protocol
+ * @param protocolName - "relay"
+ * @param config - Optional configuration (defaults to mainnet)
+ */
+export function createCrossChainProvider(
+    protocolName: typeof PROTOCOLS.RELAY,
+    config?: RelayConfigs,
+): CrossChainProvider;
+/**
  * Creates a CrossChainProvider for the specified protocol
  * @param protocolName - The name of the protocol
  * @param config - The configuration for the provider
@@ -33,5 +53,6 @@ export function createCrossChainProvider(
     if (protocolName === PROTOCOLS.ACROSS)
         return new AcrossProvider((config as AcrossConfigs) ?? {});
     if (protocolName === PROTOCOLS.OIF) return new OifProvider(config as OifProviderConfig);
+    if (protocolName === PROTOCOLS.RELAY) return new RelayProvider((config as RelayConfigs) ?? {});
     throw new UnsupportedProtocol(protocolName);
 }
