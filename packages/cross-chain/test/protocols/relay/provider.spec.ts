@@ -2,6 +2,7 @@ import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
+import type { CustomApiAssetDiscoveryConfig, NetworkAssets } from "../../../src/internal.js";
 import type {
     RelayIntentStatusResponse,
     RelayQuoteResponse,
@@ -9,6 +10,7 @@ import type {
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { ProviderGetStatusFailure } from "../../../src/core/errors/ProviderGetStatusFailure.exception.js";
 import { OrderFailureReason, OrderStatus } from "../../../src/core/types/orderTracking.js";
+import { AssetDiscoveryFactory, CustomApiAssetDiscoveryService } from "../../../src/internal.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -38,6 +40,13 @@ const API_KEY = "test-key";
 const HTTP_STATUS_BAD_REQUEST = 400;
 const RELAY_ERROR_AMOUNT_TOO_LOW = "AMOUNT_TOO_LOW";
 const RELAY_ERROR_ROUTE_NOT_FOUND = "ROUTE_NOT_FOUND";
+const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+const USDC_POLYGON_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+const ETHEREUM_CHAIN_ID = 1;
+const POLYGON_CHAIN_ID = 137;
+const USDC_DECIMALS = 6;
+const WETH_DECIMALS = 18;
 
 // ── Mock & Helpers ───────────────────────────────────────
 
@@ -125,6 +134,23 @@ function makeAxiosError(data: unknown, status: number, message: string, code: st
     const error = new AxiosError(message, code);
     error.response = { data, status, statusText: "", headers: {}, config: {} as never };
     return error;
+}
+
+function getCustomApiConfig(provider: RelayProvider): CustomApiAssetDiscoveryConfig["config"] {
+    const config = provider.getDiscoveryConfig();
+    if (!config || config.type !== "custom-api") {
+        throw new Error(`Expected custom-api config, got ${config?.type ?? "null"}`);
+    }
+    return config.config;
+}
+
+function makeCurrencyEntry(
+    chainId: number,
+    address: string,
+    symbol: string,
+    decimals: number,
+): Record<string, unknown> {
+    return { chainId, address, symbol, name: `${symbol} Token`, decimals };
 }
 
 // ── Tests ────────────────────────────────────────────────
@@ -569,6 +595,106 @@ describe("RelayProvider", () => {
             const result = getExtract()({ status }, fillParams);
             expect(result.status).toBe(OrderStatus.Pending);
             expect(result.event).toBeNull();
+        });
+    });
+
+    describe("getDiscoveryConfig()", () => {
+        it("returns custom-api config type", () => {
+            const config = new RelayProvider().getDiscoveryConfig();
+            expect(config).not.toBeNull();
+            expect(config!.type).toBe("custom-api");
+        });
+
+        it("uses default base URL for assets endpoint", () => {
+            const apiConfig = getCustomApiConfig(new RelayProvider());
+            expect(apiConfig.assetsEndpoint).toBe("https://api.relay.link/currencies/v2");
+        });
+
+        it("uses custom baseUrl when provided", () => {
+            const apiConfig = getCustomApiConfig(
+                new RelayProvider({ baseUrl: "https://custom.relay.link" }),
+            );
+            expect(apiConfig.assetsEndpoint).toBe("https://custom.relay.link/currencies/v2");
+        });
+    });
+
+    describe("parseCurrenciesResponse()", () => {
+        const { parseResponse } = getCustomApiConfig(new RelayProvider());
+
+        it("groups currencies by chain", () => {
+            const mockCurrencies = [
+                makeCurrencyEntry(ETHEREUM_CHAIN_ID, USDC_ADDRESS, "USDC", USDC_DECIMALS),
+                makeCurrencyEntry(ETHEREUM_CHAIN_ID, WETH_ADDRESS, "WETH", WETH_DECIMALS),
+                makeCurrencyEntry(POLYGON_CHAIN_ID, USDC_POLYGON_ADDRESS, "USDC", USDC_DECIMALS),
+            ];
+            const result: NetworkAssets[] = parseResponse(mockCurrencies);
+            expect(result).toHaveLength(2);
+            const ethereum = result.find((n: NetworkAssets) => n.chainId === ETHEREUM_CHAIN_ID);
+            expect(ethereum?.assets).toHaveLength(2);
+            const polygon = result.find((n: NetworkAssets) => n.chainId === POLYGON_CHAIN_ID);
+            expect(polygon?.assets).toHaveLength(1);
+        });
+
+        it("encodes addresses to EIP-7930 format", () => {
+            const result: NetworkAssets[] = parseResponse([
+                makeCurrencyEntry(ETHEREUM_CHAIN_ID, USDC_ADDRESS, "USDC", USDC_DECIMALS),
+            ]);
+            const asset = result[0]?.assets[0];
+            expect(asset?.address).toMatch(/^0x/);
+            expect(asset?.address.length).toBeGreaterThan(42);
+        });
+
+        it("handles empty array", () => {
+            expect(parseResponse([])).toHaveLength(0);
+        });
+
+        it("deduplicates currencies by address on the same chain", () => {
+            const mockCurrencies = [
+                makeCurrencyEntry(ETHEREUM_CHAIN_ID, USDC_ADDRESS, "USDC", USDC_DECIMALS),
+                makeCurrencyEntry(
+                    ETHEREUM_CHAIN_ID,
+                    USDC_ADDRESS.toLowerCase(),
+                    "USDC.e",
+                    USDC_DECIMALS,
+                ),
+            ];
+            const result: NetworkAssets[] = parseResponse(mockCurrencies);
+            const ethereum = result.find((n: NetworkAssets) => n.chainId === ETHEREUM_CHAIN_ID);
+            expect(ethereum?.assets).toHaveLength(1);
+            expect(ethereum?.assets[0]?.symbol).toBe("USDC");
+        });
+
+        it("preserves symbol and decimals", () => {
+            const result: NetworkAssets[] = parseResponse([
+                makeCurrencyEntry(ETHEREUM_CHAIN_ID, WETH_ADDRESS, "WETH", WETH_DECIMALS),
+            ]);
+            const asset = result[0]?.assets[0];
+            expect(asset?.symbol).toBe("WETH");
+            expect(asset?.decimals).toBe(WETH_DECIMALS);
+        });
+
+        it("throws on invalid schema (missing required fields)", () => {
+            expect(() => parseResponse([{ chainId: 1, address: USDC_ADDRESS }])).toThrow();
+        });
+
+        it("throws on negative chainId", () => {
+            expect(() =>
+                parseResponse([makeCurrencyEntry(-1, USDC_ADDRESS, "USDC", USDC_DECIMALS)]),
+            ).toThrow();
+        });
+    });
+
+    describe("factory integration", () => {
+        it("creates CustomApiAssetDiscoveryService from RelayProvider config", () => {
+            const service = new AssetDiscoveryFactory().createService(new RelayProvider());
+            expect(service).toBeInstanceOf(CustomApiAssetDiscoveryService);
+        });
+
+        it("starts prefetching on creation", () => {
+            const prefetchSpy = vi.spyOn(CustomApiAssetDiscoveryService.prototype, "prefetch");
+            new AssetDiscoveryFactory().createService(new RelayProvider());
+            expect(prefetchSpy).toHaveBeenCalledOnce();
+            prefetchSpy.mockRestore();
         });
     });
 });

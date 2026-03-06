@@ -366,6 +366,21 @@ export type RelayServerErrorResponse = z.infer<typeof RelayServerErrorResponseSc
 
 // ── Relay Currencies v2 (Discovery) ────────────────────
 
+/** Schema for the Relay POST `/currencies/v2` request body. */
+export const RelayCurrenciesRequestSchema = z.object({
+    defaultList: z.boolean().optional(),
+    chainIds: z.array(z.number().int().positive()).optional(),
+    term: z.string().optional(),
+    address: z.string().optional(),
+    currencyId: z.string().optional(),
+    tokens: z.array(z.string()).optional(),
+    verified: z.boolean().optional(),
+    limit: z.number().int().positive().max(100).optional(),
+    includeAllChains: z.boolean().optional(),
+    useExternalSearch: z.boolean().optional(),
+    depositAddressOnly: z.boolean().optional(),
+});
+
 /** Schema for a single currency entry from Relay's `POST /currencies/v2` endpoint. */
 export const RelayCurrencyEntrySchema = z.object({
     chainId: z.number().int().positive(),
@@ -385,6 +400,9 @@ export const RelayCurrencyEntrySchema = z.object({
 
 /** Schema for the full `/currencies/v2` response (array of currency entries). */
 export const RelayCurrenciesResponseSchema = z.array(RelayCurrencyEntrySchema);
+
+/** Request body for the Relay POST `/currencies/v2` endpoint. */
+export type RelayCurrenciesRequest = z.infer<typeof RelayCurrenciesRequestSchema>;
 
 /** A single currency entry from Relay's `/currencies/v2` endpoint. */
 export type RelayCurrencyEntry = z.infer<typeof RelayCurrencyEntrySchema>;
