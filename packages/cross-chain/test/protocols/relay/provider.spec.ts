@@ -157,11 +157,11 @@ describe("RelayProvider", () => {
             ).toBe("relay-custom");
         });
 
-        it("sets Authorization header when apiKey is provided", () => {
+        it("sets x-api-key header when apiKey is provided", () => {
             new RelayProvider({ apiKey: API_KEY });
             expect(axios.create).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    headers: expect.objectContaining({ Authorization: `Bearer ${API_KEY}` }),
+                    headers: expect.objectContaining({ "x-api-key": API_KEY }),
                 }),
             );
         });

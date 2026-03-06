@@ -73,7 +73,7 @@ export class RelayProvider extends CrossChainProvider {
 
             const headers: Record<string, string> = {};
             if (parsed.apiKey) {
-                headers["Authorization"] = `Bearer ${parsed.apiKey}`;
+                headers["x-api-key"] = parsed.apiKey;
             }
             this.http = axios.create({ baseURL: this.baseUrl, headers });
         } catch (error) {
