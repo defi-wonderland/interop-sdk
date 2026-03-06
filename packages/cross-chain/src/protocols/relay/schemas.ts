@@ -72,7 +72,7 @@ export const RelayTransactionStepSchema = z.object({
     action: z.string(),
     description: z.string(),
     kind: z.literal("transaction"),
-    requestId: z.string().min(1),
+    requestId: z.string().optional(),
     depositAddress: z.string().optional(),
     items: z.array(RelayTransactionStepItemSchema).min(1),
 });
@@ -83,7 +83,7 @@ export const RelaySignatureStepSchema = z.object({
     action: z.string(),
     description: z.string(),
     kind: z.literal("signature"),
-    requestId: z.string().min(1),
+    requestId: z.string().optional(),
     depositAddress: z.string().optional(),
     items: z.array(RelaySignatureStepItemSchema).min(1),
 });
@@ -127,7 +127,7 @@ const RelayRouteLegSchema = z.object({
 
 /** Schema for the details object in a quote response. */
 const RelayDetailsSchema = z.object({
-    operation: z.enum(["send", "swap", "wrap", "unwrap", "bridge"]).optional(),
+    operation: z.string().optional(),
     sender: z.string().optional(),
     recipient: z.string().optional(),
     currencyIn: RelayCurrencyAmountSchema.optional(),
@@ -228,15 +228,12 @@ export const RelayServerErrorResponseSchema = z.object({
 
 /** Valid Relay intent statuses as documented in the API. */
 export const RelayIntentStatusEnum = z.enum([
+    "refund",
     "waiting",
+    "failure",
     "pending",
     "submitted",
     "success",
-    "delayed",
-    "refunded",
-    "failure",
-    "refund",
-    "unknown",
 ]);
 
 /** Schema for the Relay GET `/intents/status/v3` response body. */
@@ -246,8 +243,8 @@ export const RelayIntentStatusResponseSchema = z.object({
     inTxHashes: z.array(z.string()).optional(),
     txHashes: z.array(z.string()).optional(),
     updatedAt: z.number().optional(),
-    originChainId: z.number().int().positive().optional(),
-    destinationChainId: z.number().int().positive().optional(),
+    originChainId: z.number().optional(),
+    destinationChainId: z.number().optional(),
 });
 
 // ── Types ───────────────────────────────────────────────
