@@ -1,16 +1,21 @@
 import type { AxiosInstance } from "axios";
-import type { Hex } from "viem";
+import type { Address, Hex } from "viem";
+import { encodeAddress } from "@wonderland/interop-addresses";
 import axios from "axios";
 import { ZodError } from "zod";
 
 import type {
     APIBasedFillWatcherConfig,
+    AssetDiscoveryConfig,
+    AssetInfo,
     FillWatcherConfig,
+    NetworkAssets,
     OpenedIntentParserConfig,
     Quote,
     QuoteRequest,
     RelayIntentStatusResponse,
 } from "../../internal.js";
+import type { RelayCurrencyEntry } from "./schemas.js";
 import type { RelayConfigs } from "./types.js";
 import {
     CrossChainProvider,
@@ -24,6 +29,7 @@ import {
     extractOpenedIntent,
 } from "./adapters/index.js";
 import { getRelayApiUrl } from "./constants.js";
+import { RelayCurrenciesResponseSchema } from "./schemas.js";
 import { RelayApiService } from "./services/index.js";
 import { RelayConfigSchema } from "./types.js";
 
@@ -153,5 +159,63 @@ export class RelayProvider extends CrossChainProvider {
                 this.baseUrl,
             ) as FillWatcherConfig,
         };
+    }
+
+    /**
+     * @inheritdoc
+     * Returns custom-api discovery config using Relay `POST /currencies/v2`.
+     */
+    override getDiscoveryConfig(): AssetDiscoveryConfig {
+        return {
+            type: "custom-api",
+            config: {
+                assetsEndpoint: `${this.baseUrl}/currencies/v2`,
+                parseResponse: RelayProvider.parseCurrenciesResponse,
+            },
+        };
+    }
+
+    /** Parse the Relay `/currencies/v2` response into SDK `NetworkAssets[]`. */
+    private static parseCurrenciesResponse(data: unknown): NetworkAssets[] {
+        const currencies = RelayCurrenciesResponseSchema.parse(data);
+        return RelayProvider.groupCurrenciesByChain(currencies);
+    }
+
+    /** Group flat currency entries by chainId, deduplicating by address. */
+    private static groupCurrenciesByChain(currencies: RelayCurrencyEntry[]): NetworkAssets[] {
+        const chainMap = new Map<number, Map<string, AssetInfo>>();
+
+        for (const currency of currencies) {
+            const encoded = encodeAddress(
+                {
+                    version: 1,
+                    chainType: "eip155",
+                    chainReference: currency.chainId.toString(),
+                    address: currency.address as Address,
+                },
+                { format: "hex" },
+            );
+
+            const asset: AssetInfo = {
+                address: encoded as Address,
+                symbol: currency.symbol,
+                decimals: currency.decimals,
+            };
+
+            if (!chainMap.has(currency.chainId)) {
+                chainMap.set(currency.chainId, new Map());
+            }
+
+            const chainAssets = chainMap.get(currency.chainId)!;
+            const normalizedAddress = currency.address.toLowerCase();
+            if (!chainAssets.has(normalizedAddress)) {
+                chainAssets.set(normalizedAddress, asset);
+            }
+        }
+
+        return Array.from(chainMap.entries()).map(([chainId, assetsMap]) => ({
+            chainId,
+            assets: Array.from(assetsMap.values()),
+        }));
     }
 }

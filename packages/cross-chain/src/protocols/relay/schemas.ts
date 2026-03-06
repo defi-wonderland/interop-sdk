@@ -12,7 +12,7 @@ const RelayAppFeeSchema = z.object({
 
 /** Schema for a destination call transaction in a quote request. */
 const RelayTxSchema = z.object({
-    to: addressString,
+    to: z.string(),
     value: z.string().optional(),
     data: z.string().optional(),
     originalTxValue: z.string().optional(),
@@ -21,7 +21,7 @@ const RelayTxSchema = z.object({
 /** Schema for an EIP-7702 authorization entry. */
 const RelayAuthorizationSchema = z.object({
     chainId: z.number(),
-    address: addressString,
+    address: z.string(),
     nonce: z.number(),
     yParity: z.number(),
     r: z.string(),
@@ -47,7 +47,7 @@ export const RelayQuoteRequestSchema = z.object({
         })
         .optional(),
     referrer: z.string().optional(),
-    referrerAddress: addressString.optional(),
+    referrerAddress: z.string().optional(),
     refundTo: z.string().optional(),
     topupGas: z.boolean().optional(),
     topupGasAmount: z.string().optional(),
