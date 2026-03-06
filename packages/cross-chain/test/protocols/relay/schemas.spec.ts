@@ -284,12 +284,13 @@ describe("RelayQuoteResponseSchema", () => {
         expect(() => RelayQuoteResponseSchema.parse(response)).toThrow(ZodError);
     });
 
-    it("rejects a step with missing requestId", () => {
+    it("accepts a step without requestId", () => {
         const step = buildStep();
         const { requestId: _, ...stepWithoutId } = step;
-        expect(() =>
-            RelayQuoteResponseSchema.parse(buildQuoteResponse({ steps: [stepWithoutId] })),
-        ).toThrow(ZodError);
+        const result = RelayQuoteResponseSchema.parse(
+            buildQuoteResponse({ steps: [stepWithoutId] }),
+        );
+        expect(result.steps[0]!.requestId).toBeUndefined();
     });
 
     it("accepts a step with kind 'signature'", () => {
