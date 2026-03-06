@@ -14,6 +14,8 @@ export {
     // Providers
     AcrossProvider,
     OifProvider,
+    RelayProvider,
+    type RelayConfigs,
     createCrossChainProvider,
     // Aggregator
     Aggregator,

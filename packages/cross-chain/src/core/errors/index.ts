@@ -6,6 +6,7 @@ export * from "./UnsupportedProtocol.exception.js";
 export * from "./ProviderNotFound.exception.js";
 export * from "./UnsupportedAddress.exception.js";
 export * from "./ProviderGetQuoteFailure.exception.js";
+export * from "./ProviderGetStatusFailure.exception.js";
 export * from "./ProviderExecuteNotImplemented.exception.js";
 export * from "./ProviderExecuteFailure.exception.js";
 export * from "./ProviderTimeout.exception.js";
