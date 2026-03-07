@@ -4,18 +4,16 @@ import { encodeAddress } from "@wonderland/interop-addresses";
 import axios from "axios";
 import { ZodError } from "zod";
 
+import type { AssetInfo, NetworkAssets } from "../../core/types/assetDiscovery.js";
 import type {
     APIBasedFillWatcherConfig,
     AssetDiscoveryConfig,
-    AssetInfo,
     FillWatcherConfig,
-    NetworkAssets,
     OpenedIntentParserConfig,
     Quote,
     QuoteRequest,
     RelayIntentStatusResponse,
 } from "../../internal.js";
-import type { RelayCurrencyEntry } from "./schemas.js";
 import type { RelayConfigs } from "./types.js";
 import {
     CrossChainProvider,
@@ -29,7 +27,7 @@ import {
     extractOpenedIntent,
 } from "./adapters/index.js";
 import { getRelayApiUrl } from "./constants.js";
-import { RelayCurrenciesResponseSchema } from "./schemas.js";
+import { RelayChainsResponseSchema } from "./schemas.js";
 import { RelayApiService } from "./services/index.js";
 import { RelayConfigSchema } from "./types.js";
 
@@ -47,6 +45,7 @@ export class RelayProvider extends CrossChainProvider {
     private readonly baseUrl: string;
     private readonly isTestnet: boolean;
     private readonly apiService: RelayApiService;
+    private readonly apiHeaders: Record<string, string>;
 
     constructor(config: RelayConfigs = {}) {
         super();
@@ -57,11 +56,11 @@ export class RelayProvider extends CrossChainProvider {
             this.baseUrl = parsed.baseUrl ?? getRelayApiUrl(this.isTestnet);
             this.providerId = parsed.providerId ?? "relay";
 
-            const headers: Record<string, string> = {};
+            this.apiHeaders = {};
             if (parsed.apiKey) {
-                headers["x-api-key"] = parsed.apiKey;
+                this.apiHeaders["x-api-key"] = parsed.apiKey;
             }
-            this.http = axios.create({ baseURL: this.baseUrl, headers });
+            this.http = axios.create({ baseURL: this.baseUrl, headers: this.apiHeaders });
             this.apiService = new RelayApiService(this.http);
         } catch (error) {
             if (error instanceof ZodError) {
@@ -163,59 +162,65 @@ export class RelayProvider extends CrossChainProvider {
 
     /**
      * @inheritdoc
-     * Returns custom-api discovery config using Relay `POST /currencies/v2`.
+     * Returns discovery config using `GET /chains` to extract `solverCurrencies`.
      */
     override getDiscoveryConfig(): AssetDiscoveryConfig {
         return {
             type: "custom-api",
             config: {
-                assetsEndpoint: `${this.baseUrl}/currencies/v2`,
-                parseResponse: RelayProvider.parseCurrenciesResponse,
+                assetsEndpoint: `${this.baseUrl}/chains`,
+                parseResponse: parseRelayChainsResponse,
+                headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
             },
         };
     }
+}
 
-    /** Parse the Relay `/currencies/v2` response into SDK `NetworkAssets[]`. */
-    private static parseCurrenciesResponse(data: unknown): NetworkAssets[] {
-        const currencies = RelayCurrenciesResponseSchema.parse(data);
-        return RelayProvider.groupCurrenciesByChain(currencies);
-    }
+/**
+ * Parse a Relay `GET /chains` response into `NetworkAssets[]`.
+ *
+ * Extracts `solverCurrencies` from each chain — the tokens the solver
+ * accepts directly for bridging. Deduplicates by address (case-insensitive)
+ * and encodes addresses to EIP-7930 format.
+ */
+export function parseRelayChainsResponse(data: unknown): NetworkAssets[] {
+    const { chains } = RelayChainsResponseSchema.parse(data);
 
-    /** Group flat currency entries by chainId, deduplicating by address. */
-    private static groupCurrenciesByChain(currencies: RelayCurrencyEntry[]): NetworkAssets[] {
-        const chainMap = new Map<number, Map<string, AssetInfo>>();
+    const chainMap = new Map<number, Map<string, AssetInfo>>();
 
-        for (const currency of currencies) {
+    for (const chain of chains) {
+        if (chain.vmType && chain.vmType !== "evm") continue;
+
+        for (const sc of chain.solverCurrencies) {
             const encoded = encodeAddress(
                 {
                     version: 1,
                     chainType: "eip155",
-                    chainReference: currency.chainId.toString(),
-                    address: currency.address as Address,
+                    chainReference: chain.id.toString(),
+                    address: sc.address as Address,
                 },
                 { format: "hex" },
             );
 
-            const asset: AssetInfo = {
-                address: encoded as Address,
-                symbol: currency.symbol,
-                decimals: currency.decimals,
-            };
+            const normalizedAddress = sc.address.toLowerCase();
 
-            if (!chainMap.has(currency.chainId)) {
-                chainMap.set(currency.chainId, new Map());
+            if (!chainMap.has(chain.id)) {
+                chainMap.set(chain.id, new Map());
             }
 
-            const chainAssets = chainMap.get(currency.chainId)!;
-            const normalizedAddress = currency.address.toLowerCase();
+            const chainAssets = chainMap.get(chain.id)!;
             if (!chainAssets.has(normalizedAddress)) {
-                chainAssets.set(normalizedAddress, asset);
+                chainAssets.set(normalizedAddress, {
+                    address: encoded as Address,
+                    symbol: sc.symbol,
+                    decimals: sc.decimals,
+                });
             }
         }
-
-        return Array.from(chainMap.entries()).map(([chainId, assetsMap]) => ({
-            chainId,
-            assets: Array.from(assetsMap.values()),
-        }));
     }
+
+    return Array.from(chainMap.entries()).map(([chainId, assetsMap]) => ({
+        chainId,
+        assets: Array.from(assetsMap.values()),
+    }));
 }
