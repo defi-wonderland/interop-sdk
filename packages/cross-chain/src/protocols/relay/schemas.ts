@@ -390,6 +390,30 @@ export type RelayIndexTransactionRequest = z.infer<typeof RelayIndexTransactionR
 /** Response from the Relay POST `/transactions/index` endpoint. */
 export type RelayIndexTransactionResponse = z.infer<typeof RelayIndexTransactionResponseSchema>;
 
+// ── Relay Chains (Discovery) ────────────────────────────
+
+/** Schema for a solver currency entry from the Relay GET `/chains` response. */
+const RelaySolverCurrencySchema = z.object({
+    address: z.string(),
+    symbol: z.string().min(1),
+    name: z.string(),
+    decimals: z.number().int().min(0).max(255),
+});
+
+/** A solver currency entry from the Relay GET `/chains` response. */
+export type RelaySolverCurrency = z.infer<typeof RelaySolverCurrencySchema>;
+
+/** Schema for the Relay GET `/chains` response body. */
+export const RelayChainsResponseSchema = z.object({
+    chains: z.array(
+        z.object({
+            id: z.number().int().positive(),
+            vmType: z.string().optional(),
+            solverCurrencies: z.array(RelaySolverCurrencySchema).default([]),
+        }),
+    ),
+});
+
 // ── Relay Currencies v2 (Discovery) ────────────────────
 
 /** Schema for the Relay POST `/currencies/v2` request body. */
