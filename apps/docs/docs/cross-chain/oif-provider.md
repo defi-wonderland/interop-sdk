@@ -6,22 +6,51 @@ The [OIF (Open Intents Framework)](https://github.com/BootNodeDev/intents-framew
 
 ## Configuration
 
-| Field             | Type   | Required | Description                        |
-| ----------------- | ------ | -------- | ---------------------------------- |
-| `solverId`        | string | Yes      | Solver identifier                  |
-| `url`             | string | Yes      | Solver API endpoint URL            |
-| `headers`         | object | No       | Custom HTTP headers                |
-| `adapterMetadata` | object | No       | Additional metadata for the solver |
-| `providerId`      | string | No       | Custom provider identifier         |
+| Field             | Type     | Required | Description                                                                                     |
+| ----------------- | -------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `solverId`        | string   | Yes      | Solver identifier                                                                               |
+| `url`             | string   | Yes      | Solver API endpoint URL                                                                         |
+| `headers`         | object   | No       | Custom HTTP headers                                                                             |
+| `adapterMetadata` | object   | No       | Additional metadata for the solver                                                              |
+| `providerId`      | string   | No       | Custom provider identifier                                                                      |
+| `supportedLocks`  | string[] | No       | Lock mechanisms to request (e.g. `["oif-escrow"]`, `["compact-resource-lock"]`). Default: all   |
+| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both (default). Controls order types |
+
+### Lock Mechanism Mapping
+
+The `supportedLocks` option controls which OIF order types the solver returns:
+
+| Lock Mechanism          | OIF Order Types                |
+| ----------------------- | ------------------------------ |
+| `oif-escrow`            | `oif-escrow-v0`, `oif-3009-v0` |
+| `compact-resource-lock` | `oif-resource-lock-v0`         |
+
+`oif-user-open-v0` (user-pays-gas) is controlled by `submissionModes` independently.
 
 ## Creating the Provider
 
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
+// Default: all lock types and submission modes
 const oifProvider = createCrossChainProvider("oif", {
     solverId: "my-solver",
     url: "https://oif-api.example.com",
+});
+
+// Gasless only (escrow-based)
+const gaslessProvider = createCrossChainProvider("oif", {
+    solverId: "my-solver",
+    url: "https://oif-api.example.com",
+    supportedLocks: ["oif-escrow"],
+    submissionModes: ["gasless"],
+});
+
+// User-pays-gas only
+const userTxProvider = createCrossChainProvider("oif", {
+    solverId: "my-solver",
+    url: "https://oif-api.example.com",
+    submissionModes: ["user-transaction"],
 });
 ```
 
@@ -34,87 +63,77 @@ The provider offers intent-based cross-chain operations with two execution modes
 User signs EIP-712 message, solver executes on their behalf:
 
 ```typescript
+import { createCrossChainProvider, getSignatureSteps } from "@wonderland/interop-cross-chain";
 import { createWalletClient, http } from "viem";
 import { base } from "viem/chains";
 
 const quotes = await oifProvider.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-    intent: {
-        intentType: "oif-swap",
-        inputs: [
-            {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                amount: "1000000",
-            },
-        ],
-        outputs: [
-            {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-            },
-        ],
-        swapType: "exact-input",
+    user: "0xYourAddress",
+    input: {
+        chainId: 1,
+        assetAddress: "0xInputTokenAddress",
+        amount: "1000000",
     },
-    supportedTypes: ["oif-escrow-v0"],
+    output: {
+        chainId: 42161,
+        assetAddress: "0xOutputTokenAddress",
+    },
+    swapType: "exact-input",
 });
 
 const quote = quotes[0];
 const walletClient = createWalletClient({ account, chain: base, transport: http() });
-const { domain, primaryType, message, types } = quote.order.payload;
-const signature = await walletClient.signTypedData({ domain, primaryType, message, types });
-await oifProvider.submitSignedOrder(quote, signature);
+const step = getSignatureSteps(quote.order)[0];
+const signature = await walletClient.signTypedData(step.signaturePayload);
+await oifProvider.submitOrder(quote, signature);
 ```
 
 ### User Mode (User Pays Gas)
 
-User executes transaction directly. The `preparedTransaction` is included automatically in the quote:
+User executes transaction directly:
 
 ```typescript
+import { getTransactionSteps } from "@wonderland/interop-cross-chain";
+
 const quotes = await oifProvider.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-    intent: {
-        intentType: "oif-swap",
-        inputs: [
-            {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                amount: "1000000",
-            },
-        ],
-        outputs: [
-            {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-            },
-        ],
-        originSubmission: { mode: "user" },
-        swapType: "exact-input",
+    user: "0xYourAddress",
+    input: {
+        chainId: 1,
+        assetAddress: "0xInputTokenAddress",
+        amount: "1000000",
     },
-    supportedTypes: ["oif-user-open-v0"],
+    output: {
+        chainId: 42161,
+        assetAddress: "0xOutputTokenAddress",
+    },
+    swapType: "exact-input",
 });
 
 const quote = quotes[0];
-if (quote.preparedTransaction) {
-    await walletClient.sendTransaction(quote.preparedTransaction);
-}
+const step = getTransactionSteps(quote.order)[0];
+await walletClient.sendTransaction({
+    to: step.transaction.to,
+    data: step.transaction.data,
+});
 ```
 
 ## Approvals
 
-Access approval information from quotes:
+Access approval information from the order checks:
 
 ```typescript
-// Protocol mode (oif-escrow-v0) - typically Permit2
-const spender = quote.order.payload.message.spender;
-
-// User mode (oif-user-open-v0)
-const { token, user, spender, required } = quote.order.checks.allowances[0];
+// Allowance requirements from order checks
+const allowances = quote.order.checks?.allowances ?? [];
+for (const { spender, token, required } of allowances) {
+    // Approve token spend if needed
+}
 ```
 
 ## Supported Order Types
 
--   `oif-escrow-v0` - Gasless execution via solver
+-   `oif-escrow-v0` - Permit2-based escrow (gasless)
+-   `oif-3009-v0` - EIP-3009 transfer with authorization (gasless)
+-   `oif-resource-lock-v0` - Compact resource locking (gasless)
 -   `oif-user-open-v0` - User executes transaction directly
 
 ## Payload Validation

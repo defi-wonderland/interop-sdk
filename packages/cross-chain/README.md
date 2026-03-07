@@ -1,7 +1,5 @@
 # @wonderland/interop-cross-chain
 
-🚧 The cross-chain package is under construction 🚧
-
 The cross-chain package provides a standardized interface for interacting with cross-chain bridges and protocols. It enables seamless token transfers and swaps between different blockchain networks through a unified API.
 
 Key features:
@@ -11,6 +9,7 @@ Key features:
 -   Quote fetching for cross-chain operations
 -   Standardized provider interface for integrating different bridge protocols
 -   Type-safe interactions with comprehensive TypeScript support
+-   Step-based order model (signature and transaction steps)
 
 ## Setup
 
@@ -35,71 +34,68 @@ Available scripts that can be run using `pnpm`:
 ## Usage
 
 ```typescript
-import { createCrossChainProvider, createProviderExecutor } from "@wonderland/interop-cross-chain";
-import { createPublicClient, createWalletClient, http } from "viem";
+import type { QuoteRequest } from "@wonderland/interop-cross-chain";
+import {
+    createAggregator,
+    createCrossChainProvider,
+    getSignatureSteps,
+    getTransactionSteps,
+    isSignatureOnlyOrder,
+} from "@wonderland/interop-cross-chain";
+import { createWalletClient, http } from "viem";
 import { sepolia } from "viem/chains";
-
-// Setup viem clients (needed for transaction execution)
-const publicClient = createPublicClient({
-    chain: sepolia,
-    transport: http("https://..."),
-});
 
 const walletClient = createWalletClient({
     chain: sepolia,
     transport: http("https://..."),
-    account: "0x...", // Your account
+    account: "0x...",
 });
 
 // Create providers for different protocols
-// Across - config optional (defaults to mainnet: https://app.across.to/api)
-// Testnet: https://testnet.across.to/api
 const acrossProvider = createCrossChainProvider("across");
-
-// Across with testnet config
-const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
-
-// OIF - config required
 const oifProvider = createCrossChainProvider("oif", {
     solverId: "my-solver",
     url: "https://...",
 });
 
-// Create executor with providers (can mix Across, OIF, etc.)
-const executor = createProviderExecutor({
+// Create aggregator with providers (can mix Across, OIF, etc.)
+const aggregator = createAggregator({
     providers: [acrossProvider, oifProvider],
 });
 
-// Get quotes using OIF GetQuoteRequest format
-// Addresses must be EIP-7930 binary format (0x0001...)
-// Use nameToBinary() from @wonderland/interop-addresses to convert
-const response = await executor.getQuotes({
-    user: "0x0001000aa36a7114...",
-    intent: {
-        intentType: "oif-swap",
-        inputs: [
-            {
-                user: "0x0001000aa36a7114...",
-                asset: "0x0001000aa36a7114...",
-                amount: "1000000000000000000",
-            },
-        ],
-        outputs: [
-            {
-                receiver: "0x0001000149d4114...",
-                asset: "0x0001000149d4114...",
-            },
-        ],
-        swapType: "exact-input",
+// Get quotes using SDK QuoteRequest format
+const quoteRequest: QuoteRequest = {
+    user: "0xYourAddress",
+    input: {
+        chainId: 11155111,
+        assetAddress: "0xTokenAddress",
+        amount: "1000000000000000000",
     },
-    supportedTypes: ["oif-escrow-v0"],
-});
+    output: {
+        chainId: 84532,
+        assetAddress: "0xOutputTokenAddress",
+        recipient: "0xRecipientAddress",
+    },
+    swapType: "exact-input",
+};
 
-// Execute the selected quote
+const response = await aggregator.getQuotes(quoteRequest);
 const selectedQuote = response.quotes[0];
-if (selectedQuote?.preparedTransaction) {
-    const hash = await walletClient.sendTransaction(selectedQuote.preparedTransaction);
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+if (selectedQuote) {
+    if (isSignatureOnlyOrder(selectedQuote.order)) {
+        // Protocol mode: sign EIP-712 typed data (gasless for user)
+        const step = getSignatureSteps(selectedQuote.order)[0];
+        const signature = await walletClient.signTypedData(step.signaturePayload);
+        await aggregator.submitOrder(selectedQuote, signature);
+    } else {
+        // User mode: execute transaction directly (user pays gas)
+        const step = getTransactionSteps(selectedQuote.order)[0];
+        await walletClient.sendTransaction({
+            to: step.transaction.to,
+            data: step.transaction.data,
+        });
+    }
 }
 ```
 
@@ -107,13 +103,13 @@ if (selectedQuote?.preparedTransaction) {
 
 ### Providers
 
--   `createCrossChainProvider(protocolName, config?)` – Create a provider for a supported protocol. Config is optional for Across (defaults to mainnet), required for OIF.
+-   `createCrossChainProvider(protocolName, config?)` -- Create a provider for a supported protocol. Config is optional for Across (defaults to mainnet), required for OIF.
 -   `CrossChainProvider` (abstract class)
-    -   `.getProtocolName()` – Returns the protocol name.
-    -   `.getProviderId()` – Returns the provider identifier.
-    -   `.getQuotes(params)` – Fetch quotes for a cross-chain request (OIF GetQuoteRequest format).
-    -   `.submitSignedOrder(quote, signature)` – Submit a signed order to the provider (throws MethodNotImplemented for providers that don't support it, like Across).
-    -   `.getTrackingConfig()` – Get configuration for order tracking.
+    -   `.protocolName` -- Returns the protocol name.
+    -   `.providerId` -- Returns the provider identifier.
+    -   `.getQuotes(params: QuoteRequest)` -- Fetch quotes for a cross-chain request.
+    -   `.submitOrder(quote, signature)` -- Submit a signed order to the provider.
+    -   `.getTrackingConfig()` -- Get configuration for order tracking.
 
 ### Tracking Notes (Across)
 
@@ -121,30 +117,31 @@ if (selectedQuote?.preparedTransaction) {
 -   **Testnet**: fill tracking defaults to **event-based watching** (Across testnet API is not reliable).
 -   The SDK still parses the **origin-chain open event**, so provide an origin-chain RPC URL for robust tracking.
 
-### Provider Executor
+### Aggregator
 
--   `createProviderExecutor(config)` – Create an executor for batch quoting and execution.
+-   `createAggregator(config)` -- Create an aggregator for batch quoting and execution.
     -   Config: `{ providers: CrossChainProvider[], sortingStrategy?, timeoutMs?, trackerFactory? }`
--   `ProviderExecutor`
-    -   `.getQuotes(params)` – Get quotes from all providers (params: GetQuoteRequest, returns: GetQuotesResponse).
-    -   `.prepareTracking(providerId)` – Prepare order tracking for a provider.
-    -   `.track(params)` – Track an existing transaction.
-    -   `.getOrderStatus(params)` – Get current status without watching.
+-   `Aggregator`
+    -   `.getQuotes(params: QuoteRequest)` -- Get quotes from all providers. Returns `{ quotes: ExecutableQuote[], errors: GetQuotesError[] }`.
+    -   `.submitOrder(quote, signature)` -- Submit a signed order.
+    -   `.prepareTracking(providerId)` -- Prepare order tracking for a provider.
+    -   `.track(params)` -- Track an existing transaction.
+    -   `.getOrderStatus(params)` -- Get current status without watching.
 
 ### Asset Discovery
 
 The SDK provides utilities to discover supported assets from providers. All discovery methods return a pre-processed `DiscoveredAssets` structure ready for consumption.
 
-**Via ProviderExecutor (recommended):**
+**Via Aggregator (recommended):**
 
 ```typescript
 import { toChainIdentifier } from "@wonderland/interop-addresses";
-import { createProviderExecutor } from "@wonderland/interop-cross-chain";
+import { createAggregator } from "@wonderland/interop-cross-chain";
 
-const executor = createProviderExecutor({ providers: [acrossProvider] });
+const aggregator = createAggregator({ providers: [acrossProvider] });
 
 // Discover assets from all configured providers
-const discovered = await executor.discoverAssets({ chainIds: [1, 42161] });
+const discovered = await aggregator.discoverAssets({ chainIds: [1, 42161] });
 
 // Get tokens for Ethereum using CAIP-350 chain identifier
 const ethTokens = discovered.tokensByChain[toChainIdentifier(1)]; // "eip155:1"
@@ -175,15 +172,23 @@ const ethTokens = discovered.tokensByChain[toChainIdentifier(1)];
 
 **Types:**
 
--   `DiscoveredAssets` – Aggregated discovery result with `tokensByChain`, `tokenMetadata`, and `chainIds`.
--   `AssetInfo` – Token metadata: `{ address, symbol, decimals }`.
+-   `DiscoveredAssets` -- Aggregated discovery result with `tokensByChain`, `tokenMetadata`, and `chainIds`.
+-   `AssetInfo` -- Token metadata: `{ address, symbol, decimals }`.
 
 ### Types
 
--   `GetQuoteRequest` – OIF-compliant quote request (see `@openintentsframework/oif-specs`).
--   `GetQuotesResponse` – Response containing `{ quotes: ExecutableQuote[], errors: GetQuotesError[] }`.
--   `ExecutableQuote` – Quote with optional `preparedTransaction` for execution.
--   `ProviderExecutorConfig`, `OrderTrackerConfig`, and more (see exported types).
+-   `QuoteRequest` -- SDK-friendly quote request with `user`, `input`, `output`, and `swapType`.
+-   `Quote` -- Quote with step-based `order`, `preview`, `provider`, and `metadata`.
+-   `ExecutableQuote` -- Quote with provider context for submission.
+-   `Order` -- Step-based order model with `steps: (SignatureStep | TransactionStep)[]`.
+-   `InteropAccountId` -- Chain-aware account identifier: `{ chainId: number, address: string }`.
+
+### Step Helpers
+
+-   `getSignatureSteps(order)` -- Extract signature steps from an order.
+-   `getTransactionSteps(order)` -- Extract transaction steps from an order.
+-   `isSignatureOnlyOrder(order)` -- Check if an order only requires signatures.
+-   `isTransactionOnlyOrder(order)` -- Check if an order only requires transactions.
 
 ## OIF Provider
 
@@ -192,11 +197,15 @@ The OIF Provider enables integration with any [Open Intents Framework](https://d
 ### Usage
 
 ```typescript
-import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+import type { QuoteRequest } from "@wonderland/interop-cross-chain";
+import {
+    createCrossChainProvider,
+    getSignatureSteps,
+    getTransactionSteps,
+} from "@wonderland/interop-cross-chain";
 import { createWalletClient, http } from "viem";
 import { mainnet } from "viem/chains";
 
-// Setup wallet client
 const walletClient = createWalletClient({
     chain: mainnet,
     transport: http("https://..."),
@@ -209,51 +218,50 @@ const provider = createCrossChainProvider("oif", {
     url: "https://...",
 });
 
-// Get quotes using OIF GetQuoteRequest format
-// Addresses must be EIP-7930 binary format (0x0001...)
-const response = await provider.getQuotes({
-    user: "0x00010000000114...",
-    intent: {
-        intentType: "oif-swap",
-        inputs: [
-            {
-                user: "0x00010000000114...",
-                asset: "0x00010000000114...",
-                amount: "1000000",
-            },
-        ],
-        outputs: [
-            {
-                receiver: "0x00010000000114...",
-                asset: "0x00010000000114...",
-            },
-        ],
-        swapType: "exact-input",
+// Get quotes using SDK QuoteRequest
+const quotes = await provider.getQuotes({
+    user: "0xYourAddress",
+    input: {
+        chainId: 1,
+        assetAddress: "0xTokenAddress",
+        amount: "1000000",
     },
-    supportedTypes: ["oif-escrow-v0"],
+    output: {
+        chainId: 42161,
+        assetAddress: "0xOutputTokenAddress",
+    },
+    swapType: "exact-input",
 });
 
+const quote = quotes[0];
+
 // Protocol Mode: Sign and submit order (gasless for user)
-const { domain, primaryType, message, types } = response[0].order.payload;
-const signature = await walletClient.signTypedData({ domain, primaryType, message, types });
-await provider.submitSignedOrder(response[0], signature);
+const signatureSteps = getSignatureSteps(quote.order);
+if (signatureSteps.length > 0) {
+    const signature = await walletClient.signTypedData(signatureSteps[0].signaturePayload);
+    await provider.submitOrder(quote, signature);
+}
 
 // User Mode: Execute transaction directly (user pays gas)
-if (response[0]?.preparedTransaction) {
-    await walletClient.sendTransaction(response[0].preparedTransaction);
+const txSteps = getTransactionSteps(quote.order);
+if (txSteps.length > 0) {
+    await walletClient.sendTransaction({
+        to: txSteps[0].transaction.to,
+        data: txSteps[0].transaction.data,
+    });
 }
 ```
 
 ### Approval Requirements
 
-Access approval info directly from the quote:
+Access approval info from the order checks:
 
 ```typescript
-// Protocol mode (oif-escrow-v0)
-const spender = quote.order.payload.message.spender;
-
-// User mode (oif-user-open-v0)
-const { spender, token, required } = quote.order.checks.allowances[0];
+// Get allowance requirements from order checks
+const allowances = quote.order.checks?.allowances ?? [];
+for (const { spender, token, required } of allowances) {
+    // Approve token spend if needed
+}
 ```
 
 ## Payload Validation
