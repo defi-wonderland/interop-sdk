@@ -7,6 +7,8 @@ import {
     OIFAssetDiscoveryConfig,
     OIFAssetDiscoveryService,
     OIFAssetDiscoveryServiceConfig,
+    RelayAssetDiscoveryConfig,
+    RelayAssetDiscoveryService,
     StaticAssetDiscoveryService,
 } from "../internal.js";
 
@@ -68,6 +70,9 @@ export class AssetDiscoveryFactory {
             case "custom-api":
                 return this.createCustomApiService(config, providerId);
 
+            case "relay":
+                return this.createRelayService(config, providerId);
+
             case "static":
                 return new StaticAssetDiscoveryService(config.config.networks, providerId);
 
@@ -91,6 +96,21 @@ export class AssetDiscoveryFactory {
         return new OIFAssetDiscoveryService({
             baseUrl: config.config.baseUrl,
             solverId: config.config.solverId,
+            providerId,
+            headers: config.config.headers,
+            timeout: config.config.timeout,
+        });
+    }
+
+    /**
+     * Create Relay Asset Discovery Service
+     */
+    private createRelayService(
+        config: RelayAssetDiscoveryConfig,
+        providerId: string,
+    ): RelayAssetDiscoveryService {
+        return new RelayAssetDiscoveryService({
+            baseUrl: config.config.baseUrl,
             providerId,
             headers: config.config.headers,
             timeout: config.config.timeout,
