@@ -14,6 +14,8 @@ const RPC_URLS = IS_TESTNET ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
 const OIF_API_URL = 'https://oif-api.openzeppelin.com/api';
 const OIF_SOLVER_ID = IS_TESTNET ? 'testnet-solver' : 'mainnet-solver';
 
+const RELAY_API_URL = IS_TESTNET ? 'https://api.testnets.relay.link' : 'https://api.relay.link';
+
 /**
  * Provider configuration with display names
  */
@@ -46,6 +48,7 @@ const providers: CrossChainProvider[] = [
     providerId: 'oif',
   }),
   createCrossChainProvider(PROTOCOLS.RELAY, {
+    baseUrl: RELAY_API_URL,
     providerId: 'relay',
   }),
 ];
