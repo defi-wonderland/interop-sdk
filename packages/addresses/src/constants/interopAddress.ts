@@ -1,20 +1,24 @@
 export enum ChainTypeValue {
     EIP155 = "0x0000",
+    BIP122 = "0x0001",
     SOLANA = "0x0002",
 }
 
 export enum ChainTypeName {
     EIP155 = "eip155",
+    BIP122 = "bip122",
     SOLANA = "solana",
 }
 
 export const CHAIN_TYPE: Record<string, ChainTypeValue> = {
     [ChainTypeName.EIP155]: ChainTypeValue.EIP155,
+    [ChainTypeName.BIP122]: ChainTypeValue.BIP122,
     [ChainTypeName.SOLANA]: ChainTypeValue.SOLANA,
 } as const;
 
 export const CHAIN_TYPE_VALUE_TO_NAME: Record<ChainTypeValue, ChainTypeName> = {
     [ChainTypeValue.EIP155]: ChainTypeName.EIP155,
+    [ChainTypeValue.BIP122]: ChainTypeName.BIP122,
     [ChainTypeValue.SOLANA]: ChainTypeName.SOLANA,
 } as const;
 

@@ -16,7 +16,7 @@ export type InteroperableAddressBinary = {
  */
 export type InteroperableAddressText = {
     version: number;
-    chainType: "eip155" | "solana";
+    chainType: "eip155" | "bip122" | "solana";
     chainReference?: string;
     address?: string;
 };

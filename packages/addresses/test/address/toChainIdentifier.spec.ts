@@ -67,7 +67,7 @@ describe("fromChainIdentifier", () => {
     });
 
     it("should throw InvalidChainIdentifier for unknown namespace", () => {
-        expect(() => fromChainIdentifier("bip122:1")).toThrow(InvalidChainIdentifier);
+        expect(() => fromChainIdentifier("cosmos:1")).toThrow(InvalidChainIdentifier);
     });
 
     it("should throw InvalidChainIdentifier for missing separator", () => {
