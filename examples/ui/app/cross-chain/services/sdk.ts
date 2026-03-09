@@ -26,6 +26,10 @@ const PROVIDER_CONFIGS = [
     providerId: 'oif',
     displayName: 'OIF Sample Solver',
   },
+  {
+    providerId: 'relay',
+    displayName: 'Relay',
+  },
 ];
 
 /**
@@ -40,6 +44,9 @@ const providers: CrossChainProvider[] = [
     solverId: OIF_SOLVER_ID,
     url: OIF_API_URL,
     providerId: 'oif',
+  }),
+  createCrossChainProvider(PROTOCOLS.RELAY, {
+    providerId: 'relay',
   }),
 ];
 
