@@ -495,12 +495,50 @@ describe("RelayProvider", () => {
             expect(config.openedIntentParserConfig.type).toBe("api");
         });
 
-        it("extractOpenedIntent throws (Relay uses API-based tracking)", () => {
+        it("extractOpenedIntent maps valid API response to OpenedIntent", () => {
+            const { openedIntentParserConfig } = provider.getTrackingConfig();
+            if (openedIntentParserConfig.type === "api") {
+                const txHash = "0xabc123" as `0x${string}`;
+                const inTxHash = "0xorigin111" as `0x${string}`;
+                const result = openedIntentParserConfig.config.extractOpenedIntent(
+                    {
+                        status: "pending",
+                        originChainId: 11155111,
+                        destinationChainId: 84532,
+                        inTxHashes: [inTxHash],
+                    },
+                    txHash,
+                );
+                expect(result.orderId).toBe(txHash);
+                expect(result.txHash).toBe(inTxHash);
+                expect(result.originChainId).toBe(11155111);
+                expect(result.fillInstructions).toHaveLength(1);
+                expect(result.fillInstructions[0]?.destinationChainId).toBe(84532);
+            }
+        });
+
+        it("extractOpenedIntent falls back to txHash when inTxHashes is empty", () => {
+            const { openedIntentParserConfig } = provider.getTrackingConfig();
+            if (openedIntentParserConfig.type === "api") {
+                const txHash = "0xabc123" as `0x${string}`;
+                const result = openedIntentParserConfig.config.extractOpenedIntent(
+                    { status: "pending", originChainId: 11155111 },
+                    txHash,
+                );
+                expect(result.txHash).toBe(txHash);
+                expect(result.fillInstructions).toHaveLength(0);
+            }
+        });
+
+        it("extractOpenedIntent throws OpenedIntentNotFoundError on invalid response", () => {
             const { openedIntentParserConfig } = provider.getTrackingConfig();
             if (openedIntentParserConfig.type === "api") {
                 expect(() =>
-                    openedIntentParserConfig.config.extractOpenedIntent({} as never, "0x" as never),
-                ).toThrow("Relay does not support parsing opened intents");
+                    openedIntentParserConfig.config.extractOpenedIntent(
+                        { invalid: "data" },
+                        "0x123" as `0x${string}`,
+                    ),
+                ).toThrow("relay opened intent event not found");
             }
         });
 

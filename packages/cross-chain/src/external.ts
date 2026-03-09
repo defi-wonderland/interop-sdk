@@ -25,6 +25,7 @@ export {
     OrderTracker,
     OrderTrackerFactory,
     OIFOpenedIntentParser,
+    APIOpenedIntentParser,
     CustomEventOpenedIntentParser,
     // Sorting
     SortingStrategyFactory,
