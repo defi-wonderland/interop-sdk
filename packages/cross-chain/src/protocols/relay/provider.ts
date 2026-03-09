@@ -45,6 +45,9 @@ const RELAY_STATUS_MAP: Record<
     string,
     { status: OrderStatus; failureReason?: OrderFailureReason }
 > = {
+    waiting: { status: OrderStatus.Pending },
+    pending: { status: OrderStatus.Executing },
+    submitted: { status: OrderStatus.Settling },
     success: { status: OrderStatus.Finalized },
     failure: { status: OrderStatus.Failed, failureReason: OrderFailureReason.Unknown },
     refund: { status: OrderStatus.Refunded },
@@ -170,18 +173,16 @@ export class RelayProvider extends CrossChainProvider {
                     status: OrderStatus.Pending,
                 };
 
-                if (status !== OrderStatus.Finalized) {
-                    return { event: null, status, failureReason };
-                }
+                const fillTxHash = response.txHashes?.[0] as Hex | undefined;
+                const base = { event: null, status, failureReason, fillTxHash };
 
-                const fillTxHash = response.txHashes?.[0];
-                if (!fillTxHash) {
-                    return { event: null, status, failureReason };
+                if (status !== OrderStatus.Finalized || !fillTxHash) {
+                    return { ...base, event: null };
                 }
 
                 return {
                     event: {
-                        fillTxHash: fillTxHash as Hex,
+                        fillTxHash,
                         blockNumber: 0n,
                         timestamp: response.updatedAt ?? 0,
                         originChainId: params.originChainId,

@@ -603,9 +603,21 @@ describe("RelayProvider", () => {
             expect(result.event).toBeNull();
         });
 
-        it.each(["waiting", "pending", "submitted"] as const)("maps '%s' to Pending", (status) => {
-            const result = getExtract()({ status }, fillParams);
+        it("maps 'waiting' to Pending", () => {
+            const result = getExtract()({ status: "waiting" }, fillParams);
             expect(result.status).toBe(OrderStatus.Pending);
+            expect(result.event).toBeNull();
+        });
+
+        it("maps 'pending' to Executing", () => {
+            const result = getExtract()({ status: "pending" }, fillParams);
+            expect(result.status).toBe(OrderStatus.Executing);
+            expect(result.event).toBeNull();
+        });
+
+        it("maps 'submitted' to Settling", () => {
+            const result = getExtract()({ status: "submitted" }, fillParams);
+            expect(result.status).toBe(OrderStatus.Settling);
             expect(result.event).toBeNull();
         });
     });
