@@ -205,6 +205,8 @@ export interface WatchOrderByOrderId extends WatchOrderBase {
     orderId: Hex;
     /** Required - no order to parse */
     destinationChainId: number;
+    /** Optional deposit tx hash, passed to fill watcher for solver notification */
+    openTxHash?: Hex;
 }
 
 /** Pass txHash for user-open orders, orderId for escrow orders */

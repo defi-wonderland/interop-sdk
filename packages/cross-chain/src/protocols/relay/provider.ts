@@ -161,6 +161,21 @@ export class RelayProvider extends CrossChainProvider {
                 backoffMultiplier: 2,
             },
             buildEndpoint: (params): string => `/intents/status/v3?requestId=${params.orderId}`,
+            onBeforePolling: async (params): Promise<void> => {
+                if (!params.openTxHash) return;
+                try {
+                    await fetch(`${baseUrl}/transactions/index`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            txHash: params.openTxHash,
+                            chainId: String(params.originChainId),
+                        }),
+                    });
+                } catch {
+                    console.warn("[Relay] Failed to notify solver of deposit transaction");
+                }
+            },
             extractFillEvent: (
                 response,
                 params,
@@ -321,9 +336,15 @@ export class RelayProvider extends CrossChainProvider {
         const currencyIn = response.details?.currencyIn;
         const currencyOut = response.details?.currencyOut;
 
+        const depositStep = response.steps.find((s) => s.id === "deposit");
+        const relayRequestId = depositStep?.requestId;
+
         return {
             order: {
                 steps: response.steps.flatMap((step) => this.toSdkSteps(step)),
+                ...(relayRequestId && {
+                    metadata: { relayRequestId },
+                }),
             },
             preview: {
                 inputs: [

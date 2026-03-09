@@ -53,6 +53,11 @@ export interface APIBasedFillWatcherConfig<TResponse = unknown, TMetadata = unkn
         /** Fill tx hash when available from intermediate statuses (e.g. executing) */
         fillTxHash?: string;
     };
+    /**
+     * Optional hook called once before the first poll.
+     * Providers like Relay use this to notify their solver of a submitted deposit.
+     */
+    onBeforePolling?: (params: GetFillParams) => Promise<void>;
 }
 
 /**
@@ -67,6 +72,8 @@ export class APIBasedFillWatcher<TResponse = unknown, TMetadata = unknown> imple
         maxDelay: 10000,
         backoffMultiplier: 2,
     };
+
+    private readonly notifiedOrders = new Set<string>();
 
     constructor(private readonly config: APIBasedFillWatcherConfig<TResponse, TMetadata>) {}
 
@@ -137,6 +144,8 @@ export class APIBasedFillWatcher<TResponse = unknown, TMetadata = unknown> imple
         failureReason?: OrderFailureReason;
         fillTxHash?: string;
     }> {
+        await this.runBeforePollingOnce(params);
+
         const endpoint = this.config.buildEndpoint(params);
         const url = `${this.config.baseUrl}${endpoint}`;
 
@@ -229,5 +238,18 @@ export class APIBasedFillWatcher<TResponse = unknown, TMetadata = unknown> imple
         }
 
         throw new FillTimeoutError(params.orderId, timeout);
+    }
+
+    /** Run onBeforePolling once per orderId (fire-and-forget). */
+    private async runBeforePollingOnce(params: GetFillParams): Promise<void> {
+        if (!this.config.onBeforePolling || this.notifiedOrders.has(params.orderId)) {
+            return;
+        }
+        this.notifiedOrders.add(params.orderId);
+        try {
+            await this.config.onBeforePolling(params);
+        } catch {
+            console.warn("[APIBasedFillWatcher] onBeforePolling failed, continuing");
+        }
     }
 }
