@@ -7,7 +7,7 @@ import type { ConfiguredWalletClient } from './chainSetup';
 import type { Address, Hex, PublicClient } from 'viem';
 import { BridgeState, ChainContext } from '~/cross-chain/hooks';
 
-type TrackingIdentifier = { txHash: Hex } | { orderId: Hex };
+type TrackingIdentifier = { txHash: Hex } | { orderId: Hex } | { orderId: Hex; txHash: Hex };
 
 interface FlowParams {
   quote: ExecutableQuote;
@@ -120,6 +120,12 @@ export const executeDirectTransaction = async ({
       onStateChange,
       value,
     );
+  }
+
+  const relayRequestId = quote.order.metadata?.relayRequestId as string | undefined;
+
+  if (relayRequestId) {
+    return { orderId: relayRequestId as Hex, txHash: lastTxHash };
   }
 
   return { txHash: lastTxHash! };
