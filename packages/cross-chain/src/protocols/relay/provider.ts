@@ -45,6 +45,9 @@ const RELAY_STATUS_MAP: Record<
     string,
     { status: OrderStatus; failureReason?: OrderFailureReason }
 > = {
+    waiting: { status: OrderStatus.Pending },
+    pending: { status: OrderStatus.Executing },
+    submitted: { status: OrderStatus.Settling },
     success: { status: OrderStatus.Finalized },
     failure: { status: OrderStatus.Failed, failureReason: OrderFailureReason.Unknown },
     refund: { status: OrderStatus.Refunded },
@@ -165,33 +168,27 @@ export class RelayProvider extends CrossChainProvider {
                 event: FillEvent | null;
                 status: OrderStatus;
                 failureReason?: OrderFailureReason;
+                fillTxHash?: string;
             } => {
                 const { status, failureReason } = RELAY_STATUS_MAP[response.status] ?? {
                     status: OrderStatus.Pending,
                 };
-
-                if (status !== OrderStatus.Finalized) {
-                    return { event: null, status, failureReason };
-                }
-
                 const fillTxHash = response.txHashes?.[0];
-                if (!fillTxHash) {
-                    return { event: null, status, failureReason };
-                }
 
-                return {
-                    event: {
-                        fillTxHash: fillTxHash as Hex,
-                        blockNumber: 0n,
-                        timestamp: response.updatedAt ?? 0,
-                        originChainId: params.originChainId,
-                        orderId: params.orderId,
-                        relayer: zeroAddress,
-                        recipient: zeroAddress,
-                    },
-                    status,
-                    failureReason,
-                };
+                const isFilled = status === OrderStatus.Finalized && fillTxHash;
+                const event: FillEvent | null = isFilled
+                    ? {
+                          fillTxHash: fillTxHash as Hex,
+                          blockNumber: 0n,
+                          timestamp: response.updatedAt ?? 0,
+                          originChainId: params.originChainId,
+                          orderId: params.orderId,
+                          relayer: zeroAddress,
+                          recipient: zeroAddress,
+                      }
+                    : null;
+
+                return { event, status, failureReason, fillTxHash };
             },
         };
     }
