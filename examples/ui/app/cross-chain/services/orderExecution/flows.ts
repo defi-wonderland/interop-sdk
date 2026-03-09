@@ -1,6 +1,6 @@
 import { isNativeAddress, getTransactionSteps, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { crossChainExecutor } from '../sdk';
-import { handleTokenApproval } from './approval';
+import { handleTokenApproval, isApprovalTransaction, submitApprovalStep } from './approval';
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
@@ -81,26 +81,41 @@ export const executeDirectTransaction = async ({
       throw new Error('Invalid quote: missing transaction data');
     }
 
+    const txData = txStep.transaction.data as Hex;
+    const txTo = txStep.transaction.to as Address;
+    const value = txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined;
+
+    if (isApprovalTransaction(txData)) {
+      lastTxHash = await submitApprovalStep(
+        publicClient,
+        walletClient,
+        txTo,
+        txData,
+        chainContext,
+        onStateChange,
+        value,
+      );
+      continue;
+    }
+
     if (!isNativeInput) {
       await handleTokenApproval(
         publicClient,
         walletClient,
         ownerAddress,
         inputTokenAddress,
-        txStep.transaction.to as Address,
+        txTo,
         inputAmount,
         chainContext,
         onStateChange,
       );
     }
 
-    const value = isNativeInput ? inputAmount : undefined;
-
     lastTxHash = await submitBridgeTransaction(
       publicClient,
       walletClient,
-      txStep.transaction.to as Address,
-      txStep.transaction.data as Hex,
+      txTo,
+      txData,
       chainContext,
       onStateChange,
       value,
