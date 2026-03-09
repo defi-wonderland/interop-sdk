@@ -15,6 +15,11 @@ export const PROVIDERS: ProviderConfig[] = [
       providerId: 'across',
     },
   },
+  {
+    id: PROTOCOLS.RELAY,
+    displayName: 'Relay',
+    config: { providerId: 'relay' },
+  },
 ];
 
 /**
