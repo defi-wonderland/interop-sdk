@@ -3,8 +3,6 @@
  * @see https://github.com/openintentsframework/oif-solver/issues/295
  */
 
-import { encodeAddress } from "@wonderland/interop-addresses";
-
 import type { NetworkAssets } from "../../../core/types/assetDiscovery.js";
 
 interface AggregatorSolverResponse {
@@ -33,15 +31,7 @@ export function parseAggregatorSolverResponse(data: unknown): NetworkAssets[] {
         }
 
         chain.assets.push({
-            address: encodeAddress(
-                {
-                    version: 1,
-                    chainType: "eip155",
-                    chainReference: asset.chainId.toString(),
-                    address: asset.address as `0x${string}`,
-                },
-                { format: "hex" },
-            ) as `0x${string}`,
+            address: asset.address,
             symbol: asset.symbol,
             decimals: asset.decimals,
         });

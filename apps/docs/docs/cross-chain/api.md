@@ -186,6 +186,39 @@ A class that manages multiple cross-chain providers and coordinates their operat
     console.log(status.status); // OrderStatus
     ```
 
+-   **prepareTracking**(providerId: string): OrderTracker
+
+    Returns an OrderTracker instance for a provider. Use this to set up event listeners _before_ sending a transaction.
+
+    ```typescript
+    const tracker = aggregator.prepareTracking(quote._providerId);
+    tracker.on(OrderStatus.Finalized, (update) => console.log("Done!", update.fillTxHash));
+    // ...then send the transaction and call tracker.startTracking(...)
+    ```
+
+-   **discoverAssets**(options?: AssetDiscoveryOptions): Promise\<DiscoveredAssets\>
+
+    Discovers supported assets from all configured providers.
+
+    ```typescript
+    const discovered = await aggregator.discoverAssets({ chainIds: [1, 42161] });
+    // discovered.tokensByChain — token addresses grouped by numeric chain ID
+    // discovered.tokenMetadata — token metadata nested by chain ID then lowercase address
+    ```
+
+-   **getProvidersForRoute**(query: RouteQuery): Promise\<string[]\>
+
+    Returns provider IDs that support a given origin/destination asset pair. Uses plain 0x addresses and numeric chain IDs.
+
+    ```typescript
+    const providers = await aggregator.getProvidersForRoute({
+        originChainId: 1,
+        originAsset: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        destinationChainId: 42161,
+        destinationAsset: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    });
+    ```
+
 ### Sorting Strategies
 
 #### SortingStrategyFactory

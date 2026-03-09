@@ -1,9 +1,11 @@
 import { isAddress } from "viem";
 import { z } from "zod";
 
-export const addressString = z.string().refine((val): boolean => isAddress(val), {
-    message: "Invalid hex address",
-});
+export const addressString = z
+    .string()
+    .refine((val): boolean => isAddress(val, { strict: false }), {
+        message: "Invalid hex address",
+    });
 
 export const amountSchema = z
     .string()

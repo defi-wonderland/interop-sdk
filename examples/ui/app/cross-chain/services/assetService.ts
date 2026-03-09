@@ -1,17 +1,8 @@
-import { decodeAddress } from '@wonderland/interop-addresses';
 import { isNativeAddress } from '@wonderland/interop-cross-chain';
-import { type Address, erc20Abi, formatUnits, type Hex, isAddress } from 'viem';
+import { type Address, erc20Abi, formatUnits, isAddress } from 'viem';
 import { getPublicClient } from '../config/publicClient';
 import type { BalanceTarget, TokenBalance } from '../stores/balanceStore';
 import type { DiscoveredAssets } from '../types/assets';
-
-// TODO: SDK will return EIP-7930 interop addresses — all addresses will need decoding
-function resolveEvmAddress(address: string): Address {
-  if (isAddress(address)) return address;
-
-  const decoded = decodeAddress(address as Hex);
-  return decoded.address as Address;
-}
 
 export class AssetService {
   private getClient(chainId: number) {
@@ -74,7 +65,10 @@ export class AssetService {
   ): Promise<Record<string, TokenBalance>> {
     if (tokens.length === 0) return {};
 
-    const owner = resolveEvmAddress(userAddress);
+    if (!isAddress(userAddress)) {
+      throw new Error(`Invalid user address: ${userAddress}`);
+    }
+    const owner = userAddress as Address;
     const nativeTokens = tokens.filter((t) => isNativeAddress(t, 'eip155'));
     const erc20Tokens = tokens.filter((t) => !isNativeAddress(t, 'eip155'));
     const balances: Record<string, TokenBalance> = {};
@@ -94,7 +88,7 @@ export class AssetService {
     if (erc20Tokens.length === 0) return balances;
 
     const contracts = erc20Tokens.map((token) => ({
-      address: resolveEvmAddress(token),
+      address: token as Address,
       abi: erc20Abi,
       functionName: 'balanceOf' as const,
       args: [owner] as const,

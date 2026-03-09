@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAggregator, CrossChainProvider } from "../../src/internal.js";
 
-// EIP-7930 test addresses
-const USDC_ETH = "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-const WETH_ETH = "0x000100000101C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-const USDC_ARB = "0x00010000A4B10101af88d065e77c8cC2239327C5EDb3A432268e5831";
+// Plain 0x test addresses
+const USDC_ETH = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const WETH_ETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+const USDC_ARB = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
 
 function createMockProvider(
     providerId: string,
@@ -63,10 +63,10 @@ describe("Aggregator - Asset Discovery", () => {
 
             const result = await executor.discoverAssets();
 
-            expect(result.tokensByChain["eip155:1"]).toHaveLength(2);
-            expect(result.tokenMetadata[USDC_ETH].providers).toContain("across");
-            expect(result.tokenMetadata[USDC_ETH].providers).toContain("oif");
-            expect(result.tokenMetadata[WETH_ETH].providers).toEqual(["oif"]);
+            expect(result.tokensByChain[1]).toHaveLength(2);
+            expect(result.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.providers).toContain("across");
+            expect(result.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.providers).toContain("oif");
+            expect(result.tokenMetadata[1]![WETH_ETH.toLowerCase()]!.providers).toEqual(["oif"]);
         });
 
         it("should skip providers without discovery config", async () => {
@@ -90,8 +90,8 @@ describe("Aggregator - Asset Discovery", () => {
 
             const result = await executor.discoverAssets();
 
-            expect(result.tokensByChain["eip155:1"]).toHaveLength(1);
-            expect(result.tokenMetadata[USDC_ETH].providers).toEqual(["across"]);
+            expect(result.tokensByChain[1]).toHaveLength(1);
+            expect(result.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.providers).toEqual(["across"]);
         });
 
         it("should return empty result when no providers support discovery", async () => {
@@ -143,8 +143,8 @@ describe("Aggregator - Asset Discovery", () => {
 
             const result = await executor.discoverAssets();
 
-            expect(result.tokensByChain["eip155:1"]).toBeDefined();
-            expect(result.tokenMetadata[USDC_ETH].providers).toEqual(["across"]);
+            expect(result.tokensByChain[1]).toBeDefined();
+            expect(result.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.providers).toEqual(["across"]);
         });
 
         it("should deduplicate same token from same provider", async () => {
@@ -169,8 +169,8 @@ describe("Aggregator - Asset Discovery", () => {
 
             const result = await executor.discoverAssets();
 
-            expect(result.tokensByChain["eip155:1"]).toHaveLength(1);
-            expect(result.tokenMetadata[USDC_ETH].providers).toEqual(["across"]);
+            expect(result.tokensByChain[1]).toHaveLength(1);
+            expect(result.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.providers).toEqual(["across"]);
         });
     });
 
@@ -197,7 +197,9 @@ describe("Aggregator - Asset Discovery", () => {
             });
 
             const providers = await executor.getProvidersForRoute({
+                originChainId: 1,
                 originAsset: USDC_ETH,
+                destinationChainId: 42161,
                 destinationAsset: USDC_ARB,
             });
 
@@ -222,7 +224,9 @@ describe("Aggregator - Asset Discovery", () => {
             });
 
             const providers = await executor.getProvidersForRoute({
+                originChainId: 1,
                 originAsset: USDC_ETH,
+                destinationChainId: 42161,
                 destinationAsset: USDC_ARB,
             });
 
@@ -247,7 +251,9 @@ describe("Aggregator - Asset Discovery", () => {
             });
 
             const providers = await executor.getProvidersForRoute({
+                originChainId: 1,
                 originAsset: USDC_ETH,
+                destinationChainId: 42161,
                 destinationAsset: USDC_ARB,
             });
 
@@ -286,7 +292,9 @@ describe("Aggregator - Asset Discovery", () => {
             // across only has USDC_ETH, oif only has USDC_ARB
             // No single provider supports both
             const providers = await executor.getProvidersForRoute({
+                originChainId: 1,
                 originAsset: USDC_ETH,
+                destinationChainId: 42161,
                 destinationAsset: USDC_ARB,
             });
 
@@ -331,7 +339,9 @@ describe("Aggregator - Asset Discovery", () => {
             });
 
             const providers = await executor.getProvidersForRoute({
+                originChainId: 1,
                 originAsset: USDC_ETH,
+                destinationChainId: 42161,
                 destinationAsset: USDC_ARB,
             });
 

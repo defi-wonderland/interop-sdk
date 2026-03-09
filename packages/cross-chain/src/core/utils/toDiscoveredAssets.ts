@@ -1,5 +1,3 @@
-import { toChainIdentifier } from "@wonderland/interop-addresses";
-
 import type {
     AssetDiscoveryResult,
     DiscoveredAssetInfo,
@@ -10,8 +8,9 @@ import type {
  * Convert one or more AssetDiscoveryResults into a lookup-friendly
  * DiscoveredAssets structure.
  *
- * Chain grouping uses CAIP-350 keys. Token metadata is flat (interop
- * addresses are globally unique). Addresses are kept in EIP-7930 format.
+ * Chain grouping uses numeric chain IDs. Token metadata is nested by
+ * chain ID then lowercase address to prevent cross-chain collisions.
+ * All addresses use plain 0x format.
  * Each metadata entry includes a `providers` array listing which provider IDs
  * reported the asset.
  *
@@ -23,31 +22,32 @@ export function toDiscoveredAssets(
     results: AssetDiscoveryResult[],
     filterChainIds?: number[],
 ): DiscoveredAssets {
-    const tokensByChain: Record<string, string[]> = {};
-    const tokenMetadata: Record<string, DiscoveredAssetInfo> = {};
+    const tokensByChain: Record<number, string[]> = {};
+    const tokenMetadata: Record<number, Record<string, DiscoveredAssetInfo>> = {};
 
     for (const result of results) {
         for (const network of result.networks) {
             const { chainId, assets } = network;
             if (filterChainIds && !filterChainIds.includes(chainId)) continue;
 
-            const key = toChainIdentifier(chainId) as string;
-            tokensByChain[key] ??= [];
+            tokensByChain[chainId] ??= [];
+            tokenMetadata[chainId] ??= {};
 
             for (const asset of assets) {
                 const addr = asset.address;
+                const addrLower = addr.toLowerCase();
 
-                if (!tokensByChain[key].includes(addr)) {
-                    tokensByChain[key].push(addr);
+                if (!tokensByChain[chainId].includes(addr)) {
+                    tokensByChain[chainId].push(addr);
                 }
 
-                const existing = tokenMetadata[addr];
+                const existing = tokenMetadata[chainId][addrLower];
                 if (existing) {
                     if (!existing.providers.includes(result.providerId)) {
                         existing.providers.push(result.providerId);
                     }
                 } else {
-                    tokenMetadata[addr] = {
+                    tokenMetadata[chainId][addrLower] = {
                         address: asset.address,
                         symbol: asset.symbol,
                         decimals: asset.decimals,
@@ -75,29 +75,34 @@ export function toDiscoveredAssets(
  * @param sources - Array of DiscoveredAssets to merge
  */
 export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAssets {
-    const tokensByChain: Record<string, string[]> = {};
-    const tokenMetadata: Record<string, DiscoveredAssetInfo> = {};
+    const tokensByChain: Record<number, string[]> = {};
+    const tokenMetadata: Record<number, Record<string, DiscoveredAssetInfo>> = {};
 
     for (const source of sources) {
-        for (const [chainKey, tokens] of Object.entries(source.tokensByChain)) {
-            tokensByChain[chainKey] ??= [];
+        for (const [chainKeyStr, tokens] of Object.entries(source.tokensByChain)) {
+            const chainId = Number(chainKeyStr);
+            tokensByChain[chainId] ??= [];
             for (const token of tokens) {
-                if (!tokensByChain[chainKey].includes(token)) {
-                    tokensByChain[chainKey].push(token);
+                if (!tokensByChain[chainId].includes(token)) {
+                    tokensByChain[chainId].push(token);
                 }
             }
         }
 
-        for (const [addr, meta] of Object.entries(source.tokenMetadata)) {
-            const existing = tokenMetadata[addr];
-            if (existing) {
-                for (const pid of meta.providers) {
-                    if (!existing.providers.includes(pid)) {
-                        existing.providers.push(pid);
+        for (const [chainKeyStr, chainMeta] of Object.entries(source.tokenMetadata)) {
+            const chainId = Number(chainKeyStr);
+            tokenMetadata[chainId] ??= {};
+            for (const [addr, meta] of Object.entries(chainMeta)) {
+                const existing = tokenMetadata[chainId][addr];
+                if (existing) {
+                    for (const pid of meta.providers) {
+                        if (!existing.providers.includes(pid)) {
+                            existing.providers.push(pid);
+                        }
                     }
+                } else {
+                    tokenMetadata[chainId][addr] = { ...meta, providers: [...meta.providers] };
                 }
-            } else {
-                tokenMetadata[addr] = { ...meta, providers: [...meta.providers] };
             }
         }
     }
