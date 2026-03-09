@@ -125,9 +125,23 @@ export interface StaticAssetDiscoveryConfig {
 }
 
 /**
+ * Configuration for Relay-specific asset discovery
+ *
+ * Uses `POST /currencies/v2` for comprehensive token coverage
+ */
+export interface RelayAssetDiscoveryConfig {
+    type: "relay";
+    config: BaseApiDiscoveryConfig & {
+        /** Relay API base URL */
+        baseUrl: string;
+    };
+}
+
+/**
  * Discriminated union for asset discovery configuration
  */
 export type AssetDiscoveryConfig =
     | OIFAssetDiscoveryConfig
     | CustomApiAssetDiscoveryConfig
-    | StaticAssetDiscoveryConfig;
+    | StaticAssetDiscoveryConfig
+    | RelayAssetDiscoveryConfig;
