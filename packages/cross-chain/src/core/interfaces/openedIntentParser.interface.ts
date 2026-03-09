@@ -58,15 +58,28 @@ export interface CustomEventOpenedIntentParserConfig {
 }
 
 /**
- * Configuration for API-based opened intent parsing (future)
+ * Configuration for API-based opened intent parsing.
+ * Allows protocols to define how to fetch and extract OpenedIntent data from their own APIs.
+ *
+ * @typeParam TResponse - Expected shape of the API response for type-safe extraction
  */
-export interface APIOpenedIntentParserConfig {
+export interface APIOpenedIntentParserConfig<TResponse = unknown> {
     /** Protocol name for error messages */
     protocolName: string;
-    /** API endpoint URL */
-    endpoint: string;
-    /** Function to extract OpenedIntent from API response */
-    extractOpenedIntent: (response: unknown, txHash: Hex) => OpenedIntent;
+    /** Optional custom headers (e.g. for authentication) */
+    headers?: Record<string, string>;
+    /**
+     * Build the full URL to fetch intent data.
+     * @param txHash - Transaction hash to look up
+     * @param chainId - Chain ID where the transaction occurred
+     * @example (txHash) => `https://api.relay.link/intents/status/v3?requestId=${txHash}`
+     */
+    buildUrl: (txHash: Hex, chainId: number) => string;
+    /**
+     * Extract and validate OpenedIntent from API response.
+     * Should throw {@link OpenedIntentNotFoundError} if the response does not contain valid data.
+     */
+    extractOpenedIntent: (response: TResponse, txHash: Hex) => OpenedIntent;
 }
 
 /**

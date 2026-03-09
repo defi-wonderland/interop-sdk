@@ -1,5 +1,5 @@
 import type { AxiosInstance } from "axios";
-import type { Hex } from "viem";
+import type { Address, Hex } from "viem";
 import axios, { AxiosError } from "axios";
 import { zeroAddress } from "viem";
 import { ZodError } from "zod";
@@ -8,6 +8,7 @@ import type {
     APIBasedFillWatcherConfig,
     FillEvent,
     FillWatcherConfig,
+    OpenedIntent,
     OpenedIntentParserConfig,
     Quote,
     QuoteRequest,
@@ -23,6 +24,7 @@ import type {
 import type { RelayConfigs } from "./types.js";
 import {
     CrossChainProvider,
+    OpenedIntentNotFoundError,
     OrderFailureReason,
     OrderStatus,
     ProviderConfigFailure,
@@ -207,12 +209,42 @@ export class RelayProvider extends CrossChainProvider {
                 type: "api",
                 config: {
                     protocolName: RelayProvider.PROTOCOL_NAME,
-                    endpoint: `${this.baseUrl}/intents/status/v3`,
-                    extractOpenedIntent: (): never => {
-                        throw new Error(
-                            "Relay does not support parsing opened intents from transactions. " +
-                                "Use API-based tracking instead.",
-                        );
+                    buildUrl: (txHash: Hex): string =>
+                        `${this.baseUrl}/intents/status/v3?requestId=${txHash}`,
+                    extractOpenedIntent: (response, txHash): OpenedIntent => {
+                        const parsed = RelayIntentStatusResponseSchema.safeParse(response);
+
+                        if (!parsed.success) {
+                            throw new OpenedIntentNotFoundError(
+                                txHash,
+                                RelayProvider.PROTOCOL_NAME,
+                            );
+                        }
+
+                        const data = parsed.data;
+                        const originTxHash = (data.inTxHashes?.[0] as Hex) ?? txHash;
+
+                        return {
+                            user: zeroAddress as Address,
+                            originChainId: data.originChainId ?? 0,
+                            openDeadline: 0,
+                            fillDeadline: 0,
+                            orderId: txHash,
+                            maxSpent: [],
+                            minReceived: [],
+                            fillInstructions: data.destinationChainId
+                                ? [
+                                      {
+                                          destinationChainId: data.destinationChainId,
+                                          destinationSettler: zeroAddress as Hex,
+                                          originData: "0x" as Hex,
+                                      },
+                                  ]
+                                : [],
+                            txHash: originTxHash,
+                            blockNumber: 0n,
+                            originContract: zeroAddress as Address,
+                        };
                     },
                 },
             },

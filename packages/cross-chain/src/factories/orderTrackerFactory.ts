@@ -1,5 +1,6 @@
 import {
     APIBasedFillWatcher,
+    APIOpenedIntentParser,
     CrossChainProvider,
     CustomEventOpenedIntentParser,
     EventBasedFillWatcher,
@@ -85,8 +86,7 @@ export class OrderTrackerFactory {
                 });
 
             case "api":
-                // TODO: Implement APIOpenedIntentParser when needed
-                throw new Error("API-based OpenedIntentParser not yet implemented");
+                return new APIOpenedIntentParser(config.config);
 
             default:
                 const _exhaustive: never = config;
