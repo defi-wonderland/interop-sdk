@@ -147,6 +147,42 @@ export function formatQuoteData(
     }
   }
 
+  if (metadata?.relayResponse) {
+    const relayResponse = metadata.relayResponse as {
+      fees?: {
+        gas?: { amount?: string; amountUsd?: string; currency?: { symbol?: string; decimals?: number } };
+        relayer?: { amount?: string; amountUsd?: string; currency?: { symbol?: string; decimals?: number } };
+      };
+    };
+
+    const relayFees = relayResponse.fees;
+
+    // Relayer fee
+    const relayerFee = relayFees?.relayer;
+    if (relayerFee?.amount && relayerFee.amount !== '0') {
+      const decimals = relayerFee.currency?.decimals || inputTokenInfo?.decimals || 18;
+      feeTotal = formatAmount(relayerFee.amount, decimals);
+      feeTokenSymbol = relayerFee.currency?.symbol || inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
+
+      if (relayerFee.amountUsd) {
+        feeTotalUsd = formatUsdAmount(relayerFee.amountUsd);
+      }
+    }
+
+    // Origin gas
+    const relayGas = relayFees?.gas;
+    if (relayGas?.amount && relayGas.amount !== '0') {
+      hasOriginGas = true;
+      const gasDecimals = relayGas.currency?.decimals || 18;
+      originGas = formatAmount(relayGas.amount, gasDecimals, 8);
+      originGasSymbol = relayGas.currency?.symbol || 'ETH';
+
+      if (relayGas.amountUsd) {
+        originGasUsd = formatUsdAmount(relayGas.amountUsd);
+      }
+    }
+  }
+
   // Check if gas simulation failed (affects whether gas estimates are reliable)
   let gasSimulationFailed = false;
 
