@@ -50,6 +50,10 @@ export const chainReferenceToText = (chainReference: Uint8Array, chainType: Uint
             const asNumber = bytesToNumber(chainReference);
             return asNumber.toString(10);
         }
+        case ChainTypeName.BIP122:
+            return Array.from(chainReference)
+                .map((b) => b.toString(16).padStart(2, "0"))
+                .join("");
         case ChainTypeName.SOLANA:
             return bs58.encode(chainReference);
         default:
@@ -80,6 +84,8 @@ export const chainReferenceToBinary = (
     switch (chainType) {
         case ChainTypeName.EIP155:
             return convertToBytes(chainReference, "decimal");
+        case ChainTypeName.BIP122:
+            return convertToBytes(chainReference, "hex");
         case ChainTypeName.SOLANA:
             return convertToBytes(chainReference, "base58");
         default:
