@@ -68,38 +68,44 @@ export const executeDirectTransaction = async ({
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
   const txSteps = getTransactionSteps(quote.order);
-  const txStep = txSteps[0];
 
-  if (!txStep?.transaction?.to || !txStep?.transaction?.data) {
-    throw new Error('Invalid quote: missing transaction data');
+  if (txSteps.length === 0) {
+    throw new Error('Invalid quote: no transaction steps');
   }
 
   const isNativeInput = isNativeAddress(inputTokenAddress, 'eip155');
+  let lastTxHash: Hex | undefined;
 
-  if (!isNativeInput) {
-    await handleTokenApproval(
+  for (const txStep of txSteps) {
+    if (!txStep.transaction?.to || !txStep.transaction?.data) {
+      throw new Error('Invalid quote: missing transaction data');
+    }
+
+    if (!isNativeInput) {
+      await handleTokenApproval(
+        publicClient,
+        walletClient,
+        ownerAddress,
+        inputTokenAddress,
+        txStep.transaction.to as Address,
+        inputAmount,
+        chainContext,
+        onStateChange,
+      );
+    }
+
+    const value = isNativeInput ? inputAmount : undefined;
+
+    lastTxHash = await submitBridgeTransaction(
       publicClient,
       walletClient,
-      ownerAddress,
-      inputTokenAddress,
       txStep.transaction.to as Address,
-      inputAmount,
+      txStep.transaction.data as Hex,
       chainContext,
       onStateChange,
+      value,
     );
   }
 
-  const value = isNativeInput ? inputAmount : undefined;
-
-  const txHash = await submitBridgeTransaction(
-    publicClient,
-    walletClient,
-    txStep.transaction.to as Address,
-    txStep.transaction.data as Hex,
-    chainContext,
-    onStateChange,
-    value,
-  );
-
-  return { txHash };
+  return { txHash: lastTxHash! };
 };
