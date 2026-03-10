@@ -354,8 +354,7 @@ interface Order {
 
 ```typescript
 interface ExecutableQuote extends Quote {
-    /** @internal SDK routing field — identifies which provider handles this quote */
-    _providerId: string;
+    // Use quote.provider for provider identification
 }
 ```
 

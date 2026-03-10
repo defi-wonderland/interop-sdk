@@ -238,21 +238,19 @@ const quotes = await provider.getQuotes({
 const quote = quotes[0];
 if (!quote) throw new Error("No quotes returned");
 
-// Protocol Mode: Sign and submit order (gasless for user)
-const signatureSteps = getSignatureSteps(quote.order);
-if (signatureSteps.length > 0) {
-    const { signatureType, ...typedData } = signatureSteps[0].signaturePayload;
+if (isSignatureOnlyOrder(quote.order)) {
+    // Protocol Mode: Sign and submit order (gasless for user)
+    const step = getSignatureSteps(quote.order)[0];
+    const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
     await provider.submitOrder(quote, signature);
-}
-
-// User Mode: Execute transaction directly (user pays gas)
-const txSteps = getTransactionSteps(quote.order);
-if (txSteps.length > 0) {
+} else {
+    // User Mode: Execute transaction directly (user pays gas)
+    const step = getTransactionSteps(quote.order)[0];
     await walletClient.sendTransaction({
-        to: txSteps[0].transaction.to,
-        data: txSteps[0].transaction.data,
-        value: txSteps[0].transaction.value ? BigInt(txSteps[0].transaction.value) : undefined,
+        to: step.transaction.to,
+        data: step.transaction.data,
+        value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
     });
 }
 ```
