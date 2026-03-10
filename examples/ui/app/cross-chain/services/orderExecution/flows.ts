@@ -90,6 +90,7 @@ export const executeDirectTransaction = async ({
   }
 
   const value = isNativeInput ? inputAmount : undefined;
+  const gas = txStep.transaction.gas ? BigInt(txStep.transaction.gas) : undefined;
 
   const txHash = await submitBridgeTransaction(
     publicClient,
@@ -99,6 +100,7 @@ export const executeDirectTransaction = async ({
     chainContext,
     onStateChange,
     value,
+    gas,
   );
 
   return { txHash };

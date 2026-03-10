@@ -12,21 +12,35 @@ import { isValidAmount, sanitizeAmountInput } from '../utils/amountValidation';
 import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
 
+export type SwapFormMode = 'getQuotes' | 'buildQuote';
+
+interface SwapFormSubmitParams {
+  sender: string;
+  recipient: string;
+  inputChainId: number;
+  outputChainId: number;
+  inputTokenAddress: string;
+  outputTokenAddress: string;
+  inputAmount: string;
+  inputAmountRaw: bigint;
+  mode: SwapFormMode;
+  outputAmount?: string;
+  fillDeadlineSecs?: number;
+}
+
 interface SwapFormProps {
-  onSubmit: (params: {
-    sender: string;
-    recipient: string;
-    inputChainId: number;
-    outputChainId: number;
-    inputTokenAddress: string;
-    outputTokenAddress: string;
-    inputAmount: string;
-    inputAmountRaw: bigint;
-  }) => void;
+  onSubmit: (params: SwapFormSubmitParams) => void;
   onInputChange?: () => void;
   isLoading?: boolean;
   isDisabled?: boolean;
 }
+
+const DEADLINE_OPTIONS = [
+  { label: '10 min', value: 600 },
+  { label: '30 min', value: 1800 },
+  { label: '1 hour', value: 3600 },
+  { label: '4 hours', value: 14400 },
+];
 
 export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisabled = false }: SwapFormProps) {
   const { address: connectedAddress, isConnected } = useAccount();
@@ -49,6 +63,9 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   const [recipient, setRecipient] = useState('');
   const hasAutoFilledRef = useRef(false);
   const [inputAmount, setInputAmount] = useState('');
+  const [mode, setMode] = useState<SwapFormMode>('getQuotes');
+  const [outputAmount, setOutputAmount] = useState('');
+  const [fillDeadlineSecs, setFillDeadlineSecs] = useState(DEADLINE_OPTIONS[0].value);
 
   const inputChains = useMemo(
     () => chainConfig.SUPPORTED_CHAINS.filter((c) => c.id !== outputChainId),
@@ -101,9 +118,14 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     }
   }, [isConnected, connectedAddress]);
 
+  const outputAmountIsValid = useMemo(() => isValidAmount(outputAmount), [outputAmount]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!connectedAddress || !inputTokenAddress || !outputTokenAddress || !amountIsValid) {
+      return;
+    }
+    if (mode === 'buildQuote' && !outputAmountIsValid) {
       return;
     }
     const finalRecipient = recipient.trim() || connectedAddress;
@@ -119,6 +141,11 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
       outputTokenAddress,
       inputAmount,
       inputAmountRaw,
+      mode,
+      ...(mode === 'buildQuote' && {
+        outputAmount,
+        fillDeadlineSecs,
+      }),
     });
   };
 
@@ -151,7 +178,8 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     parsedInputAmount > 0n &&
     !isLoading &&
     !isDisabled &&
-    !hasInsufficientBalance;
+    !hasInsufficientBalance &&
+    (mode === 'getQuotes' || outputAmountIsValid);
 
   const isMintable = inputTokenInfo?.providers?.includes('oif') ?? false;
   const { mint, isLoading: isMinting } = useMintToken(inputChainId, inputTokenAddress, inputTokenInfo?.decimals ?? 6);
@@ -161,9 +189,9 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
 
   const getButtonText = () => {
     if (!isConnected) return 'Connect Wallet';
-    if (isLoading) return 'Fetching Quotes...';
+    if (isLoading) return mode === 'buildQuote' ? 'Building Quote...' : 'Fetching Quotes...';
     if (hasInsufficientBalance) return 'Insufficient Balance';
-    return 'Get Quotes';
+    return mode === 'buildQuote' ? 'Build Quote' : 'Get Quotes';
   };
 
   return (
@@ -175,6 +203,37 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
 
       <div className='relative flex flex-col gap-6'>
         <WalletConnect />
+
+        <div className='flex border border-border/50 rounded-xl'>
+          <button
+            type='button'
+            onClick={() => {
+              setMode('getQuotes');
+              onInputChange?.();
+            }}
+            className={`flex-1 px-4 py-2 rounded-l-xl text-sm font-medium transition-colors ${
+              mode === 'getQuotes'
+                ? 'bg-accent text-white'
+                : 'bg-background/50 text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            Get Quotes
+          </button>
+          <button
+            type='button'
+            onClick={() => {
+              setMode('buildQuote');
+              onInputChange?.();
+            }}
+            className={`flex-1 px-4 py-2 rounded-r-xl text-sm font-medium transition-colors ${
+              mode === 'buildQuote'
+                ? 'bg-accent text-white'
+                : 'bg-background/50 text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            Build Quote
+          </button>
+        </div>
 
         <div>
           <label htmlFor='recipient-address' className='text-sm font-medium text-text-secondary mb-2 block'>
@@ -253,47 +312,97 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
           </div>
         </div>
 
-        <div>
-          <div className='flex items-center justify-between mb-2'>
-            <div className='flex items-center gap-3'>
-              <label htmlFor='amount-input' className='text-sm font-medium text-text-secondary'>
-                Amount
-              </label>
-              {showMintButton && (
+        <div className={mode === 'buildQuote' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}>
+          <div>
+            <div className='flex items-center justify-between mb-2'>
+              <div className='flex items-center gap-3'>
+                <label htmlFor='amount-input' className='text-sm font-medium text-text-secondary'>
+                  {mode === 'buildQuote' ? 'You send' : 'Amount'}
+                </label>
+                {showMintButton && (
+                  <button
+                    type='button'
+                    onClick={mint}
+                    disabled={isMinting || isDisabled}
+                    data-testid='mint-button'
+                    className='text-xs text-accent hover:text-accent-hover font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    {mintLabel}
+                  </button>
+                )}
+              </div>
+              {tokenBalance && (
                 <button
                   type='button'
-                  onClick={mint}
-                  disabled={isMinting || isDisabled}
-                  data-testid='mint-button'
+                  onClick={handleMaxClick}
+                  disabled={isDisabled}
+                  data-testid='max-balance-button'
                   className='text-xs text-accent hover:text-accent-hover font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                 >
-                  {mintLabel}
+                  Max: {tokenBalance.formatted}
                 </button>
               )}
             </div>
-            {tokenBalance && (
-              <button
-                type='button'
-                onClick={handleMaxClick}
-                disabled={isDisabled}
-                data-testid='max-balance-button'
-                className='text-xs text-accent hover:text-accent-hover font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                Max: {tokenBalance.formatted}
-              </button>
-            )}
+            <input
+              id='amount-input'
+              type='text'
+              value={inputAmount}
+              onChange={(e) => setInputAmount(sanitizeAmountInput(e.target.value, inputAmount))}
+              placeholder='0.0'
+              autoComplete='off'
+              disabled={isDisabled}
+              className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            />
           </div>
-          <input
-            id='amount-input'
-            type='text'
-            value={inputAmount}
-            onChange={(e) => setInputAmount(sanitizeAmountInput(e.target.value, inputAmount))}
-            placeholder='0.0'
-            autoComplete='off'
-            disabled={isDisabled}
-            className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-          />
+
+          {mode === 'buildQuote' && (
+            <div>
+              <label htmlFor='output-amount-input' className='text-sm font-medium text-text-secondary mb-2 block'>
+                You receive
+              </label>
+              <input
+                id='output-amount-input'
+                type='text'
+                value={outputAmount}
+                onChange={(e) => setOutputAmount(sanitizeAmountInput(e.target.value, outputAmount))}
+                placeholder='0.0'
+                autoComplete='off'
+                disabled={isDisabled}
+                className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              />
+              <p className='text-xs text-text-tertiary mt-1'>Difference is the relayer fee</p>
+            </div>
+          )}
         </div>
+
+        {mode === 'buildQuote' && (
+          <fieldset>
+            <legend className='text-sm font-medium text-text-secondary mb-2'>Fill Deadline</legend>
+            <div className='flex gap-2'>
+              {DEADLINE_OPTIONS.map((opt) => (
+                <label
+                  key={opt.value}
+                  className={`flex-1 text-center px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/50 has-[:focus-visible]:ring-offset-1 ${
+                    fillDeadlineSecs === opt.value
+                      ? 'bg-accent text-white'
+                      : 'bg-background/50 border border-border/50 text-text-secondary hover:text-text-primary hover:border-border-focus/60'
+                  } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <input
+                    type='radio'
+                    name='fillDeadline'
+                    value={opt.value}
+                    checked={fillDeadlineSecs === opt.value}
+                    onChange={() => setFillDeadlineSecs(opt.value)}
+                    disabled={isDisabled}
+                    className='sr-only peer'
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         <button
           type='submit'
