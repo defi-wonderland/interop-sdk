@@ -24,7 +24,7 @@ import {
     extractFillEvent,
     extractOpenedIntent,
 } from "./adapters/index.js";
-import { getRelayApiUrl } from "./constants.js";
+import { getRelayApiUrl, RELAY_TESTNET_TOKENS } from "./constants.js";
 import { RelayApiService } from "./services/index.js";
 import { RelayConfigSchema } from "./types.js";
 
@@ -159,9 +159,16 @@ export class RelayProvider extends CrossChainProvider {
 
     /**
      * @inheritdoc
-     * Returns discovery config using `POST /currencies/v2` for comprehensive token coverage.
+     * Returns static discovery config for testnet, or API-based config for mainnet.
      */
     override getDiscoveryConfig(): AssetDiscoveryConfig {
+        if (this.isTestnet) {
+            return {
+                type: "static",
+                config: { networks: RELAY_TESTNET_TOKENS },
+            };
+        }
+
         return {
             type: "relay",
             config: {
