@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { type ChainIdentifier, decodeAddress, fromChainIdentifier } from '@wonderland/interop-addresses';
 import { crossChainExecutor } from '../services/sdk';
 import type { DiscoveredAssets, UITokenInfo } from '../types/assets';
 import type { DiscoveredAssets as SdkDiscoveredAssets } from '@wonderland/interop-cross-chain';
-import type { Hex } from 'viem';
 
 interface UseAssetDiscoveryResult {
   /** Discovered assets, null if not yet loaded */
@@ -19,51 +17,33 @@ interface UseAssetDiscoveryResult {
 }
 
 /**
- * Transform SDK DiscoveredAssets (CAIP-350 keyed, EIP-7930 addresses) to UI-friendly format
- * (numeric chain IDs, decoded EVM addresses). Provider attribution is read directly from
- * tokenMetadata[addr].providers.
+ * Transform SDK DiscoveredAssets (numeric chain ID keys, plain 0x addresses)
+ * to the UI-friendly format. Provider attribution is read directly from
+ * tokenMetadata[chainId][addr].providers.
  */
 function transformToUiAssets(sdkAssets: SdkDiscoveredAssets): DiscoveredAssets {
   const supportedTokensByChain: Record<number, string[]> = {};
   const tokenInfo: Record<number, Record<string, UITokenInfo>> = {};
   const chainIdSet = new Set<number>();
 
-  for (const chainIdentifier of Object.keys(sdkAssets.tokensByChain) as ChainIdentifier[]) {
-    let numericChainId: number;
-    try {
-      numericChainId = fromChainIdentifier(chainIdentifier).chainReference;
-    } catch {
-      continue;
-    }
+  for (const [chainIdStr, addresses] of Object.entries(sdkAssets.tokensByChain)) {
+    const chainId = Number(chainIdStr);
+    chainIdSet.add(chainId);
 
-    chainIdSet.add(numericChainId);
+    supportedTokensByChain[chainId] ??= [];
+    tokenInfo[chainId] ??= {};
 
-    const interopAddresses = sdkAssets.tokensByChain[chainIdentifier] ?? [];
+    const chainMeta = sdkAssets.tokenMetadata[chainId] ?? {};
 
-    if (!supportedTokensByChain[numericChainId]) {
-      supportedTokensByChain[numericChainId] = [];
-    }
-    if (!tokenInfo[numericChainId]) {
-      tokenInfo[numericChainId] = {};
-    }
-
-    for (const interopAddress of interopAddresses) {
-      let rawAddress: string;
-      try {
-        const decoded = decodeAddress(interopAddress as Hex);
-        rawAddress = decoded.address ?? interopAddress;
-      } catch {
-        rawAddress = interopAddress;
+    for (const addr of addresses) {
+      if (!supportedTokensByChain[chainId].includes(addr)) {
+        supportedTokensByChain[chainId].push(addr);
       }
 
-      if (!supportedTokensByChain[numericChainId].includes(rawAddress)) {
-        supportedTokensByChain[numericChainId].push(rawAddress);
-      }
+      const sdkMeta = chainMeta[addr.toLowerCase()];
 
-      const sdkMeta = sdkAssets.tokenMetadata[interopAddress];
-
-      if (!tokenInfo[numericChainId][rawAddress]) {
-        tokenInfo[numericChainId][rawAddress] = {
+      if (!tokenInfo[chainId][addr]) {
+        tokenInfo[chainId][addr] = {
           symbol: sdkMeta?.symbol ?? 'UNKNOWN',
           decimals: sdkMeta?.decimals ?? 18,
           providers: sdkMeta?.providers ? [...sdkMeta.providers] : [],

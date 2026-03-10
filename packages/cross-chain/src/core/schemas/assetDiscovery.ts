@@ -9,15 +9,13 @@
 
 import { z } from "zod";
 
-import { AddressSchema } from "./address.js";
+import { HexAddressSchema } from "./address.js";
 
 /**
  * Schema for asset metadata
  */
 export const assetInfoSchema = z.object({
-    address: AddressSchema.describe(
-        "Asset address in EIP-7930 interoperable format for cross-chain compatibility.\nAll addresses are formatted with the 0x prefix.",
-    ),
+    address: HexAddressSchema.describe("Asset address in plain 0x format"),
     symbol: z.string().describe('Asset symbol for display purposes (e.g., "USDC", "WETH", "USDT")'),
     decimals: z
         .number()

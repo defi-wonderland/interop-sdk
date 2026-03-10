@@ -21,7 +21,6 @@ import { ProviderTimeout } from "../errors/ProviderTimeout.exception.js";
 import { CrossChainProvider } from "../interfaces/crossChainProvider.interface.js";
 import { SortingStrategy } from "../interfaces/sortingStrategy.interface.js";
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
-import { fromInteropAccountId } from "../utils/interopAccountId.js";
 import { mergeDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
 import { OrderTracker } from "./OrderTracker.js";
 
@@ -107,9 +106,7 @@ class Aggregator {
             ];
 
             const checks = assets.map((asset) => {
-                // Need ERC-7930 for discovery service (it still uses wire format)
-                const hex = fromInteropAccountId(asset);
-                return discovery.isAssetSupported(asset.chainId, hex);
+                return discovery.isAssetSupported(asset.chainId, asset.address);
             });
 
             const results = await Promise.all(checks);
@@ -304,8 +301,10 @@ class Aggregator {
     async getProvidersForRoute(query: RouteQuery): Promise<string[]> {
         const assets = await this.discoverAssets();
 
-        const originMeta = assets.tokenMetadata[query.originAsset];
-        const destMeta = assets.tokenMetadata[query.destinationAsset];
+        const originMeta =
+            assets.tokenMetadata[query.originChainId]?.[query.originAsset.toLowerCase()];
+        const destMeta =
+            assets.tokenMetadata[query.destinationChainId]?.[query.destinationAsset.toLowerCase()];
 
         if (!originMeta || !destMeta) {
             return [];

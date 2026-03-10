@@ -1,4 +1,3 @@
-import { encodeAddress } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import { AbiEvent, Address, Hex, isAddressEqual, Log, numberToHex, pad } from "viem";
 import { ZodError } from "zod";
@@ -626,18 +625,8 @@ export class AcrossProvider extends CrossChainProvider {
                 continue;
             }
 
-            const encoded = encodeAddress(
-                {
-                    version: 1,
-                    chainType: "eip155",
-                    chainReference: token.chainId.toString(),
-                    address: token.address as Address,
-                },
-                { format: "hex" },
-            );
-
             const asset: AssetInfo = {
-                address: encoded as Address,
+                address: token.address,
                 symbol: token.symbol,
                 decimals: token.decimals,
             };
