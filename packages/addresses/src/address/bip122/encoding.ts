@@ -21,7 +21,7 @@ import { bech32, bech32m } from "bech32";
 import bs58 from "bs58";
 import { sha256 } from "viem";
 
-import { bytesEqual } from "./bytes.js";
+import { bytesEqual } from "../../utils/bytes.js";
 
 // ──────────────────────────────────────────
 // Base58Check (P2SH)
@@ -105,18 +105,14 @@ export function bech32Decode(address: string, encoding: BechEncoding): WitnessAd
 
 /**
  * Encode a witness program into a bech32/bech32m address.
- * The caller specifies the encoding based on the address type.
+ * Uses bech32 for version 0, bech32m for version 1+ per BIP-350.
  *
+ * @param hrp - Human-readable part: "bc" for mainnet, "tb" for testnet
  * @see https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki#encoding
  */
-export function bech32Encode(
-    hrp: string,
-    version: number,
-    program: Uint8Array,
-    encoding: BechEncoding,
-): string {
+export function bech32Encode(hrp: string, version: number, program: Uint8Array): string {
     const words = [version, ...bech32.toWords(program)];
-    const encoder = encoding === "bech32" ? bech32 : bech32m;
+    const encoder = version === 0 ? bech32 : bech32m;
     return encoder.encode(hrp, words);
 }
 

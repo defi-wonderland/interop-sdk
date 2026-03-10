@@ -8,3 +8,12 @@ export function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
     }
     return true;
 }
+
+/**
+ * Encode bytes as a lowercase hex string without 0x prefix.
+ */
+export function bytesToUnprefixedHex(bytes: Uint8Array): string {
+    return Array.from(bytes)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+}
