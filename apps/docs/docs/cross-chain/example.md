@@ -101,6 +101,7 @@ const quote = response.quotes[0];
 
 if (isSignatureOnlyOrder(quote.order)) {
     // Protocol mode: sign and submit (gasless for user)
+    // Note: production code should handle all steps, not just the first
     const step = getSignatureSteps(quote.order)[0];
     const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
@@ -108,12 +109,17 @@ if (isSignatureOnlyOrder(quote.order)) {
     console.log("Order submitted via signature");
 } else {
     // User mode: send transaction directly
+    // Note: production code should handle all steps, not just the first
     const step = getTransactionSteps(quote.order)[0];
+    const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } = step.transaction;
     console.log("Sending transaction...");
     const hash = await walletClient.sendTransaction({
-        to: step.transaction.to,
-        data: step.transaction.data,
-        value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+        to,
+        data,
+        value: value ? BigInt(value) : undefined,
+        gas: gas ? BigInt(gas) : undefined,
+        maxFeePerGas: maxFeePerGas ? BigInt(maxFeePerGas) : undefined,
+        maxPriorityFeePerGas: maxPriorityFeePerGas ? BigInt(maxPriorityFeePerGas) : undefined,
     });
     console.log("Transaction sent:", hash);
 
