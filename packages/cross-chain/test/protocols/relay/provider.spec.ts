@@ -4,7 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
-import { AssetDiscoveryFactory, RelayAssetDiscoveryService } from "../../../src/internal.js";
+import {
+    AssetDiscoveryFactory,
+    RelayAssetDiscoveryService,
+    StaticAssetDiscoveryService,
+} from "../../../src/internal.js";
+import { RELAY_TESTNET_TOKENS } from "../../../src/protocols/relay/constants.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -347,13 +352,13 @@ describe("RelayProvider", () => {
     });
 
     describe("getDiscoveryConfig()", () => {
-        it("returns relay config type", () => {
+        it("returns relay config type for mainnet", () => {
             const config = new RelayProvider().getDiscoveryConfig();
             expect(config).not.toBeNull();
             expect(config!.type).toBe("relay");
         });
 
-        it("includes baseUrl in config", () => {
+        it("includes baseUrl in mainnet config", () => {
             const config = new RelayProvider().getDiscoveryConfig();
             if (config!.type === "relay") {
                 expect(config!.config.baseUrl).toBe(RELAY_BASE_URL);
@@ -381,12 +386,27 @@ describe("RelayProvider", () => {
                 expect(config!.config.headers).toBeUndefined();
             }
         });
+
+        it("returns static config with RELAY_TESTNET_TOKENS for testnet", () => {
+            const config = new RelayProvider({ isTestnet: true }).getDiscoveryConfig();
+            expect(config!.type).toBe("static");
+            if (config!.type === "static") {
+                expect(config!.config.networks).toBe(RELAY_TESTNET_TOKENS);
+            }
+        });
     });
 
     describe("factory integration", () => {
-        it("creates RelayAssetDiscoveryService from RelayProvider config", () => {
+        it("creates RelayAssetDiscoveryService for mainnet", () => {
             const service = new AssetDiscoveryFactory().createService(new RelayProvider());
             expect(service).toBeInstanceOf(RelayAssetDiscoveryService);
+        });
+
+        it("creates StaticAssetDiscoveryService for testnet", () => {
+            const service = new AssetDiscoveryFactory().createService(
+                new RelayProvider({ isTestnet: true }),
+            );
+            expect(service).toBeInstanceOf(StaticAssetDiscoveryService);
         });
 
         it("starts prefetching on creation", () => {
