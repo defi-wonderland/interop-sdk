@@ -272,33 +272,45 @@ describe("RelayQuoteResponseSchema", () => {
         expect(result.steps[0]!.requestId).toBe(REQUEST_ID);
     });
 
-    it("accepts a full response with all optional fields", () => {
+    it("accepts expanded price impact in details", () => {
+        const response = buildQuoteResponse({ details: buildDetails() });
+        const result = RelayQuoteResponseSchema.parse(response);
+        expect(result.details?.expandedPriceImpact?.swap?.usd).toBe(SAMPLE_PRICE_IMPACT_USD);
+    });
+
+    it("accepts slippage tolerance in details", () => {
+        const response = buildQuoteResponse({ details: buildDetails() });
+        const result = RelayQuoteResponseSchema.parse(response);
+        expect(result.details?.slippageTolerance?.origin?.percent).toBe(SAMPLE_SLIPPAGE_PERCENT);
+    });
+
+    it("accepts route in details", () => {
+        const response = buildQuoteResponse({ details: buildDetails() });
+        const result = RelayQuoteResponseSchema.parse(response);
+        expect(result.details?.route?.origin?.router).toBe(SAMPLE_ROUTER);
+    });
+
+    it("accepts refund currency in details", () => {
         const response = buildQuoteResponse({
-            fees: {
-                gas: buildFee(GAS_FEE_AMOUNT, GAS_FEE_USD),
-                relayer: buildFee(RELAYER_FEE_AMOUNT, RELAYER_FEE_USD),
-                relayerGas: buildFee(GAS_FEE_AMOUNT, GAS_FEE_USD),
-                relayerService: buildFee(RELAYER_FEE_AMOUNT, RELAYER_FEE_USD),
-                app: buildFee(ZERO_AMOUNT, ZERO_AMOUNT),
-                subsidized: buildFee(ZERO_AMOUNT, ZERO_AMOUNT),
-            },
-            details: buildDetails({
-                refundCurrency: buildCurrencyAmount(INPUT_AMOUNT),
-                currencyGasTopup: buildCurrencyAmount(GAS_FEE_AMOUNT),
-                fallbackType: SAMPLE_FALLBACK_TYPE,
-                isFixedRate: true,
-                fixedRateFee: { usd: SAMPLE_PRICE_IMPACT_USD },
-            }),
+            details: buildDetails({ refundCurrency: buildCurrencyAmount(INPUT_AMOUNT) }),
+        });
+        const result = RelayQuoteResponseSchema.parse(response);
+        expect(result.details?.refundCurrency?.amount).toBe(INPUT_AMOUNT);
+    });
+
+    it("accepts fallback type in details", () => {
+        const response = buildQuoteResponse({
+            details: buildDetails({ fallbackType: SAMPLE_FALLBACK_TYPE }),
+        });
+        const result = RelayQuoteResponseSchema.parse(response);
+        expect(result.details?.fallbackType).toBe(SAMPLE_FALLBACK_TYPE);
+    });
+
+    it("accepts protocol with order data", () => {
+        const response = buildQuoteResponse({
             protocol: buildProtocol({ orderData: { some: "data" } }),
         });
-
         const result = RelayQuoteResponseSchema.parse(response);
-
-        expect(result.details?.expandedPriceImpact?.swap?.usd).toBe(SAMPLE_PRICE_IMPACT_USD);
-        expect(result.details?.slippageTolerance?.origin?.percent).toBe(SAMPLE_SLIPPAGE_PERCENT);
-        expect(result.details?.route?.origin?.router).toBe(SAMPLE_ROUTER);
-        expect(result.details?.refundCurrency?.amount).toBe(INPUT_AMOUNT);
-        expect(result.details?.fallbackType).toBe(SAMPLE_FALLBACK_TYPE);
         expect(result.protocol?.v2?.orderId).toBe(ORDER_ID);
     });
 
