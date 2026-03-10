@@ -9,6 +9,7 @@ import type {
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { ProviderGetStatusFailure } from "../../../src/core/errors/ProviderGetStatusFailure.exception.js";
 import { OrderFailureReason, OrderStatus } from "../../../src/core/types/orderTracking.js";
+import { NotifyingFillWatcher } from "../../../src/protocols/relay/NotifyingFillWatcher.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -493,6 +494,16 @@ describe("RelayProvider", () => {
             const config = provider.getTrackingConfig();
             expect(config.fillWatcherConfig.type).toBe("api-based");
             expect(config.openedIntentParserConfig.type).toBe("api");
+        });
+
+        it("returns a NotifyingFillWatcher instance", () => {
+            const config = provider.getTrackingConfig();
+            expect(config.fillWatcher).toBeInstanceOf(NotifyingFillWatcher);
+        });
+
+        it("fillWatcherConfig has no onBeforePolling", () => {
+            const config = provider.getTrackingConfig();
+            expect(config.fillWatcherConfig).not.toHaveProperty("onBeforePolling");
         });
 
         it("extractOpenedIntent maps valid API response to OpenedIntent", () => {

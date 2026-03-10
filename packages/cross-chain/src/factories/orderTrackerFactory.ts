@@ -46,6 +46,7 @@ export class OrderTrackerFactory {
 
         const fillWatcher =
             config?.fillWatcher ??
+            trackingConfig.fillWatcher ??
             this.createFillWatcher(trackingConfig.fillWatcherConfig as FillWatcherConfig);
 
         return new OrderTracker(openedIntentParser, fillWatcher, this.clientManager);

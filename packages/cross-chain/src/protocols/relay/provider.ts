@@ -7,6 +7,7 @@ import { ZodError } from "zod";
 import type {
     APIBasedFillWatcherConfig,
     FillEvent,
+    FillWatcher,
     FillWatcherConfig,
     OpenedIntent,
     OpenedIntentParserConfig,
@@ -23,6 +24,7 @@ import type {
 } from "./schemas.js";
 import type { RelayConfigs } from "./types.js";
 import {
+    APIBasedFillWatcher,
     CrossChainProvider,
     OpenedIntentNotFoundError,
     OrderFailureReason,
@@ -31,6 +33,8 @@ import {
     ProviderGetQuoteFailure,
     ProviderGetStatusFailure,
 } from "../../internal.js";
+import { NotifyingFillWatcher } from "./NotifyingFillWatcher.js";
+import { RelaySolverNotifier } from "./RelaySolverNotifier.js";
 import {
     RelayBadRequestResponseSchema,
     RelayIntentStatusRequestSchema,
@@ -161,21 +165,6 @@ export class RelayProvider extends CrossChainProvider {
                 backoffMultiplier: 2,
             },
             buildEndpoint: (params): string => `/intents/status/v3?requestId=${params.orderId}`,
-            onBeforePolling: async (params): Promise<void> => {
-                if (!params.openTxHash) return;
-                try {
-                    await fetch(`${baseUrl}/transactions/index`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            txHash: params.openTxHash,
-                            chainId: String(params.originChainId),
-                        }),
-                    });
-                } catch {
-                    console.warn("[Relay] Failed to notify solver of deposit transaction");
-                }
-            },
             extractFillEvent: (
                 response,
                 params,
@@ -219,7 +208,10 @@ export class RelayProvider extends CrossChainProvider {
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
         fillWatcherConfig: FillWatcherConfig;
+        fillWatcher?: FillWatcher;
     } {
+        const fillWatcherConfig = RelayProvider.getFillWatcherConfig(this.baseUrl);
+
         return {
             openedIntentParserConfig: {
                 type: "api",
@@ -264,9 +256,11 @@ export class RelayProvider extends CrossChainProvider {
                     },
                 },
             },
-            fillWatcherConfig: RelayProvider.getFillWatcherConfig(
-                this.baseUrl,
-            ) as FillWatcherConfig,
+            fillWatcherConfig: fillWatcherConfig as FillWatcherConfig,
+            fillWatcher: new NotifyingFillWatcher(
+                new APIBasedFillWatcher(fillWatcherConfig),
+                new RelaySolverNotifier(this.http),
+            ),
         };
     }
 
