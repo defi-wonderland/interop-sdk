@@ -31,6 +31,19 @@ interface ToastState {
   type: ToastType;
 }
 
+function mapBuildStatusToQuoteStatus(buildStatus: BuildQuoteStatus): QuoteStatus {
+  switch (buildStatus) {
+    case BuildQuoteStatus.LOADING:
+      return QuoteStatus.LOADING;
+    case BuildQuoteStatus.SUCCESS:
+      return QuoteStatus.SUCCESS;
+    case BuildQuoteStatus.ERROR:
+      return QuoteStatus.ERROR;
+    default:
+      return QuoteStatus.IDLE;
+  }
+}
+
 export function CrossChainClient() {
   const { quotes, errors, status: quoteStatus, fetchQuotes, clearQuotes } = useQuotes();
   const {
@@ -59,16 +72,7 @@ export function CrossChainClient() {
   const effectiveQuotes: ExecutableQuote[] = currentMode === 'buildQuote' && builtQuote ? [builtQuote] : quotes;
   const effectiveErrors =
     currentMode === 'buildQuote' && buildError ? [{ errorMsg: buildError, error: new Error(buildError) }] : errors;
-  const effectiveStatus =
-    currentMode === 'buildQuote'
-      ? buildStatus === BuildQuoteStatus.LOADING
-        ? QuoteStatus.LOADING
-        : buildStatus === BuildQuoteStatus.SUCCESS
-          ? QuoteStatus.SUCCESS
-          : buildStatus === BuildQuoteStatus.ERROR
-            ? QuoteStatus.ERROR
-            : QuoteStatus.IDLE
-      : quoteStatus;
+  const effectiveStatus = currentMode === 'buildQuote' ? mapBuildStatusToQuoteStatus(buildStatus) : quoteStatus;
 
   const closeToast = useCallback(() => {
     setToast(null);
@@ -97,6 +101,9 @@ export function CrossChainClient() {
     resetExecution();
 
     if (params.mode === 'buildQuote') {
+      if (!params.outputAmount) {
+        return;
+      }
       clearQuotes();
       setLastQuoteParams(null);
       await buildQuote({
@@ -107,7 +114,7 @@ export function CrossChainClient() {
         inputTokenAddress: params.inputTokenAddress,
         outputTokenAddress: params.outputTokenAddress,
         inputAmount: params.inputAmount,
-        outputAmount: params.outputAmount!,
+        outputAmount: params.outputAmount,
         fillDeadlineSecs: params.fillDeadlineSecs,
       });
     } else {

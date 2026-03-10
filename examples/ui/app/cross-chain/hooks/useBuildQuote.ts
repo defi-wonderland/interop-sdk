@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { crossChainExecutor } from '../services/sdk';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
 import { useTokenConfig } from './useNetworkConfig';
@@ -38,8 +38,10 @@ export function useBuildQuote(): UseBuildQuoteReturn {
   const [quote, setQuote] = useState<ExecutableQuote | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<BuildQuoteStatus>(BuildQuoteStatus.IDLE);
+  const requestIdRef = useRef(0);
 
   const buildQuote = async (params: BuildQuoteParams) => {
+    const currentRequestId = ++requestIdRef.current;
     setStatus(BuildQuoteStatus.LOADING);
     setQuote(null);
     setError(null);
@@ -81,15 +83,18 @@ export function useBuildQuote(): UseBuildQuoteReturn {
       };
 
       const result = await crossChainExecutor.buildQuote('across', request);
+      if (requestIdRef.current !== currentRequestId) return;
       setQuote(result);
       setStatus(BuildQuoteStatus.SUCCESS);
     } catch (err) {
+      if (requestIdRef.current !== currentRequestId) return;
       setStatus(BuildQuoteStatus.ERROR);
       setError(err instanceof Error ? err.message : String(err));
     }
   };
 
   const clear = useCallback(() => {
+    requestIdRef.current++;
     setQuote(null);
     setError(null);
     setStatus(BuildQuoteStatus.IDLE);

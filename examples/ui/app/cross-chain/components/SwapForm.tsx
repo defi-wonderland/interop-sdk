@@ -120,6 +120,17 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
 
   const outputAmountIsValid = useMemo(() => isValidAmount(outputAmount), [outputAmount]);
 
+  const parsedOutputAmount = useMemo(() => {
+    if (!outputAmount || !outputAmountIsValid) return 0n;
+    try {
+      const outputInfo = outputTokenAddress ? tokenConfig.TOKEN_INFO[outputChainId]?.[outputTokenAddress] : null;
+      const decimals = outputInfo?.decimals || 18;
+      return parseUnits(outputAmount, decimals);
+    } catch {
+      return 0n;
+    }
+  }, [outputAmount, outputAmountIsValid, outputTokenAddress, outputChainId, tokenConfig.TOKEN_INFO]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!connectedAddress || !inputTokenAddress || !outputTokenAddress || !amountIsValid) {
@@ -179,7 +190,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     !isLoading &&
     !isDisabled &&
     !hasInsufficientBalance &&
-    (mode === 'getQuotes' || outputAmountIsValid);
+    (mode === 'getQuotes' || (outputAmountIsValid && parsedOutputAmount > 0n));
 
   const isMintable = inputTokenInfo?.providers?.includes('oif') ?? false;
   const { mint, isLoading: isMinting } = useMintToken(inputChainId, inputTokenAddress, inputTokenInfo?.decimals ?? 6);
