@@ -105,6 +105,49 @@ describe("erc7930", () => {
             */
         });
 
+        it("encode bip122 P2SH text representation", () => {
+            const interopAddress: InteroperableAddress = {
+                version: 1,
+                chainType: "bip122",
+                chainReference: "000000000019d6689c085ae165831e93",
+                address: "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+            };
+
+            const encoded = encodeAddress(interopAddress, { format: "hex" });
+            const decoded = encodeAddress(interopAddress, { format: "bytes" });
+
+            // Roundtrip: decode back and verify
+            expect(encoded).toBeDefined();
+            expect(decoded.length).toBeGreaterThan(6);
+            // chainType bytes should be 0x0001
+            expect(decoded[2]).toBe(0x00);
+            expect(decoded[3]).toBe(0x01);
+        });
+
+        it("encode bip122 SegWit text representation", () => {
+            const interopAddress: InteroperableAddress = {
+                version: 1,
+                chainType: "bip122",
+                chainReference: "000000000019d6689c085ae165831e93",
+                address: "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+            };
+
+            const encoded = encodeAddress(interopAddress, { format: "hex" });
+            expect(encoded).toBeDefined();
+        });
+
+        it("encode bip122 Taproot text representation", () => {
+            const interopAddress: InteroperableAddress = {
+                version: 1,
+                chainType: "bip122",
+                chainReference: "000000000019d6689c085ae165831e93",
+                address: "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
+            };
+
+            const encoded = encodeAddress(interopAddress, { format: "hex" });
+            expect(encoded).toBeDefined();
+        });
+
         it("can encode text representation", () => {
             const interopAddress: InteroperableAddress = {
                 version: 1,

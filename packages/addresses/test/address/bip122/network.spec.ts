@@ -1,7 +1,7 @@
 import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { hrpFromChainReference } from "../../../src/address/bip122/constants.js";
+import { hrpFromChainReference } from "../../../src/address/bip122/network.js";
 import { BIP122_MAINNET_CHAIN_REF, BIP122_TESTNET_CHAIN_REF } from "./fixtures.js";
 
 describe("hrpFromChainReference", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { BIP122_ADDRESS_TYPE } from "../../../src/address/bip122/constants.js";
+import { BIP122_ADDRESS_TYPE } from "../../../src/address/bip122/encoding.js";
 import { bip122AddressToBinary, bip122AddressToText } from "../../../src/address/bip122/index.js";
 import {
     BIP122_MAINNET_CHAIN_REF,

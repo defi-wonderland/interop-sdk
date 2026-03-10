@@ -105,6 +105,63 @@ describe("erc7930", () => {
             }
         });
 
+        it("parse bip122 P2SH binary interop address", () => {
+            const binaryAddress =
+                "0x0001000110000000000019d6689c085ae165831e93160105b472a266d0bd89c13706a4132ccfb16f7c3b9fcb";
+            /*    0x0001000110000000000019d6689c085ae165831e93160105b472a266d0bd89c13706a4132ccfb16f7c3b9fcb
+                    ^^^^-------------------------------------------------------------------------------------- Version:              decimal 1
+                        ^^^^---------------------------------------------------------------------------------- ChainType:            0x0001 (bip122)
+                            ^^-------------------------------------------------------------------------------- ChainReferenceLength: decimal 16 (0x10)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------------------------------------ ChainReference:       16 bytes of Bitcoin mainnet genesis hash prefix
+                                                              ^^---------------------------------------------- AddressLength:        decimal 22 (0x16)
+                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--- Address:              0x01 (base58check) + 21-byte payload
+            */
+
+            const interopAddress = decodeAddress(binaryAddress);
+
+            expect(interopAddress.version).toEqual(1);
+            expect(isTextAddress(interopAddress)).toBe(true);
+            if (isTextAddress(interopAddress)) {
+                expect(interopAddress.chainType).toEqual("bip122");
+                expect(interopAddress.chainReference).toEqual("000000000019d6689c085ae165831e93");
+                expect(interopAddress.address).toEqual("3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy");
+            }
+        });
+
+        it("parse bip122 SegWit binary interop address", () => {
+            const binaryAddress =
+                "0x0001000110000000000019d6689c085ae165831e93160200751e76e8199196d454941c45d1b3a323f1433bd6";
+
+            const interopAddress = decodeAddress(binaryAddress);
+
+            expect(interopAddress.version).toEqual(1);
+            expect(isTextAddress(interopAddress)).toBe(true);
+            if (isTextAddress(interopAddress)) {
+                expect(interopAddress.chainType).toEqual("bip122");
+                expect(interopAddress.chainReference).toEqual("000000000019d6689c085ae165831e93");
+                expect(interopAddress.address).toEqual(
+                    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+                );
+            }
+        });
+
+        it("parse bip122 Taproot binary interop address", () => {
+            const binaryAddress =
+                "0x0001000110000000000019d6689c085ae165831e9322020179be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+
+            const interopAddress = decodeAddress(binaryAddress);
+
+            expect(interopAddress.version).toEqual(1);
+            expect(isTextAddress(interopAddress)).toBe(true);
+            if (isTextAddress(interopAddress)) {
+                expect(interopAddress.chainType).toEqual("bip122");
+                expect(interopAddress.chainReference).toEqual("000000000019d6689c085ae165831e93");
+                expect(interopAddress.address).toEqual(
+                    "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
+                );
+            }
+        });
+
         it("throws if version is not there", () => {
             const binaryAddress = "0x"; // 0 bytes, minimum is 6
 

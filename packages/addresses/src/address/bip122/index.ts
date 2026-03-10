@@ -1,7 +1,13 @@
 import type { BechEncoding } from "./encoding.js";
 import { InvalidAddress } from "../../internal.js";
-import { BIP122_ADDRESS_TYPE, hrpFromChainReference } from "./constants.js";
-import { base58checkDecode, base58checkEncode, bech32Decode, bech32Encode } from "./encoding.js";
+import {
+    base58checkDecode,
+    base58checkEncode,
+    bech32Decode,
+    bech32Encode,
+    BIP122_ADDRESS_TYPE,
+} from "./encoding.js";
+import { hrpFromChainReference } from "./network.js";
 
 /**
  * Convert a bip122 binary address to its native text representation.
