@@ -3,11 +3,7 @@ import { encodeFunctionData, pad } from "viem";
 
 import type { Quote } from "../../core/schemas/quote.js";
 import type { BuildQuoteRequest } from "../../core/schemas/quoteRequest.js";
-import {
-    ACROSS_OPEN_GAS_LIMIT,
-    ACROSS_SPOKE_POOL_ADDRESSES,
-    ACROSS_SPOKE_POOL_DEPOSIT_ABI,
-} from "./constants.js";
+import { ACROSS_SPOKE_POOL_ADDRESSES, ACROSS_SPOKE_POOL_DEPOSIT_ABI } from "./constants.js";
 
 /**
  * Builds an SDK {@link Quote} with a TransactionStep for Across SpokePool.deposit().
@@ -67,7 +63,6 @@ export function buildAcrossQuote(params: BuildQuoteRequest, providerId: string):
                     transaction: {
                         to: spokePoolAddress,
                         data: calldata,
-                        gas: ACROSS_OPEN_GAS_LIMIT.toString(),
                     },
                 },
             ],

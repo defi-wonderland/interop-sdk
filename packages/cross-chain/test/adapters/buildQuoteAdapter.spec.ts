@@ -95,6 +95,34 @@ describe("BuildQuoteRequestSchema", () => {
         );
         expect(result.success).toBe(true);
     });
+
+    it("rejects invalid orderDataType hex", () => {
+        const result = BuildQuoteRequestSchema.safeParse(
+            createBuildQuoteRequest({ orderDataType: "not-hex" }),
+        );
+        expect(result.success).toBe(false);
+    });
+
+    it("rejects invalid orderData hex", () => {
+        const result = BuildQuoteRequestSchema.safeParse(
+            createBuildQuoteRequest({ orderData: "not-hex" }),
+        );
+        expect(result.success).toBe(false);
+    });
+
+    it("accepts valid orderDataType hex", () => {
+        const result = BuildQuoteRequestSchema.safeParse(
+            createBuildQuoteRequest({ orderDataType: "0xabcdef" }),
+        );
+        expect(result.success).toBe(true);
+    });
+
+    it("accepts valid orderData hex", () => {
+        const result = BuildQuoteRequestSchema.safeParse(
+            createBuildQuoteRequest({ orderData: "0x1234" }),
+        );
+        expect(result.success).toBe(true);
+    });
 });
 
 describe("buildOifQuote", () => {
@@ -220,6 +248,7 @@ describe("buildOifQuote", () => {
         const quote = buildOifQuote(params, PROVIDER_ID);
 
         const step = quote.order.steps[0]!;
+        expect(step.kind).toBe("transaction");
         if (step.kind === "transaction") {
             const decoded = decodeFunctionData({
                 abi: OPEN_ABI,

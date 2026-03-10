@@ -63,8 +63,14 @@ export const BuildQuoteRequestSchema = z.object({
     output: BuildQuoteOutputSchema,
     escrowContractAddress: addressString,
     fillDeadline: z.number().int().positive(),
-    orderDataType: z.string().optional(),
-    orderData: z.string().optional(),
+    orderDataType: z
+        .string()
+        .regex(/^0x([0-9a-fA-F]{2})*$/, "Invalid orderDataType hex")
+        .optional(),
+    orderData: z
+        .string()
+        .regex(/^0x([0-9a-fA-F]{2})*$/, "Invalid orderData hex")
+        .optional(),
 });
 
 // ── Types ───────────────────────────────────────────────

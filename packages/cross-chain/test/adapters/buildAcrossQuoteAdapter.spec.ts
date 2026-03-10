@@ -48,6 +48,7 @@ describe("buildAcrossQuote", () => {
         const quote = buildAcrossQuote(createRequest(), PROVIDER_ID);
         const step = quote.order.steps[0]!;
 
+        expect(step.kind).toBe("transaction");
         if (step.kind === "transaction") {
             expect(step.transaction.to).toBe(ACROSS_SPOKE_POOL_ADDRESSES[sepolia.id]);
         }
@@ -62,6 +63,7 @@ describe("buildAcrossQuote", () => {
         );
         const step = quote.order.steps[0]!;
 
+        expect(step.kind).toBe("transaction");
         if (step.kind === "transaction") {
             expect(step.transaction.to).toBe(FALLBACK_SPOKE_POOL);
         }
@@ -79,6 +81,7 @@ describe("buildAcrossQuote", () => {
         const quote = buildAcrossQuote(params, PROVIDER_ID);
         const step = quote.order.steps[0]!;
 
+        expect(step.kind).toBe("transaction");
         if (step.kind === "transaction") {
             const decoded = decodeFunctionData({
                 abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
@@ -129,6 +132,7 @@ describe("buildAcrossQuote", () => {
         const after = Math.floor(Date.now() / 1000);
 
         const step = quote.order.steps[0]!;
+        expect(step.kind).toBe("transaction");
         if (step.kind === "transaction") {
             const decoded = decodeFunctionData({
                 abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
@@ -146,6 +150,7 @@ describe("buildAcrossQuote", () => {
         expect(quote.preview.outputs[0]!.accountAddress).toBe(USER);
 
         const step = quote.order.steps[0]!;
+        expect(step.kind).toBe("transaction");
         if (step.kind === "transaction") {
             const decoded = decodeFunctionData({
                 abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
@@ -157,7 +162,7 @@ describe("buildAcrossQuote", () => {
         }
     });
 
-    it("populates preview correctly", () => {
+    it("populates preview.inputs correctly", () => {
         const params = createRequest();
         const quote = buildAcrossQuote(params, PROVIDER_ID);
 
@@ -165,6 +170,11 @@ describe("buildAcrossQuote", () => {
         expect(quote.preview.inputs[0]!.chainId).toBe(sepolia.id);
         expect(quote.preview.inputs[0]!.assetAddress).toBe(INPUT_TOKEN);
         expect(quote.preview.inputs[0]!.amount).toBe("1000000");
+    });
+
+    it("populates preview.outputs correctly", () => {
+        const params = createRequest();
+        const quote = buildAcrossQuote(params, PROVIDER_ID);
 
         expect(quote.preview.outputs).toHaveLength(1);
         expect(quote.preview.outputs[0]!.chainId).toBe(baseSepolia.id);
