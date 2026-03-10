@@ -116,7 +116,7 @@ describe("erc7930", () => {
             const encoded = encodeAddress(interopAddress, { format: "hex" });
             const bytes = encodeAddress(interopAddress, { format: "bytes" });
 
-            expect(encoded).toBeDefined();
+            expect(encoded).toBeTypeOf("string");
             expect(bytes.length).toBeGreaterThan(6);
             // chainType bytes should be 0x0001
             expect(bytes[2]).toBe(0x00);
