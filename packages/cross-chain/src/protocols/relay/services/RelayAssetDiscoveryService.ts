@@ -1,5 +1,3 @@
-import type { Address } from "viem";
-import { encodeAddress } from "@wonderland/interop-addresses";
 import axios from "axios";
 import { ZodError } from "zod";
 
@@ -54,7 +52,7 @@ export class RelayAssetDiscoveryService extends BaseAssetDiscoveryService {
      *
      * 1. GET /chains → extract EVM chain IDs
      * 2. POST /currencies/v2 per chain (all in parallel)
-     * 3. Group by chain, deduplicate by address, encode to EIP-7930
+     * 3. Group by chain, deduplicate by address
      */
     protected async fetchAssets(): Promise<NetworkAssets[]> {
         const chainIds = await this.fetchEvmChainIds();
@@ -125,8 +123,7 @@ export class RelayAssetDiscoveryService extends BaseAssetDiscoveryService {
     }
 
     /**
-     * Group currency entries by chain, deduplicate by address (case-insensitive),
-     * and encode each address to EIP-7930 interop format.
+     * Group currency entries by chain and deduplicate by address (case-insensitive).
      */
     private toNetworkAssets(currencies: RelayCurrencyEntry[]): NetworkAssets[] {
         const chainMap = new Map<number, Map<string, AssetInfo>>();
@@ -142,15 +139,7 @@ export class RelayAssetDiscoveryService extends BaseAssetDiscoveryService {
 
             if (!assets.has(key)) {
                 assets.set(key, {
-                    address: encodeAddress(
-                        {
-                            version: 1,
-                            chainType: "eip155",
-                            chainReference: currency.chainId.toString(),
-                            address: currency.address as Address,
-                        },
-                        { format: "hex" },
-                    ) as Address,
+                    address: currency.address,
                     symbol: currency.symbol,
                     decimals: currency.decimals,
                 });

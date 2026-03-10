@@ -1,5 +1,4 @@
 import type { NetworkAssets } from "../../core/types/assetDiscovery.js";
-import { toEVMInteropAddress } from "../../core/utils/addressHelpers.js";
 
 /** Relay API base URLs for mainnet and testnet. */
 const RELAY_API_URLS = {
@@ -27,18 +26,12 @@ export const RELAY_TESTNET_TOKENS: NetworkAssets[] = [
         chainId: 11155111, // Sepolia
         assets: [
             {
-                address: toEVMInteropAddress(
-                    11155111,
-                    "0x0000000000000000000000000000000000000000",
-                ),
+                address: "0x0000000000000000000000000000000000000000",
                 symbol: "ETH",
                 decimals: 18,
             },
             {
-                address: toEVMInteropAddress(
-                    11155111,
-                    "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
-                ),
+                address: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
                 symbol: "USDC",
                 decimals: 6,
             },
@@ -48,12 +41,12 @@ export const RELAY_TESTNET_TOKENS: NetworkAssets[] = [
         chainId: 84532, // Base Sepolia
         assets: [
             {
-                address: toEVMInteropAddress(84532, "0x0000000000000000000000000000000000000000"),
+                address: "0x0000000000000000000000000000000000000000",
                 symbol: "ETH",
                 decimals: 18,
             },
             {
-                address: toEVMInteropAddress(84532, "0x036CbD53842c5426634e7929541eC2318f3dCF7e"),
+                address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
                 symbol: "USDC",
                 decimals: 6,
             },

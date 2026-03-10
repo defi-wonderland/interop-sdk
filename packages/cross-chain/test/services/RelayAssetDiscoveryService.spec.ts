@@ -1,4 +1,3 @@
-import { toChainIdentifier } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -31,8 +30,6 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 const API_KEY_HEADER = "x-api-key";
 const API_KEY_VALUE = "test-key";
-
-const EIP_7930_PREFIX = /^0x0001/;
 
 // ── Mock Data ────────────────────────────────────────────
 
@@ -77,7 +74,6 @@ const MOCK_CURRENCIES_OPTIMISM = [
     },
 ];
 
-const TOTAL_MOCK_TOKENS = MOCK_CURRENCIES_ETHEREUM.length + MOCK_CURRENCIES_OPTIMISM.length;
 const EVM_CHAIN_COUNT = 2;
 
 describe("RelayAssetDiscoveryService", () => {
@@ -108,7 +104,6 @@ describe("RelayAssetDiscoveryService", () => {
                 CURRENCIES_ENDPOINT,
                 expect.objectContaining({
                     chainIds: [ETHEREUM_CHAIN_ID],
-                    verified: true,
                     limit: CURRENCIES_LIMIT,
                 }),
                 expect.anything(),
@@ -117,24 +112,20 @@ describe("RelayAssetDiscoveryService", () => {
                 CURRENCIES_ENDPOINT,
                 expect.objectContaining({
                     chainIds: [OPTIMISM_CHAIN_ID],
-                    verified: true,
                     limit: CURRENCIES_LIMIT,
                 }),
                 expect.anything(),
             );
 
             expect(Object.keys(result.tokensByChain)).toHaveLength(EVM_CHAIN_COUNT);
-            expect(Object.keys(result.tokensByChain)).toContain(
-                toChainIdentifier(ETHEREUM_CHAIN_ID),
-            );
-            expect(Object.keys(result.tokensByChain)).toContain(
-                toChainIdentifier(OPTIMISM_CHAIN_ID),
+            expect(Object.keys(result.tokensByChain)).toContain(String(ETHEREUM_CHAIN_ID));
+            expect(Object.keys(result.tokensByChain)).toContain(String(OPTIMISM_CHAIN_ID));
+
+            expect(result.tokensByChain[ETHEREUM_CHAIN_ID]).toHaveLength(
+                MOCK_CURRENCIES_ETHEREUM.length,
             );
 
-            const ethChainKey = toChainIdentifier(ETHEREUM_CHAIN_ID) as string;
-            expect(result.tokensByChain[ethChainKey]).toHaveLength(MOCK_CURRENCIES_ETHEREUM.length);
-
-            expect(Object.keys(result.tokenMetadata)).toHaveLength(TOTAL_MOCK_TOKENS);
+            expect(Object.keys(result.tokenMetadata)).toHaveLength(EVM_CHAIN_COUNT);
         });
 
         it("caches results permanently after first fetch", async () => {
@@ -156,9 +147,7 @@ describe("RelayAssetDiscoveryService", () => {
             });
 
             expect(Object.keys(result.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result.tokensByChain)).toContain(
-                toChainIdentifier(ETHEREUM_CHAIN_ID),
-            );
+            expect(Object.keys(result.tokensByChain)).toContain(String(ETHEREUM_CHAIN_ID));
         });
 
         it("returns empty result when /chains returns no EVM chains", async () => {
@@ -291,14 +280,14 @@ describe("RelayAssetDiscoveryService", () => {
         });
     });
 
-    describe("EIP-7930 encoding", () => {
-        it("encodes addresses to EIP-7930 interop format", async () => {
+    describe("plain address format", () => {
+        it("returns addresses in plain 0x format", async () => {
             mockSuccessfulFetch();
 
             const assets = await service.getAssetsForChain(ETHEREUM_CHAIN_ID);
             const usdc = assets?.assets.find((a) => a.symbol === "USDC");
 
-            expect(usdc?.address).toMatch(EIP_7930_PREFIX);
+            expect(usdc?.address).toBe(USDC_ADDRESS);
             expect(usdc?.decimals).toBe(6);
         });
     });
@@ -376,9 +365,7 @@ describe("RelayAssetDiscoveryService", () => {
             const result = await service.getSupportedAssets();
 
             expect(Object.keys(result.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result.tokensByChain)).toContain(
-                toChainIdentifier(ETHEREUM_CHAIN_ID),
-            );
+            expect(Object.keys(result.tokensByChain)).toContain(String(ETHEREUM_CHAIN_ID));
         });
 
         it("wraps /chains network error in AssetDiscoveryFailure with providerId", async () => {
@@ -518,14 +505,10 @@ describe("RelayAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(1);
 
             expect(Object.keys(result1.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result1.tokensByChain)).toContain(
-                toChainIdentifier(ETHEREUM_CHAIN_ID),
-            );
+            expect(Object.keys(result1.tokensByChain)).toContain(String(ETHEREUM_CHAIN_ID));
 
             expect(Object.keys(result2.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result2.tokensByChain)).toContain(
-                toChainIdentifier(OPTIMISM_CHAIN_ID),
-            );
+            expect(Object.keys(result2.tokensByChain)).toContain(String(OPTIMISM_CHAIN_ID));
         });
     });
 });
