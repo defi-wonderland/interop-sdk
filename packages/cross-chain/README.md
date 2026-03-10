@@ -149,8 +149,8 @@ const ethTokens = discovered.tokensByChain[1];
 
 // Get metadata for a specific token (nested by chainId then lowercase address)
 const usdc = discovered.tokenMetadata[1]?.["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"];
-console.log(usdc.symbol); // "USDC"
-console.log(usdc.decimals); // 6
+console.log(usdc?.symbol); // "USDC"
+console.log(usdc?.decimals); // 6
 ```
 
 **Via individual service:**

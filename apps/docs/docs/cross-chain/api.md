@@ -97,6 +97,7 @@ A utility for managing multiple cross-chain providers and executing operations a
 
     ```typescript
     import {
+        AssetDiscoveryFactory,
         createAggregator,
         OrderTrackerFactory,
         SortingStrategyFactory,
