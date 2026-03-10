@@ -114,14 +114,13 @@ describe("erc7930", () => {
             };
 
             const encoded = encodeAddress(interopAddress, { format: "hex" });
-            const decoded = encodeAddress(interopAddress, { format: "bytes" });
+            const bytes = encodeAddress(interopAddress, { format: "bytes" });
 
-            // Roundtrip: decode back and verify
             expect(encoded).toBeDefined();
-            expect(decoded.length).toBeGreaterThan(6);
+            expect(bytes.length).toBeGreaterThan(6);
             // chainType bytes should be 0x0001
-            expect(decoded[2]).toBe(0x00);
-            expect(decoded[3]).toBe(0x01);
+            expect(bytes[2]).toBe(0x00);
+            expect(bytes[3]).toBe(0x01);
         });
 
         it("encode bip122 SegWit text representation", () => {
