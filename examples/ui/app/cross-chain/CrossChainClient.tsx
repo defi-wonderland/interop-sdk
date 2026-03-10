@@ -102,6 +102,8 @@ export function CrossChainClient() {
 
     if (params.mode === 'buildQuote') {
       if (!params.outputAmount) {
+        clearQuotes();
+        clearBuildQuote();
         return;
       }
       clearQuotes();
