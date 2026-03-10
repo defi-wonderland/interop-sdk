@@ -192,7 +192,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     Returns an OrderTracker instance for a provider. Use this to set up event listeners _before_ sending a transaction.
 
     ```typescript
-    const tracker = aggregator.prepareTracking(quote._providerId);
+    const tracker = aggregator.prepareTracking(quote.provider);
     tracker.on(OrderStatus.Finalized, (update) => console.log("Done!", update.fillTxHash));
     // ...then send the transaction and call tracker.startTracking(...)
     ```

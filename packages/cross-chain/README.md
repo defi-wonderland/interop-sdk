@@ -236,6 +236,7 @@ const quotes = await provider.getQuotes({
 });
 
 const quote = quotes[0];
+if (!quote) throw new Error("No quotes returned");
 
 // Protocol Mode: Sign and submit order (gasless for user)
 const signatureSteps = getSignatureSteps(quote.order);
