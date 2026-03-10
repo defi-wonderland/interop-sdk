@@ -280,7 +280,7 @@ export function decodeAddress(
         const addressTextResult = addressToText(
             addressBinary,
             chainTypeBinary,
-            chainReferenceBinary.length > 0 ? chainReferenceBinary : undefined,
+            chainReferenceBinary,
         );
         textAddr.address = String(addressTextResult);
     }

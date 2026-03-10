@@ -25,7 +25,7 @@ export function bip122AddressToText(address: Uint8Array, chainReference?: Uint8A
             return base58checkEncode(address.slice(1));
 
         case BIP122_ADDRESS_TYPE.WITNESS: {
-            if (!chainReference) {
+            if (!chainReference || chainReference.length === 0) {
                 throw new InvalidAddress("bip122 witness address requires chain reference for HRP");
             }
             const hrp = hrpFromChainReference(chainReference);
