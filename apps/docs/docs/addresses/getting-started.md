@@ -112,6 +112,7 @@ The package supports three main address representations:
     - Default representation is "text" (more user-friendly)
     - Fields use CAIP-350 text encoding rules when in text variant:
         - **eip155**: Decimal strings for chain references, hex with EIP-55 checksumming for addresses
+        - **bip122**: Chain references as 32-char lowercase hex (genesis hash prefix), addresses as base58check or bech32/bech32m
         - **solana**: Base58 encoding for both chain references and addresses
 
 3. **Binary Address (Serialized)**: Hex or bytes string representation
