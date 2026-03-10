@@ -1,35 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-/**
- * Mock OIF solver response including OP Sepolia and Base Sepolia USDC.
- * The mint button only appears for tokens with the 'oif' provider.
- */
-const MOCK_OIF_SOLVER_RESPONSE = {
-  supportedAssets: {
-    assets: [
-      { address: '0x5fd84259d66Cd46123540766Be93DFE6D43130D7', chainId: 11155420, symbol: 'USDC', decimals: 6 },
-      { address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', chainId: 84532, symbol: 'USDC', decimals: 6 },
-    ],
-  },
-};
-
 test.describe('Mint mockUSDC', () => {
-  test.beforeEach(async ({ page, context }) => {
-    // Mock OIF solver discovery to include OP Sepolia and Base Sepolia
-    await context.route('**/oif-api.openzeppelin.com/**', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(MOCK_OIF_SOLVER_RESPONSE),
-      });
-    });
-
+  test.beforeEach(async ({ page }) => {
     await page.goto('/cross-chain?testnet=true');
   });
 
   test('mints and updates balance in UI', async ({ page }) => {
-    // Wait for asset discovery to populate chain selects
-    await expect(page.locator('#output-chain-select > option')).not.toHaveCount(0, { timeout: 15_000 });
+    await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15_000 });
 
     await page.locator('#output-chain-select').selectOption({ label: 'OP Sepolia' });
     await page.locator('#input-chain-select').selectOption({ label: 'Base Sepolia' });
