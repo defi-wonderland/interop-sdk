@@ -11,11 +11,6 @@ export const RelayConfigSchema = z.object({
     providerId: z.string().optional(),
     /** Relay API key for authentication. Required in production. */
     apiKey: z.string().optional(),
-    /**
-     * Default slippage tolerance in basis points (e.g. 50 = 0.5%).
-     * Applied to all quote requests unless overridden.
-     */
-    slippageTolerance: z.number().int().nonnegative().optional(),
 });
 
 /** Configuration options for {@link RelayProvider}. */
