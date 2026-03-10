@@ -4,7 +4,7 @@ import { AbiEvent, Address, Hex, isAddressEqual, Log, numberToHex, pad } from "v
 import { ZodError } from "zod";
 
 import type { Quote } from "../../core/schemas/quote.js";
-import type { QuoteRequest } from "../../core/schemas/quoteRequest.js";
+import type { BuildQuoteRequest, QuoteRequest } from "../../core/schemas/quoteRequest.js";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
@@ -42,6 +42,7 @@ import {
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
 } from "../../internal.js";
+import { buildAcrossQuote } from "./buildQuoteAdapter.js";
 import { decodeAcrossCalldata } from "./utils.js";
 
 /**
@@ -280,6 +281,13 @@ export class AcrossProvider extends CrossChainProvider {
     }
 
     // submitOrder uses default implementation from CrossChainProvider (throws ProviderExecuteNotImplemented)
+
+    /**
+     * @inheritdoc
+     */
+    override async buildQuote(params: BuildQuoteRequest): Promise<Quote> {
+        return buildAcrossQuote(params, this.providerId);
+    }
 
     /**
      * Get the opened intent parser configuration for Across

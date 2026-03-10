@@ -110,6 +110,7 @@ if (selectedQuote) {
     -   `.protocolName` -- Returns the protocol name.
     -   `.providerId` -- Returns the provider identifier.
     -   `.getQuotes(params: QuoteRequest)` -- Fetch quotes for a cross-chain request.
+    -   `.buildQuote(params: BuildQuoteRequest)` -- Build a quote locally without calling a solver API.
     -   `.submitOrder(quote, signature)` -- Submit a signed order to the provider.
     -   `.getTrackingConfig()` -- Get configuration for order tracking.
 
@@ -125,6 +126,7 @@ if (selectedQuote) {
     -   Config: `{ providers: CrossChainProvider[], sortingStrategy?, timeoutMs?, trackerFactory? }`
 -   `Aggregator`
     -   `.getQuotes(params: QuoteRequest)` -- Get quotes from all providers. Returns `{ quotes: ExecutableQuote[], errors: GetQuotesError[] }`.
+    -   `.buildQuote(providerId, params: BuildQuoteRequest)` -- Build a quote locally for a specific provider without calling a solver API.
     -   `.submitOrder(quote, signature)` -- Submit a signed order.
     -   `.prepareTracking(providerId)` -- Prepare order tracking for a provider.
     -   `.track(params)` -- Track an existing transaction.
@@ -180,6 +182,7 @@ const ethTokens = discovered.tokensByChain[toChainIdentifier(1)];
 ### Types
 
 -   `QuoteRequest` -- SDK-friendly quote request with `user`, `input`, `output`, and `swapType`.
+-   `BuildQuoteRequest` -- Request for local quote building with required amounts, `escrowContractAddress`, and `fillDeadline`.
 -   `Quote` -- Quote with step-based `order`, `preview`, `provider`, and `metadata`.
 -   `ExecutableQuote` -- Quote with provider context for submission.
 -   `Order` -- Step-based order model with `steps: (SignatureStep | TransactionStep)[]`.

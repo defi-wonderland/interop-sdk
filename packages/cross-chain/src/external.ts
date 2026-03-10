@@ -4,7 +4,7 @@ export * from "./core/types/index.js";
 export * from "./core/sorting_strategies/index.js";
 export * from "./core/constants/chains.js";
 export * from "./core/constants/tokens.js";
-export { PERMIT2_TYPES, EIP3009_TYPES } from "./protocols/oif/constants.js";
+export { PERMIT2_TYPES, EIP3009_TYPES, OPEN_ABI } from "./protocols/oif/constants.js";
 
 export {
     // Protocol registry
@@ -47,7 +47,10 @@ export {
     adaptQuoteRequest,
     adaptOifOrder,
     adaptQuote,
+    buildOifQuote,
+    buildAcrossQuote,
     // SDK schema types
     type ExecutableQuote,
     type QuoteRequest,
+    type BuildQuoteRequest,
 } from "./internal.js";

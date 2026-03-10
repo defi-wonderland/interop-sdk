@@ -13,7 +13,7 @@ import type {
     ProviderQuote,
 } from "../../core/interfaces/quotes.interface.js";
 import type { Quote, SubmitOrderResponse } from "../../core/schemas/quote.js";
-import type { QuoteRequest } from "../../core/schemas/quoteRequest.js";
+import type { BuildQuoteRequest, QuoteRequest } from "../../core/schemas/quoteRequest.js";
 import { isSignableOifOrder } from "../../core/utils/orderTypeHelpers.js";
 import {
     APIBasedFillWatcherConfig,
@@ -40,6 +40,7 @@ import {
     adaptQuote,
     adaptQuoteRequest,
     adaptTypedDataPayload,
+    buildOifQuote,
 } from "./adapters/index.js";
 
 /**
@@ -262,6 +263,13 @@ export class OifProvider extends CrossChainProvider {
                 error instanceof Error ? error.stack : undefined,
             );
         }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    override async buildQuote(params: BuildQuoteRequest): Promise<Quote> {
+        return buildOifQuote(params, this.providerId);
     }
 
     static getFillWatcherConfig(baseUrl: string): APIBasedFillWatcherConfig<unknown> {

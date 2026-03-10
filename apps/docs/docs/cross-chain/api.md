@@ -69,6 +69,20 @@ An abstract class that defines the interface for cross-chain protocol providers.
     });
     ```
 
+-   **buildQuote**(params: BuildQuoteRequest): Promise\<Quote\>
+
+    Builds a quote locally without calling a solver API. Returns a `Quote` with a `TransactionStep` that the consumer can execute directly. Both input and output amounts are required (the user controls the fee). Not all providers support this -- throws `ProviderExecuteNotImplemented` if unsupported.
+
+    ```typescript
+    const quote = await provider.buildQuote({
+        user: "0xYourAddress",
+        input: { chainId: 11155111, assetAddress: "0xInputToken", amount: "1000000" },
+        output: { chainId: 84532, assetAddress: "0xOutputToken", amount: "980000" },
+        escrowContractAddress: "0xSpokePoolAddress",
+        fillDeadline: Math.floor(Date.now() / 1000) + 3600,
+    });
+    ```
+
 -   **submitOrder**(quote: Quote, signature: Hex): Promise\<SubmitOrderResponse\>
 
     Submits a signed order for gasless execution.
@@ -141,6 +155,20 @@ A class that manages multiple cross-chain providers and coordinates their operat
         const bestQuote = response.quotes[0];
     }
     response.errors.forEach((error) => console.error(error.errorMsg));
+    ```
+
+-   **buildQuote**(providerId: string, params: BuildQuoteRequest): Promise\<ExecutableQuote\>
+
+    Builds a quote locally for a specific provider without calling a solver API. The user provides both amounts (controlling the fee) and a fill deadline. The returned quote feeds into the same execution and tracking pipeline as API-fetched quotes.
+
+    ```typescript
+    const quote = await aggregator.buildQuote("across", {
+        user: "0xYourAddress",
+        input: { chainId: 11155111, assetAddress: "0xInputToken", amount: "1000000" },
+        output: { chainId: 84532, assetAddress: "0xOutputToken", amount: "980000" },
+        escrowContractAddress: "0xSpokePoolAddress",
+        fillDeadline: Math.floor(Date.now() / 1000) + 3600,
+    });
     ```
 
 -   **submitOrder**(quote: ExecutableQuote, signatureOrResults: Hex | StepResult[]): Promise\<SubmitOrderResponse\>
@@ -312,6 +340,30 @@ interface QuoteRequest {
         calldata?: string;
     };
     swapType?: "exact-input" | "exact-output"; // default: "exact-input"
+}
+```
+
+#### BuildQuoteRequest
+
+```typescript
+interface BuildQuoteRequest {
+    user: string;
+    input: {
+        chainId: number;
+        assetAddress: string;
+        amount: string; // required (unlike QuoteRequest)
+    };
+    output: {
+        chainId: number;
+        assetAddress: string;
+        amount: string; // required (unlike QuoteRequest)
+        recipient?: string;
+        calldata?: string;
+    };
+    escrowContractAddress: string; // settlement contract address
+    fillDeadline: number; // unix timestamp
+    orderDataType?: string; // protocol-specific (optional)
+    orderData?: string; // protocol-specific (optional)
 }
 ```
 

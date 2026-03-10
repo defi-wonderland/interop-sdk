@@ -8,7 +8,7 @@ import type {
     StepResult,
     SubmitOrderResponse,
 } from "../schemas/quote.js";
-import type { QuoteRequest } from "../schemas/quoteRequest.js";
+import type { BuildQuoteRequest, QuoteRequest } from "../schemas/quoteRequest.js";
 import type {
     AssetDiscoveryOptions,
     DiscoveredAssets,
@@ -223,6 +223,26 @@ class Aggregator {
         }
 
         return provider.submitOrder(quote, signature);
+    }
+
+    /**
+     * Build a quote locally without calling a solver API.
+     *
+     * Routes the request to the specified provider's `buildQuote` implementation.
+     * The returned quote contains a TransactionStep that the consumer can execute
+     * directly via `walletClient.sendTransaction`.
+     *
+     * @param providerId - The provider to use for building the quote
+     * @param params - The build quote request with required amounts and contract address
+     * @returns An executable quote containing a TransactionStep
+     */
+    async buildQuote(providerId: string, params: BuildQuoteRequest): Promise<ExecutableQuote> {
+        const provider = this.providers[providerId];
+        if (!provider) {
+            throw new ProviderNotFound(providerId);
+        }
+        const quote = await provider.buildQuote(params);
+        return { ...quote, _providerId: providerId };
     }
 
     /**
