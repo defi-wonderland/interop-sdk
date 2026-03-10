@@ -8,7 +8,11 @@ test.describe('Mint mockUSDC', () => {
   test('mints and updates balance in UI', async ({ page }) => {
     await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15_000 });
 
-    await page.locator('#output-chain-select').selectOption({ label: 'OP Sepolia' });
+    // Wait for asset discovery to populate chain dropdowns
+    const outputSelect = page.locator('#output-chain-select');
+    await expect(outputSelect.locator('option', { hasText: 'OP Sepolia' })).toBeAttached({ timeout: 30_000 });
+
+    await outputSelect.selectOption({ label: 'OP Sepolia' });
     await page.locator('#input-chain-select').selectOption({ label: 'Base Sepolia' });
 
     await page.getByTestId('input-token-select').click();
