@@ -7,19 +7,15 @@
  * @note The API returns snake_case (chain_id), but the SDK transforms to camelCase (chainId).
  */
 
-import { isAddress } from "viem";
 import { z } from "zod";
+
+import { HexAddressSchema } from "./address.js";
 
 /**
  * Schema for asset metadata
  */
 export const assetInfoSchema = z.object({
-    address: z
-        .string()
-        .refine((val) => isAddress(val, { strict: false }), {
-            message: "Invalid address: expected a 0x-prefixed hex address",
-        })
-        .describe("Asset address in plain 0x format"),
+    address: HexAddressSchema.describe("Asset address in plain 0x format"),
     symbol: z.string().describe('Asset symbol for display purposes (e.g., "USDC", "WETH", "USDT")'),
     decimals: z
         .number()

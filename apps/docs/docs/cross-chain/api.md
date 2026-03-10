@@ -92,24 +92,24 @@ An abstract class that defines the interface for cross-chain protocol providers.
     const config = provider.getTrackingConfig();
     ```
 
-### Provider Executor
+### Aggregator
 
 A utility for managing multiple cross-chain providers and executing operations across them.
 
 #### Methods
 
--   **createProviderExecutor**(config: ProviderExecutorConfig): ProviderExecutor
+-   **createAggregator**(config: AggregatorConfig): Aggregator
 
-    Creates an executor instance for managing multiple providers.
+    Creates an aggregator instance for managing multiple providers.
 
     ```typescript
     import {
-        createProviderExecutor,
+        createAggregator,
         OrderTrackerFactory,
         SortingStrategyFactory,
     } from "@wonderland/interop-cross-chain";
 
-    const executor = createProviderExecutor({
+    const aggregator = createAggregator({
         providers: [acrossProvider],
         sortingStrategy: SortingStrategyFactory.createStrategy("bestOutput"), // optional
         timeoutMs: 15000, // optional
@@ -117,7 +117,7 @@ A utility for managing multiple cross-chain providers and executing operations a
     });
     ```
 
-#### ProviderExecutor Class
+#### Aggregator Class
 
 A class that manages multiple cross-chain providers and coordinates their operations.
 
@@ -126,7 +126,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     Retrieves quotes from all available providers for a given operation.
 
     ```typescript
-    const response = await executor.getQuotes({
+    const response = await aggregator.getQuotes({
         user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
         intent: {
             intentType: "oif-swap",
@@ -162,7 +162,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     ```typescript
     import { OrderStatus } from "@wonderland/interop-cross-chain";
 
-    const tracker = executor.track({
+    const tracker = aggregator.track({
         txHash: hash,
         providerId: quote.provider,
         originChainId: 11155111,
@@ -178,7 +178,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     Gets the current status of an order without watching.
 
     ```typescript
-    const status = await executor.getOrderStatus({
+    const status = await aggregator.getOrderStatus({
         txHash: "0x...",
         providerId: "across",
         originChainId: 11155111,

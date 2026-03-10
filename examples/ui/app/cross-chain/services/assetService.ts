@@ -85,9 +85,10 @@ export class AssetService {
       }
     }
 
-    if (erc20Tokens.length === 0) return balances;
+    const validErc20Tokens = erc20Tokens.filter((token) => isAddress(token));
+    if (validErc20Tokens.length === 0) return balances;
 
-    const contracts = erc20Tokens.map((token) => ({
+    const contracts = validErc20Tokens.map((token) => ({
       address: token as Address,
       abi: erc20Abi,
       functionName: 'balanceOf' as const,
@@ -96,7 +97,7 @@ export class AssetService {
 
     const results = await client.multicall({ contracts });
 
-    erc20Tokens.forEach((token, i) => {
+    validErc20Tokens.forEach((token, i) => {
       const result = results[i];
       if (result.status === 'success' && result.result !== undefined) {
         const decimals = chainInfo[token]?.decimals ?? 18;

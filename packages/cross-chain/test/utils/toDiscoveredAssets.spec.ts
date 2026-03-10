@@ -28,16 +28,16 @@ describe("toDiscoveredAssets", () => {
     const mockResult = result("test-provider", { chainId: 1, assets: [usdcEth, wethEth] });
 
     describe("single provider, single chain", () => {
-        it("should populate tokensByChain with numeric chain ID key", () => {
+        it("populate tokensByChain with numeric chain ID key", () => {
             const out = toDiscoveredAssets([mockResult]);
 
             expect(out.tokensByChain[1]).toBeDefined();
             expect(out.tokensByChain[1]).toHaveLength(2);
-            expect(out.tokensByChain[1]).toContain(USDC_ETH);
-            expect(out.tokensByChain[1]).toContain(WETH_ETH);
+            expect(out.tokensByChain[1]).toContain(USDC_ETH.toLowerCase());
+            expect(out.tokensByChain[1]).toContain(WETH_ETH.toLowerCase());
         });
 
-        it("should populate nested tokenMetadata keyed by chainId and lowercase address with providers", () => {
+        it("populate nested tokenMetadata keyed by chainId and lowercase address with providers", () => {
             const out = toDiscoveredAssets([mockResult]);
 
             expect(out.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toEqual({
@@ -50,7 +50,7 @@ describe("toDiscoveredAssets", () => {
             });
         });
 
-        it("should populate tokensByChain keys with numeric chain IDs", () => {
+        it("populate tokensByChain keys with numeric chain IDs", () => {
             const out = toDiscoveredAssets([mockResult]);
 
             expect(Object.keys(out.tokensByChain).map(Number)).toEqual([1]);
@@ -58,7 +58,7 @@ describe("toDiscoveredAssets", () => {
     });
 
     describe("multiple providers, overlapping chains/assets", () => {
-        it("should deduplicate assets by address", () => {
+        it("deduplicate assets by address", () => {
             const out = toDiscoveredAssets([
                 result("provider-1", { chainId: 1, assets: [usdcEth] }),
                 result("provider-2", { chainId: 1, assets: [usdcEth, wethEth] }),
@@ -68,7 +68,7 @@ describe("toDiscoveredAssets", () => {
             expect(Object.keys(out.tokenMetadata[1]!)).toHaveLength(2);
         });
 
-        it("should use first-write-wins for metadata and merge providers", () => {
+        it("use first-write-wins for metadata and merge providers", () => {
             const out = toDiscoveredAssets([
                 result("provider-1", { chainId: 1, assets: [{ ...usdcEth, symbol: "USDC-OLD" }] }),
                 result("provider-2", { chainId: 1, assets: [{ ...usdcEth, symbol: "USDC-NEW" }] }),
@@ -79,7 +79,7 @@ describe("toDiscoveredAssets", () => {
             expect(meta.providers).toEqual(["provider-1", "provider-2"]);
         });
 
-        it("should not duplicate same provider in providers array", () => {
+        it("not duplicate same provider in providers array", () => {
             const out = toDiscoveredAssets([
                 result(
                     "provider-1",
@@ -95,7 +95,7 @@ describe("toDiscoveredAssets", () => {
     });
 
     describe("filterChainIds", () => {
-        it("should only include matching chains", () => {
+        it("only include matching chains", () => {
             const out = toDiscoveredAssets(
                 [
                     result(
@@ -113,7 +113,7 @@ describe("toDiscoveredAssets", () => {
             expect(out.tokenMetadata[42161]).toBeUndefined();
         });
 
-        it("should return empty result when no chains match filter", () => {
+        it("return empty result when no chains match filter", () => {
             const out = toDiscoveredAssets([mockResult], [999]);
 
             expect(Object.keys(out.tokensByChain)).toHaveLength(0);
@@ -122,7 +122,7 @@ describe("toDiscoveredAssets", () => {
     });
 
     describe("empty results array", () => {
-        it("should return empty structure", () => {
+        it("return empty structure", () => {
             const out = toDiscoveredAssets([]);
 
             expect(out.tokensByChain).toEqual({});
@@ -131,7 +131,7 @@ describe("toDiscoveredAssets", () => {
     });
 
     describe("multiple chains", () => {
-        it("should have chain keys in tokensByChain", () => {
+        it("have chain keys in tokensByChain", () => {
             const out = toDiscoveredAssets([
                 result(
                     "test-provider",
@@ -140,10 +140,14 @@ describe("toDiscoveredAssets", () => {
                 ),
             ]);
 
-            expect(Object.keys(out.tokensByChain).map(Number).sort()).toEqual([1, 42161]);
+            expect(
+                Object.keys(out.tokensByChain)
+                    .map(Number)
+                    .sort((a, b) => a - b),
+            ).toEqual([1, 42161]);
         });
 
-        it("should maintain separate token lists per chain", () => {
+        it("maintain separate token lists per chain", () => {
             const out = toDiscoveredAssets([
                 result(
                     "test-provider",
@@ -161,7 +165,7 @@ describe("toDiscoveredAssets", () => {
 });
 
 describe("mergeDiscoveredAssets", () => {
-    it("should merge tokens from different chains", () => {
+    it("merge tokens from different chains", () => {
         const sourceA = toDiscoveredAssets([
             result("provider-a", { chainId: 1, assets: [usdcEth] }),
         ]);
@@ -171,14 +175,18 @@ describe("mergeDiscoveredAssets", () => {
 
         const merged = mergeDiscoveredAssets([sourceA, sourceB]);
 
-        expect(Object.keys(merged.tokensByChain).map(Number).sort()).toEqual([1, 42161]);
+        expect(
+            Object.keys(merged.tokensByChain)
+                .map(Number)
+                .sort((a, b) => a - b),
+        ).toEqual([1, 42161]);
         expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.providers).toEqual(["provider-a"]);
         expect(merged.tokenMetadata[42161]![USDC_ARB.toLowerCase()]!.providers).toEqual([
             "provider-b",
         ]);
     });
 
-    it("should merge providers for the same token", () => {
+    it("merge providers for the same token", () => {
         const sourceA = toDiscoveredAssets([
             result("provider-a", { chainId: 1, assets: [usdcEth] }),
         ]);
@@ -195,7 +203,7 @@ describe("mergeDiscoveredAssets", () => {
         ]);
     });
 
-    it("should use first-write-wins for metadata fields", () => {
+    it("use first-write-wins for metadata fields", () => {
         const sourceA = toDiscoveredAssets([
             result("provider-a", { chainId: 1, assets: [{ ...usdcEth, symbol: "USDC-FIRST" }] }),
         ]);
@@ -212,7 +220,7 @@ describe("mergeDiscoveredAssets", () => {
         expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.decimals).toBe(6);
     });
 
-    it("should not duplicate providers when same provider appears in multiple sources", () => {
+    it("not duplicate providers when same provider appears in multiple sources", () => {
         const sourceA = toDiscoveredAssets([
             result("provider-a", { chainId: 1, assets: [usdcEth] }),
         ]);
@@ -225,7 +233,7 @@ describe("mergeDiscoveredAssets", () => {
         expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.providers).toEqual(["provider-a"]);
     });
 
-    it("should handle empty sources array", () => {
+    it("handle empty sources array", () => {
         const merged = mergeDiscoveredAssets([]);
 
         expect(merged.tokensByChain).toEqual({});

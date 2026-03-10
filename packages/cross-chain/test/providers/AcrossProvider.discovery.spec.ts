@@ -116,7 +116,7 @@ describe("AcrossProvider.discovery", () => {
             expect(polygon?.assets).toHaveLength(1);
         });
 
-        it("should return plain 0x addresses (not EIP-7930 encoded)", () => {
+        it("returns plain 0x addresses (not EIP-7930 encoded)", () => {
             const mockTokens = [
                 {
                     chainId: 1,

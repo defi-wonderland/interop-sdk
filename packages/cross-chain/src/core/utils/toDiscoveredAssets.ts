@@ -37,8 +37,8 @@ export function toDiscoveredAssets(
                 const addr = asset.address;
                 const addrLower = addr.toLowerCase();
 
-                if (!tokensByChain[chainId].includes(addr)) {
-                    tokensByChain[chainId].push(addr);
+                if (!tokensByChain[chainId].includes(addrLower)) {
+                    tokensByChain[chainId].push(addrLower);
                 }
 
                 const existing = tokenMetadata[chainId][addrLower];
