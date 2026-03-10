@@ -33,6 +33,7 @@ import {
     ProviderGetQuoteFailure,
     ProviderGetStatusFailure,
 } from "../../internal.js";
+import { getRelayApiUrl } from "./constants.js";
 import { NotifyingFillWatcher } from "./NotifyingFillWatcher.js";
 import { RelaySolverNotifier } from "./RelaySolverNotifier.js";
 import {
@@ -42,7 +43,7 @@ import {
     RelayQuoteRequestSchema,
     RelayQuoteResponseSchema,
 } from "./schemas.js";
-import { RELAY_BASE_URL, RelayConfigSchema } from "./types.js";
+import { RelayConfigSchema } from "./types.js";
 
 /** Maps Relay intent status strings to SDK OrderStatus values. */
 const RELAY_STATUS_MAP: Record<
@@ -69,6 +70,7 @@ export class RelayProvider extends CrossChainProvider {
     readonly providerId: string;
     private readonly http: AxiosInstance;
     private readonly baseUrl: string;
+    private readonly isTestnet: boolean;
     private readonly slippageTolerance?: number;
 
     constructor(config: RelayConfigs = {}) {
@@ -76,7 +78,8 @@ export class RelayProvider extends CrossChainProvider {
 
         try {
             const parsed = RelayConfigSchema.parse(config);
-            this.baseUrl = parsed.baseUrl ?? RELAY_BASE_URL;
+            this.isTestnet = parsed.isTestnet ?? false;
+            this.baseUrl = parsed.baseUrl ?? getRelayApiUrl(this.isTestnet);
             this.providerId = parsed.providerId ?? "relay";
             this.slippageTolerance = parsed.slippageTolerance;
 
@@ -152,7 +155,7 @@ export class RelayProvider extends CrossChainProvider {
      * @see https://docs.relay.link/references/api/get-intent-status
      */
     static getFillWatcherConfig(
-        baseUrl: string = RELAY_BASE_URL,
+        baseUrl: string = getRelayApiUrl(),
     ): APIBasedFillWatcherConfig<RelayIntentStatusResponse> {
         return {
             type: "api-based",
