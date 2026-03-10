@@ -131,8 +131,10 @@ describe("erc7930", () => {
                 address: "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
             };
 
-            const encoded = encodeAddress(interopAddress, { format: "hex" });
-            expect(encoded).toBeDefined();
+            const bytes = encodeAddress(interopAddress, { format: "bytes" });
+            expect(bytes.length).toBeGreaterThan(6);
+            expect(bytes[2]).toBe(0x00);
+            expect(bytes[3]).toBe(0x01);
         });
 
         it("encode bip122 Taproot text representation", () => {
@@ -143,8 +145,10 @@ describe("erc7930", () => {
                 address: "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
             };
 
-            const encoded = encodeAddress(interopAddress, { format: "hex" });
-            expect(encoded).toBeDefined();
+            const bytes = encodeAddress(interopAddress, { format: "bytes" });
+            expect(bytes.length).toBeGreaterThan(6);
+            expect(bytes[2]).toBe(0x00);
+            expect(bytes[3]).toBe(0x01);
         });
 
         it("can encode text representation", () => {
