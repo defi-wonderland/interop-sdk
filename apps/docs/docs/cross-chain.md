@@ -15,7 +15,12 @@ The cross-chain package provides a standardized interface for interacting with c
 ## Quick Start
 
 ```typescript
-import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+import {
+    createCrossChainProvider,
+    getSignatureSteps,
+    getTransactionSteps,
+    isSignatureOnlyOrder,
+} from "@wonderland/interop-cross-chain";
 
 // Create an OIF provider
 const provider = createCrossChainProvider("oif", {
@@ -25,21 +30,37 @@ const provider = createCrossChainProvider("oif", {
 
 // Get quotes for a cross-chain transfer
 const quotes = await provider.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-    intent: {
-        intentType: "oif-swap",
-        inputs: [
-            {
-                user: USER_INTEROP_ADDRESS,
-                asset: INPUT_TOKEN_ADDRESS,
-                amount: "1000000000000000000",
-            },
-        ],
-        outputs: [{ receiver: RECEIVER_INTEROP_ADDRESS, asset: OUTPUT_TOKEN_ADDRESS }],
-        swapType: "exact-input",
+    user: "0xYourAddress",
+    input: {
+        chainId: 1,
+        assetAddress: "0xInputTokenAddress",
+        amount: "1000000000000000000",
     },
-    supportedTypes: ["oif-escrow-v0"],
+    output: {
+        chainId: 42161,
+        assetAddress: "0xOutputTokenAddress",
+        recipient: "0xRecipientAddress",
+    },
+    swapType: "exact-input",
 });
+
+const quote = quotes[0];
+
+if (isSignatureOnlyOrder(quote.order)) {
+    // Protocol mode: sign EIP-712 typed data (gasless for user)
+    const step = getSignatureSteps(quote.order)[0];
+    const { signatureType, ...typedData } = step.signaturePayload;
+    const signature = await walletClient.signTypedData(typedData);
+    await provider.submitOrder(quote, signature);
+} else {
+    // User mode: send transaction directly
+    const step = getTransactionSteps(quote.order)[0];
+    await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+        value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+    });
+}
 ```
 
 For Across Protocol integration, see the [Across Provider](./cross-chain/across-provider.md) guide.
