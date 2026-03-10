@@ -29,7 +29,7 @@ export interface RelayAssetDiscoveryServiceConfig extends BaseAssetDiscoveryServ
  * Discovers supported tokens via the Relay API in two steps:
  *
  * 1. `GET /chains` — list all EVM chain IDs (~74 chains)
- * 2. `POST /currencies/v2` per chain — fetch up to 100 verified tokens each
+ * 2. `POST /currencies/v2` per chain — fetch up to 100 tokens each
  *
  * The `/currencies/v2` endpoint caps results at 100 per request (global, not
  * per-chain), so per-chain requests are required for full coverage (~1 100+
@@ -110,12 +110,12 @@ export class RelayAssetDiscoveryService extends BaseAssetDiscoveryService {
     }
 
     /**
-     * Fetch verified EVM currencies for a single chain.
+     * Fetch EVM currencies for a single chain (verified + unverified).
      */
     private async fetchCurrenciesForChain(chainId: number): Promise<RelayCurrencyEntry[]> {
         const { data } = await axios.post(
             `${this.baseUrl}/currencies/v2`,
-            { chainIds: [chainId], verified: true, limit: CURRENCIES_LIMIT },
+            { chainIds: [chainId], limit: CURRENCIES_LIMIT },
             { headers: this.headers, timeout: this.timeout },
         );
 
