@@ -57,7 +57,7 @@ const textFromBinary = toTextRepresentation(binaryAddr);
 
 // Use type guards to narrow types
 if (isTextAddress(textAddr)) {
-    console.log(textAddr.chainType); // TypeScript knows this is "eip155" | "solana"
+    console.log(textAddr.chainType); // TypeScript knows this is "eip155" | "bip122" | "solana"
 }
 if (isBinaryAddress(binaryAddr)) {
     console.log(binaryAddr.chainType); // TypeScript knows this is Uint8Array

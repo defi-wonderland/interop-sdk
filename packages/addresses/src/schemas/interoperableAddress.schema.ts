@@ -2,11 +2,14 @@ import bs58 from "bs58";
 import { isAddress, pad, trim } from "viem";
 import { z } from "zod";
 
+import { bip122AddressToBinary } from "../address/bip122/index.js";
+import { isValidBip122ChainReference } from "../address/bip122/network.js";
+
 /**
  * Validates that a chain reference is valid for the given chain type.
  */
 const isValidChainReferenceForType = (
-    chainType: "eip155" | "solana",
+    chainType: "eip155" | "bip122" | "solana",
     chainReference: string | undefined,
 ): boolean => {
     if (!chainReference) {
@@ -18,6 +21,8 @@ const isValidChainReferenceForType = (
             const chainId = Number(chainReference);
             return Number.isInteger(chainId) && chainId > 0;
         }
+        case "bip122":
+            return isValidBip122ChainReference(chainReference);
         case "solana": {
             try {
                 const decoded = bs58.decode(chainReference);
@@ -35,7 +40,7 @@ const isValidChainReferenceForType = (
  * Validates that an address is valid for the given chain type.
  */
 const isValidAddressForType = (
-    chainType: "eip155" | "solana",
+    chainType: "eip155" | "bip122" | "solana",
     address: string | undefined,
 ): boolean => {
     if (!address) {
@@ -45,6 +50,14 @@ const isValidAddressForType = (
     switch (chainType) {
         case "eip155":
             return isAddress(address, { strict: false });
+        case "bip122": {
+            try {
+                bip122AddressToBinary(address);
+                return true;
+            } catch {
+                return false;
+            }
+        }
         case "solana": {
             try {
                 const decoded = bs58.decodeUnsafe(address);
@@ -65,7 +78,7 @@ const isValidAddressForType = (
 export const interoperableAddressTextSchema = z
     .object({
         version: z.number().positive().int(),
-        chainType: z.enum(["eip155", "solana"]),
+        chainType: z.enum(["eip155", "bip122", "solana"]),
         chainReference: z.string().optional(),
         address: z.string().optional(),
     })
@@ -86,6 +99,12 @@ export const interoperableAddressTextSchema = z
             if (data.chainType === "eip155") {
                 return {
                     message: "EVM address must be a valid Ethereum address",
+                    path: ["address"],
+                };
+            }
+            if (data.chainType === "bip122") {
+                return {
+                    message: `Invalid Bitcoin address: ${data.address}`,
                     path: ["address"],
                 };
             }

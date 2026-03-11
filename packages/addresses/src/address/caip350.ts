@@ -9,6 +9,8 @@ import {
     InvalidAddress,
     UnsupportedChainType,
 } from "../internal.js";
+import { bytesToUnprefixedHex } from "../utils/bytes.js";
+import { bip122AddressToBinary, bip122AddressToText } from "./bip122/index.js";
 
 /**
  * CAIP-350 text serialization helpers for working with chain references and addresses.
@@ -50,6 +52,8 @@ export const chainReferenceToText = (chainReference: Uint8Array, chainType: Uint
             const asNumber = bytesToNumber(chainReference);
             return asNumber.toString(10);
         }
+        case ChainTypeName.BIP122:
+            return bytesToUnprefixedHex(chainReference);
         case ChainTypeName.SOLANA:
             return bs58.encode(chainReference);
         default:
@@ -80,6 +84,8 @@ export const chainReferenceToBinary = (
     switch (chainType) {
         case ChainTypeName.EIP155:
             return convertToBytes(chainReference, "decimal");
+        case ChainTypeName.BIP122:
+            return convertToBytes(chainReference, "hex");
         case ChainTypeName.SOLANA:
             return convertToBytes(chainReference, "base58");
         default:
@@ -105,7 +111,11 @@ export const chainReferenceToBinary = (
  * // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
  * ```
  */
-export const addressToText = (address: Uint8Array, chainType: Uint8Array): string => {
+export const addressToText = (
+    address: Uint8Array,
+    chainType: Uint8Array,
+    chainReference?: Uint8Array,
+): string => {
     const chainTypeHex = toHex(chainType) as ChainTypeValue;
     const chainTypeName = CHAIN_TYPE_VALUE_TO_NAME[chainTypeHex];
 
@@ -117,6 +127,8 @@ export const addressToText = (address: Uint8Array, chainType: Uint8Array): strin
         case ChainTypeName.EIP155:
             // EIP-55 checksum address
             return getAddress(toHex(address));
+        case ChainTypeName.BIP122:
+            return bip122AddressToText(address, chainReference);
         case ChainTypeName.SOLANA:
             return bs58.encode(address);
         default:
@@ -155,6 +167,8 @@ export const addressToBinary = (address: string, chainType: ChainTypeName): Uint
             const checksummed = getAddress(address);
             return fromHex(checksummed, "bytes");
         }
+        case ChainTypeName.BIP122:
+            return bip122AddressToBinary(address);
         case ChainTypeName.SOLANA: {
             const decoded = bs58.decodeUnsafe(address);
             if (!decoded) {
