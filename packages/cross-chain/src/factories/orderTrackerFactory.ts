@@ -65,10 +65,6 @@ export class OrderTrackerFactory {
             return new APIBasedFillWatcher(config);
         }
 
-        if (config.type === "custom") {
-            return config.create();
-        }
-
         const _exhaustive: never = config;
         throw new Error(`Unknown FillWatcher config type: ${JSON.stringify(_exhaustive)}`);
     }
