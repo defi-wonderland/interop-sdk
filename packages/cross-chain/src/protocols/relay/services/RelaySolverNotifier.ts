@@ -1,7 +1,6 @@
-import type { AxiosInstance } from "axios";
-
 import type { GetFillParams } from "../../../core/types/orderTracking.js";
-import type { SolverNotifier } from "../types.js";
+import type { SolverNotifier } from "../interfaces/index.js";
+import type { RelayApiService } from "./RelayApiService.js";
 
 /**
  * POSTs to Relay's `/transactions/index` endpoint to accelerate indexing
@@ -11,12 +10,12 @@ import type { SolverNotifier } from "../types.js";
  * @see https://docs.relay.link/references/api/index-transaction
  */
 export class RelaySolverNotifier implements SolverNotifier {
-    constructor(private readonly http: AxiosInstance) {}
+    constructor(private readonly apiService: RelayApiService) {}
 
     async notify(params: GetFillParams): Promise<void> {
         if (!params.openTxHash) return;
 
-        await this.http.post("/transactions/index", {
+        await this.apiService.indexTransaction({
             txHash: params.openTxHash,
             chainId: String(params.originChainId),
         });

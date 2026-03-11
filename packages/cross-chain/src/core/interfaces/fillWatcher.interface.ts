@@ -35,9 +35,22 @@ export interface FillWatcher {
 }
 
 /**
- * Union type supporting both onchain and API-based tracking
+ * Config for protocols that manage their own FillWatcher construction.
+ * Use when the standard watchers need decoration or custom composition.
  */
-export type FillWatcherConfig = EventBasedFillWatcherConfig | APIBasedFillWatcherConfig;
+export interface CustomFillWatcherConfig {
+    type: "custom";
+    /** Factory function that creates the FillWatcher instance. */
+    create: () => FillWatcher;
+}
+
+/**
+ * Union type supporting onchain, API-based, and custom tracking
+ */
+export type FillWatcherConfig =
+    | EventBasedFillWatcherConfig
+    | APIBasedFillWatcherConfig
+    | CustomFillWatcherConfig;
 
 // Re-export for convenience
 export type { APIBasedFillWatcherConfig, EventBasedFillWatcherConfig };

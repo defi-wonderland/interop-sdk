@@ -82,6 +82,27 @@ describe("OrderTrackerFactory", () => {
             expect(tracker).toBeInstanceOf(OrderTracker);
         });
 
+        it("creates tracker with custom FillWatcherConfig", () => {
+            const mockFillWatcher: FillWatcher = {
+                getFill: vi.fn(),
+                waitForFill: vi.fn(),
+            };
+
+            const customProvider = {
+                ...provider,
+                getTrackingConfig: (): ReturnType<typeof provider.getTrackingConfig> => ({
+                    ...provider.getTrackingConfig(),
+                    fillWatcherConfig: {
+                        type: "custom" as const,
+                        create: () => mockFillWatcher,
+                    },
+                }),
+            } as unknown as AcrossProvider;
+
+            const tracker = factory.createTracker(customProvider);
+            expect(tracker).toBeInstanceOf(OrderTracker);
+        });
+
         it("creates unique trackers for different providers", () => {
             const providerA = new AcrossProvider({
                 apiUrl: MOCK_API_URL,

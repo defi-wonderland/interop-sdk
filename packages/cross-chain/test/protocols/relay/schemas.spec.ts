@@ -301,6 +301,51 @@ describe("RelayQuoteRequestSchema", () => {
     });
 });
 
+// ── Index Transaction Tests ──────────────────────────────
+
+describe("RelayIndexTransactionRequestSchema", () => {
+    it("accepts a valid request with chainId and txHash", () => {
+        const result = RelayIndexTransactionRequestSchema.parse({
+            chainId: "1",
+            txHash: SAMPLE_IN_TX_HASH,
+        });
+        expect(result.chainId).toBe("1");
+        expect(result.txHash).toBe(SAMPLE_IN_TX_HASH);
+    });
+
+    it("accepts a request with optional requestId", () => {
+        const result = RelayIndexTransactionRequestSchema.parse({
+            chainId: "1",
+            txHash: SAMPLE_IN_TX_HASH,
+            requestId: REQUEST_ID,
+        });
+        expect(result.requestId).toBe(REQUEST_ID);
+    });
+
+    it("rejects a request missing chainId", () => {
+        expect(() =>
+            RelayIndexTransactionRequestSchema.parse({ txHash: SAMPLE_IN_TX_HASH }),
+        ).toThrow(ZodError);
+    });
+
+    it("rejects a request missing txHash", () => {
+        expect(() => RelayIndexTransactionRequestSchema.parse({ chainId: "1" })).toThrow(ZodError);
+    });
+});
+
+describe("RelayIndexTransactionResponseSchema", () => {
+    it("accepts a valid response with message", () => {
+        const result = RelayIndexTransactionResponseSchema.parse({
+            message: "Transaction indexed",
+        });
+        expect(result.message).toBe("Transaction indexed");
+    });
+
+    it("rejects a response without message", () => {
+        expect(() => RelayIndexTransactionResponseSchema.parse({})).toThrow(ZodError);
+    });
+});
+
 // ── Intent Status Request Tests ─────────────────────────
 
 describe("RelayIntentStatusRequestSchema", () => {
