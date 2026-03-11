@@ -34,23 +34,7 @@ export interface FillWatcher {
     waitForFill(params: GetFillParams, timeout?: number): Promise<FillEvent>;
 }
 
-/**
- * Config for protocols that manage their own FillWatcher construction.
- * Use when the standard watchers need decoration or custom composition.
- */
-export interface CustomFillWatcherConfig {
-    type: "custom";
-    /** Factory function that creates the FillWatcher instance. */
-    create: () => FillWatcher;
-}
-
-/**
- * Union type supporting onchain, API-based, and custom tracking
- */
-export type FillWatcherConfig =
-    | EventBasedFillWatcherConfig
-    | APIBasedFillWatcherConfig
-    | CustomFillWatcherConfig;
+export type FillWatcherConfig = EventBasedFillWatcherConfig | APIBasedFillWatcherConfig;
 
 // Re-export for convenience
 export type { APIBasedFillWatcherConfig, EventBasedFillWatcherConfig };
