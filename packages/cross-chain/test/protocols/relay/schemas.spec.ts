@@ -3,6 +3,8 @@ import { ZodError } from "zod";
 
 import {
     RelayBadRequestResponseSchema,
+    RelayIndexTransactionRequestSchema,
+    RelayIndexTransactionResponseSchema,
     RelayIntentStatusRequestSchema,
     RelayIntentStatusResponseSchema,
     RelayQuoteRequestSchema,

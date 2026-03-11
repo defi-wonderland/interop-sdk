@@ -260,6 +260,29 @@ describe("RelayProvider", () => {
         });
     });
 
+    describe("notifyDeposit()", () => {
+        it("delegates to /transactions/index with stringified chainId", async () => {
+            mockPost.mockResolvedValue({ data: { message: "Transaction indexed" } });
+            await provider.notifyDeposit(TX_HASH, ORIGIN_CHAIN_ID);
+            expect(mockPost).toHaveBeenCalledWith(INDEX_ENDPOINT, {
+                chainId: String(ORIGIN_CHAIN_ID),
+                txHash: TX_HASH,
+            });
+        });
+
+        it("propagates errors from the API", async () => {
+            mockPost.mockRejectedValue(
+                makeAxiosError(
+                    { message: "Not found" },
+                    HTTP_STATUS_BAD_REQUEST,
+                    "Request failed",
+                    "ERR_BAD_REQUEST",
+                ),
+            );
+            await expect(provider.notifyDeposit(TX_HASH, ORIGIN_CHAIN_ID)).rejects.toThrow();
+        });
+    });
+
     describe("getTrackingConfig()", () => {
         it("returns api-based fill watcher config and api intent parser", () => {
             const config = provider.getTrackingConfig();
