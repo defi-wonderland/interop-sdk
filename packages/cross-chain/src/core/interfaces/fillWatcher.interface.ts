@@ -34,6 +34,9 @@ export interface FillWatcher {
     waitForFill(params: GetFillParams, timeout?: number): Promise<FillEvent>;
 }
 
+/**
+ * Union type supporting both onchain and API-based tracking
+ */
 export type FillWatcherConfig = EventBasedFillWatcherConfig | APIBasedFillWatcherConfig;
 
 // Re-export for convenience
