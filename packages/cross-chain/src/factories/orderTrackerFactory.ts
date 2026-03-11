@@ -45,7 +45,8 @@ export class OrderTrackerFactory {
             this.createOpenedIntentParser(trackingConfig.openedIntentParserConfig);
 
         const fillWatcher =
-            config?.fillWatcher ?? this.createFillWatcher(trackingConfig.fillWatcherConfig);
+            config?.fillWatcher ??
+            this.createFillWatcher(trackingConfig.fillWatcherConfig as FillWatcherConfig);
 
         return new OrderTracker(
             openedIntentParser,
