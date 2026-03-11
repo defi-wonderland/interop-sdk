@@ -3,6 +3,8 @@ import { AxiosError } from "axios";
 import { ZodError } from "zod";
 
 import type {
+    RelayIndexTransactionRequest,
+    RelayIndexTransactionResponse,
     RelayIntentStatusRequest,
     RelayIntentStatusResponse,
     RelayQuoteRequest,
@@ -11,6 +13,8 @@ import type {
 import { ProviderGetQuoteFailure, ProviderGetStatusFailure } from "../../../internal.js";
 import {
     RelayBadRequestResponseSchema,
+    RelayIndexTransactionRequestSchema,
+    RelayIndexTransactionResponseSchema,
     RelayIntentStatusRequestSchema,
     RelayIntentStatusResponseSchema,
     RelayQuoteRequestSchema,
@@ -53,6 +57,32 @@ export class RelayApiService {
                 String(error),
                 error instanceof Error ? error.stack : undefined,
             );
+        }
+    }
+
+    /** POST /transactions/index — notify Relay of a deposit transaction for faster solver indexing. */
+    async indexTransaction(
+        params: RelayIndexTransactionRequest,
+    ): Promise<RelayIndexTransactionResponse> {
+        try {
+            const parsed = RelayIndexTransactionRequestSchema.parse(params);
+            const response = await this.http.post("/transactions/index", parsed);
+            return RelayIndexTransactionResponseSchema.parse(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                throw new ProviderGetStatusFailure(
+                    "Failed to index Relay transaction",
+                    error.message,
+                    error.stack,
+                );
+            } else if (error instanceof ZodError) {
+                throw new ProviderGetStatusFailure(
+                    "Failed to parse Relay index transaction response",
+                    error.message,
+                    error.stack,
+                );
+            }
+            throw error;
         }
     }
 

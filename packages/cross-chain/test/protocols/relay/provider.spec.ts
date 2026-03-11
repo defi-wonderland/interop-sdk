@@ -25,6 +25,8 @@ const API_KEY = "test-key";
 const HTTP_STATUS_BAD_REQUEST = 400;
 const RELAY_ERROR_AMOUNT_TOO_LOW = "AMOUNT_TOO_LOW";
 const RELAY_ERROR_ROUTE_NOT_FOUND = "ROUTE_NOT_FOUND";
+const TX_HASH = "0xdeposithash";
+const INDEX_ENDPOINT = "/transactions/index";
 
 // ── Mock & Helpers ───────────────────────────────────────
 
@@ -233,6 +235,29 @@ describe("RelayProvider", () => {
             await rejection.toSatisfy(
                 (err: ProviderGetQuoteFailure) => err.cause === RELAY_ERROR_ROUTE_NOT_FOUND,
             );
+        });
+    });
+
+    describe("notifyDeposit()", () => {
+        it("delegates to /transactions/index with stringified chainId", async () => {
+            mockPost.mockResolvedValue({ data: { message: "Transaction indexed" } });
+            await provider.notifyDeposit(TX_HASH, ORIGIN_CHAIN_ID);
+            expect(mockPost).toHaveBeenCalledWith(INDEX_ENDPOINT, {
+                chainId: String(ORIGIN_CHAIN_ID),
+                txHash: TX_HASH,
+            });
+        });
+
+        it("propagates errors from the API", async () => {
+            mockPost.mockRejectedValue(
+                makeAxiosError(
+                    { message: "Not found" },
+                    HTTP_STATUS_BAD_REQUEST,
+                    "Request failed",
+                    "ERR_BAD_REQUEST",
+                ),
+            );
+            await expect(provider.notifyDeposit(TX_HASH, ORIGIN_CHAIN_ID)).rejects.toThrow();
         });
     });
 

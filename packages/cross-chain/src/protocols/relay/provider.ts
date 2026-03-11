@@ -96,6 +96,18 @@ export class RelayProvider extends CrossChainProvider {
     }
 
     /**
+     * @inheritdoc
+     *
+     * Notifies the Relay API of a deposit transaction for faster solver indexing.
+     */
+    override async notifyDeposit(txHash: Hex, chainId: number): Promise<void> {
+        await this.apiService.indexTransaction({
+            chainId: String(chainId),
+            txHash,
+        });
+    }
+
+    /**
      * Get API-based fill watcher config for Relay.
      * Uses the Relay `/intents/status/v3` endpoint to track order status.
      *

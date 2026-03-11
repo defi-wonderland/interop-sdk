@@ -60,6 +60,19 @@ export abstract class CrossChainProvider {
     }
 
     /**
+     * Notify the provider of a deposit transaction for faster solver indexing.
+     *
+     * Default implementation is a no-op. Override in providers that support
+     * deposit notification (e.g. Relay's `/transactions/index`).
+     *
+     * @param _txHash - The deposit transaction hash
+     * @param _chainId - The chain ID where the deposit was made
+     */
+    async notifyDeposit(_txHash: Hex, _chainId: number): Promise<void> {
+        // No-op by default
+    }
+
+    /**
      * Get the configuration for intent tracking
      * This method provides the protocol-specific configuration needed to create
      * an OrderTracker for monitoring cross-chain transaction status.

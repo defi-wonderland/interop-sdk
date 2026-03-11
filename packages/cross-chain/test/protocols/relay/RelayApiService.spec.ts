@@ -139,6 +139,32 @@ describe("RelayApiService", () => {
         });
     });
 
+    describe("indexTransaction()", () => {
+        it("validates request and returns parsed response", async () => {
+            mockPost.mockResolvedValue({ data: { message: "Transaction indexed" } });
+            const result = await service.indexTransaction({ chainId: "1", txHash: TX_HASH });
+            expect(result.message).toBe("Transaction indexed");
+            expect(mockPost).toHaveBeenCalledWith("/transactions/index", {
+                chainId: "1",
+                txHash: TX_HASH,
+            });
+        });
+
+        it("wraps AxiosError in ProviderGetStatusFailure", async () => {
+            mockPost.mockRejectedValue(makeAxiosError("Network Error", "ERR_NETWORK"));
+            await expect(
+                service.indexTransaction({ chainId: "1", txHash: TX_HASH }),
+            ).rejects.toThrow(ProviderGetStatusFailure);
+        });
+
+        it("wraps ZodError from invalid response in ProviderGetStatusFailure", async () => {
+            mockPost.mockResolvedValue({ data: { notMessage: "bad" } });
+            await expect(
+                service.indexTransaction({ chainId: "1", txHash: TX_HASH }),
+            ).rejects.toThrow(ProviderGetStatusFailure);
+        });
+    });
+
     describe("getStatus()", () => {
         it("validates request and returns parsed response", async () => {
             mockGet.mockResolvedValue({ data: makeStatusResponse() });
