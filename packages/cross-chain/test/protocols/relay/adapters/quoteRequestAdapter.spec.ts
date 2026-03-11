@@ -26,7 +26,7 @@ function makeQuoteRequest(overrides?: Partial<QuoteRequest>): QuoteRequest {
 // ── Tests ────────────────────────────────────────────────
 
 describe("adaptQuoteRequest", () => {
-    it("maps exact-input request to EXACT_INPUT trade type", () => {
+    it("maps exact-input request to EXACT_INPUT trade type with amount", () => {
         const result = adaptQuoteRequest(makeQuoteRequest());
         expect(result.tradeType).toBe("EXACT_INPUT");
         expect(result.amount).toBe(INPUT_AMOUNT);
@@ -78,7 +78,7 @@ describe("adaptQuoteRequest", () => {
                     input: { chainId: ORIGIN_CHAIN_ID, assetAddress: VALID_ADDRESS },
                 }),
             ),
-        ).toThrow(ProviderGetQuoteFailure);
+        ).toThrow("exact-input requires input.amount to be defined");
     });
 
     it("throws ProviderGetQuoteFailure when exact-output has no output amount", () => {
@@ -91,20 +91,5 @@ describe("adaptQuoteRequest", () => {
                 }),
             ),
         ).toThrow(ProviderGetQuoteFailure);
-    });
-
-    it("includes descriptive error message for missing input amount", () => {
-        expect(() =>
-            adaptQuoteRequest(
-                makeQuoteRequest({
-                    input: { chainId: ORIGIN_CHAIN_ID, assetAddress: VALID_ADDRESS },
-                }),
-            ),
-        ).toThrow("exact-input requires input.amount to be defined");
-    });
-
-    it("defaults swapType to exact-input when not specified", () => {
-        const result = adaptQuoteRequest(makeQuoteRequest());
-        expect(result.tradeType).toBe("EXACT_INPUT");
     });
 });
