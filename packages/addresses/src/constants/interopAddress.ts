@@ -26,6 +26,13 @@ export const CHAIN_TYPE_VALUE_TO_NAME: Record<ChainTypeValue, ChainTypeName> = {
     [ChainTypeValue.STARKNET]: ChainTypeName.STARKNET,
 } as const;
 
+export const CHAIN_TYPE_LABEL: Record<ChainTypeName, string> = {
+    [ChainTypeName.EIP155]: "Ethereum",
+    [ChainTypeName.BIP122]: "Bitcoin",
+    [ChainTypeName.SOLANA]: "Solana",
+    [ChainTypeName.STARKNET]: "Starknet",
+} as const;
+
 // Start position of each field in the binary interop address representation
 export const BINARY_OFFSETS = {
     VERSION: 0,
