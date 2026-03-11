@@ -305,7 +305,7 @@ export class OrderTracker extends EventEmitter {
     private async *watchOrderByOrderId(
         params: WatchOrderByOrderId & { timeout: number },
     ): AsyncGenerator<OrderTrackerYield> {
-        const { orderId, originChainId, destinationChainId, openTxHash, timeout } = params;
+        const { orderId, originChainId, destinationChainId, timeout } = params;
         const startTime = Date.now();
 
         let lastUpdate: OrderTrackingUpdate = this.createUpdate({
@@ -323,7 +323,7 @@ export class OrderTracker extends EventEmitter {
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
 
         yield* this.pollForFillWithYields(
-            { orderId, originChainId, destinationChainId, openTxHash },
+            { orderId, originChainId, destinationChainId },
             timeout - (Date.now() - startTime),
         );
     }
@@ -338,7 +338,6 @@ export class OrderTracker extends EventEmitter {
             orderId: Hex;
             originChainId: number;
             destinationChainId: number;
-            openTxHash?: Hex;
         },
         timeout: number,
     ): AsyncGenerator<OrderTrackerYield> {
