@@ -6,7 +6,6 @@ import { OrderFailureReason, OrderStatus } from "../../../../src/core/types/orde
 import {
     extractFillEvent,
     extractOpenedIntent,
-    RELAY_STATUS_MAP,
 } from "../../../../src/protocols/relay/adapters/statusAdapter.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -23,33 +22,6 @@ const FILL_PARAMS = {
 } as never;
 
 // ── Tests ────────────────────────────────────────────────
-
-describe("RELAY_STATUS_MAP", () => {
-    it("maps 'waiting' to Pending", () => {
-        expect(RELAY_STATUS_MAP.waiting!.status).toBe(OrderStatus.Pending);
-    });
-
-    it("maps 'pending' to Executing", () => {
-        expect(RELAY_STATUS_MAP.pending!.status).toBe(OrderStatus.Executing);
-    });
-
-    it("maps 'submitted' to Settling", () => {
-        expect(RELAY_STATUS_MAP.submitted!.status).toBe(OrderStatus.Settling);
-    });
-
-    it("maps 'success' to Finalized", () => {
-        expect(RELAY_STATUS_MAP.success!.status).toBe(OrderStatus.Finalized);
-    });
-
-    it("maps 'failure' to Failed with Unknown reason", () => {
-        expect(RELAY_STATUS_MAP.failure!.status).toBe(OrderStatus.Failed);
-        expect(RELAY_STATUS_MAP.failure!.failureReason).toBe(OrderFailureReason.Unknown);
-    });
-
-    it("maps 'refund' to Refunded", () => {
-        expect(RELAY_STATUS_MAP.refund!.status).toBe(OrderStatus.Refunded);
-    });
-});
 
 describe("extractFillEvent", () => {
     it("returns Finalized with FillEvent when success has txHashes", () => {
@@ -87,23 +59,27 @@ describe("extractFillEvent", () => {
     });
 
     it("maps 'refund' to Refunded", () => {
-        const result = extractFillEvent({ status: "refund" }, FILL_PARAMS);
-        expect(result.status).toBe(OrderStatus.Refunded);
+        expect(extractFillEvent({ status: "refund" }, FILL_PARAMS).status).toBe(
+            OrderStatus.Refunded,
+        );
     });
 
     it("maps 'waiting' to Pending", () => {
-        const result = extractFillEvent({ status: "waiting" }, FILL_PARAMS);
-        expect(result.status).toBe(OrderStatus.Pending);
+        expect(extractFillEvent({ status: "waiting" }, FILL_PARAMS).status).toBe(
+            OrderStatus.Pending,
+        );
     });
 
     it("maps 'pending' to Executing", () => {
-        const result = extractFillEvent({ status: "pending" }, FILL_PARAMS);
-        expect(result.status).toBe(OrderStatus.Executing);
+        expect(extractFillEvent({ status: "pending" }, FILL_PARAMS).status).toBe(
+            OrderStatus.Executing,
+        );
     });
 
     it("maps 'submitted' to Settling", () => {
-        const result = extractFillEvent({ status: "submitted" }, FILL_PARAMS);
-        expect(result.status).toBe(OrderStatus.Settling);
+        expect(extractFillEvent({ status: "submitted" }, FILL_PARAMS).status).toBe(
+            OrderStatus.Settling,
+        );
     });
 });
 
