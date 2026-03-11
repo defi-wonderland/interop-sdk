@@ -223,35 +223,6 @@ class Aggregator {
     }
 
     /**
-     * Notify a provider of a deposit transaction for faster solver indexing.
-     *
-     * Best-effort: errors are logged as warnings and never thrown.
-     *
-     * @param params - The deposit notification parameters
-     */
-    async notifyDeposit(params: {
-        txHash: Hex;
-        chainId: number;
-        providerId: string;
-    }): Promise<void> {
-        try {
-            const provider = this.providers[params.providerId];
-            if (!provider) {
-                console.warn(
-                    `[Aggregator] notifyDeposit: provider "${params.providerId}" not found`,
-                );
-                return;
-            }
-            await provider.notifyDeposit(params.txHash, params.chainId);
-        } catch (error) {
-            console.warn(
-                `[Aggregator] notifyDeposit failed for provider "${params.providerId}":`,
-                error,
-            );
-        }
-    }
-
-    /**
      * Prepare tracking for an executed transaction
      * Returns an OrderTracker instance that can be used to set up event listeners
      * before sending the transaction
@@ -272,6 +243,17 @@ class Aggregator {
         timeout?: number;
     }): OrderTracker {
         const tracker = this.getOrCreateTracker(params.providerId);
+
+        // Auto-notify deposit for faster solver indexing (best-effort)
+        const provider = this.providers[params.providerId];
+        if (provider) {
+            provider.notifyDeposit(params.txHash, params.originChainId).catch((error) => {
+                console.warn(
+                    `[Aggregator] Deposit notification failed for "${params.providerId}":`,
+                    error,
+                );
+            });
+        }
 
         const trackingParams: WatchOrderParams = {
             txHash: params.txHash,
