@@ -130,6 +130,13 @@ describe("isInteroperableName", () => {
 
     testAddress("MJKqp326RZCHnAAbew9MDdui3iCKWco7fsK9sVuZTX2@solana:#18D1CBB4", true);
 
+    testAddress("3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy@bip122:000000000019d6689c085ae165831e93", true);
+
+    testAddress(
+        "0x02dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57@starknet:SN_MAIN",
+        true,
+    );
+
     // @solana:#F40BB840 has no address and no chain reference - invalid per spec
     // Spec requires at least one of address or chainReference
     testAddress("@solana:#F40BB840", false);
