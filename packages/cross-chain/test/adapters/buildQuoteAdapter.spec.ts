@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 
 import type { BuildQuoteRequest } from "../../src/core/schemas/quoteRequest.js";
 import { BuildQuoteRequestSchema } from "../../src/core/schemas/quoteRequest.js";
-import { buildOifQuote } from "../../src/protocols/oif/adapters/buildQuoteAdapter.js";
 import { OPEN_ABI } from "../../src/protocols/oif/constants.js";
+import { OifProvider } from "../../src/protocols/oif/provider.js";
 
 const USER = "0x742D35cC6634C0532925A3b844bc9E7595f0BEb8" as Address;
 const ESCROW = "0x95AD61B0A150D79219dcf64E1e6cC01f0C0c8A4A" as Address;
@@ -14,6 +14,12 @@ const OUTPUT_TOKEN = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as Address;
 const RECIPIENT = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as Address;
 
 const PROVIDER_ID = "test-oif-provider";
+
+const provider = new OifProvider({
+    solverId: "test-solver",
+    url: "https://test-solver.example.com",
+    providerId: PROVIDER_ID,
+});
 
 function createBuildQuoteRequest(overrides?: Partial<BuildQuoteRequest>): BuildQuoteRequest {
     return {
@@ -125,16 +131,16 @@ describe("BuildQuoteRequestSchema", () => {
     });
 });
 
-describe("buildOifQuote", () => {
-    it("returns a Quote with a single TransactionStep", () => {
-        const quote = buildOifQuote(createBuildQuoteRequest(), PROVIDER_ID);
+describe("OifProvider.buildQuote", () => {
+    it("returns a Quote with a single TransactionStep", async () => {
+        const quote = await provider.buildQuote(createBuildQuoteRequest());
 
         expect(quote.order.steps).toHaveLength(1);
         expect(quote.order.steps[0]!.kind).toBe("transaction");
     });
 
-    it("targets the escrow contract address", () => {
-        const quote = buildOifQuote(createBuildQuoteRequest(), PROVIDER_ID);
+    it("targets the escrow contract address", async () => {
+        const quote = await provider.buildQuote(createBuildQuoteRequest());
 
         const step = quote.order.steps[0]!;
         expect(step.kind).toBe("transaction");
@@ -143,15 +149,15 @@ describe("buildOifQuote", () => {
         }
     });
 
-    it("sets the correct origin chainId on the step", () => {
-        const quote = buildOifQuote(createBuildQuoteRequest(), PROVIDER_ID);
+    it("sets the correct origin chainId on the step", async () => {
+        const quote = await provider.buildQuote(createBuildQuoteRequest());
 
         expect(quote.order.steps[0]!.chainId).toBe(1);
     });
 
-    it("encodes valid open() calldata", () => {
+    it("encodes valid open() calldata", async () => {
         const params = createBuildQuoteRequest();
-        const quote = buildOifQuote(params, PROVIDER_ID);
+        const quote = await provider.buildQuote(params);
 
         const step = quote.order.steps[0]!;
         expect(step.kind).toBe("transaction");
@@ -169,9 +175,9 @@ describe("buildOifQuote", () => {
         }
     });
 
-    it("populates preview inputs from request params", () => {
+    it("populates preview inputs from request params", async () => {
         const params = createBuildQuoteRequest();
-        const quote = buildOifQuote(params, PROVIDER_ID);
+        const quote = await provider.buildQuote(params);
 
         expect(quote.preview.inputs).toHaveLength(1);
         expect(quote.preview.inputs[0]!.chainId).toBe(1);
@@ -180,9 +186,9 @@ describe("buildOifQuote", () => {
         expect(quote.preview.inputs[0]!.amount).toBe("1000000");
     });
 
-    it("populates preview outputs from request params", () => {
+    it("populates preview outputs from request params", async () => {
         const params = createBuildQuoteRequest();
-        const quote = buildOifQuote(params, PROVIDER_ID);
+        const quote = await provider.buildQuote(params);
 
         expect(quote.preview.outputs).toHaveLength(1);
         expect(quote.preview.outputs[0]!.chainId).toBe(8453);
@@ -190,14 +196,14 @@ describe("buildOifQuote", () => {
         expect(quote.preview.outputs[0]!.amount).toBe("990000");
     });
 
-    it("uses user address as recipient when no explicit recipient", () => {
+    it("uses user address as recipient when no explicit recipient", async () => {
         const params = createBuildQuoteRequest();
-        const quote = buildOifQuote(params, PROVIDER_ID);
+        const quote = await provider.buildQuote(params);
 
         expect(quote.preview.outputs[0]!.accountAddress).toBe(USER);
     });
 
-    it("uses explicit recipient when provided", () => {
+    it("uses explicit recipient when provided", async () => {
         const params = createBuildQuoteRequest({
             output: {
                 chainId: 8453,
@@ -206,19 +212,19 @@ describe("buildOifQuote", () => {
                 recipient: RECIPIENT,
             },
         });
-        const quote = buildOifQuote(params, PROVIDER_ID);
+        const quote = await provider.buildQuote(params);
 
         expect(quote.preview.outputs[0]!.accountAddress).toBe(RECIPIENT);
     });
 
-    it("sets the provider field", () => {
-        const quote = buildOifQuote(createBuildQuoteRequest(), PROVIDER_ID);
+    it("sets the provider field", async () => {
+        const quote = await provider.buildQuote(createBuildQuoteRequest());
         expect(quote.provider).toBe(PROVIDER_ID);
     });
 
-    it("populates order.checks.allowances", () => {
+    it("populates order.checks.allowances", async () => {
         const params = createBuildQuoteRequest();
-        const quote = buildOifQuote(params, PROVIDER_ID);
+        const quote = await provider.buildQuote(params);
 
         expect(quote.order.checks).toBeDefined();
         expect(quote.order.checks!.allowances).toHaveLength(1);
@@ -231,9 +237,9 @@ describe("buildOifQuote", () => {
         expect(allowance.required).toBe("1000000");
     });
 
-    it("includes buildQuote metadata", () => {
+    it("includes buildQuote metadata", async () => {
         const params = createBuildQuoteRequest();
-        const quote = buildOifQuote(params, PROVIDER_ID);
+        const quote = await provider.buildQuote(params);
 
         expect(quote.metadata).toBeDefined();
         expect(quote.metadata!.buildQuote).toBe(true);
@@ -241,11 +247,11 @@ describe("buildOifQuote", () => {
         expect(quote.metadata!.escrowContractAddress).toBe(ESCROW);
     });
 
-    it("accepts optional orderDataType override", () => {
+    it("accepts optional orderDataType override", async () => {
         const customOrderDataType =
             "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
         const params = createBuildQuoteRequest({ orderDataType: customOrderDataType });
-        const quote = buildOifQuote(params, PROVIDER_ID);
+        const quote = await provider.buildQuote(params);
 
         const step = quote.order.steps[0]!;
         expect(step.kind).toBe("transaction");

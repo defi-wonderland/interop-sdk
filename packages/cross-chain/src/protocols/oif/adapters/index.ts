@@ -17,4 +17,3 @@ export * from "./typedDataAdapter.js";
 export * from "./quoteRequestAdapter.js";
 export * from "./orderAdapter.js";
 export * from "./quoteAdapter.js";
-export * from "./buildQuoteAdapter.js";

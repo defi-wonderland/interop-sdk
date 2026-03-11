@@ -5,7 +5,7 @@ import {
     PostOrderResponse,
 } from "@openintentsframework/oif-specs";
 import axios, { AxiosError } from "axios";
-import { Hex, hexToBytes } from "viem";
+import { encodeFunctionData, Hex, hexToBytes, pad } from "viem";
 import { ZodError } from "zod";
 
 import type {
@@ -40,8 +40,10 @@ import {
     adaptQuote,
     adaptQuoteRequest,
     adaptTypedDataPayload,
-    buildOifQuote,
 } from "./adapters/index.js";
+import { OPEN_ABI } from "./constants.js";
+
+const DEFAULT_ORDER_DATA_TYPE = pad("0x00" as Hex, { size: 32 });
 
 /**
  * OIF Provider implementation
@@ -269,7 +271,75 @@ export class OifProvider extends CrossChainProvider {
      * @inheritdoc
      */
     override async buildQuote(params: BuildQuoteRequest): Promise<Quote> {
-        return buildOifQuote(params, this.providerId);
+        const orderDataType = params.orderDataType
+            ? (pad(params.orderDataType as Hex, { size: 32 }) as Hex)
+            : DEFAULT_ORDER_DATA_TYPE;
+
+        const orderData = (params.orderData ?? "0x") as Hex;
+
+        const calldata = encodeFunctionData({
+            abi: OPEN_ABI,
+            functionName: "open",
+            args: [
+                {
+                    fillDeadline: params.fillDeadline,
+                    orderDataType,
+                    orderData,
+                },
+            ],
+        });
+
+        const recipient = params.output.recipient ?? params.user;
+
+        return {
+            provider: this.providerId,
+            order: {
+                steps: [
+                    {
+                        kind: "transaction" as const,
+                        chainId: params.input.chainId,
+                        transaction: {
+                            to: params.escrowContractAddress,
+                            data: calldata,
+                        },
+                    },
+                ],
+                checks: {
+                    allowances: [
+                        {
+                            chainId: params.input.chainId,
+                            tokenAddress: params.input.assetAddress,
+                            owner: params.user,
+                            spender: params.escrowContractAddress,
+                            required: params.input.amount,
+                        },
+                    ],
+                },
+            },
+            preview: {
+                inputs: [
+                    {
+                        chainId: params.input.chainId,
+                        accountAddress: params.user,
+                        assetAddress: params.input.assetAddress,
+                        amount: params.input.amount,
+                    },
+                ],
+                outputs: [
+                    {
+                        chainId: params.output.chainId,
+                        accountAddress: recipient,
+                        assetAddress: params.output.assetAddress,
+                        amount: params.output.amount,
+                    },
+                ],
+            },
+            metadata: {
+                buildQuote: true,
+                fillDeadline: params.fillDeadline,
+                escrowContractAddress: params.escrowContractAddress,
+            },
+        };
     }
 
     static getFillWatcherConfig(baseUrl: string): APIBasedFillWatcherConfig<unknown> {
