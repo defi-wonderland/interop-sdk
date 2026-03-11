@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FillWatcher } from "../../../src/core/interfaces/fillWatcher.interface.js";
 import type { FillEvent, GetFillParams } from "../../../src/core/types/orderTracking.js";
-import type { SolverNotifier } from "../../../src/protocols/relay/RelaySolverNotifier.js";
+import type { SolverNotifier } from "../../../src/protocols/relay/types.js";
 import { OrderStatus } from "../../../src/core/types/orderTracking.js";
 import { NotifyingFillWatcher } from "../../../src/protocols/relay/NotifyingFillWatcher.js";
 

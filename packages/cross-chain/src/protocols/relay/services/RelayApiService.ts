@@ -1,0 +1,76 @@
+import type { AxiosInstance } from "axios";
+import { AxiosError } from "axios";
+import { ZodError } from "zod";
+
+import type {
+    RelayIntentStatusRequest,
+    RelayIntentStatusResponse,
+    RelayQuoteRequest,
+    RelayQuoteResponse,
+} from "../schemas.js";
+import { ProviderGetQuoteFailure, ProviderGetStatusFailure } from "../../../internal.js";
+import {
+    RelayBadRequestResponseSchema,
+    RelayIntentStatusRequestSchema,
+    RelayIntentStatusResponseSchema,
+    RelayQuoteResponseSchema,
+} from "../schemas.js";
+
+/**
+ * HTTP client for the Relay API.
+ * Encapsulates all HTTP calls and response parsing.
+ */
+export class RelayApiService {
+    constructor(private readonly http: AxiosInstance) {}
+
+    /** POST /quote/v2 — fetch a bridge quote from Relay. */
+    async getQuote(params: RelayQuoteRequest): Promise<RelayQuoteResponse> {
+        try {
+            const response = await this.http.post("/quote/v2", params);
+            return RelayQuoteResponseSchema.parse(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                const parsed = RelayBadRequestResponseSchema.safeParse(error.response?.data);
+                const message = parsed.success
+                    ? parsed.data.message
+                    : (error.message ?? "Failed to get Relay quote");
+                throw new ProviderGetQuoteFailure(
+                    "Failed to get Relay quote",
+                    message,
+                    error.stack,
+                );
+            } else if (error instanceof ZodError) {
+                throw new ProviderGetQuoteFailure(
+                    "Failed to parse Relay quote",
+                    error.message,
+                    error.stack,
+                );
+            }
+            throw new ProviderGetQuoteFailure(
+                "Failed to get Relay quotes",
+                String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
+        }
+    }
+
+    /** GET /intents/status/v3 — check the status of a Relay intent. */
+    async getStatus(params: RelayIntentStatusRequest): Promise<RelayIntentStatusResponse> {
+        try {
+            const parsed = RelayIntentStatusRequestSchema.parse(params);
+            const response = await this.http.get("/intents/status/v3", {
+                params: parsed,
+            });
+            return RelayIntentStatusResponseSchema.parse(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                throw new ProviderGetStatusFailure(
+                    "Failed to get Relay intent status",
+                    error.message,
+                    error.stack,
+                );
+            }
+            throw error;
+        }
+    }
+}

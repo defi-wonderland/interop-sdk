@@ -3,7 +3,7 @@ import type { Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { GetFillParams } from "../../../src/core/types/orderTracking.js";
-import { RelaySolverNotifier } from "../../../src/protocols/relay/RelaySolverNotifier.js";
+import { RelaySolverNotifier } from "../../../src/protocols/relay/services/RelaySolverNotifier.js";
 
 const ORDER_ID = "0xorder1" as Hex;
 const TX_HASH = "0xtx1" as Hex;
