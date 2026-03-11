@@ -71,16 +71,6 @@ describe("adaptQuoteRequest", () => {
         expect(result.recipient).toBe(recipient);
     });
 
-    it("includes slippageTolerance as string when provided", () => {
-        const result = adaptQuoteRequest(makeQuoteRequest(), { slippageTolerance: 50 });
-        expect(result.slippageTolerance).toBe("50");
-    });
-
-    it("omits slippageTolerance when not provided", () => {
-        const result = adaptQuoteRequest(makeQuoteRequest());
-        expect(result.slippageTolerance).toBeUndefined();
-    });
-
     it("throws ProviderGetQuoteFailure when exact-input has no input amount", () => {
         expect(() =>
             adaptQuoteRequest(

@@ -45,7 +45,6 @@ export class RelayProvider extends CrossChainProvider {
     private readonly http: AxiosInstance;
     private readonly baseUrl: string;
     private readonly isTestnet: boolean;
-    private readonly slippageTolerance?: number;
     private readonly apiService: RelayApiService;
 
     constructor(config: RelayConfigs = {}) {
@@ -56,7 +55,6 @@ export class RelayProvider extends CrossChainProvider {
             this.isTestnet = parsed.isTestnet ?? false;
             this.baseUrl = parsed.baseUrl ?? getRelayApiUrl(this.isTestnet);
             this.providerId = parsed.providerId ?? "relay";
-            this.slippageTolerance = parsed.slippageTolerance;
 
             const headers: Record<string, string> = {};
             if (parsed.apiKey) {
@@ -87,9 +85,7 @@ export class RelayProvider extends CrossChainProvider {
      */
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
         try {
-            const relayParams = adaptQuoteRequest(params, {
-                slippageTolerance: this.slippageTolerance,
-            });
+            const relayParams = adaptQuoteRequest(params);
             const response = await this.apiService.getQuote(relayParams);
             return [adaptQuote(params, response, this.providerId)];
         } catch (error) {

@@ -7,14 +7,10 @@ import { RelayQuoteRequestSchema } from "../schemas.js";
  * Convert an SDK QuoteRequest to Relay API parameters.
  *
  * @param params - The SDK quote request.
- * @param options - Optional overrides (e.g. slippageTolerance).
  * @returns The Relay-formatted quote request.
  * @throws {ProviderGetQuoteFailure} When the required amount is missing.
  */
-export function adaptQuoteRequest(
-    params: QuoteRequest,
-    options?: { slippageTolerance?: number },
-): RelayQuoteRequest {
+export function adaptQuoteRequest(params: QuoteRequest): RelayQuoteRequest {
     const swapType = params.swapType ?? "exact-input";
     const amount = swapType === "exact-input" ? params.input.amount : params.output.amount;
 
@@ -32,9 +28,5 @@ export function adaptQuoteRequest(
         amount,
         tradeType: swapType === "exact-input" ? "EXACT_INPUT" : "EXPECTED_OUTPUT",
         recipient: params.output.recipient,
-        slippageTolerance:
-            options?.slippageTolerance !== undefined
-                ? String(options.slippageTolerance)
-                : undefined,
     });
 }

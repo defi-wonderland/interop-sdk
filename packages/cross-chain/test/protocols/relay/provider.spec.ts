@@ -390,15 +390,6 @@ describe("RelayProvider", () => {
                 expect(s.transaction.maxPriorityFeePerGas).toBe(SAMPLE_MAX_PRIORITY_FEE_PER_GAS);
             }
         });
-
-        it("passes slippageTolerance when configured", async () => {
-            mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
-            await new RelayProvider({ slippageTolerance: 50 }).getQuotes(makeQuoteRequest());
-            expect(mockPost).toHaveBeenCalledWith(
-                QUOTE_ENDPOINT,
-                expect.objectContaining({ slippageTolerance: "50" }),
-            );
-        });
     });
 
     describe("getQuotes() — error handling", () => {
