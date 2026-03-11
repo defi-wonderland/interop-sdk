@@ -45,9 +45,7 @@ export class OrderTrackerFactory {
             this.createOpenedIntentParser(trackingConfig.openedIntentParserConfig);
 
         const fillWatcher =
-            config?.fillWatcher ??
-            trackingConfig.fillWatcher ??
-            this.createFillWatcher(trackingConfig.fillWatcherConfig as FillWatcherConfig);
+            config?.fillWatcher ?? this.createFillWatcher(trackingConfig.fillWatcherConfig);
 
         return new OrderTracker(openedIntentParser, fillWatcher, this.clientManager);
     }
@@ -65,6 +63,10 @@ export class OrderTrackerFactory {
 
         if (config.type === "api-based") {
             return new APIBasedFillWatcher(config);
+        }
+
+        if (config.type === "custom") {
+            return config.create();
         }
 
         const _exhaustive: never = config;

@@ -1,8 +1,8 @@
-import type { AxiosInstance } from "axios";
 import type { Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { GetFillParams } from "../../../src/core/types/orderTracking.js";
+import type { RelayApiService } from "../../../src/protocols/relay/services/RelayApiService.js";
 import { RelaySolverNotifier } from "../../../src/protocols/relay/services/RelaySolverNotifier.js";
 
 const ORDER_ID = "0xorder1" as Hex;
@@ -12,13 +12,13 @@ const DESTINATION_CHAIN_ID = 10;
 
 describe("RelaySolverNotifier", () => {
     let notifier: RelaySolverNotifier;
-    let mockPost: ReturnType<typeof vi.fn>;
-    let http: AxiosInstance;
+    let mockIndexTransaction: ReturnType<typeof vi.fn>;
+    let apiService: RelayApiService;
 
     beforeEach(() => {
-        mockPost = vi.fn().mockResolvedValue({ data: {} });
-        http = { post: mockPost } as unknown as AxiosInstance;
-        notifier = new RelaySolverNotifier(http);
+        mockIndexTransaction = vi.fn().mockResolvedValue({ message: "ok" });
+        apiService = { indexTransaction: mockIndexTransaction } as unknown as RelayApiService;
+        notifier = new RelaySolverNotifier(apiService);
     });
 
     function makeParams(overrides?: Partial<GetFillParams>): GetFillParams {
@@ -31,10 +31,10 @@ describe("RelaySolverNotifier", () => {
         };
     }
 
-    it("POSTs to /transactions/index with txHash and chainId", async () => {
+    it("calls indexTransaction with txHash and chainId", async () => {
         await notifier.notify(makeParams());
 
-        expect(mockPost).toHaveBeenCalledWith("/transactions/index", {
+        expect(mockIndexTransaction).toHaveBeenCalledWith({
             txHash: TX_HASH,
             chainId: String(ORIGIN_CHAIN_ID),
         });
@@ -43,11 +43,11 @@ describe("RelaySolverNotifier", () => {
     it("skips notification when openTxHash is missing", async () => {
         await notifier.notify(makeParams({ openTxHash: undefined }));
 
-        expect(mockPost).not.toHaveBeenCalled();
+        expect(mockIndexTransaction).not.toHaveBeenCalled();
     });
 
-    it("propagates HTTP errors", async () => {
-        mockPost.mockRejectedValue(new Error("Network Error"));
+    it("propagates API errors", async () => {
+        mockIndexTransaction.mockRejectedValue(new Error("Network Error"));
 
         await expect(notifier.notify(makeParams())).rejects.toThrow("Network Error");
     });

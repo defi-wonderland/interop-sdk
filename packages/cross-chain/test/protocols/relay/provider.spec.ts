@@ -4,9 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
-import { ProviderGetStatusFailure } from "../../../src/core/errors/ProviderGetStatusFailure.exception.js";
-import { NotifyingFillWatcher } from "../../../src/protocols/relay/NotifyingFillWatcher.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
+import { NotifyingFillWatcher } from "../../../src/protocols/relay/services/NotifyingFillWatcher.js";
 
 // ── Constants ────────────────────────────────────────────
 
@@ -22,9 +21,7 @@ const ORDER_ID = "0xorder456";
 const TIME_ESTIMATE_SECONDS = 30;
 const PROTOCOL_NAME = "relay";
 const QUOTE_ENDPOINT = "/quote/v2";
-const STATUS_ENDPOINT = "/intents/status/v3";
 const STEP_DESCRIPTION = "Approve and send";
-const SAMPLE_FILL_TX_HASH = "0xfillhash";
 const API_KEY = "test-key";
 const HTTP_STATUS_BAD_REQUEST = 400;
 const RELAY_ERROR_AMOUNT_TOO_LOW = "AMOUNT_TOO_LOW";
@@ -240,51 +237,18 @@ describe("RelayProvider", () => {
         });
     });
 
-    describe("getStatus()", () => {
-        it("calls /intents/status/v3 and parses response", async () => {
-            mockGet.mockResolvedValue({
-                data: { status: "success", txHashes: [SAMPLE_FILL_TX_HASH] },
-            });
-            const result = await provider.getStatus({ requestId: REQUEST_ID });
-            expect(mockGet).toHaveBeenCalledWith(STATUS_ENDPOINT, {
-                params: { requestId: REQUEST_ID },
-            });
-            expect(result.status).toBe("success");
-        });
-
-        it("throws on invalid status value", async () => {
-            mockGet.mockResolvedValue({ data: { status: "invalid-status" } });
-            await expect(provider.getStatus({ requestId: REQUEST_ID })).rejects.toThrow();
-        });
-
-        it("throws ProviderGetStatusFailure on API error", async () => {
-            mockGet.mockRejectedValue(new AxiosError("Network Error"));
-            await expect(provider.getStatus({ requestId: REQUEST_ID })).rejects.toThrow(
-                ProviderGetStatusFailure,
-            );
-        });
-    });
-
     describe("getTrackingConfig()", () => {
-        it("returns api-based fill watcher and api intent parser", () => {
+        it("returns custom fill watcher config and api intent parser", () => {
             const config = provider.getTrackingConfig();
-            expect(config.fillWatcherConfig.type).toBe("api-based");
+            expect(config.fillWatcherConfig.type).toBe("custom");
             expect(config.openedIntentParserConfig.type).toBe("api");
         });
 
-        it("returns a NotifyingFillWatcher instance", () => {
-            const config = provider.getTrackingConfig();
-            expect(config.fillWatcher).toBeInstanceOf(NotifyingFillWatcher);
-        });
-
-        it("buildEndpoint includes requestId", () => {
+        it("creates a NotifyingFillWatcher instance via create()", () => {
             const { fillWatcherConfig } = provider.getTrackingConfig();
-            if (fillWatcherConfig.type === "api-based") {
-                const endpoint = fillWatcherConfig.buildEndpoint({
-                    orderId: ORDER_ID,
-                    originChainId: ORIGIN_CHAIN_ID,
-                } as never);
-                expect(endpoint).toContain(`requestId=${ORDER_ID}`);
+            expect(fillWatcherConfig.type).toBe("custom");
+            if (fillWatcherConfig.type === "custom") {
+                expect(fillWatcherConfig.create()).toBeInstanceOf(NotifyingFillWatcher);
             }
         });
     });

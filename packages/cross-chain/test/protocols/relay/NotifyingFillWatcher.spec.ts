@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FillWatcher } from "../../../src/core/interfaces/fillWatcher.interface.js";
 import type { FillEvent, GetFillParams } from "../../../src/core/types/orderTracking.js";
-import type { SolverNotifier } from "../../../src/protocols/relay/types.js";
+import type { SolverNotifier } from "../../../src/protocols/relay/interfaces/index.js";
 import { OrderStatus } from "../../../src/core/types/orderTracking.js";
-import { NotifyingFillWatcher } from "../../../src/protocols/relay/NotifyingFillWatcher.js";
+import { NotifyingFillWatcher } from "../../../src/protocols/relay/services/NotifyingFillWatcher.js";
 
 const ORDER_ID_1 = "0xorder1" as Hex;
 const ORDER_ID_2 = "0xorder2" as Hex;

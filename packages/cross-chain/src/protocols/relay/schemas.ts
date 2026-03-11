@@ -332,6 +332,20 @@ export const RelayIntentStatusResponseSchema = z.object({
     destinationChainId: z.number().optional(),
 });
 
+// ── Relay Index Transaction ─────────────────────────────
+
+/** Schema for the Relay POST `/transactions/index` request body. */
+export const RelayIndexTransactionRequestSchema = z.object({
+    chainId: z.string(),
+    txHash: z.string(),
+    requestId: z.string().optional(),
+});
+
+/** Schema for the Relay POST `/transactions/index` response body. */
+export const RelayIndexTransactionResponseSchema = z.object({
+    message: z.string(),
+});
+
 // ── Types ───────────────────────────────────────────────
 
 /** Request body for the Relay POST `/quote/v2` endpoint. */
@@ -363,3 +377,9 @@ export type RelayRateLimitedResponse = z.infer<typeof RelayRateLimitedResponseSc
 
 /** Relay 500 Server Error response. */
 export type RelayServerErrorResponse = z.infer<typeof RelayServerErrorResponseSchema>;
+
+/** Request body for the Relay POST `/transactions/index` endpoint. */
+export type RelayIndexTransactionRequest = z.infer<typeof RelayIndexTransactionRequestSchema>;
+
+/** Response from the Relay POST `/transactions/index` endpoint. */
+export type RelayIndexTransactionResponse = z.infer<typeof RelayIndexTransactionResponseSchema>;

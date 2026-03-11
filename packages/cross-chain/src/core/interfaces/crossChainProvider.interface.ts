@@ -3,7 +3,7 @@ import type { Hex } from "viem";
 import type { Quote, SubmitOrderResponse } from "../schemas/quote.js";
 import type { QuoteRequest } from "../schemas/quoteRequest.js";
 import type { AssetDiscoveryConfig } from "./assetDiscovery.interface.js";
-import type { FillWatcher, FillWatcherConfig } from "./fillWatcher.interface.js";
+import type { FillWatcherConfig } from "./fillWatcher.interface.js";
 import type { OpenedIntentParserConfig } from "./openedIntentParser.interface.js";
 import { ProviderExecuteNotImplemented } from "../errors/ProviderExecuteNotImplemented.exception.js";
 
@@ -73,8 +73,6 @@ export abstract class CrossChainProvider {
         openedIntentParserConfig: OpenedIntentParserConfig;
         /** Configuration for watching fill events */
         fillWatcherConfig: FillWatcherConfig;
-        /** Optional pre-built FillWatcher (takes precedence over fillWatcherConfig in factory) */
-        fillWatcher?: FillWatcher;
     };
 
     /**

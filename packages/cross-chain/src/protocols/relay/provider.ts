@@ -5,14 +5,12 @@ import { ZodError } from "zod";
 
 import type {
     APIBasedFillWatcherConfig,
-    FillWatcher,
     FillWatcherConfig,
     OpenedIntentParserConfig,
     Quote,
     QuoteRequest,
     RelayIntentStatusResponse,
 } from "../../internal.js";
-import type { RelayIntentStatusRequest } from "./schemas.js";
 import type { RelayConfigs } from "./types.js";
 import {
     APIBasedFillWatcher,
@@ -27,9 +25,7 @@ import {
     extractOpenedIntent,
 } from "./adapters/index.js";
 import { getRelayApiUrl } from "./constants.js";
-import { NotifyingFillWatcher } from "./NotifyingFillWatcher.js";
-import { RelayApiService } from "./services/index.js";
-import { RelaySolverNotifier } from "./services/RelaySolverNotifier.js";
+import { NotifyingFillWatcher, RelayApiService, RelaySolverNotifier } from "./services/index.js";
 import { RelayConfigSchema } from "./types.js";
 
 /**
@@ -101,13 +97,6 @@ export class RelayProvider extends CrossChainProvider {
     }
 
     /**
-     * Check the status of a Relay intent via `/intents/status/v3`.
-     */
-    async getStatus(params: RelayIntentStatusRequest): Promise<RelayIntentStatusResponse> {
-        return this.apiService.getStatus(params);
-    }
-
-    /**
      * Get API-based fill watcher config for Relay.
      * Uses the Relay `/intents/status/v3` endpoint to track order status.
      *
@@ -138,10 +127,7 @@ export class RelayProvider extends CrossChainProvider {
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
         fillWatcherConfig: FillWatcherConfig;
-        fillWatcher?: FillWatcher;
     } {
-        const fillWatcherConfig = RelayProvider.getFillWatcherConfig(this.baseUrl);
-
         return {
             openedIntentParserConfig: {
                 type: "api",
@@ -152,11 +138,14 @@ export class RelayProvider extends CrossChainProvider {
                     extractOpenedIntent,
                 },
             },
-            fillWatcherConfig: fillWatcherConfig as FillWatcherConfig,
-            fillWatcher: new NotifyingFillWatcher(
-                new APIBasedFillWatcher(fillWatcherConfig),
-                new RelaySolverNotifier(this.http),
-            ),
+            fillWatcherConfig: {
+                type: "custom",
+                create: () =>
+                    new NotifyingFillWatcher(
+                        new APIBasedFillWatcher(RelayProvider.getFillWatcherConfig(this.baseUrl)),
+                        new RelaySolverNotifier(this.apiService),
+                    ),
+            },
         };
     }
 }

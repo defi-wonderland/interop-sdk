@@ -3,6 +3,8 @@ import { AxiosError } from "axios";
 import { ZodError } from "zod";
 
 import type {
+    RelayIndexTransactionRequest,
+    RelayIndexTransactionResponse,
     RelayIntentStatusRequest,
     RelayIntentStatusResponse,
     RelayQuoteRequest,
@@ -11,8 +13,11 @@ import type {
 import { ProviderGetQuoteFailure, ProviderGetStatusFailure } from "../../../internal.js";
 import {
     RelayBadRequestResponseSchema,
+    RelayIndexTransactionRequestSchema,
+    RelayIndexTransactionResponseSchema,
     RelayIntentStatusRequestSchema,
     RelayIntentStatusResponseSchema,
+    RelayQuoteRequestSchema,
     RelayQuoteResponseSchema,
 } from "../schemas.js";
 
@@ -26,7 +31,8 @@ export class RelayApiService {
     /** POST /quote/v2 — fetch a bridge quote from Relay. */
     async getQuote(params: RelayQuoteRequest): Promise<RelayQuoteResponse> {
         try {
-            const response = await this.http.post("/quote/v2", params);
+            const parsed = RelayQuoteRequestSchema.parse(params);
+            const response = await this.http.post("/quote/v2", parsed);
             return RelayQuoteResponseSchema.parse(response.data);
         } catch (error) {
             if (error instanceof AxiosError) {
@@ -66,6 +72,32 @@ export class RelayApiService {
             if (error instanceof AxiosError) {
                 throw new ProviderGetStatusFailure(
                     "Failed to get Relay intent status",
+                    error.message,
+                    error.stack,
+                );
+            }
+            throw error;
+        }
+    }
+
+    /** POST /transactions/index — notify Relay about a deposit transaction. */
+    async indexTransaction(
+        params: RelayIndexTransactionRequest,
+    ): Promise<RelayIndexTransactionResponse> {
+        try {
+            const parsed = RelayIndexTransactionRequestSchema.parse(params);
+            const response = await this.http.post("/transactions/index", parsed);
+            return RelayIndexTransactionResponseSchema.parse(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                throw new ProviderGetStatusFailure(
+                    "Failed to index Relay transaction",
+                    error.message,
+                    error.stack,
+                );
+            } else if (error instanceof ZodError) {
+                throw new ProviderGetStatusFailure(
+                    "Failed to validate Relay index transaction",
                     error.message,
                     error.stack,
                 );

@@ -1,11 +1,11 @@
-import type { FillWatcher } from "../../core/interfaces/fillWatcher.interface.js";
+import type { FillWatcher } from "../../../core/interfaces/fillWatcher.interface.js";
 import type {
     FillEvent,
     GetFillParams,
     OrderFailureReason,
     OrderStatus,
-} from "../../core/types/orderTracking.js";
-import type { SolverNotifier } from "./types.js";
+} from "../../../core/types/orderTracking.js";
+import type { SolverNotifier } from "../interfaces/index.js";
 
 /**
  * {@link FillWatcher} decorator that runs a {@link SolverNotifier} once per
