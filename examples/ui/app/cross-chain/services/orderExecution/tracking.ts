@@ -11,11 +11,8 @@ export class TrackingError extends Error {
   constructor(identifier: { txHash?: Hex; orderId?: Hex }, providerId: string) {
     super(`Order tracking failed for provider "${providerId}". The order may still complete.`);
     this.name = 'TrackingError';
-    if ('orderId' in identifier) {
-      this.orderId = identifier.orderId;
-    } else {
-      this.txHash = identifier.txHash;
-    }
+    this.txHash = identifier.txHash;
+    this.orderId = identifier.orderId;
   }
 }
 
@@ -33,20 +30,13 @@ export async function trackOrder(
   const tracker = crossChainExecutor.prepareTracking(providerId);
   const { txHash, orderId } = identifier;
 
-  const watchParams = orderId
-    ? {
-        orderId,
-        openTxHash: txHash,
-        originChainId: chainContext.originChainId,
-        destinationChainId: chainContext.destinationChainId,
-        timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
-      }
-    : {
-        txHash: txHash!,
-        originChainId: chainContext.originChainId,
-        destinationChainId: chainContext.destinationChainId,
-        timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
-      };
+  const baseParams = {
+    originChainId: chainContext.originChainId,
+    destinationChainId: chainContext.destinationChainId,
+    timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
+  };
+
+  const watchParams = orderId ? { ...baseParams, orderId, openTxHash: txHash } : { ...baseParams, txHash: txHash! };
 
   try {
     for await (const item of tracker.watchOrder(watchParams)) {

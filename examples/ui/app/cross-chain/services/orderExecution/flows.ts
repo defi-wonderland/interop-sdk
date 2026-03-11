@@ -9,6 +9,17 @@ import { BridgeState, ChainContext } from '~/cross-chain/hooks';
 
 type TrackingIdentifier = { txHash: Hex } | { orderId: Hex } | { orderId: Hex; txHash: Hex };
 
+/**
+ * Builds the tracking identifier from a completed transaction.
+ * Relay quotes include a `relayRequestId` in metadata that the tracking
+ * endpoint needs as `orderId`. Other providers only need the tx hash.
+ */
+function resolveTrackingIdentifier(quote: ExecutableQuote, txHash: Hex): TrackingIdentifier {
+  const orderId = quote.order.metadata?.relayRequestId as string | undefined;
+  if (orderId) return { orderId: orderId as Hex, txHash };
+  return { txHash };
+}
+
 interface FlowParams {
   quote: ExecutableQuote;
   walletClient: ConfiguredWalletClient;
@@ -122,11 +133,5 @@ export const executeDirectTransaction = async ({
     );
   }
 
-  const relayRequestId = quote.order.metadata?.relayRequestId as string | undefined;
-
-  if (relayRequestId) {
-    return { orderId: relayRequestId as Hex, txHash: lastTxHash };
-  }
-
-  return { txHash: lastTxHash! };
+  return resolveTrackingIdentifier(quote, lastTxHash!);
 };
