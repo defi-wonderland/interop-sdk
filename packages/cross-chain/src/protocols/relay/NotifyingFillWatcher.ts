@@ -5,7 +5,7 @@ import type {
     OrderFailureReason,
     OrderStatus,
 } from "../../core/types/orderTracking.js";
-import type { SolverNotifier } from "./RelaySolverNotifier.js";
+import type { SolverNotifier } from "./types.js";
 
 /**
  * {@link FillWatcher} decorator that runs a {@link SolverNotifier} once per
