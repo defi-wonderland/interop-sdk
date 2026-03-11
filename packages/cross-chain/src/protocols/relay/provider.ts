@@ -12,11 +12,7 @@ import type {
     RelayIntentStatusResponse,
 } from "../../internal.js";
 import type { RelayConfigs } from "./types.js";
-import {
-    CrossChainProvider,
-    ProviderConfigFailure,
-    ProviderGetQuoteFailure,
-} from "../../internal.js";
+import { CrossChainProvider, ProviderConfigFailure } from "../../internal.js";
 import {
     adaptQuote,
     adaptQuoteRequest,
@@ -79,20 +75,9 @@ export class RelayProvider extends CrossChainProvider {
      * Builds SDK Quote types directly from Relay API response.
      */
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
-        try {
-            const relayParams = adaptQuoteRequest(params);
-            const response = await this.apiService.getQuote(relayParams);
-            return [adaptQuote(params, response, this.providerId)];
-        } catch (error) {
-            if (error instanceof ProviderGetQuoteFailure) {
-                throw error;
-            }
-            throw new ProviderGetQuoteFailure(
-                "Failed to get Relay quotes",
-                error instanceof ZodError ? error.message : String(error),
-                error instanceof Error ? error.stack : undefined,
-            );
-        }
+        const relayParams = adaptQuoteRequest(params);
+        const response = await this.apiService.getQuote(relayParams);
+        return [adaptQuote(params, response, this.providerId)];
     }
 
     /**

@@ -1,6 +1,5 @@
 import type { AxiosInstance } from "axios";
 import { AxiosError } from "axios";
-import { ZodError } from "zod";
 
 import type {
     RelayIndexTransactionRequest,
@@ -12,7 +11,6 @@ import type {
 } from "../schemas.js";
 import { ProviderGetQuoteFailure, ProviderGetStatusFailure } from "../../../internal.js";
 import {
-    RelayBadRequestResponseSchema,
     RelayIndexTransactionRequestSchema,
     RelayIndexTransactionResponseSchema,
     RelayIntentStatusRequestSchema,
@@ -35,28 +33,7 @@ export class RelayApiService {
             const response = await this.http.post("/quote/v2", parsed);
             return RelayQuoteResponseSchema.parse(response.data);
         } catch (error) {
-            if (error instanceof AxiosError) {
-                const parsed = RelayBadRequestResponseSchema.safeParse(error.response?.data);
-                const message = parsed.success
-                    ? parsed.data.message
-                    : (error.message ?? "Failed to get Relay quote");
-                throw new ProviderGetQuoteFailure(
-                    "Failed to get Relay quote",
-                    message,
-                    error.stack,
-                );
-            } else if (error instanceof ZodError) {
-                throw new ProviderGetQuoteFailure(
-                    "Failed to parse Relay quote",
-                    error.message,
-                    error.stack,
-                );
-            }
-            throw new ProviderGetQuoteFailure(
-                "Failed to get Relay quotes",
-                String(error),
-                error instanceof Error ? error.stack : undefined,
-            );
+            this.throwProviderError(error, ProviderGetQuoteFailure, "Relay quote");
         }
     }
 
@@ -69,20 +46,7 @@ export class RelayApiService {
             const response = await this.http.post("/transactions/index", parsed);
             return RelayIndexTransactionResponseSchema.parse(response.data);
         } catch (error) {
-            if (error instanceof AxiosError) {
-                throw new ProviderGetStatusFailure(
-                    "Failed to index Relay transaction",
-                    error.message,
-                    error.stack,
-                );
-            } else if (error instanceof ZodError) {
-                throw new ProviderGetStatusFailure(
-                    "Failed to parse Relay index transaction response",
-                    error.message,
-                    error.stack,
-                );
-            }
-            throw error;
+            this.throwProviderError(error, ProviderGetStatusFailure, "Relay index transaction");
         }
     }
 
@@ -95,14 +59,33 @@ export class RelayApiService {
             });
             return RelayIntentStatusResponseSchema.parse(response.data);
         } catch (error) {
-            if (error instanceof AxiosError) {
-                throw new ProviderGetStatusFailure(
-                    "Failed to get Relay intent status",
-                    error.message,
-                    error.stack,
-                );
-            }
-            throw error;
+            this.throwProviderError(error, ProviderGetStatusFailure, "Relay intent status");
         }
+    }
+
+    /** Wrap any caught error into the appropriate provider failure and re-throw. */
+    private throwProviderError(
+        error: unknown,
+        ErrorClass: new (message: string, cause?: string, stack?: string) => Error,
+        operation: string,
+    ): never {
+        const cause =
+            error instanceof AxiosError
+                ? (this.extractApiMessage(error) ?? error.message)
+                : error instanceof Error
+                  ? error.message
+                  : String(error);
+
+        throw new ErrorClass(
+            `Failed to get ${operation}`,
+            cause,
+            error instanceof Error ? error.stack : undefined,
+        );
+    }
+
+    /** Try to read the `message` field from a Relay API error response body. */
+    private extractApiMessage(error: AxiosError): string | undefined {
+        const message = (error.response?.data as { message?: unknown })?.message;
+        return typeof message === "string" ? message : undefined;
     }
 }
