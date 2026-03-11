@@ -5,7 +5,6 @@ import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
-import { NotifyingFillWatcher } from "../../../src/protocols/relay/services/NotifyingFillWatcher.js";
 
 // ── Constants ────────────────────────────────────────────
 
@@ -238,18 +237,10 @@ describe("RelayProvider", () => {
     });
 
     describe("getTrackingConfig()", () => {
-        it("returns custom fill watcher config and api intent parser", () => {
+        it("returns api-based fill watcher config and api intent parser", () => {
             const config = provider.getTrackingConfig();
-            expect(config.fillWatcherConfig.type).toBe("custom");
+            expect(config.fillWatcherConfig.type).toBe("api-based");
             expect(config.openedIntentParserConfig.type).toBe("api");
-        });
-
-        it("creates a NotifyingFillWatcher instance via create()", () => {
-            const { fillWatcherConfig } = provider.getTrackingConfig();
-            expect(fillWatcherConfig.type).toBe("custom");
-            if (fillWatcherConfig.type === "custom") {
-                expect(fillWatcherConfig.create()).toBeInstanceOf(NotifyingFillWatcher);
-            }
         });
     });
 });

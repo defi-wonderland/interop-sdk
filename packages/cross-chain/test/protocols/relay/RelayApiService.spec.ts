@@ -3,7 +3,6 @@ import { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
-    RelayIndexTransactionRequest,
     RelayQuoteRequest,
     RelayQuoteResponse,
 } from "../../../src/protocols/relay/schemas.js";
@@ -97,10 +96,6 @@ function makeStatusResponse(): { status: string; txHashes: string[] } {
     return { status: "success", txHashes: [TX_HASH] };
 }
 
-function makeIndexTransactionRequest(): RelayIndexTransactionRequest {
-    return { chainId: "1", txHash: TX_HASH };
-}
-
 // ── Tests ────────────────────────────────────────────────
 
 describe("RelayApiService", () => {
@@ -164,41 +159,6 @@ describe("RelayApiService", () => {
         it("rejects invalid response with ZodError", async () => {
             mockGet.mockResolvedValue({ data: { status: "invalid-status" } });
             await expect(service.getStatus({ requestId: REQUEST_ID })).rejects.toThrow();
-        });
-    });
-
-    describe("indexTransaction()", () => {
-        it("validates request and returns parsed response", async () => {
-            mockPost.mockResolvedValue({ data: { message: "ok" } });
-            const result = await service.indexTransaction(makeIndexTransactionRequest());
-            expect(result.message).toBe("ok");
-            expect(mockPost).toHaveBeenCalledWith(
-                "/transactions/index",
-                makeIndexTransactionRequest(),
-            );
-        });
-
-        it("rejects invalid request params with ProviderGetStatusFailure", async () => {
-            const invalid = { chainId: 123, txHash: TX_HASH } as unknown as Parameters<
-                typeof service.indexTransaction
-            >[0];
-            await expect(service.indexTransaction(invalid)).rejects.toThrow(
-                ProviderGetStatusFailure,
-            );
-        });
-
-        it("wraps AxiosError in ProviderGetStatusFailure", async () => {
-            mockPost.mockRejectedValue(makeAxiosError("Network Error"));
-            await expect(service.indexTransaction(makeIndexTransactionRequest())).rejects.toThrow(
-                ProviderGetStatusFailure,
-            );
-        });
-
-        it("wraps ZodError from invalid response in ProviderGetStatusFailure", async () => {
-            mockPost.mockResolvedValue({ data: { unexpected: true } });
-            await expect(service.indexTransaction(makeIndexTransactionRequest())).rejects.toThrow(
-                ProviderGetStatusFailure,
-            );
         });
     });
 });

@@ -13,7 +13,6 @@ import type {
 } from "../../internal.js";
 import type { RelayConfigs } from "./types.js";
 import {
-    APIBasedFillWatcher,
     CrossChainProvider,
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
@@ -25,7 +24,7 @@ import {
     extractOpenedIntent,
 } from "./adapters/index.js";
 import { getRelayApiUrl } from "./constants.js";
-import { NotifyingFillWatcher, RelayApiService, RelaySolverNotifier } from "./services/index.js";
+import { RelayApiService } from "./services/index.js";
 import { RelayConfigSchema } from "./types.js";
 
 /**
@@ -138,14 +137,9 @@ export class RelayProvider extends CrossChainProvider {
                     extractOpenedIntent,
                 },
             },
-            fillWatcherConfig: {
-                type: "custom",
-                create: () =>
-                    new NotifyingFillWatcher(
-                        new APIBasedFillWatcher(RelayProvider.getFillWatcherConfig(this.baseUrl)),
-                        new RelaySolverNotifier(this.apiService),
-                    ),
-            },
+            fillWatcherConfig: RelayProvider.getFillWatcherConfig(
+                this.baseUrl,
+            ) as FillWatcherConfig,
         };
     }
 }
