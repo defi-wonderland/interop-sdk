@@ -334,11 +334,7 @@ export class OrderTracker extends EventEmitter {
      * The txHash (Across) path uses waitForFillWithTimeout instead.
      */
     private async *pollForFillWithYields(
-        fillParams: {
-            orderId: Hex;
-            originChainId: number;
-            destinationChainId: number;
-        },
+        fillParams: { orderId: Hex; originChainId: number; destinationChainId: number },
         timeout: number,
     ): AsyncGenerator<OrderTrackerYield> {
         const terminalFailures = new Set([OrderStatus.Failed, OrderStatus.Refunded]);
