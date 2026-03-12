@@ -88,7 +88,7 @@ test.describe('Build tab - Address input validations', () => {
     await page.getByText('Ethereum Mainnet').last().click();
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByText('EVM address must be a valid Ethereum address')).toBeVisible();
+    await expect(page.getByText('Invalid Ethereum address')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
   });
 
@@ -100,7 +100,7 @@ test.describe('Build tab - Address input validations', () => {
     await page.getByText('Ethereum Mainnet').last().click();
     await page.getByRole('button', { name: 'Convert' }).click();
 
-    await expect(page.getByText('EVM address must be a valid Ethereum address')).toBeVisible();
+    await expect(page.getByText('Invalid Ethereum address')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).not.toBeVisible();
   });
 
