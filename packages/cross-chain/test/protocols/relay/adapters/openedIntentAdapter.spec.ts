@@ -26,7 +26,7 @@ describe("extractOpenedIntent", () => {
         expect(result.orderId).toBe(TX_HASH);
         expect(result.txHash).toBe(ORIGIN_TX_HASH);
         expect(result.originChainId).toBe(ORIGIN_CHAIN_ID);
-        expect(result.fillDeadline).toBe(Number.MAX_SAFE_INTEGER);
+        expect(result.fillDeadline).toBe(0xffffffff);
         expect(result.fillInstructions).toHaveLength(1);
         expect(result.fillInstructions[0]!.destinationChainId).toBe(DESTINATION_CHAIN_ID);
     });
