@@ -268,7 +268,7 @@ class Aggregator {
             timeout: params.timeout,
         };
 
-        void tracker.startTracking(trackingParams).catch((error) => {
+        tracker.startTracking(trackingParams).catch((error) => {
             console.error("Tracking error:", error);
         });
 
