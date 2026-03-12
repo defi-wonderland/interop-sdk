@@ -26,4 +26,9 @@ describe("starknetAddressToBinary", () => {
         const tooLong = "0x" + "f".repeat(65);
         expect(() => starknetAddressToBinary(tooLong)).toThrow("Invalid starknet address");
     });
+
+    it("rejects addresses exceeding felt252 range", () => {
+        const overMax = "0x" + "f".repeat(64);
+        expect(() => starknetAddressToBinary(overMax)).toThrow("exceeds felt252 range");
+    });
 });
