@@ -22,6 +22,7 @@ import {
     adaptQuoteRequest,
     extractFillEvent,
     extractOpenedIntent,
+    parseRelayChainsResponse,
 } from "./adapters/index.js";
 import { getRelayApiUrl, RELAY_TESTNET_TOKENS } from "./constants.js";
 import { RelayApiService } from "./services/index.js";
@@ -152,9 +153,10 @@ export class RelayProvider extends CrossChainProvider {
         }
 
         return {
-            type: "relay",
+            type: "custom-api",
             config: {
-                baseUrl: this.baseUrl,
+                assetsEndpoint: `${this.baseUrl}/chains`,
+                parseResponse: parseRelayChainsResponse,
                 headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
             },
         };

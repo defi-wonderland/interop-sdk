@@ -6,7 +6,7 @@ import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import {
     AssetDiscoveryFactory,
-    RelayAssetDiscoveryService,
+    CustomApiAssetDiscoveryService,
     StaticAssetDiscoveryService,
 } from "../../../src/internal.js";
 import { RELAY_TESTNET_TOKENS } from "../../../src/protocols/relay/constants.js";
@@ -310,37 +310,37 @@ describe("RelayProvider", () => {
     });
 
     describe("getDiscoveryConfig()", () => {
-        it("returns relay config type for mainnet", () => {
+        it("returns custom-api config type for mainnet", () => {
             const config = new RelayProvider().getDiscoveryConfig();
             expect(config).not.toBeNull();
-            expect(config!.type).toBe("relay");
+            expect(config!.type).toBe("custom-api");
         });
 
-        it("includes baseUrl in mainnet config", () => {
+        it("includes assetsEndpoint in mainnet config", () => {
             const config = new RelayProvider().getDiscoveryConfig();
-            if (config!.type === "relay") {
-                expect(config!.config.baseUrl).toBe(RELAY_BASE_URL);
+            if (config!.type === "custom-api") {
+                expect(config!.config.assetsEndpoint).toBe(`${RELAY_BASE_URL}/chains`);
             }
         });
 
         it("uses custom baseUrl when configured", () => {
             const customUrl = "https://custom.relay.link";
             const config = new RelayProvider({ baseUrl: customUrl }).getDiscoveryConfig();
-            if (config!.type === "relay") {
-                expect(config!.config.baseUrl).toBe(customUrl);
+            if (config!.type === "custom-api") {
+                expect(config!.config.assetsEndpoint).toBe(`${customUrl}/chains`);
             }
         });
 
         it("passes API key headers to discovery config", () => {
             const config = new RelayProvider({ apiKey: API_KEY }).getDiscoveryConfig();
-            if (config!.type === "relay") {
+            if (config!.type === "custom-api") {
                 expect(config!.config.headers).toEqual({ "x-api-key": API_KEY });
             }
         });
 
         it("omits headers when no API key is configured", () => {
             const config = new RelayProvider().getDiscoveryConfig();
-            if (config!.type === "relay") {
+            if (config!.type === "custom-api") {
                 expect(config!.config.headers).toBeUndefined();
             }
         });
@@ -355,9 +355,9 @@ describe("RelayProvider", () => {
     });
 
     describe("factory integration", () => {
-        it("creates RelayAssetDiscoveryService for mainnet", () => {
+        it("creates CustomApiAssetDiscoveryService for mainnet", () => {
             const service = new AssetDiscoveryFactory().createService(new RelayProvider());
-            expect(service).toBeInstanceOf(RelayAssetDiscoveryService);
+            expect(service).toBeInstanceOf(CustomApiAssetDiscoveryService);
         });
 
         it("creates StaticAssetDiscoveryService for testnet", () => {
@@ -368,7 +368,7 @@ describe("RelayProvider", () => {
         });
 
         it("starts prefetching on creation", () => {
-            const prefetchSpy = vi.spyOn(RelayAssetDiscoveryService.prototype, "prefetch");
+            const prefetchSpy = vi.spyOn(CustomApiAssetDiscoveryService.prototype, "prefetch");
             new AssetDiscoveryFactory().createService(new RelayProvider());
             expect(prefetchSpy).toHaveBeenCalledOnce();
             prefetchSpy.mockRestore();
