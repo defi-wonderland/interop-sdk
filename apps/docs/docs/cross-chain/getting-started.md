@@ -18,6 +18,7 @@ The `cross-chain` package provides a standardized interface for interacting with
 ### Currently Supported Providers
 
 -   **[Across Protocol](./across-provider.md)** - Cross-chain transfers (mainnet + testnet)
+-   **[Relay Protocol](./relay-provider.md)** - Cross-chain transfers using Relay bridge (mainnet + testnet)
 -   **[OIF (Open Intents Framework)](./oif-provider.md)** - Direct integration with OIF-compliant solvers
 
 > Additional protocols are planned for future releases.
@@ -47,6 +48,9 @@ const acrossProvider = createCrossChainProvider("across");
 // Or with custom configuration
 const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
 
+// Relay - defaults to mainnet
+const relayProvider = createCrossChainProvider("relay");
+
 // OIF requires configuration
 const oifProvider = createCrossChainProvider("oif", {
     solverId: "my-solver",
@@ -57,6 +61,7 @@ const oifProvider = createCrossChainProvider("oif", {
 See the provider-specific documentation for configuration options:
 
 -   [Across Provider](./across-provider.md)
+-   [Relay Provider](./relay-provider.md)
 -   [OIF Provider](./oif-provider.md)
 
 ### Getting Quotes
@@ -139,4 +144,5 @@ See [Advanced Usage](./advanced-usage.md) for sorting strategies and timeout con
 Choose a provider to get started:
 
 -   [Across Provider](./across-provider.md) - Cross-chain transfers using Across bridge (testnet)
+-   [Relay Provider](./relay-provider.md) - Cross-chain transfers using Relay bridge (mainnet + testnet)
 -   [OIF Provider](./oif-provider.md) - Intent-based operations with OIF-compliant solvers

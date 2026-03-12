@@ -21,6 +21,14 @@ A set of classes and utilities for handling cross-chain operations through vario
     // Across - with testnet config
     const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
 
+    // Relay - config optional (defaults to mainnet)
+    const relayProvider = createCrossChainProvider("relay");
+
+    // Relay - with API key
+    const relayWithKey = createCrossChainProvider("relay", {
+        apiKey: "your-api-key",
+    });
+
     // OIF - config required
     const oifProvider = createCrossChainProvider("oif", {
         solverId: "my-solver",
@@ -75,6 +83,15 @@ An abstract class that defines the interface for cross-chain protocol providers.
 
     ```typescript
     const response = await provider.submitOrder(quote, signature);
+    ```
+
+-   **notifyDeposit**(txHash: Hex, chainId: number): Promise\<void\>
+
+    Notifies the provider of a submitted transaction for faster solver indexing. This is a no-op by default; providers that support it (e.g. Relay) override this method.
+
+    ```typescript
+    // Via provider directly
+    await relayProvider.notifyDeposit(txHash, originChainId);
     ```
 
 -   **getTrackingConfig**(): TrackingConfig
@@ -185,6 +202,15 @@ A class that manages multiple cross-chain providers and coordinates their operat
         originChainId: 11155111,
     });
     console.log(status.status); // OrderStatus
+    ```
+
+-   **notifyDeposit**(providerId: string, txHash: Hex, chainId: number): Promise\<void\>
+
+    Notifies a provider of a submitted transaction for faster solver indexing. Delegates to the provider's `notifyDeposit` method. Currently supported by the Relay provider.
+
+    ```typescript
+    // After sending a transaction through Relay
+    await aggregator.notifyDeposit(quote.provider, hash, originChainId);
     ```
 
 -   **prepareTracking**(providerId: string): OrderTracker

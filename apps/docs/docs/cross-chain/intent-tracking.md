@@ -114,6 +114,27 @@ if (status.fillEvent) {
 -   **Mainnet**: Across uses **API-based fill tracking** by default (polls `GET /deposit/status?depositTxnRef=...`). This reduces reliance on destination-chain RPCs.
 -   **Testnet**: Across uses **event-based fill tracking** by default (Across testnet API is not reliable), so you should provide RPC URLs for both origin and destination chains.
 
+## Provider Notes (Relay)
+
+-   Relay uses **API-based tracking** for both mainnet and testnet. Both opened intent parsing and fill watching use the `/intents/status/v3` endpoint.
+-   **No RPC URLs required** — all tracking is done through the Relay API.
+-   Relay supports **transaction notification** via `notifyDeposit` to accelerate solver indexing. Call it immediately after submitting the transaction:
+
+```typescript
+const hash = await walletClient.sendTransaction({ ... });
+
+// Notify Relay for faster indexing (calls POST /transactions/index)
+await aggregator.notifyDeposit(quote.provider, hash, originChainId);
+
+// Then start tracking as usual
+const tracker = aggregator.track({
+    txHash: hash,
+    providerId: quote.provider,
+    originChainId: 11155111,
+    destinationChainId: 84532,
+});
+```
+
 ## Advanced: Standalone Tracker
 
 For advanced use cases, you can create a tracker directly without using the aggregator:

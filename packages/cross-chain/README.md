@@ -53,14 +53,15 @@ const walletClient = createWalletClient({
 
 // Create providers for different protocols
 const acrossProvider = createCrossChainProvider("across");
+const relayProvider = createCrossChainProvider("relay");
 const oifProvider = createCrossChainProvider("oif", {
     solverId: "my-solver",
     url: "https://...",
 });
 
-// Create aggregator with providers (can mix Across, OIF, etc.)
+// Create aggregator with providers (can mix Across, Relay, OIF, etc.)
 const aggregator = createAggregator({
-    providers: [acrossProvider, oifProvider],
+    providers: [acrossProvider, relayProvider, oifProvider],
 });
 
 // Get quotes using SDK QuoteRequest format
@@ -105,7 +106,7 @@ if (selectedQuote) {
 
 ### Providers
 
--   `createCrossChainProvider(protocolName, config?)` -- Create a provider for a supported protocol. Config is optional for Across (defaults to mainnet), required for OIF.
+-   `createCrossChainProvider(protocolName, config?)` -- Create a provider for a supported protocol. Config is optional for Across and Relay (defaults to mainnet), required for OIF.
 -   `CrossChainProvider` (abstract class)
     -   `.protocolName` -- Returns the protocol name.
     -   `.providerId` -- Returns the provider identifier.
@@ -118,6 +119,25 @@ if (selectedQuote) {
 -   **Mainnet**: fill tracking defaults to **API-based polling** via the Across API.
 -   **Testnet**: fill tracking defaults to **event-based watching** (Across testnet API is not reliable).
 -   The SDK still parses the **origin-chain open event**, so provide an origin-chain RPC URL for robust tracking.
+
+### Tracking Notes (Relay)
+
+-   Relay tracking is fully **API-based** for both mainnet and testnet.
+-   Both opened intent parsing and fill watching use the `/intents/status/v3` endpoint.
+-   No RPC URLs are required for Relay tracking.
+-   Relay supports `notifyDeposit` for faster solver indexing via `POST /transactions/index`. Call it immediately after submitting the transaction to accelerate indexing.
+
+### Transaction Notification
+
+Some providers support notifying their backend of a submitted transaction for faster solver indexing. This is available on both the provider and aggregator:
+
+```typescript
+// Via provider
+await relayProvider.notifyDeposit(txHash, originChainId);
+
+// Via aggregator
+await aggregator.notifyDeposit("relay", txHash, originChainId);
+```
 
 ### Aggregator
 
