@@ -123,9 +123,6 @@ if (isSignatureOnlyOrder(quote.order)) {
     });
     console.log("Transaction sent:", hash);
 
-    // Notify the provider for faster solver indexing (supported by Relay)
-    await aggregator.notifyDeposit(quote.provider, hash, 11155111);
-
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     console.log("Transaction confirmed:", receipt.status === "success" ? "Success" : "Failed");
 }
