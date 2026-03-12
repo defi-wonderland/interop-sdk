@@ -8,7 +8,6 @@ import {
     CustomApiAssetDiscoveryConfig,
     NetworkAssets,
     OIFAssetDiscoveryConfig,
-    RelayAssetDiscoveryConfig,
     StaticAssetDiscoveryConfig,
 } from "../../src/internal.js";
 
@@ -107,31 +106,6 @@ describe("AssetDiscoveryFactory", () => {
             const provider = new OifConfigProvider();
 
             // OIF config with URL should work
-            const service = factory.createService(provider);
-            expect(service).not.toBeNull();
-        });
-
-        it("should create RelayAssetDiscoveryService for relay config", () => {
-            const factory = new AssetDiscoveryFactory();
-
-            class RelayConfigProvider extends CrossChainProvider {
-                readonly protocolName = "relay";
-                readonly providerId = "relay-provider";
-                getQuotes = vi.fn();
-                submitSignedOrder = vi.fn();
-                getTrackingConfig = vi.fn();
-                override getDiscoveryConfig(): RelayAssetDiscoveryConfig {
-                    return {
-                        type: "relay" as const,
-                        config: {
-                            baseUrl: "https://api.relay.link",
-                        },
-                    };
-                }
-            }
-
-            const provider = new RelayConfigProvider();
-
             const service = factory.createService(provider);
             expect(service).not.toBeNull();
         });

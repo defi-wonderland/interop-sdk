@@ -34,7 +34,6 @@ export {
     StaticAssetDiscoveryService,
     OIFAssetDiscoveryService,
     CustomApiAssetDiscoveryService,
-    RelayAssetDiscoveryService,
     AssetDiscoveryFactory,
     createAssetDiscoveryService,
     createOIFAssetDiscoveryService,

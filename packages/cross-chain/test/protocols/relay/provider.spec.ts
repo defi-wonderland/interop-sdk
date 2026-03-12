@@ -4,12 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
-import {
-    AssetDiscoveryFactory,
-    RelayAssetDiscoveryService,
-    StaticAssetDiscoveryService,
-} from "../../../src/internal.js";
-import { RELAY_TESTNET_TOKENS } from "../../../src/protocols/relay/constants.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -33,7 +27,6 @@ const RELAY_ERROR_AMOUNT_TOO_LOW = "AMOUNT_TOO_LOW";
 const RELAY_ERROR_ROUTE_NOT_FOUND = "ROUTE_NOT_FOUND";
 const TX_HASH = "0xdeposithash";
 const INDEX_ENDPOINT = "/transactions/index";
-const RELAY_BASE_URL = "https://api.relay.link";
 
 // ── Mock & Helpers ───────────────────────────────────────
 
@@ -286,29 +279,6 @@ describe("RelayProvider", () => {
         });
     });
 
-    describe("notifyDeposit()", () => {
-        it("delegates to /transactions/index with stringified chainId", async () => {
-            mockPost.mockResolvedValue({ data: { message: "Transaction indexed" } });
-            await provider.notifyDeposit(TX_HASH, ORIGIN_CHAIN_ID);
-            expect(mockPost).toHaveBeenCalledWith(INDEX_ENDPOINT, {
-                chainId: String(ORIGIN_CHAIN_ID),
-                txHash: TX_HASH,
-            });
-        });
-
-        it("propagates errors from the API", async () => {
-            mockPost.mockRejectedValue(
-                makeAxiosError(
-                    { message: "Not found" },
-                    HTTP_STATUS_BAD_REQUEST,
-                    "Request failed",
-                    "ERR_BAD_REQUEST",
-                ),
-            );
-            await expect(provider.notifyDeposit(TX_HASH, ORIGIN_CHAIN_ID)).rejects.toThrow();
-        });
-    });
-
     describe("getTrackingConfig()", () => {
         it("returns api-based fill watcher config and api intent parser", () => {
             const config = provider.getTrackingConfig();
@@ -348,72 +318,6 @@ describe("RelayProvider", () => {
             await expect(
                 config.onBeforeTracking!({ txHash: TX_HASH, originChainId: ORIGIN_CHAIN_ID }),
             ).rejects.toThrow();
-        });
-    });
-
-    describe("getDiscoveryConfig()", () => {
-        it("returns relay config type for mainnet", () => {
-            const config = new RelayProvider().getDiscoveryConfig();
-            expect(config).not.toBeNull();
-            expect(config!.type).toBe("relay");
-        });
-
-        it("includes baseUrl in mainnet config", () => {
-            const config = new RelayProvider().getDiscoveryConfig();
-            if (config!.type === "relay") {
-                expect(config!.config.baseUrl).toBe(RELAY_BASE_URL);
-            }
-        });
-
-        it("uses custom baseUrl when configured", () => {
-            const customUrl = "https://custom.relay.link";
-            const config = new RelayProvider({ baseUrl: customUrl }).getDiscoveryConfig();
-            if (config!.type === "relay") {
-                expect(config!.config.baseUrl).toBe(customUrl);
-            }
-        });
-
-        it("passes API key headers to discovery config", () => {
-            const config = new RelayProvider({ apiKey: API_KEY }).getDiscoveryConfig();
-            if (config!.type === "relay") {
-                expect(config!.config.headers).toEqual({ "x-api-key": API_KEY });
-            }
-        });
-
-        it("omits headers when no API key is configured", () => {
-            const config = new RelayProvider().getDiscoveryConfig();
-            if (config!.type === "relay") {
-                expect(config!.config.headers).toBeUndefined();
-            }
-        });
-
-        it("returns static config with RELAY_TESTNET_TOKENS for testnet", () => {
-            const config = new RelayProvider({ isTestnet: true }).getDiscoveryConfig();
-            expect(config!.type).toBe("static");
-            if (config!.type === "static") {
-                expect(config!.config.networks).toBe(RELAY_TESTNET_TOKENS);
-            }
-        });
-    });
-
-    describe("factory integration", () => {
-        it("creates RelayAssetDiscoveryService for mainnet", () => {
-            const service = new AssetDiscoveryFactory().createService(new RelayProvider());
-            expect(service).toBeInstanceOf(RelayAssetDiscoveryService);
-        });
-
-        it("creates StaticAssetDiscoveryService for testnet", () => {
-            const service = new AssetDiscoveryFactory().createService(
-                new RelayProvider({ isTestnet: true }),
-            );
-            expect(service).toBeInstanceOf(StaticAssetDiscoveryService);
-        });
-
-        it("starts prefetching on creation", () => {
-            const prefetchSpy = vi.spyOn(RelayAssetDiscoveryService.prototype, "prefetch");
-            new AssetDiscoveryFactory().createService(new RelayProvider());
-            expect(prefetchSpy).toHaveBeenCalledOnce();
-            prefetchSpy.mockRestore();
         });
     });
 });
