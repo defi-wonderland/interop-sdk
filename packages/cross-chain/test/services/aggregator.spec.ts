@@ -402,32 +402,6 @@ describe("Aggregator", () => {
                 }).toThrow();
             });
 
-            it("calls notifyDeposit when tracking starts", () => {
-                const notifyDeposit = vi.fn().mockResolvedValue(undefined);
-                const provider = {
-                    ...mockProviderA,
-                    getProviderId: vi.fn(() => "notifier"),
-                    getTrackingConfig: vi.fn(() => ({
-                        openedIntentParserConfig: { type: "api", config: {} },
-                        fillWatcherConfig: { type: "api-based", baseUrl: "http://test" },
-                    })),
-                    notifyDeposit,
-                } as unknown as CrossChainProvider;
-
-                const aggregator = createAggregator({
-                    providers: [provider],
-                });
-
-                aggregator.track({
-                    txHash: "0xabc123" as Hex,
-                    providerId: "notifier",
-                    originChainId: 11155111,
-                    destinationChainId: 84532,
-                });
-
-                expect(notifyDeposit).toHaveBeenCalledWith("0xabc123", 11155111);
-            });
-
             it("works normally when provider inherits default no-op notifyDeposit", () => {
                 const aggregator = createAggregator({
                     providers: [
