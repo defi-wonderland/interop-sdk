@@ -81,7 +81,7 @@ const hash = await walletClient.sendTransaction({
 console.log("Transaction sent:", hash);
 
 // Notify Relay for faster solver indexing (calls POST /transactions/index)
-await relayProvider.notifyDeposit(hash, originChainId);
+await relayProvider.notifyDeposit(hash, 11155111);
 ```
 
 ## Features
@@ -110,10 +110,10 @@ Relay supports `notifyDeposit` for faster solver indexing. After submitting a tr
 const hash = await walletClient.sendTransaction({ ... });
 
 // Notify Relay for faster indexing — call immediately after submission
-await relayProvider.notifyDeposit(hash, originChainId);
+await relayProvider.notifyDeposit(hash, 11155111);
 
 // Or via the aggregator
-await aggregator.notifyDeposit(quote.provider, hash, originChainId);
+await aggregator.notifyDeposit(quote.provider, hash, 11155111);
 ```
 
 ## Next Step

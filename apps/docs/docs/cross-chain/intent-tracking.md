@@ -124,7 +124,7 @@ if (status.fillEvent) {
 const hash = await walletClient.sendTransaction({ ... });
 
 // Notify Relay for faster indexing (calls POST /transactions/index)
-await aggregator.notifyDeposit(quote.provider, hash, originChainId);
+await aggregator.notifyDeposit(quote.provider, hash, 11155111);
 
 // Then start tracking as usual
 const tracker = aggregator.track({
