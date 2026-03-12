@@ -1,13 +1,24 @@
 import { isNativeAddress, getTransactionSteps, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { crossChainExecutor } from '../sdk';
-import { handleTokenApproval } from './approval';
+import { handleTokenApproval, isApprovalTransaction, submitApprovalStep } from './approval';
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
 import type { Address, Hex, PublicClient } from 'viem';
 import { BridgeState, ChainContext } from '~/cross-chain/hooks';
 
-type TrackingIdentifier = { txHash: Hex } | { orderId: Hex };
+type TrackingIdentifier = { txHash: Hex } | { orderId: Hex } | { orderId: Hex; txHash: Hex };
+
+/**
+ * Builds the tracking identifier from a completed transaction.
+ * Relay quotes include a `relayRequestId` in metadata that the tracking
+ * endpoint needs as `orderId`. Other providers only need the tx hash.
+ */
+function resolveTrackingIdentifier(quote: ExecutableQuote, txHash: Hex): TrackingIdentifier {
+  const orderId = quote.order.metadata?.relayRequestId as string | undefined;
+  if (orderId) return { orderId: orderId as Hex, txHash };
+  return { txHash };
+}
 
 interface FlowParams {
   quote: ExecutableQuote;
@@ -68,38 +79,67 @@ export const executeDirectTransaction = async ({
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
   const txSteps = getTransactionSteps(quote.order);
-  const txStep = txSteps[0];
 
-  if (!txStep?.transaction?.to || !txStep?.transaction?.data) {
-    throw new Error('Invalid quote: missing transaction data');
+  if (txSteps.length === 0) {
+    throw new Error('Invalid quote: no transaction steps');
   }
 
   const isNativeInput = isNativeAddress(inputTokenAddress, 'eip155');
+  let lastTxHash: Hex | undefined;
 
-  if (!isNativeInput) {
-    await handleTokenApproval(
+  for (const txStep of txSteps) {
+    if (!txStep.transaction?.to || !txStep.transaction?.data) {
+      throw new Error('Invalid quote: missing transaction data');
+    }
+
+    const txData = txStep.transaction.data as Hex;
+    const txTo = txStep.transaction.to as Address;
+    const value = txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined;
+
+    if (isApprovalTransaction(txData)) {
+      lastTxHash = await submitApprovalStep(
+        publicClient,
+        walletClient,
+        txTo,
+        txData,
+        chainContext,
+        onStateChange,
+        value,
+      );
+      continue;
+    }
+
+    if (!isNativeInput) {
+      await handleTokenApproval(
+        publicClient,
+        walletClient,
+        ownerAddress,
+        inputTokenAddress,
+        txTo,
+        inputAmount,
+        chainContext,
+        onStateChange,
+      );
+    }
+
+    lastTxHash = await submitBridgeTransaction(
       publicClient,
       walletClient,
-      ownerAddress,
-      inputTokenAddress,
-      txStep.transaction.to as Address,
-      inputAmount,
+      txTo,
+      txData,
       chainContext,
       onStateChange,
+      value,
     );
   }
 
-  const value = isNativeInput ? inputAmount : undefined;
+  const trackingId = resolveTrackingIdentifier(quote, lastTxHash!);
 
-  const txHash = await submitBridgeTransaction(
-    publicClient,
-    walletClient,
-    txStep.transaction.to as Address,
-    txStep.transaction.data as Hex,
-    chainContext,
-    onStateChange,
-    value,
-  );
+  if (lastTxHash) {
+    crossChainExecutor
+      .notifyDeposit(quote._providerId, lastTxHash, chainContext.originChainId)
+      .catch((err) => console.warn('[flows] Deposit notification failed (non-blocking):', err));
+  }
 
-  return { txHash };
+  return trackingId;
 };

@@ -8,14 +8,11 @@ export class TrackingError extends Error {
   readonly txHash?: Hex;
   readonly orderId?: Hex;
 
-  constructor(identifier: { txHash: Hex } | { orderId: Hex }, providerId: string) {
+  constructor(identifier: { txHash?: Hex; orderId?: Hex }, providerId: string) {
     super(`Order tracking failed for provider "${providerId}". The order may still complete.`);
     this.name = 'TrackingError';
-    if ('orderId' in identifier) {
-      this.orderId = identifier.orderId;
-    } else {
-      this.txHash = identifier.txHash;
-    }
+    this.txHash = identifier.txHash;
+    this.orderId = identifier.orderId;
   }
 }
 
@@ -25,21 +22,24 @@ export class TrackingError extends Error {
  */
 export async function trackOrder(
   providerId: string,
-  identifier: { txHash: Hex } | { orderId: Hex },
+  identifier: { txHash?: Hex; orderId?: Hex },
   chainContext: ChainContext,
   abortSignal: AbortSignal | undefined,
   onStateChange: (state: BridgeState) => void,
 ): Promise<void> {
   const tracker = crossChainExecutor.prepareTracking(providerId);
-  const txHash = 'txHash' in identifier ? identifier.txHash : undefined;
+  const { txHash, orderId } = identifier;
+
+  const baseParams = {
+    originChainId: chainContext.originChainId,
+    destinationChainId: chainContext.destinationChainId,
+    timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
+  };
+
+  const watchParams = orderId ? { ...baseParams, orderId, openTxHash: txHash } : { ...baseParams, txHash: txHash! };
 
   try {
-    for await (const item of tracker.watchOrder({
-      ...identifier,
-      originChainId: chainContext.originChainId,
-      destinationChainId: chainContext.destinationChainId,
-      timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
-    })) {
+    for await (const item of tracker.watchOrder(watchParams)) {
       if (abortSignal?.aborted) return;
 
       if (item.type === OrderTrackerYieldType.Update) {
