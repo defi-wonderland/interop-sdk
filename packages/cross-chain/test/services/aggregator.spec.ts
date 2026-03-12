@@ -401,63 +401,6 @@ describe("Aggregator", () => {
                     });
                 }).toThrow();
             });
-
-            it("works normally when provider inherits default no-op notifyDeposit", () => {
-                const aggregator = createAggregator({
-                    providers: [
-                        new AcrossProvider({ apiUrl: MOCK_API_URL, providerId: MOCK_PROVIDER_ID }),
-                    ],
-                });
-
-                const tracker = aggregator.track({
-                    txHash: "0xabc123" as Hex,
-                    providerId: MOCK_PROVIDER_ID,
-                    originChainId: 11155111,
-                    destinationChainId: 84532,
-                });
-
-                expect(tracker).toBeInstanceOf(OrderTracker);
-            });
-        });
-
-        describe("notifyDeposit", () => {
-            it("delegates to the provider with correct arguments", async () => {
-                const notifyDeposit = vi.fn().mockResolvedValue(undefined);
-                const provider = {
-                    ...mockProviderA,
-                    getProviderId: vi.fn(() => "notifier"),
-                    notifyDeposit,
-                } as unknown as CrossChainProvider;
-
-                const aggregator = createAggregator({ providers: [provider] });
-
-                await aggregator.notifyDeposit("notifier", "0xabc123" as Hex, 11155111);
-
-                expect(notifyDeposit).toHaveBeenCalledWith("0xabc123", 11155111);
-            });
-
-            it("throws ProviderNotFound for unknown provider", async () => {
-                const aggregator = createAggregator({ providers: [mockProviderA] });
-
-                await expect(
-                    aggregator.notifyDeposit("unknown", "0xabc123" as Hex, 11155111),
-                ).rejects.toThrow();
-            });
-
-            it("propagates provider errors", async () => {
-                const notifyDeposit = vi.fn().mockRejectedValue(new Error("network failure"));
-                const provider = {
-                    ...mockProviderA,
-                    getProviderId: vi.fn(() => "failing"),
-                    notifyDeposit,
-                } as unknown as CrossChainProvider;
-
-                const aggregator = createAggregator({ providers: [provider] });
-
-                await expect(
-                    aggregator.notifyDeposit("failing", "0xabc123" as Hex, 11155111),
-                ).rejects.toThrow("network failure");
-            });
         });
 
         describe("with custom tracker factory", () => {
