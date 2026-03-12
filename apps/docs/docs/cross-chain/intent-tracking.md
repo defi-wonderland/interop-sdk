@@ -121,17 +121,20 @@ if (status.fillEvent) {
 -   Relay supports **transaction notification** via `notifyDeposit` to accelerate solver indexing. Call it immediately after submitting the transaction:
 
 ```typescript
+const originChainId = 11155111;
+const destinationChainId = 84532;
+
 const hash = await walletClient.sendTransaction({ ... });
 
 // Notify Relay for faster indexing (calls POST /transactions/index)
-await aggregator.notifyDeposit(quote.provider, hash, 11155111);
+await aggregator.notifyDeposit(quote.provider, hash, originChainId);
 
 // Then start tracking as usual
 const tracker = aggregator.track({
     txHash: hash,
     providerId: quote.provider,
-    originChainId: 11155111,
-    destinationChainId: 84532,
+    originChainId,
+    destinationChainId,
 });
 ```
 
