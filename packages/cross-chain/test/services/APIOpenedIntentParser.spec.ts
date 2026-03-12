@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
     APIOpenedIntentParser,
     APIOpenedIntentParserConfig,
+    APIRequestFailure,
     OpenedIntent,
     OpenedIntentNotFoundError,
 } from "../../src/internal.js";
@@ -101,13 +102,45 @@ describe("APIOpenedIntentParser", () => {
             expect(extractSpy).toHaveBeenCalledWith(mockResponse, MOCK_TX_HASH);
         });
 
-        it("throws OpenedIntentNotFoundError on non-OK response", async () => {
+        it("throws OpenedIntentNotFoundError on 404 response", async () => {
             vi.spyOn(globalThis, "fetch").mockResolvedValue(
                 new Response("Not Found", { status: 404 }),
             );
 
             await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.toThrow(
                 OpenedIntentNotFoundError,
+            );
+        });
+
+        it("throws APIRequestFailure with status and body on non-404 failure", async () => {
+            vi.spyOn(globalThis, "fetch").mockResolvedValue(
+                new Response("Server Error", { status: 500 }),
+            );
+
+            await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.toThrow(
+                APIRequestFailure,
+            );
+
+            await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.toMatchObject(
+                { status: 500, body: "Server Error" },
+            );
+        });
+
+        it("throws APIRequestFailure on 429 rate limit", async () => {
+            vi.spyOn(globalThis, "fetch").mockResolvedValue(
+                new Response("Rate limited", { status: 429 }),
+            );
+
+            await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.toThrow(
+                APIRequestFailure,
+            );
+
+            await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.not.toThrow(
+                OpenedIntentNotFoundError,
+            );
+
+            await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.toMatchObject(
+                { status: 429, body: "Rate limited" },
             );
         });
 
@@ -125,16 +158,6 @@ describe("APIOpenedIntentParser", () => {
 
             await expect(customParser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.toThrow(
                 OpenedIntentNotFoundError,
-            );
-        });
-
-        it("includes protocol name in error message", async () => {
-            vi.spyOn(globalThis, "fetch").mockResolvedValue(
-                new Response("Server Error", { status: 500 }),
-            );
-
-            await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.toThrow(
-                "test-protocol opened intent event not found",
             );
         });
 

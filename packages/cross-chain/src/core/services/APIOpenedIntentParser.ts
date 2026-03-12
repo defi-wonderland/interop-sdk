@@ -5,6 +5,7 @@ import type {
     OpenedIntentParser,
 } from "../interfaces/openedIntentParser.interface.js";
 import type { OpenedIntent } from "../types/orderTracking.js";
+import { APIRequestFailure } from "../errors/APIRequestFailure.exception.js";
 import { OpenedIntentNotFoundError } from "../errors/OpenedIntentNotFound.exception.js";
 
 /**
@@ -23,7 +24,8 @@ export class APIOpenedIntentParser<TResponse = unknown> implements OpenedIntentP
      * @param txHash - Transaction hash to look up
      * @param chainId - Chain ID where the transaction occurred
      * @returns Opened intent data needed for tracking
-     * @throws {OpenedIntentNotFoundError} If the API returns a non-OK status or extractOpenedIntent rejects the response
+     * @throws {OpenedIntentNotFoundError} If the API returns a 404 status
+     * @throws {APIRequestFailure} If the API returns any other non-OK status (401, 429, 5xx, etc.)
      */
     async getOpenedIntent(txHash: Hex, chainId: number): Promise<OpenedIntent> {
         const url = this.config.buildUrl(txHash, chainId);
@@ -35,8 +37,13 @@ export class APIOpenedIntentParser<TResponse = unknown> implements OpenedIntentP
 
         const response = await fetch(url, { headers });
 
-        if (!response.ok) {
+        if (response.status === 404) {
             throw new OpenedIntentNotFoundError(txHash, this.config.protocolName);
+        }
+
+        if (!response.ok) {
+            const body = await response.text();
+            throw new APIRequestFailure(this.config.protocolName, response.status, body);
         }
 
         const data = (await response.json()) as TResponse;
