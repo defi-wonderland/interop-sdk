@@ -114,8 +114,8 @@ describe("APIOpenedIntentParser", () => {
         });
 
         it("throws APIRequestFailure with status and body on non-404 failure", async () => {
-            vi.spyOn(globalThis, "fetch").mockImplementation(() =>
-                Promise.resolve(new Response("Server Error", { status: 500 })),
+            vi.spyOn(globalThis, "fetch").mockResolvedValue(
+                new Response("Server Error", { status: 500 }),
             );
 
             const error = await parser
@@ -127,8 +127,8 @@ describe("APIOpenedIntentParser", () => {
         });
 
         it("throws APIRequestFailure on 429 rate limit", async () => {
-            vi.spyOn(globalThis, "fetch").mockImplementation(() =>
-                Promise.resolve(new Response("Rate limited", { status: 429 })),
+            vi.spyOn(globalThis, "fetch").mockResolvedValue(
+                new Response("Rate limited", { status: 429 }),
             );
 
             const error = await parser
