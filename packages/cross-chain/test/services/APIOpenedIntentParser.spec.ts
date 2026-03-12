@@ -114,35 +114,30 @@ describe("APIOpenedIntentParser", () => {
         });
 
         it("throws APIRequestFailure with status and body on non-404 failure", async () => {
-            vi.spyOn(globalThis, "fetch").mockImplementation(() =>
-                Promise.resolve(new Response("Server Error", { status: 500 })),
+            vi.spyOn(globalThis, "fetch").mockResolvedValue(
+                new Response("Server Error", { status: 500 }),
             );
 
-            await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.toThrow(
-                APIRequestFailure,
-            );
+            const error = await parser
+                .getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)
+                .catch((e: APIRequestFailure) => e);
 
-            await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.toMatchObject(
-                { status: 500, body: "Server Error" },
-            );
+            expect(error).toBeInstanceOf(APIRequestFailure);
+            expect(error).toMatchObject({ status: 500, body: "Server Error" });
         });
 
         it("throws APIRequestFailure on 429 rate limit", async () => {
-            vi.spyOn(globalThis, "fetch").mockImplementation(() =>
-                Promise.resolve(new Response("Rate limited", { status: 429 })),
+            vi.spyOn(globalThis, "fetch").mockResolvedValue(
+                new Response("Rate limited", { status: 429 }),
             );
 
-            await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.toThrow(
-                APIRequestFailure,
-            );
+            const error = await parser
+                .getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)
+                .catch((e: APIRequestFailure) => e);
 
-            await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.not.toThrow(
-                OpenedIntentNotFoundError,
-            );
-
-            await expect(parser.getOpenedIntent(MOCK_TX_HASH, MOCK_CHAIN_ID)).rejects.toMatchObject(
-                { status: 429, body: "Rate limited" },
-            );
+            expect(error).toBeInstanceOf(APIRequestFailure);
+            expect(error).not.toBeInstanceOf(OpenedIntentNotFoundError);
+            expect(error).toMatchObject({ status: 429, body: "Rate limited" });
         });
 
         it("propagates errors thrown by extractOpenedIntent", async () => {
