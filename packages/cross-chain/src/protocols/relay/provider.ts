@@ -4,12 +4,10 @@ import axios from "axios";
 import { ZodError } from "zod";
 
 import type {
-    APIBasedFillWatcherConfig,
     FillWatcherConfig,
     OpenedIntentParserConfig,
     Quote,
     QuoteRequest,
-    RelayIntentStatusResponse,
 } from "../../internal.js";
 import type { RelayConfigs } from "./types.js";
 import {
@@ -108,32 +106,10 @@ export class RelayProvider extends CrossChainProvider {
     }
 
     /**
-     * Get API-based fill watcher config for Relay.
-     * Uses the Relay `/intents/status/v3` endpoint to track order status.
-     *
-     * @see https://docs.relay.link/references/api/get-intent-status
-     */
-    static getFillWatcherConfig(
-        baseUrl: string = getRelayApiUrl(),
-    ): APIBasedFillWatcherConfig<RelayIntentStatusResponse> {
-        return {
-            type: "api-based",
-            baseUrl,
-            pollingInterval: 5000,
-            retry: {
-                maxAttempts: 3,
-                initialDelay: 2000,
-                maxDelay: 15000,
-                backoffMultiplier: 2,
-            },
-            buildEndpoint: (params): string => `/intents/status/v3?requestId=${params.orderId}`,
-            extractFillEvent,
-        };
-    }
-
-    /**
      * @inheritdoc
      * Returns API-based tracking config using Relay `/intents/status/v3`.
+     *
+     * @see https://docs.relay.link/references/api/get-intent-status
      */
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
@@ -149,9 +125,19 @@ export class RelayProvider extends CrossChainProvider {
                     extractOpenedIntent,
                 },
             },
-            fillWatcherConfig: RelayProvider.getFillWatcherConfig(
-                this.baseUrl,
-            ) as FillWatcherConfig,
+            fillWatcherConfig: {
+                type: "api-based",
+                baseUrl: this.baseUrl,
+                pollingInterval: 5000,
+                retry: {
+                    maxAttempts: 3,
+                    initialDelay: 2000,
+                    maxDelay: 15000,
+                    backoffMultiplier: 2,
+                },
+                buildEndpoint: (params): string => `/intents/status/v3?requestId=${params.orderId}`,
+                extractFillEvent,
+            } as FillWatcherConfig,
         };
     }
 }
