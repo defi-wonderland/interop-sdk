@@ -9,10 +9,8 @@ vi.mock("axios");
 
 const BASE_URL = "https://api.relay.test";
 const CHAINS_ENDPOINT = `${BASE_URL}/chains`;
-const CURRENCIES_ENDPOINT = `${BASE_URL}/currencies/v2`;
 const PROVIDER_ID = "relay";
 const CUSTOM_TIMEOUT = 15_000;
-const CURRENCIES_LIMIT = 100;
 
 const ETHEREUM_CHAIN_ID = 1;
 const OPTIMISM_CHAIN_ID = 10;
@@ -25,7 +23,6 @@ const USDC_ADDRESS_LOWERCASE = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
 const WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const OP_USDC_ADDRESS = "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85";
 const ARB_USDC_ADDRESS = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8";
-const SOL_ADDRESS = "So11111111111111111111111111111111111111112";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 const API_KEY_HEADER = "x-api-key";
@@ -36,55 +33,45 @@ const API_KEY_VALUE = "test-key";
 /** Minimal GET /chains response with two EVM chains and one SVM chain. */
 const MOCK_CHAINS_RESPONSE = {
     chains: [
-        { id: ETHEREUM_CHAIN_ID, vmType: "evm" },
-        { id: OPTIMISM_CHAIN_ID, vmType: "evm" },
-        { id: SOLANA_CHAIN_ID, vmType: "svm" },
+        {
+            id: ETHEREUM_CHAIN_ID,
+            vmType: "evm",
+            solverCurrencies: [
+                { address: USDC_ADDRESS, symbol: "USDC", name: "USD Coin", decimals: 6 },
+                { address: WETH_ADDRESS, symbol: "WETH", name: "Wrapped Ether", decimals: 18 },
+            ],
+        },
+        {
+            id: OPTIMISM_CHAIN_ID,
+            vmType: "evm",
+            solverCurrencies: [
+                { address: OP_USDC_ADDRESS, symbol: "USDC", name: "USD Coin", decimals: 6 },
+            ],
+        },
+        {
+            id: SOLANA_CHAIN_ID,
+            vmType: "svm",
+            solverCurrencies: [
+                {
+                    address: "So11111111111111111111111111111111111111112",
+                    symbol: "SOL",
+                    name: "Wrapped SOL",
+                    decimals: 9,
+                },
+            ],
+        },
     ],
 };
 
-/** POST /currencies/v2 response for Ethereum. */
-const MOCK_CURRENCIES_ETHEREUM = [
-    {
-        chainId: ETHEREUM_CHAIN_ID,
-        address: USDC_ADDRESS,
-        symbol: "USDC",
-        name: "USD Coin",
-        decimals: 6,
-        vmType: "evm",
-    },
-    {
-        chainId: ETHEREUM_CHAIN_ID,
-        address: WETH_ADDRESS,
-        symbol: "WETH",
-        name: "Wrapped Ether",
-        decimals: 18,
-        vmType: "evm",
-    },
-];
-
-/** POST /currencies/v2 response for Optimism. */
-const MOCK_CURRENCIES_OPTIMISM = [
-    {
-        chainId: OPTIMISM_CHAIN_ID,
-        address: OP_USDC_ADDRESS,
-        symbol: "USDC",
-        name: "USD Coin",
-        decimals: 6,
-        vmType: "evm",
-    },
-];
-
+const ETHEREUM_CURRENCY_COUNT = 2;
 const EVM_CHAIN_COUNT = 2;
 
 describe("RelayAssetDiscoveryService", () => {
     let service: RelayAssetDiscoveryService;
 
-    /** Configures mocks for a successful GET /chains + POST /currencies/v2 flow. */
+    /** Configures mock for a successful GET /chains flow. */
     function mockSuccessfulFetch(): void {
         vi.mocked(axios.get).mockResolvedValueOnce({ data: MOCK_CHAINS_RESPONSE });
-        vi.mocked(axios.post)
-            .mockResolvedValueOnce({ data: MOCK_CURRENCIES_ETHEREUM })
-            .mockResolvedValueOnce({ data: MOCK_CURRENCIES_OPTIMISM });
     }
 
     beforeEach(() => {
@@ -93,37 +80,19 @@ describe("RelayAssetDiscoveryService", () => {
     });
 
     describe("getSupportedAssets", () => {
-        it("fetches chains then currencies and returns DiscoveredAssets", async () => {
+        it("fetches chains and returns DiscoveredAssets from solverCurrencies", async () => {
             mockSuccessfulFetch();
 
             const result = await service.getSupportedAssets();
 
             expect(axios.get).toHaveBeenCalledWith(CHAINS_ENDPOINT, expect.anything());
-            expect(axios.post).toHaveBeenCalledTimes(EVM_CHAIN_COUNT);
-            expect(axios.post).toHaveBeenCalledWith(
-                CURRENCIES_ENDPOINT,
-                expect.objectContaining({
-                    chainIds: [ETHEREUM_CHAIN_ID],
-                    limit: CURRENCIES_LIMIT,
-                }),
-                expect.anything(),
-            );
-            expect(axios.post).toHaveBeenCalledWith(
-                CURRENCIES_ENDPOINT,
-                expect.objectContaining({
-                    chainIds: [OPTIMISM_CHAIN_ID],
-                    limit: CURRENCIES_LIMIT,
-                }),
-                expect.anything(),
-            );
+            expect(axios.post).not.toHaveBeenCalled();
 
             expect(Object.keys(result.tokensByChain)).toHaveLength(EVM_CHAIN_COUNT);
             expect(Object.keys(result.tokensByChain)).toContain(String(ETHEREUM_CHAIN_ID));
             expect(Object.keys(result.tokensByChain)).toContain(String(OPTIMISM_CHAIN_ID));
 
-            expect(result.tokensByChain[ETHEREUM_CHAIN_ID]).toHaveLength(
-                MOCK_CURRENCIES_ETHEREUM.length,
-            );
+            expect(result.tokensByChain[ETHEREUM_CHAIN_ID]).toHaveLength(ETHEREUM_CURRENCY_COUNT);
 
             expect(Object.keys(result.tokenMetadata)).toHaveLength(EVM_CHAIN_COUNT);
         });
@@ -136,7 +105,6 @@ describe("RelayAssetDiscoveryService", () => {
 
             await service.getSupportedAssets();
             expect(axios.get).toHaveBeenCalledTimes(1);
-            expect(axios.post).toHaveBeenCalledTimes(EVM_CHAIN_COUNT);
         });
 
         it("filters by chainIds when provided", async () => {
@@ -152,12 +120,26 @@ describe("RelayAssetDiscoveryService", () => {
 
         it("returns empty result when /chains returns no EVM chains", async () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
-                data: { chains: [{ id: SOLANA_CHAIN_ID, vmType: "svm" }] },
+                data: {
+                    chains: [
+                        {
+                            id: SOLANA_CHAIN_ID,
+                            vmType: "svm",
+                            solverCurrencies: [
+                                {
+                                    address: "So11111111111111111111111111111111111111112",
+                                    symbol: "SOL",
+                                    name: "Wrapped SOL",
+                                    decimals: 9,
+                                },
+                            ],
+                        },
+                    ],
+                },
             });
 
             const result = await service.getSupportedAssets();
 
-            expect(axios.post).not.toHaveBeenCalled();
             expect(Object.keys(result.tokensByChain)).toHaveLength(0);
         });
 
@@ -177,11 +159,6 @@ describe("RelayAssetDiscoveryService", () => {
                 expect.any(String),
                 expect.objectContaining({ headers }),
             );
-            expect(axios.post).toHaveBeenCalledWith(
-                expect.any(String),
-                expect.anything(),
-                expect.objectContaining({ headers }),
-            );
         });
     });
 
@@ -190,88 +167,93 @@ describe("RelayAssetDiscoveryService", () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
                 data: {
                     chains: [
-                        { id: ETHEREUM_CHAIN_ID, vmType: "evm" },
-                        { id: SOLANA_CHAIN_ID, vmType: "svm" },
-                        { id: UNSUPPORTED_CHAIN_ID, vmType: "tvm" },
+                        {
+                            id: ETHEREUM_CHAIN_ID,
+                            vmType: "evm",
+                            solverCurrencies: [
+                                {
+                                    address: USDC_ADDRESS,
+                                    symbol: "USDC",
+                                    name: "USD Coin",
+                                    decimals: 6,
+                                },
+                            ],
+                        },
+                        {
+                            id: SOLANA_CHAIN_ID,
+                            vmType: "svm",
+                            solverCurrencies: [
+                                {
+                                    address: "So11111111111111111111111111111111111111112",
+                                    symbol: "SOL",
+                                    name: "Wrapped SOL",
+                                    decimals: 9,
+                                },
+                            ],
+                        },
+                        {
+                            id: UNSUPPORTED_CHAIN_ID,
+                            vmType: "tvm",
+                            solverCurrencies: [],
+                        },
                     ],
                 },
             });
-            vi.mocked(axios.post).mockResolvedValueOnce({ data: MOCK_CURRENCIES_ETHEREUM });
 
             const result = await service.getSupportedAssets();
 
-            expect(axios.post).toHaveBeenCalledTimes(1);
             expect(Object.keys(result.tokensByChain)).toHaveLength(1);
         });
 
         it("treats chains without vmType as EVM (legacy entries)", async () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
-                data: { chains: [{ id: ARBITRUM_CHAIN_ID }] },
-            });
-            vi.mocked(axios.post).mockResolvedValueOnce({
-                data: [
-                    {
-                        chainId: ARBITRUM_CHAIN_ID,
-                        address: ARB_USDC_ADDRESS,
-                        symbol: "USDC.e",
-                        name: "Bridged USDC",
-                        decimals: 6,
-                    },
-                ],
+                data: {
+                    chains: [
+                        {
+                            id: ARBITRUM_CHAIN_ID,
+                            solverCurrencies: [
+                                {
+                                    address: ARB_USDC_ADDRESS,
+                                    symbol: "USDC.e",
+                                    name: "Bridged USDC",
+                                    decimals: 6,
+                                },
+                            ],
+                        },
+                    ],
+                },
             });
 
             const chainIds = await service.getSupportedChainIds();
             expect(chainIds).toContain(ARBITRUM_CHAIN_ID);
-        });
-
-        it("filters non-EVM currencies from /currencies/v2 response", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                data: { chains: [{ id: ETHEREUM_CHAIN_ID, vmType: "evm" }] },
-            });
-            vi.mocked(axios.post).mockResolvedValueOnce({
-                data: [
-                    ...MOCK_CURRENCIES_ETHEREUM,
-                    {
-                        chainId: ETHEREUM_CHAIN_ID,
-                        address: SOL_ADDRESS,
-                        symbol: "SOL",
-                        name: "Wrapped SOL",
-                        decimals: 9,
-                        vmType: "svm",
-                    },
-                ],
-            });
-
-            const assets = await service.getAssetsForChain(ETHEREUM_CHAIN_ID);
-
-            expect(assets?.assets).toHaveLength(MOCK_CURRENCIES_ETHEREUM.length);
         });
     });
 
     describe("address deduplication", () => {
         it("deduplicates addresses within the same chain (case-insensitive)", async () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
-                data: { chains: [{ id: ETHEREUM_CHAIN_ID, vmType: "evm" }] },
-            });
-            vi.mocked(axios.post).mockResolvedValueOnce({
-                data: [
-                    {
-                        chainId: ETHEREUM_CHAIN_ID,
-                        address: USDC_ADDRESS,
-                        symbol: "USDC",
-                        name: "USD Coin",
-                        decimals: 6,
-                        vmType: "evm",
-                    },
-                    {
-                        chainId: ETHEREUM_CHAIN_ID,
-                        address: USDC_ADDRESS_LOWERCASE,
-                        symbol: "USDC",
-                        name: "USD Coin",
-                        decimals: 6,
-                        vmType: "evm",
-                    },
-                ],
+                data: {
+                    chains: [
+                        {
+                            id: ETHEREUM_CHAIN_ID,
+                            vmType: "evm",
+                            solverCurrencies: [
+                                {
+                                    address: USDC_ADDRESS,
+                                    symbol: "USDC",
+                                    name: "USD Coin",
+                                    decimals: 6,
+                                },
+                                {
+                                    address: USDC_ADDRESS_LOWERCASE,
+                                    symbol: "USDC",
+                                    name: "USD Coin",
+                                    decimals: 6,
+                                },
+                            ],
+                        },
+                    ],
+                },
             });
 
             const assets = await service.getAssetsForChain(ETHEREUM_CHAIN_ID);
@@ -299,7 +281,7 @@ describe("RelayAssetDiscoveryService", () => {
             const result = await service.getAssetsForChain(ETHEREUM_CHAIN_ID);
 
             expect(result?.chainId).toBe(ETHEREUM_CHAIN_ID);
-            expect(result?.assets).toHaveLength(MOCK_CURRENCIES_ETHEREUM.length);
+            expect(result?.assets).toHaveLength(ETHEREUM_CURRENCY_COUNT);
         });
 
         it("returns null for an unsupported chain", async () => {
@@ -356,18 +338,6 @@ describe("RelayAssetDiscoveryService", () => {
             await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
         });
 
-        it("silently drops individual chain currency failures", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({ data: MOCK_CHAINS_RESPONSE });
-            vi.mocked(axios.post)
-                .mockResolvedValueOnce({ data: MOCK_CURRENCIES_ETHEREUM })
-                .mockRejectedValueOnce(new AxiosError("timeout"));
-
-            const result = await service.getSupportedAssets();
-
-            expect(Object.keys(result.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result.tokensByChain)).toContain(String(ETHEREUM_CHAIN_ID));
-        });
-
         it("wraps /chains network error in AssetDiscoveryFailure with providerId", async () => {
             const axiosError = new AxiosError("timeout of 30000ms exceeded");
             axiosError.code = "ECONNABORTED";
@@ -391,17 +361,6 @@ describe("RelayAssetDiscoveryService", () => {
 
             await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
         });
-
-        it("returns empty result when all per-chain requests fail", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({ data: MOCK_CHAINS_RESPONSE });
-            vi.mocked(axios.post)
-                .mockRejectedValueOnce(new AxiosError("fail"))
-                .mockRejectedValueOnce(new AxiosError("fail"));
-
-            const result = await service.getSupportedAssets();
-
-            expect(Object.keys(result.tokensByChain)).toHaveLength(0);
-        });
     });
 
     describe("configured timeout", () => {
@@ -418,11 +377,6 @@ describe("RelayAssetDiscoveryService", () => {
 
             expect(axios.get).toHaveBeenCalledWith(
                 expect.any(String),
-                expect.objectContaining({ timeout: CUSTOM_TIMEOUT }),
-            );
-            expect(axios.post).toHaveBeenCalledWith(
-                expect.any(String),
-                expect.anything(),
                 expect.objectContaining({ timeout: CUSTOM_TIMEOUT }),
             );
         });
@@ -453,9 +407,6 @@ describe("RelayAssetDiscoveryService", () => {
             vi.mocked(axios.get).mockImplementationOnce(() =>
                 delayedChains.then(() => ({ data: MOCK_CHAINS_RESPONSE })),
             );
-            vi.mocked(axios.post)
-                .mockResolvedValueOnce({ data: MOCK_CURRENCIES_ETHEREUM })
-                .mockResolvedValueOnce({ data: MOCK_CURRENCIES_OPTIMISM });
 
             const promise1 = service.getSupportedAssets();
             const promise2 = service.getSupportedAssets();
@@ -491,9 +442,6 @@ describe("RelayAssetDiscoveryService", () => {
             vi.mocked(axios.get).mockImplementationOnce(() =>
                 delayedChains.then(() => ({ data: MOCK_CHAINS_RESPONSE })),
             );
-            vi.mocked(axios.post)
-                .mockResolvedValueOnce({ data: MOCK_CURRENCIES_ETHEREUM })
-                .mockResolvedValueOnce({ data: MOCK_CURRENCIES_OPTIMISM });
 
             const promise1 = service.getSupportedAssets({ chainIds: [ETHEREUM_CHAIN_ID] });
             const promise2 = service.getSupportedAssets({ chainIds: [OPTIMISM_CHAIN_ID] });

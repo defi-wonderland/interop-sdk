@@ -5,8 +5,6 @@ import {
     RelayBadRequestResponseSchema,
     RelayIndexTransactionRequestSchema,
     RelayIndexTransactionResponseSchema,
-    RelayCurrenciesRequestSchema,
-    RelayCurrenciesResponseSchema,
     RelayIntentStatusRequestSchema,
     RelayIntentStatusResponseSchema,
     RelayQuoteRequestSchema,
@@ -513,101 +511,5 @@ describe("RelayServerErrorResponseSchema", () => {
             requestId: REQUEST_ID,
         });
         expect(result.requestId).toBe(REQUEST_ID);
-    });
-});
-
-// ── Currencies Request Tests ────────────────────────────
-
-describe("RelayCurrenciesRequestSchema", () => {
-    it("accepts an empty request body", () => {
-        const result = RelayCurrenciesRequestSchema.safeParse({});
-        expect(result.success).toBe(true);
-    });
-
-    it("accepts a request with all optional fields", () => {
-        const result = RelayCurrenciesRequestSchema.safeParse({
-            defaultList: true,
-            chainIds: [ORIGIN_CHAIN_ID, DESTINATION_CHAIN_ID],
-            term: "USDC",
-            address: VALID_ADDRESS,
-            currencyId: "usdc",
-            tokens: ["1:0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"],
-            verified: true,
-            limit: 50,
-            includeAllChains: false,
-            useExternalSearch: false,
-            depositAddressOnly: false,
-        });
-        expect(result.success).toBe(true);
-    });
-
-    it("rejects limit exceeding 100", () => {
-        const result = RelayCurrenciesRequestSchema.safeParse({ limit: 101 });
-        expect(result.success).toBe(false);
-    });
-
-    it("rejects non-positive chainIds", () => {
-        const result = RelayCurrenciesRequestSchema.safeParse({ chainIds: [-1] });
-        expect(result.success).toBe(false);
-    });
-
-    it("rejects limit of 0", () => {
-        const result = RelayCurrenciesRequestSchema.safeParse({ limit: 0 });
-        expect(result.success).toBe(false);
-    });
-});
-
-// ── Currencies Response Tests ───────────────────────────
-
-describe("RelayCurrenciesResponseSchema", () => {
-    const USDC_ENTRY = {
-        chainId: 1,
-        address: VALID_ADDRESS,
-        symbol: "USDC",
-        name: "USD Coin",
-        decimals: USDC_DECIMALS,
-    };
-
-    it("validates a correct currency entry", () => {
-        const result = RelayCurrenciesResponseSchema.safeParse([USDC_ENTRY]);
-        expect(result.success).toBe(true);
-    });
-
-    it("validates a currency entry with metadata and vmType", () => {
-        const result = RelayCurrenciesResponseSchema.safeParse([
-            {
-                ...USDC_ENTRY,
-                vmType: "evm",
-                metadata: { logoURI: SAMPLE_LOGO_URI, verified: true, isNative: false },
-            },
-        ]);
-        expect(result.success).toBe(true);
-    });
-
-    it("accepts an empty array", () => {
-        const result = RelayCurrenciesResponseSchema.safeParse([]);
-        expect(result.success).toBe(true);
-    });
-
-    it("rejects an entry with empty symbol", () => {
-        const result = RelayCurrenciesResponseSchema.safeParse([{ ...USDC_ENTRY, symbol: "" }]);
-        expect(result.success).toBe(false);
-    });
-
-    it("rejects an entry with decimals > 255", () => {
-        const result = RelayCurrenciesResponseSchema.safeParse([{ ...USDC_ENTRY, decimals: 256 }]);
-        expect(result.success).toBe(false);
-    });
-
-    it("rejects an entry with negative chainId", () => {
-        const result = RelayCurrenciesResponseSchema.safeParse([{ ...USDC_ENTRY, chainId: -1 }]);
-        expect(result.success).toBe(false);
-    });
-
-    it("rejects an entry missing required fields", () => {
-        const result = RelayCurrenciesResponseSchema.safeParse([
-            { chainId: 1, address: VALID_ADDRESS },
-        ]);
-        expect(result.success).toBe(false);
     });
 });
