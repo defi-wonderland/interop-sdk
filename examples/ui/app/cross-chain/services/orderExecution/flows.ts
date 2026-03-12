@@ -133,5 +133,13 @@ export const executeDirectTransaction = async ({
     );
   }
 
-  return resolveTrackingIdentifier(quote, lastTxHash!);
+  const trackingId = resolveTrackingIdentifier(quote, lastTxHash!);
+
+  if (lastTxHash) {
+    crossChainExecutor
+      .notifyDeposit(quote._providerId, lastTxHash, chainContext.originChainId)
+      .catch((err) => console.warn('[flows] Deposit notification failed (non-blocking):', err));
+  }
+
+  return trackingId;
 };
