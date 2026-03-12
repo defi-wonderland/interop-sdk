@@ -118,7 +118,7 @@ if (status.fillEvent) {
 
 -   Relay uses **API-based tracking** for both mainnet and testnet. Both opened intent parsing and fill watching use the `/intents/status/v3` endpoint.
 -   **No RPC URLs required** — all tracking is done through the Relay API.
--   Relay supports **transaction notification** via `notifyDeposit` to accelerate solver indexing. Call it immediately after submitting the transaction:
+-   Transaction notification is **automatic** — when tracking starts, the `onBeforeTracking` hook calls `POST /transactions/index` to accelerate solver indexing. No manual step required.
 
 ```typescript
 const originChainId = 11155111;
@@ -126,10 +126,7 @@ const destinationChainId = 84532;
 
 const hash = await walletClient.sendTransaction({ ... });
 
-// Notify Relay for faster indexing (calls POST /transactions/index)
-await aggregator.notifyDeposit(quote.provider, hash, originChainId);
-
-// Then start tracking as usual
+// Start tracking — Relay is automatically notified via onBeforeTracking
 const tracker = aggregator.track({
     txHash: hash,
     providerId: quote.provider,

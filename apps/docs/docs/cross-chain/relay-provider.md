@@ -79,9 +79,6 @@ const hash = await walletClient.sendTransaction({
     value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
 });
 console.log("Transaction sent:", hash);
-
-// Notify Relay for faster solver indexing (calls POST /transactions/index)
-await relayProvider.notifyDeposit(hash, 11155111);
 ```
 
 ## Features
@@ -91,7 +88,7 @@ await relayProvider.notifyDeposit(hash, 11155111);
 -   Transaction simulation
 -   Order tracking support
 -   API-based intent tracking
--   Transaction notification for faster solver indexing
+-   Automatic transaction notification for faster solver indexing via `onBeforeTracking`
 
 ## Tracking
 
@@ -104,17 +101,7 @@ Unlike Across, Relay does not require RPC URLs for tracking since all tracking i
 
 ## Transaction Notification
 
-Relay supports `notifyDeposit` for faster solver indexing. After submitting a transaction, calling `notifyDeposit` triggers Relay's [transaction indexing](https://docs.relay.link/references/api/api_guides/transaction-indexing) via `POST /transactions/index`, accelerating the indexing process before transaction validation completes. This allows solvers to detect and fill the intent faster.
-
-```typescript
-const hash = await walletClient.sendTransaction({ ... });
-
-// Notify Relay for faster indexing — call immediately after submission
-await relayProvider.notifyDeposit(hash, 11155111);
-
-// Or via the aggregator
-await aggregator.notifyDeposit(quote.provider, hash, 11155111);
-```
+Transaction notification is automatic — when tracking starts, the `onBeforeTracking` hook calls Relay's [transaction indexing](https://docs.relay.link/references/api/api_guides/transaction-indexing) via `POST /transactions/index`, accelerating the indexing process before transaction validation completes. No manual step is required.
 
 ## Next Step
 
