@@ -182,9 +182,11 @@ describe("RelayApiService", () => {
             );
         });
 
-        it("rejects invalid response with ZodError", async () => {
+        it("wraps invalid response in ProviderGetStatusFailure", async () => {
             mockGet.mockResolvedValue({ data: { status: "invalid-status" } });
-            await expect(service.getStatus({ requestId: REQUEST_ID })).rejects.toThrow();
+            await expect(service.getStatus({ requestId: REQUEST_ID })).rejects.toThrow(
+                ProviderGetStatusFailure,
+            );
         });
     });
 });

@@ -12,7 +12,11 @@ import type {
     RelayIntentStatusResponse,
 } from "../../internal.js";
 import type { RelayConfigs } from "./types.js";
-import { CrossChainProvider, ProviderConfigFailure } from "../../internal.js";
+import {
+    CrossChainProvider,
+    ProviderConfigFailure,
+    ProviderGetQuoteFailure,
+} from "../../internal.js";
 import {
     adaptQuote,
     adaptQuoteRequest,
@@ -75,9 +79,20 @@ export class RelayProvider extends CrossChainProvider {
      * Builds SDK Quote types directly from Relay API response.
      */
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
-        const relayParams = adaptQuoteRequest(params);
-        const response = await this.apiService.getQuote(relayParams);
-        return [adaptQuote(params, response, this.providerId)];
+        try {
+            const relayParams = adaptQuoteRequest(params);
+            const response = await this.apiService.getQuote(relayParams);
+            return [adaptQuote(params, response, this.providerId)];
+        } catch (error) {
+            if (error instanceof ProviderGetQuoteFailure) {
+                throw error;
+            }
+            throw new ProviderGetQuoteFailure(
+                "Failed to get Relay quote",
+                error instanceof Error ? error.message : String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
+        }
     }
 
     /**
@@ -129,7 +144,7 @@ export class RelayProvider extends CrossChainProvider {
                 type: "api",
                 config: {
                     protocolName: RelayProvider.PROTOCOL_NAME,
-                    buildUrl: (txHash: Hex): string =>
+                    buildUrl: (txHash: Hex, _chainId: number): string =>
                         `${this.baseUrl}/intents/status/v3?requestId=${txHash}`,
                     extractOpenedIntent,
                 },

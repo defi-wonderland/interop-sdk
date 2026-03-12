@@ -142,6 +142,25 @@ describe("RelayProvider", () => {
                 }),
             );
         });
+
+        it("uses testnet URL when isTestnet is true", () => {
+            new RelayProvider({ isTestnet: true });
+            expect(axios.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    baseURL: "https://api.testnets.relay.link",
+                }),
+            );
+        });
+
+        it("explicit baseUrl takes precedence over isTestnet", () => {
+            const customUrl = "https://custom.relay.link";
+            new RelayProvider({ isTestnet: true, baseUrl: customUrl });
+            expect(axios.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    baseURL: customUrl,
+                }),
+            );
+        });
     });
 
     describe("getQuotes()", () => {

@@ -23,7 +23,7 @@ export function extractOpenedIntent(response: unknown, txHash: Hex): OpenedInten
         user: zeroAddress as Address,
         originChainId: data.originChainId ?? 0,
         openDeadline: 0,
-        fillDeadline: 0,
+        fillDeadline: Number.MAX_SAFE_INTEGER,
         orderId: txHash,
         maxSpent: [],
         minReceived: [],
