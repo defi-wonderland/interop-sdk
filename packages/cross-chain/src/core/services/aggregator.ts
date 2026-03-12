@@ -223,23 +223,6 @@ class Aggregator {
     }
 
     /**
-     * Notify the solver of a deposit transaction for faster indexing.
-     * Delegates to the underlying provider's notifyDeposit implementation.
-     * No-op for providers that don't support deposit notification.
-     *
-     * @param providerId - The provider to notify
-     * @param txHash - The deposit transaction hash
-     * @param chainId - The origin chain ID
-     */
-    async notifyDeposit(providerId: string, txHash: Hex, chainId: number): Promise<void> {
-        const provider = this.providers[providerId];
-        if (!provider) {
-            throw new ProviderNotFound(providerId);
-        }
-        await provider.notifyDeposit(txHash, chainId);
-    }
-
-    /**
      * Prepare tracking for an executed transaction
      * Returns an OrderTracker instance that can be used to set up event listeners
      * before sending the transaction

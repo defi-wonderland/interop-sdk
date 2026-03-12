@@ -48,7 +48,12 @@ export class OrderTrackerFactory {
             config?.fillWatcher ??
             this.createFillWatcher(trackingConfig.fillWatcherConfig as FillWatcherConfig);
 
-        return new OrderTracker(openedIntentParser, fillWatcher, this.clientManager);
+        return new OrderTracker(
+            openedIntentParser,
+            fillWatcher,
+            this.clientManager,
+            trackingConfig.onBeforeTracking,
+        );
     }
 
     /**

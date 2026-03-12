@@ -2,6 +2,7 @@ import type { Hex } from "viem";
 
 import type { Quote, SubmitOrderResponse } from "../schemas/quote.js";
 import type { QuoteRequest } from "../schemas/quoteRequest.js";
+import type { OnBeforeTracking } from "../types/tracking.js";
 import type { AssetDiscoveryConfig } from "./assetDiscovery.interface.js";
 import type { FillWatcherConfig } from "./fillWatcher.interface.js";
 import type { OpenedIntentParserConfig } from "./openedIntentParser.interface.js";
@@ -60,19 +61,23 @@ export abstract class CrossChainProvider {
     }
 
     /**
-     * Get the configuration for intent tracking
-     * This method provides the protocol-specific configuration needed to create
+     * Get the configuration for intent tracking.
+     *
+     * Provides the protocol-specific configuration needed to create
      * an OrderTracker for monitoring cross-chain transaction status.
      *
      * @returns Configuration object containing:
      *   - openedIntentParserConfig: Config for parsing opened intent from origin chain
      *   - fillWatcherConfig: Config for watching fill events on destination chain
+     *   - onBeforeTracking: Optional hook called before tracking begins (e.g. notify solver of deposit)
      */
     abstract getTrackingConfig(): {
         /** Configuration for parsing opened intent data */
         openedIntentParserConfig: OpenedIntentParserConfig;
         /** Configuration for watching fill events */
         fillWatcherConfig: FillWatcherConfig;
+        /** Optional hook executed before tracking begins (e.g. notify solver of deposit) */
+        onBeforeTracking?: OnBeforeTracking;
     };
 
     /**
@@ -106,17 +111,5 @@ export abstract class CrossChainProvider {
      */
     getDiscoveryConfig(): AssetDiscoveryConfig | null {
         return null;
-    }
-
-    /**
-     * Notify the solver of a deposit transaction for faster indexing.
-     *
-     * No-op by default. Override in providers that support deposit notification.
-     *
-     * @param _txHash - The deposit transaction hash
-     * @param _chainId - The origin chain ID
-     */
-    async notifyDeposit(_txHash: Hex, _chainId: number): Promise<void> {
-        // No-op by default
     }
 }

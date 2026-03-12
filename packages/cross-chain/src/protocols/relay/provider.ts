@@ -5,6 +5,7 @@ import { ZodError } from "zod";
 
 import type {
     FillWatcherConfig,
+    OnBeforeTracking,
     OpenedIntentParserConfig,
     Quote,
     QuoteRequest,
@@ -95,18 +96,6 @@ export class RelayProvider extends CrossChainProvider {
 
     /**
      * @inheritdoc
-     *
-     * Notifies the Relay API of a deposit transaction for faster solver indexing.
-     */
-    override async notifyDeposit(txHash: Hex, chainId: number): Promise<void> {
-        await this.apiService.indexTransaction({
-            chainId: String(chainId),
-            txHash,
-        });
-    }
-
-    /**
-     * @inheritdoc
      * Returns API-based tracking config using Relay `/intents/status/v3`.
      *
      * @see https://docs.relay.link/references/api/get-intent-status
@@ -114,6 +103,7 @@ export class RelayProvider extends CrossChainProvider {
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
         fillWatcherConfig: FillWatcherConfig;
+        onBeforeTracking: OnBeforeTracking;
     } {
         return {
             openedIntentParserConfig: {
@@ -138,6 +128,12 @@ export class RelayProvider extends CrossChainProvider {
                 buildEndpoint: (params): string => `/intents/status/v3?requestId=${params.orderId}`,
                 extractFillEvent,
             } as FillWatcherConfig,
+            onBeforeTracking: async ({ txHash, originChainId }): Promise<void> => {
+                await this.apiService.indexTransaction({
+                    chainId: String(originChainId),
+                    txHash,
+                });
+            },
         };
     }
 }

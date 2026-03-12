@@ -125,19 +125,7 @@ if (selectedQuote) {
 -   Relay tracking is fully **API-based** for both mainnet and testnet.
 -   Both opened intent parsing and fill watching use the `/intents/status/v3` endpoint.
 -   No RPC URLs are required for Relay tracking.
--   Relay supports `notifyDeposit` for faster solver indexing via `POST /transactions/index`. Call it immediately after submitting the transaction to accelerate indexing.
-
-### Transaction Notification
-
-Some providers support notifying their backend of a submitted transaction for faster solver indexing. This is available on both the provider and aggregator:
-
-```typescript
-// Via provider
-await relayProvider.notifyDeposit(txHash, originChainId);
-
-// Via aggregator
-await aggregator.notifyDeposit("relay", txHash, originChainId);
-```
+-   Relay automatically notifies the solver of new deposits via `onBeforeTracking` for faster indexing.
 
 ### Aggregator
 

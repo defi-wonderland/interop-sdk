@@ -138,6 +138,7 @@ describe("RelayProvider", () => {
             new RelayProvider({ apiKey: API_KEY });
             expect(axios.create).toHaveBeenCalledWith(
                 expect.objectContaining({
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                     headers: expect.objectContaining({ "x-api-key": API_KEY }),
                 }),
             );
@@ -257,17 +258,33 @@ describe("RelayProvider", () => {
         });
     });
 
-    describe("notifyDeposit()", () => {
-        it("delegates to /transactions/index with stringified chainId", async () => {
+    describe("getTrackingConfig()", () => {
+        it("returns api-based fill watcher config and api intent parser", () => {
+            const config = provider.getTrackingConfig();
+            expect(config.fillWatcherConfig.type).toBe("api-based");
+            expect(config.openedIntentParserConfig.type).toBe("api");
+        });
+
+        it("includes onBeforeTracking hook", () => {
+            const config = provider.getTrackingConfig();
+            expect(config.onBeforeTracking).toBeDefined();
+            expect(typeof config.onBeforeTracking).toBe("function");
+        });
+
+        it("onBeforeTracking calls /transactions/index with stringified chainId", async () => {
             mockPost.mockResolvedValue({ data: { message: "Transaction indexed" } });
-            await provider.notifyDeposit(TX_HASH, ORIGIN_CHAIN_ID);
+            const config = provider.getTrackingConfig();
+            await config.onBeforeTracking!({
+                txHash: TX_HASH,
+                originChainId: ORIGIN_CHAIN_ID,
+            });
             expect(mockPost).toHaveBeenCalledWith(INDEX_ENDPOINT, {
                 chainId: String(ORIGIN_CHAIN_ID),
                 txHash: TX_HASH,
             });
         });
 
-        it("propagates errors from the API", async () => {
+        it("onBeforeTracking propagates errors from the API", async () => {
             mockPost.mockRejectedValue(
                 makeAxiosError(
                     { message: "Not found" },
@@ -276,15 +293,10 @@ describe("RelayProvider", () => {
                     "ERR_BAD_REQUEST",
                 ),
             );
-            await expect(provider.notifyDeposit(TX_HASH, ORIGIN_CHAIN_ID)).rejects.toThrow();
-        });
-    });
-
-    describe("getTrackingConfig()", () => {
-        it("returns api-based fill watcher config and api intent parser", () => {
             const config = provider.getTrackingConfig();
-            expect(config.fillWatcherConfig.type).toBe("api-based");
-            expect(config.openedIntentParserConfig.type).toBe("api");
+            await expect(
+                config.onBeforeTracking!({ txHash: TX_HASH, originChainId: ORIGIN_CHAIN_ID }),
+            ).rejects.toThrow();
         });
     });
 });
