@@ -1,10 +1,9 @@
-import type { Address, Hex } from "viem";
+import type { Hex } from "viem";
 import { zeroAddress } from "viem";
 
-import type { FillEvent, GetFillParams, OpenedIntent } from "../../../internal.js";
+import type { FillEvent, GetFillParams } from "../../../internal.js";
 import type { RelayIntentStatusResponse } from "../schemas.js";
-import { OpenedIntentNotFoundError, OrderFailureReason, OrderStatus } from "../../../internal.js";
-import { RelayIntentStatusResponseSchema } from "../schemas.js";
+import { OrderFailureReason, OrderStatus } from "../../../internal.js";
 
 /** Maps Relay intent status strings to SDK OrderStatus values. */
 export const RELAY_STATUS_MAP: Record<
@@ -55,42 +54,5 @@ export function extractFillEvent(
         },
         status,
         failureReason,
-    };
-}
-
-/**
- * Extract an OpenedIntent from a Relay intent status API response.
- * Throws {@link OpenedIntentNotFoundError} if the response is invalid.
- */
-export function extractOpenedIntent(response: unknown, txHash: Hex): OpenedIntent {
-    const parsed = RelayIntentStatusResponseSchema.safeParse(response);
-
-    if (!parsed.success) {
-        throw new OpenedIntentNotFoundError(txHash, "relay");
-    }
-
-    const data = parsed.data;
-    const originTxHash = (data.inTxHashes?.[0] as Hex) ?? txHash;
-
-    return {
-        user: zeroAddress as Address,
-        originChainId: data.originChainId ?? 0,
-        openDeadline: 0,
-        fillDeadline: 0,
-        orderId: txHash,
-        maxSpent: [],
-        minReceived: [],
-        fillInstructions: data.destinationChainId
-            ? [
-                  {
-                      destinationChainId: data.destinationChainId,
-                      destinationSettler: zeroAddress as Hex,
-                      originData: "0x" as Hex,
-                  },
-              ]
-            : [],
-        txHash: originTxHash,
-        blockNumber: 0n,
-        originContract: zeroAddress as Address,
     };
 }

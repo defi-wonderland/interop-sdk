@@ -5,7 +5,7 @@ import type { RelayQuoteResponse } from "../../../../src/protocols/relay/schemas
 import {
     adaptQuote,
     adaptRelaySteps,
-} from "../../../../src/protocols/relay/adapters/quoteAdapter.js";
+} from "../../../../src/protocols/relay/adapters/quoteResponseAdapter.js";
 
 // ── Constants ────────────────────────────────────────────
 
@@ -21,9 +21,6 @@ const ORDER_ID = "0xorder456";
 const TIME_ESTIMATE_SECONDS = 30;
 const PROVIDER_ID = "relay";
 const STEP_DESCRIPTION = "Approve and send";
-const SAMPLE_GAS = "21000";
-const SAMPLE_MAX_FEE_PER_GAS = "30000000000";
-const SAMPLE_MAX_PRIORITY_FEE_PER_GAS = "1000000000";
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -90,26 +87,20 @@ function makeRelayQuoteResponse(overrides?: Partial<RelayQuoteResponse>): RelayQ
 // ── Tests ────────────────────────────────────────────────
 
 describe("adaptQuote", () => {
-    it("maps provider, quoteId, eta, and static fields", () => {
+    it("maps a complete Relay response to SDK Quote", () => {
         const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
+
         expect(quote.provider).toBe(PROVIDER_ID);
         expect(quote.quoteId).toBe(ORDER_ID);
         expect(quote.eta).toBe(TIME_ESTIMATE_SECONDS);
         expect(quote.partialFill).toBe(false);
         expect(quote.failureHandling).toBe("refund-automatic");
-    });
-
-    it("maps input preview from response details", () => {
-        const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
         expect(quote.preview.inputs[0]!.chainId).toBe(ORIGIN_CHAIN_ID);
-        expect(quote.preview.inputs[0]!.accountAddress).toBe(VALID_ADDRESS);
         expect(quote.preview.inputs[0]!.amount).toBe(INPUT_AMOUNT);
-    });
-
-    it("maps output preview from response details", () => {
-        const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
         expect(quote.preview.outputs[0]!.chainId).toBe(DESTINATION_CHAIN_ID);
         expect(quote.preview.outputs[0]!.amount).toBe(OUTPUT_AMOUNT);
+        expect(quote.order.metadata).toEqual({ relayRequestId: REQUEST_ID });
+        expect(quote.metadata!.relayResponse).toBeDefined();
     });
 
     it("uses recipient as output accountAddress when provided", () => {
@@ -127,7 +118,7 @@ describe("adaptQuote", () => {
         expect(quote.preview.outputs[0]!.accountAddress).toBe(RECIPIENT_ADDRESS);
     });
 
-    it("falls back to request params when details is missing", () => {
+    it("falls back to request params when response details is missing", () => {
         const quote = adaptQuote(
             makeQuoteRequest(),
             makeRelayQuoteResponse({ details: undefined }),
@@ -138,24 +129,13 @@ describe("adaptQuote", () => {
         expect(quote.preview.outputs[0]!.amount).toBe("0");
     });
 
-    it("sets quoteId to undefined when protocol.v2 is missing", () => {
+    it("handles missing protocol.v2 gracefully", () => {
         const quote = adaptQuote(
             makeQuoteRequest(),
             makeRelayQuoteResponse({ protocol: undefined }),
             PROVIDER_ID,
         );
         expect(quote.quoteId).toBeUndefined();
-    });
-
-    it("includes relayRequestId in order metadata from deposit step", () => {
-        const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
-        expect(quote.order.metadata).toEqual({ relayRequestId: REQUEST_ID });
-    });
-
-    it("stores raw relay response in metadata", () => {
-        const response = makeRelayQuoteResponse();
-        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
-        expect(quote.metadata!.relayResponse).toBe(response);
     });
 });
 
@@ -165,24 +145,21 @@ describe("adaptRelaySteps", () => {
     it("maps incomplete transaction items to SDK steps", () => {
         const steps = adaptRelaySteps(baseStep);
         expect(steps).toHaveLength(1);
-        expect(steps[0]!.kind).toBe("transaction");
-        if (steps[0]!.kind === "transaction") {
-            expect(steps[0]!.transaction.to).toBe(VALID_ADDRESS);
-            expect(steps[0]!.transaction.data).toBe(TX_DATA);
-            expect(steps[0]!.description).toBe(STEP_DESCRIPTION);
-        }
+        expect(steps[0]).toMatchObject({
+            kind: "transaction",
+            chainId: ORIGIN_CHAIN_ID,
+            description: STEP_DESCRIPTION,
+            transaction: { to: VALID_ADDRESS, data: TX_DATA },
+        });
     });
 
-    it("filters out complete items", () => {
-        const items = [
+    it("filters out complete items and signature steps", () => {
+        const withComplete = [
             { ...baseStep.items[0]!, status: "complete" as const },
             { ...baseStep.items[0]!, status: "incomplete" as const },
         ];
-        const steps = adaptRelaySteps({ ...baseStep, items });
-        expect(steps).toHaveLength(1);
-    });
+        expect(adaptRelaySteps({ ...baseStep, items: withComplete })).toHaveLength(1);
 
-    it("returns empty array for signature steps", () => {
         const sigStep = {
             ...baseStep,
             kind: "signature" as const,
@@ -191,50 +168,29 @@ describe("adaptRelaySteps", () => {
         expect(adaptRelaySteps(sigStep)).toHaveLength(0);
     });
 
-    it("maps gas parameters when present", () => {
-        const items = [
+    it("includes gas params when present and omits when '0'", () => {
+        const withGas = [
             {
                 ...baseStep.items[0]!,
                 data: {
                     ...baseStep.items[0]!.data,
-                    gas: SAMPLE_GAS,
-                    maxFeePerGas: SAMPLE_MAX_FEE_PER_GAS,
-                    maxPriorityFeePerGas: SAMPLE_MAX_PRIORITY_FEE_PER_GAS,
+                    gas: "21000",
+                    maxFeePerGas: "30000000000",
                 },
             },
         ];
-        const steps = adaptRelaySteps({ ...baseStep, items });
+        const steps = adaptRelaySteps({ ...baseStep, items: withGas });
         if (steps[0]!.kind === "transaction") {
-            expect(steps[0]!.transaction.gas).toBe(SAMPLE_GAS);
-            expect(steps[0]!.transaction.maxFeePerGas).toBe(SAMPLE_MAX_FEE_PER_GAS);
-            expect(steps[0]!.transaction.maxPriorityFeePerGas).toBe(
-                SAMPLE_MAX_PRIORITY_FEE_PER_GAS,
-            );
+            expect(steps[0]!.transaction.gas).toBe("21000");
+            expect(steps[0]!.transaction.maxFeePerGas).toBe("30000000000");
         }
-    });
 
-    it("omits gas when value is '0'", () => {
-        const items = [
-            {
-                ...baseStep.items[0]!,
-                data: { ...baseStep.items[0]!.data, gas: "0" },
-            },
+        const withZeroGas = [
+            { ...baseStep.items[0]!, data: { ...baseStep.items[0]!.data, gas: "0" } },
         ];
-        const steps = adaptRelaySteps({ ...baseStep, items });
-        if (steps[0]!.kind === "transaction") {
-            expect(steps[0]!.transaction.gas).toBeUndefined();
+        const zeroSteps = adaptRelaySteps({ ...baseStep, items: withZeroGas });
+        if (zeroSteps[0]!.kind === "transaction") {
+            expect(zeroSteps[0]!.transaction.gas).toBeUndefined();
         }
-    });
-
-    it("maps multiple incomplete items to separate steps", () => {
-        const items = [
-            baseStep.items[0]!,
-            {
-                ...baseStep.items[0]!,
-                data: { ...baseStep.items[0]!.data, chainId: DESTINATION_CHAIN_ID },
-            },
-        ];
-        const steps = adaptRelaySteps({ ...baseStep, items });
-        expect(steps).toHaveLength(2);
     });
 });

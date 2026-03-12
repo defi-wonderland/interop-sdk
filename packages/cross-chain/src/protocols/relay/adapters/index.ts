@@ -1,3 +1,4 @@
-export { adaptQuote, adaptRelaySteps } from "./quoteAdapter.js";
+export { adaptQuote, adaptRelaySteps } from "./quoteResponseAdapter.js";
 export { adaptQuoteRequest } from "./quoteRequestAdapter.js";
-export { extractFillEvent, extractOpenedIntent, RELAY_STATUS_MAP } from "./statusAdapter.js";
+export { extractFillEvent, RELAY_STATUS_MAP } from "./fillEventAdapter.js";
+export { extractOpenedIntent } from "./openedIntentAdapter.js";
