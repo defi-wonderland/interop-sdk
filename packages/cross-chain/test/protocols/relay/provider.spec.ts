@@ -138,8 +138,10 @@ describe("RelayProvider", () => {
             new RelayProvider({ apiKey: API_KEY });
             expect(axios.create).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    headers: expect.objectContaining({ "x-api-key": API_KEY }),
+                    headers: expect.objectContaining({ "x-api-key": API_KEY }) as Record<
+                        string,
+                        string
+                    >,
                 }),
             );
         });
