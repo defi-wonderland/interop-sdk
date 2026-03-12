@@ -14,7 +14,7 @@ import type {
     DiscoveredAssets,
     RouteQuery,
 } from "../types/assetDiscovery.js";
-import type { OrderTrackingInfo, WatchOrderParams } from "../types/orderTracking.js";
+import type { OrderTrackingInfo } from "../types/orderTracking.js";
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import { ProviderNotFound } from "../errors/ProviderNotFound.exception.js";
 import { ProviderTimeout } from "../errors/ProviderTimeout.exception.js";
@@ -243,28 +243,30 @@ class Aggregator {
         timeout?: number;
     }): OrderTracker {
         const tracker = this.getOrCreateTracker(params.providerId);
-
-        // Auto-notify deposit for faster solver indexing (best-effort)
         const provider = this.providers[params.providerId];
-        if (provider) {
-            provider.notifyDeposit(params.txHash, params.originChainId).catch((error) => {
-                console.warn(
-                    `[Aggregator] Deposit notification failed for "${params.providerId}":`,
-                    error,
-                );
-            });
-        }
 
-        const trackingParams: WatchOrderParams = {
-            txHash: params.txHash,
-            originChainId: params.originChainId,
-            destinationChainId: params.destinationChainId,
-            timeout: params.timeout,
-        };
+        // Notify deposit first (best-effort), then start tracking
+        const deposited = provider
+            ? provider.notifyDeposit(params.txHash, params.originChainId).catch((error) => {
+                  console.warn(
+                      `[Aggregator] Deposit notification failed for "${params.providerId}":`,
+                      error,
+                  );
+              })
+            : Promise.resolve();
 
-        tracker.startTracking(trackingParams).catch((error) => {
-            console.error("Tracking error:", error);
-        });
+        void deposited.then(() =>
+            tracker
+                .startTracking({
+                    txHash: params.txHash,
+                    originChainId: params.originChainId,
+                    destinationChainId: params.destinationChainId,
+                    timeout: params.timeout,
+                })
+                .catch((error) => {
+                    console.error("Tracking error:", error);
+                }),
+        );
 
         return tracker;
     }
