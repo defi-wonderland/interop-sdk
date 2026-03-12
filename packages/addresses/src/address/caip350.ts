@@ -136,8 +136,14 @@ export const addressToText = (
             return bip122AddressToText(address, chainReference);
         case ChainTypeName.SOLANA:
             return bs58.encode(address);
-        case ChainTypeName.STARKNET:
-            return toHex(address, { size: 32 });
+        case ChainTypeName.STARKNET: {
+            if (address.length !== 32) {
+                throw new InvalidAddress(
+                    `starknet address must be 32 bytes, got ${address.length}`,
+                );
+            }
+            return toHex(address);
+        }
         default:
             throw new UnsupportedChainType(chainTypeHex);
     }
