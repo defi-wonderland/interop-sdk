@@ -384,12 +384,6 @@ export type RelayRateLimitedResponse = z.infer<typeof RelayRateLimitedResponseSc
 /** Relay 500 Server Error response. */
 export type RelayServerErrorResponse = z.infer<typeof RelayServerErrorResponseSchema>;
 
-/** Request body for the Relay POST `/transactions/index` endpoint. */
-export type RelayIndexTransactionRequest = z.infer<typeof RelayIndexTransactionRequestSchema>;
-
-/** Response from the Relay POST `/transactions/index` endpoint. */
-export type RelayIndexTransactionResponse = z.infer<typeof RelayIndexTransactionResponseSchema>;
-
 // ── Relay Chains (Discovery) ────────────────────────────
 
 /** Schema for a solver currency entry from the Relay GET `/chains` response. */
