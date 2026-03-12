@@ -223,6 +223,23 @@ class Aggregator {
     }
 
     /**
+     * Notify the solver of a deposit transaction for faster indexing.
+     * Delegates to the underlying provider's notifyDeposit implementation.
+     * No-op for providers that don't support deposit notification.
+     *
+     * @param providerId - The provider to notify
+     * @param txHash - The deposit transaction hash
+     * @param chainId - The origin chain ID
+     */
+    async notifyDeposit(providerId: string, txHash: Hex, chainId: number): Promise<void> {
+        const provider = this.providers[providerId];
+        if (!provider) {
+            throw new ProviderNotFound(providerId);
+        }
+        await provider.notifyDeposit(txHash, chainId);
+    }
+
+    /**
      * Prepare tracking for an executed transaction
      * Returns an OrderTracker instance that can be used to set up event listeners
      * before sending the transaction
@@ -243,17 +260,6 @@ class Aggregator {
         timeout?: number;
     }): OrderTracker {
         const tracker = this.getOrCreateTracker(params.providerId);
-        const provider = this.providers[params.providerId];
-
-        // Notify deposit first (best-effort), then start tracking
-        const deposited = provider
-            ? provider.notifyDeposit(params.txHash, params.originChainId).catch((error) => {
-                  console.warn(
-                      `[Aggregator] Deposit notification failed for "${params.providerId}":`,
-                      error,
-                  );
-              })
-            : Promise.resolve();
 
         const trackingParams: WatchOrderParams = {
             txHash: params.txHash,
@@ -262,11 +268,9 @@ class Aggregator {
             timeout: params.timeout,
         };
 
-        void deposited.then(() =>
-            tracker.startTracking(trackingParams).catch((error) => {
-                console.error("Tracking error:", error);
-            }),
-        );
+        void tracker.startTracking(trackingParams).catch((error) => {
+            console.error("Tracking error:", error);
+        });
 
         return tracker;
     }
