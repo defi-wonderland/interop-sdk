@@ -5,44 +5,37 @@ import { RelayChainsResponseSchema } from "../schemas.js";
 /**
  * Parse a Relay GET `/chains` response into `NetworkAssets[]`.
  *
- * 1. Validates with {@link RelayChainsResponseSchema}
- * 2. Filters to EVM chains (`vmType` is `"evm"` or absent) that are not disabled
- * 3. Deduplicates solver currencies by address (case-insensitive)
- * 4. Drops chains with no assets
+ * @see https://docs.relay.link/references/api/get-chains
  */
 export function parseRelayChainsResponse(data: unknown): NetworkAssets[] {
     const { chains } = RelayChainsResponseSchema.parse(data);
 
-    const evmChains = chains
-        .filter((c) => (!c.vmType || c.vmType === "evm") && !c.disabled)
-        .map((c) => ({ id: c.id, solverCurrencies: c.solverCurrencies }));
-
-    return toNetworkAssets(evmChains);
+    return chains.filter(isActiveEvmChain).map(toNetworkAssetsEntry).filter(hasAssets);
 }
 
-/**
- * Build NetworkAssets from chain solver currencies, deduplicating by address (case-insensitive).
- */
-function toNetworkAssets(
-    chains: { id: number; solverCurrencies: RelaySolverCurrency[] }[],
-): NetworkAssets[] {
-    return chains
-        .map(({ id, solverCurrencies }) => {
-            const seen = new Map<string, AssetInfo>();
+function isActiveEvmChain(chain: { vmType?: string; disabled?: boolean }): boolean {
+    const isEvm = !chain.vmType || chain.vmType === "evm";
+    return isEvm && !chain.disabled;
+}
 
-            for (const currency of solverCurrencies) {
-                const key = currency.address.toLowerCase();
+function toNetworkAssetsEntry(chain: {
+    id: number;
+    solverCurrencies: RelaySolverCurrency[];
+}): NetworkAssets {
+    return {
+        chainId: chain.id,
+        assets: chain.solverCurrencies.map(toAssetInfo),
+    };
+}
 
-                if (!seen.has(key)) {
-                    seen.set(key, {
-                        address: currency.address,
-                        symbol: currency.symbol,
-                        decimals: currency.decimals,
-                    });
-                }
-            }
+function hasAssets(network: NetworkAssets): boolean {
+    return network.assets.length > 0;
+}
 
-            return { chainId: id, assets: Array.from(seen.values()) };
-        })
-        .filter(({ assets }) => assets.length > 0);
+function toAssetInfo(currency: RelaySolverCurrency): AssetInfo {
+    return {
+        address: currency.address,
+        symbol: currency.symbol,
+        decimals: currency.decimals,
+    };
 }

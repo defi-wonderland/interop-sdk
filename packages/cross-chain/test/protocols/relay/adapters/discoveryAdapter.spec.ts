@@ -71,19 +71,6 @@ describe("parseRelayChainsResponse", () => {
         expect(result[0]!.chainId).toBe(ARBITRUM_CHAIN_ID);
     });
 
-    it("deduplicates addresses within the same chain (case-insensitive)", () => {
-        const result = parseRelayChainsResponse({
-            chains: [
-                makeChain(ETHEREUM_CHAIN_ID, "evm", [
-                    makeSolverCurrency(),
-                    makeSolverCurrency({ address: USDC_ADDRESS.toLowerCase() }),
-                ]),
-            ],
-        });
-
-        expect(result[0]!.assets).toHaveLength(1);
-    });
-
     it("drops chains with no solver currencies", () => {
         const result = parseRelayChainsResponse({
             chains: [
@@ -208,21 +195,5 @@ describe("parseRelayChainsResponse", () => {
 
         expect(result).toHaveLength(1);
         expect(result[0]!.chainId).toBe(ETHEREUM_CHAIN_ID);
-    });
-
-    it("keeps first occurrence when deduplicating", () => {
-        const result = parseRelayChainsResponse({
-            chains: [
-                makeChain(ETHEREUM_CHAIN_ID, "evm", [
-                    makeSolverCurrency({ address: USDC_ADDRESS, symbol: "USDC-original" }),
-                    makeSolverCurrency({
-                        address: USDC_ADDRESS.toLowerCase(),
-                        symbol: "USDC-duplicate",
-                    }),
-                ]),
-            ],
-        });
-
-        expect(result[0]!.assets[0]!.symbol).toBe("USDC-original");
     });
 });
