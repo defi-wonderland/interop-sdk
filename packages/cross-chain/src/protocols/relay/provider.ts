@@ -4,6 +4,7 @@ import axios from "axios";
 import { ZodError } from "zod";
 
 import type {
+    AssetDiscoveryConfig,
     FillWatcherConfig,
     OnBeforeTracking,
     OpenedIntentParserConfig,
@@ -21,8 +22,9 @@ import {
     adaptQuoteRequest,
     extractFillEvent,
     extractOpenedIntent,
+    parseRelayChainsResponse,
 } from "./adapters/index.js";
-import { getRelayApiUrl } from "./constants.js";
+import { getRelayApiUrl, RELAY_TESTNET_TOKENS } from "./constants.js";
 import { RelayApiService } from "./services/index.js";
 import { RelayConfigSchema } from "./types.js";
 
@@ -40,6 +42,7 @@ export class RelayProvider extends CrossChainProvider {
     private readonly baseUrl: string;
     private readonly isTestnet: boolean;
     private readonly apiService: RelayApiService;
+    private readonly apiHeaders: Record<string, string>;
 
     constructor(config: RelayConfigs = {}) {
         super();
@@ -50,11 +53,11 @@ export class RelayProvider extends CrossChainProvider {
             this.baseUrl = parsed.baseUrl ?? getRelayApiUrl(this.isTestnet);
             this.providerId = parsed.providerId ?? "relay";
 
-            const headers: Record<string, string> = {};
+            this.apiHeaders = {};
             if (parsed.apiKey) {
-                headers["x-api-key"] = parsed.apiKey;
+                this.apiHeaders["x-api-key"] = parsed.apiKey;
             }
-            this.http = axios.create({ baseURL: this.baseUrl, headers });
+            this.http = axios.create({ baseURL: this.baseUrl, headers: this.apiHeaders });
             this.apiService = new RelayApiService(this.http);
         } catch (error) {
             if (error instanceof ZodError) {
@@ -133,6 +136,28 @@ export class RelayProvider extends CrossChainProvider {
                     chainId: String(originChainId),
                     txHash,
                 });
+            },
+        };
+    }
+
+    /**
+     * @inheritdoc
+     * Returns static discovery config for testnet, or API-based config for mainnet.
+     */
+    override getDiscoveryConfig(): AssetDiscoveryConfig {
+        if (this.isTestnet) {
+            return {
+                type: "static",
+                config: { networks: RELAY_TESTNET_TOKENS },
+            };
+        }
+
+        return {
+            type: "custom-api",
+            config: {
+                assetsEndpoint: `${this.baseUrl}/chains`,
+                parseResponse: parseRelayChainsResponse,
+                headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
             },
         };
     }
