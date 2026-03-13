@@ -1,13 +1,23 @@
 import { encodeAddress } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
-import { AbiEvent, Address, Hex, isAddressEqual, Log, numberToHex, pad } from "viem";
+import {
+    AbiEvent,
+    Address,
+    encodeFunctionData,
+    Hex,
+    isAddressEqual,
+    Log,
+    numberToHex,
+    pad,
+} from "viem";
 import { ZodError } from "zod";
 
 import type { Quote } from "../../core/schemas/quote.js";
-import type { QuoteRequest } from "../../core/schemas/quoteRequest.js";
+import type { BuildQuoteRequest, QuoteRequest } from "../../core/schemas/quoteRequest.js";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
+    ACROSS_SPOKE_POOL_DEPOSIT_ABI,
     ACROSS_TESTNET_TOKENS,
     ACROSS_UNSUPPORTED_CHAIN_IDS,
     ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
@@ -33,6 +43,7 @@ import {
     getAcrossApiUrl,
     GetFillParams,
     InvalidOpenEventError,
+    isNativeAddress,
     NetworkAssets,
     OpenedIntent,
     OpenedIntentParserConfig,
@@ -43,6 +54,13 @@ import {
     ProviderGetQuoteFailure,
 } from "../../internal.js";
 import { decodeAcrossCalldata } from "./utils.js";
+
+const ZERO_BYTES32 = pad("0x00" as Hex, { size: 32 });
+const ACROSS_DEFAULT_MESSAGE: Hex = "0x73c0de";
+
+function addressToBytes32(address: string): Hex {
+    return pad(address as Address, { size: 32 });
+}
 
 /**
  * An implementation of the CrossChainProvider interface for the Across protocol
@@ -280,6 +298,92 @@ export class AcrossProvider extends CrossChainProvider {
     }
 
     // submitOrder uses default implementation from CrossChainProvider (throws ProviderExecuteNotImplemented)
+
+    /**
+     * @inheritdoc
+     */
+    override async buildQuote(params: BuildQuoteRequest): Promise<Quote> {
+        const spokePoolAddress =
+            ACROSS_SPOKE_POOL_ADDRESSES[params.input.chainId] ?? params.escrowContractAddress;
+
+        const quoteTimestamp = Math.floor(Date.now() / 1000);
+        const recipient = params.output.recipient ?? params.user;
+
+        const calldata = encodeFunctionData({
+            abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
+            functionName: "deposit",
+            args: [
+                addressToBytes32(params.user),
+                addressToBytes32(recipient),
+                addressToBytes32(params.input.assetAddress),
+                addressToBytes32(params.output.assetAddress),
+                BigInt(params.input.amount),
+                BigInt(params.output.amount),
+                BigInt(params.output.chainId),
+                ZERO_BYTES32,
+                quoteTimestamp,
+                params.fillDeadline,
+                0,
+                ACROSS_DEFAULT_MESSAGE,
+            ],
+        });
+
+        const native = isNativeAddress(params.input.assetAddress, "eip155");
+
+        return {
+            provider: this.providerId,
+            order: {
+                steps: [
+                    {
+                        kind: "transaction" as const,
+                        chainId: params.input.chainId,
+                        transaction: {
+                            to: spokePoolAddress,
+                            data: calldata,
+                            ...(native && { value: params.input.amount }),
+                        },
+                    },
+                ],
+                checks: {
+                    allowances: native
+                        ? []
+                        : [
+                              {
+                                  chainId: params.input.chainId,
+                                  tokenAddress: params.input.assetAddress,
+                                  owner: params.user,
+                                  spender: spokePoolAddress,
+                                  required: params.input.amount,
+                              },
+                          ],
+                },
+            },
+            preview: {
+                inputs: [
+                    {
+                        chainId: params.input.chainId,
+                        accountAddress: params.user,
+                        assetAddress: params.input.assetAddress,
+                        amount: params.input.amount,
+                    },
+                ],
+                outputs: [
+                    {
+                        chainId: params.output.chainId,
+                        accountAddress: recipient,
+                        assetAddress: params.output.assetAddress,
+                        amount: params.output.amount,
+                    },
+                ],
+            },
+            metadata: {
+                buildQuote: true,
+                spokePoolAddress,
+                quoteTimestamp,
+                fillDeadline: params.fillDeadline,
+            },
+        };
+    }
 
     /**
      * Get the opened intent parser configuration for Across

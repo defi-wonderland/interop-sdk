@@ -1,7 +1,7 @@
 import type { Hex } from "viem";
 
 import type { Quote, SubmitOrderResponse } from "../schemas/quote.js";
-import type { QuoteRequest } from "../schemas/quoteRequest.js";
+import type { BuildQuoteRequest, QuoteRequest } from "../schemas/quoteRequest.js";
 import type { AssetDiscoveryConfig } from "./assetDiscovery.interface.js";
 import type { FillWatcherConfig } from "./fillWatcher.interface.js";
 import type { OpenedIntentParserConfig } from "./openedIntentParser.interface.js";
@@ -56,6 +56,23 @@ export abstract class CrossChainProvider {
      * @throws ProviderExecuteNotImplemented if the provider doesn't support this method
      */
     async submitOrder(_quote: Quote, _signature: Hex): Promise<SubmitOrderResponse> {
+        throw new ProviderExecuteNotImplemented(this.getProviderId());
+    }
+
+    /**
+     * Build a quote locally without calling a solver API.
+     *
+     * Constructs a {@link Quote} with a `TransactionStep` that the consumer
+     * can execute directly via `walletClient.sendTransaction`.
+     *
+     * Default implementation throws {@link ProviderExecuteNotImplemented}.
+     * Override in providers that support local quote building.
+     *
+     * @param _params - The build quote request with required amounts and contract address
+     * @returns A quote containing a TransactionStep for on-chain submission
+     * @throws ProviderExecuteNotImplemented if the provider doesn't support this method
+     */
+    async buildQuote(_params: BuildQuoteRequest): Promise<Quote> {
         throw new ProviderExecuteNotImplemented(this.getProviderId());
     }
 

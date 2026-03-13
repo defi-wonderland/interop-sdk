@@ -50,4 +50,5 @@ export {
     // SDK schema types
     type ExecutableQuote,
     type QuoteRequest,
+    type BuildQuoteRequest,
 } from "./internal.js";

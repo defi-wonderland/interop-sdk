@@ -5,7 +5,7 @@ import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
 import type { Address, Hex, PublicClient } from 'viem';
-import { BridgeState, ChainContext } from '~/cross-chain/hooks';
+import type { BridgeState, ChainContext } from '~/cross-chain/hooks';
 
 type TrackingIdentifier = { txHash: Hex } | { orderId: Hex };
 
@@ -62,8 +62,6 @@ export const executeDirectTransaction = async ({
   walletClient,
   publicClient,
   ownerAddress,
-  inputTokenAddress,
-  inputAmount,
   chainContext,
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
@@ -74,22 +72,21 @@ export const executeDirectTransaction = async ({
     throw new Error('Invalid quote: missing transaction data');
   }
 
-  const isNativeInput = isNativeAddress(inputTokenAddress, 'eip155');
-
-  if (!isNativeInput) {
+  const allowances = quote.order.checks?.allowances ?? [];
+  for (const allowance of allowances) {
     await handleTokenApproval(
       publicClient,
       walletClient,
       ownerAddress,
-      inputTokenAddress,
-      txStep.transaction.to as Address,
-      inputAmount,
+      allowance.tokenAddress as Address,
+      allowance.spender as Address,
+      BigInt(allowance.required),
       chainContext,
       onStateChange,
     );
   }
 
-  const value = isNativeInput ? inputAmount : undefined;
+  const value = txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined;
 
   const txHash = await submitBridgeTransaction(
     publicClient,
