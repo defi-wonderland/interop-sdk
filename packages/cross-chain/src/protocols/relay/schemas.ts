@@ -392,17 +392,17 @@ const RelayChainCurrencySchema = z.object({
     symbol: z.string(),
     name: z.string(),
     address: z.string(),
-    decimals: z.number().int().nonnegative(),
+    decimals: z.number(),
     supportsBridging: z.boolean().optional(),
 });
 
 /** Schema for a solver currency entry from the Relay GET `/chains` response. */
 const RelaySolverCurrencySchema = z.object({
     id: z.string(),
-    symbol: z.string().min(1),
+    symbol: z.string(),
     name: z.string(),
     address: z.string(),
-    decimals: z.number().int().min(0).max(255),
+    decimals: z.number(),
 });
 
 /** A solver currency entry from the Relay GET `/chains` response. */
@@ -458,7 +458,7 @@ const RelayChainProtocolSchema = z
 
 /** Schema for a single chain entry from the Relay GET `/chains` response. */
 const RelayChainSchema = z.object({
-    id: z.number().int().positive(),
+    id: z.number(),
     name: z.string().optional(),
     displayName: z.string().optional(),
     httpRpcUrl: z.string().optional(),
