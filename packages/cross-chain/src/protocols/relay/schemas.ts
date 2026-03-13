@@ -386,24 +386,118 @@ export type RelayServerErrorResponse = z.infer<typeof RelayServerErrorResponseSc
 
 // ── Relay Chains (Discovery) ────────────────────────────
 
+/** Schema for a chain currency entry from the Relay GET `/chains` response. */
+const RelayChainCurrencySchema = z.object({
+    id: z.string(),
+    symbol: z.string(),
+    name: z.string(),
+    address: z.string(),
+    decimals: z.number().int().nonnegative(),
+    supportsBridging: z.boolean().optional(),
+});
+
 /** Schema for a solver currency entry from the Relay GET `/chains` response. */
 const RelaySolverCurrencySchema = z.object({
-    address: z.string(),
+    id: z.string(),
     symbol: z.string().min(1),
     name: z.string(),
+    address: z.string(),
     decimals: z.number().int().min(0).max(255),
 });
 
 /** A solver currency entry from the Relay GET `/chains` response. */
 export type RelaySolverCurrency = z.infer<typeof RelaySolverCurrencySchema>;
 
+/** Schema for an ERC-20 currency entry from the Relay GET `/chains` response. */
+const RelayErc20CurrencySchema = RelayChainCurrencySchema.extend({
+    supportsPermit: z.boolean().optional(),
+    withdrawalFee: z.number().optional(),
+    depositFee: z.number().optional(),
+    surgeEnabled: z.boolean().optional(),
+});
+
+/** Schema for explorer paths in a chain entry. */
+const RelayExplorerPathsSchema = z
+    .object({
+        transaction: z.string().optional(),
+        address: z.string().optional(),
+    })
+    .nullable()
+    .optional();
+
+/** Schema for Relay contract addresses in a chain entry. */
+const RelayContractsSchema = z
+    .object({
+        multicall3: z.string().optional(),
+        multicaller: z.string().optional(),
+        onlyOwnerMulticaller: z.string().optional(),
+        relayReceiver: z.string().optional(),
+        erc20Router: z.string().optional(),
+        approvalProxy: z.string().optional(),
+        v3: z
+            .object({
+                erc20Router: z.string().optional(),
+                approvalProxy: z.string().optional(),
+            })
+            .optional(),
+    })
+    .optional();
+
+/** Schema for protocol-specific data in a chain entry. */
+const RelayChainProtocolSchema = z
+    .object({
+        v2: z
+            .object({
+                chainId: z.string().nullable().optional(),
+                depository: z.string().nullable().optional(),
+                depositoryVault: z.string().nullable().optional(),
+            })
+            .optional(),
+    })
+    .optional();
+
+/** Schema for a single chain entry from the Relay GET `/chains` response. */
+const RelayChainSchema = z.object({
+    id: z.number().int().positive(),
+    name: z.string().optional(),
+    displayName: z.string().optional(),
+    httpRpcUrl: z.string().optional(),
+    wsRpcUrl: z.string().optional(),
+    explorerUrl: z.string().optional(),
+    explorerName: z.string().optional(),
+    explorerPaths: RelayExplorerPathsSchema,
+    depositEnabled: z.boolean().optional(),
+    tokenSupport: z.enum(["All", "Limited"]).optional(),
+    disabled: z.boolean().optional(),
+    partialDisableLimit: z.number().optional(),
+    blockProductionLagging: z.boolean().optional(),
+    currency: RelayChainCurrencySchema.optional(),
+    withdrawalFee: z.number().optional(),
+    depositFee: z.number().optional(),
+    surgeEnabled: z.boolean().optional(),
+    featuredTokens: z
+        .array(
+            RelayChainCurrencySchema.extend({
+                metadata: z.object({ logoURI: z.string().optional() }).optional(),
+            }),
+        )
+        .optional(),
+    erc20Currencies: z.array(RelayErc20CurrencySchema).optional(),
+    solverCurrencies: z.array(RelaySolverCurrencySchema).default([]),
+    iconUrl: z.string().nullable().optional(),
+    logoUrl: z.string().nullable().optional(),
+    brandColor: z.string().nullable().optional(),
+    contracts: RelayContractsSchema,
+    vmType: z.enum(["bvm", "evm", "svm", "tvm", "tonvm", "suivm", "hypevm", "lvm"]).optional(),
+    explorerQueryParams: z.record(z.unknown()).nullable().optional(),
+    baseChainId: z.number().nullable().optional(),
+    statusMessage: z.string().nullable().optional(),
+    solverAddresses: z.array(z.string()).optional(),
+    tags: z.array(z.string()).optional(),
+    protocol: RelayChainProtocolSchema,
+});
+
 /** Schema for the Relay GET `/chains` response body. */
 export const RelayChainsResponseSchema = z.object({
-    chains: z.array(
-        z.object({
-            id: z.number().int().positive(),
-            vmType: z.string().optional(),
-            solverCurrencies: z.array(RelaySolverCurrencySchema).default([]),
-        }),
-    ),
+    chains: z.array(RelayChainSchema),
 });
