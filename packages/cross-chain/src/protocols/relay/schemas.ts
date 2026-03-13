@@ -332,6 +332,20 @@ export const RelayIntentStatusResponseSchema = z.object({
     destinationChainId: z.number().optional(),
 });
 
+// ── Relay Index Transaction ─────────────────────────────
+
+/** Schema for the Relay POST `/transactions/index` request body. */
+export const RelayIndexTransactionRequestSchema = z.object({
+    chainId: z.string(),
+    txHash: z.string(),
+    requestId: z.string().optional(),
+});
+
+/** Schema for the Relay POST `/transactions/index` response body. */
+export const RelayIndexTransactionResponseSchema = z.object({
+    message: z.string(),
+});
+
 // ── Types ───────────────────────────────────────────────
 
 /** Request body for the Relay POST `/quote/v2` endpoint. */
@@ -351,6 +365,12 @@ export type RelayIntentStatus = z.infer<typeof RelayIntentStatusEnum>;
 
 /** Response from the Relay GET `/intents/status/v3` endpoint. */
 export type RelayIntentStatusResponse = z.infer<typeof RelayIntentStatusResponseSchema>;
+
+/** Request body for the Relay POST `/transactions/index` endpoint. */
+export type RelayIndexTransactionRequest = z.infer<typeof RelayIndexTransactionRequestSchema>;
+
+/** Response from the Relay POST `/transactions/index` endpoint. */
+export type RelayIndexTransactionResponse = z.infer<typeof RelayIndexTransactionResponseSchema>;
 
 /** Relay 400 Bad Request response. */
 export type RelayBadRequestResponse = z.infer<typeof RelayBadRequestResponseSchema>;

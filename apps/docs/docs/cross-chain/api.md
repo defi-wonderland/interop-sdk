@@ -21,6 +21,14 @@ A set of classes and utilities for handling cross-chain operations through vario
     // Across - with testnet config
     const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
 
+    // Relay - config optional (defaults to mainnet)
+    const relayProvider = createCrossChainProvider("relay");
+
+    // Relay - with API key
+    const relayWithKey = createCrossChainProvider("relay", {
+        apiKey: "your-api-key",
+    });
+
     // OIF - config required
     const oifProvider = createCrossChainProvider("oif", {
         solverId: "my-solver",

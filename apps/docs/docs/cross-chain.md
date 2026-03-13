@@ -9,7 +9,7 @@ The cross-chain package provides a standardized interface for interacting with c
 -   Cross-chain token transfers between supported networks
 -   Quote fetching and comparison from multiple providers
 -   Intent tracking from initiation to completion
--   Support for OIF (Open Intents Framework) and Across Protocol
+-   Support for OIF (Open Intents Framework), Across Protocol, and Relay Protocol
 -   EIP-7683 compliant intent-based architecture
 
 ## Quick Start
@@ -64,5 +64,7 @@ if (isSignatureOnlyOrder(quote.order)) {
 ```
 
 For Across Protocol integration, see the [Across Provider](./cross-chain/across-provider.md) guide.
+
+For Relay Protocol integration, see the [Relay Provider](./cross-chain/relay-provider.md) guide.
 
 See the [Getting Started](./cross-chain/getting-started.md) guide for more details.
