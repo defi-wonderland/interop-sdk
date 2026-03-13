@@ -388,7 +388,7 @@ export type RelayServerErrorResponse = z.infer<typeof RelayServerErrorResponseSc
 
 /** Schema for a chain currency entry from the Relay GET `/chains` response. */
 const RelayChainCurrencySchema = z.object({
-    id: z.string(),
+    id: z.string().optional(),
     symbol: z.string(),
     name: z.string(),
     address: z.string(),
