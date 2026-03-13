@@ -6,7 +6,7 @@ import { RelayChainsResponseSchema } from "../schemas.js";
  * Parse a Relay GET `/chains` response into `NetworkAssets[]`.
  *
  * 1. Validates with {@link RelayChainsResponseSchema}
- * 2. Filters to EVM chains (`vmType` is `"evm"` or absent)
+ * 2. Filters to EVM chains (`vmType` is `"evm"` or absent) that are not disabled
  * 3. Deduplicates solver currencies by address (case-insensitive)
  * 4. Drops chains with no assets
  */
@@ -14,7 +14,7 @@ export function parseRelayChainsResponse(data: unknown): NetworkAssets[] {
     const { chains } = RelayChainsResponseSchema.parse(data);
 
     const evmChains = chains
-        .filter((c) => !c.vmType || c.vmType === "evm")
+        .filter((c) => (!c.vmType || c.vmType === "evm") && !c.disabled)
         .map((c) => ({ id: c.id, solverCurrencies: c.solverCurrencies }));
 
     return toNetworkAssets(evmChains);

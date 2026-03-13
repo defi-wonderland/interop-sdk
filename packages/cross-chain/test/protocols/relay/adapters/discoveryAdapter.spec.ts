@@ -178,6 +178,38 @@ describe("parseRelayChainsResponse", () => {
         });
     });
 
+    it("excludes disabled EVM chains", () => {
+        const result = parseRelayChainsResponse({
+            chains: [
+                { ...makeChain(ETHEREUM_CHAIN_ID, "evm", [makeSolverCurrency()]), disabled: true },
+                makeChain(OPTIMISM_CHAIN_ID, "evm", [makeSolverCurrency()]),
+            ],
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0]!.chainId).toBe(OPTIMISM_CHAIN_ID);
+    });
+
+    it("includes EVM chains with disabled explicitly set to false", () => {
+        const result = parseRelayChainsResponse({
+            chains: [
+                { ...makeChain(ETHEREUM_CHAIN_ID, "evm", [makeSolverCurrency()]), disabled: false },
+            ],
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0]!.chainId).toBe(ETHEREUM_CHAIN_ID);
+    });
+
+    it("includes EVM chains without disabled field (defaults to enabled)", () => {
+        const result = parseRelayChainsResponse({
+            chains: [makeChain(ETHEREUM_CHAIN_ID, "evm", [makeSolverCurrency()])],
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0]!.chainId).toBe(ETHEREUM_CHAIN_ID);
+    });
+
     it("keeps first occurrence when deduplicating", () => {
         const result = parseRelayChainsResponse({
             chains: [
