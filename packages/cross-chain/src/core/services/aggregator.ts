@@ -1,6 +1,5 @@
 import { Hex } from "viem";
 
-import type { SupportedProtocols } from "../../factories/providers.js";
 import type { AssetDiscoveryService } from "../interfaces/assetDiscovery.interface.js";
 import type {
     ExecutableQuote,
@@ -237,10 +236,7 @@ class Aggregator {
      * @param params - The build quote request with required amounts and contract address
      * @returns An executable quote containing a TransactionStep
      */
-    async buildQuote(
-        providerId: SupportedProtocols,
-        params: BuildQuoteRequest,
-    ): Promise<ExecutableQuote> {
+    async buildQuote(providerId: string, params: BuildQuoteRequest): Promise<ExecutableQuote> {
         const provider = this.providers[providerId];
         if (!provider) {
             throw new ProviderNotFound(providerId);

@@ -157,7 +157,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     response.errors.forEach((error) => console.error(error.errorMsg));
     ```
 
--   **buildQuote**(providerId: SupportedProtocols, params: BuildQuoteRequest): Promise\<ExecutableQuote\>
+-   **buildQuote**(providerId: string, params: BuildQuoteRequest): Promise\<ExecutableQuote\>
 
     Builds a quote locally for a specific provider without calling a solver API. The user provides both amounts (controlling the fee) and a fill deadline. The returned quote feeds into the same execution and tracking pipeline as API-fetched quotes.
 
