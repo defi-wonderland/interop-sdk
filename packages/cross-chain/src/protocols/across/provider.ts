@@ -43,6 +43,7 @@ import {
     getAcrossApiUrl,
     GetFillParams,
     InvalidOpenEventError,
+    isNativeAddress,
     NetworkAssets,
     OpenedIntent,
     OpenedIntentParserConfig,
@@ -327,6 +328,8 @@ export class AcrossProvider extends CrossChainProvider {
             ],
         });
 
+        const native = isNativeAddress(params.input.assetAddress, "eip155");
+
         return {
             provider: this.providerId,
             order: {
@@ -337,19 +340,22 @@ export class AcrossProvider extends CrossChainProvider {
                         transaction: {
                             to: spokePoolAddress,
                             data: calldata,
+                            ...(native && { value: params.input.amount }),
                         },
                     },
                 ],
                 checks: {
-                    allowances: [
-                        {
-                            chainId: params.input.chainId,
-                            tokenAddress: params.input.assetAddress,
-                            owner: params.user,
-                            spender: spokePoolAddress,
-                            required: params.input.amount,
-                        },
-                    ],
+                    allowances: native
+                        ? []
+                        : [
+                              {
+                                  chainId: params.input.chainId,
+                                  tokenAddress: params.input.assetAddress,
+                                  owner: params.user,
+                                  spender: spokePoolAddress,
+                                  required: params.input.amount,
+                              },
+                          ],
                 },
             },
             preview: {

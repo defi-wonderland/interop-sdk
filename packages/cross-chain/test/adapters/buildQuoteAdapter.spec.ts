@@ -266,4 +266,31 @@ describe("OifProvider.buildQuote", () => {
             expect(args[0].orderDataType).toBe(customOrderDataType);
         }
     });
+
+    it("sets value and skips allowance for native token input", async () => {
+        const nativeAddress = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address;
+        const quote = await provider.buildQuote(
+            createBuildQuoteRequest({
+                input: { chainId: 1, assetAddress: nativeAddress, amount: "1000000" },
+            }),
+        );
+
+        const step = quote.order.steps[0]!;
+        expect(step.kind).toBe("transaction");
+        if (step.kind === "transaction") {
+            expect(step.transaction.value).toBe("1000000");
+        }
+        expect(quote.order.checks!.allowances).toHaveLength(0);
+    });
+
+    it("omits value and includes allowance for ERC-20 input", async () => {
+        const quote = await provider.buildQuote(createBuildQuoteRequest());
+
+        const step = quote.order.steps[0]!;
+        expect(step.kind).toBe("transaction");
+        if (step.kind === "transaction") {
+            expect(step.transaction.value).toBeUndefined();
+        }
+        expect(quote.order.checks!.allowances).toHaveLength(1);
+    });
 });

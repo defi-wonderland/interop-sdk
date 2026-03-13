@@ -214,4 +214,31 @@ describe("AcrossProvider.buildQuote", () => {
         const quote = await provider.buildQuote(createRequest());
         expect(quote.order.steps[0]!.chainId).toBe(sepolia.id);
     });
+
+    it("sets value and skips allowance for native token input", async () => {
+        const nativeAddress = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address;
+        const quote = await provider.buildQuote(
+            createRequest({
+                input: { chainId: sepolia.id, assetAddress: nativeAddress, amount: "1000000" },
+            }),
+        );
+
+        const step = quote.order.steps[0]!;
+        expect(step.kind).toBe("transaction");
+        if (step.kind === "transaction") {
+            expect(step.transaction.value).toBe("1000000");
+        }
+        expect(quote.order.checks!.allowances).toHaveLength(0);
+    });
+
+    it("omits value and includes allowance for ERC-20 input", async () => {
+        const quote = await provider.buildQuote(createRequest());
+
+        const step = quote.order.steps[0]!;
+        expect(step.kind).toBe("transaction");
+        if (step.kind === "transaction") {
+            expect(step.transaction.value).toBeUndefined();
+        }
+        expect(quote.order.checks!.allowances).toHaveLength(1);
+    });
 });

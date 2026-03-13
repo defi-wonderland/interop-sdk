@@ -23,6 +23,7 @@ import {
     GetFillParams,
     getOrderResponseSchema,
     getQuoteResponseSchema,
+    isNativeAddress,
     OIFAssetDiscoveryConfig,
     OifProviderConfig,
     OifProviderConfigSchema,
@@ -290,6 +291,7 @@ export class OifProvider extends CrossChainProvider {
         });
 
         const recipient = params.output.recipient ?? params.user;
+        const native = isNativeAddress(params.input.assetAddress, "eip155");
 
         return {
             provider: this.providerId,
@@ -301,19 +303,22 @@ export class OifProvider extends CrossChainProvider {
                         transaction: {
                             to: params.escrowContractAddress,
                             data: calldata,
+                            ...(native && { value: params.input.amount }),
                         },
                     },
                 ],
                 checks: {
-                    allowances: [
-                        {
-                            chainId: params.input.chainId,
-                            tokenAddress: params.input.assetAddress,
-                            owner: params.user,
-                            spender: params.escrowContractAddress,
-                            required: params.input.amount,
-                        },
-                    ],
+                    allowances: native
+                        ? []
+                        : [
+                              {
+                                  chainId: params.input.chainId,
+                                  tokenAddress: params.input.assetAddress,
+                                  owner: params.user,
+                                  spender: params.escrowContractAddress,
+                                  required: params.input.amount,
+                              },
+                          ],
                 },
             },
             preview: {
