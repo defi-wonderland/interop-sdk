@@ -18,10 +18,12 @@ import {
   type ToastType,
 } from './components';
 import { useOrderExecution, useChainConfig } from './hooks';
+import { useBuildQuote, BuildQuoteStatus } from './hooks/useBuildQuote';
 import { useQuotes, QuoteStatus } from './hooks/useQuotes';
 import { useDiscoveredAssets } from './providers';
 import { useFillWorkaround } from './services/orderExecution/fillDetection';
 import { STEP } from './types/execution';
+import type { SwapFormMode } from './components/SwapForm';
 import type { Address } from 'viem';
 
 interface ToastState {
@@ -29,10 +31,29 @@ interface ToastState {
   type: ToastType;
 }
 
+function mapBuildStatusToQuoteStatus(buildStatus: BuildQuoteStatus): QuoteStatus {
+  switch (buildStatus) {
+    case BuildQuoteStatus.LOADING:
+      return QuoteStatus.LOADING;
+    case BuildQuoteStatus.SUCCESS:
+      return QuoteStatus.SUCCESS;
+    case BuildQuoteStatus.ERROR:
+      return QuoteStatus.ERROR;
+    default:
+      return QuoteStatus.IDLE;
+  }
+}
+
 export function CrossChainClient() {
   const { quotes, errors, status: quoteStatus, fetchQuotes, clearQuotes } = useQuotes();
+  const {
+    quote: builtQuote,
+    error: buildError,
+    status: buildStatus,
+    buildQuote,
+    clear: clearBuildQuote,
+  } = useBuildQuote();
   const { state: rawExecutionState, execute, reset: resetExecution, abortTracking } = useOrderExecution();
-  // WORKAROUND: OIF solver never finalizes — promote TRACKING→DONE on fillTxHash. Remove when solver is fixed.
   const executionState = useFillWorkaround(rawExecutionState, abortTracking);
   const chainConfig = useChainConfig();
   const { retryDiscovery } = useDiscoveredAssets();
@@ -45,7 +66,13 @@ export function CrossChainClient() {
   const [outputChainId, setOutputChainId] = useState<number>(0);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [lastQuoteParams, setLastQuoteParams] = useState<Parameters<typeof fetchQuotes>[0] | null>(null);
+  const [currentMode, setCurrentMode] = useState<SwapFormMode>('getQuotes');
   const isExecutionStarted = executionState.step !== STEP.IDLE;
+
+  const effectiveQuotes: ExecutableQuote[] = currentMode === 'buildQuote' && builtQuote ? [builtQuote] : quotes;
+  const effectiveErrors =
+    currentMode === 'buildQuote' && buildError ? [{ errorMsg: buildError, error: new Error(buildError) }] : errors;
+  const effectiveStatus = currentMode === 'buildQuote' ? mapBuildStatusToQuoteStatus(buildStatus) : quoteStatus;
 
   const closeToast = useCallback(() => {
     setToast(null);
@@ -60,6 +87,9 @@ export function CrossChainClient() {
     outputTokenAddress: string;
     inputAmount: string;
     inputAmountRaw: bigint;
+    mode: SwapFormMode;
+    outputAmount?: string;
+    fillDeadlineSecs?: number;
   }) => {
     setSelectedInputToken(params.inputTokenAddress);
     setSelectedOutputToken(params.outputTokenAddress);
@@ -67,9 +97,33 @@ export function CrossChainClient() {
     setInputChainId(params.inputChainId);
     setOutputChainId(params.outputChainId);
     setSelectedQuote(null);
-    setLastQuoteParams(params);
+    setCurrentMode(params.mode);
     resetExecution();
-    await fetchQuotes(params);
+
+    if (params.mode === 'buildQuote') {
+      if (!params.outputAmount) {
+        clearQuotes();
+        clearBuildQuote();
+        return;
+      }
+      clearQuotes();
+      setLastQuoteParams(null);
+      await buildQuote({
+        sender: params.sender,
+        recipient: params.recipient,
+        inputChainId: params.inputChainId,
+        outputChainId: params.outputChainId,
+        inputTokenAddress: params.inputTokenAddress,
+        outputTokenAddress: params.outputTokenAddress,
+        inputAmount: params.inputAmount,
+        outputAmount: params.outputAmount,
+        fillDeadlineSecs: params.fillDeadlineSecs,
+      });
+    } else {
+      clearBuildQuote();
+      setLastQuoteParams(params);
+      await fetchQuotes(params);
+    }
   };
 
   const handleSelectQuote = (quote: ExecutableQuote) => {
@@ -78,6 +132,7 @@ export function CrossChainClient() {
   };
 
   const handleExecuteQuote = async (quote: ExecutableQuote) => {
+    setSelectedQuote(quote);
     const result = await execute(
       quote,
       selectedInputToken as Address,
@@ -95,13 +150,15 @@ export function CrossChainClient() {
     setSelectedQuote(null);
     setLastQuoteParams(null);
     clearQuotes();
-  }, [clearQuotes]);
+    clearBuildQuote();
+  }, [clearQuotes, clearBuildQuote]);
 
   const handleReset = useCallback(() => {
     resetExecution();
     setSelectedQuote(null);
     clearQuotes();
-  }, [resetExecution, clearQuotes]);
+    clearBuildQuote();
+  }, [resetExecution, clearQuotes, clearBuildQuote]);
 
   return (
     <TooltipProvider>
@@ -140,7 +197,7 @@ export function CrossChainClient() {
                   <SwapForm
                     onSubmit={handleSubmit}
                     onInputChange={handleInputChange}
-                    isLoading={quoteStatus === QuoteStatus.LOADING}
+                    isLoading={effectiveStatus === QuoteStatus.LOADING}
                     isDisabled={isExecutionStarted}
                   />
                 )}
@@ -171,9 +228,9 @@ export function CrossChainClient() {
                   </>
                 ) : (
                   <QuoteList
-                    quotes={quotes}
-                    errors={errors}
-                    status={quoteStatus}
+                    quotes={effectiveQuotes}
+                    errors={effectiveErrors}
+                    status={effectiveStatus}
                     inputTokenAddress={selectedInputToken}
                     outputTokenAddress={selectedOutputToken}
                     inputChainId={inputChainId}
