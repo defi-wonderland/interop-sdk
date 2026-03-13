@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
+import { RELAY_TESTNET_TOKENS } from "../../../src/protocols/relay/constants.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -27,6 +28,7 @@ const RELAY_ERROR_AMOUNT_TOO_LOW = "AMOUNT_TOO_LOW";
 const RELAY_ERROR_ROUTE_NOT_FOUND = "ROUTE_NOT_FOUND";
 const TX_HASH = "0xdeposithash";
 const INDEX_ENDPOINT = "/transactions/index";
+const RELAY_BASE_URL = "https://api.relay.link";
 
 // ── Mock & Helpers ───────────────────────────────────────
 
@@ -142,25 +144,6 @@ describe("RelayProvider", () => {
                         string,
                         string
                     >,
-                }),
-            );
-        });
-
-        it("uses testnet URL when isTestnet is true", () => {
-            new RelayProvider({ isTestnet: true });
-            expect(axios.create).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    baseURL: "https://api.testnets.relay.link",
-                }),
-            );
-        });
-
-        it("explicit baseUrl takes precedence over isTestnet", () => {
-            const customUrl = "https://custom.relay.link";
-            new RelayProvider({ isTestnet: true, baseUrl: customUrl });
-            expect(axios.create).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    baseURL: customUrl,
                 }),
             );
         });
@@ -318,6 +301,50 @@ describe("RelayProvider", () => {
             await expect(
                 config.onBeforeTracking!({ txHash: TX_HASH, originChainId: ORIGIN_CHAIN_ID }),
             ).rejects.toThrow();
+        });
+    });
+
+    describe("getDiscoveryConfig()", () => {
+        it("returns custom-api config for mainnet", () => {
+            const config = new RelayProvider().getDiscoveryConfig();
+            expect(config).not.toBeNull();
+            expect(config!.type).toBe("custom-api");
+        });
+
+        it("points assetsEndpoint to /chains", () => {
+            const config = new RelayProvider().getDiscoveryConfig();
+            expect(config!.type).toBe("custom-api");
+            expect((config!.config as { assetsEndpoint: string }).assetsEndpoint).toBe(
+                `${RELAY_BASE_URL}/chains`,
+            );
+        });
+
+        it("uses custom baseUrl in assetsEndpoint", () => {
+            const customUrl = "https://custom.relay.link";
+            const config = new RelayProvider({ baseUrl: customUrl }).getDiscoveryConfig();
+            expect((config!.config as { assetsEndpoint: string }).assetsEndpoint).toBe(
+                `${customUrl}/chains`,
+            );
+        });
+
+        it("includes API key headers when configured", () => {
+            const config = new RelayProvider({ apiKey: API_KEY }).getDiscoveryConfig();
+            expect((config!.config as { headers?: Record<string, string> }).headers).toEqual({
+                "x-api-key": API_KEY,
+            });
+        });
+
+        it("omits headers when no API key is configured", () => {
+            const config = new RelayProvider().getDiscoveryConfig();
+            expect(
+                (config!.config as { headers?: Record<string, string> }).headers,
+            ).toBeUndefined();
+        });
+
+        it("returns static config with testnet tokens for testnet", () => {
+            const config = new RelayProvider({ isTestnet: true }).getDiscoveryConfig();
+            expect(config!.type).toBe("static");
+            expect((config!.config as { networks: unknown }).networks).toBe(RELAY_TESTNET_TOKENS);
         });
     });
 });
