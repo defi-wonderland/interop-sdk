@@ -11,6 +11,7 @@ import {
 } from "../internal.js";
 import { bytesToUnprefixedHex } from "../utils/bytes.js";
 import { bip122AddressToBinary, bip122AddressToText } from "./bip122/index.js";
+import { starknetAddressToBinary } from "./starknet/index.js";
 
 /**
  * CAIP-350 text serialization helpers for working with chain references and addresses.
@@ -56,6 +57,8 @@ export const chainReferenceToText = (chainReference: Uint8Array, chainType: Uint
             return bytesToUnprefixedHex(chainReference);
         case ChainTypeName.SOLANA:
             return bs58.encode(chainReference);
+        case ChainTypeName.STARKNET:
+            return new TextDecoder().decode(chainReference);
         default:
             throw new UnsupportedChainType(chainTypeHex);
     }
@@ -88,6 +91,8 @@ export const chainReferenceToBinary = (
             return convertToBytes(chainReference, "hex");
         case ChainTypeName.SOLANA:
             return convertToBytes(chainReference, "base58");
+        case ChainTypeName.STARKNET:
+            return convertToBytes(chainReference, "utf8");
         default:
             throw new UnsupportedChainType(chainType);
     }
@@ -131,6 +136,14 @@ export const addressToText = (
             return bip122AddressToText(address, chainReference);
         case ChainTypeName.SOLANA:
             return bs58.encode(address);
+        case ChainTypeName.STARKNET: {
+            if (address.length !== 32) {
+                throw new InvalidAddress(
+                    `starknet address must be 32 bytes, got ${address.length}`,
+                );
+            }
+            return toHex(address);
+        }
         default:
             throw new UnsupportedChainType(chainTypeHex);
     }
@@ -176,6 +189,8 @@ export const addressToBinary = (address: string, chainType: ChainTypeName): Uint
             }
             return decoded;
         }
+        case ChainTypeName.STARKNET:
+            return starknetAddressToBinary(address);
         default:
             throw new UnsupportedChainType(chainType);
     }

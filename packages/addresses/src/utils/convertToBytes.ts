@@ -9,7 +9,7 @@ import { BytesConversionFailed, InvalidConversionType, InvalidDecimal } from "..
  */
 export const convertToBytes = (
     input: string | undefined,
-    type: "hex" | "base58" | "base64" | "decimal",
+    type: "hex" | "base58" | "base64" | "decimal" | "utf8",
 ): Uint8Array => {
     if (!input) {
         return new Uint8Array();
@@ -34,6 +34,8 @@ export const convertToBytes = (
                     throw new InvalidDecimal(input);
                 }
                 return convertToBytes(decimalNumber.toString(16), "hex");
+            case "utf8":
+                return new TextEncoder().encode(input);
             default:
                 throw new InvalidConversionType(type);
         }
