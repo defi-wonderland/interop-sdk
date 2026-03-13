@@ -21,6 +21,14 @@ A set of classes and utilities for handling cross-chain operations through vario
     // Across - with testnet config
     const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
 
+    // Relay - config optional (defaults to mainnet)
+    const relayProvider = createCrossChainProvider("relay");
+
+    // Relay - with API key
+    const relayWithKey = createCrossChainProvider("relay", {
+        apiKey: "your-api-key",
+    });
+
     // OIF - config required
     const oifProvider = createCrossChainProvider("oif", {
         solverId: "my-solver",
@@ -231,18 +239,20 @@ A class that manages multiple cross-chain providers and coordinates their operat
 
     ```typescript
     const discovered = await aggregator.discoverAssets({ chainIds: [1, 42161] });
-    // discovered.tokensByChain — token addresses grouped by CAIP-350 chain identifier
-    // discovered.tokenMetadata — token metadata keyed by interop address
+    // discovered.tokensByChain — token addresses grouped by numeric chain ID
+    // discovered.tokenMetadata — token metadata nested by chain ID then lowercase address
     ```
 
 -   **getProvidersForRoute**(query: RouteQuery): Promise\<string[]\>
 
-    Returns provider IDs that support a given origin/destination asset pair. Both addresses use EIP-7930 interop format.
+    Returns provider IDs that support a given origin/destination asset pair. Uses plain 0x addresses and numeric chain IDs.
 
     ```typescript
     const providers = await aggregator.getProvidersForRoute({
-        originAsset: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        destinationAsset: "0x00010001490833d0aef5f930c0015f8baa4e30d8f9ced...",
+        originChainId: 1,
+        originAsset: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        destinationChainId: 42161,
+        destinationAsset: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     });
     ```
 

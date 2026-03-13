@@ -16,7 +16,7 @@ export type InteroperableAddressBinary = {
  */
 export type InteroperableAddressText = {
     version: number;
-    chainType: "eip155" | "solana";
+    chainType: "eip155" | "bip122" | "solana" | "starknet";
     chainReference?: string;
     address?: string;
 };
@@ -26,7 +26,7 @@ export type InteroperableAddressText = {
  *
  * TypeScript narrows based on the `chainType` field type:
  * - Binary variant: `chainType: Uint8Array`
- * - Text variant: `chainType: "eip155" | "solana"`
+ * - Text variant: `chainType: "eip155" | "bip122" | "solana" | "starknet"`
  *
  * Use type guards to narrow:
  * - `typeof addr.chainType === "string"` → text variant

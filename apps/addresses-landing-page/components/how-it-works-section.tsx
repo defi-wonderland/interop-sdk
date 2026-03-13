@@ -10,7 +10,7 @@ export function HowItWorksSection() {
                 smart contracts and other machine-readable contexts.
                 <br />
                 <strong>ERC-7828</strong>: an Interoperable Name format for end-users, optionally
-                using ENS and an on-chain chain registry for maximum readability.
+                using ENS and an onchain chain registry for maximum readability.
                 <br />
                 <br />
                 These standards work together to support interoperability use-cases across Ethereum.

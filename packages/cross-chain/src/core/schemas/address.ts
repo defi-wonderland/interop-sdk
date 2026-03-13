@@ -11,7 +11,7 @@ export const AddressSchema = z
         "Cross-chain compatible address format per EIP-7930 version 1 encoded format (0x0001 + chain ID + address) for\nunambiguous cross-chain identification.",
     );
 
-export const HexAddressSchema = z.string().refine((val) => isAddress(val), {
+export const HexAddressSchema = z.string().refine((val) => isAddress(val, { strict: false }), {
     message: "Invalid hex address",
 });
 

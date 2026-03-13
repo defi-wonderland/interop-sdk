@@ -1,4 +1,3 @@
-import { toChainIdentifier } from "@wonderland/interop-addresses";
 import { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -34,12 +33,12 @@ describe("BaseAssetDiscoveryService", () => {
             chainId: 1,
             assets: [
                 {
-                    address: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                     symbol: "USDC",
                     decimals: 6,
                 },
                 {
-                    address: "0x000100000101C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
                     symbol: "WETH",
                     decimals: 18,
                 },
@@ -49,7 +48,7 @@ describe("BaseAssetDiscoveryService", () => {
             chainId: 137,
             assets: [
                 {
-                    address: "0x00010000018902791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                    address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
                     symbol: "USDC",
                     decimals: 6,
                 },
@@ -194,15 +193,15 @@ describe("BaseAssetDiscoveryService", () => {
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
             expect(Object.keys(result.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(String(1));
         });
 
         it("should return all chains when chainIds is not provided", async () => {
             const result = await service.getSupportedAssets();
 
             expect(Object.keys(result.tokensByChain)).toHaveLength(2);
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
+            expect(Object.keys(result.tokensByChain)).toContain(String(1));
+            expect(Object.keys(result.tokensByChain)).toContain(String(137));
         });
 
         it("should return empty when chainIds matches nothing", async () => {
@@ -219,7 +218,7 @@ describe("BaseAssetDiscoveryService", () => {
             // Second call with filter should return filtered cached result
             const filtered = await service.getSupportedAssets({ chainIds: [137] });
             expect(Object.keys(filtered.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(filtered.tokensByChain)).toContain(toChainIdentifier(137));
+            expect(Object.keys(filtered.tokensByChain)).toContain(String(137));
 
             // Only one fetch should have occurred
             expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -284,10 +283,10 @@ describe("BaseAssetDiscoveryService", () => {
             expect(fetchMock).toHaveBeenCalledTimes(1);
 
             expect(Object.keys(result1.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result1.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result1.tokensByChain)).toContain(String(1));
 
             expect(Object.keys(result2.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result2.tokensByChain)).toContain(toChainIdentifier(137));
+            expect(Object.keys(result2.tokensByChain)).toContain(String(137));
         });
     });
 
@@ -311,7 +310,7 @@ describe("BaseAssetDiscoveryService", () => {
             it("should find asset with exact address match", async () => {
                 const result = await service.isAssetSupported(
                     1,
-                    "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                 );
 
                 expect(result?.symbol).toBe("USDC");
@@ -320,7 +319,7 @@ describe("BaseAssetDiscoveryService", () => {
             it("should find asset with case-insensitive address match", async () => {
                 const result = await service.isAssetSupported(
                     1,
-                    "0x000100000101a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
                 );
 
                 expect(result?.symbol).toBe("USDC");
@@ -329,7 +328,7 @@ describe("BaseAssetDiscoveryService", () => {
             it("should return null for non-existent asset", async () => {
                 const result = await service.isAssetSupported(
                     1,
-                    "0x0001000001010000000000000000000000000000000000000000",
+                    "0x0000000000000000000000000000000000000000",
                 );
 
                 expect(result).toBeNull();
@@ -338,7 +337,7 @@ describe("BaseAssetDiscoveryService", () => {
             it("should return null for unsupported chain", async () => {
                 const result = await service.isAssetSupported(
                     999,
-                    "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                 );
 
                 expect(result).toBeNull();

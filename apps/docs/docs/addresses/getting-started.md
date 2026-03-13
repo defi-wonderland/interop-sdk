@@ -112,6 +112,7 @@ The package supports three main address representations:
     - Default representation is "text" (more user-friendly)
     - Fields use CAIP-350 text encoding rules when in text variant:
         - **eip155**: Decimal strings for chain references, hex with EIP-55 checksumming for addresses
+        - **bip122**: Chain references as 32-char lowercase hex (genesis hash prefix), addresses as base58check or bech32/bech32m
         - **solana**: Base58 encoding for both chain references and addresses
 
 3. **Binary Address (Serialized)**: Hex or bytes string representation
@@ -224,14 +225,14 @@ The package resolves chain identifiers using off-chain registries:
 
 ### Experimental: Onchain Chain Registry
 
-ENS-based chain resolution is available as an experimental feature. When enabled, the SDK queries an onchain ENS registry (like `cid.eth`) to resolve chain labels:
+ENS-based chain resolution is available as an experimental feature. When enabled, the SDK queries an onchain ENS registry (like `on.eth`) to resolve chain labels:
 
 ```typescript
 import { parseName } from "@wonderland/interop-addresses";
 
-// Use cid.eth (Unruggable's chain registry on mainnet)
+// Use on.eth (ENS chain registry on mainnet)
 const result = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth", {
-    useExperimentalChainRegistry: "cid.eth",
+    useExperimentalChainRegistry: "on.eth",
 });
 // result.interoperableAddress.chainType === "eip155"
 // result.interoperableAddress.chainReference === "1"
@@ -244,7 +245,7 @@ const result2 = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@arb1
 
 **How it works:**
 
-1. Constructs the full ENS domain as `{label}.{registryDomain}` (e.g., `eth.cid.eth`)
+1. Constructs the full ENS domain as `{label}.{registryDomain}` (e.g., `ethereum.on.eth`)
 2. Queries the ENS registry to find the resolver for that domain
 3. Calls the resolver's `data()` method with key `"interoperable-address"` (per ENSIP-24)
 4. Decodes the returned ERC-7930 binary format to get chainType and chainReference

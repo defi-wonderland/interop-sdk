@@ -58,7 +58,7 @@ export function SpecsSection() {
                     <p className="font-mono text-sm md:text-[0.9375rem] lg:text-base text-muted-foreground leading-relaxed mb-5 lg:mb-6">
                         Defines a standard
                         {" <address>@<chain>"} text representation, supporting optional resolution
-                        of ENS names and readable chain identifiers based on an on-chain registry.
+                        of ENS names and readable chain identifiers based on an onchain registry.
                     </p>
                     <a
                         href="https://eips.ethereum.org/EIPS/eip-7828"

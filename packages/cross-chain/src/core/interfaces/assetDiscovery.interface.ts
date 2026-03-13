@@ -28,8 +28,8 @@ export interface AssetDiscoveryService {
      * Get all supported assets across all chains
      *
      * Returns a pre-processed DiscoveredAssets structure with:
-     * - tokensByChain: CAIP-350 chain identifier keys → EIP-7930 token addresses
-     * - tokenMetadata: flat lookup by interop address → AssetInfo
+     * - tokensByChain: numeric chain ID keys → plain 0x token addresses
+     * - tokenMetadata: nested lookup by chain ID → lowercase address → AssetInfo
      *
      * @param options - Discovery options (filtering)
      * @returns Aggregated discovery result ready for consumption
@@ -50,7 +50,7 @@ export interface AssetDiscoveryService {
      * Check if a specific asset is supported
      *
      * @param chainId - Chain ID where the asset exists
-     * @param assetAddress - Asset address (EIP-7930 format)
+     * @param assetAddress - Asset address (plain 0x format)
      * @param options - Discovery options
      * @returns Asset info if supported, null otherwise
      */

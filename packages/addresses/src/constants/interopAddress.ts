@@ -1,21 +1,36 @@
 export enum ChainTypeValue {
     EIP155 = "0x0000",
+    BIP122 = "0x0001",
     SOLANA = "0x0002",
+    STARKNET = "0x0003",
 }
 
 export enum ChainTypeName {
     EIP155 = "eip155",
+    BIP122 = "bip122",
     SOLANA = "solana",
+    STARKNET = "starknet",
 }
 
 export const CHAIN_TYPE: Record<string, ChainTypeValue> = {
     [ChainTypeName.EIP155]: ChainTypeValue.EIP155,
+    [ChainTypeName.BIP122]: ChainTypeValue.BIP122,
     [ChainTypeName.SOLANA]: ChainTypeValue.SOLANA,
+    [ChainTypeName.STARKNET]: ChainTypeValue.STARKNET,
 } as const;
 
 export const CHAIN_TYPE_VALUE_TO_NAME: Record<ChainTypeValue, ChainTypeName> = {
     [ChainTypeValue.EIP155]: ChainTypeName.EIP155,
+    [ChainTypeValue.BIP122]: ChainTypeName.BIP122,
     [ChainTypeValue.SOLANA]: ChainTypeName.SOLANA,
+    [ChainTypeValue.STARKNET]: ChainTypeName.STARKNET,
+} as const;
+
+export const CHAIN_TYPE_LABEL: Record<ChainTypeName, string> = {
+    [ChainTypeName.EIP155]: "Ethereum",
+    [ChainTypeName.BIP122]: "Bitcoin",
+    [ChainTypeName.SOLANA]: "Solana",
+    [ChainTypeName.STARKNET]: "Starknet",
 } as const;
 
 // Start position of each field in the binary interop address representation
