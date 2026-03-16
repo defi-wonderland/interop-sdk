@@ -11,7 +11,7 @@ export function adaptOrderStatus(lifiStatus: string): OrderStatus {
         case "Settled":
             return OrderStatus.Finalized;
         case "Delivered":
-            return OrderStatus.Executing;
+            return OrderStatus.Settling;
         case "Signed":
             return OrderStatus.Pending;
         case "Expired":

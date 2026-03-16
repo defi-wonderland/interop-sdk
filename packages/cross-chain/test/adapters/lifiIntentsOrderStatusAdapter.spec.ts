@@ -8,8 +8,8 @@ describe("LI.FI Intents adaptOrderStatus", () => {
         expect(adaptOrderStatus("Settled")).toBe(OrderStatus.Finalized);
     });
 
-    it("maps 'Delivered' to Executing", () => {
-        expect(adaptOrderStatus("Delivered")).toBe(OrderStatus.Executing);
+    it("maps 'Delivered' to Settling", () => {
+        expect(adaptOrderStatus("Delivered")).toBe(OrderStatus.Settling);
     });
 
     it("maps 'Signed' to Pending", () => {

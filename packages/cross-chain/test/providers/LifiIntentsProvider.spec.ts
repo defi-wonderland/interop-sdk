@@ -365,7 +365,7 @@ describe("LifiIntentsProvider", () => {
             expect(result.event!.originChainId).toBe(8453);
         });
 
-        it("extractFillEvent maps Delivered to Executing (no fill event)", () => {
+        it("extractFillEvent maps Delivered to Settling (no fill event)", () => {
             const config = LifiIntentsProvider.getFillWatcherConfig(MOCK_ORDER_SERVER_URL);
             const result = config.extractFillEvent(
                 {
@@ -381,7 +381,7 @@ describe("LifiIntentsProvider", () => {
                 { ...fillParams, orderId: "0xabc" as `0x${string}` },
             );
 
-            expect(result.status).toBe(OrderStatus.Executing);
+            expect(result.status).toBe(OrderStatus.Settling);
             expect(result.event).toBeNull();
         });
 
