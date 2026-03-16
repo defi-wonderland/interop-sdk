@@ -29,6 +29,7 @@ export class LifiIntentsAssetDiscoveryService extends BaseAssetDiscoveryService 
         const response = await axios.get(`${this.orderServerUrl}/routes`, {
             headers: this.headers,
             timeout: this.timeout,
+            validateStatus: () => true,
         });
 
         if (response.status !== 200) {

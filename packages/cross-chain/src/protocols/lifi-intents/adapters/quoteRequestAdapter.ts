@@ -15,6 +15,10 @@ function toChainString(chainId: number): string {
 export function adaptQuoteRequest(request: QuoteRequest): LifiIntentsQuoteRequest {
     const { input, output } = request;
 
+    if (request.swapType === "exact-output") {
+        throw new Error("LI.FI Intents only supports exact-input swaps.");
+    }
+
     if (!input.amount) {
         throw new Error(
             "LI.FI Intents requires input.amount (exact-input only). Received undefined.",

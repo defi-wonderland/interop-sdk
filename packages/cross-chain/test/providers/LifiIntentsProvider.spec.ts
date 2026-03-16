@@ -62,17 +62,18 @@ describe("LifiIntentsProvider", () => {
 
         it("throws ProviderConfigFailure for non-ZodError thrown during config", async () => {
             const schemas = await import("../../src/protocols/lifi-intents/schemas.js");
-            const originalParse = schemas.LifiIntentsProviderConfigSchema.parse;
-            schemas.LifiIntentsProviderConfigSchema.parse = (): never => {
-                throw new TypeError("unexpected internal error");
-            };
+            const spy = vi
+                .spyOn(schemas.LifiIntentsProviderConfigSchema, "parse")
+                .mockImplementation((): never => {
+                    throw new TypeError("unexpected internal error");
+                });
 
             try {
                 expect(
                     () => new LifiIntentsProvider({ orderServerUrl: MOCK_ORDER_SERVER_URL }),
                 ).toThrow(ProviderConfigFailure);
             } finally {
-                schemas.LifiIntentsProviderConfigSchema.parse = originalParse;
+                spy.mockRestore();
             }
         });
     });

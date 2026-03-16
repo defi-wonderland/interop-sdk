@@ -112,6 +112,7 @@ export class LifiIntentsProvider extends CrossChainProvider {
             }
             throw new ProviderGetQuoteFailure(
                 `LI.FI Intents quote failed: ${error instanceof Error ? error.message : String(error)}`,
+                undefined,
                 error instanceof Error ? error.stack : undefined,
             );
         }
@@ -122,10 +123,12 @@ export class LifiIntentsProvider extends CrossChainProvider {
 
     static getFillWatcherConfig(
         orderServerUrl: string,
+        headers?: Record<string, string>,
     ): APIBasedFillWatcherConfig<LifiIntentsOrderStatusResponse> {
         return {
             type: "api-based",
             baseUrl: orderServerUrl,
+            headers,
             pollingInterval: 5_000,
             retry: {
                 maxAttempts: 3,
@@ -146,11 +149,14 @@ export class LifiIntentsProvider extends CrossChainProvider {
                 let validated;
                 try {
                     validated = LifiIntentsOrderStatusResponseSchema.parse(response);
-                } catch {
-                    console.warn(
-                        "[LifiIntentsProvider] Failed to parse order status response, returning Pending",
-                    );
-                    return { event: null, status: OrderStatus.Pending };
+                } catch (error) {
+                    if (error instanceof ZodError) {
+                        console.warn(
+                            "[LifiIntentsProvider] Failed to parse order status response, returning Pending",
+                        );
+                        return { event: null, status: OrderStatus.Pending };
+                    }
+                    throw error;
                 }
 
                 const entry =
@@ -199,6 +205,7 @@ export class LifiIntentsProvider extends CrossChainProvider {
             openedIntentParserConfig: { type: "oif" },
             fillWatcherConfig: LifiIntentsProvider.getFillWatcherConfig(
                 this.orderServerUrl,
+                this.headers,
             ) as FillWatcherConfig,
         };
     }
@@ -209,6 +216,7 @@ export class LifiIntentsProvider extends CrossChainProvider {
             config: {
                 assetsEndpoint: `${this.orderServerUrl}/routes`,
                 parseResponse: LifiIntentsProvider.parseRoutesResponse,
+                headers: this.headers,
             },
         };
     }

@@ -1,6 +1,6 @@
 import { OrderStatus } from "@openintentsframework/oif-specs";
 import axios from "axios";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
 import { createCrossChainProvider, LifiIntentsProvider } from "../../src/external.js";
@@ -15,6 +15,10 @@ vi.mock("axios");
 const MOCK_ORDER_SERVER_URL = "https://order.li.fi";
 
 describe("LifiIntentsProvider Integration Tests", () => {
+    afterEach(() => {
+        vi.mocked(axios.post).mockClear();
+        vi.mocked(axios.get).mockClear();
+    });
     describe("factory creation", () => {
         it("creates LifiIntentsProvider via createCrossChainProvider", () => {
             const provider = createCrossChainProvider("lifi-intents", {

@@ -19,7 +19,9 @@ import {
 
 const ORDER_SERVER_URL = "https://order.li.fi";
 
-describe("LifiIntentsProvider E2E", () => {
+const run = process.env.RUN_E2E ? describe : describe.skip;
+
+run("LifiIntentsProvider E2E", () => {
     const provider = new LifiIntentsProvider({
         orderServerUrl: ORDER_SERVER_URL,
     });
