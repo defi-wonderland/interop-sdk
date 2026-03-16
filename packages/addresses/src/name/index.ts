@@ -66,6 +66,10 @@ export interface ParseNameOptions {
     offchainRegistryFallback?: boolean;
     /** Custom mainnet RPC URL for onchain registry lookups. */
     rpcUrl?: string;
+    /**
+     * @deprecated Use `onchainRegistry` instead. Maps to `onchainRegistry` when set.
+     */
+    useExperimentalChainRegistry?: string;
 }
 
 export function parseName(
@@ -95,11 +99,14 @@ export async function parseName(
     // Track metadata flags
     const isChainLabel = !parsed.chainType;
 
+    // Support deprecated alias: useExperimentalChainRegistry → onchainRegistry
+    const onchainRegistry = opts?.onchainRegistry ?? opts?.useExperimentalChainRegistry;
+
     // Step 1: Resolve and validate chain identifier
     const resolvedChain = await resolveChain({
         chainType: parsed.chainType,
         chainReference: parsed.chainReference,
-        onchainRegistry: opts?.onchainRegistry,
+        onchainRegistry,
         offchainRegistryFallback: opts?.offchainRegistryFallback,
         rpcUrl: opts?.rpcUrl,
     });

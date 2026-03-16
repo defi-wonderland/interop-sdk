@@ -39,7 +39,7 @@ export function clearRegistryCache(): void {
 }
 
 function getRpcUrl(rpcUrl?: string): string {
-    return rpcUrl ?? process.env.MAINNET_RPC_URL ?? DEFAULT_MAINNET_RPC_URL;
+    return rpcUrl?.trim() || process.env.MAINNET_RPC_URL?.trim() || DEFAULT_MAINNET_RPC_URL;
 }
 
 async function getResolverAddress(
@@ -103,16 +103,15 @@ async function resolveLabel(
 }
 
 function getCachedResolver(registryDomain: string, rpcUrl?: string): Promise<Address | null> {
-    const cacheKey = `${registryDomain}:${rpcUrl ?? ""}`;
-    const existing = resolverCache.get(cacheKey);
+    const existing = resolverCache.get(registryDomain);
     if (existing) return existing;
 
     const promise = getResolverAddress(registryDomain, rpcUrl).catch((error) => {
         // Evict on error so the next call retries
-        resolverCache.delete(cacheKey);
+        resolverCache.delete(registryDomain);
         throw error;
     });
-    resolverCache.set(cacheKey, promise);
+    resolverCache.set(registryDomain, promise);
     return promise;
 }
 
@@ -144,7 +143,7 @@ export function resolveChainFromRegistry(
     registryDomain: string,
     rpcUrl?: string,
 ): Promise<ResolvedChainFromRegistry | null> {
-    const cacheKey = `${label}:${registryDomain}:${rpcUrl ?? ""}`;
+    const cacheKey = `${label}:${registryDomain}`;
     const existing = resolutionCache.get(cacheKey);
     if (existing) return existing;
 
