@@ -88,7 +88,7 @@ console.log("Transaction sent:", hash);
 -   Transaction simulation
 -   Order tracking support
 -   API-based intent tracking
--   Automatic transaction notification for faster solver indexing via `onBeforeTracking`
+-   Automatic transaction notification for faster solver indexing via the pre-tracker
 
 ## Tracking
 
@@ -101,7 +101,7 @@ Unlike Across, Relay does not require RPC URLs for tracking since all tracking i
 
 ## Transaction Notification
 
-Transaction notification is automatic — when tracking starts, the `onBeforeTracking` hook calls Relay's [transaction indexing](https://docs.relay.link/references/api/api_guides/transaction-indexing) via `POST /transactions/index`, accelerating the indexing process before transaction validation completes. No manual step is required.
+Transaction notification is automatic — when tracking starts, the pre-tracker calls Relay's [transaction indexing](https://docs.relay.link/references/api/api_guides/transaction-indexing) via `POST /transactions/index`, accelerating the indexing process before transaction validation completes. No manual step is required.
 
 ## Next Step
 

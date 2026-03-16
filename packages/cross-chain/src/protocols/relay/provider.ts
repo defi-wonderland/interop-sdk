@@ -6,8 +6,9 @@ import { ZodError } from "zod";
 import type {
     AssetDiscoveryConfig,
     FillWatcherConfig,
-    OnBeforeTracking,
     OpenedIntentParserConfig,
+    PreTrackerConfig,
+    PreTrackerParams,
     Quote,
     QuoteRequest,
 } from "../../internal.js";
@@ -106,7 +107,7 @@ export class RelayProvider extends CrossChainProvider {
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
         fillWatcherConfig: FillWatcherConfig;
-        onBeforeTracking: OnBeforeTracking;
+        preTrackerConfig: PreTrackerConfig;
     } {
         return {
             openedIntentParserConfig: {
@@ -131,11 +132,16 @@ export class RelayProvider extends CrossChainProvider {
                 buildEndpoint: (params): string => `/intents/status/v3?requestId=${params.orderId}`,
                 extractFillEvent,
             } as FillWatcherConfig,
-            onBeforeTracking: async ({ txHash, originChainId }): Promise<void> => {
-                await this.apiService.indexTransaction({
-                    chainId: String(originChainId),
-                    txHash,
-                });
+            preTrackerConfig: {
+                type: "api" as const,
+                protocolName: RelayProvider.PROTOCOL_NAME,
+                buildUrl: (): string => `${this.baseUrl}/transactions/index`,
+                buildBody: (params: PreTrackerParams): Record<string, unknown> => ({
+                    chainId: String(params.originChainId),
+                    txHash: params.txHash,
+                    ...(params.orderId && { requestId: params.orderId }),
+                }),
+                headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
             },
         };
     }

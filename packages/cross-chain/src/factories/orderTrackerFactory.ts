@@ -11,8 +11,10 @@ import {
     OrderTracker,
     OrderTrackerConfig,
     OrderTrackerFactoryConfig,
+    PreTracker,
     PublicClientManager,
 } from "../internal.js";
+import { PreTrackerFactory } from "./preTrackerFactory.js";
 
 /**
  * Factory class for creating OrderTracker instances
@@ -36,6 +38,7 @@ export class OrderTrackerFactory {
         config?: {
             openedIntentParser?: OpenedIntentParser;
             fillWatcher?: FillWatcher;
+            preTracker?: PreTracker;
         },
     ): OrderTracker {
         const trackingConfig = provider.getTrackingConfig();
@@ -48,12 +51,12 @@ export class OrderTrackerFactory {
             config?.fillWatcher ??
             this.createFillWatcher(trackingConfig.fillWatcherConfig as FillWatcherConfig);
 
-        return new OrderTracker(
-            openedIntentParser,
-            fillWatcher,
-            this.clientManager,
-            trackingConfig.onBeforeTracking,
-        );
+        const preTrackerFactory = new PreTrackerFactory();
+        const preTracker = trackingConfig.preTrackerConfig
+            ? (config?.preTracker ?? preTrackerFactory.create(trackingConfig.preTrackerConfig))
+            : undefined;
+
+        return new OrderTracker(openedIntentParser, fillWatcher, this.clientManager, preTracker);
     }
 
     /**
@@ -136,6 +139,7 @@ export function createOrderTracker(
         publicClient,
         openedIntentParser: customParser,
         fillWatcher: customFillWatcher,
+        preTracker: customPreTracker,
         rpcUrls,
     } = config || {};
 
@@ -143,5 +147,6 @@ export function createOrderTracker(
     return factory.createTracker(provider, {
         openedIntentParser: customParser,
         fillWatcher: customFillWatcher,
+        preTracker: customPreTracker,
     });
 }

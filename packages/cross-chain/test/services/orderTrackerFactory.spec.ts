@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AcrossProvider, OrderTracker, OrderTrackerFactory } from "../../src/external.js";
-import { FillWatcher, OpenedIntentParser } from "../../src/internal.js";
+import { FillWatcher, OpenedIntentParser, PreTracker } from "../../src/internal.js";
 
 const MOCK_API_URL = "https://mocked.across.url/api";
 const MOCK_PROVIDER_ID = "across";
@@ -77,6 +77,18 @@ describe("OrderTrackerFactory", () => {
 
             const tracker = factory.createTracker(provider, {
                 fillWatcher: mockFillWatcher,
+            });
+
+            expect(tracker).toBeInstanceOf(OrderTracker);
+        });
+
+        it("accepts custom preTracker", () => {
+            const mockPreTracker: PreTracker = {
+                execute: vi.fn(),
+            };
+
+            const tracker = factory.createTracker(provider, {
+                preTracker: mockPreTracker,
             });
 
             expect(tracker).toBeInstanceOf(OrderTracker);

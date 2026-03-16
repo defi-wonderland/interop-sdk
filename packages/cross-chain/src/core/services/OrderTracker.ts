@@ -4,6 +4,7 @@ import { Address, Hex } from "viem";
 import type { FillWatcher } from "../interfaces/fillWatcher.interface.js";
 import type { OpenedIntentParser } from "../interfaces/openedIntentParser.interface.js";
 import type { OrderTrackerEvents } from "../interfaces/orderTracker.interface.js";
+import type { PreTracker } from "../interfaces/preTracker.interface.js";
 import type {
     OpenedIntent,
     OrderTrackerYield,
@@ -13,7 +14,6 @@ import type {
     WatchOrderByTxHash,
     WatchOrderParams,
 } from "../types/orderTracking.js";
-import type { OnBeforeTracking } from "../types/tracking.js";
 import { OpenedIntentNotFoundError } from "../errors/OpenedIntentNotFound.exception.js";
 import { OrderTrackerEvent } from "../interfaces/orderTracker.interface.js";
 import { OrderFailureReason, OrderStatus, OrderTrackerYieldType } from "../types/orderTracking.js";
@@ -63,7 +63,7 @@ export class OrderTracker extends EventEmitter {
         private readonly openedIntentParser: OpenedIntentParser,
         private readonly fillWatcher: FillWatcher,
         private readonly clientManager?: PublicClientManager,
-        private readonly onBeforeTracking?: OnBeforeTracking,
+        private readonly preTracker?: PreTracker,
     ) {
         super();
     }
@@ -165,6 +165,8 @@ export class OrderTracker extends EventEmitter {
             throw new Error(`Timeout must be positive, got ${timeout}ms`);
         }
 
+        await this.invokePreTracker(params);
+
         if ("txHash" in params && params.txHash) {
             yield* this.watchOrderByTxHash({ ...params, timeout });
         } else {
@@ -178,14 +180,6 @@ export class OrderTracker extends EventEmitter {
     ): AsyncGenerator<OrderTrackerYield> {
         const { txHash, originChainId, timeout } = params;
         const startTime = Date.now();
-
-        if (this.onBeforeTracking) {
-            try {
-                await this.onBeforeTracking({ txHash, originChainId });
-            } catch (error) {
-                console.warn("[OrderTracker] onBeforeTracking failed:", error);
-            }
-        }
 
         let lastUpdate: OrderTrackingUpdate = this.createUpdate({
             status: OrderStatus.Pending,
@@ -524,6 +518,30 @@ export class OrderTracker extends EventEmitter {
             if (terminalStatuses.has(item.update.status)) {
                 return;
             }
+        }
+    }
+
+    /**
+     * Invoke the pre-tracker once before dispatching to a specific watch path.
+     * Extracts txHash/orderId from whichever WatchOrderParams variant was provided.
+     * Best-effort: logs a warning on failure but never blocks tracking.
+     */
+    private async invokePreTracker(params: WatchOrderParams): Promise<void> {
+        if (!this.preTracker) return;
+
+        const txHash = "txHash" in params ? params.txHash : params.openTxHash;
+        if (!txHash) return;
+
+        const orderId = "orderId" in params ? params.orderId : undefined;
+
+        try {
+            await this.preTracker.execute({
+                txHash,
+                originChainId: params.originChainId,
+                orderId,
+            });
+        } catch (error) {
+            console.warn("[OrderTracker] pre-tracker failed:", error);
         }
     }
 

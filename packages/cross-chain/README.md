@@ -125,7 +125,7 @@ if (selectedQuote) {
 -   Relay tracking is fully **API-based** for both mainnet and testnet.
 -   Both opened intent parsing and fill watching use the `/intents/status/v3` endpoint.
 -   No RPC URLs are required for Relay tracking.
--   Relay automatically notifies the solver of new deposits via `onBeforeTracking` for faster indexing.
+-   Relay automatically notifies the solver of new deposits via the pre-tracker for faster indexing.
 
 ### Aggregator
 
