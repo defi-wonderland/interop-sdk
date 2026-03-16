@@ -81,6 +81,38 @@ describe("formatName", () => {
         expect(name).toBe("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C");
     });
 
+    it("formats a bip122 P2SH address", () => {
+        const addr: InteroperableAddress = {
+            version: 1,
+            chainType: "bip122",
+            chainReference: "000000000019d6689c085ae165831e93",
+            address: "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+        };
+
+        const name = formatName(addr);
+        const checksum = calculateChecksum(addr);
+
+        expect(name).toBe(
+            `3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy@bip122:000000000019d6689c085ae165831e93#${checksum}`,
+        );
+    });
+
+    it("formats a starknet address", () => {
+        const addr: InteroperableAddress = {
+            version: 1,
+            chainType: "starknet",
+            chainReference: "SN_MAIN",
+            address: "0x02dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57",
+        };
+
+        const name = formatName(addr);
+        const checksum = calculateChecksum(addr);
+
+        expect(name).toBe(
+            `0x02dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57@starknet:SN_MAIN#${checksum}`,
+        );
+    });
+
     it("formats name without checksum when includeChecksum is false", () => {
         const addr: InteroperableAddress = {
             version: 1,

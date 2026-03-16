@@ -14,10 +14,6 @@ export function getRelayApiUrl(isTestnet: boolean = false): string {
 /**
  * Hardcoded testnet tokens for Relay.
  *
- * The Relay testnet `/currencies/v2` endpoint is unreliable (e.g. missing
- * `verified` tokens on some chains), so we use a static list for testnet
- * discovery — matching the pattern used by Across.
- *
  * Data sourced from `https://api.testnets.relay.link/chains` (EVM chains
  * only, `supportsBridging: true` tokens).
  */

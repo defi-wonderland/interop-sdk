@@ -1,7 +1,8 @@
 import { fromHex } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { decodeAddress } from "../../src/address/index.js";
+import type { InteroperableAddress } from "../../src/types/interopAddress.js";
+import { decodeAddress, encodeAddress } from "../../src/address/index.js";
 import { InvalidBinaryInteropAddress } from "../../src/internal.js";
 import { isTextAddress } from "../../src/types/interopAddress.js";
 
@@ -159,6 +160,50 @@ describe("erc7930", () => {
                 expect(interopAddress.address).toEqual(
                     "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
                 );
+            }
+        });
+
+        it("parse starknet binary interop address", () => {
+            const binaryAddress =
+                "0x0001000307534e5f4d41494e2002dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57";
+            /*  0x0001000307534e5f4d41494e2002dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57
+                  ^^^^-------------------------------------------------------------------------------------- Version:              decimal 1
+                      ^^^^---------------------------------------------------------------------------------- ChainType:            0x0003 (starknet)
+                          ^^-------------------------------------------------------------------------------- ChainReferenceLength: decimal 7
+                            ^^^^^^^^^^^^^^------------------------------------------------------------------ ChainReference:       7 bytes UTF-8 "SN_MAIN"
+                                          ^^---------------------------------------------------------------- AddressLength:        decimal 32 (0x20)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Address:              32 bytes felt252
+            */
+
+            const interopAddress = decodeAddress(binaryAddress);
+
+            expect(interopAddress.version).toEqual(1);
+            expect(isTextAddress(interopAddress)).toBe(true);
+            if (isTextAddress(interopAddress)) {
+                expect(interopAddress.chainType).toEqual("starknet");
+                expect(interopAddress.chainReference).toEqual("SN_MAIN");
+                expect(interopAddress.address).toEqual(
+                    "0x02dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57",
+                );
+            }
+        });
+
+        it("roundtrip starknet encode then decode", () => {
+            const original: InteroperableAddress = {
+                version: 1,
+                chainType: "starknet",
+                chainReference: "SN_MAIN",
+                address: "0x02dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57",
+            };
+
+            const encoded = encodeAddress(original, { format: "hex" });
+            const decoded = decodeAddress(encoded);
+
+            expect(isTextAddress(decoded)).toBe(true);
+            if (isTextAddress(decoded)) {
+                expect(decoded.chainType).toEqual("starknet");
+                expect(decoded.chainReference).toEqual("SN_MAIN");
+                expect(decoded.address).toEqual(original.address);
             }
         });
 

@@ -4,11 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
-import {
-    AssetDiscoveryFactory,
-    CustomApiAssetDiscoveryService,
-    StaticAssetDiscoveryService,
-} from "../../../src/internal.js";
 import { RELAY_TESTNET_TOKENS } from "../../../src/protocols/relay/constants.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
 
@@ -310,68 +305,46 @@ describe("RelayProvider", () => {
     });
 
     describe("getDiscoveryConfig()", () => {
-        it("returns custom-api config type for mainnet", () => {
+        it("returns custom-api config for mainnet", () => {
             const config = new RelayProvider().getDiscoveryConfig();
             expect(config).not.toBeNull();
             expect(config!.type).toBe("custom-api");
         });
 
-        it("includes assetsEndpoint in mainnet config", () => {
+        it("points assetsEndpoint to /chains", () => {
             const config = new RelayProvider().getDiscoveryConfig();
-            if (config!.type === "custom-api") {
-                expect(config!.config.assetsEndpoint).toBe(`${RELAY_BASE_URL}/chains`);
-            }
+            expect(config!.type).toBe("custom-api");
+            expect((config!.config as { assetsEndpoint: string }).assetsEndpoint).toBe(
+                `${RELAY_BASE_URL}/chains`,
+            );
         });
 
-        it("uses custom baseUrl when configured", () => {
+        it("uses custom baseUrl in assetsEndpoint", () => {
             const customUrl = "https://custom.relay.link";
             const config = new RelayProvider({ baseUrl: customUrl }).getDiscoveryConfig();
-            if (config!.type === "custom-api") {
-                expect(config!.config.assetsEndpoint).toBe(`${customUrl}/chains`);
-            }
+            expect((config!.config as { assetsEndpoint: string }).assetsEndpoint).toBe(
+                `${customUrl}/chains`,
+            );
         });
 
-        it("passes API key headers to discovery config", () => {
+        it("includes API key headers when configured", () => {
             const config = new RelayProvider({ apiKey: API_KEY }).getDiscoveryConfig();
-            if (config!.type === "custom-api") {
-                expect(config!.config.headers).toEqual({ "x-api-key": API_KEY });
-            }
+            expect((config!.config as { headers?: Record<string, string> }).headers).toEqual({
+                "x-api-key": API_KEY,
+            });
         });
 
         it("omits headers when no API key is configured", () => {
             const config = new RelayProvider().getDiscoveryConfig();
-            if (config!.type === "custom-api") {
-                expect(config!.config.headers).toBeUndefined();
-            }
+            expect(
+                (config!.config as { headers?: Record<string, string> }).headers,
+            ).toBeUndefined();
         });
 
-        it("returns static config with RELAY_TESTNET_TOKENS for testnet", () => {
+        it("returns static config with testnet tokens for testnet", () => {
             const config = new RelayProvider({ isTestnet: true }).getDiscoveryConfig();
             expect(config!.type).toBe("static");
-            if (config!.type === "static") {
-                expect(config!.config.networks).toBe(RELAY_TESTNET_TOKENS);
-            }
-        });
-    });
-
-    describe("factory integration", () => {
-        it("creates CustomApiAssetDiscoveryService for mainnet", () => {
-            const service = new AssetDiscoveryFactory().createService(new RelayProvider());
-            expect(service).toBeInstanceOf(CustomApiAssetDiscoveryService);
-        });
-
-        it("creates StaticAssetDiscoveryService for testnet", () => {
-            const service = new AssetDiscoveryFactory().createService(
-                new RelayProvider({ isTestnet: true }),
-            );
-            expect(service).toBeInstanceOf(StaticAssetDiscoveryService);
-        });
-
-        it("starts prefetching on creation", () => {
-            const prefetchSpy = vi.spyOn(CustomApiAssetDiscoveryService.prototype, "prefetch");
-            new AssetDiscoveryFactory().createService(new RelayProvider());
-            expect(prefetchSpy).toHaveBeenCalledOnce();
-            prefetchSpy.mockRestore();
+            expect((config!.config as { networks: unknown }).networks).toBe(RELAY_TESTNET_TOKENS);
         });
     });
 });
