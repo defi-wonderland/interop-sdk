@@ -1,10 +1,8 @@
 import { OrderStatus, OrderTrackerYieldType } from '@wonderland/interop-cross-chain';
 import { TIMEOUT_MS } from '../../constants';
-import { STEP, type BridgeState, type ChainContext } from '../../types/execution';
+import { STEP, type BridgeState, type ChainContext, type TrackingIdentifier } from '../../types/execution';
 import { crossChainExecutor } from '../sdk';
 import type { Hex } from 'viem';
-
-type TrackingIdentifier = { txHash: Hex } | { orderId: Hex } | { orderId: Hex; txHash: Hex };
 
 export class TrackingError extends Error {
   readonly txHash?: Hex;

@@ -4,10 +4,8 @@ import { handleTokenApproval, isApprovalTransaction, submitApprovalStep } from '
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
+import type { BridgeState, ChainContext, TrackingIdentifier } from '../../types/execution';
 import type { Address, Hex, PublicClient } from 'viem';
-import type { BridgeState, ChainContext } from '~/cross-chain/hooks';
-
-type TrackingIdentifier = { txHash: Hex } | { orderId: Hex } | { orderId: Hex; txHash: Hex };
 
 /**
  * Builds the tracking identifier from a completed transaction.
@@ -72,6 +70,21 @@ interface TransactionStep {
   transaction?: { to?: string; data?: string; value?: string; gas?: string };
 }
 
+function parseTransactionFields(txStep: TransactionStep): { to: Address; data: Hex; value?: bigint; gas?: bigint } {
+  if (!txStep.transaction?.to || !txStep.transaction?.data) {
+    throw new Error('Invalid quote: missing transaction data');
+  }
+
+  const parsedGas = txStep.transaction.gas ? BigInt(txStep.transaction.gas) : 0n;
+
+  return {
+    to: txStep.transaction.to as Address,
+    data: txStep.transaction.data as Hex,
+    value: txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined,
+    gas: parsedGas > 0n ? parsedGas : undefined,
+  };
+}
+
 async function processTransactionStep(
   txStep: TransactionStep,
   publicClient: PublicClient,
@@ -79,21 +92,13 @@ async function processTransactionStep(
   chainContext: ChainContext,
   onStateChange: (state: BridgeState) => void,
 ): Promise<Hex> {
-  if (!txStep.transaction?.to || !txStep.transaction?.data) {
-    throw new Error('Invalid quote: missing transaction data');
+  const { to, data, value, gas } = parseTransactionFields(txStep);
+
+  if (isApprovalTransaction(data)) {
+    return submitApprovalStep(publicClient, walletClient, to, data, chainContext, onStateChange, value, gas);
   }
 
-  const txData = txStep.transaction.data as Hex;
-  const txTo = txStep.transaction.to as Address;
-  const value = txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined;
-  const parsedGas = txStep.transaction.gas ? BigInt(txStep.transaction.gas) : 0n;
-  const gas = parsedGas > 0n ? parsedGas : undefined;
-
-  if (isApprovalTransaction(txData)) {
-    return submitApprovalStep(publicClient, walletClient, txTo, txData, chainContext, onStateChange, value, gas);
-  }
-
-  return submitBridgeTransaction(publicClient, walletClient, txTo, txData, chainContext, onStateChange, value, gas);
+  return submitBridgeTransaction(publicClient, walletClient, to, data, chainContext, onStateChange, value, gas);
 }
 
 export const executeDirectTransaction = async ({
