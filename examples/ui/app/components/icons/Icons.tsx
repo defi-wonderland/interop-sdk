@@ -49,6 +49,28 @@ export function CopyIcon() {
   );
 }
 
+export function ShieldCheckIcon() {
+  return (
+    <svg width='14' height='14' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+      <path
+        d='M12 2L4 5.5V11.5C4 16.45 7.42 21.07 12 22C16.58 21.07 20 16.45 20 11.5V5.5L12 2Z'
+        fill='currentColor'
+        fillOpacity='0.15'
+        stroke='currentColor'
+        strokeWidth='1.5'
+        strokeLinejoin='round'
+      />
+      <path
+        d='M9 12L11 14L15 10'
+        stroke='currentColor'
+        strokeWidth='1.5'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      />
+    </svg>
+  );
+}
+
 export function CheckmarkIcon() {
   return (
     <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>

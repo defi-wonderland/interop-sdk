@@ -5,10 +5,11 @@ import { InputMode, type InteroperableNamePart, type BinaryPart, type AddressRes
 import { convertFromReadable, type ConversionOptions } from '../utils/address-conversion';
 import { InputSection } from './InputSection';
 import { ResultDisplays } from './ResultDisplays';
-import type { Chain } from '../lib/getChains';
+import { TooltipProvider } from './Tooltip';
+import type { RegistryChainWithStatus } from '../lib/registry-chains';
 
 interface InteractivePlaygroundProps {
-  chains: Chain[];
+  chains: RegistryChainWithStatus[];
 }
 
 export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
@@ -131,38 +132,40 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
   const isStale = mode === InputMode.READABLE ? isReadableStale : isBuildStale;
 
   return (
-    <div className='flex flex-col gap-6'>
-      <InputSection
-        chains={chains}
-        mode={mode}
-        setMode={setMode}
-        readableName={readableName}
-        setReadableName={setReadableName}
-        address={address}
-        setAddress={setAddress}
-        chainReference={chainReference}
-        setChainReference={setChainReference}
-        useOnchainRegistry={useOnchainRegistry}
-        setUseOnchainRegistry={setUseOnchainRegistry}
-        onConvert={handleConvert}
-        onExampleClick={handleExampleClick}
-        isLoading={isLoading}
-      />
+    <TooltipProvider>
+      <div className='flex flex-col gap-6'>
+        <InputSection
+          chains={chains}
+          mode={mode}
+          setMode={setMode}
+          readableName={readableName}
+          setReadableName={setReadableName}
+          address={address}
+          setAddress={setAddress}
+          chainReference={chainReference}
+          setChainReference={setChainReference}
+          useOnchainRegistry={useOnchainRegistry}
+          setUseOnchainRegistry={setUseOnchainRegistry}
+          onConvert={handleConvert}
+          onExampleClick={handleExampleClick}
+          isLoading={isLoading}
+        />
 
-      <ResultDisplays
-        isLoading={isLoading}
-        error={activeError}
-        result={activeResult}
-        parsedResult={activeParsedResult}
-        isStale={isStale}
-        onRefresh={handleConvert}
-        hoveredName={hoveredName}
-        setHoveredName={setHoveredName}
-        hoveredBinary={hoveredBinary}
-        setHoveredBinary={setHoveredBinary}
-        copied={copied}
-        onCopy={handleCopy}
-      />
-    </div>
+        <ResultDisplays
+          isLoading={isLoading}
+          error={activeError}
+          result={activeResult}
+          parsedResult={activeParsedResult}
+          isStale={isStale}
+          onRefresh={handleConvert}
+          hoveredName={hoveredName}
+          setHoveredName={setHoveredName}
+          hoveredBinary={hoveredBinary}
+          setHoveredBinary={setHoveredBinary}
+          copied={copied}
+          onCopy={handleCopy}
+        />
+      </div>
+    </TooltipProvider>
   );
 }
