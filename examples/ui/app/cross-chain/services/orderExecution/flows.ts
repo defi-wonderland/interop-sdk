@@ -5,7 +5,7 @@ import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
 import type { Address, Hex, PublicClient } from 'viem';
-import { BridgeState, ChainContext } from '~/cross-chain/hooks';
+import type { BridgeState, ChainContext } from '~/cross-chain/hooks';
 
 type TrackingIdentifier = { txHash: Hex } | { orderId: Hex };
 
@@ -74,9 +74,20 @@ export const executeDirectTransaction = async ({
     throw new Error('Invalid quote: missing transaction data');
   }
 
-  const isNativeInput = isNativeAddress(inputTokenAddress, 'eip155');
-
-  if (!isNativeInput) {
+  if (quote.order.checks?.allowances?.length) {
+    for (const allowance of quote.order.checks.allowances) {
+      await handleTokenApproval(
+        publicClient,
+        walletClient,
+        ownerAddress,
+        allowance.tokenAddress as Address,
+        allowance.spender as Address,
+        BigInt(allowance.required),
+        chainContext,
+        onStateChange,
+      );
+    }
+  } else if (!isNativeAddress(inputTokenAddress, 'eip155')) {
     await handleTokenApproval(
       publicClient,
       walletClient,
@@ -89,7 +100,9 @@ export const executeDirectTransaction = async ({
     );
   }
 
-  const value = isNativeInput ? inputAmount : undefined;
+  const value = txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined;
+  const parsedGas = txStep.transaction.gas ? BigInt(txStep.transaction.gas) : 0n;
+  const gas = parsedGas > 0n ? parsedGas : undefined;
 
   const txHash = await submitBridgeTransaction(
     publicClient,
@@ -99,6 +112,7 @@ export const executeDirectTransaction = async ({
     chainContext,
     onStateChange,
     value,
+    gas,
   );
 
   return { txHash };

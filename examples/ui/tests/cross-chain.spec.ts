@@ -179,7 +179,7 @@ test.describe('Recipient address input', () => {
 test.describe('Amount input validation', () => {
   test('should enable Get Quotes button for valid positive amount', async ({ page }) => {
     await page.getByRole('textbox', { name: 'Amount' }).fill('10');
-    await expect(page.getByRole('button', { name: 'Get Quotes' })).toBeEnabled();
+    await expect(page.locator('button[type="submit"]')).toBeEnabled();
   });
 
   test('should strip letters from input', async ({ page }) => {
@@ -194,7 +194,7 @@ test.describe('Amount input validation', () => {
 
   test('should disable Get Quotes button for zero value', async ({ page }) => {
     await page.getByRole('textbox', { name: 'Amount' }).fill('0');
-    await expect(page.getByRole('button', { name: 'Get Quotes' })).toBeDisabled();
+    await expect(page.locator('button[type="submit"]')).toBeDisabled();
   });
 });
 
@@ -209,7 +209,7 @@ test.describe('Cross-chain intents', () => {
     await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
 
     await page.getByRole('textbox', { name: 'Amount' }).fill('0.2');
-    await page.getByRole('button', { name: 'Get Quotes' }).click();
+    await page.locator('button[type="submit"]').click();
     await page
       .locator('button')
       .filter({ hasText: /Across Protocol/ })
@@ -259,7 +259,7 @@ test.describe('Negative test', () => {
 
     const amountInput = page.getByLabel('Amount');
     await amountInput.fill('0.1');
-    await page.getByRole('button', { name: 'Get Quotes' }).click();
+    await page.locator('button[type="submit"]').click();
     await page
       .locator('button')
       .filter({ hasText: /Across Protocol/ })

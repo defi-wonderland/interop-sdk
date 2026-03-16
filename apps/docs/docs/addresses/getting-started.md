@@ -218,39 +218,55 @@ const checksum = calculateChecksum(textAddr);
 
 ## Chain Resolution
 
-The package resolves chain identifiers using off-chain registries:
+The package resolves chain labels using a two-tier strategy:
 
--   **Primary**: Uses `shortnameToChainId` with built-in chain shortname mappings
--   **Fallback**: Uses viem's chain definitions and chainid.network
+-   **Primary (default)**: Queries the `on.eth` onchain ENS registry on mainnet
+-   **Fallback**: Uses `shortnameToChainId` with chainid.network mappings
 
-### Experimental: Onchain Chain Registry
-
-ENS-based chain resolution is available as an experimental feature. When enabled, the SDK queries an onchain ENS registry (like `on.eth`) to resolve chain labels:
+Both are enabled by default. Fully-qualified CAIP-2 identifiers (e.g., `eip155:10`) always work without any registry.
 
 ```typescript
 import { parseName } from "@wonderland/interop-addresses";
 
-// Use on.eth (ENS chain registry on mainnet)
-const result = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth", {
-    useExperimentalChainRegistry: "on.eth",
-});
+// Default behavior: onchain (on.eth) + offchain fallback
+const result = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth");
 // result.interoperableAddress.chainType === "eip155"
 // result.interoperableAddress.chainReference === "1"
-
-// Or use on.eth when deployed
-const result2 = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@arb1", {
-    useExperimentalChainRegistry: "on.eth",
-});
 ```
 
 **How it works:**
 
 1. Constructs the full ENS domain as `{label}.{registryDomain}` (e.g., `ethereum.on.eth`)
 2. Queries the ENS registry to find the resolver for that domain
-3. Calls the resolver's `data()` method with key `"interoperable-address"` (per ENSIP-24)
+3. Calls the resolver's `interoperableAddress(label)` method on the ChainResolver contract
 4. Decodes the returned ERC-7930 binary format to get chainType and chainReference
 
 If onchain resolution fails (domain not found, resolver error, etc.), it automatically falls back to the offchain chainid.network registry.
+
+### Customizing Resolution
+
+```typescript
+// Disable onchain, use offchain only
+const result = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth", {
+    onchainRegistry: false,
+});
+
+// Disable both registries (only fully-qualified CAIP-2 works)
+const result2 = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1", {
+    onchainRegistry: false,
+    offchainRegistryFallback: false,
+});
+
+// Custom registry domain
+const result3 = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth", {
+    onchainRegistry: "custom.eth",
+});
+
+// Custom RPC URL
+const result4 = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth", {
+    rpcUrl: "https://my-rpc.example.com",
+});
+```
 
 ## References
 
