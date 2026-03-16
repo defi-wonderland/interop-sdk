@@ -372,8 +372,8 @@ interface BuildQuoteRequest {
     };
     escrowContractAddress: string; // settlement contract address
     fillDeadline: number; // unix timestamp
-    orderDataType?: string; // protocol-specific (optional)
-    orderData?: string; // protocol-specific (optional)
+    orderDataType?: string; // hex-encoded, max 32 bytes (e.g. "0x00")
+    orderData?: string; // hex-encoded (e.g. "0x1234")
 }
 ```
 
