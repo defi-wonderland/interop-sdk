@@ -44,7 +44,7 @@ export const REGISTRY_CHAINS: readonly RegistryChain[] = [
   { name: 'Sophon', chainId: 50104, shortName: 'sophon' },
   { name: 'Arbitrum Nova', chainId: 42170, shortName: 'arb-nova' },
   { name: 'Lens', chainId: 232, shortName: 'lens' },
-  { name: 'Space and Time', chainId: 1217, shortName: 'sxt' },
+  { name: 'Space and Time', chainId: 1217, shortName: 'eip155:1217' }, // not in chainid.network, use CAIP-2
 
   // Others (top 3 by TVL)
   { name: 'Polygon PoS', chainId: 137, shortName: 'pol' },
