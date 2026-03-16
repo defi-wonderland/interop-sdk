@@ -68,6 +68,49 @@ export const submitOifSignableOrder = async ({
   return { orderId };
 };
 
+interface TransactionStep {
+  transaction?: { to?: string; data?: string; value?: string };
+}
+
+async function processTransactionStep(
+  txStep: TransactionStep,
+  isNativeInput: boolean,
+  publicClient: PublicClient,
+  walletClient: ConfiguredWalletClient,
+  ownerAddress: Address,
+  inputTokenAddress: Address,
+  inputAmount: bigint,
+  chainContext: ChainContext,
+  onStateChange: (state: BridgeState) => void,
+): Promise<Hex> {
+  if (!txStep.transaction?.to || !txStep.transaction?.data) {
+    throw new Error('Invalid quote: missing transaction data');
+  }
+
+  const txData = txStep.transaction.data as Hex;
+  const txTo = txStep.transaction.to as Address;
+  const value = txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined;
+
+  if (isApprovalTransaction(txData)) {
+    return submitApprovalStep(publicClient, walletClient, txTo, txData, chainContext, onStateChange, value);
+  }
+
+  if (!isNativeInput) {
+    await handleTokenApproval(
+      publicClient,
+      walletClient,
+      ownerAddress,
+      inputTokenAddress,
+      txTo,
+      inputAmount,
+      chainContext,
+      onStateChange,
+    );
+  }
+
+  return submitBridgeTransaction(publicClient, walletClient, txTo, txData, chainContext, onStateChange, value);
+}
+
 export const executeDirectTransaction = async ({
   quote,
   walletClient,
@@ -88,58 +131,22 @@ export const executeDirectTransaction = async ({
   let lastTxHash: Hex | undefined;
 
   for (const txStep of txSteps) {
-    if (!txStep.transaction?.to || !txStep.transaction?.data) {
-      throw new Error('Invalid quote: missing transaction data');
-    }
-
-    const txData = txStep.transaction.data as Hex;
-    const txTo = txStep.transaction.to as Address;
-    const value = txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined;
-
-    if (isApprovalTransaction(txData)) {
-      lastTxHash = await submitApprovalStep(
-        publicClient,
-        walletClient,
-        txTo,
-        txData,
-        chainContext,
-        onStateChange,
-        value,
-      );
-      continue;
-    }
-
-    if (!isNativeInput) {
-      await handleTokenApproval(
-        publicClient,
-        walletClient,
-        ownerAddress,
-        inputTokenAddress,
-        txTo,
-        inputAmount,
-        chainContext,
-        onStateChange,
-      );
-    }
-
-    lastTxHash = await submitBridgeTransaction(
+    lastTxHash = await processTransactionStep(
+      txStep,
+      isNativeInput,
       publicClient,
       walletClient,
-      txTo,
-      txData,
+      ownerAddress,
+      inputTokenAddress,
+      inputAmount,
       chainContext,
       onStateChange,
-      value,
     );
   }
 
-  const trackingId = resolveTrackingIdentifier(quote, lastTxHash!);
-
-  if (lastTxHash) {
-    crossChainExecutor
-      .notifyDeposit(quote._providerId, lastTxHash, chainContext.originChainId)
-      .catch((err) => console.warn('[flows] Deposit notification failed (non-blocking):', err));
+  if (!lastTxHash) {
+    throw new Error('No bridge transaction found');
   }
 
-  return trackingId;
+  return resolveTrackingIdentifier(quote, lastTxHash);
 };

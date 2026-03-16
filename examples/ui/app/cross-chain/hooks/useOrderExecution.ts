@@ -115,18 +115,6 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         // Common: track order
         await trackOrder(quote._providerId, trackingId, chainContext, abortControllerRef.current?.signal, setState);
 
-        if (address) {
-          updateBalances(address, [
-            { chainId: originChainId, token: inputTokenAddress },
-            { chainId: destinationChainId, token: outputTokenAddress },
-          ]).catch((balanceErr: unknown) => {
-            console.warn(
-              `[useOrderExecution] Balance refresh failed (origin: ${originChainId}, dest: ${destinationChainId}):`,
-              balanceErr,
-            );
-          });
-        }
-
         return { success: true };
       } catch (err) {
         if (isUserRejectionError(err)) {
@@ -146,12 +134,14 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         });
         return { success: false };
       } finally {
-        updateBalances(address!, [
-          { chainId: originChainId, token: inputTokenAddress },
-          { chainId: destinationChainId, token: outputTokenAddress },
-        ]).catch((err) => {
-          console.warn('[useOrderExecution] Balance refresh failed:', err);
-        });
+        if (address) {
+          updateBalances(address, [
+            { chainId: originChainId, token: inputTokenAddress },
+            { chainId: destinationChainId, token: outputTokenAddress },
+          ]).catch((err) => {
+            console.warn('[useOrderExecution] Balance refresh failed:', err);
+          });
+        }
       }
     },
     [isConnected, address, walletChainId, config, switchChainAsync, updateBalances],

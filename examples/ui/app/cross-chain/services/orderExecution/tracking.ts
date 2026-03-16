@@ -4,15 +4,17 @@ import { STEP, type BridgeState, type ChainContext } from '../../types/execution
 import { crossChainExecutor } from '../sdk';
 import type { Hex } from 'viem';
 
+type TrackingIdentifier = { txHash: Hex } | { orderId: Hex } | { orderId: Hex; txHash: Hex };
+
 export class TrackingError extends Error {
   readonly txHash?: Hex;
   readonly orderId?: Hex;
 
-  constructor(identifier: { txHash?: Hex; orderId?: Hex }, providerId: string) {
+  constructor(identifier: TrackingIdentifier, providerId: string) {
     super(`Order tracking failed for provider "${providerId}". The order may still complete.`);
     this.name = 'TrackingError';
-    this.txHash = identifier.txHash;
-    this.orderId = identifier.orderId;
+    this.txHash = 'txHash' in identifier ? identifier.txHash : undefined;
+    this.orderId = 'orderId' in identifier ? identifier.orderId : undefined;
   }
 }
 
@@ -22,13 +24,14 @@ export class TrackingError extends Error {
  */
 export async function trackOrder(
   providerId: string,
-  identifier: { txHash?: Hex; orderId?: Hex },
+  identifier: TrackingIdentifier,
   chainContext: ChainContext,
   abortSignal: AbortSignal | undefined,
   onStateChange: (state: BridgeState) => void,
 ): Promise<void> {
   const tracker = crossChainExecutor.prepareTracking(providerId);
-  const { txHash, orderId } = identifier;
+  const txHash = 'txHash' in identifier ? identifier.txHash : undefined;
+  const orderId = 'orderId' in identifier ? identifier.orderId : undefined;
 
   const baseParams = {
     originChainId: chainContext.originChainId,
