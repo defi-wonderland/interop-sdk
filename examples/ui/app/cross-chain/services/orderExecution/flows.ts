@@ -62,6 +62,8 @@ export const executeDirectTransaction = async ({
   walletClient,
   publicClient,
   ownerAddress,
+  inputTokenAddress,
+  inputAmount,
   chainContext,
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
@@ -72,15 +74,27 @@ export const executeDirectTransaction = async ({
     throw new Error('Invalid quote: missing transaction data');
   }
 
-  const allowances = quote.order.checks?.allowances ?? [];
-  for (const allowance of allowances) {
+  if (quote.order.checks?.allowances?.length) {
+    for (const allowance of quote.order.checks.allowances) {
+      await handleTokenApproval(
+        publicClient,
+        walletClient,
+        ownerAddress,
+        allowance.tokenAddress as Address,
+        allowance.spender as Address,
+        BigInt(allowance.required),
+        chainContext,
+        onStateChange,
+      );
+    }
+  } else if (!isNativeAddress(inputTokenAddress, 'eip155')) {
     await handleTokenApproval(
       publicClient,
       walletClient,
       ownerAddress,
-      allowance.tokenAddress as Address,
-      allowance.spender as Address,
-      BigInt(allowance.required),
+      inputTokenAddress,
+      txStep.transaction.to as Address,
+      inputAmount,
       chainContext,
       onStateChange,
     );
