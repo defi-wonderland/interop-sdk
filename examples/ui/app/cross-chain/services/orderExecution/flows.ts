@@ -5,7 +5,7 @@ import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
 import type { Address, Hex, PublicClient } from 'viem';
-import { BridgeState, ChainContext } from '~/cross-chain/hooks';
+import type { BridgeState, ChainContext } from '~/cross-chain/hooks';
 
 type TrackingIdentifier = { txHash: Hex } | { orderId: Hex } | { orderId: Hex; txHash: Hex };
 
@@ -69,17 +69,13 @@ export const submitOifSignableOrder = async ({
 };
 
 interface TransactionStep {
-  transaction?: { to?: string; data?: string; value?: string };
+  transaction?: { to?: string; data?: string; value?: string; gas?: string };
 }
 
 async function processTransactionStep(
   txStep: TransactionStep,
-  isNativeInput: boolean,
   publicClient: PublicClient,
   walletClient: ConfiguredWalletClient,
-  ownerAddress: Address,
-  inputTokenAddress: Address,
-  inputAmount: bigint,
   chainContext: ChainContext,
   onStateChange: (state: BridgeState) => void,
 ): Promise<Hex> {
@@ -90,25 +86,14 @@ async function processTransactionStep(
   const txData = txStep.transaction.data as Hex;
   const txTo = txStep.transaction.to as Address;
   const value = txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined;
+  const parsedGas = txStep.transaction.gas ? BigInt(txStep.transaction.gas) : 0n;
+  const gas = parsedGas > 0n ? parsedGas : undefined;
 
   if (isApprovalTransaction(txData)) {
     return submitApprovalStep(publicClient, walletClient, txTo, txData, chainContext, onStateChange, value);
   }
 
-  if (!isNativeInput) {
-    await handleTokenApproval(
-      publicClient,
-      walletClient,
-      ownerAddress,
-      inputTokenAddress,
-      txTo,
-      inputAmount,
-      chainContext,
-      onStateChange,
-    );
-  }
-
-  return submitBridgeTransaction(publicClient, walletClient, txTo, txData, chainContext, onStateChange, value);
+  return submitBridgeTransaction(publicClient, walletClient, txTo, txData, chainContext, onStateChange, value, gas);
 }
 
 export const executeDirectTransaction = async ({
@@ -127,21 +112,37 @@ export const executeDirectTransaction = async ({
     throw new Error('Invalid quote: no transaction steps');
   }
 
-  const isNativeInput = isNativeAddress(inputTokenAddress, 'eip155');
-  let lastTxHash: Hex | undefined;
-
-  for (const txStep of txSteps) {
-    lastTxHash = await processTransactionStep(
-      txStep,
-      isNativeInput,
+  if (quote.order.checks?.allowances?.length) {
+    for (const allowance of quote.order.checks.allowances) {
+      await handleTokenApproval(
+        publicClient,
+        walletClient,
+        ownerAddress,
+        allowance.tokenAddress as Address,
+        allowance.spender as Address,
+        BigInt(allowance.required),
+        chainContext,
+        onStateChange,
+      );
+    }
+  } else if (!isNativeAddress(inputTokenAddress, 'eip155')) {
+    const spender = txSteps[0]?.transaction?.to as Address;
+    await handleTokenApproval(
       publicClient,
       walletClient,
       ownerAddress,
       inputTokenAddress,
+      spender,
       inputAmount,
       chainContext,
       onStateChange,
     );
+  }
+
+  let lastTxHash: Hex | undefined;
+
+  for (const txStep of txSteps) {
+    lastTxHash = await processTransactionStep(txStep, publicClient, walletClient, chainContext, onStateChange);
   }
 
   if (!lastTxHash) {
