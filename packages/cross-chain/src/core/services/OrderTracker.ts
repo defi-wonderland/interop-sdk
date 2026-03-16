@@ -529,7 +529,9 @@ export class OrderTracker extends EventEmitter {
     private async invokePreTracker(params: WatchOrderParams): Promise<void> {
         if (!this.preTracker) return;
 
-        const txHash = "txHash" in params ? params.txHash : params.openTxHash;
+        const txHash =
+            ("txHash" in params ? params.txHash : undefined) ??
+            ("openTxHash" in params ? params.openTxHash : undefined);
         if (!txHash) return;
 
         const orderId = "orderId" in params ? params.orderId : undefined;
@@ -541,7 +543,10 @@ export class OrderTracker extends EventEmitter {
                 orderId,
             });
         } catch (error) {
-            console.warn("[OrderTracker] pre-tracker failed:", error);
+            console.warn(
+                "[OrderTracker] pre-tracker failed:",
+                error instanceof Error ? error.message : String(error),
+            );
         }
     }
 

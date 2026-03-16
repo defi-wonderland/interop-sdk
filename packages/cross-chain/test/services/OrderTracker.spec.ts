@@ -691,7 +691,7 @@ describe("OrderTracker", () => {
             expect(items.length).toBeGreaterThan(0);
             expect(warnSpy).toHaveBeenCalledWith(
                 "[OrderTracker] pre-tracker failed:",
-                expect.any(Error),
+                "network failure",
             );
             warnSpy.mockRestore();
         });
