@@ -563,6 +563,93 @@ describe("OrderTracker", () => {
         });
     });
 
+    describe("onBeforeTracking hook", () => {
+        it("executes hook before tracking starts via watchOrder", async () => {
+            const onBeforeTracking = vi.fn().mockResolvedValue(undefined);
+            const trackerWithHook = new OrderTracker(
+                mockOpenedIntentParser,
+                mockFillWatcher,
+                undefined,
+                onBeforeTracking,
+            );
+
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillInstructions: [
+                    {
+                        destinationChainId: mockDestinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
+            });
+            const mockFillEventData = createMockFillEvent();
+
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
+            vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
+
+            const items: OrderTrackerYield[] = [];
+            for await (const item of trackerWithHook.watchOrder({
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 10000,
+            })) {
+                items.push(item);
+            }
+
+            expect(onBeforeTracking).toHaveBeenCalledWith({
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+            });
+            expect(items.length).toBeGreaterThan(0);
+        });
+
+        it("continues tracking and warns if hook fails", async () => {
+            const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+            const onBeforeTracking = vi.fn().mockRejectedValue(new Error("network failure"));
+            const trackerWithHook = new OrderTracker(
+                mockOpenedIntentParser,
+                mockFillWatcher,
+                undefined,
+                onBeforeTracking,
+            );
+
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillInstructions: [
+                    {
+                        destinationChainId: mockDestinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
+            });
+            const mockFillEventData = createMockFillEvent();
+
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
+            vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
+
+            const items: OrderTrackerYield[] = [];
+            for await (const item of trackerWithHook.watchOrder({
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 10000,
+            })) {
+                items.push(item);
+            }
+
+            expect(onBeforeTracking).toHaveBeenCalled();
+            expect(items.length).toBeGreaterThan(0);
+            expect(warnSpy).toHaveBeenCalledWith(
+                "[OrderTracker] onBeforeTracking failed:",
+                expect.any(Error),
+            );
+            warnSpy.mockRestore();
+        });
+    });
+
     describe("startTracking with event emission", () => {
         it("should emit specific status events during tracking", async () => {
             const mockOpenedIntent = createMockOpenedIntent();

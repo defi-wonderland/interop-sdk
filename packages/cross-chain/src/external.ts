@@ -15,6 +15,8 @@ export {
     AcrossProvider,
     OifProvider,
     LifiIntentsProvider,
+    RelayProvider,
+    type RelayConfigs,
     createCrossChainProvider,
     // Aggregator
     Aggregator,
@@ -24,6 +26,7 @@ export {
     OrderTracker,
     OrderTrackerFactory,
     OIFOpenedIntentParser,
+    APIOpenedIntentParser,
     CustomEventOpenedIntentParser,
     // Sorting
     SortingStrategyFactory,

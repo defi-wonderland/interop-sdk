@@ -3,6 +3,7 @@ import { Chain } from "viem";
 import * as chains from "viem/chains";
 
 import { isValidBip122ChainReference } from "../address/bip122/network.js";
+import { isValidStarknetChainReference } from "../address/starknet/network.js";
 import { CHAIN_TYPE, ChainTypeName } from "../constants/interopAddress.js";
 
 /**
@@ -60,6 +61,8 @@ export const isValidChain = (chainType: ChainTypeName, chainReference: string): 
                 return false;
             }
         }
+        case "starknet":
+            return isValidStarknetChainReference(chainReference);
         default:
             return false;
     }

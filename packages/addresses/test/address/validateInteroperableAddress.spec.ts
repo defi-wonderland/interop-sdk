@@ -160,7 +160,7 @@ describe("validateInteroperableAddress", () => {
                 expect(error).toBeInstanceOf(InvalidInteroperableAddress);
                 if (error instanceof InvalidInteroperableAddress) {
                     const message = error.zodError.issues[0]?.message || error.message;
-                    expect(message).toBe("EVM address must be a valid Ethereum address");
+                    expect(message).toBe("Invalid Ethereum address: not-a-valid-address");
                 }
             }
         });

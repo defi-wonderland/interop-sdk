@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createCrossChainProvider } from "../../src/factories/crossChainProviderFactory.js";
-import { AcrossProvider, CrossChainProvider, UnsupportedProtocol } from "../../src/internal.js";
+import {
+    AcrossProvider,
+    CrossChainProvider,
+    RelayProvider,
+    UnsupportedProtocol,
+} from "../../src/internal.js";
 
 const MOCK_ACROSS_CONFIG = {
     apiUrl: "https://across.to/api",
@@ -29,6 +34,19 @@ describe("createCrossChainProvider", () => {
         const provider = createCrossChainProvider("across");
 
         expect(provider).toBeInstanceOf(AcrossProvider);
+    });
+
+    it("creates a RelayProvider with default config", () => {
+        const provider = createCrossChainProvider("relay");
+
+        expect(provider).toBeInstanceOf(RelayProvider);
+    });
+
+    it("creates a RelayProvider with custom config", () => {
+        const provider = createCrossChainProvider("relay", { providerId: "relay-custom" });
+
+        expect(provider).toBeInstanceOf(RelayProvider);
+        expect(provider.providerId).toBe("relay-custom");
     });
 
     it("throws an UnsupportedProtocol error for unsupported protocols", () => {

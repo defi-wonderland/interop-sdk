@@ -50,6 +50,12 @@ describe("convertToBytes", () => {
         expect(() => convertToBytes(input, "decimal")).toThrow(InvalidDecimal);
     });
 
+    it("converts utf8 string", () => {
+        const input = "SN_MAIN";
+        const expected = new TextEncoder().encode(input);
+        expect(convertToBytes(input, "utf8")).toEqual(expected);
+    });
+
     it("throws on invalid conversion type", () => {
         // @ts-expect-error intentional bad input
         expect(() => convertToBytes("test", "badType")).toThrow(InvalidConversionType);

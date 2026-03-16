@@ -3,12 +3,14 @@ import type {
     CrossChainProvider,
     LifiIntentsProviderConfig,
     OifProviderConfig,
+    RelayConfigs,
 } from "../internal.js";
 import {
     AcrossProvider,
     LifiIntentsProvider,
     OifProvider,
     PROTOCOLS,
+    RelayProvider,
     UnsupportedProtocol,
 } from "../internal.js";
 
@@ -40,6 +42,15 @@ export function createCrossChainProvider(
     config: LifiIntentsProviderConfig,
 ): CrossChainProvider;
 /**
+ * Creates a CrossChainProvider for Relay protocol
+ * @param protocolName - "relay"
+ * @param config - Optional configuration (defaults to mainnet)
+ */
+export function createCrossChainProvider(
+    protocolName: typeof PROTOCOLS.RELAY,
+    config?: RelayConfigs,
+): CrossChainProvider;
+/**
  * Creates a CrossChainProvider for the specified protocol
  * @param protocolName - The name of the protocol
  * @param config - The configuration for the provider
@@ -55,5 +66,6 @@ export function createCrossChainProvider(
     if (protocolName === PROTOCOLS.OIF) return new OifProvider(config as OifProviderConfig);
     if (protocolName === PROTOCOLS.LIFI_INTENTS)
         return new LifiIntentsProvider(config as LifiIntentsProviderConfig);
+    if (protocolName === PROTOCOLS.RELAY) return new RelayProvider((config as RelayConfigs) ?? {});
     throw new UnsupportedProtocol(protocolName);
 }

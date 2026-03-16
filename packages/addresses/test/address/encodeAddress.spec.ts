@@ -151,6 +151,45 @@ describe("erc7930", () => {
             expect(bytes[3]).toBe(0x01);
         });
 
+        it("encode starknet text representation", () => {
+            const interopAddress: InteroperableAddress = {
+                version: 1,
+                chainType: "starknet",
+                chainReference: "SN_MAIN",
+                address: "0x02dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57",
+            };
+
+            const encoded = encodeAddress(interopAddress, { format: "hex" });
+
+            expect(encoded).toEqual(
+                "0x0001000307534e5f4d41494e2002dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57",
+            );
+
+            /*  0x0001000307534e5f4d41494e2002dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57
+                  ^^^^-------------------------------------------------------------------------------------- Version:              decimal 1
+                      ^^^^---------------------------------------------------------------------------------- ChainType:            0x0003 (starknet)
+                          ^^-------------------------------------------------------------------------------- ChainReferenceLength: decimal 7
+                            ^^^^^^^^^^^^^^------------------------------------------------------------------ ChainReference:       7 bytes UTF-8 "SN_MAIN"
+                                          ^^---------------------------------------------------------------- AddressLength:        decimal 32 (0x20)
+                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Address:              32 bytes felt252
+            */
+        });
+
+        it("encode starknet without address", () => {
+            const interopAddress: InteroperableAddress = {
+                version: 1,
+                chainType: "starknet",
+                chainReference: "SN_MAIN",
+            };
+
+            const encoded = encodeAddress(interopAddress, { format: "hex" });
+            const bytes = encodeAddress(interopAddress, { format: "bytes" });
+
+            expect(encoded).toEqual("0x0001000307534e5f4d41494e00");
+            expect(bytes[2]).toBe(0x00);
+            expect(bytes[3]).toBe(0x03);
+        });
+
         it("can encode text representation", () => {
             const interopAddress: InteroperableAddress = {
                 version: 1,

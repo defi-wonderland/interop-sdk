@@ -13,6 +13,7 @@ import type {
     WatchOrderByTxHash,
     WatchOrderParams,
 } from "../types/orderTracking.js";
+import type { OnBeforeTracking } from "../types/tracking.js";
 import { OpenedIntentNotFoundError } from "../errors/OpenedIntentNotFound.exception.js";
 import { OrderTrackerEvent } from "../interfaces/orderTracker.interface.js";
 import { OrderFailureReason, OrderStatus, OrderTrackerYieldType } from "../types/orderTracking.js";
@@ -62,6 +63,7 @@ export class OrderTracker extends EventEmitter {
         private readonly openedIntentParser: OpenedIntentParser,
         private readonly fillWatcher: FillWatcher,
         private readonly clientManager?: PublicClientManager,
+        private readonly onBeforeTracking?: OnBeforeTracking,
     ) {
         super();
     }
@@ -176,6 +178,14 @@ export class OrderTracker extends EventEmitter {
     ): AsyncGenerator<OrderTrackerYield> {
         const { txHash, originChainId, timeout } = params;
         const startTime = Date.now();
+
+        if (this.onBeforeTracking) {
+            try {
+                await this.onBeforeTracking({ txHash, originChainId });
+            } catch (error) {
+                console.warn("[OrderTracker] onBeforeTracking failed:", error);
+            }
+        }
 
         let lastUpdate: OrderTrackingUpdate = this.createUpdate({
             status: OrderStatus.Pending,
