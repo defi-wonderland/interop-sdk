@@ -78,7 +78,9 @@ export function useBuildQuote(): UseBuildQuoteReturn {
           amount: outputAmountSmallest,
           recipient: params.recipient,
         },
-        escrowContractAddress: params.sender, // fallback; Across adapter uses known SpokePool
+        // Across provider resolves the SpokePool from its internal mapping;
+        // zero address ensures unsupported chains fail instead of depositing to the user's EOA.
+        escrowContractAddress: '0x0000000000000000000000000000000000000000',
         fillDeadline,
       };
 
