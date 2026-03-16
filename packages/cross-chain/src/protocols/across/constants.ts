@@ -44,10 +44,6 @@ function getAcrossApiUrl(isTestnet: boolean = false): string {
 // Export only for internal use within the package
 export { getAcrossApiUrl };
 
-// Gas limit for the open transaction
-// Obtained from previous transactions
-export const ACROSS_OPEN_GAS_LIMIT = 2600_00n;
-
 /**
  * Across SpokePool contract addresses on each chain
  * Used for watching fill events on destination chains
