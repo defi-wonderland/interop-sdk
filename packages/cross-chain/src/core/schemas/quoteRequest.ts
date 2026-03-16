@@ -66,6 +66,7 @@ export const BuildQuoteRequestSchema = z.object({
     orderDataType: z
         .string()
         .regex(/^0x([0-9a-fA-F]{2})*$/, "Invalid orderDataType hex")
+        .refine((val) => (val.length - 2) / 2 <= 32, "orderDataType exceeds 32 bytes (bytes32)")
         .optional(),
     orderData: z
         .string()
