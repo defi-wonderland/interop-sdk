@@ -133,10 +133,10 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!connectedAddress || !inputTokenAddress || !outputTokenAddress || !amountIsValid) {
+    if (!connectedAddress || !inputTokenAddress || !outputTokenAddress || !amountIsValid || parsedInputAmount <= 0n) {
       return;
     }
-    if (mode === 'buildQuote' && !outputAmountIsValid) {
+    if (mode === 'buildQuote' && (!outputAmountIsValid || parsedOutputAmount <= 0n)) {
       return;
     }
     const finalRecipient = recipient.trim() || connectedAddress;
