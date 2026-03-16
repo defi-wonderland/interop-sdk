@@ -60,8 +60,12 @@ export interface ParsedInteroperableNameResult<
  */
 export interface ParseNameOptions {
     representation?: "binary" | "text";
-    /** Experimental: ENS-based chain registry domain (e.g., "cid.eth", "on.eth") */
-    useExperimentalChainRegistry?: string;
+    /** Onchain ENS-based chain registry domain. Default: "on.eth". true = use "on.eth", false = skip onchain, string = custom domain. */
+    onchainRegistry?: string | boolean;
+    /** Whether to fall back to offchain chainid.network registry. Default: true. */
+    offchainRegistryFallback?: boolean;
+    /** Custom mainnet RPC URL for onchain registry lookups. */
+    rpcUrl?: string;
 }
 
 export function parseName(
@@ -95,7 +99,9 @@ export async function parseName(
     const resolvedChain = await resolveChain({
         chainType: parsed.chainType,
         chainReference: parsed.chainReference,
-        useExperimentalChainRegistry: opts?.useExperimentalChainRegistry,
+        onchainRegistry: opts?.onchainRegistry,
+        offchainRegistryFallback: opts?.offchainRegistryFallback,
+        rpcUrl: opts?.rpcUrl,
     });
     const resolvedChainType = resolvedChain.chainType;
     const resolvedChainRef = resolvedChain.chainReference;
