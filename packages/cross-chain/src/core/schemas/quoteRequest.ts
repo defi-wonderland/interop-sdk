@@ -62,7 +62,7 @@ export const BuildQuoteRequestSchema = z.object({
     input: BuildQuoteInputSchema,
     output: BuildQuoteOutputSchema,
     escrowContractAddress: addressString,
-    fillDeadline: z.number().int().positive(),
+    fillDeadline: z.number().int().positive().max(4294967295, "fillDeadline exceeds uint32 max"),
     orderDataType: z
         .string()
         .regex(/^0x([0-9a-fA-F]{2})*$/, "Invalid orderDataType hex")
