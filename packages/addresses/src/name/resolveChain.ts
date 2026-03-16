@@ -1,14 +1,18 @@
 import { ChainTypeName, ChainTypeName as ChainTypeNameEnum } from "../constants/interopAddress.js";
 import { InvalidChainIdentifier, InvalidChainType } from "../internal.js";
 import { isValidChain, isValidChainType } from "./isValidChain.js";
-import { resolveChainFromRegistry } from "./resolveChainFromRegistry.js";
+import { DEFAULT_REGISTRY_DOMAIN, resolveChainFromRegistry } from "./resolveChainFromRegistry.js";
 import { shortnameToChainId } from "./shortnameToChainId.js";
 
 export interface ResolveChainInput {
     chainType?: string;
     chainReference?: string;
-    /** Experimental: ENS-based chain registry domain (e.g., "cid.eth", "on.eth") */
-    useExperimentalChainRegistry?: string;
+    /** Onchain ENS-based chain registry domain. Default: "on.eth". Set false to disable. */
+    onchainRegistry?: string | boolean;
+    /** Whether to fall back to offchain chainid.network registry. Default: true. */
+    offchainRegistryFallback?: boolean;
+    /** Custom mainnet RPC URL for onchain registry lookups. */
+    rpcUrl?: string;
 }
 
 export interface ResolvedChain {
@@ -30,7 +34,7 @@ export interface ResolvedChain {
  * @throws {InvalidChainIdentifier} If chainReference can't be resolved or chain combination is invalid
  */
 export const resolveChain = async (input: ResolveChainInput): Promise<ResolvedChain> => {
-    const { chainType, chainReference, useExperimentalChainRegistry } = input;
+    const { chainType, chainReference, onchainRegistry, offchainRegistryFallback, rpcUrl } = input;
 
     // Case 1: Both chainType and chainReference provided
     if (chainType && chainReference) {
@@ -67,11 +71,22 @@ export const resolveChain = async (input: ResolveChainInput): Promise<ResolvedCh
 
     // Case 3: Only chainReference provided - resolve it
     if (chainReference) {
-        // Try onchain registry first if registry domain is provided
-        if (useExperimentalChainRegistry) {
+        // Determine effective registry domain (default: "on.eth")
+        const registryDomain =
+            onchainRegistry === false
+                ? null
+                : typeof onchainRegistry === "string" && onchainRegistry
+                  ? onchainRegistry
+                  : DEFAULT_REGISTRY_DOMAIN;
+
+        const useOffchain = offchainRegistryFallback !== false;
+
+        // Try onchain registry first (enabled by default)
+        if (registryDomain) {
             const registryResult = await resolveChainFromRegistry(
                 chainReference,
-                useExperimentalChainRegistry,
+                registryDomain,
+                rpcUrl,
             );
             if (registryResult) {
                 return registryResult;
@@ -79,13 +94,15 @@ export const resolveChain = async (input: ResolveChainInput): Promise<ResolvedCh
             // Fall through to offchain resolution if onchain fails
         }
 
-        // Offchain resolution via chainid.network
-        const resolvedChainId = await shortnameToChainId(chainReference);
-        if (resolvedChainId) {
-            return {
-                chainType: ChainTypeNameEnum.EIP155,
-                chainReference: resolvedChainId.toString(),
-            };
+        // Offchain fallback via chainid.network
+        if (useOffchain) {
+            const resolvedChainId = await shortnameToChainId(chainReference);
+            if (resolvedChainId) {
+                return {
+                    chainType: ChainTypeNameEnum.EIP155,
+                    chainReference: resolvedChainId.toString(),
+                };
+            }
         }
 
         throw new InvalidChainIdentifier(

@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import {
     RelayBadRequestResponseSchema,
+    RelayChainsResponseSchema,
     RelayIndexTransactionRequestSchema,
     RelayIndexTransactionResponseSchema,
     RelayIntentStatusRequestSchema,
@@ -511,5 +512,263 @@ describe("RelayServerErrorResponseSchema", () => {
             requestId: REQUEST_ID,
         });
         expect(result.requestId).toBe(REQUEST_ID);
+    });
+});
+
+// ── Chains (Discovery) Tests ─────────────────────────────
+
+const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const USDC_CURRENCY_ID = `${USDC_ADDRESS}_1`;
+const ETH_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+function buildSolverCurrency(overrides?: Record<string, unknown>): Record<string, unknown> {
+    return {
+        id: USDC_CURRENCY_ID,
+        address: USDC_ADDRESS,
+        symbol: "USDC",
+        name: "USD Coin",
+        decimals: USDC_DECIMALS,
+        ...overrides,
+    };
+}
+
+function buildChainCurrency(overrides?: Record<string, unknown>): Record<string, unknown> {
+    return {
+        id: "eth_1",
+        symbol: "ETH",
+        name: "Ether",
+        address: ETH_ADDRESS,
+        decimals: 18,
+        supportsBridging: true,
+        ...overrides,
+    };
+}
+
+function buildChainEntry(overrides?: Record<string, unknown>): Record<string, unknown> {
+    return {
+        id: ORIGIN_CHAIN_ID,
+        name: "Ethereum",
+        displayName: "Ethereum",
+        httpRpcUrl: "https://rpc.ethereum.org",
+        wsRpcUrl: "wss://rpc.ethereum.org",
+        explorerUrl: "https://etherscan.io",
+        explorerName: "Etherscan",
+        explorerPaths: { transaction: "/tx/{txHash}", address: "/address/{address}" },
+        depositEnabled: true,
+        tokenSupport: "All",
+        disabled: false,
+        partialDisableLimit: 0,
+        blockProductionLagging: false,
+        currency: buildChainCurrency(),
+        withdrawalFee: 0,
+        depositFee: 0,
+        surgeEnabled: false,
+        featuredTokens: [],
+        erc20Currencies: [
+            {
+                ...buildChainCurrency({
+                    id: USDC_CURRENCY_ID,
+                    symbol: "USDC",
+                    name: "USD Coin",
+                    address: USDC_ADDRESS,
+                    decimals: USDC_DECIMALS,
+                }),
+                supportsPermit: true,
+                withdrawalFee: 0,
+                depositFee: 0,
+                surgeEnabled: false,
+            },
+        ],
+        solverCurrencies: [buildSolverCurrency()],
+        iconUrl: "https://assets.relay.link/icons/1.png",
+        logoUrl: null,
+        brandColor: "#627EEA",
+        contracts: {
+            multicall3: "0xcA11bde05977b3631167028862bE2a173976CA11",
+            relayReceiver: "0xa5f565650890fba1824ee0f21ebbbf660a179934",
+            erc20Router: VALID_ADDRESS,
+            approvalProxy: VALID_ADDRESS,
+            v3: { erc20Router: VALID_ADDRESS, approvalProxy: VALID_ADDRESS },
+        },
+        vmType: "evm",
+        explorerQueryParams: null,
+        baseChainId: null,
+        statusMessage: null,
+        solverAddresses: [VALID_ADDRESS],
+        tags: [],
+        protocol: { v2: { chainId: "1", depository: VALID_ADDRESS, depositoryVault: null } },
+        ...overrides,
+    };
+}
+
+describe("RelayChainsResponseSchema", () => {
+    it("accepts a full chain entry with all fields", () => {
+        const result = RelayChainsResponseSchema.parse({ chains: [buildChainEntry()] });
+        expect(result.chains).toHaveLength(1);
+        expect(result.chains[0]!.id).toBe(ORIGIN_CHAIN_ID);
+        expect(result.chains[0]!.vmType).toBe("evm");
+        expect(result.chains[0]!.solverCurrencies).toHaveLength(1);
+    });
+
+    it("accepts a minimal chain with only required id", () => {
+        const result = RelayChainsResponseSchema.parse({
+            chains: [{ id: ORIGIN_CHAIN_ID }],
+        });
+        expect(result.chains[0]!.id).toBe(ORIGIN_CHAIN_ID);
+        expect(result.chains[0]!.solverCurrencies).toEqual([]);
+    });
+
+    it("defaults solverCurrencies to empty array when absent", () => {
+        const result = RelayChainsResponseSchema.parse({
+            chains: [{ id: ORIGIN_CHAIN_ID, vmType: "evm" }],
+        });
+        expect(result.chains[0]!.solverCurrencies).toEqual([]);
+    });
+
+    it.each(["bvm", "evm", "svm", "tvm", "tonvm", "suivm", "hypevm", "lvm"] as const)(
+        "accepts vmType '%s'",
+        (vmType) => {
+            const result = RelayChainsResponseSchema.parse({
+                chains: [{ id: ORIGIN_CHAIN_ID, vmType }],
+            });
+            expect(result.chains[0]!.vmType).toBe(vmType);
+        },
+    );
+
+    it("rejects invalid vmType value", () => {
+        expect(() =>
+            RelayChainsResponseSchema.parse({
+                chains: [{ id: ORIGIN_CHAIN_ID, vmType: "invalid-vm" }],
+            }),
+        ).toThrow(ZodError);
+    });
+
+    it("accepts tokenSupport enum values", () => {
+        const all = RelayChainsResponseSchema.parse({
+            chains: [buildChainEntry({ tokenSupport: "All" })],
+        });
+        expect(all.chains[0]!.tokenSupport).toBe("All");
+
+        const limited = RelayChainsResponseSchema.parse({
+            chains: [buildChainEntry({ tokenSupport: "Limited" })],
+        });
+        expect(limited.chains[0]!.tokenSupport).toBe("Limited");
+    });
+
+    it("rejects invalid tokenSupport value", () => {
+        expect(() =>
+            RelayChainsResponseSchema.parse({
+                chains: [buildChainEntry({ tokenSupport: "None" })],
+            }),
+        ).toThrow(ZodError);
+    });
+
+    it("accepts nullable fields as null", () => {
+        const result = RelayChainsResponseSchema.parse({
+            chains: [
+                buildChainEntry({
+                    explorerPaths: null,
+                    iconUrl: null,
+                    logoUrl: null,
+                    brandColor: null,
+                    baseChainId: null,
+                    statusMessage: null,
+                    explorerQueryParams: null,
+                }),
+            ],
+        });
+        const chain = result.chains[0]!;
+        expect(chain.explorerPaths).toBeNull();
+        expect(chain.iconUrl).toBeNull();
+        expect(chain.logoUrl).toBeNull();
+        expect(chain.brandColor).toBeNull();
+        expect(chain.baseChainId).toBeNull();
+        expect(chain.statusMessage).toBeNull();
+    });
+
+    it("accepts contracts with v3 nested object", () => {
+        const result = RelayChainsResponseSchema.parse({
+            chains: [buildChainEntry()],
+        });
+        const contracts = result.chains[0]!.contracts;
+        expect(contracts?.v3?.erc20Router).toBe(VALID_ADDRESS);
+    });
+
+    it("accepts chain protocol with v2 data", () => {
+        const result = RelayChainsResponseSchema.parse({
+            chains: [buildChainEntry()],
+        });
+        expect(result.chains[0]!.protocol?.v2?.chainId).toBe("1");
+        expect(result.chains[0]!.protocol?.v2?.depositoryVault).toBeNull();
+    });
+
+    it("accepts erc20Currencies with permit and fee fields", () => {
+        const result = RelayChainsResponseSchema.parse({
+            chains: [buildChainEntry()],
+        });
+        const erc20 = result.chains[0]!.erc20Currencies;
+        expect(erc20).toHaveLength(1);
+        expect(erc20![0]!.supportsPermit).toBe(true);
+    });
+
+    it("accepts chain currency with supportsBridging", () => {
+        const result = RelayChainsResponseSchema.parse({
+            chains: [buildChainEntry()],
+        });
+        expect(result.chains[0]!.currency?.supportsBridging).toBe(true);
+    });
+
+    it("accepts featuredTokens with metadata logoURI", () => {
+        const result = RelayChainsResponseSchema.parse({
+            chains: [
+                buildChainEntry({
+                    featuredTokens: [
+                        {
+                            ...buildChainCurrency(),
+                            metadata: { logoURI: SAMPLE_LOGO_URI },
+                        },
+                    ],
+                }),
+            ],
+        });
+        expect(result.chains[0]!.featuredTokens).toHaveLength(1);
+    });
+
+    it("rejects solver currency missing required id", () => {
+        expect(() =>
+            RelayChainsResponseSchema.parse({
+                chains: [
+                    buildChainEntry({
+                        solverCurrencies: [
+                            {
+                                address: USDC_ADDRESS,
+                                symbol: "USDC",
+                                name: "USD Coin",
+                                decimals: USDC_DECIMALS,
+                            },
+                        ],
+                    }),
+                ],
+            }),
+        ).toThrow(ZodError);
+    });
+
+    it("rejects missing chains property", () => {
+        expect(() => RelayChainsResponseSchema.parse({ notChains: [] })).toThrow(ZodError);
+    });
+
+    it("accepts empty chains array", () => {
+        const result = RelayChainsResponseSchema.parse({ chains: [] });
+        expect(result.chains).toHaveLength(0);
+    });
+
+    it("accepts multiple chains", () => {
+        const result = RelayChainsResponseSchema.parse({
+            chains: [
+                buildChainEntry({ id: ORIGIN_CHAIN_ID }),
+                buildChainEntry({ id: DESTINATION_CHAIN_ID, vmType: "svm" }),
+            ],
+        });
+        expect(result.chains).toHaveLength(2);
     });
 });
