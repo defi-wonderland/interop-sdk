@@ -90,7 +90,7 @@ async function processTransactionStep(
   const gas = parsedGas > 0n ? parsedGas : undefined;
 
   if (isApprovalTransaction(txData)) {
-    return submitApprovalStep(publicClient, walletClient, txTo, txData, chainContext, onStateChange, value);
+    return submitApprovalStep(publicClient, walletClient, txTo, txData, chainContext, onStateChange, value, gas);
   }
 
   return submitBridgeTransaction(publicClient, walletClient, txTo, txData, chainContext, onStateChange, value, gas);
@@ -112,7 +112,11 @@ export const executeDirectTransaction = async ({
     throw new Error('Invalid quote: no transaction steps');
   }
 
-  if (quote.order.checks?.allowances?.length) {
+  const hasEmbeddedApprovalStep = txSteps.some(
+    (step) => step.transaction?.data && isApprovalTransaction(step.transaction.data as Hex),
+  );
+
+  if (!hasEmbeddedApprovalStep && quote.order.checks?.allowances?.length) {
     for (const allowance of quote.order.checks.allowances) {
       await handleTokenApproval(
         publicClient,
@@ -125,7 +129,7 @@ export const executeDirectTransaction = async ({
         onStateChange,
       );
     }
-  } else if (!isNativeAddress(inputTokenAddress, 'eip155')) {
+  } else if (!hasEmbeddedApprovalStep && !isNativeAddress(inputTokenAddress, 'eip155')) {
     const spender = txSteps[0]?.transaction?.to as Address;
     await handleTokenApproval(
       publicClient,

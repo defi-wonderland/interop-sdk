@@ -39,7 +39,7 @@ export async function trackOrder(
     timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
   };
 
-  const watchParams = orderId ? { ...baseParams, orderId, openTxHash: txHash } : { ...baseParams, txHash: txHash! };
+  const watchParams = orderId ? { ...baseParams, orderId } : { ...baseParams, txHash: txHash! };
 
   try {
     for await (const item of tracker.watchOrder(watchParams)) {

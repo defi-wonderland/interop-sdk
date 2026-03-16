@@ -107,23 +107,18 @@ export function formatQuoteData(
     // Use totalFee if amount is non-zero, otherwise try bridgeFee
     const feeSource = totalFee?.amount && totalFee.amount !== '0' ? totalFee : bridgeFee?.amount ? bridgeFee : null;
 
-    if (feeSource) {
+    if (feeSource?.amount && feeSource.amount !== '0') {
       const feeToken = feeSource.token;
-      const feeDecimals = feeToken?.decimals || inputTokenInfo?.decimals || 18;
+      const feeDecimals = feeToken?.decimals ?? inputTokenInfo?.decimals ?? 18;
 
-      if (feeSource.amount && feeSource.amount !== '0') {
-        feeTotal = formatAmount(feeSource.amount, feeDecimals);
-        feeTokenSymbol = feeToken?.symbol || inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
-      }
+      feeTotal = formatAmount(feeSource.amount, feeDecimals);
+      feeTokenSymbol = feeToken?.symbol || inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
 
-      // Extract USD value for fee
       if (feeSource.amountUsd) {
         feeTotalUsd = formatUsdAmount(feeSource.amountUsd);
       }
 
       if (feeSource.pct) {
-        // The pct value is stored in wei format (1e18), representing a decimal fraction
-        // Convert to percentage: divide by 1e18 to get decimal, then multiply by 100
         const pctValue = BigInt(feeSource.pct);
         const wei = 1000000000000000000n;
         const percentage = (Number(pctValue) / Number(wei)) * 100;
@@ -135,7 +130,7 @@ export function formatQuoteData(
     const originGasInfo = acrossResponse.fees?.originGas;
     if (originGasInfo?.amount && originGasInfo.amount !== '0') {
       hasOriginGas = true; // Track that gas is present even if formatted value rounds to 0
-      const gasDecimals = originGasInfo.token?.decimals || 18;
+      const gasDecimals = originGasInfo.token?.decimals ?? 18;
       // Use more decimal places for gas (8) since ETH gas costs can be very small
       originGas = formatAmount(originGasInfo.amount, gasDecimals, 8);
       originGasSymbol = originGasInfo.token?.symbol || 'ETH';
@@ -171,7 +166,7 @@ export function formatQuoteData(
 
     const relayerFee = relayResponse.fees?.relayer;
     if (relayerFee?.amount && relayerFee.amount !== '0') {
-      const decimals = relayerFee.currency?.decimals || inputTokenInfo?.decimals || 18;
+      const decimals = relayerFee.currency?.decimals ?? inputTokenInfo?.decimals ?? 18;
       feeTotal = formatAmount(relayerFee.amount, decimals);
       feeTokenSymbol = relayerFee.currency?.symbol || inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
       if (relayerFee.amountUsd) feeTotalUsd = formatUsdAmount(relayerFee.amountUsd);
@@ -180,7 +175,7 @@ export function formatQuoteData(
     const relayGas = relayResponse.fees?.gas;
     if (relayGas?.amount && relayGas.amount !== '0') {
       hasOriginGas = true;
-      const gasDecimals = relayGas.currency?.decimals || 18;
+      const gasDecimals = relayGas.currency?.decimals ?? 18;
       originGas = formatAmount(relayGas.amount, gasDecimals, 8);
       originGasSymbol = relayGas.currency?.symbol || 'ETH';
       if (relayGas.amountUsd) originGasUsd = formatUsdAmount(relayGas.amountUsd);

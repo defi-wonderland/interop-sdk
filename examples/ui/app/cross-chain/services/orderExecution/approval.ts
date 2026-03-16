@@ -19,6 +19,7 @@ export async function submitApprovalStep(
   chainContext: ChainContext,
   onStateChange: (state: BridgeState) => void,
   value?: bigint,
+  gas?: bigint,
 ): Promise<Hex> {
   onStateChange({ step: STEP.WALLET, action: WALLET_ACTION.APPROVING, ...chainContext });
 
@@ -26,6 +27,7 @@ export async function submitApprovalStep(
     to,
     data,
     ...(value != null && { value }),
+    ...(gas != null && { gas }),
   });
 
   onStateChange({ step: STEP.WALLET, action: WALLET_ACTION.APPROVING, txHash: approvalHash, ...chainContext });
