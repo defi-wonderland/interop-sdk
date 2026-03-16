@@ -23,6 +23,7 @@ import {
     GetFillParams,
     getOrderResponseSchema,
     getQuoteResponseSchema,
+    isNativeAddress,
     OIFAssetDiscoveryConfig,
     OifProviderConfig,
     OifProviderConfigSchema,
@@ -271,6 +272,12 @@ export class OifProvider extends CrossChainProvider {
      * @inheritdoc
      */
     override async buildQuote(params: BuildQuoteRequest): Promise<Quote> {
+        if (isNativeAddress(params.input.assetAddress, "eip155")) {
+            throw new ProviderExecuteNotImplemented(
+                "OIF buildQuote does not support native-token inputs: open() is nonpayable",
+            );
+        }
+
         const orderDataType = params.orderDataType
             ? (pad(params.orderDataType as Hex, { size: 32 }) as Hex)
             : DEFAULT_ORDER_DATA_TYPE;
