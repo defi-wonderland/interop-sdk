@@ -64,108 +64,126 @@ export function formatQuoteData(
   let hasOriginGas = false;
 
   const metadata = quote.metadata as Record<string, unknown>;
-
-  // Across and Relay share the same fee structure but use different field names
-  // (token vs currency). Normalize both into FeeEntry and use shared parsers.
-  interface FeeEntry {
-    amount?: string;
-    amountUsd?: string;
-    decimals?: number;
-    symbol?: string;
-    pct?: string;
-  }
-
-  function parseBridgeFee(entry: FeeEntry | null, fallbackInfo: TokenInfo | undefined): void {
-    if (!entry?.amount || entry.amount === '0') return;
-    const decimals = entry.decimals || fallbackInfo?.decimals || 18;
-    feeTotal = formatAmount(entry.amount, decimals);
-    feeTokenSymbol = entry.symbol || fallbackInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
-    if (entry.amountUsd) feeTotalUsd = formatUsdAmount(entry.amountUsd);
-    if (entry.pct) {
-      const percentage = (Number(BigInt(entry.pct)) / Number(1000000000000000000n)) * 100;
-      feePercent = formatPercentage(percentage);
-    }
-  }
-
-  function parseOriginGas(entry: FeeEntry | null): void {
-    if (!entry?.amount || entry.amount === '0') return;
-    hasOriginGas = true;
-    const decimals = entry.decimals || 18;
-    originGas = formatAmount(entry.amount, decimals, 8);
-    originGasSymbol = entry.symbol || 'ETH';
-    if (entry.amountUsd) originGasUsd = formatUsdAmount(entry.amountUsd);
-  }
-
   if (metadata?.acrossResponse) {
-    const across = metadata.acrossResponse as {
+    const acrossResponse = metadata.acrossResponse as {
       fees?: {
-        total?: { amount?: string; amountUsd?: string; pct?: string; token?: { symbol?: string; decimals?: number } };
-        originGas?: { amount?: string; amountUsd?: string; token?: { symbol?: string; decimals?: number } };
+        total?: {
+          amount?: string;
+          amountUsd?: string;
+          pct?: string;
+          token?: {
+            symbol?: string;
+            decimals?: number;
+          };
+        };
+        originGas?: {
+          amount?: string;
+          amountUsd?: string;
+          token?: {
+            symbol?: string;
+            decimals?: number;
+          };
+        };
       };
       steps?: {
         bridge?: {
-          fees?: { amount?: string; amountUsd?: string; pct?: string; token?: { symbol?: string; decimals?: number } };
+          fees?: {
+            amount?: string;
+            amountUsd?: string;
+            pct?: string;
+            token?: {
+              symbol?: string;
+              decimals?: number;
+            };
+          };
         };
       };
     };
 
-    const totalFee = across.fees?.total;
-    const bridgeFee = across.steps?.bridge?.fees;
+    // Try fees.total first, fallback to steps.bridge.fees if total is 0 or missing
+    const totalFee = acrossResponse.fees?.total;
+    const bridgeFee = acrossResponse.steps?.bridge?.fees;
+
+    // Use totalFee if amount is non-zero, otherwise try bridgeFee
     const feeSource = totalFee?.amount && totalFee.amount !== '0' ? totalFee : bridgeFee?.amount ? bridgeFee : null;
 
     if (feeSource) {
-      parseBridgeFee(
-        {
-          amount: feeSource.amount,
-          amountUsd: feeSource.amountUsd,
-          pct: feeSource.pct,
-          decimals: feeSource.token?.decimals,
-          symbol: feeSource.token?.symbol,
-        },
-        inputTokenInfo,
-      );
+      const feeToken = feeSource.token;
+      const feeDecimals = feeToken?.decimals || inputTokenInfo?.decimals || 18;
+
+      if (feeSource.amount && feeSource.amount !== '0') {
+        feeTotal = formatAmount(feeSource.amount, feeDecimals);
+        feeTokenSymbol = feeToken?.symbol || inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
+      }
+
+      // Extract USD value for fee
+      if (feeSource.amountUsd) {
+        feeTotalUsd = formatUsdAmount(feeSource.amountUsd);
+      }
+
+      if (feeSource.pct) {
+        // The pct value is stored in wei format (1e18), representing a decimal fraction
+        // Convert to percentage: divide by 1e18 to get decimal, then multiply by 100
+        const pctValue = BigInt(feeSource.pct);
+        const wei = 1000000000000000000n;
+        const percentage = (Number(pctValue) / Number(wei)) * 100;
+        feePercent = formatPercentage(percentage);
+      }
     }
 
-    const gasInfo = across.fees?.originGas;
-    if (gasInfo) {
-      parseOriginGas({
-        amount: gasInfo.amount,
-        amountUsd: gasInfo.amountUsd,
-        decimals: gasInfo.token?.decimals,
-        symbol: gasInfo.token?.symbol,
-      });
+    // Extract origin gas (paid by user on source chain)
+    const originGasInfo = acrossResponse.fees?.originGas;
+    if (originGasInfo?.amount && originGasInfo.amount !== '0') {
+      hasOriginGas = true; // Track that gas is present even if formatted value rounds to 0
+      const gasDecimals = originGasInfo.token?.decimals || 18;
+      // Use more decimal places for gas (8) since ETH gas costs can be very small
+      originGas = formatAmount(originGasInfo.amount, gasDecimals, 8);
+      originGasSymbol = originGasInfo.token?.symbol || 'ETH';
+
+      // Extract USD value for gas
+      if (originGasInfo.amountUsd) {
+        originGasUsd = formatUsdAmount(originGasInfo.amountUsd);
+      }
     }
   }
 
   if (metadata?.relayResponse) {
-    const relay = metadata.relayResponse as {
+    const relayResponse = metadata.relayResponse as {
       fees?: {
-        gas?: { amount?: string; amountUsd?: string; currency?: { symbol?: string; decimals?: number } };
-        relayer?: { amount?: string; amountUsd?: string; currency?: { symbol?: string; decimals?: number } };
+        gas?: {
+          amount?: string;
+          amountUsd?: string;
+          currency?: {
+            symbol?: string;
+            decimals?: number;
+          };
+        };
+        relayer?: {
+          amount?: string;
+          amountUsd?: string;
+          currency?: {
+            symbol?: string;
+            decimals?: number;
+          };
+        };
       };
     };
 
-    const relayerFee = relay.fees?.relayer;
-    if (relayerFee) {
-      parseBridgeFee(
-        {
-          amount: relayerFee.amount,
-          amountUsd: relayerFee.amountUsd,
-          decimals: relayerFee.currency?.decimals,
-          symbol: relayerFee.currency?.symbol,
-        },
-        inputTokenInfo,
-      );
+    const relayerFee = relayResponse.fees?.relayer;
+    if (relayerFee?.amount && relayerFee.amount !== '0') {
+      const decimals = relayerFee.currency?.decimals || inputTokenInfo?.decimals || 18;
+      feeTotal = formatAmount(relayerFee.amount, decimals);
+      feeTokenSymbol = relayerFee.currency?.symbol || inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
+      if (relayerFee.amountUsd) feeTotalUsd = formatUsdAmount(relayerFee.amountUsd);
     }
 
-    const relayGas = relay.fees?.gas;
-    if (relayGas) {
-      parseOriginGas({
-        amount: relayGas.amount,
-        amountUsd: relayGas.amountUsd,
-        decimals: relayGas.currency?.decimals,
-        symbol: relayGas.currency?.symbol,
-      });
+    const relayGas = relayResponse.fees?.gas;
+    if (relayGas?.amount && relayGas.amount !== '0') {
+      hasOriginGas = true;
+      const gasDecimals = relayGas.currency?.decimals || 18;
+      originGas = formatAmount(relayGas.amount, gasDecimals, 8);
+      originGasSymbol = relayGas.currency?.symbol || 'ETH';
+      if (relayGas.amountUsd) originGasUsd = formatUsdAmount(relayGas.amountUsd);
     }
   }
 
