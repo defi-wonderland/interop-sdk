@@ -11,10 +11,16 @@ export async function submitBridgeTransaction(
   chainContext: ChainContext,
   onStateChange: (state: BridgeState) => void,
   value?: bigint,
+  gas?: bigint,
 ): Promise<Hex> {
   onStateChange({ step: STEP.WALLET, action: WALLET_ACTION.SUBMITTING, ...chainContext });
 
-  const txHash = await walletClient.sendTransaction({ to, data, ...(value != null && { value }) });
+  const txHash = await walletClient.sendTransaction({
+    to,
+    data,
+    ...(value != null && { value }),
+    ...(gas != null && { gas }),
+  });
 
   onStateChange({ step: STEP.WALLET, action: WALLET_ACTION.CONFIRMING, txHash, ...chainContext });
 

@@ -38,8 +38,45 @@ export const QuoteRequestSchema = z
         },
     );
 
+// ── Build Quote Request ─────────────────────────────────
+
+export const BuildQuoteInputSchema = z.object({
+    chainId: chainIdSchema,
+    assetAddress: addressString,
+    amount: amountSchema,
+});
+
+export const BuildQuoteOutputSchema = z.object({
+    chainId: chainIdSchema,
+    assetAddress: addressString,
+    amount: amountSchema,
+    recipient: addressString.optional(),
+    calldata: z
+        .string()
+        .regex(/^0x([0-9a-fA-F]{2})*$/, "Invalid calldata hex")
+        .optional(),
+});
+
+export const BuildQuoteRequestSchema = z.object({
+    user: addressString,
+    input: BuildQuoteInputSchema,
+    output: BuildQuoteOutputSchema,
+    escrowContractAddress: addressString,
+    fillDeadline: z.number().int().positive().max(4294967295, "fillDeadline exceeds uint32 max"),
+    orderDataType: z
+        .string()
+        .regex(/^0x([0-9a-fA-F]{2})*$/, "Invalid orderDataType hex")
+        .refine((val) => (val.length - 2) / 2 <= 32, "orderDataType exceeds 32 bytes (bytes32)")
+        .optional(),
+    orderData: z
+        .string()
+        .regex(/^0x([0-9a-fA-F]{2})*$/, "Invalid orderData hex")
+        .optional(),
+});
+
 // ── Types ───────────────────────────────────────────────
 
 export type IntentInput = z.infer<typeof IntentInputSchema>;
 export type IntentOutput = z.infer<typeof IntentOutputSchema>;
 export type QuoteRequest = z.input<typeof QuoteRequestSchema>;
+export type BuildQuoteRequest = z.infer<typeof BuildQuoteRequestSchema>;
