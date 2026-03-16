@@ -15,6 +15,10 @@ export class PreTrackerFactory {
         switch (config.type) {
             case "api":
                 return new APIPreTracker(config);
+            default:
+                throw new Error(
+                    `Unsupported preTracker type: ${(config as { type?: string }).type ?? "unknown"}`,
+                );
         }
     }
 }
