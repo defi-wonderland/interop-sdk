@@ -17,10 +17,10 @@ type ParsedFees = {
 const DEFAULT_FEES: ParsedFees = { hasOriginGas: false };
 
 function parseAcrossFees(
-  metadata: Record<string, unknown>,
+  metadata: Record<string, unknown> | undefined,
   inputTokenInfo?: { decimals?: number; symbol?: string },
 ): ParsedFees | null {
-  if (!metadata.acrossResponse) return null;
+  if (!metadata?.acrossResponse) return null;
 
   const acrossResponse = metadata.acrossResponse as {
     fees?: {
@@ -65,10 +65,10 @@ function parseAcrossFees(
 }
 
 function parseRelayFees(
-  metadata: Record<string, unknown>,
+  metadata: Record<string, unknown> | undefined,
   inputTokenInfo?: { decimals?: number; symbol?: string },
 ): ParsedFees | null {
-  if (!metadata.relayResponse) return null;
+  if (!metadata?.relayResponse) return null;
 
   const relayResponse = metadata.relayResponse as {
     fees?: {
@@ -150,7 +150,7 @@ export function formatQuoteData(
   const providerDisplayName = getProviderDisplayName(effectiveProviderId);
 
   // Extract fee information from metadata (provider-specific structure)
-  const metadata = quote.metadata as Record<string, unknown>;
+  const metadata = quote.metadata as Record<string, unknown> | undefined;
   const fees = parseAcrossFees(metadata, inputTokenInfo) ?? parseRelayFees(metadata, inputTokenInfo) ?? DEFAULT_FEES;
   const { feeTotal, feeTotalUsd, feePercent, feeTokenSymbol, originGas, originGasUsd, originGasSymbol, hasOriginGas } =
     fees;
