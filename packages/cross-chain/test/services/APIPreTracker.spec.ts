@@ -74,7 +74,7 @@ describe("APIPreTracker", () => {
             expect(axios.post).toHaveBeenCalledWith(
                 `${BASE_URL}${INDEX_ENDPOINT}`,
                 { chainId: String(ORIGIN_CHAIN_ID), txHash: TX_HASH },
-                { headers: undefined },
+                { headers: undefined, timeout: 15000 },
             );
         });
 
@@ -86,7 +86,7 @@ describe("APIPreTracker", () => {
             expect(axios.post).toHaveBeenCalledWith(
                 `${BASE_URL}${INDEX_ENDPOINT}`,
                 { chainId: String(ORIGIN_CHAIN_ID), txHash: TX_HASH, requestId: ORDER_ID },
-                { headers: undefined },
+                { headers: undefined, timeout: 15000 },
             );
         });
 
@@ -99,6 +99,19 @@ describe("APIPreTracker", () => {
 
             expect(axios.post).toHaveBeenCalledWith(expect.any(String), expect.any(Object), {
                 headers,
+                timeout: 15000,
+            });
+        });
+
+        it("uses custom timeoutMs when configured", async () => {
+            preTracker = new APIPreTracker(makeConfig({ timeoutMs: 3000 }));
+            vi.mocked(axios.post).mockResolvedValueOnce({ status: 200, data: {} });
+
+            await preTracker.execute(makeParams());
+
+            expect(axios.post).toHaveBeenCalledWith(expect.any(String), expect.any(Object), {
+                headers: undefined,
+                timeout: 3000,
             });
         });
 
