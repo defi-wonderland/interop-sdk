@@ -95,7 +95,7 @@ async function processTransactionStep(
   const { to, data, value, gas } = parseTransactionFields(txStep);
 
   if (isApprovalTransaction(data)) {
-    return submitApprovalStep(publicClient, walletClient, to, data, chainContext, onStateChange, value, gas);
+    return submitApprovalStep(publicClient, walletClient, to, data, chainContext, onStateChange, undefined, gas);
   }
 
   return submitBridgeTransaction(publicClient, walletClient, to, data, chainContext, onStateChange, value, gas);
@@ -135,28 +135,31 @@ export const executeDirectTransaction = async ({
       );
     }
   } else if (!hasEmbeddedApprovalStep && !isNativeAddress(inputTokenAddress, 'eip155')) {
-    const spender = txSteps[0]?.transaction?.to as Address;
+    const spender = txSteps[0]?.transaction?.to;
+    if (!spender) throw new Error('Invalid quote: missing spender address for token approval');
     await handleTokenApproval(
       publicClient,
       walletClient,
       ownerAddress,
       inputTokenAddress,
-      spender,
+      spender as Address,
       inputAmount,
       chainContext,
       onStateChange,
     );
   }
 
-  let lastTxHash: Hex | undefined;
+  let bridgeTxHash: Hex | undefined;
 
   for (const txStep of txSteps) {
-    lastTxHash = await processTransactionStep(txStep, publicClient, walletClient, chainContext, onStateChange);
+    const txHash = await processTransactionStep(txStep, publicClient, walletClient, chainContext, onStateChange);
+    const isApproval = txStep.transaction?.data && isApprovalTransaction(txStep.transaction.data as Hex);
+    if (!isApproval) bridgeTxHash = txHash;
   }
 
-  if (!lastTxHash) {
+  if (!bridgeTxHash) {
     throw new Error('No bridge transaction found');
   }
 
-  return resolveTrackingIdentifier(quote, lastTxHash);
+  return resolveTrackingIdentifier(quote, bridgeTxHash);
 };
