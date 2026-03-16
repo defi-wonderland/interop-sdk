@@ -493,7 +493,7 @@ describe("LifiIntentsProvider", () => {
                 { ...fillParams, orderId: "0xnonexistent" as `0x${string}` },
             );
 
-            expect(result.status).toBe(OrderStatus.Executing);
+            expect(result.status).toBe(OrderStatus.Settling);
         });
 
         it("extractFillEvent uses Date.now() when settledAt is missing", () => {
