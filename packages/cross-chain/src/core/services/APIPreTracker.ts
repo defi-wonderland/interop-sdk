@@ -17,6 +17,8 @@ export interface APIPreTrackerConfig {
     buildBody: (params: PreTrackerParams) => Record<string, unknown>;
     /** Optional custom headers */
     headers?: Record<string, string>;
+    /** Optional request timeout in milliseconds (defaults to 5000) */
+    timeoutMs?: number;
 }
 
 /**
@@ -33,6 +35,7 @@ export class APIPreTracker implements PreTracker {
         try {
             await axios.post(url, body, {
                 headers: this.config.headers,
+                timeout: this.config.timeoutMs ?? 5000,
             });
         } catch (error) {
             if (axios.isAxiosError(error)) {
