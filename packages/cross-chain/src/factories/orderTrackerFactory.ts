@@ -22,6 +22,7 @@ import { PreTrackerFactory } from "./preTrackerFactory.js";
  */
 export class OrderTrackerFactory {
     private readonly clientManager: PublicClientManager;
+    private readonly preTrackerFactory = new PreTrackerFactory();
 
     constructor(config?: OrderTrackerFactoryConfig) {
         this.clientManager = new PublicClientManager(config?.publicClient, config?.rpcUrls);
@@ -51,9 +52,8 @@ export class OrderTrackerFactory {
             config?.fillWatcher ??
             this.createFillWatcher(trackingConfig.fillWatcherConfig as FillWatcherConfig);
 
-        const preTrackerFactory = new PreTrackerFactory();
         const preTracker = trackingConfig.preTrackerConfig
-            ? (config?.preTracker ?? preTrackerFactory.create(trackingConfig.preTrackerConfig))
+            ? (config?.preTracker ?? this.preTrackerFactory.create(trackingConfig.preTrackerConfig))
             : undefined;
 
         return new OrderTracker(openedIntentParser, fillWatcher, this.clientManager, preTracker);
