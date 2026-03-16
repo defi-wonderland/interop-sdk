@@ -1,5 +1,16 @@
-import type { AcrossConfigs, CrossChainProvider, OifProviderConfig } from "../internal.js";
-import { AcrossProvider, OifProvider, PROTOCOLS, UnsupportedProtocol } from "../internal.js";
+import type {
+    AcrossConfigs,
+    CrossChainProvider,
+    LifiIntentsProviderConfig,
+    OifProviderConfig,
+} from "../internal.js";
+import {
+    AcrossProvider,
+    LifiIntentsProvider,
+    OifProvider,
+    PROTOCOLS,
+    UnsupportedProtocol,
+} from "../internal.js";
 
 /**
  * Creates a CrossChainProvider for Across protocol
@@ -20,6 +31,15 @@ export function createCrossChainProvider(
     config: OifProviderConfig,
 ): CrossChainProvider;
 /**
+ * Creates a CrossChainProvider for LI.FI Intents protocol
+ * @param protocolName - "lifi-intents"
+ * @param config - Required configuration with orderServerUrl
+ */
+export function createCrossChainProvider(
+    protocolName: typeof PROTOCOLS.LIFI_INTENTS,
+    config: LifiIntentsProviderConfig,
+): CrossChainProvider;
+/**
  * Creates a CrossChainProvider for the specified protocol
  * @param protocolName - The name of the protocol
  * @param config - The configuration for the provider
@@ -33,5 +53,7 @@ export function createCrossChainProvider(
     if (protocolName === PROTOCOLS.ACROSS)
         return new AcrossProvider((config as AcrossConfigs) ?? {});
     if (protocolName === PROTOCOLS.OIF) return new OifProvider(config as OifProviderConfig);
+    if (protocolName === PROTOCOLS.LIFI_INTENTS)
+        return new LifiIntentsProvider(config as LifiIntentsProviderConfig);
     throw new UnsupportedProtocol(protocolName);
 }

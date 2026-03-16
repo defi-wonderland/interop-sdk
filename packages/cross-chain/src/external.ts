@@ -14,6 +14,7 @@ export {
     // Providers
     AcrossProvider,
     OifProvider,
+    LifiIntentsProvider,
     createCrossChainProvider,
     // Aggregator
     Aggregator,
