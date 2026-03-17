@@ -128,7 +128,7 @@ Some quotes don't embed an approval step but instead list the required allowance
 
 ## Tracking
 
-Relay tracking is fully API-based — unlike Across, it does not require RPC URLs. The SDK polls the Relay API (`/intents/status/v3`) at 5-second intervals until the order is finalized or fails.
+Relay tracking is fully API-based — it does not require RPC URLs. The SDK polls the Relay API (`/intents/status/v3`) at 5-second intervals until the order is finalized or fails.
 
 To start tracking, you need two values:
 
