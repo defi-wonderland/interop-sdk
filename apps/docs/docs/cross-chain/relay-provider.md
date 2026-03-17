@@ -59,11 +59,19 @@ const quote = quotes[0]; // Select the first quote
 
 ## Executing Transactions
 
-Relay quotes contain transaction steps. After getting a quote, execute the transaction:
+Relay quotes can include **more than one transaction step**. A common case is when the user needs to approve a token before bridging — Relay returns both steps together: first the approval, then the deposit.
+
+Because of this, you should always loop through all steps returned by `getTransactionSteps()` instead of executing only the first one.
+
+There are two important rules when handling multiple steps:
+
+1. **Don't send ETH value on approval steps** — approvals only set a token allowance, they don't transfer ETH. You can tell a step is an approval if its `data` starts with `0x095ea7b3` (the standard ERC-20 `approve` function selector).
+2. **Save the bridge transaction hash** — only the hash from the non-approval step should be used for [tracking](#tracking). Ignore approval hashes for this purpose.
 
 ```typescript
+import type { Address, Hex } from "viem";
 import { getTransactionSteps } from "@wonderland/interop-cross-chain";
-import { createWalletClient, http } from "viem";
+import { createPublicClient, createWalletClient, http } from "viem";
 import { sepolia } from "viem/chains";
 
 const walletClient = createWalletClient({
@@ -72,14 +80,42 @@ const walletClient = createWalletClient({
     account: yourAccount,
 });
 
-const step = getTransactionSteps(quote.order)[0];
-const hash = await walletClient.sendTransaction({
-    to: step.transaction.to,
-    data: step.transaction.data,
-    value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+const publicClient = createPublicClient({
+    chain: sepolia,
+    transport: http(),
 });
-console.log("Transaction sent:", hash);
+
+// Get all transaction steps from the quote
+const txSteps = getTransactionSteps(quote.order);
+let bridgeTxHash: Hex | undefined;
+
+for (const txStep of txSteps) {
+    const { to, data, value, gas } = txStep.transaction;
+
+    // Check if this step is a token approval
+    const isApproval = data.startsWith("0x095ea7b3");
+    const parsedGas = gas ? BigInt(gas) : 0n;
+
+    const hash = await walletClient.sendTransaction({
+        to: to as Address,
+        data: data as Hex,
+        // Only send ETH value on bridge steps, never on approvals
+        value: !isApproval && value ? BigInt(value) : undefined,
+        gas: parsedGas > 0n ? parsedGas : undefined,
+    });
+
+    await publicClient.waitForTransactionReceipt({ hash });
+
+    // Keep track of the bridge hash for order tracking later
+    if (!isApproval) {
+        bridgeTxHash = hash;
+    }
+}
 ```
+
+:::tip Allowance pre-checks
+Some quotes don't embed an approval step but instead list the required allowances in `quote.order.checks.allowances`. When that happens, you should check and approve token allowances yourself before executing the transaction steps. See the [full example](./example.md) for a complete implementation.
+:::
 
 ## Features
 
@@ -92,12 +128,26 @@ console.log("Transaction sent:", hash);
 
 ## Tracking
 
-Relay tracking is fully API-based. Both opened intent parsing and fill watching use the `/intents/status/v3` endpoint.
+Relay tracking is fully API-based — unlike Across, it does not require RPC URLs. The SDK polls the Relay API (`/intents/status/v3`) at 5-second intervals until the order is finalized or fails.
 
--   **Opened intent parsing**: Fetches intent status from `/intents/status/v3?requestId=<txHash>`
--   **Fill watching**: Polls `/intents/status/v3?requestId=<orderId>` at 5-second intervals with automatic retry
+To start tracking, you need two values:
 
-Unlike Across, Relay does not require RPC URLs for tracking since all tracking is done through the Relay API.
+-   **`orderId`** — found at `quote.order.metadata.relayRequestId`. This is the identifier Relay uses to look up the order status.
+-   **`openTxHash`** — the bridge transaction hash from the [execution step](#executing-transactions) (not the approval hash).
+
+```typescript
+const orderId = quote.order.metadata?.relayRequestId as string;
+const tracker = executor.prepareTracking("relay");
+
+for await (const item of tracker.watchOrder({
+    orderId,
+    openTxHash: bridgeTxHash,
+    originChainId: 11155111,
+    destinationChainId: 84532,
+})) {
+    // Handle tracking updates
+}
+```
 
 ## Transaction Notification
 

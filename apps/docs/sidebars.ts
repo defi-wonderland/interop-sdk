@@ -44,6 +44,7 @@ const sidebars: SidebarsConfig = {
                 "cross-chain/providers",
                 "cross-chain/across-provider",
                 "cross-chain/oif-provider",
+                "cross-chain/relay-provider",
                 "cross-chain/example",
                 "cross-chain/flow",
                 "cross-chain/intent-tracking",
