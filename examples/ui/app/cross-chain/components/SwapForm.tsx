@@ -218,6 +218,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
         <div className='flex border border-border/50 rounded-xl'>
           <button
             type='button'
+            disabled={isDisabled}
             onClick={() => {
               setMode('getQuotes');
               onInputChange?.();
@@ -226,12 +227,13 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
               mode === 'getQuotes'
                 ? 'bg-accent text-white'
                 : 'bg-background/50 text-text-secondary hover:text-text-primary'
-            }`}
+            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             Get Quotes
           </button>
           <button
             type='button'
+            disabled={isDisabled}
             onClick={() => {
               setMode('buildQuote');
               onInputChange?.();
@@ -240,7 +242,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
               mode === 'buildQuote'
                 ? 'bg-accent text-white'
                 : 'bg-background/50 text-text-secondary hover:text-text-primary'
-            }`}
+            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             Build Quote
           </button>
