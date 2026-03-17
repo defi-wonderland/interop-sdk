@@ -16,6 +16,24 @@ export const QuotePreviewSchema = z.object({
     outputs: z.array(QuotePreviewEntrySchema).min(1),
 });
 
+export const QuoteFeeEntrySchema = z.object({
+    amount: z.string(),
+    amountUsd: z.string().optional(),
+    token: z
+        .object({
+            symbol: z.string(),
+            decimals: z.number().int().nonnegative(),
+            address: z.string().optional(),
+        })
+        .optional(),
+});
+
+export const QuoteFeesSchema = z.object({
+    bridgeFee: QuoteFeeEntrySchema.optional(),
+    bridgeFeePct: z.string().optional(),
+    originGas: QuoteFeeEntrySchema.optional(),
+});
+
 export const QuoteSchema = z.object({
     order: OrderSchema,
     preview: QuotePreviewSchema,
@@ -25,11 +43,14 @@ export const QuoteSchema = z.object({
     quoteId: z.string().optional(),
     failureHandling: z.string().optional(),
     partialFill: z.boolean().optional(),
+    fees: QuoteFeesSchema.optional(),
     metadata: z.record(z.unknown()).optional(),
 });
 
 // ── Types ───────────────────────────────────────────────
 
+export type QuoteFeeEntry = z.infer<typeof QuoteFeeEntrySchema>;
+export type QuoteFees = z.infer<typeof QuoteFeesSchema>;
 export type QuotePreviewEntry = z.infer<typeof QuotePreviewEntrySchema>;
 export type QuotePreview = z.infer<typeof QuotePreviewSchema>;
 export type Quote = z.infer<typeof QuoteSchema>;

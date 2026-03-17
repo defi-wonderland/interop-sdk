@@ -11,7 +11,7 @@ import {
 } from "viem";
 import { ZodError } from "zod";
 
-import type { Quote } from "../../core/schemas/quote.js";
+import type { Quote, QuoteFeeEntry } from "../../core/schemas/quote.js";
 import type { BuildQuoteRequest, QuoteRequest } from "../../core/schemas/quoteRequest.js";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
@@ -168,6 +168,44 @@ export class AcrossProvider extends CrossChainProvider {
     }
 
     /**
+     * Map an Across fee entry to an SDK QuoteFeeEntry, if the fee has an amount.
+     */
+    private static toFeeEntry(fee: {
+        amount?: string;
+        amountUsd?: string;
+        token?: { symbol: string; decimals: number; address: string };
+    }): QuoteFeeEntry | undefined {
+        if (!fee.amount) return undefined;
+        return {
+            amount: fee.amount,
+            amountUsd: fee.amountUsd,
+            token: fee.token
+                ? {
+                      symbol: fee.token.symbol,
+                      decimals: fee.token.decimals,
+                      address: fee.token.address,
+                  }
+                : undefined,
+        };
+    }
+
+    /**
+     * Map Across fee fields to the SDK-standard QuoteFees shape.
+     */
+    private static adaptFees(response: AcrossGetQuoteResponse): Quote["fees"] {
+        const totalFee = response.fees?.total;
+        const originGas = response.fees?.originGas;
+
+        if (!totalFee && !originGas) return undefined;
+
+        return {
+            bridgeFee: totalFee ? AcrossProvider.toFeeEntry(totalFee) : undefined,
+            bridgeFeePct: totalFee?.pct,
+            originGas: originGas ? AcrossProvider.toFeeEntry(originGas) : undefined,
+        };
+    }
+
+    /**
      * Build an SDK Quote directly from Across API response.
      */
     private toSdkQuote(params: QuoteRequest, response: AcrossGetQuoteResponse): Quote {
@@ -217,6 +255,7 @@ export class AcrossProvider extends CrossChainProvider {
             provider: this.providerId,
             partialFill: false,
             failureHandling: "refund-automatic",
+            fees: AcrossProvider.adaptFees(response),
             metadata: {
                 acrossResponse: response,
                 simulationSuccess: response.swapTx.simulationSuccess,

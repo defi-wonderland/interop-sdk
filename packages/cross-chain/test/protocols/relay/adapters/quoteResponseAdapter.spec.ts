@@ -1,3 +1,4 @@
+import { encodeFunctionData, erc20Abi } from "viem";
 import { describe, expect, it } from "vitest";
 
 import type { QuoteRequest } from "../../../../src/core/schemas/quoteRequest.js";
@@ -11,6 +12,8 @@ import {
 
 const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 const RECIPIENT_ADDRESS = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+const SPENDER_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const TOKEN_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const ORIGIN_CHAIN_ID = 1;
 const DESTINATION_CHAIN_ID = 10;
 const INPUT_AMOUNT = "1000000";
@@ -84,6 +87,14 @@ function makeRelayQuoteResponse(overrides?: Partial<RelayQuoteResponse>): RelayQ
     } as RelayQuoteResponse;
 }
 
+function makeApproveCalldata(spender: string, amount: bigint): string {
+    return encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [spender as `0x${string}`, amount],
+    });
+}
+
 // ── Tests ────────────────────────────────────────────────
 
 describe("adaptQuote", () => {
@@ -136,6 +147,170 @@ describe("adaptQuote", () => {
             PROVIDER_ID,
         );
         expect(quote.quoteId).toBeUndefined();
+    });
+
+    it("populates fees.bridgeFee and fees.originGas from Relay response", () => {
+        const response = makeRelayQuoteResponse({
+            fees: {
+                relayer: {
+                    currency: {
+                        chainId: ORIGIN_CHAIN_ID,
+                        address: TOKEN_ADDRESS,
+                        symbol: "USDC",
+                        name: "USD Coin",
+                        decimals: 6,
+                    },
+                    amount: "5000",
+                    amountUsd: "0.005",
+                },
+                gas: {
+                    currency: {
+                        chainId: ORIGIN_CHAIN_ID,
+                        address: "0x0000000000000000000000000000000000000000",
+                        symbol: "ETH",
+                        name: "Ether",
+                        decimals: 18,
+                    },
+                    amount: "100000000000000",
+                    amountUsd: "0.25",
+                },
+            },
+        });
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+
+        expect(quote.fees).toBeDefined();
+        expect(quote.fees!.bridgeFee).toEqual({
+            amount: "5000",
+            amountUsd: "0.005",
+            token: { symbol: "USDC", decimals: 6, address: TOKEN_ADDRESS },
+        });
+        expect(quote.fees!.originGas).toEqual({
+            amount: "100000000000000",
+            amountUsd: "0.25",
+            token: {
+                symbol: "ETH",
+                decimals: 18,
+                address: "0x0000000000000000000000000000000000000000",
+            },
+        });
+    });
+
+    it("fees is undefined when response.fees is undefined", () => {
+        const response = makeRelayQuoteResponse({ fees: undefined });
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+        expect(quote.fees).toBeUndefined();
+    });
+
+    it("extracts approve steps into order.checks.allowances", () => {
+        const approveAmount = 1000000n;
+        const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, approveAmount);
+
+        const response = makeRelayQuoteResponse({
+            steps: [
+                {
+                    id: "approve",
+                    action: "Approve token",
+                    description: "Approve USDC",
+                    kind: "transaction",
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                to: TOKEN_ADDRESS,
+                                data: approveCalldata,
+                                chainId: ORIGIN_CHAIN_ID,
+                            },
+                        },
+                    ],
+                },
+                {
+                    id: "deposit",
+                    action: "Confirm transaction",
+                    description: STEP_DESCRIPTION,
+                    kind: "transaction",
+                    requestId: REQUEST_ID,
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                to: VALID_ADDRESS,
+                                data: TX_DATA,
+                                value: INPUT_AMOUNT,
+                                chainId: ORIGIN_CHAIN_ID,
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+
+        expect(quote.order.checks?.allowances).toHaveLength(1);
+        expect(quote.order.checks!.allowances![0]).toEqual({
+            chainId: ORIGIN_CHAIN_ID,
+            tokenAddress: TOKEN_ADDRESS,
+            owner: VALID_ADDRESS,
+            spender: SPENDER_ADDRESS,
+            required: approveAmount.toString(),
+        });
+    });
+
+    it("order.steps only contains non-approve steps", () => {
+        const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, 1000000n);
+
+        const response = makeRelayQuoteResponse({
+            steps: [
+                {
+                    id: "approve",
+                    action: "Approve token",
+                    description: "Approve USDC",
+                    kind: "transaction",
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                to: TOKEN_ADDRESS,
+                                data: approveCalldata,
+                                chainId: ORIGIN_CHAIN_ID,
+                            },
+                        },
+                    ],
+                },
+                {
+                    id: "deposit",
+                    action: "Confirm transaction",
+                    description: STEP_DESCRIPTION,
+                    kind: "transaction",
+                    requestId: REQUEST_ID,
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                to: VALID_ADDRESS,
+                                data: TX_DATA,
+                                value: INPUT_AMOUNT,
+                                chainId: ORIGIN_CHAIN_ID,
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+
+        expect(quote.order.steps).toHaveLength(1);
+        expect(quote.order.steps[0]!.kind).toBe("transaction");
+        if (quote.order.steps[0]!.kind === "transaction") {
+            expect(quote.order.steps[0]!.transaction.to).toBe(VALID_ADDRESS);
+        }
+    });
+
+    it("order.checks is undefined when there are no approve steps", () => {
+        const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
+        expect(quote.order.checks).toBeUndefined();
     });
 });
 

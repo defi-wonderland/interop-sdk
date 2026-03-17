@@ -1,6 +1,6 @@
 import { isNativeAddress, getTransactionSteps, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { crossChainExecutor } from '../sdk';
-import { handleTokenApproval, isApprovalTransaction, submitApprovalStep } from './approval';
+import { handleTokenApproval } from './approval';
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
@@ -85,22 +85,6 @@ function parseTransactionFields(txStep: TransactionStep): { to: Address; data: H
   };
 }
 
-async function processTransactionStep(
-  txStep: TransactionStep,
-  publicClient: PublicClient,
-  walletClient: ConfiguredWalletClient,
-  chainContext: ChainContext,
-  onStateChange: (state: BridgeState) => void,
-): Promise<Hex> {
-  const { to, data, value, gas } = parseTransactionFields(txStep);
-
-  if (isApprovalTransaction(data)) {
-    return submitApprovalStep(publicClient, walletClient, to, data, chainContext, onStateChange, undefined, gas);
-  }
-
-  return submitBridgeTransaction(publicClient, walletClient, to, data, chainContext, onStateChange, value, gas);
-}
-
 export const executeDirectTransaction = async ({
   quote,
   walletClient,
@@ -117,11 +101,8 @@ export const executeDirectTransaction = async ({
     throw new Error('Invalid quote: no transaction steps');
   }
 
-  const hasEmbeddedApprovalStep = txSteps.some(
-    (step) => step.transaction?.data && isApprovalTransaction(step.transaction.data as Hex),
-  );
-
-  if (!hasEmbeddedApprovalStep && quote.order.checks?.allowances?.length) {
+  // Handle token approvals via checks.allowances (populated by all providers)
+  if (quote.order.checks?.allowances?.length) {
     for (const allowance of quote.order.checks.allowances) {
       await handleTokenApproval(
         publicClient,
@@ -134,7 +115,8 @@ export const executeDirectTransaction = async ({
         onStateChange,
       );
     }
-  } else if (!hasEmbeddedApprovalStep && !isNativeAddress(inputTokenAddress, 'eip155')) {
+  } else if (!isNativeAddress(inputTokenAddress, 'eip155')) {
+    // Fallback: infer spender from the first transaction step
     const spender = txSteps[0]?.transaction?.to;
     if (!spender) throw new Error('Invalid quote: missing spender address for token approval');
     await handleTokenApproval(
@@ -152,9 +134,17 @@ export const executeDirectTransaction = async ({
   let bridgeTxHash: Hex | undefined;
 
   for (const txStep of txSteps) {
-    const txHash = await processTransactionStep(txStep, publicClient, walletClient, chainContext, onStateChange);
-    const isApproval = txStep.transaction?.data && isApprovalTransaction(txStep.transaction.data as Hex);
-    if (!isApproval) bridgeTxHash = txHash;
+    const { to, data, value, gas } = parseTransactionFields(txStep);
+    bridgeTxHash = await submitBridgeTransaction(
+      publicClient,
+      walletClient,
+      to,
+      data,
+      chainContext,
+      onStateChange,
+      value,
+      gas,
+    );
   }
 
   if (!bridgeTxHash) {

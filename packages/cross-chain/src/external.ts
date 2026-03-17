@@ -54,6 +54,8 @@ export {
     adaptQuote,
     // SDK schema types
     type ExecutableQuote,
+    type QuoteFeeEntry,
+    type QuoteFees,
     type QuoteRequest,
     type BuildQuoteRequest,
 } from "./internal.js";

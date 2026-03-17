@@ -16,84 +16,30 @@ type ParsedFees = {
 
 const DEFAULT_FEES: ParsedFees = { hasOriginGas: false };
 
-function parseAcrossFees(
-  metadata: Record<string, unknown> | undefined,
-  inputTokenInfo?: { decimals?: number; symbol?: string },
-): ParsedFees | null {
-  if (!metadata?.acrossResponse) return null;
-
-  const acrossResponse = metadata.acrossResponse as {
-    fees?: {
-      total?: { amount?: string; amountUsd?: string; pct?: string; token?: { symbol?: string; decimals?: number } };
-      originGas?: { amount?: string; amountUsd?: string; token?: { symbol?: string; decimals?: number } };
-    };
-    steps?: {
-      bridge?: {
-        fees?: { amount?: string; amountUsd?: string; pct?: string; token?: { symbol?: string; decimals?: number } };
-      };
-    };
-  };
+function parseFees(quote: ExecutableQuote, inputTokenInfo?: { decimals?: number; symbol?: string }): ParsedFees {
+  const fees = quote.fees;
+  if (!fees) return DEFAULT_FEES;
 
   const result: ParsedFees = { hasOriginGas: false };
 
-  const totalFee = acrossResponse.fees?.total;
-  const bridgeFee = acrossResponse.steps?.bridge?.fees;
-  const feeSource = totalFee?.amount && totalFee.amount !== '0' ? totalFee : bridgeFee?.amount ? bridgeFee : null;
-
-  if (feeSource?.amount && feeSource.amount !== '0') {
-    const feeDecimals = feeSource.token?.decimals ?? inputTokenInfo?.decimals ?? 18;
-    result.feeTotal = formatAmount(feeSource.amount, feeDecimals);
-    result.feeTokenSymbol = feeSource.token?.symbol || inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
-    if (feeSource.amountUsd) result.feeTotalUsd = formatUsdAmount(feeSource.amountUsd);
-    if (feeSource.pct) {
-      const pctValue = BigInt(feeSource.pct);
+  if (fees.bridgeFee?.amount && fees.bridgeFee.amount !== '0') {
+    const feeDecimals = fees.bridgeFee.token?.decimals ?? inputTokenInfo?.decimals ?? 18;
+    result.feeTotal = formatAmount(fees.bridgeFee.amount, feeDecimals);
+    result.feeTokenSymbol = fees.bridgeFee.token?.symbol || inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
+    if (fees.bridgeFee.amountUsd) result.feeTotalUsd = formatUsdAmount(fees.bridgeFee.amountUsd);
+    if (fees.bridgeFeePct) {
+      const pctValue = BigInt(fees.bridgeFeePct);
       const wei = 1000000000000000000n;
       result.feePercent = formatPercentage((Number(pctValue) / Number(wei)) * 100);
     }
   }
 
-  const originGasInfo = acrossResponse.fees?.originGas;
-  if (originGasInfo?.amount && originGasInfo.amount !== '0') {
+  if (fees.originGas?.amount && fees.originGas.amount !== '0') {
     result.hasOriginGas = true;
-    const gasDecimals = originGasInfo.token?.decimals ?? 18;
-    result.originGas = formatAmount(originGasInfo.amount, gasDecimals, 8);
-    result.originGasSymbol = originGasInfo.token?.symbol || 'ETH';
-    if (originGasInfo.amountUsd) result.originGasUsd = formatUsdAmount(originGasInfo.amountUsd);
-  }
-
-  return result;
-}
-
-function parseRelayFees(
-  metadata: Record<string, unknown> | undefined,
-  inputTokenInfo?: { decimals?: number; symbol?: string },
-): ParsedFees | null {
-  if (!metadata?.relayResponse) return null;
-
-  const relayResponse = metadata.relayResponse as {
-    fees?: {
-      gas?: { amount?: string; amountUsd?: string; currency?: { symbol?: string; decimals?: number } };
-      relayer?: { amount?: string; amountUsd?: string; currency?: { symbol?: string; decimals?: number } };
-    };
-  };
-
-  const result: ParsedFees = { hasOriginGas: false };
-
-  const relayerFee = relayResponse.fees?.relayer;
-  if (relayerFee?.amount && relayerFee.amount !== '0') {
-    const decimals = relayerFee.currency?.decimals ?? inputTokenInfo?.decimals ?? 18;
-    result.feeTotal = formatAmount(relayerFee.amount, decimals);
-    result.feeTokenSymbol = relayerFee.currency?.symbol || inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
-    if (relayerFee.amountUsd) result.feeTotalUsd = formatUsdAmount(relayerFee.amountUsd);
-  }
-
-  const relayGas = relayResponse.fees?.gas;
-  if (relayGas?.amount && relayGas.amount !== '0') {
-    result.hasOriginGas = true;
-    const gasDecimals = relayGas.currency?.decimals ?? 18;
-    result.originGas = formatAmount(relayGas.amount, gasDecimals, 8);
-    result.originGasSymbol = relayGas.currency?.symbol || 'ETH';
-    if (relayGas.amountUsd) result.originGasUsd = formatUsdAmount(relayGas.amountUsd);
+    const gasDecimals = fees.originGas.token?.decimals ?? 18;
+    result.originGas = formatAmount(fees.originGas.amount, gasDecimals, 8);
+    result.originGasSymbol = fees.originGas.token?.symbol || 'ETH';
+    if (fees.originGas.amountUsd) result.originGasUsd = formatUsdAmount(fees.originGas.amountUsd);
   }
 
   return result;
@@ -149,16 +95,13 @@ export function formatQuoteData(
   const effectiveProviderId = quote._providerId || quote.provider || 'unknown';
   const providerDisplayName = getProviderDisplayName(effectiveProviderId);
 
-  // Extract fee information from metadata (provider-specific structure)
-  const metadata = quote.metadata as Record<string, unknown> | undefined;
-  const fees = parseAcrossFees(metadata, inputTokenInfo) ?? parseRelayFees(metadata, inputTokenInfo) ?? DEFAULT_FEES;
+  const fees = parseFees(quote, inputTokenInfo);
   const { feeTotal, feeTotalUsd, feePercent, feeTokenSymbol, originGas, originGasUsd, originGasSymbol, hasOriginGas } =
     fees;
 
   // Check if gas simulation failed (affects whether gas estimates are reliable)
   let gasSimulationFailed = false;
-
-  // Across-specific: check simulationSuccess from metadata
+  const metadata = quote.metadata as Record<string, unknown> | undefined;
   if (metadata?.simulationSuccess === false) {
     gasSimulationFailed = true;
   }
