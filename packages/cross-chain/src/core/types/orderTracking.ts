@@ -198,13 +198,15 @@ export interface WatchOrderByTxHash extends WatchOrderBase {
     destinationChainId?: number;
 }
 
-/** Watch by orderId (escrow orders) */
+/** Watch by order identifier instead of transaction hash */
 export interface WatchOrderByOrderId extends WatchOrderBase {
     txHash?: never;
-    /** Order ID from submitSignedOrder() */
+    /** Order or request identifier returned by the protocol */
     orderId: Hex;
-    /** Required - no order to parse */
+    /** Required when no origin transaction is available to parse */
     destinationChainId: number;
+    /** Origin transaction hash, passed to the pre-tracker when provided */
+    openTxHash?: Hex;
 }
 
 /** Pass txHash for user-open orders, orderId for escrow orders */

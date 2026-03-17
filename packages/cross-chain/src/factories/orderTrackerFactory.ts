@@ -11,8 +11,10 @@ import {
     OrderTracker,
     OrderTrackerConfig,
     OrderTrackerFactoryConfig,
+    PreTracker,
     PublicClientManager,
 } from "../internal.js";
+import { PreTrackerFactory } from "./preTrackerFactory.js";
 
 /**
  * Factory class for creating OrderTracker instances
@@ -20,6 +22,7 @@ import {
  */
 export class OrderTrackerFactory {
     private readonly clientManager: PublicClientManager;
+    private readonly preTrackerFactory = new PreTrackerFactory();
 
     constructor(config?: OrderTrackerFactoryConfig) {
         this.clientManager = new PublicClientManager(config?.publicClient, config?.rpcUrls);
@@ -36,6 +39,7 @@ export class OrderTrackerFactory {
         config?: {
             openedIntentParser?: OpenedIntentParser;
             fillWatcher?: FillWatcher;
+            preTracker?: PreTracker;
         },
     ): OrderTracker {
         const trackingConfig = provider.getTrackingConfig();
@@ -48,12 +52,13 @@ export class OrderTrackerFactory {
             config?.fillWatcher ??
             this.createFillWatcher(trackingConfig.fillWatcherConfig as FillWatcherConfig);
 
-        return new OrderTracker(
-            openedIntentParser,
-            fillWatcher,
-            this.clientManager,
-            trackingConfig.onBeforeTracking,
-        );
+        const preTracker =
+            config?.preTracker ??
+            (trackingConfig.preTrackerConfig
+                ? this.preTrackerFactory.create(trackingConfig.preTrackerConfig)
+                : undefined);
+
+        return new OrderTracker(openedIntentParser, fillWatcher, this.clientManager, preTracker);
     }
 
     /**
@@ -136,6 +141,7 @@ export function createOrderTracker(
         publicClient,
         openedIntentParser: customParser,
         fillWatcher: customFillWatcher,
+        preTracker: customPreTracker,
         rpcUrls,
     } = config || {};
 
@@ -143,5 +149,6 @@ export function createOrderTracker(
     return factory.createTracker(provider, {
         openedIntentParser: customParser,
         fillWatcher: customFillWatcher,
+        preTracker: customPreTracker,
     });
 }

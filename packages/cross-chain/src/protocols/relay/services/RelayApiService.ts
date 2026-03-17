@@ -37,7 +37,7 @@ export class RelayApiService {
         }
     }
 
-    /** POST /transactions/index — notify Relay of a deposit transaction for faster solver indexing. */
+    /** POST /transactions/index — tell Relay about a deposit transaction for faster solver indexing. */
     async indexTransaction(
         params: RelayIndexTransactionRequest,
     ): Promise<RelayIndexTransactionResponse> {
