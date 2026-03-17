@@ -8,3 +8,4 @@ export * from "./intentValidationsAggregator.js";
 export * from "./BaseAssetDiscoveryService.js";
 export * from "./StaticAssetDiscoveryService.js";
 export * from "./CustomApiAssetDiscoveryService.js";
+export * from "./APIPreTracker.js";

@@ -27,6 +27,8 @@ export {
     OIFOpenedIntentParser,
     APIOpenedIntentParser,
     CustomEventOpenedIntentParser,
+    APIPreTracker,
+    PreTrackerFactory,
     // Sorting
     SortingStrategyFactory,
     // Asset Discovery

@@ -2,10 +2,10 @@ import type { Hex } from "viem";
 
 import type { Quote, SubmitOrderResponse } from "../schemas/quote.js";
 import type { BuildQuoteRequest, QuoteRequest } from "../schemas/quoteRequest.js";
-import type { OnBeforeTracking } from "../types/tracking.js";
 import type { AssetDiscoveryConfig } from "./assetDiscovery.interface.js";
 import type { FillWatcherConfig } from "./fillWatcher.interface.js";
 import type { OpenedIntentParserConfig } from "./openedIntentParser.interface.js";
+import type { PreTrackerConfig } from "./preTracker.interface.js";
 import { ProviderExecuteNotImplemented } from "../errors/ProviderExecuteNotImplemented.exception.js";
 
 export abstract class CrossChainProvider {
@@ -86,15 +86,15 @@ export abstract class CrossChainProvider {
      * @returns Configuration object containing:
      *   - openedIntentParserConfig: Config for parsing opened intent from origin chain
      *   - fillWatcherConfig: Config for watching fill events on destination chain
-     *   - onBeforeTracking: Optional hook called before tracking begins (e.g. notify solver of deposit)
+     *   - preTrackerConfig: Optional config for the pre-tracker that runs before tracking begins
      */
     abstract getTrackingConfig(): {
         /** Configuration for parsing opened intent data */
         openedIntentParserConfig: OpenedIntentParserConfig;
         /** Configuration for watching fill events */
         fillWatcherConfig: FillWatcherConfig;
-        /** Optional hook executed before tracking begins (e.g. notify solver of deposit) */
-        onBeforeTracking?: OnBeforeTracking;
+        /** Optional config for the pre-tracker that runs before tracking begins */
+        preTrackerConfig?: PreTrackerConfig;
     };
 
     /**

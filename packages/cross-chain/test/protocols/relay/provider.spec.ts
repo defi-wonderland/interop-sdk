@@ -27,7 +27,6 @@ const HTTP_STATUS_BAD_REQUEST = 400;
 const RELAY_ERROR_AMOUNT_TOO_LOW = "AMOUNT_TOO_LOW";
 const RELAY_ERROR_ROUTE_NOT_FOUND = "ROUTE_NOT_FOUND";
 const TX_HASH = "0xdeposithash";
-const INDEX_ENDPOINT = "/transactions/index";
 const RELAY_BASE_URL = "https://api.relay.link";
 
 // ── Mock & Helpers ───────────────────────────────────────
@@ -269,38 +268,40 @@ describe("RelayProvider", () => {
             expect(config.openedIntentParserConfig.type).toBe("api");
         });
 
-        it("includes onBeforeTracking hook", () => {
+        it("includes preTrackerConfig", () => {
             const config = provider.getTrackingConfig();
-            expect(config.onBeforeTracking).toBeDefined();
-            expect(typeof config.onBeforeTracking).toBe("function");
+            expect(config.preTrackerConfig).toBeDefined();
+            expect(config.preTrackerConfig.type).toBe("api");
         });
 
-        it("onBeforeTracking calls /transactions/index with stringified chainId", async () => {
-            mockPost.mockResolvedValue({ data: { message: "Transaction indexed" } });
+        it("preTrackerConfig builds correct URL and body", () => {
             const config = provider.getTrackingConfig();
-            await config.onBeforeTracking!({
+            const preTrackerConfig = config.preTrackerConfig;
+            expect(preTrackerConfig.buildUrl()).toContain("/transactions/index");
+            const body = preTrackerConfig.buildBody({
                 txHash: TX_HASH,
                 originChainId: ORIGIN_CHAIN_ID,
             });
-            expect(mockPost).toHaveBeenCalledWith(INDEX_ENDPOINT, {
+            expect(body).toEqual({
                 chainId: String(ORIGIN_CHAIN_ID),
                 txHash: TX_HASH,
             });
         });
 
-        it("onBeforeTracking propagates errors from the API", async () => {
-            mockPost.mockRejectedValue(
-                makeAxiosError(
-                    { message: "Not found" },
-                    HTTP_STATUS_BAD_REQUEST,
-                    "Request failed",
-                    "ERR_BAD_REQUEST",
-                ),
-            );
+        it("preTrackerConfig includes requestId when orderId provided", () => {
             const config = provider.getTrackingConfig();
-            await expect(
-                config.onBeforeTracking!({ txHash: TX_HASH, originChainId: ORIGIN_CHAIN_ID }),
-            ).rejects.toThrow();
+            const preTrackerConfig = config.preTrackerConfig;
+            const orderId = "0xorder123" as `0x${string}`;
+            const body = preTrackerConfig.buildBody({
+                txHash: TX_HASH,
+                originChainId: ORIGIN_CHAIN_ID,
+                orderId,
+            });
+            expect(body).toEqual({
+                chainId: String(ORIGIN_CHAIN_ID),
+                txHash: TX_HASH,
+                requestId: orderId,
+            });
         });
     });
 
