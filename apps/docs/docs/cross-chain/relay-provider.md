@@ -88,15 +88,6 @@ const hash = await walletClient.sendTransaction({
 console.log("Transaction sent:", hash);
 ```
 
-## Features
-
--   Cross-chain token transfers
--   Quote fetching with fee calculation
--   Transaction simulation
--   Order tracking support
--   API-based intent tracking
--   Automatic transaction notification for faster solver indexing via the pre-tracker
-
 ## Tracking
 
 Relay tracking is fully API-based — it does not require RPC URLs. The SDK polls the Relay API (`/intents/status/v3`) at 5-second intervals until the order is finalized or fails.
@@ -131,3 +122,5 @@ See a complete working example: [Execute Intent](./example.md)
 ## References
 
 -   [Relay Protocol Documentation](https://docs.relay.link/)
+-   [API Reference](./api.md) — full type definitions for quotes, fees, and orders
+-   [Concepts](./concepts.md) — how intent-based transfers work

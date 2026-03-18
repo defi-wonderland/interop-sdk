@@ -2,9 +2,9 @@
 title: Getting Started
 ---
 
-The `addresses` package provides a robust solution for handling interoperable blockchain addresses across different networks, following the [EIP-7930](https://eips.ethereum.org/EIPS/eip-7930) and [ERC-7828](https://eips.ethereum.org/EIPS/eip-7828) standards. This guide will help you get started with using the package in your projects.
+In this tutorial, you'll parse an interoperable address and extract its components. By the end, you'll know how to go from a human-readable name like `vitalik.eth@eip155:1#4CA88C9C` to its raw address and chain ID.
 
-## Installing the Package
+## Install the package
 
 ```bash
 npm install @wonderland/interop-addresses
@@ -14,113 +14,78 @@ yarn add @wonderland/interop-addresses
 pnpm add @wonderland/interop-addresses
 ```
 
-## Architecture Overview
+## Parse an interoperable name
 
-The package follows a clean two-layer architecture:
-
-1. **Address Layer (EIP-7930 + CAIP-350)**: Discriminated union address representation (binary or text) - synchronous encoding/decoding with automatic conversion
-2. **Name Layer (ERC-7828)**: Human-readable names with ENS resolution - async operations
-
-## Basic Usage
-
-The package provides high-level convenience methods and direct layer functions:
-
-### High-Level Convenience Methods
+An interoperable name encodes an address, a chain, and a checksum in a single string. Let's parse one:
 
 ```typescript
-import {
-    binaryToName,
-    decodeAddress,
-    encodeAddress,
-    nameToBinary,
-} from "@wonderland/interop-addresses";
+import { isTextAddress, parseName } from "@wonderland/interop-addresses";
 
-// Convert an interoperable name to binary (async - may resolve ENS)
-const name = "vitalik.eth@eip155:1#4CA88C9C";
-const binaryAddress = await nameToBinary(name, { format: "hex" });
+const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
 
-// Convert binary to name (synchronous)
-const nameFromBinary = binaryToName("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
+if (isTextAddress(result.interoperableAddress)) {
+    console.log(result.interoperableAddress.address);
+    // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 
-// Convert text representation to binary (synchronous)
-const textAddr = {
-    version: 1,
-    chainType: "eip155",
-    chainReference: "1",
-    address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-};
-const binaryFromText = encodeAddress(textAddr, { format: "hex" });
+    console.log(result.interoperableAddress.chainReference);
+    // "1" (Ethereum mainnet)
 
-// Convert binary to text representation (synchronous)
-const textFromBinary = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045", {
-    representation: "text",
-});
+    console.log(result.interoperableAddress.chainType);
+    // "eip155"
+}
+
+console.log(result.meta.isENS); // true — "vitalik.eth" was resolved via ENS
 ```
 
-### Extracting Components
+`parseName` resolves ENS names, resolves chain labels, and calculates the checksum — all in one call.
+
+## Validate the checksum
+
+Before using the parsed address, check that the checksum matches:
+
+```typescript
+if (result.meta.checksumMismatch) {
+    console.warn("Checksum mismatch — address may have been tampered with!");
+    console.warn(`Provided: ${result.meta.checksumMismatch.provided}`);
+    console.warn(`Calculated: ${result.meta.checksumMismatch.calculated}`);
+} else {
+    console.log("Checksum valid:", result.meta.checksum); // "4CA88C9C"
+}
+```
+
+## Extract individual components
+
+If you only need the address or chain ID, use the convenience functions:
 
 ```typescript
 import { getAddress, getChainId } from "@wonderland/interop-addresses";
 
-// Extract address from binary or name
 const address = await getAddress("vitalik.eth@eip155:1#4CA88C9C");
-// Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+// "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 
-// Extract chain ID from binary or name
 const chainId = await getChainId("vitalik.eth@eip155:1#4CA88C9C");
-// Returns: "1"
+// "1"
 ```
 
-## Address Formats
+## Work with binary addresses
 
-The package supports three main address representations:
+If you already have a binary (serialized) address, you can decode it synchronously — no async needed:
 
-1. **Interoperable Name (ERC-7828)**: Human-readable string format
+```typescript
+import { decodeAddress, isTextAddress } from "@wonderland/interop-addresses";
 
-    - Format: `{address}@{chainType}:{chainReference}#{checksum}`
-    - Example: `vitalik.eth@eip155:1#4CA88C9C`
-    - Supports ENS names and chain labels
-    - Requires async operations for resolution
+const addr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
 
-2. **InteroperableAddress (EIP-7930 + CAIP-350)**: Discriminated union - either binary or text representation
+if (isTextAddress(addr)) {
+    console.log(addr.chainType); // "eip155"
+    console.log(addr.chainReference); // "1"
+    console.log(addr.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+}
+```
 
-    **Text Variant:**
+## Convert between formats
 
-    ```typescript
-    {
-      version: 1,
-      chainType: "eip155",  // String literal
-      chainReference: "1",   // String (CAIP-350 encoded)
-      address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"  // String (CAIP-350 encoded)
-    }
-    ```
-
-    **Binary Variant:**
-
-    ```typescript
-    {
-      version: 1,
-      chainType: Uint8Array,  // 2 bytes
-      chainReference?: Uint8Array,  // Variable length
-      address?: Uint8Array  // Variable length
-    }
-    ```
-
-    - TypeScript narrows based on `chainType` field type (string vs Uint8Array)
-    - Use type guards: `isTextAddress()` or `isBinaryAddress()`
-    - Functions automatically convert between representations as needed
-    - Default representation is "text" (more user-friendly)
-    - Fields use CAIP-350 text encoding rules when in text variant:
-        - **eip155**: Decimal strings for chain references, hex with EIP-55 checksumming for addresses
-        - **bip122**: Chain references as 32-char lowercase hex (genesis hash prefix), addresses as base58check or bech32/bech32m
-        - **solana**: Base58 encoding for both chain references and addresses
-
-3. **Binary Address (Serialized)**: Hex or bytes string representation
-    - Example: `0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045`
-    - Serialized form of InteroperableAddress
-    - Used for storage and transmission
-    - Synchronous operations
-    - **Note**: In ERC-7930 context, "binary" refers to the serialization format (not the JavaScript type). The binary format can be represented as either a hex string (`Hex`, the default) or `Uint8Array` bytes. The default hex format aligns with JavaScript ecosystem conventions (viem, ethers, JSON-RPC).
+The SDK supports three formats. Here's how they relate:
 
 ```mermaid
 graph TD
@@ -136,140 +101,36 @@ graph TD
     D -->|binaryToName sync| A
 ```
 
-## Working with Different Layers
-
-### Name Layer (Async)
-
-Use when you need ENS resolution or chain label resolution:
-
 ```typescript
-import { nameToBinary, parseName } from "@wonderland/interop-addresses";
+import { binaryToName, nameToBinary } from "@wonderland/interop-addresses";
 
-// Parse with full metadata (defaults to text representation)
-const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
-// result.name - original parsed components
-// result.interoperableAddress - address in text representation (default)
-//   - result.interoperableAddress.chainType - "eip155" (string)
-//   - result.interoperableAddress.chainReference - "1" (string)
-//   - result.interoperableAddress.address - "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (string)
-// result.meta.checksum - calculated checksum
-// result.meta.isENS - whether address was ENS
-// result.meta.isChainLabel - whether chain reference was a label
-
-// Parse to binary representation
-const resultBinary = await parseName("vitalik.eth@eip155:1#4CA88C9C", { representation: "binary" });
-// resultBinary.interoperableAddress.chainType - Uint8Array
-// resultBinary.interoperableAddress.chainReference - Uint8Array
-// resultBinary.interoperableAddress.address - Uint8Array
-
-// Simple conversion
+// Name → Binary (async, may resolve ENS)
 const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "hex" });
+
+// Binary → Name (sync)
+const name = binaryToName(binary);
 ```
 
-### Address Layer (Synchronous)
+## Chain resolution {#experimental-onchain-chain-registry}
 
-Use for direct address operations with unified binary and text representations:
-
-```typescript
-import {
-    calculateChecksum,
-    decodeAddress,
-    encodeAddress,
-    isTextAddress,
-    toBinaryRepresentation,
-    toTextRepresentation,
-} from "@wonderland/interop-addresses";
-
-// Decode binary to text representation (default)
-const textAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
-// textAddr.chainType - "eip155" (string)
-// textAddr.chainReference - "1" (string)
-// textAddr.address - "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (string)
-
-// Decode binary to binary representation
-const binaryAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045", {
-    representation: "binary",
-});
-// binaryAddr.chainType - Uint8Array
-// binaryAddr.chainReference - Uint8Array
-// binaryAddr.address - Uint8Array
-
-// Use type guards to narrow the type
-if (isTextAddress(textAddr)) {
-    console.log(textAddr.chainType); // TypeScript knows this is a string
-}
-
-// Convert between representations
-const textToBinary = toBinaryRepresentation(textAddr);
-const binaryToText = toTextRepresentation(binaryAddr);
-
-// Encode address to binary (accepts either representation, converts automatically)
-const textAddr2 = {
-    version: 1,
-    chainType: "eip155",
-    chainReference: "1",
-    address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-};
-const hex = encodeAddress(textAddr2, { format: "hex" }); // Automatically converts text to binary
-
-// Calculate checksum (accepts either representation)
-const checksum = calculateChecksum(textAddr);
-```
-
-## Chain Resolution
-
-The package resolves chain labels using a two-tier strategy:
-
--   **Primary (default)**: Queries the `on.eth` onchain ENS registry on mainnet
--   **Fallback**: Uses `shortnameToChainId` with chainid.network mappings
-
-Both are enabled by default. Fully-qualified CAIP-2 identifiers (e.g., `eip155:10`) always work without any registry.
+The SDK resolves chain labels (like `eth` or `base`) to their CAIP-2 identifiers automatically:
 
 ```typescript
-import { parseName } from "@wonderland/interop-addresses";
-
-// Default behavior: onchain (on.eth) + offchain fallback
 const result = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth");
 // result.interoperableAddress.chainType === "eip155"
 // result.interoperableAddress.chainReference === "1"
 ```
 
-**How it works:**
+Resolution uses a two-tier strategy:
 
-1. Constructs the full ENS domain as `{label}.{registryDomain}` (e.g., `ethereum.on.eth`)
-2. Queries the ENS registry to find the resolver for that domain
-3. Calls the resolver's `interoperableAddress(label)` method on the ChainResolver contract
-4. Decodes the returned ERC-7930 binary format to get chainType and chainReference
+1. **Onchain**: Queries the `on.eth` ENS registry on mainnet
+2. **Offchain fallback**: Uses chainid.network mappings
 
-If onchain resolution fails (domain not found, resolver error, etc.), it automatically falls back to the offchain chainid.network registry.
+Fully-qualified identifiers (e.g., `eip155:10`) always work without any registry lookup.
 
-### Customizing Resolution
+## Next steps
 
-```typescript
-// Disable onchain, use offchain only
-const result = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth", {
-    onchainRegistry: false,
-});
-
-// Disable both registries (only fully-qualified CAIP-2 works)
-const result2 = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1", {
-    onchainRegistry: false,
-    offchainRegistryFallback: false,
-});
-
-// Custom registry domain
-const result3 = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth", {
-    onchainRegistry: "custom.eth",
-});
-
-// Custom RPC URL
-const result4 = await parseName("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eth", {
-    rpcUrl: "https://my-rpc.example.com",
-});
-```
-
-## References
-
--   [EIP-7930: Interoperable Addresses](https://eips.ethereum.org/EIPS/eip-7930)
--   [ERC-7828: Readable Interoperable Addresses using ENS](https://eips.ethereum.org/EIPS/eip-7828)
--   [CAIP-350: Interoperable Addresses](https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-350.md)
+-   [Concepts](./concepts.md) — understand the two-layer architecture and the standards behind it
+-   [Advanced Usage](./advanced-usage.md) — validation, error handling, round-trip conversions, best practices
+-   [Parsing an Interoperable Name](./example.md) — a deeper walkthrough for wallet developers
+-   [API Reference](./api.md) — complete function signatures and types

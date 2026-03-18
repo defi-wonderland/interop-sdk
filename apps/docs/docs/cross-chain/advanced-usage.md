@@ -163,13 +163,15 @@ try {
 ## Best Practices
 
 1. Always check both `quotes` and `errors` in the aggregator response
-2. Use sorting strategies to get the best quotes first
+2. Quotes are sorted by best output amount by default
 3. Use `OrderTracker` to monitor cross-chain transfers
 4. Handle errors appropriately using the provided error types
 5. Set appropriate timeouts for quote requests
 6. Test your implementation on testnet before moving to production
 7. Provide custom RPC URLs for better reliability
 
-## Reference
+## Next steps
 
-For detailed method documentation, see the [API Reference](./api.md).
+-   [API Reference](./api.md) — complete function signatures and types
+-   [Concepts](./concepts.md) — understand the architecture and provider trade-offs
+-   [Order Tracking](./intent-tracking.md) — detailed tracking patterns and provider notes
