@@ -426,6 +426,29 @@ Resolves a chain shortname to its chain ID.
 shortnameToChainId(shortName: string): Promise<number | undefined>
 ```
 
+#### `getRegisteredChains`
+
+Fetches all chains registered in the on.eth ChainResolver contract. Uses multicall to call `chainCount()` and then `getChainAtIndex()` for each index, decoding the ERC-7930 interoperable address to extract the chain ID.
+
+```typescript
+getRegisteredChains(
+  options?: GetRegisteredChainsOptions
+): Promise<RegisteredChain[]>
+```
+
+**Example:**
+
+```typescript
+import { getRegisteredChains } from "@wonderland/interop-addresses";
+
+// Uses MAINNET_RPC_URL env var by default
+const chains = await getRegisteredChains();
+// [{ label: "optimism", name: "OP Mainnet", chainId: 10 }, ...]
+
+// Custom RPC URL
+const chains2 = await getRegisteredChains({ rpcUrl: "https://my-rpc.example.com" });
+```
+
 ## Importing Functions
 
 All methods are exported as individual functions for modular usage and tree-shaking:
@@ -440,6 +463,7 @@ import {
     formatName,
     getAddress,
     getChainId,
+    getRegisteredChains,
     isBinaryAddress,
     isTextAddress,
     isValidBinaryAddress,
@@ -578,6 +602,28 @@ if (isTextAddress(result.interoperableAddress)) {
     console.log(result.interoperableAddress.chainType); // "eip155"
     console.log(result.interoperableAddress.chainReference); // "1"
     console.log(result.interoperableAddress.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+}
+```
+
+### `RegisteredChain`
+
+Represents a single chain entry returned by `getRegisteredChains`:
+
+```typescript
+interface RegisteredChain {
+    label: string;    // Chain label in the registry (e.g., "optimism", "base")
+    name: string;     // Human-readable chain name (e.g., "OP Mainnet", "Base")
+    chainId: number;  // Numeric chain ID
+}
+```
+
+### `GetRegisteredChainsOptions`
+
+Options for `getRegisteredChains`:
+
+```typescript
+interface GetRegisteredChainsOptions {
+    rpcUrl?: string;  // Ethereum mainnet RPC URL. Falls back to MAINNET_RPC_URL env var.
 }
 ```
 
