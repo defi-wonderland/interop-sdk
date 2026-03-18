@@ -1,9 +1,10 @@
 import { decodeFunctionData, erc20Abi } from "viem";
 
 import type { OrderChecks } from "../../../core/schemas/order.js";
-import type { Quote, QuoteFeeEntry } from "../../../core/schemas/quote.js";
+import type { Quote } from "../../../core/schemas/quote.js";
 import type { QuoteRequest, Step } from "../../../internal.js";
 import type { RelayQuoteResponse, RelayQuoteStep } from "../schemas.js";
+import { adaptFees } from "./quoteFeeAdapter.js";
 
 /**
  * Extract allowance checks from Relay approve steps.
@@ -46,36 +47,6 @@ function extractAllowances(
     }
 
     return allowances;
-}
-
-/** Map a Relay fee entry (with `currency`) to an SDK QuoteFeeEntry. */
-function toFeeEntry(fee: {
-    amount: string;
-    amountUsd?: string;
-    currency: { symbol: string; decimals: number; address: string };
-}): QuoteFeeEntry {
-    return {
-        amount: fee.amount,
-        amountUsd: fee.amountUsd,
-        token: {
-            symbol: fee.currency.symbol,
-            decimals: fee.currency.decimals,
-            address: fee.currency.address,
-        },
-    };
-}
-
-/** Map Relay fee fields to the SDK-standard QuoteFees shape. */
-function adaptFees(response: RelayQuoteResponse): Quote["fees"] {
-    const relayerFee = response.fees?.relayer;
-    const gasFee = response.fees?.gas;
-
-    if (!relayerFee && !gasFee) return undefined;
-
-    return {
-        bridgeFee: relayerFee ? toFeeEntry(relayerFee) : undefined,
-        originGas: gasFee ? toFeeEntry(gasFee) : undefined,
-    };
 }
 
 /**

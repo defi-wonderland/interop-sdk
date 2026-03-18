@@ -149,59 +149,6 @@ describe("adaptQuote", () => {
         expect(quote.quoteId).toBeUndefined();
     });
 
-    it("populates fees.bridgeFee and fees.originGas from Relay response", () => {
-        const response = makeRelayQuoteResponse({
-            fees: {
-                relayer: {
-                    currency: {
-                        chainId: ORIGIN_CHAIN_ID,
-                        address: TOKEN_ADDRESS,
-                        symbol: "USDC",
-                        name: "USD Coin",
-                        decimals: 6,
-                    },
-                    amount: "5000",
-                    amountUsd: "0.005",
-                },
-                gas: {
-                    currency: {
-                        chainId: ORIGIN_CHAIN_ID,
-                        address: "0x0000000000000000000000000000000000000000",
-                        symbol: "ETH",
-                        name: "Ether",
-                        decimals: 18,
-                    },
-                    amount: "100000000000000",
-                    amountUsd: "0.25",
-                },
-            },
-        });
-
-        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
-
-        expect(quote.fees).toBeDefined();
-        expect(quote.fees!.bridgeFee).toEqual({
-            amount: "5000",
-            amountUsd: "0.005",
-            token: { symbol: "USDC", decimals: 6, address: TOKEN_ADDRESS },
-        });
-        expect(quote.fees!.originGas).toEqual({
-            amount: "100000000000000",
-            amountUsd: "0.25",
-            token: {
-                symbol: "ETH",
-                decimals: 18,
-                address: "0x0000000000000000000000000000000000000000",
-            },
-        });
-    });
-
-    it("fees is undefined when response.fees is undefined", () => {
-        const response = makeRelayQuoteResponse({ fees: undefined });
-        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
-        expect(quote.fees).toBeUndefined();
-    });
-
     it("extracts approve steps into order.checks.allowances", () => {
         const approveAmount = 1000000n;
         const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, approveAmount);
