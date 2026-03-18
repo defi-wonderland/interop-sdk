@@ -441,12 +441,8 @@ getRegisteredChains(
 ```typescript
 import { getRegisteredChains } from "@wonderland/interop-addresses";
 
-// Uses MAINNET_RPC_URL env var by default
-const chains = await getRegisteredChains();
+const chains = await getRegisteredChains({ rpcUrl: process.env.MAINNET_RPC_URL });
 // [{ label: "optimism", name: "OP Mainnet", chainId: 10 }, ...]
-
-// Custom RPC URL
-const chains2 = await getRegisteredChains({ rpcUrl: "https://my-rpc.example.com" });
 ```
 
 ## Importing Functions
