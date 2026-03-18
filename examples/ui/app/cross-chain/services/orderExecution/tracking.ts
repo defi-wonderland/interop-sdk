@@ -11,8 +11,8 @@ export class TrackingError extends Error {
   constructor(identifier: TrackingIdentifier, providerId: string) {
     super(`Order tracking failed for provider "${providerId}". The order may still complete.`);
     this.name = 'TrackingError';
-    this.txHash = 'txHash' in identifier ? identifier.txHash : undefined;
-    this.orderId = 'orderId' in identifier ? identifier.orderId : undefined;
+    this.txHash = identifier.txHash;
+    this.orderId = identifier.orderId;
   }
 }
 
@@ -28,8 +28,7 @@ export async function trackOrder(
   onStateChange: (state: BridgeState) => void,
 ): Promise<void> {
   const tracker = crossChainExecutor.prepareTracking(providerId);
-  const txHash = 'txHash' in identifier ? identifier.txHash : undefined;
-  const orderId = 'orderId' in identifier ? identifier.orderId : undefined;
+  const { txHash, orderId } = identifier;
 
   const baseParams = {
     originChainId: chainContext.originChainId,

@@ -96,4 +96,7 @@ export interface ExecuteResult {
  * Identifier used to track an order after submission.
  * Across uses txHash, OIF uses orderId, Relay uses both.
  */
-export type TrackingIdentifier = { txHash: Hex } | { orderId: Hex } | { orderId: Hex; txHash: Hex };
+export interface TrackingIdentifier {
+  txHash?: Hex;
+  orderId?: Hex;
+}
