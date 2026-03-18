@@ -83,6 +83,7 @@ const hash = await walletClient.sendTransaction({
     to: step.transaction.to,
     data: step.transaction.data,
     value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+    gas: step.transaction.gas ? BigInt(step.transaction.gas) : undefined,
 });
 console.log("Transaction sent:", hash);
 ```
