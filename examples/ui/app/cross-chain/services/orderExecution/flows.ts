@@ -83,7 +83,6 @@ export const executeDirectTransaction = async ({
     throw new Error('Invalid quote: missing transaction data');
   }
 
-  // Handle token approvals via checks.allowances (populated by all providers)
   if (quote.order.checks?.allowances?.length) {
     for (const allowance of quote.order.checks.allowances) {
       await handleTokenApproval(
@@ -114,7 +113,7 @@ export const executeDirectTransaction = async ({
   const parsedGas = txStep.transaction.gas ? BigInt(txStep.transaction.gas) : 0n;
   const gas = parsedGas > 0n ? parsedGas : undefined;
 
-  const bridgeTxHash = await submitBridgeTransaction(
+  const txHash = await submitBridgeTransaction(
     publicClient,
     walletClient,
     txStep.transaction.to as Address,
@@ -125,5 +124,5 @@ export const executeDirectTransaction = async ({
     gas,
   );
 
-  return resolveTrackingIdentifier(quote, bridgeTxHash);
+  return resolveTrackingIdentifier(quote, txHash);
 };
