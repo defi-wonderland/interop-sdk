@@ -16,9 +16,13 @@ export const QuotePreviewSchema = z.object({
     outputs: z.array(QuotePreviewEntrySchema).min(1),
 });
 
+/** A single fee line item with raw amount, optional USD value, and token metadata. */
 export const QuoteFeeEntrySchema = z.object({
+    /** Raw fee amount in token smallest units. */
     amount: z.string(),
+    /** USD equivalent of the fee (decimal string). */
     amountUsd: z.string().optional(),
+    /** Token metadata for display (symbol, decimals, address). */
     token: z
         .object({
             symbol: z.string(),
@@ -28,13 +32,19 @@ export const QuoteFeeEntrySchema = z.object({
         .optional(),
 });
 
+/** Standardized fee breakdown populated by provider adapters. */
 export const QuoteFeesSchema = z.object({
+    /** Bridge / relayer fee charged by the protocol. */
     bridgeFee: QuoteFeeEntrySchema.optional(),
+    /** Bridge fee as a percentage (wei-encoded, 1e18 = 100%). */
     bridgeFeePct: z.string().optional(),
+    /** Estimated origin-chain gas cost. */
     originGas: QuoteFeeEntrySchema.optional(),
 });
 
+/** Protocol-specific tracking identifier available at quote time. */
 export const QuoteTrackingSchema = z.object({
+    /** Order identifier used by the protocol's tracking endpoint. */
     orderId: z.string().optional(),
 });
 
