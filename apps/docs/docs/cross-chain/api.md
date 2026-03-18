@@ -397,7 +397,41 @@ interface Quote {
     quoteId?: string;
     failureHandling?: string;
     partialFill?: boolean;
+    fees?: QuoteFees;
+    tracking?: QuoteTracking;
     metadata?: Record<string, unknown>;
+}
+```
+
+#### QuoteFeeEntry
+
+```typescript
+interface QuoteFeeEntry {
+    amount: string; // Raw amount in token units
+    amountUsd?: string; // USD equivalent
+    token?: {
+        symbol: string;
+        decimals: number;
+        address?: string;
+    };
+}
+```
+
+#### QuoteTracking
+
+```typescript
+interface QuoteTracking {
+    orderId?: string; // Protocol-specific order identifier for tracking
+}
+```
+
+#### QuoteFees
+
+```typescript
+interface QuoteFees {
+    bridgeFee?: QuoteFeeEntry; // Bridge/relayer fee
+    bridgeFeePct?: string; // Fee as percentage (wei-encoded, 1e18 = 100%)
+    originGas?: QuoteFeeEntry; // Origin chain gas cost
 }
 ```
 
@@ -409,6 +443,20 @@ interface Order {
     lock?: LockMechanism;
     checks?: OrderChecks;
     metadata?: Record<string, unknown>;
+}
+```
+
+#### OrderChecks
+
+```typescript
+interface OrderChecks {
+    allowances?: {
+        chainId: number;
+        tokenAddress: string;
+        owner: string;
+        spender: string;
+        required: string;
+    }[];
 }
 ```
 

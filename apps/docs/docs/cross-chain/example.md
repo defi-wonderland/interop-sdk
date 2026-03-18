@@ -54,9 +54,10 @@ Initialize the cross-chain provider and aggregator, which will handle quoting an
 
 ```js
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
+const relayProvider = createCrossChainProvider("relay", { isTestnet: true });
 
 const aggregator = createAggregator({
-    providers: [acrossProvider],
+    providers: [acrossProvider, relayProvider],
 });
 ```
 

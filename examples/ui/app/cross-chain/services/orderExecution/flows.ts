@@ -4,10 +4,8 @@ import { handleTokenApproval } from './approval';
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
+import type { BridgeState, ChainContext, TrackingIdentifier } from '../../types/execution';
 import type { Address, Hex, PublicClient } from 'viem';
-import type { BridgeState, ChainContext } from '~/cross-chain/hooks';
-
-type TrackingIdentifier = { txHash: Hex } | { orderId: Hex };
 
 interface FlowParams {
   quote: ExecutableQuote;
@@ -115,5 +113,6 @@ export const executeDirectTransaction = async ({
     gas,
   );
 
-  return { txHash };
+  const orderId = quote.tracking?.orderId;
+  return orderId ? { orderId: orderId as Hex, txHash } : { txHash };
 };

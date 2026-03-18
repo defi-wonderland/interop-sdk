@@ -57,26 +57,33 @@ const quotes = await relayProvider.getQuotes({
 const quote = quotes[0]; // Select the first quote
 ```
 
+## Fees
+
+After getting a quote, you can inspect the standardized fee breakdown via `quote.fees`:
+
+```typescript
+const quote = quotes[0];
+
+console.log(quote.fees?.bridgeFee); // { amount, amountUsd, token }
+console.log(quote.fees?.bridgeFeePct); // percentage (wei-encoded, 1e18 = 100%)
+console.log(quote.fees?.originGas); // origin chain gas estimate
+```
+
+See the [API reference](./api.md#quotefees) for the full `QuoteFees` type.
+
 ## Executing Transactions
 
-Relay quotes contain transaction steps. After getting a quote, execute the transaction:
+Relay quotes always contain transaction steps. After getting a quote, execute the transaction:
 
 ```typescript
 import { getTransactionSteps } from "@wonderland/interop-cross-chain";
-import { createWalletClient, http } from "viem";
-import { sepolia } from "viem/chains";
-
-const walletClient = createWalletClient({
-    chain: sepolia,
-    transport: http(),
-    account: yourAccount,
-});
 
 const step = getTransactionSteps(quote.order)[0];
 const hash = await walletClient.sendTransaction({
     to: step.transaction.to,
     data: step.transaction.data,
     value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+    gas: step.transaction.gas ? BigInt(step.transaction.gas) : undefined,
 });
 console.log("Transaction sent:", hash);
 ```
@@ -92,12 +99,26 @@ console.log("Transaction sent:", hash);
 
 ## Tracking
 
-Relay tracking is fully API-based. Both opened intent parsing and fill watching use the `/intents/status/v3` endpoint.
+Relay tracking is fully API-based — it does not require RPC URLs. The SDK polls the Relay API (`/intents/status/v3`) at 5-second intervals until the order is finalized or fails.
 
--   **Opened intent parsing**: Fetches intent status from `/intents/status/v3?requestId=<txHash>`
--   **Fill watching**: Polls `/intents/status/v3?requestId=<orderId>` at 5-second intervals with automatic retry
+To start tracking, you need two values:
 
-Unlike Across, Relay does not require RPC URLs for tracking since all tracking is done through the Relay API.
+-   **`orderId`** — found at `quote.tracking.orderId`. This is the identifier Relay uses to look up the order status.
+-   **`openTxHash`** — the bridge transaction hash from the [execution step](#executing-transactions) (not the approval hash).
+
+```typescript
+const orderId = quote.tracking?.orderId;
+const tracker = executor.prepareTracking("relay");
+
+for await (const item of tracker.watchOrder({
+    orderId,
+    openTxHash: hash, // from the execution step above
+    originChainId: 11155111,
+    destinationChainId: 84532,
+})) {
+    // Handle tracking updates
+}
+```
 
 ## Transaction Notification
 

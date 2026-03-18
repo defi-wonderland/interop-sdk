@@ -1,3 +1,4 @@
+import { encodeFunctionData, erc20Abi } from "viem";
 import { describe, expect, it } from "vitest";
 
 import type { QuoteRequest } from "../../../../src/core/schemas/quoteRequest.js";
@@ -11,6 +12,8 @@ import {
 
 const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 const RECIPIENT_ADDRESS = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+const SPENDER_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const TOKEN_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const ORIGIN_CHAIN_ID = 1;
 const DESTINATION_CHAIN_ID = 10;
 const INPUT_AMOUNT = "1000000";
@@ -84,6 +87,14 @@ function makeRelayQuoteResponse(overrides?: Partial<RelayQuoteResponse>): RelayQ
     } as RelayQuoteResponse;
 }
 
+function makeApproveCalldata(spender: string, amount: bigint): string {
+    return encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [spender as `0x${string}`, amount],
+    });
+}
+
 // ── Tests ────────────────────────────────────────────────
 
 describe("adaptQuote", () => {
@@ -99,7 +110,7 @@ describe("adaptQuote", () => {
         expect(quote.preview.inputs[0]!.amount).toBe(INPUT_AMOUNT);
         expect(quote.preview.outputs[0]!.chainId).toBe(DESTINATION_CHAIN_ID);
         expect(quote.preview.outputs[0]!.amount).toBe(OUTPUT_AMOUNT);
-        expect(quote.order.metadata).toEqual({ relayRequestId: REQUEST_ID });
+        expect(quote.tracking).toEqual({ orderId: REQUEST_ID });
         expect(quote.metadata!.relayResponse).toBeDefined();
     });
 
@@ -136,6 +147,117 @@ describe("adaptQuote", () => {
             PROVIDER_ID,
         );
         expect(quote.quoteId).toBeUndefined();
+    });
+
+    it("extracts approve steps into order.checks.allowances", () => {
+        const approveAmount = 1000000n;
+        const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, approveAmount);
+
+        const response = makeRelayQuoteResponse({
+            steps: [
+                {
+                    id: "approve",
+                    action: "Approve token",
+                    description: "Approve USDC",
+                    kind: "transaction",
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                to: TOKEN_ADDRESS,
+                                data: approveCalldata,
+                                chainId: ORIGIN_CHAIN_ID,
+                            },
+                        },
+                    ],
+                },
+                {
+                    id: "deposit",
+                    action: "Confirm transaction",
+                    description: STEP_DESCRIPTION,
+                    kind: "transaction",
+                    requestId: REQUEST_ID,
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                to: VALID_ADDRESS,
+                                data: TX_DATA,
+                                value: INPUT_AMOUNT,
+                                chainId: ORIGIN_CHAIN_ID,
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+
+        expect(quote.order.checks?.allowances).toHaveLength(1);
+        expect(quote.order.checks!.allowances![0]).toEqual({
+            chainId: ORIGIN_CHAIN_ID,
+            tokenAddress: TOKEN_ADDRESS,
+            owner: VALID_ADDRESS,
+            spender: SPENDER_ADDRESS,
+            required: approveAmount.toString(),
+        });
+    });
+
+    it("order.steps only contains non-approve steps", () => {
+        const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, 1000000n);
+
+        const response = makeRelayQuoteResponse({
+            steps: [
+                {
+                    id: "approve",
+                    action: "Approve token",
+                    description: "Approve USDC",
+                    kind: "transaction",
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                to: TOKEN_ADDRESS,
+                                data: approveCalldata,
+                                chainId: ORIGIN_CHAIN_ID,
+                            },
+                        },
+                    ],
+                },
+                {
+                    id: "deposit",
+                    action: "Confirm transaction",
+                    description: STEP_DESCRIPTION,
+                    kind: "transaction",
+                    requestId: REQUEST_ID,
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                to: VALID_ADDRESS,
+                                data: TX_DATA,
+                                value: INPUT_AMOUNT,
+                                chainId: ORIGIN_CHAIN_ID,
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+
+        expect(quote.order.steps).toHaveLength(1);
+        expect(quote.order.steps[0]!.kind).toBe("transaction");
+        if (quote.order.steps[0]!.kind === "transaction") {
+            expect(quote.order.steps[0]!.transaction.to).toBe(VALID_ADDRESS);
+        }
+    });
+
+    it("order.checks is undefined when there are no approve steps", () => {
+        const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
+        expect(quote.order.checks).toBeUndefined();
     });
 });
 

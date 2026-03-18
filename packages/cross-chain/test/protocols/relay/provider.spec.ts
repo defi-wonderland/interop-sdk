@@ -94,6 +94,30 @@ function makeRelayQuoteResponse(overrides?: Partial<RelayQuoteResponse>): RelayQ
                 amount: OUTPUT_AMOUNT,
             },
         },
+        fees: {
+            relayer: {
+                currency: {
+                    chainId: ORIGIN_CHAIN_ID,
+                    address: VALID_ADDRESS,
+                    symbol: "USDC",
+                    name: "USD Coin",
+                    decimals: 6,
+                },
+                amount: "5000",
+                amountUsd: "0.005",
+            },
+            gas: {
+                currency: {
+                    chainId: ORIGIN_CHAIN_ID,
+                    address: "0x0000000000000000000000000000000000000000",
+                    symbol: "ETH",
+                    name: "Ether",
+                    decimals: 18,
+                },
+                amount: "100000000000000",
+                amountUsd: "0.25",
+            },
+        },
         protocol: { v2: { orderId: ORDER_ID } },
         ...overrides,
     } as RelayQuoteResponse;
@@ -173,6 +197,26 @@ describe("RelayProvider", () => {
             const [quote] = await provider.getQuotes(makeQuoteRequest());
             expect(quote!.provider).toBe(PROTOCOL_NAME);
             expect(quote!.order.steps).toHaveLength(1);
+        });
+
+        it("returns quote with standardized fees populated", async () => {
+            mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
+            const [quote] = await provider.getQuotes(makeQuoteRequest());
+            expect(quote!.fees).toBeDefined();
+            expect(quote!.fees!.bridgeFee).toEqual({
+                amount: "5000",
+                amountUsd: "0.005",
+                token: { symbol: "USDC", decimals: 6, address: VALID_ADDRESS },
+            });
+            expect(quote!.fees!.originGas).toEqual({
+                amount: "100000000000000",
+                amountUsd: "0.25",
+                token: {
+                    symbol: "ETH",
+                    decimals: 18,
+                    address: "0x0000000000000000000000000000000000000000",
+                },
+            });
         });
 
         it("POSTs to /quote/v2 with mapped parameters", async () => {
