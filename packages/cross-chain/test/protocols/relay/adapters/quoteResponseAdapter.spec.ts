@@ -110,7 +110,7 @@ describe("adaptQuote", () => {
         expect(quote.preview.inputs[0]!.amount).toBe(INPUT_AMOUNT);
         expect(quote.preview.outputs[0]!.chainId).toBe(DESTINATION_CHAIN_ID);
         expect(quote.preview.outputs[0]!.amount).toBe(OUTPUT_AMOUNT);
-        expect(quote.order.metadata).toEqual({ relayRequestId: REQUEST_ID });
+        expect(quote.tracking).toEqual({ orderId: REQUEST_ID });
         expect(quote.metadata!.relayResponse).toBeDefined();
     });
 

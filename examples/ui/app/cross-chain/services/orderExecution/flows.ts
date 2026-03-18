@@ -9,11 +9,11 @@ import type { Address, Hex, PublicClient } from 'viem';
 
 /**
  * Builds the tracking identifier from a completed transaction.
- * Relay quotes include a `relayRequestId` in metadata that the tracking
- * endpoint needs as `orderId`. Other providers only need the tx hash.
+ * Quotes with a `tracking.orderId` (e.g. Relay) pass that to the tracker.
+ * Other providers only need the tx hash.
  */
 function resolveTrackingIdentifier(quote: ExecutableQuote, txHash: Hex): TrackingIdentifier {
-  const orderId = quote.order.metadata?.relayRequestId as string | undefined;
+  const orderId = quote.tracking?.orderId;
   if (orderId) return { orderId: orderId as Hex, txHash };
   return { txHash };
 }

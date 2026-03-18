@@ -110,11 +110,11 @@ Relay tracking is fully API-based — it does not require RPC URLs. The SDK poll
 
 To start tracking, you need two values:
 
--   **`orderId`** — found at `quote.order.metadata.relayRequestId`. This is the identifier Relay uses to look up the order status.
+-   **`orderId`** — found at `quote.tracking.orderId`. This is the identifier Relay uses to look up the order status.
 -   **`openTxHash`** — the bridge transaction hash from the [execution step](#executing-transactions) (not the approval hash).
 
 ```typescript
-const orderId = quote.order.metadata?.relayRequestId as string;
+const orderId = quote.tracking?.orderId;
 const tracker = executor.prepareTracking("relay");
 
 for await (const item of tracker.watchOrder({

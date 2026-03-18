@@ -106,9 +106,6 @@ export function adaptQuote(
         order: {
             steps: nonApproveSteps.flatMap((step) => adaptRelaySteps(step)),
             ...(allowances.length > 0 && { checks: { allowances } }),
-            ...(relayRequestId && {
-                metadata: { relayRequestId },
-            }),
         },
         preview: {
             inputs: [
@@ -134,6 +131,7 @@ export function adaptQuote(
         failureHandling: "refund-automatic",
         provider: providerId,
         fees,
+        tracking: relayRequestId ? { orderId: relayRequestId } : undefined,
         metadata: { relayResponse: response },
     };
 }

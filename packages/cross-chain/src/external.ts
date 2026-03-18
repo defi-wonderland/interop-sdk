@@ -56,6 +56,7 @@ export {
     type ExecutableQuote,
     type QuoteFeeEntry,
     type QuoteFees,
+    type QuoteTracking,
     type QuoteRequest,
     type BuildQuoteRequest,
 } from "./internal.js";

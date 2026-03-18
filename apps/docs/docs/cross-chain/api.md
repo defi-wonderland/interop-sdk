@@ -398,6 +398,7 @@ interface Quote {
     failureHandling?: string;
     partialFill?: boolean;
     fees?: QuoteFees;
+    tracking?: QuoteTracking;
     metadata?: Record<string, unknown>;
 }
 ```
@@ -413,6 +414,14 @@ interface QuoteFeeEntry {
         decimals: number;
         address?: string;
     };
+}
+```
+
+#### QuoteTracking
+
+```typescript
+interface QuoteTracking {
+    orderId?: string; // Protocol-specific order identifier for tracking
 }
 ```
 
