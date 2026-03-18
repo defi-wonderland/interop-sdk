@@ -66,25 +66,6 @@ export const submitOifSignableOrder = async ({
   return { orderId };
 };
 
-interface TransactionStep {
-  transaction?: { to?: string; data?: string; value?: string; gas?: string };
-}
-
-function parseTransactionFields(txStep: TransactionStep): { to: Address; data: Hex; value?: bigint; gas?: bigint } {
-  if (!txStep.transaction?.to || !txStep.transaction?.data) {
-    throw new Error('Invalid quote: missing transaction data');
-  }
-
-  const parsedGas = txStep.transaction.gas ? BigInt(txStep.transaction.gas) : 0n;
-
-  return {
-    to: txStep.transaction.to as Address,
-    data: txStep.transaction.data as Hex,
-    value: txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined,
-    gas: parsedGas > 0n ? parsedGas : undefined,
-  };
-}
-
 export const executeDirectTransaction = async ({
   quote,
   walletClient,
@@ -96,9 +77,10 @@ export const executeDirectTransaction = async ({
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
   const txSteps = getTransactionSteps(quote.order);
+  const txStep = txSteps[0];
 
-  if (txSteps.length === 0) {
-    throw new Error('Invalid quote: no transaction steps');
+  if (!txStep?.transaction?.to || !txStep?.transaction?.data) {
+    throw new Error('Invalid quote: missing transaction data');
   }
 
   // Handle token approvals via checks.allowances (populated by all providers)
@@ -116,27 +98,27 @@ export const executeDirectTransaction = async ({
       );
     }
   } else if (!isNativeAddress(inputTokenAddress, 'eip155')) {
-    // Fallback: infer spender from the first transaction step
-    const spender = txSteps[0]?.transaction?.to;
-    if (!spender) throw new Error('Invalid quote: missing spender address for token approval');
     await handleTokenApproval(
       publicClient,
       walletClient,
       ownerAddress,
       inputTokenAddress,
-      spender as Address,
+      txStep.transaction.to as Address,
       inputAmount,
       chainContext,
       onStateChange,
     );
   }
 
-  const { to, data, value, gas } = parseTransactionFields(txSteps[0]);
+  const value = txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined;
+  const parsedGas = txStep.transaction.gas ? BigInt(txStep.transaction.gas) : 0n;
+  const gas = parsedGas > 0n ? parsedGas : undefined;
+
   const bridgeTxHash = await submitBridgeTransaction(
     publicClient,
     walletClient,
-    to,
-    data,
+    txStep.transaction.to as Address,
+    txStep.transaction.data as Hex,
     chainContext,
     onStateChange,
     value,
