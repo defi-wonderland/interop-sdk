@@ -119,10 +119,6 @@ if (isSignatureOnlyOrder(quote.order)) {
 }
 ```
 
-:::note ERC-20 Allowances
-For ERC-20 token transfers, check `quote.order.checks?.allowances` for required token allowances before executing the bridge steps. See the [full example](./example.md) for a complete implementation.
-:::
-
 ### Using Multiple Providers
 
 For comparing quotes across providers, use the `Aggregator`:

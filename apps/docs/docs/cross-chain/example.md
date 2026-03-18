@@ -109,15 +109,7 @@ if (isSignatureOnlyOrder(quote.order)) {
     await aggregator.submitOrder(quote, signature);
     console.log("Order submitted via signature");
 } else {
-    // User mode: approve tokens if needed, then send transaction
-
-    // 1. Handle ERC-20 approvals
-    const allowances = quote.order.checks?.allowances ?? [];
-    for (const { spender, tokenAddress, required } of allowances) {
-        // Approve token spend if needed
-    }
-
-    // 2. Execute the bridge transaction
+    // User mode: send transaction directly
     const step = getTransactionSteps(quote.order)[0];
     const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } = step.transaction;
     console.log("Sending transaction...");
