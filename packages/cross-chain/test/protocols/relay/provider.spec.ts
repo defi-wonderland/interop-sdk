@@ -1,8 +1,10 @@
 import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { Quote } from "../../../src/core/schemas/quote.js";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
+import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { RELAY_TESTNET_TOKENS } from "../../../src/protocols/relay/constants.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
@@ -346,6 +348,102 @@ describe("RelayProvider", () => {
                 txHash: TX_HASH,
                 requestId: orderId,
             });
+        });
+    });
+
+    describe("submitOrder()", () => {
+        const SIGNATURE = "0xsig123abc" as `0x${string}`;
+        const POST_DATA = {
+            endpoint: "/execute/permits",
+            method: "POST",
+            body: { kind: "eip712", requestId: REQUEST_ID },
+        };
+
+        function makeQuoteWithSignatureStep(): Quote {
+            return {
+                order: {
+                    steps: [
+                        {
+                            kind: "signature",
+                            chainId: ORIGIN_CHAIN_ID,
+                            description: "Sign permit",
+                            signaturePayload: {
+                                signatureType: "eip712",
+                                domain: { name: "Permit2", chainId: ORIGIN_CHAIN_ID },
+                                primaryType: "PermitBatch",
+                                types: { PermitBatch: [{ name: "spender", type: "address" }] },
+                                message: { spender: VALID_ADDRESS },
+                            },
+                            metadata: {
+                                relayPostData: POST_DATA,
+                                relayStepId: "authorize1",
+                            },
+                        },
+                    ],
+                },
+                tracking: { orderId: REQUEST_ID },
+                preview: {
+                    inputs: [
+                        {
+                            chainId: ORIGIN_CHAIN_ID,
+                            accountAddress: VALID_ADDRESS,
+                            assetAddress: VALID_ADDRESS,
+                            amount: INPUT_AMOUNT,
+                        },
+                    ],
+                    outputs: [
+                        {
+                            chainId: DESTINATION_CHAIN_ID,
+                            accountAddress: VALID_ADDRESS,
+                            assetAddress: VALID_ADDRESS,
+                            amount: OUTPUT_AMOUNT,
+                        },
+                    ],
+                },
+                provider: PROTOCOL_NAME,
+                quoteId: ORDER_ID,
+            };
+        }
+
+        it("calls submitPermit with correct params and returns orderId", async () => {
+            mockPost.mockResolvedValue({ data: { message: "Permit submitted" } });
+            const quote = makeQuoteWithSignatureStep();
+            const result = await provider.submitOrder(quote, SIGNATURE);
+            expect(mockPost).toHaveBeenCalledWith(
+                `/execute/permits?signature=${SIGNATURE}`,
+                POST_DATA.body,
+            );
+            expect(result.orderId).toBe(REQUEST_ID);
+        });
+
+        it("throws ProviderExecuteFailure when no signature step metadata", async () => {
+            const quote = makeQuoteWithSignatureStep();
+            quote.order.steps = [
+                {
+                    kind: "transaction",
+                    chainId: ORIGIN_CHAIN_ID,
+                    description: "Deposit",
+                    transaction: { to: VALID_ADDRESS, data: TX_DATA },
+                },
+            ];
+            await expect(provider.submitOrder(quote, SIGNATURE)).rejects.toThrow(
+                ProviderExecuteFailure,
+            );
+        });
+
+        it("propagates API errors as ProviderExecuteFailure", async () => {
+            mockPost.mockRejectedValue(
+                makeAxiosError(
+                    { message: "Invalid permit" },
+                    HTTP_STATUS_BAD_REQUEST,
+                    "Request failed",
+                    "ERR_BAD_REQUEST",
+                ),
+            );
+            const quote = makeQuoteWithSignatureStep();
+            await expect(provider.submitOrder(quote, SIGNATURE)).rejects.toThrow(
+                ProviderExecuteFailure,
+            );
         });
     });
 

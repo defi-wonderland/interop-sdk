@@ -11,11 +11,14 @@ import type {
     PreTrackerParams,
     Quote,
     QuoteRequest,
+    SubmitOrderResponse,
 } from "../../internal.js";
+import type { RelaySubmitPermitRequest } from "./schemas.js";
 import type { RelayConfigs } from "./types.js";
 import {
     CrossChainProvider,
     ProviderConfigFailure,
+    ProviderExecuteFailure,
     ProviderGetQuoteFailure,
 } from "../../internal.js";
 import {
@@ -42,6 +45,7 @@ export class RelayProvider extends CrossChainProvider {
     private readonly http: AxiosInstance;
     private readonly baseUrl: string;
     private readonly isTestnet: boolean;
+    private readonly usePermit: boolean;
     private readonly apiService: RelayApiService;
     private readonly apiHeaders: Record<string, string>;
 
@@ -51,6 +55,7 @@ export class RelayProvider extends CrossChainProvider {
         try {
             const parsed = RelayConfigSchema.parse(config);
             this.isTestnet = parsed.isTestnet ?? false;
+            this.usePermit = parsed.usePermit ?? false;
             this.baseUrl = parsed.baseUrl ?? getRelayApiUrl(this.isTestnet);
             this.providerId = parsed.providerId ?? "relay";
 
@@ -83,7 +88,7 @@ export class RelayProvider extends CrossChainProvider {
      */
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
         try {
-            const relayParams = adaptQuoteRequest(params);
+            const relayParams = adaptQuoteRequest(params, { usePermit: this.usePermit });
             const response = await this.apiService.getQuote(relayParams);
             return [adaptQuote(params, response, this.providerId)];
         } catch (error) {
@@ -96,6 +101,19 @@ export class RelayProvider extends CrossChainProvider {
                 error instanceof Error ? error.stack : undefined,
             );
         }
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * Submits a signed permit to Relay via `POST /execute/permits`.
+     * Reads the permit body from the signature step's metadata (set during quote adaptation).
+     */
+    override async submitOrder(quote: Quote, signature: Hex): Promise<SubmitOrderResponse> {
+        const permitBody = this.extractPermitBody(quote);
+        await this.apiService.submitPermit(permitBody, signature);
+
+        return { orderId: quote.tracking!.orderId as Hex };
     }
 
     /**
@@ -166,5 +184,21 @@ export class RelayProvider extends CrossChainProvider {
                 headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
             },
         };
+    }
+
+    /** Extract the permit request body from the signature step's metadata. */
+    private extractPermitBody(quote: Quote): RelaySubmitPermitRequest {
+        const signatureStep = quote.order.steps.find((s) => s.kind === "signature");
+        const metadata = signatureStep?.metadata as Record<string, unknown> | undefined;
+        const postData = metadata?.relayPostData as { body?: RelaySubmitPermitRequest } | undefined;
+
+        if (!postData?.body) {
+            throw new ProviderExecuteFailure(
+                "Missing permit data in signature step metadata. Ensure the quote was obtained with usePermit enabled.",
+                `quoteId: ${quote.quoteId}`,
+            );
+        }
+
+        return postData.body;
     }
 }

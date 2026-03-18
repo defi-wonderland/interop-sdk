@@ -3,7 +3,7 @@ import { decodeFunctionData, erc20Abi } from "viem";
 import type { OrderChecks } from "../../../core/schemas/order.js";
 import type { Quote } from "../../../core/schemas/quote.js";
 import type { QuoteRequest, Step } from "../../../internal.js";
-import type { RelayQuoteResponse, RelayQuoteStep } from "../schemas.js";
+import type { RelayQuoteResponse, RelayQuoteStep, RelaySignatureStep } from "../schemas.js";
 import { adaptFees } from "./quoteFeeAdapter.js";
 
 /**
@@ -108,10 +108,10 @@ export function adaptQuote(
     };
 }
 
-/** Map a single Relay step to SDK Step entries (one per incomplete transaction item). */
+/** Map a single Relay step to SDK Step entries (one per incomplete item). */
 export function adaptRelaySteps(step: RelayQuoteStep): Step[] {
-    if (step.kind !== "transaction") {
-        return [];
+    if (step.kind === "signature") {
+        return adaptSignatureStep(step);
     }
 
     return step.items
@@ -136,4 +136,32 @@ export function adaptRelaySteps(step: RelayQuoteStep): Step[] {
                 }),
             },
         }));
+}
+
+/** Map a Relay signature step to SDK SignatureStep entries (EIP-712 only). */
+function adaptSignatureStep(step: RelaySignatureStep): Step[] {
+    return step.items.flatMap((item) => {
+        const { sign, post } = item.data;
+
+        if (item.status !== "incomplete" || sign.signatureKind !== "eip712") {
+            return [];
+        }
+
+        return {
+            kind: "signature" as const,
+            chainId: Number(sign.domain.chainId),
+            description: step.description,
+            signaturePayload: {
+                signatureType: "eip712" as const,
+                domain: sign.domain,
+                primaryType: sign.primaryType,
+                types: sign.types,
+                message: sign.value,
+            },
+            metadata: {
+                relayPostData: post,
+                relayStepId: step.id,
+            },
+        };
+    });
 }

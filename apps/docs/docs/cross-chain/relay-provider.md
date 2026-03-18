@@ -8,17 +8,19 @@ The Relay Protocol provider enables cross-chain token transfers using the Relay 
 
 ## Configuration
 
-| Field        | Type    | Required | Description                                   |
-| ------------ | ------- | -------- | --------------------------------------------- |
-| `baseUrl`    | string  | No       | Custom API base URL (overrides isTestnet)     |
-| `isTestnet`  | boolean | No       | Use testnet API (default: false)              |
-| `providerId` | string  | No       | Custom provider identifier (default: "relay") |
-| `apiKey`     | string  | No       | Relay API key for authentication              |
+| Field        | Type    | Required | Description                                            |
+| ------------ | ------- | -------- | ------------------------------------------------------ |
+| `baseUrl`    | string  | No       | Custom API base URL (overrides isTestnet)              |
+| `isTestnet`  | boolean | No       | Use testnet API (default: false)                       |
+| `providerId` | string  | No       | Custom provider identifier (default: "relay")          |
+| `apiKey`     | string  | No       | Relay API key for authentication                       |
+| `usePermit`  | boolean | No       | Enable permit-based gasless transfers (default: false) |
 
 Notes:
 
 -   `baseUrl` overrides the URL derived from `isTestnet`.
 -   When `apiKey` is provided, it is sent as the `x-api-key` header on all requests.
+-   When `usePermit` is enabled, the API may return signature steps in addition to transaction steps. Only works on supported currencies (e.g. USDC via EIP-3009). See [Relay docs](https://docs.relay.link/features/gasless-swaps) for details.
 
 ## Creating the Provider
 
@@ -88,6 +90,33 @@ const hash = await walletClient.sendTransaction({
 console.log("Transaction sent:", hash);
 ```
 
+## Permit Flow (Gasless)
+
+When `usePermit` is enabled, the quote may include EIP-712 signature steps for supported currencies (e.g. USDC via Permit2, EIP-3009). The user signs the typed data payload and submits it to Relay via `submitOrder`:
+
+:::note
+Only EIP-712 signature steps (Permit2, EIP-3009) are currently supported. EIP-191 steps (app fee claims, Hyperliquid deposits) are filtered out.
+:::
+
+```typescript
+const relayProvider = createCrossChainProvider("relay", { usePermit: true });
+
+const quotes = await relayProvider.getQuotes({
+    user: "0xYourAddress",
+    input: { chainId: 1, assetAddress: "0xUSDC", amount: "1000000" },
+    output: { chainId: 10, assetAddress: "0xUSDC" },
+});
+
+const quote = quotes[0];
+
+// The quote contains EIP-712 signature steps
+const step = getSignatureSteps(quote.order)[0];
+const signature = await walletClient.signTypedData(step.signaturePayload);
+
+// Submit the signed permit
+const result = await relayProvider.submitOrder(quote, signature);
+console.log("Order ID:", result.orderId);
+```
 ## Tracking
 
 Relay tracking is fully API-based — it does not require RPC URLs. The SDK polls the Relay API (`/intents/status/v3`) at 5-second intervals until the order is finalized or fails.
