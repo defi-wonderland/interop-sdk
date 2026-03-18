@@ -116,5 +116,5 @@ The tracking mechanism is determined by the provider. See [Order Tracking](./int
 
 ## References
 
--   [EIP-7683: Cross Chain Intents](https://www.erc7683.org/)
+-   [EIP-7683: Cross-Chain Intents](https://www.erc7683.org/)
 -   [Open Intents Framework](https://github.com/openintentsframework)

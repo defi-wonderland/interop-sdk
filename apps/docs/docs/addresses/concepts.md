@@ -60,10 +60,12 @@ All Address Layer operations are **synchronous**: encoding, decoding, checksum c
 
 ### Name Layer (async)
 
-Handles the human-readable `InteroperableName` string format. Operations in this layer are **asynchronous** because they may need to:
+Handles the human-readable `InteroperableName` string format. Operations that involve resolution (parsing names, converting names to binary) are **asynchronous** because they may need to:
 
 -   Resolve ENS names to raw addresses (via ENSIP-11)
 -   Resolve chain shortnames (like `eth`) to CAIP-2 identifiers (like `eip155:1`)
+
+Some Name Layer operations are synchronous — `formatName` and `binaryToName` don't require resolution and return immediately.
 
 The Name Layer builds on top of the Address Layer — parsing a name ultimately produces an `InteroperableAddress`.
 

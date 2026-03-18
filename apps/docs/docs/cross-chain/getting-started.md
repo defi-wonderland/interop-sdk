@@ -118,7 +118,7 @@ if (isSignatureOnlyOrder(quote.order)) {
 Use the `Aggregator` to fetch and sort quotes from multiple providers at once:
 
 ```typescript
-import { createAggregator } from "@wonderland/interop-cross-chain";
+import { createAggregator, createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 

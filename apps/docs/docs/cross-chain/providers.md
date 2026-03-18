@@ -20,7 +20,6 @@ You can create custom providers by extending the `CrossChainProvider` abstract c
 
 ```typescript
 import type {
-    CrossChainProvider,
     FillWatcherConfig,
     OpenedIntentParserConfig,
     PreTrackerConfig,
@@ -29,6 +28,7 @@ import type {
     SubmitOrderResponse,
 } from "@wonderland/interop-cross-chain";
 import type { Hex } from "viem";
+import { CrossChainProvider } from "@wonderland/interop-cross-chain";
 
 class MyCustomProvider extends CrossChainProvider {
     readonly protocolName = "my-protocol";
