@@ -110,6 +110,7 @@ if (isSignatureOnlyOrder(quote.order)) {
     console.log("Order submitted via signature");
 } else {
     // User mode: send transaction directly
+    // Note: production code should handle all steps, not just the first
     const step = getTransactionSteps(quote.order)[0];
     const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } = step.transaction;
     console.log("Sending transaction...");
@@ -121,6 +122,7 @@ if (isSignatureOnlyOrder(quote.order)) {
         maxFeePerGas: maxFeePerGas ? BigInt(maxFeePerGas) : undefined,
         maxPriorityFeePerGas: maxPriorityFeePerGas ? BigInt(maxPriorityFeePerGas) : undefined,
     });
+    console.log("Transaction sent:", hash);
 
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     console.log("Transaction confirmed:", receipt.status === "success" ? "Success" : "Failed");
