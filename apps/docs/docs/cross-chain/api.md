@@ -352,16 +352,6 @@ Helper functions for working with order steps and allowances.
 
     Returns `true` when the order contains only transaction steps.
 
-#### ApprovalTransaction
-
-```typescript
-interface ApprovalTransaction {
-    to: string; // Token contract address
-    data: string; // Encoded approve(spender, amount) calldata
-    chainId: number;
-}
-```
-
 ### Types
 
 #### QuoteRequest
