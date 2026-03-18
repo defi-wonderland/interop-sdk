@@ -73,26 +73,18 @@ See the [API reference](./api.md#quotefees) for the full `QuoteFees` type.
 
 ## Executing Transactions
 
-Access approval information from the order checks and execute the bridge transaction:
+Relay quotes always contain transaction steps. After getting a quote, execute the transaction:
 
 ```typescript
-import type { Address, Hex } from "viem";
 import { getTransactionSteps } from "@wonderland/interop-cross-chain";
 
-// Approve required token allowances
-const allowances = quote.order.checks?.allowances ?? [];
-for (const { spender, tokenAddress, required } of allowances) {
-    // Approve token spend if needed
-}
-
-// Execute the bridge transaction
 const step = getTransactionSteps(quote.order)[0];
-await walletClient.sendTransaction({
-    to: step.transaction.to as Address,
-    data: step.transaction.data as Hex,
+const hash = await walletClient.sendTransaction({
+    to: step.transaction.to,
+    data: step.transaction.data,
     value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
-    gas: step.transaction.gas ? BigInt(step.transaction.gas) : undefined,
 });
+console.log("Transaction sent:", hash);
 ```
 
 ## Features
