@@ -25,12 +25,13 @@ function extractAllowances(
             if (item.status !== "incomplete") continue;
 
             try {
-                const { args } = decodeFunctionData({
+                const { functionName, args } = decodeFunctionData({
                     abi: erc20Abi,
                     data: item.data.data as `0x${string}`,
                 });
 
-                // approve(address spender, uint256 amount)
+                if (functionName !== "approve") continue;
+
                 const [spender, amount] = args as [string, bigint];
 
                 allowances.push({

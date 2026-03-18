@@ -112,7 +112,7 @@ const tracker = executor.prepareTracking("relay");
 
 for await (const item of tracker.watchOrder({
     orderId,
-    openTxHash: bridgeTxHash,
+    openTxHash: hash, // from the execution step above
     originChainId: 11155111,
     destinationChainId: 84532,
 })) {
