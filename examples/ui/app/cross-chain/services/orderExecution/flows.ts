@@ -7,17 +7,6 @@ import type { ConfiguredWalletClient } from './chainSetup';
 import type { BridgeState, ChainContext, TrackingIdentifier } from '../../types/execution';
 import type { Address, Hex, PublicClient } from 'viem';
 
-/**
- * Builds the tracking identifier from a completed transaction.
- * Quotes with a `tracking.orderId` (e.g. Relay) pass that to the tracker.
- * Other providers only need the tx hash.
- */
-function resolveTrackingIdentifier(quote: ExecutableQuote, txHash: Hex): TrackingIdentifier {
-  const orderId = quote.tracking?.orderId;
-  if (orderId) return { orderId: orderId as Hex, txHash };
-  return { txHash };
-}
-
 interface FlowParams {
   quote: ExecutableQuote;
   walletClient: ConfiguredWalletClient;
@@ -124,5 +113,6 @@ export const executeDirectTransaction = async ({
     gas,
   );
 
-  return resolveTrackingIdentifier(quote, txHash);
+  const orderId = quote.tracking?.orderId;
+  return orderId ? { orderId: orderId as Hex, txHash } : { txHash };
 };
