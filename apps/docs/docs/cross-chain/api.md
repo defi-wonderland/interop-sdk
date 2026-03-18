@@ -330,28 +330,6 @@ A class that tracks cross-chain orders through their lifecycle.
     console.log(status.status); // OrderStatus
     ```
 
-### Utilities
-
-#### Step Helpers
-
-Helper functions for working with order steps and allowances.
-
--   **getTransactionSteps**(order: Order): TransactionStep[]
-
-    Returns all transaction steps from an order.
-
--   **getSignatureSteps**(order: Order): SignatureStep[]
-
-    Returns all signature steps from an order.
-
--   **isSignatureOnlyOrder**(order: Order): boolean
-
-    Returns `true` when the order contains only signature steps (gasless execution).
-
--   **isTransactionOnlyOrder**(order: Order): boolean
-
-    Returns `true` when the order contains only transaction steps.
-
 ### Types
 
 #### QuoteRequest
