@@ -57,65 +57,43 @@ const quotes = await relayProvider.getQuotes({
 const quote = quotes[0]; // Select the first quote
 ```
 
+## Fees
+
+After getting a quote, you can inspect the standardized fee breakdown via `quote.fees`:
+
+```typescript
+const quote = quotes[0];
+
+console.log(quote.fees?.bridgeFee); // { amount, amountUsd, token }
+console.log(quote.fees?.bridgeFeePct); // percentage (wei-encoded, 1e18 = 100%)
+console.log(quote.fees?.originGas); // origin chain gas estimate
+```
+
+See the [API reference](./api.md#quotefees) for the full `QuoteFees` type.
+
 ## Executing Transactions
 
-Relay quotes can include **more than one transaction step**. A common case is when the user needs to approve a token before bridging — Relay returns both steps together: first the approval, then the deposit.
-
-Because of this, you should always loop through all steps returned by `getTransactionSteps()` instead of executing only the first one.
-
-There are two important rules when handling multiple steps:
-
-1. **Don't send ETH value on approval steps** — approvals only set a token allowance, they don't transfer ETH. You can tell a step is an approval if its `data` starts with `0x095ea7b3` (the standard ERC-20 `approve` function selector).
-2. **Save the bridge transaction hash** — only the hash from the non-approval step should be used for [tracking](#tracking). Ignore approval hashes for this purpose.
+Access approval information from the order checks and execute the bridge transaction:
 
 ```typescript
 import type { Address, Hex } from "viem";
 import { getTransactionSteps } from "@wonderland/interop-cross-chain";
-import { createPublicClient, createWalletClient, http } from "viem";
-import { sepolia } from "viem/chains";
 
-const walletClient = createWalletClient({
-    chain: sepolia,
-    transport: http(),
-    account: yourAccount,
-});
-
-const publicClient = createPublicClient({
-    chain: sepolia,
-    transport: http(),
-});
-
-// Get all transaction steps from the quote
-const txSteps = getTransactionSteps(quote.order);
-let bridgeTxHash: Hex | undefined;
-
-for (const txStep of txSteps) {
-    const { to, data, value, gas } = txStep.transaction;
-
-    // Check if this step is a token approval
-    const isApproval = data.startsWith("0x095ea7b3");
-    const parsedGas = gas ? BigInt(gas) : 0n;
-
-    const hash = await walletClient.sendTransaction({
-        to: to as Address,
-        data: data as Hex,
-        // Only send ETH value on bridge steps, never on approvals
-        value: !isApproval && value ? BigInt(value) : undefined,
-        gas: parsedGas > 0n ? parsedGas : undefined,
-    });
-
-    await publicClient.waitForTransactionReceipt({ hash });
-
-    // Keep track of the bridge hash for order tracking later
-    if (!isApproval) {
-        bridgeTxHash = hash;
-    }
+// Approve required token allowances
+const allowances = quote.order.checks?.allowances ?? [];
+for (const { spender, tokenAddress, required } of allowances) {
+    // Approve token spend if needed
 }
-```
 
-:::tip Allowance pre-checks
-Some quotes don't embed an approval step but instead list the required allowances in `quote.order.checks.allowances`. When that happens, you should check and approve token allowances yourself before executing the transaction steps. See the [full example](./example.md) for a complete implementation.
-:::
+// Execute the bridge transaction
+const step = getTransactionSteps(quote.order)[0];
+await walletClient.sendTransaction({
+    to: step.transaction.to as Address,
+    data: step.transaction.data as Hex,
+    value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+    gas: step.transaction.gas ? BigInt(step.transaction.gas) : undefined,
+});
+```
 
 ## Features
 

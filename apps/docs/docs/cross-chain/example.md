@@ -95,60 +95,43 @@ if (response.quotes.length === 0) {
 
 ## 5. Execute the Cross-Chain Transaction
 
-Depending on the provider, quotes are executed in one of two ways:
-
--   **Signature-based** (e.g., OIF): The user signs a message off-chain and the protocol submits the transaction — gasless for the user.
--   **Transaction-based** (e.g., Across, Relay): The user sends transactions on-chain directly.
-
-For transaction-based quotes, some providers (like Relay) may return **multiple steps** — for example, a token approval followed by the actual bridge deposit. The code below handles both cases by looping through all steps.
-
-Two things to keep in mind when handling multiple steps:
-
-1. **Don't send ETH value on approval steps** — you can identify an approval by checking if `data` starts with `0x095ea7b3` (the ERC-20 `approve` selector).
-2. **Save the bridge hash** — only the non-approval transaction hash is needed for [order tracking](./intent-tracking.md).
+Execute the quote based on its order step type:
 
 ```js
 const quote = response.quotes[0];
 
 if (isSignatureOnlyOrder(quote.order)) {
-    // Signature-based: sign off-chain, protocol submits for us
+    // Protocol mode: sign and submit (gasless for user)
+    // Note: production code should handle all steps, not just the first
     const step = getSignatureSteps(quote.order)[0];
     const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
     await aggregator.submitOrder(quote, signature);
     console.log("Order submitted via signature");
 } else {
-    // Transaction-based: loop through all steps and send them on-chain
-    const txSteps = getTransactionSteps(quote.order);
-    let bridgeTxHash: `0x${string}` | undefined;
+    // User mode: approve tokens if needed, then send transaction
 
-    for (const step of txSteps) {
-        const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } = step.transaction;
-
-        // Check if this step is a token approval
-        const isApproval = data?.startsWith("0x095ea7b3");
-
-        console.log(`Sending ${isApproval ? "approval" : "bridge"} transaction...`);
-        const hash = await walletClient.sendTransaction({
-            to,
-            data,
-            // Only send ETH value on bridge steps, never on approvals
-            value: !isApproval && value ? BigInt(value) : undefined,
-            gas: gas ? BigInt(gas) : undefined,
-            maxFeePerGas: maxFeePerGas ? BigInt(maxFeePerGas) : undefined,
-            maxPriorityFeePerGas: maxPriorityFeePerGas ? BigInt(maxPriorityFeePerGas) : undefined,
-        });
-
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        console.log("Transaction confirmed:", receipt.status === "success" ? "Success" : "Failed");
-
-        // Keep track of the bridge hash for order tracking later
-        if (!isApproval) {
-            bridgeTxHash = hash;
-        }
+    // 1. Handle ERC-20 approvals
+    const allowances = quote.order.checks?.allowances ?? [];
+    for (const { spender, tokenAddress, required } of allowances) {
+        // Approve token spend if needed
     }
 
-    console.log("Bridge transaction:", bridgeTxHash);
+    // 2. Execute the bridge transaction
+    const step = getTransactionSteps(quote.order)[0];
+    const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } = step.transaction;
+    console.log("Sending transaction...");
+    const hash = await walletClient.sendTransaction({
+        to,
+        data,
+        value: value ? BigInt(value) : undefined,
+        gas: gas ? BigInt(gas) : undefined,
+        maxFeePerGas: maxFeePerGas ? BigInt(maxFeePerGas) : undefined,
+        maxPriorityFeePerGas: maxPriorityFeePerGas ? BigInt(maxPriorityFeePerGas) : undefined,
+    });
+
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    console.log("Transaction confirmed:", receipt.status === "success" ? "Success" : "Failed");
 }
 ```
 

@@ -330,6 +330,38 @@ A class that tracks cross-chain orders through their lifecycle.
     console.log(status.status); // OrderStatus
     ```
 
+### Utilities
+
+#### Step Helpers
+
+Helper functions for working with order steps and allowances.
+
+-   **getTransactionSteps**(order: Order): TransactionStep[]
+
+    Returns all transaction steps from an order.
+
+-   **getSignatureSteps**(order: Order): SignatureStep[]
+
+    Returns all signature steps from an order.
+
+-   **isSignatureOnlyOrder**(order: Order): boolean
+
+    Returns `true` when the order contains only signature steps (gasless execution).
+
+-   **isTransactionOnlyOrder**(order: Order): boolean
+
+    Returns `true` when the order contains only transaction steps.
+
+#### ApprovalTransaction
+
+```typescript
+interface ApprovalTransaction {
+    to: string; // Token contract address
+    data: string; // Encoded approve(spender, amount) calldata
+    chainId: number;
+}
+```
+
 ### Types
 
 #### QuoteRequest
@@ -397,7 +429,32 @@ interface Quote {
     quoteId?: string;
     failureHandling?: string;
     partialFill?: boolean;
+    fees?: QuoteFees;
     metadata?: Record<string, unknown>;
+}
+```
+
+#### QuoteFeeEntry
+
+```typescript
+interface QuoteFeeEntry {
+    amount: string; // Raw amount in token units
+    amountUsd?: string; // USD equivalent
+    token?: {
+        symbol: string;
+        decimals: number;
+        address?: string;
+    };
+}
+```
+
+#### QuoteFees
+
+```typescript
+interface QuoteFees {
+    bridgeFee?: QuoteFeeEntry; // Bridge/relayer fee
+    bridgeFeePct?: string; // Fee as percentage (wei-encoded, 1e18 = 100%)
+    originGas?: QuoteFeeEntry; // Origin chain gas cost
 }
 ```
 
@@ -409,6 +466,20 @@ interface Order {
     lock?: LockMechanism;
     checks?: OrderChecks;
     metadata?: Record<string, unknown>;
+}
+```
+
+#### OrderChecks
+
+```typescript
+interface OrderChecks {
+    allowances?: {
+        chainId: number;
+        tokenAddress: string;
+        owner: string;
+        spender: string;
+        required: string;
+    }[];
 }
 ```
 

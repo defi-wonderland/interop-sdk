@@ -51,6 +51,20 @@ const quotes = await acrossProvider.getQuotes({
 const quote = quotes[0]; // Select the first quote
 ```
 
+## Fees
+
+After getting a quote, you can inspect the standardized fee breakdown via `quote.fees`:
+
+```typescript
+const quote = quotes[0];
+
+console.log(quote.fees?.bridgeFee); // { amount, amountUsd, token }
+console.log(quote.fees?.bridgeFeePct); // percentage (wei-encoded, 1e18 = 100%)
+console.log(quote.fees?.originGas); // origin chain gas estimate
+```
+
+See the [API reference](./api.md#quotefees) for the full `QuoteFees` type.
+
 ## Executing Transactions
 
 Across quotes always contain transaction steps. After getting a quote, execute the transaction:

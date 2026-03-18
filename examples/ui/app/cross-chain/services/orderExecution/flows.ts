@@ -131,25 +131,17 @@ export const executeDirectTransaction = async ({
     );
   }
 
-  let bridgeTxHash: Hex | undefined;
-
-  for (const txStep of txSteps) {
-    const { to, data, value, gas } = parseTransactionFields(txStep);
-    bridgeTxHash = await submitBridgeTransaction(
-      publicClient,
-      walletClient,
-      to,
-      data,
-      chainContext,
-      onStateChange,
-      value,
-      gas,
-    );
-  }
-
-  if (!bridgeTxHash) {
-    throw new Error('No bridge transaction found');
-  }
+  const { to, data, value, gas } = parseTransactionFields(txSteps[0]);
+  const bridgeTxHash = await submitBridgeTransaction(
+    publicClient,
+    walletClient,
+    to,
+    data,
+    chainContext,
+    onStateChange,
+    value,
+    gas,
+  );
 
   return resolveTrackingIdentifier(quote, bridgeTxHash);
 };
