@@ -428,57 +428,75 @@ describe("adaptRelaySteps — signature steps", () => {
     });
 });
 
-describe("adaptQuote — mixed transaction and signature steps", () => {
-    it("produces both transaction and signature steps", () => {
+// ── API Step Pattern Tests ──────────────────────────────
+// Relay returns 4 step patterns depending on token type and usePermit:
+//   Pattern 1: [deposit]                    — native ETH
+//   Pattern 2: [approve, deposit]           — ERC-20, no permit
+//   Pattern 3: [authorize1]                 — ERC-20, permit + token supports EIP-2612
+//   Pattern 4: [approve, authorize1]        — ERC-20, permit + token lacks EIP-2612
+
+describe("adaptQuote — deposit only (native ETH)", () => {
+    it("maps single deposit step to one transaction", () => {
+        const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
+
+        expect(quote.order.steps).toHaveLength(1);
+        expect(quote.order.steps[0]!.kind).toBe("transaction");
+        expect(quote.order.checks).toBeUndefined();
+    });
+});
+
+describe("adaptQuote — signature only (permit, EIP-2612 token)", () => {
+    it("maps single signature step to one signature", () => {
+        const response = makeRelayQuoteResponse({
+            steps: [makeSignatureStep()],
+        } as Partial<RelayQuoteResponse>);
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+
+        expect(quote.order.steps).toHaveLength(1);
+        expect(quote.order.steps[0]!.kind).toBe("signature");
+        expect(quote.order.checks).toBeUndefined();
+    });
+
+    it("extracts tracking.orderId from signature step requestId", () => {
+        const response = makeRelayQuoteResponse({
+            steps: [makeSignatureStep({ requestId: "0xsig-req-456" })],
+        } as Partial<RelayQuoteResponse>);
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+        expect(quote.tracking).toEqual({ orderId: "0xsig-req-456" });
+    });
+});
+
+describe("adaptQuote — approve + signature (permit, non-EIP-2612 token)", () => {
+    it("maps signature step and extracts approve as allowance check", () => {
+        const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, 1000000n);
         const response = makeRelayQuoteResponse({
             steps: [
                 {
-                    id: "authorize1",
-                    action: "Authorize permit",
-                    description: "Sign permit to authorize",
-                    kind: "signature",
-                    requestId: REQUEST_ID,
-                    items: [
-                        {
-                            status: "incomplete",
-                            data: {
-                                sign: {
-                                    signatureKind: "eip712",
-                                    domain: EIP712_DOMAIN,
-                                    types: EIP712_TYPES,
-                                    value: EIP712_VALUE,
-                                    primaryType: "PermitBatch",
-                                },
-                                post: POST_DATA,
-                            },
-                        },
-                    ],
-                },
-                {
-                    id: "deposit",
-                    action: "Confirm transaction",
-                    description: STEP_DESCRIPTION,
+                    id: "approve",
+                    action: "Approve token",
+                    description: "Approve USDC",
                     kind: "transaction",
-                    requestId: REQUEST_ID,
                     items: [
                         {
                             status: "incomplete",
                             data: {
-                                to: VALID_ADDRESS,
-                                data: TX_DATA,
-                                value: INPUT_AMOUNT,
+                                to: TOKEN_ADDRESS,
+                                data: approveCalldata,
                                 chainId: ORIGIN_CHAIN_ID,
                             },
                         },
                     ],
                 },
+                makeSignatureStep(),
             ],
         } as Partial<RelayQuoteResponse>);
 
         const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
-        const kinds = quote.order.steps.map((s) => s.kind);
-        expect(kinds).toContain("signature");
-        expect(kinds).toContain("transaction");
-        expect(quote.order.steps).toHaveLength(2);
+
+        expect(quote.order.steps).toHaveLength(1);
+        expect(quote.order.steps[0]!.kind).toBe("signature");
+        expect(quote.order.checks?.allowances).toHaveLength(1);
     });
 });

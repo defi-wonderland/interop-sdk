@@ -68,9 +68,7 @@ export function adaptQuote(
     const approveSteps = response.steps.filter((s) => s.id === "approve");
     const nonApproveSteps = response.steps.filter((s) => s.id !== "approve");
 
-    const depositStep = nonApproveSteps.find((s) => s.id === "deposit");
-    const relayRequestId = depositStep?.requestId;
-
+    const relayRequestId = nonApproveSteps.find((s) => s.requestId)?.requestId;
     const allowances = extractAllowances(approveSteps, params.user);
     const fees = adaptFees(response);
 
