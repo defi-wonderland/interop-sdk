@@ -19,7 +19,7 @@ const CONTRIBUTORS = [
     "Khalani",
     "LI.FI",
     "Linea",
-    "Namechain",
+    "ENS",
     "Nomial",
     "OpenZeppelin",
     "Optimism",
@@ -32,7 +32,7 @@ const CONTRIBUTORS = [
     "Superbridge",
     "T1",
     "Taiko",
-    "Unichain",
+    "Uniswap",
     "Wonderland",
 ] as const;
 

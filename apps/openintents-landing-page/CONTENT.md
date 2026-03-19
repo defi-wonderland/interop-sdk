@@ -39,7 +39,7 @@ The Open Intents initiative develops open standards, contracts, tooling and docu
 
 ### Standards
 
--   **ERC-7683** — An interface for cross-chain intent representation (v2 under development)
+-   **ERC-7683** — An interface for cross-chain intent representation (Redux under development)
     → https://eips.ethereum.org/EIPS/eip-7683
 -   **ERC-7930** — Standardising onchain binary representation of chain-specific addresses
     → https://eips.ethereum.org/EIPS/eip-7930
@@ -97,7 +97,7 @@ Integrate the interop-sdk to add cross-chain and interoperable addresses to your
 
 ## Contributors
 
-Across, Arbitrum, Biconomy, BootNode, Caldera, Eco, Epoch Protocol, Espresso, Ethereum Foundation, Everclear, Fuel Network, Gelato, Gnosis, Hashi, Hyperlane, Khalani, LI.FI, Linea, Namechain, Nomial, OpenZeppelin, Optimism, Polygon, Polymer, Scroll, Soneium, Starknet, Succinct, Superbridge, T1, Taiko, Unichain, Wonderland
+Across, Arbitrum, Biconomy, BootNode, Caldera, Eco, Epoch Protocol, Espresso, Ethereum Foundation, Everclear, Fuel Network, Gelato, Gnosis, Hashi, Hyperlane, Khalani, LI.FI, Linea, ENS, Nomial, OpenZeppelin, Optimism, Polygon, Polymer, Scroll, Soneium, Starknet, Succinct, Superbridge, T1, Taiko, Uniswap, Wonderland
 
 ---
 

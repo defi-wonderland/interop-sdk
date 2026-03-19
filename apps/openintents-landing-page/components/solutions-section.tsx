@@ -20,7 +20,7 @@ const SOLUTION_GROUPS: SolutionGroup[] = [
             {
                 name: "ERC-7683",
                 description:
-                    "An interface for cross-chain intent representation (v2 under development)",
+                    "An interface for cross-chain intent representation (Redux under development)",
                 url: "https://eips.ethereum.org/EIPS/eip-7683",
             },
             {
