@@ -99,6 +99,8 @@ Only EIP-712 signature steps (Permit2, EIP-3009) are currently supported. EIP-19
 :::
 
 ```typescript
+import { createCrossChainProvider, getSignatureSteps } from "@wonderland/interop-cross-chain";
+
 const relayProvider = createCrossChainProvider("relay", { usePermit: true });
 
 const quotes = await relayProvider.getQuotes({
