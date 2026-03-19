@@ -245,3 +245,4 @@ Explore more complex scenarios: [Advanced Usage](./advanced-usage.md)
 
 -   [EIP-7683: Open Intent Framework](https://www.erc7683.org/)
 -   [Order Tracking Types](./api.md#order-tracker)
+-   [Concepts](./concepts.md) — how intent-based transfers and tracking work

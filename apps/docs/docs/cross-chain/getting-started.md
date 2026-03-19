@@ -2,28 +2,15 @@
 title: Getting Started
 ---
 
-The `cross-chain` package provides a standardized interface for interacting with cross-chain bridges and protocols. It enables seamless token transfers and swaps between different blockchain networks through a unified API.
+In this tutorial, you'll execute a cross-chain token transfer using the Interop SDK. By the end, you'll know how to create a provider, fetch a quote, and send a transaction.
 
-## Key Features
+## Prerequisites
 
--   Cross-chain token transfers between supported networks
--   Cross-chain token swaps with customizable slippage
--   Quote fetching for cross-chain operations
--   Order tracking from initiation to completion
--   Multi-provider quote aggregation and comparison
--   Step-based order model (signature and transaction steps)
--   Standardized provider interface for integrating different bridge protocols
--   Type-safe interactions with comprehensive TypeScript support
+-   Node.js v20.x or higher
+-   A private key with testnet funds
+-   An RPC URL for your origin chain (e.g., Sepolia)
 
-### Currently Supported Providers
-
--   **[Across Protocol](./across-provider.md)** - Cross-chain transfers (mainnet + testnet)
--   **[Relay Protocol](./relay-provider.md)** - Cross-chain transfers using Relay bridge (mainnet + testnet)
--   **[OIF (Open Intents Framework)](./oif-provider.md)** - Direct integration with OIF-compliant solvers
-
-> Additional protocols are planned for future releases.
-
-## Installation
+## Install the package
 
 ```bash
 npm install @wonderland/interop-cross-chain
@@ -33,66 +20,69 @@ yarn add @wonderland/interop-cross-chain
 pnpm add @wonderland/interop-cross-chain
 ```
 
-## Basic Usage
+## Create a provider
 
-### Creating a Provider
-
-The package uses a factory pattern to create providers for different protocols:
+The SDK uses a factory pattern. Let's start with Relay on testnet:
 
 ```typescript
 import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-// Create a provider - Across uses sensible defaults
-const acrossProvider = createCrossChainProvider("across");
+const provider = createCrossChainProvider("relay", { isTestnet: true });
+```
 
-// Or with custom configuration
-const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
+Other available providers: [Across](./across-provider.md), [OIF](./oif-provider.md). See [Supported Providers](./providers.md) for the full list.
 
-// Relay - defaults to mainnet
-const relayProvider = createCrossChainProvider("relay");
+## Set up your wallet
 
-// OIF requires configuration
-const oifProvider = createCrossChainProvider("oif", {
-    solverId: "my-solver",
-    url: "https://solver.example.com",
+You'll need [viem](https://viem.sh) clients to interact with the blockchain:
+
+```typescript
+import { createPublicClient, createWalletClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { sepolia } from "viem/chains";
+
+const account = privateKeyToAccount("0xYOUR_PRIVATE_KEY");
+const RPC_URL = "https://sepolia.infura.io/v3/YOUR_API_KEY";
+
+const publicClient = createPublicClient({
+    chain: sepolia,
+    transport: http(RPC_URL),
+});
+
+const walletClient = createWalletClient({
+    chain: sepolia,
+    transport: http(RPC_URL),
+    account,
 });
 ```
 
-See the provider-specific documentation for configuration options:
+## Fetch a quote
 
--   [Across Provider](./across-provider.md)
--   [Relay Provider](./relay-provider.md)
--   [OIF Provider](./oif-provider.md)
-
-### Getting Quotes
-
-All providers support fetching quotes using the SDK `QuoteRequest` format:
+Request a quote for a cross-chain transfer:
 
 ```typescript
-import type { QuoteRequest } from "@wonderland/interop-cross-chain";
-
-const request: QuoteRequest = {
-    user: "0xYourAddress",
+const quotes = await provider.getQuotes({
+    user: account.address,
     input: {
-        chainId: 1,
-        assetAddress: "0xInputToken",
-        amount: "1000000000000000000", // 1 token (in wei)
+        chainId: 11155111, // Sepolia
+        assetAddress: "0xInputTokenAddress",
+        amount: "100000000000000000", // 0.1 tokens in wei
     },
     output: {
-        chainId: 42161,
-        assetAddress: "0xOutputToken",
-        recipient: "0xRecipient",
+        chainId: 84532, // Base Sepolia
+        assetAddress: "0xOutputTokenAddress",
+        recipient: account.address,
     },
     swapType: "exact-input",
-};
+});
 
-const quotes = await provider.getQuotes(request);
-const quote = quotes[0]; // Select the first quote
+const quote = quotes[0];
+console.log(`Quote from ${quote.provider}`);
 ```
 
-### Executing Transactions
+## Execute the transaction
 
-After getting a quote, execute based on the order's step type:
+Quotes contain either signature steps (gasless) or transaction steps (user pays gas). Handle both:
 
 ```typescript
 import {
@@ -102,13 +92,14 @@ import {
 } from "@wonderland/interop-cross-chain";
 
 if (isSignatureOnlyOrder(quote.order)) {
-    // Protocol mode: sign EIP-712 typed data (gasless for user)
+    // Gasless: sign EIP-712 typed data, solver executes on your behalf
     const step = getSignatureSteps(quote.order)[0];
     const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
     await provider.submitOrder(quote, signature);
+    console.log("Order submitted via signature");
 } else {
-    // User mode: send transaction directly
+    // User pays gas: send the transaction directly
     const step = getTransactionSteps(quote.order)[0];
     const hash = await walletClient.sendTransaction({
         to: step.transaction.to,
@@ -116,33 +107,37 @@ if (isSignatureOnlyOrder(quote.order)) {
         value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
     });
     console.log("Transaction sent:", hash);
+
+    const receipt = await publicClient.waitForTransactionReceipt({ hash });
+    console.log("Confirmed:", receipt.status);
 }
 ```
 
-### Using Multiple Providers
+## Compare quotes from multiple providers
 
-For comparing quotes across providers, use the `Aggregator`:
+Use the `Aggregator` to fetch and sort quotes from multiple providers at once:
 
 ```typescript
-import { createAggregator } from "@wonderland/interop-cross-chain";
+import { createAggregator, createCrossChainProvider } from "@wonderland/interop-cross-chain";
+
+const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
 const aggregator = createAggregator({
-    providers: [acrossProvider, oifProvider],
+    providers: [provider, acrossProvider],
 });
 
 const response = await aggregator.getQuotes({
-    /* QuoteRequest ... */
+    /* same QuoteRequest as above */
 });
-// response.quotes - sorted quotes from all providers
-// response.errors - any provider errors
+
+console.log(`Got ${response.quotes.length} quotes`);
+response.errors.forEach((err) => console.warn(`Provider error: ${err.errorMsg}`));
 ```
 
-See [Advanced Usage](./advanced-usage.md) for sorting strategies and timeout configuration.
+## Next steps
 
-## Next Step
-
-Choose a provider to get started:
-
--   [Across Provider](./across-provider.md) - Cross-chain transfers using Across bridge (testnet)
--   [Relay Provider](./relay-provider.md) - Cross-chain transfers using Relay bridge (mainnet + testnet)
--   [OIF Provider](./oif-provider.md) - Intent-based operations with OIF-compliant solvers
+-   [Order Tracking](./intent-tracking.md) — monitor your transfer from initiation to completion
+-   [Supported Providers](./providers.md) — all providers and their configuration options
+-   [Concepts](./concepts.md) — understand intent-based architecture and EIP-7683
+-   [Advanced Usage](./advanced-usage.md) — sorting strategies, timeouts, error handling
+-   [API Reference](./api.md) — complete function signatures and types

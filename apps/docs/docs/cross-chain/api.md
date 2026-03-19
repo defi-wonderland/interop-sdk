@@ -105,6 +105,9 @@ An abstract class that defines the interface for cross-chain protocol providers.
 
     ```typescript
     const config = provider.getTrackingConfig();
+    // config.openedIntentParserConfig — how to parse opened intents from origin chain
+    // config.fillWatcherConfig — how to watch for fills on destination chain
+    // config.preTrackerConfig — optional pre-tracking step (e.g., notify provider API)
     ```
 
 ### Aggregator
@@ -274,8 +277,9 @@ A factory for creating quote sorting strategies.
 
     Available strategies:
 
-    -   `bestOutput` - Sorts quotes by highest output amount
-    -   `lowerEta` - Sorts quotes by lowest estimated time of arrival
+    -   `bestOutput` - Sorts quotes by highest output amount (default)
+
+    Additional sorting strategies may be added in future releases.
 
 ### Order Tracker
 
@@ -558,6 +562,67 @@ interface FillEvent {
     metadata?: unknown;
 }
 ```
+
+### Provider Configuration
+
+#### Across
+
+| Field        | Type    | Required | Description                                   |
+| ------------ | ------- | -------- | --------------------------------------------- |
+| `isTestnet`  | boolean | No       | Use testnet API (default: false)              |
+| `apiUrl`     | string  | No       | Custom API endpoint URL (overrides isTestnet) |
+| `providerId` | string  | No       | Custom provider identifier                    |
+
+Payload validation:
+
+| Operation                           | Validation                                                    |
+| ----------------------------------- | ------------------------------------------------------------- |
+| Simple bridge (same token)          | Full validation (depositor, recipient, tokens, amount, chain) |
+| Cross-chain swap (different tokens) | Coming soon                                                   |
+
+#### Relay
+
+| Field        | Type    | Required | Description                                   |
+| ------------ | ------- | -------- | --------------------------------------------- |
+| `baseUrl`    | string  | No       | Custom API base URL (overrides isTestnet)     |
+| `isTestnet`  | boolean | No       | Use testnet API (default: false)              |
+| `providerId` | string  | No       | Custom provider identifier (default: "relay") |
+| `apiKey`     | string  | No       | Relay API key for authentication              |
+
+#### OIF
+
+| Field             | Type     | Required | Description                                                                                                |
+| ----------------- | -------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `solverId`        | string   | Yes      | Solver identifier                                                                                          |
+| `url`             | string   | Yes      | Solver API endpoint URL                                                                                    |
+| `headers`         | object   | No       | Custom HTTP headers                                                                                        |
+| `adapterMetadata` | object   | No       | Additional metadata for the solver                                                                         |
+| `providerId`      | string   | No       | Custom provider identifier                                                                                 |
+| `supportedLocks`  | string[] | No       | Lock mechanisms to request (e.g. `["oif-escrow"]`, `["compact-resource-lock"]`). Default: `["oif-escrow"]` |
+| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both (default). Controls order types            |
+
+Lock mechanism mapping:
+
+| Lock Mechanism          | OIF Order Types                |
+| ----------------------- | ------------------------------ |
+| `oif-escrow`            | `oif-escrow-v0`, `oif-3009-v0` |
+| `compact-resource-lock` | `oif-resource-lock-v0`         |
+
+Supported order types:
+
+-   `oif-escrow-v0` — Permit2-based escrow (gasless)
+-   `oif-3009-v0` — EIP-3009 transfer with authorization (gasless)
+-   `oif-resource-lock-v0` — Compact resource locking (gasless)
+-   `oif-user-open-v0` — User executes transaction directly
+
+Payload validation:
+
+| Order Type             | Validation                                |
+| ---------------------- | ----------------------------------------- |
+| `oif-escrow-v0`        | token, amount, deadline                   |
+| `oif-resource-lock-v0` | token, amount, sponsor, expiration        |
+| `oif-3009-v0`          | from, value, token address, expiration    |
+| `oif-user-open-v0`     | allowances (token, user, spender, amount) |
 
 ## References
 
