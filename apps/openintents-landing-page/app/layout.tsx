@@ -43,21 +43,12 @@ export const metadata: Metadata = {
         type: "website",
         url: "https://openintents.xyz",
         siteName: "Open Intents",
-        images: [
-            {
-                url: "/og-image.png",
-                width: 1200,
-                height: 630,
-                alt: "Open Intents - Cross-chain UX for Ethereum",
-            },
-        ],
     },
     twitter: {
         card: "summary_large_image",
         title: "Open Intents | Cross-chain UX for Ethereum",
         description:
             "An ecosystem-wide initiative focused on improving the cross-chain user experience on Ethereum while maintaining freedom and minimising trust.",
-        images: ["/og-image.png"],
     },
 };
 
