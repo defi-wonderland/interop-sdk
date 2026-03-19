@@ -1,10 +1,11 @@
+import type { ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 
 import { Section } from "./section";
 
 interface SolutionItem {
     name: string;
-    description: string;
+    description: ReactNode;
     url?: string;
 }
 
@@ -19,8 +20,21 @@ const SOLUTION_GROUPS: SolutionGroup[] = [
         items: [
             {
                 name: "ERC-7683",
-                description:
-                    "An interface for cross-chain intent representation (Redux under development)",
+                description: (
+                    <>
+                        An interface for cross-chain intent representation (
+                        <a
+                            href="https://ethereum-magicians.org/t/erc-7683-redux-programmable-fillers/27674"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:text-foreground transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            Redux
+                        </a>{" "}
+                        under development)
+                    </>
+                ) as ReactNode,
                 url: "https://eips.ethereum.org/EIPS/eip-7683",
             },
             {
@@ -31,7 +45,8 @@ const SOLUTION_GROUPS: SolutionGroup[] = [
             },
             {
                 name: "ERC-7828",
-                description: "Standardising a human-readable format for chain-specific addresses",
+                description:
+                    "Standardising a human-readable format for chain-specific addresses (e.g. vitalik.eth@arbitrum)",
                 url: "https://eips.ethereum.org/EIPS/eip-7828",
             },
         ],

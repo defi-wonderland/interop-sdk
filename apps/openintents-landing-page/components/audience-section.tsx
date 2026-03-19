@@ -7,7 +7,7 @@ const AUDIENCES = [
         icon: Blocks,
         title: "For Chains",
         description:
-            "Deploy OIF contracts, The Compact, and Broadcaster, run OIF solvers to connect with the Ethereum ecosystem.",
+            "Deploy OIF contracts, The Compact, and Broadcaster, run OIF solvers to connect to the Ethereum ecosystem.",
     },
     {
         icon: Cable,
@@ -24,7 +24,7 @@ const AUDIENCES = [
         icon: Wallet,
         title: "For Wallets & Applications",
         description:
-            "Integrate the interop-sdk to add cross-chain and interoperable addresses to your application.",
+            "Integrate the interop-sdk to add cross-chain capabilities to your application.",
     },
 ] as const;
 

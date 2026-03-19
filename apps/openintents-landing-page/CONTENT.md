@@ -39,11 +39,11 @@ The Open Intents initiative develops open standards, contracts, tooling and docu
 
 ### Standards
 
--   **ERC-7683** — An interface for cross-chain intent representation (Redux under development)
+-   **ERC-7683** — An interface for cross-chain intent representation ([Redux](https://ethereum-magicians.org/t/erc-7683-redux-programmable-fillers/27674) under development)
     → https://eips.ethereum.org/EIPS/eip-7683
 -   **ERC-7930** — Standardising onchain binary representation of chain-specific addresses
     → https://eips.ethereum.org/EIPS/eip-7930
--   **ERC-7828** — Standardising a human-readable format for chain-specific addresses
+-   **ERC-7828** — Standardising a human-readable format for chain-specific addresses (e.g. vitalik.eth@arbitrum)
     → https://eips.ethereum.org/EIPS/eip-7828
 
 ### Infrastructure
@@ -79,7 +79,7 @@ _We are constantly working to add more open standards and tools to improve the u
 
 ### For Chains
 
-Deploy OIF contracts, The Compact, and Broadcaster, run OIF solvers to connect with the Ethereum ecosystem.
+Deploy OIF contracts, The Compact, and Broadcaster, run OIF solvers to connect to the Ethereum ecosystem.
 
 ### For Infrastructure Providers
 
@@ -91,7 +91,7 @@ Integrate onchain and API standards, get supported in the interop-sdk.
 
 ### For Wallets & Applications
 
-Integrate the interop-sdk to add cross-chain and interoperable addresses to your application.
+Integrate the interop-sdk to add cross-chain capabilities to your application.
 
 ---
 
