@@ -141,6 +141,8 @@ const main = async (): Promise<void> => {
 main().catch(console.error);
 ```
 
-## Next Step
+## Next steps
 
-Learn how to monitor your transaction: [Order Tracking](./intent-tracking.md)
+-   [Order Tracking](./intent-tracking.md) — monitor your transaction from initiation to completion
+-   [Concepts](./concepts.md) — understand intent-based architecture and EIP-7683
+-   [API Reference](./api.md) — complete function signatures and types

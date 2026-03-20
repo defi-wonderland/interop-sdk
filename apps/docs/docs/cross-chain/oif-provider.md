@@ -131,24 +131,6 @@ for (const { spender, tokenAddress, required } of allowances) {
 }
 ```
 
-## Supported Order Types
-
--   `oif-escrow-v0` - Permit2-based escrow (gasless)
--   `oif-3009-v0` - EIP-3009 transfer with authorization (gasless)
--   `oif-resource-lock-v0` - Compact resource locking (gasless)
--   `oif-user-open-v0` - User executes transaction directly
-
-## Payload Validation
-
-The provider validates that order payloads from solvers match the user's intent:
-
-| Order Type             | Validation                                |
-| ---------------------- | ----------------------------------------- |
-| `oif-escrow-v0`        | token, amount, deadline                   |
-| `oif-resource-lock-v0` | token, amount, sponsor, expiration        |
-| `oif-3009-v0`          | from, value, token address, expiration    |
-| `oif-user-open-v0`     | allowances (token, user, spender, amount) |
-
 ## Next Step
 
 See a complete working example: [Execute Intent](./example.md)
@@ -157,3 +139,5 @@ See a complete working example: [Execute Intent](./example.md)
 
 -   [Open Intents Framework](https://github.com/openintentsframework)
 -   [EIP-7683: Cross Chain Intents](https://www.erc7683.org/)
+-   [API Reference](./api.md) — full type definitions for quotes, fees, and orders
+-   [Concepts](./concepts.md) — how intent-based transfers work

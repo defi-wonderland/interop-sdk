@@ -4,7 +4,7 @@ title: Across Provider
 
 The Across Protocol provider enables cross-chain token transfers using the Across bridge infrastructure.
 
-**Status**: Testnet
+**Status**: Active (mainnet + testnet)
 
 ## Configuration
 
@@ -89,15 +89,6 @@ const hash = await walletClient.sendTransaction({
 console.log("Transaction sent:", hash);
 ```
 
-## Features
-
--   Cross-chain token transfers
--   Quote fetching with fee calculation
--   Transaction simulation
--   Order tracking support
--   EIP-7683 Open Intent Framework integration
--   Payload validation for simple bridges
-
 ## Tracking (Mainnet vs Testnet)
 
 Across tracking is implemented as:
@@ -107,15 +98,6 @@ Across tracking is implemented as:
 
 In both cases, the SDK parses the ERC-7683 open event on the **origin chain**, so you should provide an origin-chain RPC URL for robust tracking.
 
-## Payload Validation
-
-The provider validates that calldata from the solver API matches the user's intent:
-
-| Operation                           | Validation                                                    |
-| ----------------------------------- | ------------------------------------------------------------- |
-| Simple bridge (same token)          | Full validation (depositor, recipient, tokens, amount, chain) |
-| Cross-chain swap (different tokens) | Coming soon                                                   |
-
 ## Next Step
 
 See a complete working example: [Execute Intent](./example.md)
@@ -123,3 +105,5 @@ See a complete working example: [Execute Intent](./example.md)
 ## References
 
 -   [Across Protocol Documentation](https://docs.across.to/)
+-   [API Reference](./api.md) — full type definitions for quotes, fees, and orders
+-   [Concepts](./concepts.md) — how intent-based transfers work

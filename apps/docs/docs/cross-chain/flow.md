@@ -54,4 +54,4 @@ The SDK also supports:
 -   **Order Tracking**: Monitor cross-chain transfers from initiation to completion
 -   **Error Handling**: Graceful handling of timeouts and provider errors
 
-See the [Order Tracking](./intent-tracking.md) and [Advanced Usage](./advanced-usage.md) guides for more details.
+See [Order Tracking](./intent-tracking.md) for monitoring details, [Advanced Usage](./advanced-usage.md) for aggregation and sorting, or [Concepts](./concepts.md) for the full architectural picture.
