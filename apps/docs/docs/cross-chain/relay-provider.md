@@ -113,12 +113,14 @@ const quote = quotes[0];
 
 // The quote contains EIP-712 signature steps
 const step = getSignatureSteps(quote.order)[0];
-const signature = await walletClient.signTypedData(step.signaturePayload);
+const { domain, types, primaryType, message } = step.signaturePayload;
+const signature = await walletClient.signTypedData({ domain, types, primaryType, message });
 
 // Submit the signed permit
 const result = await relayProvider.submitOrder(quote, signature);
 console.log("Order ID:", result.orderId);
 ```
+
 ## Tracking
 
 Relay tracking is fully API-based — it does not require RPC URLs. The SDK polls the Relay API (`/intents/status/v3`) at 5-second intervals until the order is finalized or fails.
