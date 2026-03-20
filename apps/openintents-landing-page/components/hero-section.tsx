@@ -23,6 +23,7 @@ export function HeroSection({ onScrollPastHero }: HeroSectionProps) {
             }
         };
 
+        handleScroll();
         window.addEventListener("scroll", handleScroll, { passive: true });
         return () => {
             window.removeEventListener("scroll", handleScroll);
@@ -36,7 +37,7 @@ export function HeroSection({ onScrollPastHero }: HeroSectionProps) {
             </span>
             <Tooltip delayDuration={200}>
                 <TooltipTrigger asChild>
-                    <span className="mb-8 md:mb-10 cursor-default">
+                    <span className="mb-8 md:mb-10 cursor-default" tabIndex={0}>
                         <TentLogo size={96} />
                     </span>
                 </TooltipTrigger>

@@ -23,12 +23,20 @@ const META_TITLE = "Open Intents | Cross-chain UX for Ethereum";
 const META_DESCRIPTION =
     "An ecosystem-wide initiative focused on improving the cross-chain user experience on Ethereum while maintaining freedom and minimising trust.";
 
+const getMetadataBase = (): URL => {
+    const prodUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    if (prodUrl) {
+        try {
+            return new URL(`https://${prodUrl}`);
+        } catch {
+            // Fall through to default
+        }
+    }
+    return new URL("https://openintents.xyz");
+};
+
 export const metadata: Metadata = {
-    metadataBase: new URL(
-        process.env.VERCEL_PROJECT_PRODUCTION_URL
-            ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-            : "https://openintents.xyz",
-    ),
+    metadataBase: getMetadataBase(),
     title: META_TITLE,
     description: META_DESCRIPTION,
     keywords: [
