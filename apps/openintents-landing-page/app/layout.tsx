@@ -76,12 +76,7 @@ export default function RootLayout({
             suppressHydrationWarning
         >
             <body className="font-mono antialiased">
-                <ThemeProvider
-                    attribute="class"
-                    defaultTheme="dark"
-                    enableSystem
-                    disableTransitionOnChange
-                >
+                <ThemeProvider attribute="class" forcedTheme="light" disableTransitionOnChange>
                     <TooltipProvider>{children}</TooltipProvider>
                 </ThemeProvider>
                 <Analytics />

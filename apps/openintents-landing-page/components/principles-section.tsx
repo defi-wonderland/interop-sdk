@@ -5,9 +5,9 @@ import { Section } from "./section";
 const PRINCIPLES = [
     {
         icon: Globe,
-        title: "Accessibility",
+        title: "Accessibility and UX",
         description:
-            "Making interoperability accessible and usable for chains, developers and users.",
+            "Making Ethereum interoperability accessible and usable for chains, developers and users.",
     },
     {
         icon: Shuffle,
@@ -25,14 +25,14 @@ const PRINCIPLES = [
 export function PrinciplesSection() {
     return (
         <Section id="principles" title="Principles">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
                 {PRINCIPLES.map((principle) => (
                     <div
                         key={principle.title}
-                        className="rounded-lg border border-border bg-card p-6 lg:p-8"
+                        className="rounded-lg border border-border bg-card p-5 lg:p-6"
                     >
                         <principle.icon
-                            className="size-8 text-accent mb-4"
+                            className="size-8 text-accent mb-3"
                             strokeWidth={1.5}
                             aria-hidden="true"
                         />
