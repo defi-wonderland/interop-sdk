@@ -244,4 +244,6 @@ export { isValidChain, isValidChainType, isViemChainId } from "./isValidChain.js
 export { resolveAddress } from "./resolveENS.js";
 export { resolveChain } from "./resolveChain.js";
 export { resolveChainFromRegistry } from "./resolveChainFromRegistry.js";
+export { getRegisteredChains } from "./getRegisteredChains.js";
+export type { RegisteredChain, GetRegisteredChainsOptions } from "./getRegisteredChains.js";
 export { shortnameToChainId } from "./shortnameToChainId.js";

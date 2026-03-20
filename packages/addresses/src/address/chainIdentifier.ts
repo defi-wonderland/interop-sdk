@@ -2,16 +2,16 @@ import type { ChainIdentifier, ChainIdentifierParts } from "../internal.js";
 import { ChainTypeName, InvalidChainIdentifier } from "../internal.js";
 
 /**
- * Converts a numeric chain reference to a CAIP-350 chain identifier (e.g. `"eip155:1"`).
+ * Converts a chain reference to a CAIP-350 chain identifier (e.g. `"eip155:1"`, `"bip122:000000000019d6689c085ae165831e93"`).
  *
  * @see https://standards.chainagnostic.org/CAIPs/caip-350#chain-identifier-text-representation
  *
- * @param chainReference - Numeric chain reference (e.g. 1, 42161)
+ * @param chainReference - Chain reference (e.g. 1, "42161", "000000000019d6689c085ae165831e93")
  * @param chainType - Chain type namespace (default: "eip155" for EVM chains)
  * @returns CAIP-350 chain identifier (e.g. "eip155:1")
  */
 export function toChainIdentifier(
-    chainReference: number,
+    chainReference: string | number,
     chainType: ChainTypeName = ChainTypeName.EIP155,
 ): ChainIdentifier {
     return `${chainType}:${chainReference}`;
@@ -24,10 +24,10 @@ export function toChainIdentifier(
  *
  * @see https://standards.chainagnostic.org/CAIPs/caip-350#chain-identifier-text-representation
  *
- * @param chainIdentifier - CAIP-350 chain identifier (e.g. "eip155:1", "eip155:42161")
- * @returns An object containing the `chainReference` (number) and `chainType` ({@link ChainTypeName})
- * @throws {InvalidChainIdentifier} If the identifier is not in valid `namespace:reference` format,
- *   the namespace is not a known {@link ChainTypeName}, or the reference is not a valid non-negative integer
+ * @param chainIdentifier - CAIP-350 chain identifier (e.g. "eip155:1", "bip122:000000000019d6689c085ae165831e93")
+ * @returns An object containing the `chainReference` (string) and `chainType` ({@link ChainTypeName})
+ * @throws {InvalidChainIdentifier} If the identifier is not in valid `namespace:reference` format
+ *   or the namespace is not a known {@link ChainTypeName}
  */
 export function fromChainIdentifier(chainIdentifier: string): ChainIdentifierParts {
     const sepIndex = chainIdentifier.indexOf(":");
@@ -40,12 +40,7 @@ export function fromChainIdentifier(chainIdentifier: string): ChainIdentifierPar
         throw new InvalidChainIdentifier(chainIdentifier);
     }
 
-    const reference = chainIdentifier.slice(sepIndex + 1);
-    const chainReference = Number(reference);
-
-    if (!Number.isInteger(chainReference) || chainReference < 0) {
-        throw new InvalidChainIdentifier(chainIdentifier);
-    }
+    const chainReference = chainIdentifier.slice(sepIndex + 1);
 
     return { chainReference, chainType: namespace as ChainTypeName };
 }

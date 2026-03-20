@@ -20,6 +20,7 @@ interface SelectProps {
   className?: string;
   emptyMessage?: string;
   renderOption?: (option: SelectOption) => ReactNode;
+  renderSelected?: (option: SelectOption) => ReactNode;
 }
 
 export function Select({
@@ -32,11 +33,14 @@ export function Select({
   className,
   emptyMessage = 'No results found',
   renderOption,
+  renderSelected,
 }: SelectProps) {
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
   const selectedOption = options.find((option) => option.value === value);
+
+  const selectedDisplay = selectedOption ? (renderSelected?.(selectedOption) ?? selectedOption.label) : placeholder;
 
   const handleSelect = (optionValue: string) => {
     onChange(optionValue);
@@ -83,7 +87,7 @@ export function Select({
             className,
           )}
         >
-          <span>{selectedOption ? selectedOption.label : placeholder}</span>
+          <span>{selectedDisplay}</span>
           <svg
             width='12'
             height='12'
