@@ -7,7 +7,7 @@ import { TentLogo } from "./tent-logo";
 
 const HERO_SCROLL_THRESHOLD = 300;
 
-interface HeroSectionProps {
+export interface HeroSectionProps {
     onScrollPastHero: (scrolled: boolean) => void;
 }
 

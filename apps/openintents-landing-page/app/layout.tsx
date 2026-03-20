@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "next-themes";
+import { Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
-
-import { Geist, Geist_Mono } from "next/font/google";
 
 const geist = Geist({
     subsets: ["latin"],

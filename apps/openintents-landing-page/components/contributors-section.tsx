@@ -60,10 +60,13 @@ export function ContributorsSection() {
                     >
                         <img
                             src={`/favicons/${new URL(contributor.url).hostname}.png`}
-                            alt=""
+                            alt={`${contributor.name} logo`}
                             width={16}
                             height={16}
                             className="size-4 rounded-sm"
+                            onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = "none";
+                            }}
                         />
                         {contributor.name}
                     </a>
