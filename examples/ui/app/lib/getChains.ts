@@ -1,11 +1,6 @@
 import { getRegisteredChains } from '@wonderland/interop-addresses';
 import { REGISTRY_CHAINS, type RegistryChainWithStatus } from './registry-chains';
 
-/** Creates a unique key for deduplication: "chainType:chainReference" */
-function chainKey(chainType: string, chainReference: string): string {
-  return `${chainType}:${chainReference}`;
-}
-
 /** Merges the on.eth onchain registry with the curated list. */
 export async function getChains(): Promise<RegistryChainWithStatus[]> {
   let onchainEntries: Awaited<ReturnType<typeof getRegisteredChains>>;
@@ -16,7 +11,7 @@ export async function getChains(): Promise<RegistryChainWithStatus[]> {
     onchainEntries = [];
   }
 
-  const onchainKeys = new Set(onchainEntries.map((e) => chainKey(e.chainType, e.chainReference)));
+  const onchainKeys = new Set(onchainEntries.map((e) => `${e.chainType}:${e.chainReference}`));
 
   const result: RegistryChainWithStatus[] = onchainEntries.map((entry) => ({
     name: entry.name,
@@ -27,7 +22,7 @@ export async function getChains(): Promise<RegistryChainWithStatus[]> {
   }));
 
   for (const chain of REGISTRY_CHAINS) {
-    if (onchainKeys.has(chainKey(chain.chainType, chain.chainReference))) continue;
+    if (onchainKeys.has(`${chain.chainType}:${chain.chainReference}`)) continue;
     result.push({ ...chain, isRegistered: false });
   }
 
