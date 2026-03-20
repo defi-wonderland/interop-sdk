@@ -1,11 +1,10 @@
-import type { ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 
 import { Section } from "./section";
 
 interface SolutionItem {
     name: string;
-    description: ReactNode;
+    description: string;
     url?: string;
 }
 
@@ -20,22 +19,9 @@ const SOLUTION_GROUPS: SolutionGroup[] = [
         items: [
             {
                 name: "ERC-7683",
-                description: (
-                    <>
-                        An interface for cross-chain intent representation (
-                        <a
-                            href="https://ethereum-magicians.org/t/erc-7683-redux-programmable-fillers/27674"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline hover:text-foreground transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            Redux
-                        </a>{" "}
-                        under development)
-                    </>
-                ) as ReactNode,
-                url: "https://eips.ethereum.org/EIPS/eip-7683",
+                description:
+                    "An interface for cross-chain intent representation (Redux under development)",
+                url: "https://ethereum-magicians.org/t/erc-7683-redux-programmable-fillers/27674",
             },
             {
                 name: "ERC-7930",

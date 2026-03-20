@@ -5,34 +5,32 @@ import { useEffect, useRef } from "react";
 
 import { TentLogo } from "./tent-logo";
 
+const HERO_SCROLL_THRESHOLD = 300;
+
 interface HeroSectionProps {
     onScrollPastHero: (scrolled: boolean) => void;
 }
 
 export function HeroSection({ onScrollPastHero }: HeroSectionProps) {
-    const heroRef = useRef<HTMLElement>(null);
     const scrolledRef = useRef(false);
 
     useEffect(() => {
         const handleScroll = () => {
-            const isPastHero = window.scrollY > 300;
+            const isPastHero = window.scrollY > HERO_SCROLL_THRESHOLD;
             if (scrolledRef.current !== isPastHero) {
                 scrolledRef.current = isPastHero;
                 onScrollPastHero(isPastHero);
             }
         };
 
-        window.addEventListener("scroll", handleScroll);
+        window.addEventListener("scroll", handleScroll, { passive: true });
         return () => {
             window.removeEventListener("scroll", handleScroll);
         };
     }, [onScrollPastHero]);
 
     return (
-        <section
-            ref={heroRef}
-            className="flex flex-col items-center justify-center text-center px-6 pt-16 pb-12 md:pt-20 md:pb-14 lg:pt-28 lg:pb-16"
-        >
+        <section className="flex flex-col items-center justify-center text-center px-6 pt-16 pb-12 md:pt-20 md:pb-14 lg:pt-28 lg:pb-16">
             <span className="inline-block font-mono text-xs md:text-sm uppercase tracking-widest text-accent border border-accent/30 rounded-full px-4 py-1.5 mb-6 md:mb-8">
                 Ethereum ecosystem initiative
             </span>

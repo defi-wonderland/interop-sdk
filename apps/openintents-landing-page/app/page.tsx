@@ -8,19 +8,15 @@ import { HeroSection } from "@/components/hero-section";
 import { Navbar } from "@/components/navbar";
 import { PrinciplesSection } from "@/components/principles-section";
 import { SolutionsSection } from "@/components/solutions-section";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 export default function Home() {
     const [showNavbar, setShowNavbar] = useState(false);
 
-    const handleScrollPastHero = useCallback((scrolled: boolean) => {
-        setShowNavbar(scrolled);
-    }, []);
-
     return (
         <main className="min-h-screen">
             <Navbar visible={showNavbar} />
-            <HeroSection onScrollPastHero={handleScrollPastHero} />
+            <HeroSection onScrollPastHero={setShowNavbar} />
             <PrinciplesSection />
             <SolutionsSection />
             <AudienceSection />

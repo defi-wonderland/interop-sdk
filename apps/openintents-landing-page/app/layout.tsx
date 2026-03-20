@@ -19,15 +19,18 @@ const geistMono = Geist_Mono({
     display: "swap",
 });
 
+const META_TITLE = "Open Intents | Cross-chain UX for Ethereum";
+const META_DESCRIPTION =
+    "An ecosystem-wide initiative focused on improving the cross-chain user experience on Ethereum while maintaining freedom and minimising trust.";
+
 export const metadata: Metadata = {
     metadataBase: new URL(
         process.env.VERCEL_PROJECT_PRODUCTION_URL
             ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
             : "https://openintents.xyz",
     ),
-    title: "Open Intents | Cross-chain UX for Ethereum",
-    description:
-        "An ecosystem-wide initiative focused on improving the cross-chain user experience on Ethereum while maintaining freedom and minimising trust.",
+    title: META_TITLE,
+    description: META_DESCRIPTION,
     keywords: [
         "Ethereum",
         "cross-chain",
@@ -41,18 +44,16 @@ export const metadata: Metadata = {
     ],
     authors: [{ name: "Open Intents", url: "https://openintents.xyz" }],
     openGraph: {
-        title: "Open Intents | Cross-chain UX for Ethereum",
-        description:
-            "An ecosystem-wide initiative focused on improving the cross-chain user experience on Ethereum while maintaining freedom and minimising trust.",
+        title: META_TITLE,
+        description: META_DESCRIPTION,
         type: "website",
         url: "https://openintents.xyz",
         siteName: "Open Intents",
     },
     twitter: {
         card: "summary_large_image",
-        title: "Open Intents | Cross-chain UX for Ethereum",
-        description:
-            "An ecosystem-wide initiative focused on improving the cross-chain user experience on Ethereum while maintaining freedom and minimising trust.",
+        title: META_TITLE,
+        description: META_DESCRIPTION,
     },
 };
 
