@@ -20,22 +20,13 @@ export function ChainDropdown({ chains, value, onChange, id, className }: ChainD
       chains.map((chain) => ({
         value: chain.shortName,
         label: chain.name,
-        description: `${chain.shortName} • Chain ID: ${chain.chainId}`,
+        description: `${chain.shortName} • ${chain.chainType}:${chain.chainReference}`,
       })),
     [chains],
   );
 
   const selectedValue = useMemo(() => {
-    // Find matching chain: try by shortName first, then by chainId
-    let matchedChain = chains.find((chain) => chain.shortName === value);
-
-    if (!matchedChain) {
-      const numericChainId = Number(value);
-      if (!isNaN(numericChainId)) {
-        matchedChain = chains.find((chain) => chain.chainId === numericChainId);
-      }
-    }
-
+    const matchedChain = chains.find((chain) => chain.shortName === value);
     return matchedChain?.shortName || '';
   }, [chains, value]);
 

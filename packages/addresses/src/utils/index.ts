@@ -5,4 +5,3 @@ export {
     isInteroperableName,
     type ParseInteroperableNameOptions,
 } from "./isInteropAddress.js";
-export { parseChainId } from "./parseChainId.js";

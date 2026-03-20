@@ -428,7 +428,7 @@ shortnameToChainId(shortName: string): Promise<number | undefined>
 
 #### `getRegisteredChains`
 
-Fetches all chains registered in the on.eth ChainResolver contract. Uses multicall to call `chainCount()` and then `getChainAtIndex()` for each index, decoding the ERC-7930 interoperable address to extract the chain ID.
+Fetches all chains registered in the on.eth ChainResolver contract. Uses multicall to call `chainCount()` and then `getChainAtIndex()` for each index, decoding the ERC-7930 interoperable address to extract the CAIP-2 chain type and reference.
 
 ```typescript
 getRegisteredChains(
@@ -442,7 +442,7 @@ getRegisteredChains(
 import { getRegisteredChains } from "@wonderland/interop-addresses";
 
 const chains = await getRegisteredChains({ rpcUrl: process.env.MAINNET_RPC_URL });
-// [{ label: "optimism", name: "OP Mainnet", chainId: 10 }, ...]
+// [{ label: "optimism", name: "OP Mainnet", chainType: "eip155", chainReference: "10" }, ...]
 ```
 
 ## Importing Functions
@@ -607,9 +607,10 @@ Represents a single chain entry returned by `getRegisteredChains`:
 
 ```typescript
 interface RegisteredChain {
-    label: string;    // Chain label in the registry (e.g., "optimism", "base")
-    name: string;     // Human-readable chain name (e.g., "OP Mainnet", "Base")
-    chainId: number;  // Numeric chain ID
+    label: string;          // Chain label in the registry (e.g., "optimism", "base")
+    name: string;           // Human-readable chain name (e.g., "OP Mainnet", "Base")
+    chainType: string;      // CAIP-2 chain type (e.g., "eip155", "solana", "bip122")
+    chainReference: string; // CAIP-2 chain reference (e.g., "1", "10", "8453")
 }
 ```
 

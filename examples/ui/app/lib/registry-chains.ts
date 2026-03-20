@@ -5,13 +5,14 @@
  *
  * This file is intentionally isolated so it can be moved to the SDK later.
  *
- * Last updated: 2025-03-13
+ * Last updated: 2025-03-18
  * @see https://l2beat.com/scaling/summary
  */
 
 export interface RegistryChain {
   name: string;
-  chainId: number;
+  chainType: string;
+  chainReference: string;
   shortName: string;
 }
 
@@ -21,32 +22,32 @@ export interface RegistryChainWithStatus extends RegistryChain {
 
 export const REGISTRY_CHAINS: readonly RegistryChain[] = [
   // Ethereum
-  { name: 'Ethereum Mainnet', chainId: 1, shortName: 'eth' },
+  { name: 'Ethereum Mainnet', chainType: 'eip155', chainReference: '1', shortName: 'eth' },
 
-  // Rollups
-  { name: 'Arbitrum One', chainId: 42161, shortName: 'arb1' },
-  { name: 'Base', chainId: 8453, shortName: 'base' },
-  { name: 'OP Mainnet', chainId: 10, shortName: 'oeth' },
-  { name: 'Katana', chainId: 747474, shortName: 'katana' },
-  { name: 'Ink', chainId: 57073, shortName: 'ink' },
-  { name: 'Linea', chainId: 59144, shortName: 'linea' },
-  { name: 'ZKsync Era', chainId: 324, shortName: 'zksync' },
-  { name: 'Unichain', chainId: 130, shortName: 'unichain' },
-  { name: 'BOB', chainId: 60808, shortName: 'bob' },
-  { name: 'Scroll', chainId: 534352, shortName: 'scr' },
-  { name: 'Abstract', chainId: 2741, shortName: 'abstract' },
-  { name: 'Morph', chainId: 2818, shortName: 'morph' },
-  { name: 'ZERO Network', chainId: 543210, shortName: 'zero-network' },
-  { name: 'Phala Network', chainId: 2035, shortName: 'phala' },
+  // EVM Rollups
+  { name: 'Arbitrum One', chainType: 'eip155', chainReference: '42161', shortName: 'arb1' },
+  { name: 'Base', chainType: 'eip155', chainReference: '8453', shortName: 'base' },
+  { name: 'OP Mainnet', chainType: 'eip155', chainReference: '10', shortName: 'oeth' },
+  { name: 'Katana', chainType: 'eip155', chainReference: '747474', shortName: 'katana' },
+  { name: 'Ink', chainType: 'eip155', chainReference: '57073', shortName: 'ink' },
+  { name: 'Linea', chainType: 'eip155', chainReference: '59144', shortName: 'linea' },
+  { name: 'ZKsync Era', chainType: 'eip155', chainReference: '324', shortName: 'zksync' },
+  { name: 'Unichain', chainType: 'eip155', chainReference: '130', shortName: 'unichain' },
+  { name: 'BOB', chainType: 'eip155', chainReference: '60808', shortName: 'bob' },
+  { name: 'Scroll', chainType: 'eip155', chainReference: '534352', shortName: 'scr' },
+  { name: 'Abstract', chainType: 'eip155', chainReference: '2741', shortName: 'abstract' },
+  { name: 'Morph', chainType: 'eip155', chainReference: '2818', shortName: 'morph' },
+  { name: 'ZERO Network', chainType: 'eip155', chainReference: '543210', shortName: 'zero-network' },
+  { name: 'Phala Network', chainType: 'eip155', chainReference: '2035', shortName: 'phala' },
 
-  // Validiums & Optimiums
-  { name: 'Celo', chainId: 42220, shortName: 'celo' },
-  { name: 'Sophon', chainId: 50104, shortName: 'sophon' },
-  { name: 'Arbitrum Nova', chainId: 42170, shortName: 'arb-nova' },
-  { name: 'Lens', chainId: 232, shortName: 'lens' },
+  // EVM Validiums & Optimiums
+  { name: 'Celo', chainType: 'eip155', chainReference: '42220', shortName: 'celo' },
+  { name: 'Sophon', chainType: 'eip155', chainReference: '50104', shortName: 'sophon' },
+  { name: 'Arbitrum Nova', chainType: 'eip155', chainReference: '42170', shortName: 'arb-nova' },
+  { name: 'Lens', chainType: 'eip155', chainReference: '232', shortName: 'lens' },
 
-  // Others (top 3 by TVL)
-  { name: 'Polygon PoS', chainId: 137, shortName: 'pol' },
-  { name: 'Mantle', chainId: 5000, shortName: 'mantle' },
-  { name: 'World Chain', chainId: 480, shortName: 'wc' },
+  // EVM Others (top 3 by TVL)
+  { name: 'Polygon PoS', chainType: 'eip155', chainReference: '137', shortName: 'pol' },
+  { name: 'Mantle', chainType: 'eip155', chainReference: '5000', shortName: 'mantle' },
+  { name: 'World Chain', chainType: 'eip155', chainReference: '480', shortName: 'wc' },
 ] as const;

@@ -1,8 +1,8 @@
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 import { createPublicClient, http, parseAbi } from "viem";
 import * as chains from "viem/chains";
 
-import { parseChainId } from "../utils/parseChainId.js";
+import { decodeAddress } from "../address/index.js";
 
 /**
  * ChainResolver proxy contract on Ethereum mainnet (on.eth registry).
@@ -20,8 +20,10 @@ export interface RegisteredChain {
     label: string;
     /** Human-readable chain name (e.g., "OP Mainnet", "Base") */
     name: string;
-    /** Numeric chain ID extracted from the ERC-7930 interoperable address */
-    chainId: number;
+    /** CAIP-2 chain type (e.g., "eip155", "solana", "bip122") */
+    chainType: string;
+    /** CAIP-2 chain reference (e.g., "1", "10", "8453") */
+    chainReference: string;
 }
 
 export interface GetRegisteredChainsOptions {
@@ -33,18 +35,14 @@ export interface GetRegisteredChainsOptions {
  * Fetches all chains registered in the on.eth ChainResolver contract.
  *
  * Calls `chainCount()` then `getChainAtIndex()` for each index via multicall,
- * and decodes the ERC-7930 interoperable address to extract the chain ID.
+ * and decodes the ERC-7930 interoperable address to extract the CAIP-2 chain type and reference.
  *
  * @see https://github.com/unruggable-labs/chain-resolver/blob/main/web/mainnet_on.html#L830
  *
  * @example
  * ```ts
- * // Default: uses MAINNET_RPC_URL env var
- * const chains = await getRegisteredChains();
- * // [{ label: "optimism", name: "OP Mainnet", chainId: 10 }, ...]
- *
- * // Custom RPC
- * const chains = await getRegisteredChains({ rpcUrl: "https://my-rpc.example.com" });
+ * const chains = await getRegisteredChains({ rpcUrl: process.env.MAINNET_RPC_URL });
+ * // [{ label: "optimism", name: "OP Mainnet", chainType: "eip155", chainReference: "10" }, ...]
  * ```
  */
 export async function getRegisteredChains(
@@ -83,10 +81,18 @@ export async function getRegisteredChains(
         const [label, name, addr] = result.result;
         if (!addr || addr === "0x") continue;
 
-        const chainId = parseChainId(addr);
-        if (chainId === null) continue;
-
-        entries.push({ label, name, chainId });
+        try {
+            const decoded = decodeAddress(addr as Hex);
+            if (!decoded.chainType || !decoded.chainReference) continue;
+            entries.push({
+                label,
+                name,
+                chainType: String(decoded.chainType),
+                chainReference: String(decoded.chainReference),
+            });
+        } catch {
+            continue;
+        }
     }
 
     return entries;
