@@ -60,4 +60,5 @@ export {
     type QuoteTracking,
     type QuoteRequest,
     type BuildQuoteRequest,
+    type FeeEstimate,
 } from "./internal.js";

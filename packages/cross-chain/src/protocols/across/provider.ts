@@ -51,6 +51,7 @@ import {
     parseAbiEncodedFields,
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
+    validateBuildQuoteParams,
 } from "../../internal.js";
 import { decodeAcrossCalldata } from "./utils.js";
 
@@ -341,6 +342,8 @@ export class AcrossProvider extends CrossChainProvider {
      * @inheritdoc
      */
     override async buildQuote(params: BuildQuoteRequest): Promise<Quote> {
+        validateBuildQuoteParams(params);
+
         const spokePoolAddress =
             ACROSS_SPOKE_POOL_ADDRESSES[params.input.chainId] ?? params.escrowContractAddress;
 
