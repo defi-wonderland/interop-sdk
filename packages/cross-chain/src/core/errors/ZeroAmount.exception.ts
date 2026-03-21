@@ -2,5 +2,6 @@
 export class ZeroAmount extends Error {
     constructor(field: "input" | "output") {
         super(`${field}.amount must be greater than zero`);
+        this.name = "ZeroAmount";
     }
 }

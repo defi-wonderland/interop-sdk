@@ -11,5 +11,6 @@ export class InvalidDeadline extends Error {
                 ? `fillDeadline (${deadline}) is in the past (now: ${nowSeconds})`
                 : `fillDeadline is too soon: ${deadline - nowSeconds}s from now, minimum is ${minBuffer}s`;
         super(detail);
+        this.name = "InvalidDeadline";
     }
 }

@@ -4,5 +4,6 @@ export class InsufficientFee extends Error {
         super(
             `output.amount (${outputAmount}) must be less than input.amount (${inputAmount}) to allow for a fee margin`,
         );
+        this.name = "InsufficientFee";
     }
 }
