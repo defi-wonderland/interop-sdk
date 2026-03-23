@@ -7,9 +7,6 @@ import { ChainTypeName } from "../constants/interopAddress.js";
 /** Default onchain ENS registry domain for chain resolution. */
 export const DEFAULT_REGISTRY_DOMAIN = "on.eth";
 
-// Default public Ethereum mainnet RPC endpoint
-const DEFAULT_MAINNET_RPC_URL = "https://cloudflare-eth.com";
-
 // Standard ENS registry address (same on all networks)
 const ENS_REGISTRY_ADDRESS: Address = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
 
@@ -38,8 +35,8 @@ export function clearRegistryCache(): void {
     resolutionCache.clear();
 }
 
-function getRpcUrl(rpcUrl?: string): string {
-    return rpcUrl?.trim() || process.env.MAINNET_RPC_URL?.trim() || DEFAULT_MAINNET_RPC_URL;
+function getRpcUrl(rpcUrl?: string): string | undefined {
+    return rpcUrl?.trim() || process.env.MAINNET_RPC_URL?.trim() || undefined;
 }
 
 async function getResolverAddress(
