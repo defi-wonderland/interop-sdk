@@ -1,3 +1,5 @@
+"use client";
+
 import { Section } from "./section";
 
 interface Contributor {
