@@ -7,6 +7,7 @@ const FOOTER_LINKS = [
             { label: "ERC-7683", href: "https://eips.ethereum.org/EIPS/eip-7683" },
             { label: "ERC-7930", href: "https://eips.ethereum.org/EIPS/eip-7930" },
             { label: "ERC-7828", href: "https://eips.ethereum.org/EIPS/eip-7828" },
+            { label: "EIP-7888", href: "https://eips.ethereum.org/EIPS/eip-7888" },
         ],
     },
     {

@@ -1,4 +1,5 @@
-import { ArrowLeftRight, Blocks, Cable, Wallet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeftRight, Blocks, Cable, Github, Wallet } from "lucide-react";
 
 import { Section } from "./section";
 
@@ -48,6 +49,33 @@ export function AudienceSection() {
                         </p>
                     </div>
                 ))}
+            </div>
+            <div className="text-center mt-8 lg:mt-12">
+                <p className="text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed">
+                    Join the Open Intents community and help shape the future of cross-chain
+                    interoperability on Ethereum.
+                </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button asChild size="lg" className="font-mono">
+                    <a
+                        href="https://github.com/openintentsframework"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <Github className="size-4" aria-hidden="true" />
+                        GitHub
+                    </a>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="font-mono">
+                    <a
+                        href="https://docs.openintents.xyz"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Documentation
+                    </a>
+                </Button>
             </div>
         </Section>
     );
