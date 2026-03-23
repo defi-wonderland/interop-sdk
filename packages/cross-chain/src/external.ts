@@ -14,6 +14,7 @@ export {
     // Providers
     AcrossProvider,
     OifProvider,
+    LifiIntentsProvider,
     RelayProvider,
     type RelayConfigs,
     createCrossChainProvider,

@@ -30,7 +30,13 @@ export {
 export { toChainIdentifier, fromChainIdentifier } from "./address/chainIdentifier.js";
 
 // Name layer functions (direct access, not via provider)
-export { parseName, formatName, resolveChainFromRegistry } from "./name/index.js";
+export {
+    parseName,
+    formatName,
+    resolveChainFromRegistry,
+    getRegisteredChains,
+} from "./name/index.js";
+export type { RegisteredChain, GetRegisteredChainsOptions } from "./name/index.js";
 
 // Type guards
 export { isTextAddress, isBinaryAddress } from "./types/interopAddress.js";

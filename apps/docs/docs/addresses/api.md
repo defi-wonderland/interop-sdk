@@ -426,6 +426,25 @@ Resolves a chain shortname to its chain ID.
 shortnameToChainId(shortName: string): Promise<number | undefined>
 ```
 
+#### `getRegisteredChains`
+
+Fetches all chains registered in the on.eth ChainResolver contract. Uses multicall to call `chainCount()` and then `getChainAtIndex()` for each index, decoding the ERC-7930 interoperable address to extract the CAIP-2 chain type and reference.
+
+```typescript
+getRegisteredChains(
+  options?: GetRegisteredChainsOptions
+): Promise<RegisteredChain[]>
+```
+
+**Example:**
+
+```typescript
+import { getRegisteredChains } from "@wonderland/interop-addresses";
+
+const chains = await getRegisteredChains({ rpcUrl: process.env.MAINNET_RPC_URL });
+// [{ label: "optimism", name: "OP Mainnet", chainType: "eip155", chainReference: "10" }, ...]
+```
+
 ## Importing Functions
 
 All methods are exported as individual functions for modular usage and tree-shaking:
@@ -440,6 +459,7 @@ import {
     formatName,
     getAddress,
     getChainId,
+    getRegisteredChains,
     isBinaryAddress,
     isTextAddress,
     isValidBinaryAddress,
@@ -578,6 +598,29 @@ if (isTextAddress(result.interoperableAddress)) {
     console.log(result.interoperableAddress.chainType); // "eip155"
     console.log(result.interoperableAddress.chainReference); // "1"
     console.log(result.interoperableAddress.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+}
+```
+
+### `RegisteredChain`
+
+Represents a single chain entry returned by `getRegisteredChains`:
+
+```typescript
+interface RegisteredChain {
+    label: string;          // Chain label in the registry (e.g., "optimism", "base")
+    name: string;           // Human-readable chain name (e.g., "OP Mainnet", "Base")
+    chainType: string;      // CAIP-2 chain type (e.g., "eip155", "solana", "bip122")
+    chainReference: string; // CAIP-2 chain reference (e.g., "1", "10", "8453")
+}
+```
+
+### `GetRegisteredChainsOptions`
+
+Options for `getRegisteredChains`:
+
+```typescript
+interface GetRegisteredChainsOptions {
+    rpcUrl?: string;  // Ethereum mainnet RPC URL. Falls back to MAINNET_RPC_URL env var.
 }
 ```
 

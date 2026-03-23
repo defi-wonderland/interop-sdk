@@ -3,10 +3,10 @@ import { InputMode } from '../types';
 import { EXAMPLES } from '../utils/examples';
 import { ChainDropdown } from './ChainDropdown';
 import { ConvertButton, ExampleButtons, TabButton } from './index';
-import type { Chain } from '../lib/getChains';
+import type { RegistryChainWithStatus } from '../lib/registry-chains';
 
 interface InputSectionProps {
-  chains: Chain[];
+  chains: RegistryChainWithStatus[];
   mode: InputMode;
   setMode: (mode: InputMode) => void;
   readableName: string;

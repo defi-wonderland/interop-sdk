@@ -11,17 +11,17 @@
 
 export const EXAMPLES = [
   {
-    interoperableName: 'vitalik.eth@eth',
+    interoperableName: 'vitalik.eth@ethereum',
     address: 'vitalik.eth',
-    chainReference: 'eth',
+    chainReference: 'ethereum',
     description: 'vitalik.eth (Ethereum Mainnet)',
     showInBuildMode: true,
     showInReadableMode: true,
   },
   {
-    interoperableName: 'nick.eth@arb1',
+    interoperableName: 'nick.eth@arbitrum',
     address: 'nick.eth',
-    chainReference: 'arb1',
+    chainReference: 'arbitrum',
     description: 'nick.eth (Arbitrum One)',
     showInBuildMode: true,
     showInReadableMode: true,
