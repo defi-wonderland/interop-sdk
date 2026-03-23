@@ -1,4 +1,5 @@
 import type { Address } from "viem";
+import { arbitrum, base } from "viem/chains";
 import { describe, expect, it } from "vitest";
 
 import type { BuildQuoteRequest } from "../../src/core/schemas/quoteRequest.js";
@@ -15,6 +16,19 @@ const NOW = 1_700_000_000;
 const USDC_MAINNET = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as Address;
 const USDC_OPTIMISM = "0x7F5c764cBc14f9669B88837ca1490cCa17c31607" as Address;
 const USDT_MAINNET = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as Address;
+const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as Address;
+const USDC_ARBITRUM = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" as Address;
+const WETH_ARBITRUM = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1" as Address;
+
+const KNOWN_TOKEN_METADATA = {
+    [base.id]: {
+        [USDC_BASE.toLowerCase()]: { symbol: "USDC" },
+    },
+    [arbitrum.id]: {
+        [USDC_ARBITRUM.toLowerCase()]: { symbol: "USDC" },
+        [WETH_ARBITRUM.toLowerCase()]: { symbol: "WETH" },
+    },
+};
 
 function buildParams(overrides?: Partial<BuildQuoteRequest>): BuildQuoteRequest {
     return {
@@ -34,7 +48,8 @@ function sameTokenParams(inputAmount: string, outputAmount: string): BuildQuoteR
     });
 }
 
-const validate = (params: BuildQuoteRequest): void => validateBuildQuoteParams(params, NOW);
+const validate = (params: BuildQuoteRequest, metadata = {}): void =>
+    validateBuildQuoteParams(params, metadata, NOW);
 
 describe("validateBuildQuoteParams", () => {
     describe("zero amount", () => {
@@ -64,10 +79,6 @@ describe("validateBuildQuoteParams", () => {
             expect(() => validate(sameTokenParams("1000000", "1000000"))).toThrow(InsufficientFee);
         });
 
-        it("rejects same-token output >= input (greater)", () => {
-            expect(() => validate(sameTokenParams("1000000", "2000000"))).toThrow(InsufficientFee);
-        });
-
         it("accepts same-token output < input", () => {
             expect(() => validate(sameTokenParams("1000000", "990000"))).not.toThrow();
         });
@@ -80,14 +91,6 @@ describe("validateBuildQuoteParams", () => {
             expect(() => validate(params)).not.toThrow();
         });
 
-        it("skips check for same asset on different chain", () => {
-            const params = buildParams({
-                input: { chainId: 1, assetAddress: USDC_MAINNET, amount: "1000000" },
-                output: { chainId: 10, assetAddress: USDC_MAINNET, amount: "2000000" },
-            });
-            expect(() => validate(params)).not.toThrow();
-        });
-
         it("compares addresses case-insensitively", () => {
             const upper = ("0x" + USDC_MAINNET.slice(2).toUpperCase()) as Address;
             const lower = USDC_MAINNET.toLowerCase() as Address;
@@ -96,6 +99,30 @@ describe("validateBuildQuoteParams", () => {
                 output: { chainId: 1, assetAddress: lower, amount: "1000000" },
             });
             expect(() => validate(params)).toThrow(InsufficientFee);
+        });
+
+        it("rejects cross-chain same asset with output >= input", () => {
+            const params = buildParams({
+                input: { chainId: base.id, assetAddress: USDC_BASE, amount: "1000000" },
+                output: { chainId: arbitrum.id, assetAddress: USDC_ARBITRUM, amount: "1000000" },
+            });
+            expect(() => validate(params, KNOWN_TOKEN_METADATA)).toThrow(InsufficientFee);
+        });
+
+        it("skips fee check for cross-chain different assets", () => {
+            const params = buildParams({
+                input: { chainId: base.id, assetAddress: USDC_BASE, amount: "1000000" },
+                output: { chainId: arbitrum.id, assetAddress: WETH_ARBITRUM, amount: "2000000" },
+            });
+            expect(() => validate(params, KNOWN_TOKEN_METADATA)).not.toThrow();
+        });
+
+        it("skips cross-chain fee check when tokenMetadata is empty", () => {
+            const params = buildParams({
+                input: { chainId: 1, assetAddress: USDC_MAINNET, amount: "1000000" },
+                output: { chainId: 10, assetAddress: USDC_OPTIMISM, amount: "2000000" },
+            });
+            expect(() => validate(params)).not.toThrow();
         });
     });
 

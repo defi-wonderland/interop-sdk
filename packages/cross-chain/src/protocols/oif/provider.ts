@@ -34,7 +34,6 @@ import {
     ProviderExecuteFailure,
     ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
-    validateBuildQuoteParams,
 } from "../../internal.js";
 import {
     adaptOrderStatus,
@@ -273,8 +272,6 @@ export class OifProvider extends CrossChainProvider {
      * @inheritdoc
      */
     override async buildQuote(params: BuildQuoteRequest): Promise<Quote> {
-        validateBuildQuoteParams(params);
-
         if (isNativeAddress(params.input.assetAddress, "eip155")) {
             throw new ProviderExecuteNotImplemented(
                 "OIF buildQuote does not support native-token inputs: open() is nonpayable",
