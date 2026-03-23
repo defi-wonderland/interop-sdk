@@ -64,12 +64,6 @@ export const QuoteSchema = z.object({
 
 // ── Types ───────────────────────────────────────────────
 
-/** Estimated fees and suggested output amount for a build-quote request. */
-export interface FeeEstimate {
-    fees: QuoteFees;
-    suggestedOutputAmount: string;
-}
-
 export type QuoteFeeEntry = z.infer<typeof QuoteFeeEntrySchema>;
 export type QuoteFees = z.infer<typeof QuoteFeesSchema>;
 export type QuoteTracking = z.infer<typeof QuoteTrackingSchema>;

@@ -23,6 +23,8 @@ export function validateBuildQuoteParams(
     params: BuildQuoteRequest,
     nowSeconds: number = Math.floor(Date.now() / 1000),
 ): void {
+    if (params.allowDangerousParameters) return;
+
     validateAmounts(params);
     validateFeeMargin(params);
     validateDeadline(params.fillDeadline, nowSeconds);

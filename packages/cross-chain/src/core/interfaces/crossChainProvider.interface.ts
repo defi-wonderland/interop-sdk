@@ -1,6 +1,6 @@
 import type { Hex } from "viem";
 
-import type { FeeEstimate, Quote, SubmitOrderResponse } from "../schemas/quote.js";
+import type { Quote, SubmitOrderResponse } from "../schemas/quote.js";
 import type { BuildQuoteRequest, QuoteRequest } from "../schemas/quoteRequest.js";
 import type { AssetDiscoveryConfig } from "./assetDiscovery.interface.js";
 import type { FillWatcherConfig } from "./fillWatcher.interface.js";
@@ -74,20 +74,6 @@ export abstract class CrossChainProvider {
      * @throws ProviderExecuteNotImplemented if the provider doesn't support this method
      */
     async buildQuote(_params: BuildQuoteRequest): Promise<Quote> {
-        throw new ProviderExecuteNotImplemented(this.getProviderId());
-    }
-
-    /**
-     * Estimate fees for a build-quote request.
-     *
-     * Default implementation throws {@link ProviderExecuteNotImplemented}.
-     * Override in providers that support fee estimation.
-     *
-     * @param _params - The build quote request to estimate fees for
-     * @returns Fee breakdown and suggested output amount
-     * @throws ProviderExecuteNotImplemented if the provider doesn't support this method
-     */
-    async estimateFees(_params: BuildQuoteRequest): Promise<FeeEstimate> {
         throw new ProviderExecuteNotImplemented(this.getProviderId());
     }
 

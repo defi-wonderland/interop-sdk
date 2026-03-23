@@ -125,4 +125,16 @@ describe("validateBuildQuoteParams", () => {
             expect(() => validate(buildParams({ fillDeadline: NOW + 86400 }))).not.toThrow();
         });
     });
+
+    describe("allowDangerousParameters", () => {
+        it("skips all validations when enabled", () => {
+            const params = buildParams({
+                input: { chainId: 1, assetAddress: USDC_MAINNET, amount: "0" },
+                output: { chainId: 1, assetAddress: USDC_MAINNET, amount: "0" },
+                fillDeadline: NOW - 100,
+                allowDangerousParameters: true,
+            });
+            expect(() => validate(params)).not.toThrow();
+        });
+    });
 });
