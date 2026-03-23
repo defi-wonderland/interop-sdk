@@ -118,6 +118,27 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; result: ParsedError }> = [
     },
   },
   {
+    pattern: /InsufficientFee|output\.amount.*must be less than input/i,
+    result: {
+      title: 'No Fee Margin',
+      message: 'Output amount must be less than input for the solver to earn a fee.',
+    },
+  },
+  {
+    pattern: /ZeroAmount|amount must be greater than zero/i,
+    result: {
+      title: 'Invalid Amount',
+      message: 'Amount cannot be zero.',
+    },
+  },
+  {
+    pattern: /InvalidDeadline|fillDeadline.*in the past|fillDeadline is too soon/i,
+    result: {
+      title: 'Invalid Deadline',
+      message: 'Fill deadline must be at least 60 seconds in the future.',
+    },
+  },
+  {
     pattern: /network.*error|fetch.*failed|connection/i,
     result: {
       title: 'Network Error',

@@ -8,7 +8,7 @@ import { MINT_AMOUNT, useMintToken } from '../hooks/useMintToken';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { useRouteSelection } from '../hooks/useRouteSelection';
 import { useBalanceStore, type TokenBalance } from '../stores/balanceStore';
-import { isValidAmount, sanitizeAmountInput } from '../utils/amountValidation';
+import { formatFee, isValidAmount, sanitizeAmountInput } from '../utils/amountValidation';
 import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
 
@@ -95,6 +95,15 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   }, [inputAmount, inputTokenInfo?.decimals, amountIsValid]);
 
   const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.raw);
+
+  const outputTokenInfo = outputTokenAddress ? tokenConfig.TOKEN_INFO[outputChainId]?.[outputTokenAddress] : null;
+  const isSameToken = Boolean(inputTokenInfo && outputTokenInfo && inputTokenInfo.symbol === outputTokenInfo.symbol);
+
+  const feeDisplay = useMemo(() => {
+    if (mode !== 'buildQuote' || !isSameToken) return null;
+    if (!isValidAmount(inputAmount) || !isValidAmount(outputAmount)) return null;
+    return formatFee(inputAmount, outputAmount);
+  }, [mode, inputAmount, outputAmount, isSameToken]);
 
   const handleMaxClick = () => {
     if (!tokenBalance) return;
@@ -383,7 +392,15 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
                 disabled={isDisabled}
                 className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
-              <p className='text-xs text-text-tertiary mt-1'>Difference is the relayer fee</p>
+              {feeDisplay ? (
+                <p data-testid='fee-display' className='text-xs text-accent mt-1'>
+                  {feeDisplay}
+                </p>
+              ) : (
+                <p data-testid='fee-hint' className='text-xs text-text-tertiary mt-1'>
+                  Difference is the fee
+                </p>
+              )}
             </div>
           )}
         </div>

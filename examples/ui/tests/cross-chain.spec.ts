@@ -236,6 +236,46 @@ test.describe('Address menu', () => {
   });
 });
 
+test.describe('Build quote fee display', () => {
+  test('shows fee percentage for same-token with output < input', async ({ page }) => {
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+
+    await page.getByLabel('You send').fill('1');
+    await page.getByLabel('You receive').fill('0.99');
+
+    await expect(page.getByTestId('fee-display')).toBeVisible();
+    await expect(page.getByTestId('fee-hint')).not.toBeVisible();
+  });
+
+  test('shows default hint when output equals input', async ({ page }) => {
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+
+    await page.getByLabel('You send').fill('1');
+    await page.getByLabel('You receive').fill('1');
+
+    await expect(page.getByTestId('fee-hint')).toBeVisible();
+    await expect(page.getByTestId('fee-display')).not.toBeVisible();
+  });
+
+  test('shows default hint before output is filled', async ({ page }) => {
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+
+    await page.getByLabel('You send').fill('1');
+
+    await expect(page.getByTestId('fee-hint')).toBeVisible();
+  });
+});
+
 test.describe('Negative test', () => {
   test.beforeEach(async ({ page }) => {
     await page.evaluate(() => {
