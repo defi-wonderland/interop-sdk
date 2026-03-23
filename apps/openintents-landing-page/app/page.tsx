@@ -2,7 +2,6 @@
 
 import { AudienceSection } from "@/components/audience-section";
 import { ContributorsSection } from "@/components/contributors-section";
-import { CtaSection } from "@/components/cta-section";
 import { Footer } from "@/components/footer";
 import { HeroSection } from "@/components/hero-section";
 import { Navbar } from "@/components/navbar";
@@ -18,7 +17,6 @@ export default function Home() {
             <AudienceSection />
             <SolutionsSection />
             <ContributorsSection />
-            <CtaSection />
             <Footer />
         </main>
     );
