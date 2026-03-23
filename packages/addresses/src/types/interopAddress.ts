@@ -89,7 +89,7 @@ export type InteroperableName = `${string}@${string}:${string}#${Checksum}`;
  *
  * @see https://standards.chainagnostic.org/CAIPs/caip-350#chain-identifier-text-representation
  */
-export type ChainIdentifier = `${ChainTypeName}:${number}`;
+export type ChainIdentifier = `${ChainTypeName}:${string}`;
 
 /**
  * Parsed components of a CAIP-350 chain identifier.
@@ -97,8 +97,8 @@ export type ChainIdentifier = `${ChainTypeName}:${number}`;
  * @see https://standards.chainagnostic.org/CAIPs/caip-350#chain-identifier-text-representation
  */
 export interface ChainIdentifierParts {
-    /** Numeric chain reference (e.g. 1, 42161) */
-    chainReference: number;
+    /** Chain reference (e.g. "1", "42161", "000000000019d6689c085ae165831e93") */
+    chainReference: string;
     /** Chain type namespace (e.g. "eip155", "solana") */
     chainType: ChainTypeName;
 }
