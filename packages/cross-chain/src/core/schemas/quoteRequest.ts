@@ -72,6 +72,7 @@ export const BuildQuoteRequestSchema = z.object({
         .string()
         .regex(/^0x([0-9a-fA-F]{2})*$/, "Invalid orderData hex")
         .optional(),
+    allowDangerousParameters: z.boolean().optional(),
 });
 
 // ── Types ───────────────────────────────────────────────
