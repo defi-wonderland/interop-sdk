@@ -110,13 +110,7 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; result: ParsedError }> = [
       message: 'Token allowance is insufficient for this transfer.',
     },
   },
-  {
-    pattern: /execution reverted/i,
-    result: {
-      title: 'Transaction Failed',
-      message: 'The transaction would fail. Check your inputs.',
-    },
-  },
+  // SDK validation errors - must come before generic "execution reverted" to avoid shadowing
   {
     pattern: /InsufficientFee|output\.amount.*must be less than input/i,
     result: {
@@ -136,6 +130,13 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; result: ParsedError }> = [
     result: {
       title: 'Invalid Deadline',
       message: 'Fill deadline must be at least 60 seconds in the future.',
+    },
+  },
+  {
+    pattern: /execution reverted/i,
+    result: {
+      title: 'Transaction Failed',
+      message: 'The transaction would fail. Check your inputs.',
     },
   },
   {
@@ -167,13 +168,23 @@ export function parseError(error: unknown): ParsedError {
   }
 
   // Extract error details
-  const err = error as { code?: number; message?: string; shortMessage?: string };
+  const err = error as { code?: number; name?: string; message?: string; shortMessage?: string };
   const code = err.code;
   const message = err.shortMessage || err.message || String(error);
 
   // Check for known error codes
   if (code && WALLET_ERROR_CODES[code]) {
     return WALLET_ERROR_CODES[code];
+  }
+
+  // Check err.name first so SDK error classes (e.g. InsufficientFee) match
+  // even when the message text doesn't contain the pattern keywords
+  if (err.name) {
+    for (const { pattern, result } of ERROR_PATTERNS) {
+      if (pattern.test(err.name)) {
+        return result;
+      }
+    }
   }
 
   // Check for known patterns in error message
