@@ -86,14 +86,14 @@ describe('resolve', () => {
     expect(resolved.outputToken).not.toBe(UNKNOWN);
   });
 
-  it('cascades: correcting input token changes output list', () => {
-    // WETH is across-only → only same-symbol (WETH) is reachable on output chain
+  it('cascades: correcting input token updates output list to shared providers', () => {
+    // WETH (across) can reach USDC and WETH (both have across), but not DAI (sample only)
     const resolved = selector.resolve(sel({ inputToken: WETH, outputToken: DAI }));
-    expect(resolved.outputToken).toBe(WETH);
-    expect(resolved.outputTokens).toEqual([WETH]);
+    expect(resolved.outputToken).toBe(USDC);
+    expect(resolved.outputTokens).toEqual([USDC, WETH]);
   });
 
-  it('filters by across whitelist and provider compatibility', () => {
+  it('filters by whitelist and provider compatibility', () => {
     const resolved = selector.resolve(sel({ inputToken: USDC }));
     expect(resolved.inputTokens).toEqual(VALID_TOKENS);
     expect(resolved.inputTokens).not.toContain(SHIB);
@@ -101,10 +101,11 @@ describe('resolve', () => {
     expect(resolved.outputTokens).toContain(DAI);
   });
 
-  it('across-only input limits output to same-symbol', () => {
+  it('across-only input can reach other across tokens cross-symbol', () => {
     const resolved = selector.resolve(sel({ inputToken: WETH }));
     expect(resolved.outputTokens).toContain(WETH);
-    expect(resolved.outputTokens).not.toContain(USDC);
+    expect(resolved.outputTokens).toContain(USDC);
+    // DAI is sample-only, no shared provider with WETH (across)
     expect(resolved.outputTokens).not.toContain(DAI);
   });
 });
@@ -147,8 +148,10 @@ describe('cascading', () => {
   });
 
   it('setInputToken resets output when providers no longer overlap', () => {
+    // Switching to WETH (across) - DAI (sample-only) is no longer reachable,
+    // falls back to first compatible: USDC (has across)
     const next = selector.setInputToken(sel({ inputToken: DAI, outputToken: DAI }), WETH);
-    expect(next.outputToken).toBe(WETH);
+    expect(next.outputToken).toBe(USDC);
   });
 });
 
