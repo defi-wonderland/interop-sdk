@@ -252,7 +252,7 @@ test.describe('Build quote fee display', () => {
     await expect(page.getByTestId('fee-hint')).not.toBeVisible();
   });
 
-  test('shows default hint when output equals input', async ({ page }) => {
+  test('shows warning when output equals input for same token', async ({ page }) => {
     await page.getByRole('button', { name: 'Build Quote' }).click();
 
     await page.getByTestId('input-token-select').click();
@@ -263,7 +263,7 @@ test.describe('Build quote fee display', () => {
     await page.getByLabel('You send').fill('1');
     await page.getByLabel('You receive').fill('1');
 
-    await expect(page.getByTestId('fee-hint')).toBeVisible();
+    await expect(page.getByTestId('fee-warning')).toBeVisible();
     await expect(page.getByTestId('fee-display')).not.toBeVisible();
   });
 
