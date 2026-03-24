@@ -1,7 +1,8 @@
 import { findTokenCaseInsensitive, type RouteParams } from './routeParams';
 import type { UITokenInfo } from '../types/assets';
 
-const ACROSS_WHITELISTED_SYMBOLS = new Set(['USDC', 'USDT', 'WETH', 'DAI', 'ETH']);
+/** Tokens shown in the demo app. Anything outside this list is hidden regardless of provider. */
+const WHITELISTED_SYMBOLS = new Set(['ETH', 'WETH', 'USDC', 'USDT', 'DAI', 'WBTC', 'cbBTC', 'mockUSDC']);
 
 export interface Selection {
   inputChainId: number;
@@ -23,18 +24,16 @@ export interface RouteConfig {
   tokenInfo: TokenInfoByChain;
 }
 
-function passesAcrossFilter(token: UITokenInfo): boolean {
-  const isAcrossToken = token.providers.includes('across');
-  if (!isAcrossToken) return true;
-  return ACROSS_WHITELISTED_SYMBOLS.has(token.symbol);
+function isWhitelisted(token: UITokenInfo): boolean {
+  return WHITELISTED_SYMBOLS.has(token.symbol);
 }
 
-/** Tokens on a chain that pass the Across whitelist filter. */
+/** Tokens on a chain that pass the whitelist. */
 function availableTokens(addresses: readonly string[], tokenInfo: Record<string, UITokenInfo>): string[] {
   return addresses.filter((addr) => {
     const meta = tokenInfo[addr];
     if (!meta) return true; // Not yet discovered — keep visible until metadata loads
-    return passesAcrossFilter(meta);
+    return isWhitelisted(meta);
   });
 }
 
@@ -43,21 +42,12 @@ function compatibleTokens(
   addresses: readonly string[],
   tokenInfo: Record<string, UITokenInfo>,
   inputProviders: string[],
-  inputSymbol: string | undefined,
 ): string[] {
   return addresses.filter((addr) => {
     const meta = tokenInfo[addr];
-    if (!meta || !passesAcrossFilter(meta)) return false;
+    if (!meta || !isWhitelisted(meta)) return false;
 
-    const sharedProviders = meta.providers.filter((p) => inputProviders.includes(p));
-    if (sharedProviders.length === 0) return false;
-
-    // Across can only bridge same-symbol (USDC->USDC), not cross-symbol (USDC->DAI)
-    const onlyViaAcross = sharedProviders.length === 1 && sharedProviders[0] === 'across';
-    const isDifferentSymbol = meta.symbol !== inputSymbol;
-    if (onlyViaAcross && isDifferentSymbol) return false;
-
-    return true;
+    return meta.providers.some((p) => inputProviders.includes(p));
   });
 }
 
@@ -96,7 +86,7 @@ export function createRouteSelector(config: RouteConfig) {
     const inputMeta = tokenInfo[inputChainId]?.[inputToken];
     const addresses = byChain[outputChainId] ?? [];
     const meta = tokenInfo[outputChainId] ?? {};
-    return compatibleTokens(addresses, meta, inputMeta?.providers ?? [], inputMeta?.symbol);
+    return compatibleTokens(addresses, meta, inputMeta?.providers ?? []);
   }
 
   function bestOutputToken(
