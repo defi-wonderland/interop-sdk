@@ -34,3 +34,10 @@ export const useCrossChainStore = create<CrossChainState>((set, get) => ({
     set({ isTestnet, executor: buildExecutor(isTestnet) });
   },
 }));
+
+export function initializeNetwork(isTestnet: boolean): void {
+  const state = useCrossChainStore.getState();
+  if (state.isTestnet !== isTestnet) {
+    useCrossChainStore.setState({ isTestnet, executor: buildExecutor(isTestnet) });
+  }
+}
