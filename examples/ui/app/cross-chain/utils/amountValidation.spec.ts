@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isValidAmount, sanitizeAmountInput } from './amountValidation';
+import { isValidAmount, sanitizeAmountInput, formatFee } from './amountValidation';
 
 describe('sanitizeAmountInput', () => {
   it('allows digits and dot', () => {
@@ -35,5 +35,30 @@ describe('isValidAmount', () => {
     expect(isValidAmount('abc')).toBe(false);
     expect(isValidAmount('-10')).toBe(false);
     expect(isValidAmount('1e10')).toBe(false);
+  });
+});
+
+describe('formatFee', () => {
+  it('returns fee string when output < input', () => {
+    expect(formatFee('0.5', '0.4')).toBe('Fee: 0.1000 (20.00%)');
+    expect(formatFee('100', '99')).toBe('Fee: 1.0000 (1.00%)');
+    expect(formatFee('1', '0.999')).toBe('Fee: 0.0010 (0.10%)');
+  });
+
+  it('returns null when output equals input', () => {
+    expect(formatFee('0.5', '0.5')).toBeNull();
+  });
+
+  it('returns null when output exceeds input', () => {
+    expect(formatFee('0.5', '0.6')).toBeNull();
+  });
+
+  it('returns null for zero input', () => {
+    expect(formatFee('0', '0')).toBeNull();
+  });
+
+  it('returns null for invalid values', () => {
+    expect(formatFee('abc', '0.5')).toBeNull();
+    expect(formatFee('0.5', 'xyz')).toBeNull();
   });
 });

@@ -26,7 +26,38 @@ export function isSubmitPhase(state: BridgeState): boolean {
 }
 
 /**
- * Get display label for current state - uses SDK OrderStatus directly when tracking
+ * Map SDK OrderStatus to a human-readable label.
+ * Statuses from oif-specs OrderStatus enum:
+ *   created → pending → executing → executed → settling → settled → finalized
+ *   With failure paths: pending/executing → failed, settled → refunded
+ */
+function humanizeOrderStatus(status: OrderStatus): string {
+  switch (status) {
+    case OrderStatus.Created:
+      return 'Order created';
+    case OrderStatus.Pending:
+      return 'Awaiting solver';
+    case OrderStatus.Executing:
+      return 'Solver executing';
+    case OrderStatus.Executed:
+      return 'Executed';
+    case OrderStatus.Settling:
+      return 'Settling';
+    case OrderStatus.Settled:
+      return 'Settled';
+    case OrderStatus.Finalized:
+      return 'Complete';
+    case OrderStatus.Failed:
+      return 'Failed';
+    case OrderStatus.Refunded:
+      return 'Refunded';
+    default:
+      return formatOrderStatus(status);
+  }
+}
+
+/**
+ * Get display label for current state
  */
 export function getStateLabel(state: BridgeState): string {
   switch (state.step) {
@@ -46,12 +77,11 @@ export function getStateLabel(state: BridgeState): string {
           return 'Confirming';
       }
     case STEP.TRACKING:
-      // Display SDK OrderStatus directly
-      return formatOrderStatus(state.update.status);
+      return humanizeOrderStatus(state.update.status);
     case STEP.DONE:
-      return formatOrderStatus(OrderStatus.Finalized);
+      return 'Complete';
     case STEP.TIMEOUT:
-      return 'Timeout';
+      return 'Timed out';
     case STEP.ERROR:
       return 'Error';
     default:
@@ -83,10 +113,39 @@ export function getProgressMessage(state: BridgeState): string | undefined {
   }
 
   if (state.step === STEP.TRACKING) {
-    return state.update.message;
+    return humanizeTrackingMessage(state.update.status, state.update.message);
   }
 
   return undefined;
+}
+
+/**
+ * Provide a human-readable progress message for each tracking status.
+ * Falls back to the SDK message for unknown states.
+ */
+function humanizeTrackingMessage(status: OrderStatus, sdkMessage?: string): string {
+  switch (status) {
+    case OrderStatus.Created:
+      return 'Order recorded, waiting for validation...';
+    case OrderStatus.Pending:
+      return 'Waiting for a solver to pick up your order...';
+    case OrderStatus.Executing:
+      return 'Solver is submitting transactions...';
+    case OrderStatus.Executed:
+      return 'Transactions submitted, waiting for settlement...';
+    case OrderStatus.Settling:
+      return 'Settlement in progress...';
+    case OrderStatus.Settled:
+      return 'Assets settled, finalizing...';
+    case OrderStatus.Finalized:
+      return 'Order complete.';
+    case OrderStatus.Failed:
+      return sdkMessage ?? 'Order failed.';
+    case OrderStatus.Refunded:
+      return 'Order refunded. Tokens returned to your wallet on the origin chain.';
+    default:
+      return sdkMessage ?? '';
+  }
 }
 
 /**

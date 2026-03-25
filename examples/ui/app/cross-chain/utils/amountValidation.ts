@@ -26,3 +26,12 @@ export function isValidAmount(value: string): boolean {
   if (!/^\d+\.?\d*$/.test(normalized)) return false;
   return !isNaN(parseFloat(normalized));
 }
+
+/** Formats the fee between two same-token amounts, e.g. "Fee: 0.0030 (0.60%)". Returns null if not applicable. */
+export function formatFee(inputAmount: string, outputAmount: string): string | null {
+  const input = parseFloat(normalizeAmount(inputAmount));
+  const output = parseFloat(normalizeAmount(outputAmount));
+  if (!input || isNaN(output) || output >= input) return null;
+  const fee = input - output;
+  return `Fee: ${fee.toFixed(4)} (${((fee / input) * 100).toFixed(2)}%)`;
+}
