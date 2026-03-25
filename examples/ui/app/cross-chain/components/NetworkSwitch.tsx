@@ -2,7 +2,11 @@
 
 import { useCrossChainStore } from '../stores/crossChainStore';
 
-export function NetworkSwitch() {
+interface NetworkSwitchProps {
+  disabled?: boolean;
+}
+
+export function NetworkSwitch({ disabled = false }: NetworkSwitchProps) {
   const isTestnet = useCrossChainStore((s) => s.isTestnet);
   const setIsTestnet = useCrossChainStore((s) => s.setIsTestnet);
 
@@ -23,10 +27,11 @@ export function NetworkSwitch() {
       <button
         role='radio'
         aria-checked={!isTestnet}
+        disabled={disabled}
         onClick={() => setIsTestnet(false)}
-        className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 cursor-pointer ${
-          !isTestnet ? 'text-white' : 'text-text-secondary hover:text-text-primary'
-        }`}
+        className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+        } ${!isTestnet ? 'text-white' : 'text-text-secondary hover:text-text-primary'}`}
       >
         Mainnet
       </button>
@@ -34,10 +39,11 @@ export function NetworkSwitch() {
       <button
         role='radio'
         aria-checked={isTestnet}
+        disabled={disabled}
         onClick={() => setIsTestnet(true)}
-        className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 cursor-pointer ${
-          isTestnet ? 'text-white' : 'text-text-secondary hover:text-text-primary'
-        }`}
+        className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+        } ${isTestnet ? 'text-white' : 'text-text-secondary hover:text-text-primary'}`}
       >
         Testnet
       </button>
