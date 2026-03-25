@@ -205,6 +205,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     !isLoading &&
     !isDisabled &&
     !hasInsufficientBalance &&
+    !noFeeWarning &&
     (mode === 'getQuotes' || (outputAmountIsValid && parsedOutputAmount > 0n));
 
   const isMintable = inputTokenInfo?.providers?.includes('oif') ?? false;
@@ -242,7 +243,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
               mode === 'getQuotes'
                 ? 'bg-accent text-white'
                 : 'bg-background/50 text-text-secondary hover:text-text-primary'
-            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             Get Quotes
           </button>
@@ -257,7 +258,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
               mode === 'buildQuote'
                 ? 'bg-accent text-white'
                 : 'bg-background/50 text-text-secondary hover:text-text-primary'
-            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             Build Quote
           </button>

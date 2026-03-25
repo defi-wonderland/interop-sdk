@@ -3,7 +3,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { MAINNET_CHAINS, TESTNET_CHAINS } from '../constants/chains';
 import { useAssetDiscovery } from '../hooks/useAssetDiscovery';
-import { useIsTestnet } from './NetworkProvider';
+import { useCrossChainStore } from '../stores/crossChainStore';
 import type { DiscoveredAssets } from '../types/assets';
 
 interface AssetDiscoveryContextValue {
@@ -28,7 +28,7 @@ interface AssetDiscoveryProviderProps {
  * Caching and deduplication are handled by the SDK internally.
  */
 export function AssetDiscoveryProvider({ children }: AssetDiscoveryProviderProps) {
-  const isTestnet = useIsTestnet();
+  const isTestnet = useCrossChainStore((s) => s.isTestnet);
 
   const chainIds = useMemo(() => (isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS).map((c) => c.id), [isTestnet]);
 

@@ -1,9 +1,10 @@
 'use client';
 
-import { useIsTestnet, setNetworkAndReload } from '../providers';
+import { useCrossChainStore } from '../stores/crossChainStore';
 
 export function NetworkSwitch() {
-  const isTestnet = useIsTestnet();
+  const isTestnet = useCrossChainStore((s) => s.isTestnet);
+  const setIsTestnet = useCrossChainStore((s) => s.setIsTestnet);
 
   return (
     <div
@@ -22,8 +23,8 @@ export function NetworkSwitch() {
       <button
         role='radio'
         aria-checked={!isTestnet}
-        onClick={() => isTestnet && setNetworkAndReload(false)}
-        className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+        onClick={() => setIsTestnet(false)}
+        className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 cursor-pointer ${
           !isTestnet ? 'text-white' : 'text-text-secondary hover:text-text-primary'
         }`}
       >
@@ -33,8 +34,8 @@ export function NetworkSwitch() {
       <button
         role='radio'
         aria-checked={isTestnet}
-        onClick={() => !isTestnet && setNetworkAndReload(true)}
-        className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+        onClick={() => setIsTestnet(true)}
+        className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 cursor-pointer ${
           isTestnet ? 'text-white' : 'text-text-secondary hover:text-text-primary'
         }`}
       >
