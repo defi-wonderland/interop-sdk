@@ -495,7 +495,7 @@ type InteroperableAddress =
       }
     | {
           version: number;
-          chainType: "eip155" | "bip122" | "solana"; // Text variant
+          chainType: "eip155" | "bip122" | "solana" | "starknet"; // Text variant
           chainReference?: string;
           address?: string;
       };

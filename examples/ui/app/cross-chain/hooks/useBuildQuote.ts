@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { crossChainExecutor } from '../services/sdk';
+import { useCrossChainStore } from '../stores/crossChainStore';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
 import { useTokenConfig } from './useNetworkConfig';
 import type { ExecutableQuote, BuildQuoteRequest } from '@wonderland/interop-cross-chain';
@@ -34,6 +34,7 @@ interface UseBuildQuoteReturn {
 }
 
 export function useBuildQuote(): UseBuildQuoteReturn {
+  const executor = useCrossChainStore((s) => s.executor);
   const tokenConfig = useTokenConfig();
   const [quote, setQuote] = useState<ExecutableQuote | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +85,7 @@ export function useBuildQuote(): UseBuildQuoteReturn {
         fillDeadline,
       };
 
-      const result = await crossChainExecutor.buildQuote('across', request);
+      const result = await executor.buildQuote('across', request);
       if (requestIdRef.current !== currentRequestId) return;
       setQuote(result);
       setStatus(BuildQuoteStatus.SUCCESS);
