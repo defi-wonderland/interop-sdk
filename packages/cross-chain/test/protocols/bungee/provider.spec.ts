@@ -168,6 +168,18 @@ describe("BungeeProvider", () => {
             );
         });
 
+        it("sets affiliate header when affiliateId is provided", () => {
+            new BungeeProvider({ affiliateId: "my-affiliate" });
+            expect(axios.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    headers: expect.objectContaining({ affiliate: "my-affiliate" }) as Record<
+                        string,
+                        string
+                    >,
+                }),
+            );
+        });
+
         it("throws ProviderConfigFailure for invalid config", () => {
             expect(() => new BungeeProvider({ baseUrl: "not-a-url" })).toThrow(
                 ProviderConfigFailure,

@@ -6,25 +6,54 @@ The Bungee Protocol provider enables cross-chain token transfers using the Bunge
 
 **Status**: Active (mainnet)
 
+## API Access
+
+Bungee offers three integration tiers, each with a different base URL and authentication method:
+
+| Tier              | Endpoint                                     | Authentication        | Rate Limit          | Use Case                  |
+| ----------------- | -------------------------------------------- | --------------------- | ------------------- | ------------------------- |
+| Public Sandbox    | `https://public-backend.bungee.exchange/`    | None                  | Very Limited        | Testing only              |
+| Dedicated Backend | `https://dedicated-backend.bungee.exchange/` | API Key (`x-api-key`) | 20 RPS (extendable) | Production backends       |
+| Frontend / Direct | `https://backend.bungee.exchange/`           | Whitelisted Domains   | 100 RPM             | Frontends, dApps, wallets |
+
+-   The **public sandbox** requires no setup and is used by default.
+-   For production, [request API access](https://forms.gle/z3q5RdXjouuXR85k9) to get an API key and affiliate ID.
+-   The **dedicated backend** is recommended for server-to-server integrations. Keep your API key server-side.
+-   The **frontend/direct** tier uses domain whitelisting instead of API keys.
+
 ## Configuration
 
-| Field        | Type   | Required | Description                                              |
-| ------------ | ------ | -------- | -------------------------------------------------------- |
-| `baseUrl`    | string | No       | Custom API base URL (default: Bungee public backend)     |
-| `providerId` | string | No       | Custom provider identifier (default: `"bungee"`)         |
-| `apiKey`     | string | No       | Bungee API key for authentication (sent via `x-api-key`) |
+| Field         | Type            | Required | Description                                                                  |
+| ------------- | --------------- | -------- | ---------------------------------------------------------------------------- |
+| `tier`        | `BungeeApiTier` | No       | API tier: `"sandbox"`, `"dedicated"`, or `"frontend"` (default: `"sandbox"`) |
+| `baseUrl`     | string          | No       | Custom API base URL. Overrides the URL derived from `tier`                   |
+| `providerId`  | string          | No       | Custom provider identifier (default: `"bungee"`)                             |
+| `apiKey`      | string          | No       | API key for dedicated backend (sent via `x-api-key` header)                  |
+| `affiliateId` | string          | No       | Affiliate ID for tracking (sent via `affiliate` header)                      |
 
 ## Creating the Provider
 
 ```typescript
-import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+import { BungeeApiTier, createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-// Default config — no API key required for public access
+// Public sandbox (default) — no authentication needed
 const bungeeProvider = createCrossChainProvider("bungee");
 
-// With custom config
+// Dedicated backend — with API key and affiliate ID
 const bungeeProvider = createCrossChainProvider("bungee", {
+    tier: BungeeApiTier.Dedicated,
     apiKey: "your-api-key",
+    affiliateId: "your-affiliate-id",
+});
+
+// Frontend / direct — domain-whitelisted, no API key
+const bungeeProvider = createCrossChainProvider("bungee", {
+    tier: BungeeApiTier.Frontend,
+});
+
+// Custom base URL — overrides the tier URL
+const bungeeProvider = createCrossChainProvider("bungee", {
+    baseUrl: "https://my-proxy.example.com",
 });
 ```
 
@@ -126,5 +155,6 @@ See a complete working example: [Execute Intent](./example.md)
 ## References
 
 -   [Bungee Protocol Documentation](https://docs.bungee.exchange)
+-   [Bungee API Access](https://docs.bungee.exchange/integrate/get-api-access) — request production API keys
 -   [API Reference](./api.md) — full type definitions for quotes, fees, and orders
 -   [Concepts](./concepts.md) — how intent-based transfers work

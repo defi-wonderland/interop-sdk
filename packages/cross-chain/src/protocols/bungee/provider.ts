@@ -27,9 +27,9 @@ import {
     extractOpenedIntent,
     parseBungeeTokenListResponse,
 } from "./adapters/index.js";
-import { BUNGEE_API_URL } from "./constants.js";
+import { BUNGEE_API_URLS } from "./constants.js";
 import { BungeeApiService } from "./services/index.js";
-import { BungeeConfigSchema } from "./types.js";
+import { BungeeApiTier, BungeeConfigSchema } from "./types.js";
 
 /**
  * A {@link CrossChainProvider} implementation for the Bungee protocol.
@@ -51,12 +51,15 @@ export class BungeeProvider extends CrossChainProvider {
 
         try {
             const parsed = BungeeConfigSchema.parse(config);
-            this.baseUrl = parsed.baseUrl ?? BUNGEE_API_URL;
+            this.baseUrl = parsed.baseUrl ?? BUNGEE_API_URLS[parsed.tier ?? BungeeApiTier.Sandbox];
             this.providerId = parsed.providerId ?? "bungee";
 
             this.apiHeaders = {};
             if (parsed.apiKey) {
                 this.apiHeaders["x-api-key"] = parsed.apiKey;
+            }
+            if (parsed.affiliateId) {
+                this.apiHeaders["affiliate"] = parsed.affiliateId;
             }
             this.http = axios.create({ baseURL: this.baseUrl, headers: this.apiHeaders });
             this.apiService = new BungeeApiService(this.http);
