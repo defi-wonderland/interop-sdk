@@ -100,8 +100,8 @@ function validateDeadline(fillDeadline: number, nowSeconds: number): void {
  * Classifies the relationship between input and output assets.
  *
  * - Same chain: compare by address (case-insensitive via `isAddressEqual`).
- * - Cross-chain with metadata: compare by token symbol.
- * - Cross-chain without metadata: returns "unknown" (can't verify).
+ * - Cross-chain: returns "different" only when symbols are known and mismatch.
+ *   All other cross-chain cases return "unknown" (symbols are not unique across chains).
  *
  * @throws UnsupportedAddress if same-chain addresses are not valid EVM addresses
  */
@@ -135,7 +135,16 @@ function compareSameChainAssets(inputAddress: string, outputAddress: string): As
     }
 }
 
-// TODO: Replace with a robust token pairing system (valuable for Universal Balances)
+/**
+ * Cross-chain asset comparison.
+ *
+ * Symbols are not unique across chains (e.g. multiple tokens can share "USDC"),
+ * so matching symbols alone cannot prove sameness. Different symbols *can* prove
+ * difference, so we reject those. Everything else is "unknown".
+ *
+ * TODO: Replace with a canonical asset identifier (e.g. coingeckoId, bridgeAssetId)
+ * to enable reliable cross-chain same-asset detection.
+ */
 function compareCrossChainAssets(
     inputChainId: number,
     inputAddress: string,
@@ -146,6 +155,9 @@ function compareCrossChainAssets(
     const inputSymbol = tokenMetadata[inputChainId]?.[inputAddress.toLowerCase()]?.symbol;
     const outputSymbol = tokenMetadata[outputChainId]?.[outputAddress.toLowerCase()]?.symbol;
 
-    if (inputSymbol === undefined || outputSymbol === undefined) return "unknown";
-    return inputSymbol === outputSymbol ? "same" : "different";
+    if (inputSymbol !== undefined && outputSymbol !== undefined && inputSymbol !== outputSymbol) {
+        return "different";
+    }
+
+    return "unknown";
 }

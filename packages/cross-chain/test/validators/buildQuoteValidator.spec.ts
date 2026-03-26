@@ -94,6 +94,14 @@ describe("validateBuildQuoteParams", () => {
             expect(() => validate(params, KNOWN_TOKEN_METADATA)).toThrow("same-asset transfers");
         });
 
+        it("treats cross-chain matching symbols as unknown (symbols are not unique)", () => {
+            const params = buildParams({
+                input: { chainId: base.id, assetAddress: USDC_BASE, amount: "1000000" },
+                output: { chainId: arbitrum.id, assetAddress: USDC_ARBITRUM, amount: "2000000" },
+            });
+            expect(() => validate(params, KNOWN_TOKEN_METADATA)).not.toThrow();
+        });
+
         it("allows cross-chain when tokenMetadata is unavailable (unknown relationship)", () => {
             const params = buildParams({
                 input: { chainId: 1, assetAddress: USDC_MAINNET, amount: "1000000" },
@@ -122,12 +130,12 @@ describe("validateBuildQuoteParams", () => {
             expect(() => validate(sameTokenParams("1000000", "990000"))).not.toThrow();
         });
 
-        it("rejects cross-chain same asset with output >= input", () => {
+        it("skips fee check for cross-chain matching symbols (unknown relationship)", () => {
             const params = buildParams({
                 input: { chainId: base.id, assetAddress: USDC_BASE, amount: "1000000" },
                 output: { chainId: arbitrum.id, assetAddress: USDC_ARBITRUM, amount: "1000000" },
             });
-            expect(() => validate(params, KNOWN_TOKEN_METADATA)).toThrow(InsufficientFee);
+            expect(() => validate(params, KNOWN_TOKEN_METADATA)).not.toThrow();
         });
     });
 
