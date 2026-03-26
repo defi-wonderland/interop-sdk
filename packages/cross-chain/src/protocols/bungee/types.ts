@@ -28,8 +28,6 @@ export const BungeeConfigSchema = z.object({
     feeTakerAddress: z.string().optional(),
     /** Force onchain transaction flow (BungeeInbox) instead of permit2 signatures. */
     useInbox: z.boolean().optional(),
-    /** Request timeout in milliseconds. Defaults to 15000 (15s). */
-    timeout: z.number().optional(),
 });
 
 /** Configuration options for {@link BungeeProvider}. */

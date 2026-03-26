@@ -73,7 +73,7 @@ export class BungeeProvider extends CrossChainProvider {
             this.http = axios.create({
                 baseURL: this.baseUrl,
                 headers: this.apiHeaders,
-                timeout: parsed.timeout ?? 15_000,
+                timeout: 15_000,
             });
             this.apiService = new BungeeApiService(this.http);
         } catch (error) {

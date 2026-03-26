@@ -33,7 +33,6 @@ Bungee offers three integration tiers, each with a different base URL and authen
 | `feeBps`          | string          | No       | Convenience fee in basis points (e.g. `"50"` for 0.5%)                       |
 | `feeTakerAddress` | string          | No       | Address to receive the convenience fee. Required when `feeBps` is set        |
 | `useInbox`        | boolean         | No       | Force onchain tx flow (BungeeInbox) instead of permit2 signatures            |
-| `timeout`         | number          | No       | Request timeout in milliseconds (default: 15000)                             |
 
 ## Creating the Provider
 
