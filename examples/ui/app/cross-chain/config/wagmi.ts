@@ -1,7 +1,7 @@
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 import { injectedWallet, rainbowWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
 import { createConfig, http, cookieStorage, createStorage } from 'wagmi';
-import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
+import { ALL_CHAINS, ALL_RPC_URLS } from '../constants/chains';
 import { e2eWallet } from './e2eConnector';
 import { isE2E } from './publicClient';
 import type { Chain } from 'viem/chains';
@@ -15,14 +15,9 @@ function getWallets() {
   return [injectedWallet];
 }
 
-export function createWagmiConfig(isTestnet: boolean) {
-  const chains: readonly [Chain, ...Chain[]] = isTestnet ? TESTNET_CHAINS : MAINNET_CHAINS;
-  const rpcUrls = isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
-  const transports = Object.fromEntries(chains.map((chain) => [chain.id, http(rpcUrls[chain.id])]));
-
-  if (isE2E) {
-    return e2eWallet;
-  }
+function createAppWagmiConfig() {
+  const chains = ALL_CHAINS as readonly [Chain, ...Chain[]];
+  const transports = Object.fromEntries(chains.map((chain) => [chain.id, http(ALL_RPC_URLS[chain.id])]));
 
   const connectors = connectorsForWallets([{ groupName: 'Recommended', wallets: getWallets() }], {
     appName: 'Interop SDK Demo',
@@ -39,3 +34,5 @@ export function createWagmiConfig(isTestnet: boolean) {
     connectors,
   });
 }
+
+export const wagmiConfig = isE2E ? e2eWallet : createAppWagmiConfig();
