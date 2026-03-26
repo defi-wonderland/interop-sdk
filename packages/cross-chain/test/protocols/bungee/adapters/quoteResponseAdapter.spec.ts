@@ -163,17 +163,6 @@ describe("adaptQuotes", () => {
         expect(quote!.tracking?.orderId).toBe("0xreqhash123");
     });
 
-    it("stores full response and specific autoRoute in metadata", () => {
-        const response = buildBungeeQuoteResponse();
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
-
-        expect(quote!.metadata?.bungeeResponse).toBeDefined();
-        expect(quote!.metadata?.bungeeAutoRoute).toBeDefined();
-        expect((quote!.metadata?.bungeeAutoRoute as Record<string, unknown>).quoteId).toBe(
-            "quote-abc",
-        );
-    });
-
     it("stores the specific autoRoute matching each quote in metadata", () => {
         const response = buildBungeeQuoteResponse();
         (response.result as Record<string, unknown>).autoRoutes = [

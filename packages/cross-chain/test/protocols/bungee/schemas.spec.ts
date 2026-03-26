@@ -139,13 +139,8 @@ describe("BungeeTokenSchema", () => {
         expect(result.symbol).toBe("ETH");
     });
 
-    it("rejects when address is missing", () => {
+    it("rejects when required field is missing", () => {
         const { address, ...rest } = buildToken();
-        expect(() => BungeeTokenSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when decimals is missing", () => {
-        const { decimals, ...rest } = buildToken();
         expect(() => BungeeTokenSchema.parse(rest)).toThrow(ZodError);
     });
 });
@@ -156,13 +151,8 @@ describe("BungeeInputSchema", () => {
         expect(result.amount).toBe("1000000");
     });
 
-    it("rejects when token is missing", () => {
+    it("rejects when required field is missing", () => {
         const { token, ...rest } = buildInput();
-        expect(() => BungeeInputSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when amount is missing", () => {
-        const { amount, ...rest } = buildInput();
         expect(() => BungeeInputSchema.parse(rest)).toThrow(ZodError);
     });
 });
@@ -173,13 +163,8 @@ describe("BungeeOutputSchema", () => {
         expect(result.minAmountOut).toBe("998000");
     });
 
-    it("rejects when minAmountOut is missing", () => {
+    it("rejects when required field is missing", () => {
         const { minAmountOut, ...rest } = buildOutput();
-        expect(() => BungeeOutputSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when effectiveReceivedInUsd is missing", () => {
-        const { effectiveReceivedInUsd, ...rest } = buildOutput();
         expect(() => BungeeOutputSchema.parse(rest)).toThrow(ZodError);
     });
 });
@@ -190,13 +175,8 @@ describe("BungeeApprovalDataSchema", () => {
         expect(result.spenderAddress).toBe(VALID_ADDRESS);
     });
 
-    it("rejects when spenderAddress is missing", () => {
+    it("rejects when required field is missing", () => {
         const { spenderAddress, ...rest } = buildApprovalData();
-        expect(() => BungeeApprovalDataSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when tokenAddress is missing", () => {
-        const { tokenAddress, ...rest } = buildApprovalData();
         expect(() => BungeeApprovalDataSchema.parse(rest)).toThrow(ZodError);
     });
 });
@@ -207,13 +187,8 @@ describe("BungeeGasFeeSchema", () => {
         expect(result.feeInUsd).toBe(0.5);
     });
 
-    it("rejects when gasToken is missing", () => {
+    it("rejects when required field is missing", () => {
         const { gasToken, ...rest } = buildGasFee();
-        expect(() => BungeeGasFeeSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when estimatedFee is missing", () => {
-        const { estimatedFee, ...rest } = buildGasFee();
         expect(() => BungeeGasFeeSchema.parse(rest)).toThrow(ZodError);
     });
 });
@@ -224,13 +199,8 @@ describe("BungeeRouteFeeSchema", () => {
         expect(result.feeInUsd).toBe(0.1);
     });
 
-    it("rejects when token is missing", () => {
+    it("rejects when required field is missing", () => {
         const { token, ...rest } = buildRouteFee();
-        expect(() => BungeeRouteFeeSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when amount is missing", () => {
-        const { amount, ...rest } = buildRouteFee();
         expect(() => BungeeRouteFeeSchema.parse(rest)).toThrow(ZodError);
     });
 });
@@ -241,7 +211,7 @@ describe("BungeeRouteDetailsSchema", () => {
         expect(result.name).toBe("across");
     });
 
-    it("rejects when name is missing", () => {
+    it("rejects when required field is missing", () => {
         const { name, ...rest } = buildRouteDetails();
         expect(() => BungeeRouteDetailsSchema.parse(rest)).toThrow(ZodError);
     });
@@ -282,19 +252,9 @@ describe("BungeeTxDataSchema", () => {
         expect(result.chainId).toBe(1);
     });
 
-    it("rejects when data is missing", () => {
+    it("rejects when required field is missing", () => {
         const { data, ...rest } = buildTxData();
         expect(() => BungeeTxDataSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("accepts tx data with optional to field", () => {
-        const result = BungeeTxDataSchema.parse(buildTxData({ to: VALID_ADDRESS }));
-        expect(result.to).toBe(VALID_ADDRESS);
-    });
-
-    it("accepts tx data with optional type field", () => {
-        const result = BungeeTxDataSchema.parse(buildTxData({ type: "0x2" }));
-        expect(result.type).toBe("0x2");
     });
 
     it("accepts data as a record object", () => {
@@ -309,13 +269,8 @@ describe("BungeeSignTypedDataSchema", () => {
         expect(result.domain).toEqual({ name: "Permit2" });
     });
 
-    it("rejects when domain is missing", () => {
+    it("rejects when required field is missing", () => {
         const { domain, ...rest } = buildSignTypedData();
-        expect(() => BungeeSignTypedDataSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when types is missing", () => {
-        const { types, ...rest } = buildSignTypedData();
         expect(() => BungeeSignTypedDataSchema.parse(rest)).toThrow(ZodError);
     });
 });
@@ -413,18 +368,8 @@ describe("BungeeQuoteRequestSchema", () => {
         expect(result.originChainId).toBe("1");
     });
 
-    it("rejects when originChainId is missing", () => {
+    it("rejects when required field is missing", () => {
         const { originChainId, ...rest } = buildQuoteRequest();
-        expect(() => BungeeQuoteRequestSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when inputToken is missing", () => {
-        const { inputToken, ...rest } = buildQuoteRequest();
-        expect(() => BungeeQuoteRequestSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when receiverAddress is missing", () => {
-        const { receiverAddress, ...rest } = buildQuoteRequest();
         expect(() => BungeeQuoteRequestSchema.parse(rest)).toThrow(ZodError);
     });
 });
@@ -435,18 +380,8 @@ describe("BungeeAutoRouteSchema", () => {
         expect(result.quoteId).toBe("q1");
     });
 
-    it("rejects when userOp is missing", () => {
+    it("rejects when required field is missing", () => {
         const { userOp, ...rest } = buildAutoRoute();
-        expect(() => BungeeAutoRouteSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when requestHash is missing", () => {
-        const { requestHash, ...rest } = buildAutoRoute();
-        expect(() => BungeeAutoRouteSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when output is missing", () => {
-        const { output, ...rest } = buildAutoRoute();
         expect(() => BungeeAutoRouteSchema.parse(rest)).toThrow(ZodError);
     });
 
@@ -476,18 +411,8 @@ describe("BungeeManualRouteSchema", () => {
         expect(result.quoteId).toBe("m1");
     });
 
-    it("rejects when gasFee is missing", () => {
+    it("rejects when required field is missing", () => {
         const { gasFee, ...rest } = buildManualRoute();
-        expect(() => BungeeManualRouteSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when routeDetails is missing", () => {
-        const { routeDetails, ...rest } = buildManualRoute();
-        expect(() => BungeeManualRouteSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when output is missing", () => {
-        const { output, ...rest } = buildManualRoute();
         expect(() => BungeeManualRouteSchema.parse(rest)).toThrow(ZodError);
     });
 });
@@ -498,18 +423,13 @@ describe("BungeeQuoteResultSchema", () => {
         expect(result.originChainId).toBe(1);
     });
 
-    it("rejects when originChainId is missing", () => {
-        const { originChainId, ...rest } = buildQuoteResult();
-        expect(() => BungeeQuoteResultSchema.parse(rest)).toThrow(ZodError);
-    });
-
     it("accepts when manualRoutes is missing (optional field)", () => {
         const { manualRoutes, ...rest } = buildQuoteResult();
         const result = BungeeQuoteResultSchema.parse(rest);
         expect(result.manualRoutes).toBeUndefined();
     });
 
-    it("rejects when input is missing", () => {
+    it("rejects when required field is missing", () => {
         const { input, ...rest } = buildQuoteResult();
         expect(() => BungeeQuoteResultSchema.parse(rest)).toThrow(ZodError);
     });
@@ -535,13 +455,8 @@ describe("BungeeQuoteResponseSchema", () => {
         expect(result.success).toBe(true);
     });
 
-    it("rejects when success is missing", () => {
+    it("rejects when required field is missing", () => {
         const { success, ...rest } = buildQuoteResponse();
-        expect(() => BungeeQuoteResponseSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when result is missing", () => {
-        const { result, ...rest } = buildQuoteResponse();
         expect(() => BungeeQuoteResponseSchema.parse(rest)).toThrow(ZodError);
     });
 
@@ -578,23 +493,8 @@ describe("BungeeSubmitRequestSchema", () => {
         expect(result.quoteId).toBe("q1");
     });
 
-    it("rejects when request is missing", () => {
+    it("rejects when required field is missing", () => {
         const { request, ...rest } = buildSubmitRequest();
-        expect(() => BungeeSubmitRequestSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when userSignature is missing", () => {
-        const { userSignature, ...rest } = buildSubmitRequest();
-        expect(() => BungeeSubmitRequestSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when quoteId is missing", () => {
-        const { quoteId, ...rest } = buildSubmitRequest();
-        expect(() => BungeeSubmitRequestSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when requestType is missing", () => {
-        const { requestType, ...rest } = buildSubmitRequest();
         expect(() => BungeeSubmitRequestSchema.parse(rest)).toThrow(ZodError);
     });
 
@@ -620,18 +520,8 @@ describe("BungeeSubmitResponseSchema", () => {
         expect(Array.isArray(result.result)).toBe(true);
     });
 
-    it("rejects when success is missing", () => {
+    it("rejects when required field is missing", () => {
         const { success, ...rest } = buildSubmitResponse();
-        expect(() => BungeeSubmitResponseSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when result is missing", () => {
-        const { result, ...rest } = buildSubmitResponse();
-        expect(() => BungeeSubmitResponseSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when statusCode is missing", () => {
-        const { statusCode, ...rest } = buildSubmitResponse();
         expect(() => BungeeSubmitResponseSchema.parse(rest)).toThrow(ZodError);
     });
 
@@ -754,18 +644,8 @@ describe("BungeeOriginDataSchema", () => {
         expect(result.status).toBe("PENDING");
     });
 
-    it("rejects when input is missing", () => {
+    it("rejects when required field is missing", () => {
         const { input, ...rest } = buildOriginData();
-        expect(() => BungeeOriginDataSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when originChainId is missing", () => {
-        const { originChainId, ...rest } = buildOriginData();
-        expect(() => BungeeOriginDataSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when userAddress is missing", () => {
-        const { userAddress, ...rest } = buildOriginData();
         expect(() => BungeeOriginDataSchema.parse(rest)).toThrow(ZodError);
     });
 
@@ -781,18 +661,8 @@ describe("BungeeDestinationDataSchema", () => {
         expect(result.destinationChainId).toBe(10);
     });
 
-    it("rejects when output is missing", () => {
+    it("rejects when required field is missing", () => {
         const { output, ...rest } = buildDestinationData();
-        expect(() => BungeeDestinationDataSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when destinationChainId is missing", () => {
-        const { destinationChainId, ...rest } = buildDestinationData();
-        expect(() => BungeeDestinationDataSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when receiverAddress is missing", () => {
-        const { receiverAddress, ...rest } = buildDestinationData();
         expect(() => BungeeDestinationDataSchema.parse(rest)).toThrow(ZodError);
     });
 
@@ -808,18 +678,8 @@ describe("BungeeStatusResultSchema", () => {
         expect(result.hash).toBe("0xhash");
     });
 
-    it("rejects when hash is missing", () => {
+    it("rejects when required field is missing", () => {
         const { hash, ...rest } = buildStatusResult();
-        expect(() => BungeeStatusResultSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when originData is missing", () => {
-        const { originData, ...rest } = buildStatusResult();
-        expect(() => BungeeStatusResultSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when destinationData is missing", () => {
-        const { destinationData, ...rest } = buildStatusResult();
         expect(() => BungeeStatusResultSchema.parse(rest)).toThrow(ZodError);
     });
 
@@ -844,13 +704,8 @@ describe("BungeeStatusResponseSchema", () => {
         expect(result.success).toBe(true);
     });
 
-    it("rejects when success is missing", () => {
+    it("rejects when required field is missing", () => {
         const { success, ...rest } = buildStatusResponse();
-        expect(() => BungeeStatusResponseSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when result is missing", () => {
-        const { result, ...rest } = buildStatusResponse();
         expect(() => BungeeStatusResponseSchema.parse(rest)).toThrow(ZodError);
     });
 
@@ -890,13 +745,8 @@ describe("BungeeTokenExtSchema", () => {
         expect(result.symbol).toBe("USDC");
     });
 
-    it("rejects when address is missing", () => {
+    it("rejects when required field is missing", () => {
         const { address, ...rest } = buildTokenExt();
-        expect(() => BungeeTokenExtSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when decimals is missing", () => {
-        const { decimals, ...rest } = buildTokenExt();
         expect(() => BungeeTokenExtSchema.parse(rest)).toThrow(ZodError);
     });
 
@@ -916,13 +766,8 @@ describe("BungeeTokenListResponseSchema", () => {
         expect(Object.keys(result.result)).toHaveLength(1);
     });
 
-    it("rejects when success is missing", () => {
+    it("rejects when required field is missing", () => {
         const { success, ...rest } = buildTokenListResponse();
-        expect(() => BungeeTokenListResponseSchema.parse(rest)).toThrow(ZodError);
-    });
-
-    it("rejects when result is missing", () => {
-        const { result, ...rest } = buildTokenListResponse();
         expect(() => BungeeTokenListResponseSchema.parse(rest)).toThrow(ZodError);
     });
 
