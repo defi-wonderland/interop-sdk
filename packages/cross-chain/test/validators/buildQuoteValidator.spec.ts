@@ -3,6 +3,7 @@ import { arbitrum, base } from "viem/chains";
 import { describe, expect, it } from "vitest";
 
 import type { BuildQuoteRequest } from "../../src/core/schemas/quoteRequest.js";
+import { DifferentAssetNotAllowed } from "../../src/core/errors/DifferentAssetNotAllowed.exception.js";
 import { InsufficientFee } from "../../src/core/errors/InsufficientFee.exception.js";
 import { InvalidDeadline } from "../../src/core/errors/InvalidDeadline.exception.js";
 import { ZeroAmount } from "../../src/core/errors/ZeroAmount.exception.js";
@@ -74,6 +75,44 @@ describe("validateBuildQuoteParams", () => {
         });
     });
 
+    describe("same-asset requirement", () => {
+        it("rejects different asset on same chain", () => {
+            const params = buildParams({
+                input: { chainId: 1, assetAddress: USDC_MAINNET, amount: "1000000" },
+                output: { chainId: 1, assetAddress: USDT_MAINNET, amount: "2000000" },
+            });
+            expect(() => validate(params)).toThrow(DifferentAssetNotAllowed);
+            expect(() => validate(params)).toThrow("same-asset transfers");
+        });
+
+        it("rejects cross-chain different assets", () => {
+            const params = buildParams({
+                input: { chainId: base.id, assetAddress: USDC_BASE, amount: "1000000" },
+                output: { chainId: arbitrum.id, assetAddress: WETH_ARBITRUM, amount: "2000000" },
+            });
+            expect(() => validate(params, KNOWN_TOKEN_METADATA)).toThrow(DifferentAssetNotAllowed);
+            expect(() => validate(params, KNOWN_TOKEN_METADATA)).toThrow("same-asset transfers");
+        });
+
+        it("allows cross-chain when tokenMetadata is unavailable (unknown relationship)", () => {
+            const params = buildParams({
+                input: { chainId: 1, assetAddress: USDC_MAINNET, amount: "1000000" },
+                output: { chainId: 10, assetAddress: USDC_OPTIMISM, amount: "2000000" },
+            });
+            expect(() => validate(params)).not.toThrow();
+        });
+
+        it("compares same-chain addresses case-insensitively", () => {
+            const upper = ("0x" + USDC_MAINNET.slice(2).toUpperCase()) as Address;
+            const lower = USDC_MAINNET.toLowerCase() as Address;
+            const params = buildParams({
+                input: { chainId: 1, assetAddress: upper, amount: "1000000" },
+                output: { chainId: 1, assetAddress: lower, amount: "990000" },
+            });
+            expect(() => validate(params)).not.toThrow();
+        });
+    });
+
     describe("fee margin", () => {
         it("rejects same-token output >= input (equal)", () => {
             expect(() => validate(sameTokenParams("1000000", "1000000"))).toThrow(InsufficientFee);
@@ -83,46 +122,12 @@ describe("validateBuildQuoteParams", () => {
             expect(() => validate(sameTokenParams("1000000", "990000"))).not.toThrow();
         });
 
-        it("skips check for different asset on same chain", () => {
-            const params = buildParams({
-                input: { chainId: 1, assetAddress: USDC_MAINNET, amount: "1000000" },
-                output: { chainId: 1, assetAddress: USDT_MAINNET, amount: "2000000" },
-            });
-            expect(() => validate(params)).not.toThrow();
-        });
-
-        it("compares addresses case-insensitively", () => {
-            const upper = ("0x" + USDC_MAINNET.slice(2).toUpperCase()) as Address;
-            const lower = USDC_MAINNET.toLowerCase() as Address;
-            const params = buildParams({
-                input: { chainId: 1, assetAddress: upper, amount: "1000000" },
-                output: { chainId: 1, assetAddress: lower, amount: "1000000" },
-            });
-            expect(() => validate(params)).toThrow(InsufficientFee);
-        });
-
         it("rejects cross-chain same asset with output >= input", () => {
             const params = buildParams({
                 input: { chainId: base.id, assetAddress: USDC_BASE, amount: "1000000" },
                 output: { chainId: arbitrum.id, assetAddress: USDC_ARBITRUM, amount: "1000000" },
             });
             expect(() => validate(params, KNOWN_TOKEN_METADATA)).toThrow(InsufficientFee);
-        });
-
-        it("skips fee check for cross-chain different assets", () => {
-            const params = buildParams({
-                input: { chainId: base.id, assetAddress: USDC_BASE, amount: "1000000" },
-                output: { chainId: arbitrum.id, assetAddress: WETH_ARBITRUM, amount: "2000000" },
-            });
-            expect(() => validate(params, KNOWN_TOKEN_METADATA)).not.toThrow();
-        });
-
-        it("skips cross-chain fee check when tokenMetadata is empty", () => {
-            const params = buildParams({
-                input: { chainId: 1, assetAddress: USDC_MAINNET, amount: "1000000" },
-                output: { chainId: 10, assetAddress: USDC_OPTIMISM, amount: "2000000" },
-            });
-            expect(() => validate(params)).not.toThrow();
         });
     });
 
@@ -159,6 +164,15 @@ describe("validateBuildQuoteParams", () => {
                 input: { chainId: 1, assetAddress: USDC_MAINNET, amount: "0" },
                 output: { chainId: 1, assetAddress: USDC_MAINNET, amount: "0" },
                 fillDeadline: NOW - 100,
+                allowDangerousParameters: true,
+            });
+            expect(() => validate(params)).not.toThrow();
+        });
+
+        it("bypasses different-asset restriction when enabled", () => {
+            const params = buildParams({
+                input: { chainId: 1, assetAddress: USDC_MAINNET, amount: "1000000" },
+                output: { chainId: 1, assetAddress: USDT_MAINNET, amount: "2000000" },
                 allowDangerousParameters: true,
             });
             expect(() => validate(params)).not.toThrow();
