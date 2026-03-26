@@ -185,16 +185,15 @@ describe("adaptQuotes", () => {
 
         const quotes = adaptQuotes(response as never, PROVIDER_ID);
 
-        // quotes[0] is autoRoute (singular, Bungee-recommended)
-        expect(quotes[0]!.quoteId).toBe("quote-abc");
+        // Sorted by output: route-B (1500000) first, then quote-abc (999000)
+        expect(quotes[0]!.quoteId).toBe("route-B");
         expect((quotes[0]!.metadata?.bungeeAutoRoute as Record<string, unknown>).quoteId).toBe(
-            "quote-abc",
+            "route-B",
         );
 
-        // quotes[1] is route-B from autoRoutes[]
-        expect(quotes[1]!.quoteId).toBe("route-B");
+        expect(quotes[1]!.quoteId).toBe("quote-abc");
         expect((quotes[1]!.metadata?.bungeeAutoRoute as Record<string, unknown>).quoteId).toBe(
-            "route-B",
+            "quote-abc",
         );
     });
 
@@ -221,7 +220,7 @@ describe("adaptQuotes", () => {
         expect(quotes).toHaveLength(2);
     });
 
-    it("preserves Bungee route order with autoRoute first", () => {
+    it("sorts quotes by output amount descending (best first)", () => {
         const response = buildBungeeQuoteResponse();
         (response.result as Record<string, unknown>).autoRoutes = [
             buildAutoRoute({
@@ -237,9 +236,8 @@ describe("adaptQuotes", () => {
         const quotes = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quotes).toHaveLength(3);
-        // autoRoute (singular) comes first regardless of output amount
-        expect(quotes[0]!.quoteId).toBe("quote-abc");
-        expect(quotes[1]!.quoteId).toBe("quote-best");
+        expect(quotes[0]!.quoteId).toBe("quote-best");
+        expect(quotes[1]!.quoteId).toBe("quote-abc");
         expect(quotes[2]!.quoteId).toBe("quote-worst");
     });
 

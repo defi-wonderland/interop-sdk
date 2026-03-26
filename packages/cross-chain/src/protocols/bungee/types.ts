@@ -22,6 +22,14 @@ export const BungeeConfigSchema = z.object({
     apiKey: z.string().optional(),
     /** Bungee affiliate ID for tracking (sent via `affiliate` header). */
     affiliateId: z.string().optional(),
+    /** Fee in basis points charged on the source amount (e.g. `"50"` for 0.5%). */
+    feeBps: z.string().optional(),
+    /** Address to receive the convenience fee. Required when `feeBps` is set. */
+    feeTakerAddress: z.string().optional(),
+    /** Force onchain transaction flow (BungeeInbox) instead of permit2 signatures. */
+    useInbox: z.boolean().optional(),
+    /** Request timeout in milliseconds. Defaults to 15000 (15s). */
+    timeout: z.number().optional(),
 });
 
 /** Configuration options for {@link BungeeProvider}. */

@@ -11,6 +11,7 @@ import type {
     QuoteRequest,
     SubmitOrderResponse,
 } from "../../internal.js";
+import type { BungeeQuoteOptions } from "./adapters/quoteRequestAdapter.js";
 import type { BungeeConfigs } from "./types.js";
 import {
     CrossChainProvider,
@@ -45,6 +46,7 @@ export class BungeeProvider extends CrossChainProvider {
     private readonly baseUrl: string;
     private readonly apiService: BungeeApiService;
     private readonly apiHeaders: Record<string, string>;
+    private readonly quoteOptions: BungeeQuoteOptions;
 
     constructor(config: BungeeConfigs = {}) {
         super();
@@ -61,7 +63,18 @@ export class BungeeProvider extends CrossChainProvider {
             if (parsed.affiliateId) {
                 this.apiHeaders["affiliate"] = parsed.affiliateId;
             }
-            this.http = axios.create({ baseURL: this.baseUrl, headers: this.apiHeaders });
+
+            this.quoteOptions = {
+                feeBps: parsed.feeBps,
+                feeTakerAddress: parsed.feeTakerAddress,
+                useInbox: parsed.useInbox,
+            };
+
+            this.http = axios.create({
+                baseURL: this.baseUrl,
+                headers: this.apiHeaders,
+                timeout: parsed.timeout ?? 15_000,
+            });
             this.apiService = new BungeeApiService(this.http);
         } catch (error) {
             if (error instanceof ZodError) {
@@ -82,11 +95,11 @@ export class BungeeProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      *
-     * Returns quotes from auto routes. The recommended route is first.
+     * Returns quotes from auto routes, sorted by output amount (best first).
      */
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
         try {
-            const bungeeParams = adaptQuoteRequest(params);
+            const bungeeParams = adaptQuoteRequest(params, this.quoteOptions);
             const response = await this.apiService.getQuote(bungeeParams);
 
             return adaptQuotes(response, this.providerId);

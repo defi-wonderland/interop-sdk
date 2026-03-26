@@ -69,6 +69,14 @@ export class BungeeApiService {
         ErrorClass: new (message: string, cause?: string, stack?: string) => Error,
         operation: string,
     ): never {
+        if (error instanceof AxiosError && error.response?.status === 429) {
+            throw new ErrorClass(
+                `Bungee rate limit exceeded`,
+                `Too many requests (429) for ${operation}`,
+                error.stack,
+            );
+        }
+
         const cause =
             error instanceof AxiosError
                 ? (this.extractApiMessage(error) ?? error.message)
@@ -83,9 +91,31 @@ export class BungeeApiService {
         );
     }
 
-    /** Try to read the `message` field from a Bungee API error response body. */
+    /**
+     * Extract an error message from a Bungee API error response body.
+     *
+     * Handles both flat string messages and nested error objects:
+     * - `{ "message": "error string" }`
+     * - `{ "message": { "error": "...", "details": { "error": { "message": "...", "code": "..." } } } }`
+     */
     private extractApiMessage(error: AxiosError): string | undefined {
-        const message = (error.response?.data as { message?: unknown })?.message;
-        return typeof message === "string" ? message : undefined;
+        const data = error.response?.data as { message?: unknown } | undefined;
+        const message = data?.message;
+
+        if (typeof message === "string") return message;
+
+        if (typeof message === "object" && message !== null) {
+            const msg = message as {
+                error?: string;
+                details?: { error?: { message?: string; code?: string } };
+            };
+            const parts: string[] = [];
+            if (msg.error) parts.push(msg.error);
+            if (msg.details?.error?.message) parts.push(msg.details.error.message);
+            if (msg.details?.error?.code) parts.push(`code: ${msg.details.error.code}`);
+            if (parts.length > 0) return parts.join(" — ");
+        }
+
+        return undefined;
     }
 }

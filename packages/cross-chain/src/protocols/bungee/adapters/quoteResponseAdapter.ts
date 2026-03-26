@@ -18,14 +18,24 @@ import { adaptFees } from "./quoteFeeAdapter.js";
  */
 export function adaptQuotes(response: BungeeQuoteResponse, providerId: string): Quote[] {
     const result = response.result;
-    const quotes: Quote[] = [];
 
     const autoRoutes = collectAutoRoutes(result);
-    for (const autoRoute of autoRoutes) {
-        quotes.push(adaptAutoRouteQuote(response, autoRoute, providerId));
-    }
+    const quotes = autoRoutes.map((autoRoute) =>
+        adaptAutoRouteQuote(response, autoRoute, providerId),
+    );
 
-    return quotes;
+    return sortByOutputAmount(quotes);
+}
+
+/** Sort quotes by output amount descending (best output first). */
+function sortByOutputAmount(quotes: Quote[]): Quote[] {
+    return quotes.sort((a, b) => {
+        const amountA = BigInt(a.preview.outputs[0]?.amount ?? "0");
+        const amountB = BigInt(b.preview.outputs[0]?.amount ?? "0");
+        if (amountA > amountB) return -1;
+        if (amountA < amountB) return 1;
+        return 0;
+    });
 }
 
 /** Collect all auto routes from the response, deduplicating singular + array forms. */

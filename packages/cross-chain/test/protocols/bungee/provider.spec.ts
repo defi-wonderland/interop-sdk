@@ -260,15 +260,15 @@ describe("BungeeProvider", () => {
             mockGet.mockResolvedValue({ data: quoteResponse });
             const quotes = await provider.getQuotes(makeQuoteRequest());
 
-            // quotes[1] is route-better (autoRoute is first, route-better is second)
-            expect(quotes[1]!.quoteId).toBe("route-better");
+            // Sorted by output: route-better (1500000) is first
+            expect(quotes[0]!.quoteId).toBe("route-better");
 
             mockPost.mockResolvedValue({
                 data: { success: true, statusCode: 200, result: { hash: "0xsubmithash" } },
             });
 
-            // Submit with the second quote (route-better)
-            await provider.submitOrder(quotes[1]!, "0xsignature");
+            // Submit with route-better (first quote after sorting)
+            await provider.submitOrder(quotes[0]!, "0xsignature");
 
             // Should submit with route-better's witness from bungeeAutoRoute metadata
             expect(mockPost).toHaveBeenCalledWith(

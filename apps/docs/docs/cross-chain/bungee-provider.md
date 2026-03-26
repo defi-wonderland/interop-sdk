@@ -23,13 +23,17 @@ Bungee offers three integration tiers, each with a different base URL and authen
 
 ## Configuration
 
-| Field         | Type            | Required | Description                                                                  |
-| ------------- | --------------- | -------- | ---------------------------------------------------------------------------- |
-| `tier`        | `BungeeApiTier` | No       | API tier: `"sandbox"`, `"dedicated"`, or `"frontend"` (default: `"sandbox"`) |
-| `baseUrl`     | string          | No       | Custom API base URL. Overrides the URL derived from `tier`                   |
-| `providerId`  | string          | No       | Custom provider identifier (default: `"bungee"`)                             |
-| `apiKey`      | string          | No       | API key for dedicated backend (sent via `x-api-key` header)                  |
-| `affiliateId` | string          | No       | Affiliate ID for tracking (sent via `affiliate` header)                      |
+| Field             | Type            | Required | Description                                                                  |
+| ----------------- | --------------- | -------- | ---------------------------------------------------------------------------- |
+| `tier`            | `BungeeApiTier` | No       | API tier: `"sandbox"`, `"dedicated"`, or `"frontend"` (default: `"sandbox"`) |
+| `baseUrl`         | string          | No       | Custom API base URL. Overrides the URL derived from `tier`                   |
+| `providerId`      | string          | No       | Custom provider identifier (default: `"bungee"`)                             |
+| `apiKey`          | string          | No       | API key for dedicated backend (sent via `x-api-key` header)                  |
+| `affiliateId`     | string          | No       | Affiliate ID for tracking (sent via `affiliate` header)                      |
+| `feeBps`          | string          | No       | Convenience fee in basis points (e.g. `"50"` for 0.5%)                       |
+| `feeTakerAddress` | string          | No       | Address to receive the convenience fee. Required when `feeBps` is set        |
+| `useInbox`        | boolean         | No       | Force onchain tx flow (BungeeInbox) instead of permit2 signatures            |
+| `timeout`         | number          | No       | Request timeout in milliseconds (default: 15000)                             |
 
 ## Creating the Provider
 
