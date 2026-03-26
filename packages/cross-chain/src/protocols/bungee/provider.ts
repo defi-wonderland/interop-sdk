@@ -68,6 +68,8 @@ export class BungeeProvider extends CrossChainProvider {
                 feeBps: parsed.feeBps,
                 feeTakerAddress: parsed.feeTakerAddress,
                 useInbox: parsed.useInbox,
+                slippage: parsed.slippage,
+                refuel: parsed.refuel,
             };
 
             this.http = axios.create({

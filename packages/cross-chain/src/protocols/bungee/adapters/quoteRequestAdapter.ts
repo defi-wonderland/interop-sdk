@@ -8,6 +8,8 @@ export interface BungeeQuoteOptions {
     feeBps?: string;
     feeTakerAddress?: string;
     useInbox?: boolean;
+    slippage?: string;
+    refuel?: boolean;
 }
 
 /**
@@ -42,6 +44,8 @@ export function adaptQuoteRequest(
     if (options.feeBps) request.feeBps = options.feeBps;
     if (options.feeTakerAddress) request.feeTakerAddress = options.feeTakerAddress;
     if (options.useInbox) request.useInbox = "true";
+    if (options.slippage) request.slippage = options.slippage;
+    if (options.refuel) request.refuel = "true";
 
     return BungeeQuoteRequestSchema.parse(request);
 }

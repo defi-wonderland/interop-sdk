@@ -28,6 +28,10 @@ export const BungeeConfigSchema = z.object({
     feeTakerAddress: z.string().optional(),
     /** Force onchain transaction flow (BungeeInbox) instead of permit2 signatures. */
     useInbox: z.boolean().optional(),
+    /** Default slippage tolerance for quotes (e.g. `"0.5"` for 0.5%). */
+    slippage: z.string().optional(),
+    /** Enable native gas refueling on the destination chain. */
+    refuel: z.boolean().optional(),
 });
 
 /** Configuration options for {@link BungeeProvider}. */

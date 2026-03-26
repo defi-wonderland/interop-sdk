@@ -72,4 +72,47 @@ describe("adaptQuoteRequest", () => {
 
         expect(() => adaptQuoteRequest(request)).toThrow(ProviderGetQuoteFailure);
     });
+
+    it("forwards feeBps and feeTakerAddress from options", () => {
+        const request = buildQuoteRequest();
+        const result = adaptQuoteRequest(request, {
+            feeBps: "50",
+            feeTakerAddress: "0xfee",
+        });
+
+        expect(result.feeBps).toBe("50");
+        expect(result.feeTakerAddress).toBe("0xfee");
+    });
+
+    it("sets useInbox when option is true", () => {
+        const request = buildQuoteRequest();
+        const result = adaptQuoteRequest(request, { useInbox: true });
+
+        expect(result.useInbox).toBe("true");
+    });
+
+    it("forwards slippage from options", () => {
+        const request = buildQuoteRequest();
+        const result = adaptQuoteRequest(request, { slippage: "0.5" });
+
+        expect(result.slippage).toBe("0.5");
+    });
+
+    it("sets refuel when option is true", () => {
+        const request = buildQuoteRequest();
+        const result = adaptQuoteRequest(request, { refuel: true });
+
+        expect(result.refuel).toBe("true");
+    });
+
+    it("omits optional fields when options are not provided", () => {
+        const request = buildQuoteRequest();
+        const result = adaptQuoteRequest(request);
+
+        expect(result.feeBps).toBeUndefined();
+        expect(result.feeTakerAddress).toBeUndefined();
+        expect(result.useInbox).toBeUndefined();
+        expect(result.slippage).toBeUndefined();
+        expect(result.refuel).toBeUndefined();
+    });
 });

@@ -33,11 +33,15 @@ Bungee offers three integration tiers, each with a different base URL and authen
 | `feeBps`          | string          | No       | Convenience fee in basis points (e.g. `"50"` for 0.5%)                       |
 | `feeTakerAddress` | string          | No       | Address to receive the convenience fee. Required when `feeBps` is set        |
 | `useInbox`        | boolean         | No       | Force onchain tx flow (BungeeInbox) instead of permit2 signatures            |
+| `slippage`        | string          | No       | Default slippage tolerance (e.g. `"0.5"` for 0.5%)                           |
+| `refuel`          | boolean         | No       | Enable native gas refueling on the destination chain                         |
 
 Notes:
 
 -   `baseUrl` overrides the URL derived from `tier`.
 -   `feeBps` and `feeTakerAddress` must be set together. The fee is deducted from the output amount.
+-   `slippage` sets the default tolerance for all quotes. If not set, Bungee uses its own default.
+-   `refuel` tops up native gas on the destination chain so the user can transact immediately after bridging.
 
 ## Creating the Provider
 
@@ -131,6 +135,26 @@ const quotes = await bungeeProvider.getQuotes({
 
 const quote = quotes[0];
 // quote.metadata.bungeeAutoRoute.affiliateFee contains the fee details
+```
+
+### With Slippage
+
+Set a custom slippage tolerance for quotes:
+
+```typescript
+const bungeeProvider = createCrossChainProvider("bungee", {
+    slippage: "0.5", // 0.5% tolerance
+});
+```
+
+### With Refuel
+
+Enable native gas refueling so the user receives a small amount of native token on the destination chain:
+
+```typescript
+const bungeeProvider = createCrossChainProvider("bungee", {
+    refuel: true,
+});
 ```
 
 ### With Custom Base URL
