@@ -236,6 +236,80 @@ test.describe('Address menu', () => {
   });
 });
 
+// TODO: re-enable when buildQuote tab is restored (EFI-856)
+test.describe.skip('Build quote fee display', () => {
+  test('shows fee percentage for same-token with output < input', async ({ page }) => {
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+
+    await page.getByLabel('You send').fill('1');
+    await page.getByLabel('You receive').fill('0.99');
+
+    await expect(page.getByTestId('fee-display')).toBeVisible();
+    await expect(page.getByTestId('fee-hint')).not.toBeVisible();
+  });
+
+  test('shows warning when output equals input for same token', async ({ page }) => {
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+
+    await page.getByLabel('You send').fill('1');
+    await page.getByLabel('You receive').fill('1');
+
+    await expect(page.getByTestId('fee-warning')).toBeVisible();
+    await expect(page.getByTestId('fee-display')).not.toBeVisible();
+  });
+
+  test('shows default hint before output is filled', async ({ page }) => {
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+
+    await page.getByLabel('You send').fill('1');
+
+    await expect(page.getByTestId('fee-hint')).toBeVisible();
+  });
+});
+
+// TODO: re-enable when buildQuote tab is restored (EFI-856)
+test.describe.skip('Build Quote submit validation', () => {
+  test('should disable submit when "You receive" is empty', async ({ page }) => {
+    await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15000 });
+
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+    await page.getByLabel('You send').fill('10');
+
+    const submitBtn = page.locator('button[type="submit"]');
+    await expect(submitBtn).toBeDisabled();
+    await expect(submitBtn).toHaveText('Build Quote');
+  });
+
+  test('should disable submit when output >= input for same token', async ({ page }) => {
+    await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15000 });
+
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+
+    await page.getByLabel('You send').fill('1');
+    await page.getByLabel('You receive').fill('1');
+
+    await expect(page.getByTestId('fee-warning')).toBeVisible();
+    const submitBtn = page.locator('button[type="submit"]');
+    await expect(submitBtn).toBeDisabled();
+    await expect(submitBtn).toHaveText('Build Quote');
+  });
+});
+
 test.describe('Negative test', () => {
   test.beforeEach(async ({ page }) => {
     await page.evaluate(() => {

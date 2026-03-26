@@ -218,6 +218,9 @@ export class AcrossProvider extends CrossChainProvider {
                         transaction: {
                             to: response.swapTx.to,
                             data: response.swapTx.data,
+                            ...(response.swapTx.value && {
+                                value: response.swapTx.value,
+                            }),
                             ...(response.swapTx.gas &&
                                 response.swapTx.gas !== "0" && {
                                     gas: response.swapTx.gas,

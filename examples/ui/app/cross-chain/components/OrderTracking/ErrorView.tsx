@@ -15,12 +15,27 @@ function getMessage(state: ErrorViewProps['state']): string {
   return state.message;
 }
 
+function getTimeoutNotice(state: ErrorViewProps['state'], chainName: string | undefined): string | null {
+  if (state.step !== STEP.TIMEOUT) return null;
+  const lastStatus = state.update?.status;
+  const chain = chainName ?? 'the origin chain';
+
+  // If the order was already settled/executed, it likely completed - just tracking lost it
+  if (lastStatus === 'settled' || lastStatus === 'executed' || lastStatus === 'settling') {
+    return 'The order may have completed after tracking stopped. Check the origin transaction for details.';
+  }
+
+  // If still pending/created, it probably expired unfilled
+  return `If the order expired unfilled, your tokens will be refunded automatically to your wallet on ${chain}. This usually takes 1-3 hours.`;
+}
+
 export function ErrorView({ state, onReset }: ErrorViewProps) {
   const chainConfig = useChainConfig();
   const originChainId = 'originChainId' in state ? state.originChainId : undefined;
   const originChain = chainConfig.getChain(originChainId);
   const originTxUrl = chainConfig.getExplorerTxUrl(originChainId, state.txHash);
   const isTimeout = state.step === STEP.TIMEOUT;
+  const timeoutNotice = getTimeoutNotice(state, originChain?.name);
   const borderColor = isTimeout ? 'border-warning/30' : 'border-error/30';
   const bgColor = isTimeout ? 'bg-warning/5' : 'bg-error/5';
   const iconBg = isTimeout ? 'bg-warning' : 'bg-error';
@@ -44,6 +59,13 @@ export function ErrorView({ state, onReset }: ErrorViewProps) {
           <p className='text-sm text-text-secondary'>{formatMessageWithDate(getMessage(state))}</p>
         </div>
       </div>
+
+      {/* Context notice for timeouts */}
+      {timeoutNotice && (
+        <div className='p-3 rounded-lg bg-warning/10 border border-warning/20 mb-4'>
+          <p className='text-sm text-warning'>{timeoutNotice}</p>
+        </div>
+      )}
 
       {/* Transaction link if available */}
       {state.txHash && originTxUrl && (

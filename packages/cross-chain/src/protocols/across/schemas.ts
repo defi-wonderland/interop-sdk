@@ -49,6 +49,7 @@ export const AcrossSwapTxSchema = z.object({
     chainId: z.number(),
     to: HexAddressSchema,
     data: z.string().refine((data) => isHex(data), { message: "Invalid hex data" }),
+    value: z.string().optional(),
     gas: z.string().optional().default("0"),
     maxFeePerGas: z.string().optional(),
     maxPriorityFeePerGas: z.string().optional(),

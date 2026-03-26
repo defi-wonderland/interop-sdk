@@ -8,7 +8,7 @@ import { MINT_AMOUNT, useMintToken } from '../hooks/useMintToken';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { useRouteSelection } from '../hooks/useRouteSelection';
 import { useBalanceStore, type TokenBalance } from '../stores/balanceStore';
-import { isValidAmount, sanitizeAmountInput } from '../utils/amountValidation';
+import { formatFee, isValidAmount, normalizeAmount, sanitizeAmountInput } from '../utils/amountValidation';
 import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
 
@@ -63,7 +63,8 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   const [recipient, setRecipient] = useState('');
   const hasAutoFilledRef = useRef(false);
   const [inputAmount, setInputAmount] = useState('');
-  const [mode, setMode] = useState<SwapFormMode>('getQuotes');
+  // TODO: restore setMode when buildQuote tab is re-enabled (EFI-856)
+  const [mode] = useState<SwapFormMode>('getQuotes');
   const [outputAmount, setOutputAmount] = useState('');
   const [fillDeadlineSecs, setFillDeadlineSecs] = useState(DEADLINE_OPTIONS[0].value);
 
@@ -95,6 +96,21 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   }, [inputAmount, inputTokenInfo?.decimals, amountIsValid]);
 
   const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.raw);
+
+  const outputTokenInfo = outputTokenAddress ? tokenConfig.TOKEN_INFO[outputChainId]?.[outputTokenAddress] : null;
+  const isSameToken = Boolean(inputTokenInfo && outputTokenInfo && inputTokenInfo.symbol === outputTokenInfo.symbol);
+
+  const feeDisplay = useMemo(() => {
+    if (mode !== 'buildQuote' || !isSameToken) return null;
+    if (!isValidAmount(inputAmount) || !isValidAmount(outputAmount)) return null;
+    return formatFee(inputAmount, outputAmount);
+  }, [mode, inputAmount, outputAmount, isSameToken]);
+
+  const noFeeWarning = useMemo(() => {
+    if (mode !== 'buildQuote' || !isSameToken) return false;
+    if (!isValidAmount(inputAmount) || !isValidAmount(outputAmount)) return false;
+    return parseFloat(normalizeAmount(outputAmount)) >= parseFloat(normalizeAmount(inputAmount));
+  }, [mode, inputAmount, outputAmount, isSameToken]);
 
   const handleMaxClick = () => {
     if (!tokenBalance) return;
@@ -190,6 +206,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     !isLoading &&
     !isDisabled &&
     !hasInsufficientBalance &&
+    !noFeeWarning &&
     (mode === 'getQuotes' || (outputAmountIsValid && parsedOutputAmount > 0n));
 
   const isMintable = inputTokenInfo?.providers?.includes('oif') ?? false;
@@ -215,6 +232,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
       <div className='relative flex flex-col gap-6'>
         <WalletConnect />
 
+        {/* TODO: re-enable once buildQuote simulation issues are resolved (EFI-856)
         <div className='flex border border-border/50 rounded-xl'>
           <button
             type='button'
@@ -227,7 +245,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
               mode === 'getQuotes'
                 ? 'bg-accent text-white'
                 : 'bg-background/50 text-text-secondary hover:text-text-primary'
-            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             Get Quotes
           </button>
@@ -242,11 +260,12 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
               mode === 'buildQuote'
                 ? 'bg-accent text-white'
                 : 'bg-background/50 text-text-secondary hover:text-text-primary'
-            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             Build Quote
           </button>
         </div>
+        */}
 
         <div>
           <label htmlFor='recipient-address' className='text-sm font-medium text-text-secondary mb-2 block'>
@@ -383,7 +402,21 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
                 disabled={isDisabled}
                 className={`w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
-              <p className='text-xs text-text-tertiary mt-1'>Difference is the relayer fee</p>
+              {noFeeWarning && (
+                <p data-testid='fee-warning' className='text-xs text-error mt-1'>
+                  Output must be less than input to cover the solver fee
+                </p>
+              )}
+              {!noFeeWarning && feeDisplay && (
+                <p data-testid='fee-display' className='text-xs text-accent mt-1'>
+                  {feeDisplay}
+                </p>
+              )}
+              {!noFeeWarning && !feeDisplay && (
+                <p data-testid='fee-hint' className='text-xs text-text-tertiary mt-1'>
+                  Difference is the fee
+                </p>
+              )}
             </div>
           )}
         </div>

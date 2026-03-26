@@ -35,6 +35,11 @@ const SOLUTION_GROUPS: SolutionGroup[] = [
                     "Standardising a human-readable format for chain-specific addresses (e.g. vitalik.eth@arbitrum)",
                 url: "https://eips.ethereum.org/EIPS/eip-7828",
             },
+            {
+                name: "EIP-7888",
+                description: "Trustless storage-based message broadcasting for rollups",
+                url: "https://eips.ethereum.org/EIPS/eip-7888",
+            },
         ],
     },
     {

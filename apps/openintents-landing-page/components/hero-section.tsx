@@ -25,6 +25,10 @@ export function HeroSection() {
                     <p className="font-mono">in-tents, right?!</p>
                 </TooltipContent>
             </Tooltip>
+            <p className="text-muted-foreground text-center max-w-2xl mt-4 md:mt-6 leading-relaxed">
+                Improving the cross-chain user experience while maintaining freedom and minimising
+                trust.
+            </p>
         </section>
     );
 }

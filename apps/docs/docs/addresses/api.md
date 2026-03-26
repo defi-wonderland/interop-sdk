@@ -607,9 +607,9 @@ Represents a single chain entry returned by `getRegisteredChains`:
 
 ```typescript
 interface RegisteredChain {
-    label: string;          // Chain label in the registry (e.g., "optimism", "base")
-    name: string;           // Human-readable chain name (e.g., "OP Mainnet", "Base")
-    chainType: string;      // CAIP-2 chain type (e.g., "eip155", "solana", "bip122")
+    label: string; // Chain label in the registry (e.g., "optimism", "base")
+    name: string; // Human-readable chain name (e.g., "OP Mainnet", "Base")
+    chainType: string; // CAIP-2 chain type (e.g., "eip155", "solana", "bip122")
     chainReference: string; // CAIP-2 chain reference (e.g., "1", "10", "8453")
 }
 ```
@@ -620,7 +620,7 @@ Options for `getRegisteredChains`:
 
 ```typescript
 interface GetRegisteredChainsOptions {
-    rpcUrl?: string;  // Ethereum mainnet RPC URL. Falls back to MAINNET_RPC_URL env var.
+    rpcUrl?: string; // Ethereum mainnet RPC URL. Falls back to MAINNET_RPC_URL env var.
 }
 ```
 
