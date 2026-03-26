@@ -41,6 +41,7 @@ export function validateBuildQuoteParams(
 
 // ── Individual validators ───────────────────────────────────────────
 
+/** @throws ZeroAmount if input or output amount is zero. */
 function validateAmounts(params: BuildQuoteRequest): void {
     if (BigInt(params.input.amount) === 0n) {
         throw new ZeroAmount("input");
@@ -50,12 +51,14 @@ function validateAmounts(params: BuildQuoteRequest): void {
     }
 }
 
+/** @throws DifferentAssetNotAllowed if assets are confirmed different. */
 function validateSameAssetRequired(relationship: AssetRelationship): void {
     if (relationship === "different") {
         throw new DifferentAssetNotAllowed();
     }
 }
 
+/** @throws InsufficientFee if same-asset output amount >= input amount. */
 function validateFeeMargin(params: BuildQuoteRequest, relationship: AssetRelationship): void {
     if (relationship !== "same") return;
 
@@ -64,6 +67,7 @@ function validateFeeMargin(params: BuildQuoteRequest, relationship: AssetRelatio
     }
 }
 
+/** @throws InvalidDeadline if deadline is in the past or too soon. */
 function validateDeadline(fillDeadline: number, nowSeconds: number): void {
     if (fillDeadline <= nowSeconds) {
         throw new InvalidDeadline(fillDeadline, nowSeconds, "past");
@@ -100,6 +104,7 @@ function resolveAssetRelationship(
     );
 }
 
+/** @throws UnsupportedAddress if addresses are not valid EVM addresses. */
 function compareSameChainAssets(inputAddress: string, outputAddress: string): AssetRelationship {
     try {
         return isAddressEqual(inputAddress as Address, outputAddress as Address)
