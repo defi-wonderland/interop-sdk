@@ -44,7 +44,7 @@ function mapBuildStatusToQuoteStatus(buildStatus: BuildQuoteStatus): QuoteStatus
   }
 }
 
-export function CrossChainClient() {
+export default function CrossChainClient() {
   const { quotes, errors, status: quoteStatus, fetchQuotes, clearQuotes } = useQuotes();
   const {
     quote: builtQuote,

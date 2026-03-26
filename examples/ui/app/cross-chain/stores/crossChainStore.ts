@@ -30,14 +30,6 @@ export const useCrossChainStore = create<CrossChainState>((set, get) => ({
       url.searchParams.delete(TESTNET_QUERY_PARAM);
     }
     window.history.replaceState({}, '', url.toString());
-
     set({ isTestnet, executor: buildExecutor(isTestnet) });
   },
 }));
-
-export function initializeNetwork(isTestnet: boolean): void {
-  const state = useCrossChainStore.getState();
-  if (state.isTestnet !== isTestnet) {
-    useCrossChainStore.setState({ isTestnet, executor: buildExecutor(isTestnet) });
-  }
-}
