@@ -2,7 +2,7 @@
 title: Bungee Provider
 ---
 
-The Bungee Protocol provider enables cross-chain token transfers using the Bungee bridge infrastructure, supporting both gasless permit2 flows (ERC20) and standard transactions (native ETH).
+The Bungee Protocol provider enables cross-chain token transfers using the Bungee bridge infrastructure, supporting both gasless permit2 flows (ERC20) and onchain transactions (native ETH or via BungeeInbox).
 
 **Status**: Active (mainnet)
 
@@ -34,6 +34,11 @@ Bungee offers three integration tiers, each with a different base URL and authen
 | `feeTakerAddress` | string          | No       | Address to receive the convenience fee. Required when `feeBps` is set        |
 | `useInbox`        | boolean         | No       | Force onchain tx flow (BungeeInbox) instead of permit2 signatures            |
 
+Notes:
+
+-   `baseUrl` overrides the URL derived from `tier`.
+-   `feeBps` and `feeTakerAddress` must be set together. The fee is deducted from the output amount.
+
 ## Creating the Provider
 
 ```typescript
@@ -49,11 +54,6 @@ const bungeeProvider = createCrossChainProvider("bungee", {
     affiliateId: "your-affiliate-id",
 });
 
-// Frontend / direct — domain-whitelisted, no API key
-const bungeeProvider = createCrossChainProvider("bungee", {
-    tier: BungeeApiTier.Frontend,
-});
-
 // Custom base URL — overrides the tier URL
 const bungeeProvider = createCrossChainProvider("bungee", {
     baseUrl: "https://my-proxy.example.com",
@@ -62,22 +62,86 @@ const bungeeProvider = createCrossChainProvider("bungee", {
 
 ## Getting Quotes
 
+### Default (Permit2)
+
+ERC20 transfers use the permit2 signature flow by default. The quote returns a signature step:
+
 ```typescript
 const quotes = await bungeeProvider.getQuotes({
     user: "0xYourAddress",
     input: {
         chainId: 10, // Optimism
-        assetAddress: "0xInputTokenAddress",
-        amount: "1000000000000000000", // 1 token (in wei)
+        assetAddress: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", // USDC
+        amount: "1000000", // 1 USDC
     },
     output: {
-        chainId: 42161, // Arbitrum
-        assetAddress: "0xOutputTokenAddress",
+        chainId: 8453, // Base
+        assetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
     },
-    swapType: "exact-input",
 });
 
-const quote = quotes[0]; // Select the first quote
+const quote = quotes[0];
+```
+
+### With `useInbox` (Onchain)
+
+Force the onchain transaction flow instead of permit2. The quote returns a transaction step:
+
+```typescript
+const bungeeProvider = createCrossChainProvider("bungee", { useInbox: true });
+
+const quotes = await bungeeProvider.getQuotes({
+    user: "0xYourAddress",
+    input: {
+        chainId: 8453, // Base
+        assetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
+        amount: "1000000",
+    },
+    output: {
+        chainId: 10, // Optimism
+        assetAddress: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", // USDC
+    },
+});
+
+const quote = quotes[0];
+```
+
+### With Convenience Fee
+
+Charge an affiliate fee deducted from the output amount:
+
+```typescript
+const bungeeProvider = createCrossChainProvider("bungee", {
+    feeBps: "50", // 0.5%
+    feeTakerAddress: "0xYourFeeReceiverAddress",
+});
+
+const quotes = await bungeeProvider.getQuotes({
+    user: "0xYourAddress",
+    input: {
+        chainId: 10,
+        assetAddress: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+        amount: "1000000",
+    },
+    output: {
+        chainId: 8453,
+        assetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    },
+});
+
+const quote = quotes[0];
+// quote.metadata.bungeeAutoRoute.affiliateFee contains the fee details
+```
+
+### With Custom Base URL
+
+Override the tier URL with a custom endpoint:
+
+```typescript
+const bungeeProvider = createCrossChainProvider("bungee", {
+    tier: BungeeApiTier.Dedicated,
+    baseUrl: "https://public-backend.bungee.exchange", // overrides dedicated URL
+});
 ```
 
 ## Fees
@@ -94,51 +158,40 @@ See the [API reference](./api.md#quotefees) for the full `QuoteFees` type.
 
 ## Executing Transactions
 
-Bungee supports two execution modes depending on the asset type:
-
-### Native ETH (User Mode — Transaction)
-
-For native ETH transfers, the user sends a transaction directly:
+Bungee quotes can return either a **signature step** (permit2, default for ERC20) or a **transaction step** (native ETH or `useInbox: true`). Use `getSignatureSteps` and `getTransactionSteps` to handle both:
 
 ```typescript
-import { getTransactionSteps } from "@wonderland/interop-cross-chain";
-import { createWalletClient, http } from "viem";
-import { optimism } from "viem/chains";
+import { getSignatureSteps, getTransactionSteps } from "@wonderland/interop-cross-chain";
 
-const walletClient = createWalletClient({
-    chain: optimism,
-    transport: http(),
-    account: yourAccount,
-});
+const sigSteps = getSignatureSteps(quote.order);
+const txSteps = getTransactionSteps(quote.order);
 
-const step = getTransactionSteps(quote.order)[0];
-const hash = await walletClient.sendTransaction({
-    to: step.transaction.to,
-    data: step.transaction.data,
-    value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
-});
-console.log("Transaction sent:", hash);
+if (sigSteps.length > 0) {
+    // Permit2 flow: sign + submit
+    const step = sigSteps[0];
+    const { signatureType, ...typedData } = step.signaturePayload;
+    const signature = await walletClient.signTypedData(typedData);
+    await bungeeProvider.submitOrder(quote, signature);
+} else if (txSteps.length > 0) {
+    // Onchain flow: send transaction directly
+    const step = txSteps[0];
+    await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+        value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+    });
+}
 ```
 
-### ERC20 (Protocol Mode — Permit2 Signature)
+## Approvals
 
-For ERC20 transfers, the user signs a permit2 message and the protocol submits the order:
+Access approval information from the order checks:
 
 ```typescript
-import { getSignatureSteps } from "@wonderland/interop-cross-chain";
-import { createWalletClient, http } from "viem";
-import { optimism } from "viem/chains";
-
-const walletClient = createWalletClient({
-    chain: optimism,
-    transport: http(),
-    account: yourAccount,
-});
-
-const step = getSignatureSteps(quote.order)[0];
-const { signatureType, ...typedData } = step.signaturePayload;
-const signature = await walletClient.signTypedData(typedData);
-await bungeeProvider.submitOrder(quote, signature);
+const allowances = quote.order.checks?.allowances ?? [];
+for (const { spender, tokenAddress, required } of allowances) {
+    // Approve token spend if needed
+}
 ```
 
 ## Tracking
@@ -146,7 +199,7 @@ await bungeeProvider.submitOrder(quote, signature);
 Bungee uses API-based tracking. The SDK polls the status endpoint at a 5-second interval:
 
 ```
-GET /api/v1/bungee/status?requestHash=<txHashOrOrderId>
+GET /api/v1/bungee/status?requestHash=<orderId>
 ```
 
 No extra RPC URLs are needed — tracking is handled entirely through the Bungee API.

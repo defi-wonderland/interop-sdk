@@ -1,3 +1,4 @@
+import type { OrderChecks } from "../../../core/schemas/order.js";
 import type { Quote, Step } from "../../../internal.js";
 import type {
     BungeeApprovalData,
@@ -52,7 +53,7 @@ function adaptAutoRouteQuote(
     const result = response.result;
     const steps = buildAutoRouteSteps(autoRoute, result.originChainId);
     const fees = adaptFees(autoRoute);
-    const allowances = buildAllowancesFromApprovalData(
+    const allowances = extractAllowances(
         autoRoute.approvalData,
         result.originChainId,
         result.input.amount,
@@ -149,17 +150,11 @@ function buildTransactionStep(autoRoute: BungeeAutoRoute): Step {
  * Uses `inputAmount` instead of `approvalData.amount` — Bungee returns a post-fee
  * approval amount that causes TRANSFER_FROM_FAILED errors on-chain.
  */
-function buildAllowancesFromApprovalData(
+function extractAllowances(
     approvalData: BungeeApprovalData | null | undefined,
     originChainId: number,
     inputAmount: string,
-): Array<{
-    chainId: number;
-    tokenAddress: string;
-    owner: string;
-    spender: string;
-    required: string;
-}> {
+): NonNullable<OrderChecks["allowances"]> {
     if (!approvalData) return [];
 
     const { spenderAddress, tokenAddress, userAddress } = approvalData;
