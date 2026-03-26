@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { crossChainExecutor } from '../services/sdk';
+import { useCrossChainStore } from '../stores/crossChainStore';
 import type { DiscoveredAssets, UITokenInfo } from '../types/assets';
 import type { DiscoveredAssets as SdkDiscoveredAssets } from '@wonderland/interop-cross-chain';
 
@@ -76,6 +76,7 @@ function transformToUiAssets(sdkAssets: SdkDiscoveredAssets): DiscoveredAssets {
  */
 export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boolean }): UseAssetDiscoveryResult {
   const { chainIds, enabled = true } = options ?? {};
+  const executor = useCrossChainStore((s) => s.executor);
 
   const [assets, setAssets] = useState<DiscoveredAssets | null>(null);
   const [isLoading, setIsLoading] = useState(enabled);
@@ -88,7 +89,7 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
     setError(null);
 
     try {
-      const sdkAssets = await crossChainExecutor.discoverAssets({ chainIds });
+      const sdkAssets = await executor.discoverAssets({ chainIds });
 
       if (Object.keys(sdkAssets.tokensByChain).length === 0) {
         throw new Error('No assets discovered from any provider');
@@ -100,10 +101,11 @@ export function useAssetDiscovery(options?: { chainIds?: number[]; enabled?: boo
     } finally {
       setIsLoading(false);
     }
-  }, [enabled, chainIds]);
+  }, [enabled, chainIds, executor]);
 
   useEffect(() => {
     if (enabled) {
+      setAssets(null);
       fetchAssets();
     }
   }, [enabled, fetchAssets]);

@@ -1,5 +1,5 @@
 import { isNativeAddress, getTransactionSteps, type ExecutableQuote } from '@wonderland/interop-cross-chain';
-import { crossChainExecutor } from '../sdk';
+import { useCrossChainStore } from '../../stores/crossChainStore';
 import { handleTokenApproval } from './approval';
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
@@ -46,7 +46,7 @@ export const submitOifSignableOrder = async ({
   }
 
   const { orderId } = await signAndSubmitOrder({
-    executor: crossChainExecutor,
+    executor: useCrossChainStore.getState().executor,
     walletClient,
     quote,
     chainContext,

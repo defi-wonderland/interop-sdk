@@ -1,16 +1,14 @@
-import { CrossChainClient } from './CrossChainClient';
+'use client';
+
+import dynamic from 'next/dynamic';
 import { Providers } from './providers';
 
-interface PageProps {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}
+// Client-only: wallet connection and store state depend on window, skip SSR
+const CrossChainClient = dynamic(() => import('./CrossChainClient'), { ssr: false });
 
-export default async function CrossChainPage({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const isTestnet = params.testnet === 'true';
-
+export default function CrossChainPage() {
   return (
-    <Providers isTestnet={isTestnet}>
+    <Providers>
       <CrossChainClient />
     </Providers>
   );
