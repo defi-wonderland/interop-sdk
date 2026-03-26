@@ -47,7 +47,7 @@ sequenceDiagram
     rpc-->>-dev: Transaction Hash
 
     Note over dev,tracker: 3. Track
-    dev->>+tracker: watch(txHash, chains)
+    dev->>+tracker: watchOrder(txHash, chains)
     loop Until Finalized / Failed / Refunded
         tracker->>tracker: Check status
         tracker-->>dev: Status Update

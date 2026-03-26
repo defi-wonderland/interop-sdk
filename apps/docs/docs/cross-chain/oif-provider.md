@@ -112,6 +112,7 @@ const quotes = await oifProvider.getQuotes({
 
 const quote = quotes[0];
 const step = getTransactionSteps(quote.order)[0];
+// walletClient: a viem WalletClient connected to the user's wallet
 await walletClient.sendTransaction({
     to: step.transaction.to,
     data: step.transaction.data,
