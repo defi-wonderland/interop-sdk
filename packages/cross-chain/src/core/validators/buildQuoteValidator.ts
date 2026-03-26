@@ -16,15 +16,7 @@ type AssetRelationship = "same" | "different" | "unknown";
 /**
  * Validates build-quote parameters for common safety issues.
  *
- * Skipped when `allowDangerousParameters` is set on the request.
- *
- * @param params - The build quote request to validate
- * @param tokenMetadata - Token metadata indexed by chainId then lowercase address (from asset discovery)
- * @param nowSeconds - Current unix timestamp in seconds (injectable for testing)
- * @throws ZeroAmount if input or output amount is zero
- * @throws DifferentAssetNotAllowed if input and output are different assets
- * @throws InsufficientFee if same-token output amount >= input amount
- * @throws InvalidDeadline if deadline is in the past or too soon
+ * Skipped when `allowDangerousParameters` is set.
  */
 export function validateBuildQuoteParams(
     params: BuildQuoteRequest,
@@ -49,7 +41,6 @@ export function validateBuildQuoteParams(
 
 // ── Individual validators ───────────────────────────────────────────
 
-/** @throws ZeroAmount if input or output amount is zero. */
 function validateAmounts(params: BuildQuoteRequest): void {
     if (BigInt(params.input.amount) === 0n) {
         throw new ZeroAmount("input");
@@ -59,18 +50,12 @@ function validateAmounts(params: BuildQuoteRequest): void {
     }
 }
 
-/** @throws DifferentAssetNotAllowed if assets are confirmed different. */
 function validateSameAssetRequired(relationship: AssetRelationship): void {
     if (relationship === "different") {
         throw new DifferentAssetNotAllowed();
     }
 }
 
-/**
- * @throws InsufficientFee if same-asset output amount >= input amount.
- *
- * Skipped for "different" (already rejected) and "unknown" (can't verify).
- */
 function validateFeeMargin(params: BuildQuoteRequest, relationship: AssetRelationship): void {
     if (relationship !== "same") return;
 
@@ -79,7 +64,6 @@ function validateFeeMargin(params: BuildQuoteRequest, relationship: AssetRelatio
     }
 }
 
-/** @throws InvalidDeadline if deadline is in the past or less than {@link MIN_DEADLINE_BUFFER_SECONDS} from now. */
 function validateDeadline(fillDeadline: number, nowSeconds: number): void {
     if (fillDeadline <= nowSeconds) {
         throw new InvalidDeadline(fillDeadline, nowSeconds, "past");
@@ -97,13 +81,8 @@ function validateDeadline(fillDeadline: number, nowSeconds: number): void {
 // ── Asset classification ────────────────────────────────────────────
 
 /**
- * Classifies the relationship between input and output assets.
- *
- * - Same chain: compare by address (case-insensitive via `isAddressEqual`).
- * - Cross-chain: returns "different" only when symbols are known and mismatch.
- *   All other cross-chain cases return "unknown" (symbols are not unique across chains).
- *
- * @throws UnsupportedAddress if same-chain addresses are not valid EVM addresses
+ * Same chain: compare by address. Cross-chain: only "different" when symbols mismatch,
+ * otherwise "unknown" (symbols alone can't prove sameness).
  */
 function resolveAssetRelationship(
     inputChainId: number,
@@ -124,7 +103,6 @@ function resolveAssetRelationship(
     );
 }
 
-/** @throws UnsupportedAddress if addresses are not valid EVM addresses. */
 function compareSameChainAssets(inputAddress: string, outputAddress: string): AssetRelationship {
     try {
         return isAddressEqual(inputAddress as Address, outputAddress as Address)
@@ -135,16 +113,7 @@ function compareSameChainAssets(inputAddress: string, outputAddress: string): As
     }
 }
 
-/**
- * Cross-chain asset comparison.
- *
- * Symbols are not unique across chains (e.g. multiple tokens can share "USDC"),
- * so matching symbols alone cannot prove sameness. Different symbols *can* prove
- * difference, so we reject those. Everything else is "unknown".
- *
- * TODO: Replace with a canonical asset identifier (e.g. coingeckoId, bridgeAssetId)
- * to enable reliable cross-chain same-asset detection.
- */
+// TODO: Replace with a canonical asset identifier for reliable cross-chain detection.
 function compareCrossChainAssets(
     inputChainId: number,
     inputAddress: string,
