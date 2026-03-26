@@ -236,7 +236,8 @@ test.describe('Address menu', () => {
   });
 });
 
-test.describe('Build quote fee display', () => {
+// TODO: re-enable when buildQuote tab is restored (EFI-856)
+test.describe.skip('Build quote fee display', () => {
   test('shows fee percentage for same-token with output < input', async ({ page }) => {
     await page.getByRole('button', { name: 'Build Quote' }).click();
 

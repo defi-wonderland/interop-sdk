@@ -63,7 +63,8 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   const [recipient, setRecipient] = useState('');
   const hasAutoFilledRef = useRef(false);
   const [inputAmount, setInputAmount] = useState('');
-  const [mode, setMode] = useState<SwapFormMode>('getQuotes');
+  // TODO: restore setMode when buildQuote tab is re-enabled (EFI-856)
+  const [mode] = useState<SwapFormMode>('getQuotes');
   const [outputAmount, setOutputAmount] = useState('');
   const [fillDeadlineSecs, setFillDeadlineSecs] = useState(DEADLINE_OPTIONS[0].value);
 
@@ -231,6 +232,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
       <div className='relative flex flex-col gap-6'>
         <WalletConnect />
 
+        {/* TODO: re-enable once buildQuote simulation issues are resolved (EFI-856)
         <div className='flex border border-border/50 rounded-xl'>
           <button
             type='button'
@@ -263,6 +265,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
             Build Quote
           </button>
         </div>
+        */}
 
         <div>
           <label htmlFor='recipient-address' className='text-sm font-medium text-text-secondary mb-2 block'>
