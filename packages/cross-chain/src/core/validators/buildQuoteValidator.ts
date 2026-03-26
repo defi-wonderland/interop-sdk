@@ -16,7 +16,15 @@ type AssetRelationship = "same" | "different" | "unknown";
 /**
  * Validates build-quote parameters for common safety issues.
  *
- * Skipped when `allowDangerousParameters` is set.
+ * Skipped when `allowDangerousParameters` is set on the request.
+ *
+ * @param params - The build quote request to validate
+ * @param tokenMetadata - Token metadata indexed by chainId then lowercase address (from asset discovery)
+ * @param nowSeconds - Current unix timestamp in seconds (injectable for testing)
+ * @throws ZeroAmount if input or output amount is zero
+ * @throws DifferentAssetNotAllowed if input and output are different assets
+ * @throws InsufficientFee if same-token output amount >= input amount
+ * @throws InvalidDeadline if deadline is in the past or too soon
  */
 export function validateBuildQuoteParams(
     params: BuildQuoteRequest,
