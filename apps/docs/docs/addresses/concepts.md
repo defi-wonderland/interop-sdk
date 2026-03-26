@@ -97,8 +97,8 @@ Both are enabled by default. Fully-qualified CAIP-2 identifiers (e.g., `eip155:1
 You can customize resolution behavior per call:
 
 ```typescript
-// Disable onchain, use offchain only
-await parseName("0x...@ethereum", { onchainRegistry: false });
+// Disable onchain, use offchain only (chainid.network uses "eth" shortname)
+await parseName("0x...@eth", { onchainRegistry: false });
 
 // Custom registry domain
 await parseName("0x...@ethereum", { onchainRegistry: "custom.eth" });
