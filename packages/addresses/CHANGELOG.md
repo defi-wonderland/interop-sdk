@@ -1,5 +1,25 @@
 # @defi-wonderland/interop-addresses
 
+## 0.5.0
+
+### Minor Changes
+
+-   09c4643: Add bip122 (Bitcoin) address support.
+-   0f626e7: Add starknet address support.
+-   675faa4: Widen `toChainIdentifier` and `fromChainIdentifier` to accept string chain references, enabling non-EVM chains like bip122 and starknet.
+-   ac0ef0a: Add `getRegisteredChains` to fetch chains from the on.eth ChainResolver contract. Returns CAIP-2 chain type and reference strings instead of numeric chain IDs.
+-   0573276: feat: enable onchain chain registry (on.eth) by default
+
+    -   Replace `useExperimentalChainRegistry` with `onchainRegistry`, `offchainRegistryFallback`, and `rpcUrl` options
+    -   Onchain resolution via `on.eth` is now the default when parsing chain labels
+    -   Add default public RPC endpoint so onchain resolution works without configuration
+    -   Offchain chainid.network registry used as automatic fallback
+    -   Fully-qualified CAIP-2 identifiers (e.g., `eip155:10`) always work regardless of registry settings
+
+### Patch Changes
+
+-   bb008d6: Remove defunct cloudflare-eth.com RPC fallback in resolveChainFromRegistry, letting viem use its default public RPC endpoint instead
+
 ## 0.4.0
 
 ### Minor Changes
