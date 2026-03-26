@@ -220,27 +220,6 @@ describe("adaptQuotes", () => {
         expect(quotes).toHaveLength(2);
     });
 
-    it("sorts quotes by output amount descending (best first)", () => {
-        const response = buildBungeeQuoteResponse();
-        (response.result as Record<string, unknown>).autoRoutes = [
-            buildAutoRoute({
-                quoteId: "quote-best",
-                output: { ...buildAutoRoute().output, amount: "1001000" },
-            }),
-            buildAutoRoute({
-                quoteId: "quote-worst",
-                output: { ...buildAutoRoute().output, amount: "500000" },
-            }),
-        ];
-
-        const quotes = adaptQuotes(response as never, PROVIDER_ID);
-
-        expect(quotes).toHaveLength(3);
-        expect(quotes[0]!.quoteId).toBe("quote-best");
-        expect(quotes[1]!.quoteId).toBe("quote-abc");
-        expect(quotes[2]!.quoteId).toBe("quote-worst");
-    });
-
     it("returns empty array when no routes available", () => {
         const response = buildBungeeQuoteResponse();
         response.result.autoRoute = null as never;

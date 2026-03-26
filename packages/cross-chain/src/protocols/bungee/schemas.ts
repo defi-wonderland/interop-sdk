@@ -364,26 +364,6 @@ export const BungeeStatusResponseSchema = z.object({
     message: z.string().nullable().optional(),
 });
 
-// ── Supported Chains ──────────────────────────────────
-
-/** Schema for a supported chain entry from the Bungee GET `/api/v1/supported-chains` response. */
-export const BungeeSupportedChainSchema = z
-    .object({
-        chainId: z.number(),
-        name: z.string(),
-        sendingEnabled: z.boolean(),
-        receivingEnabled: z.boolean(),
-    })
-    .passthrough();
-
-/** Schema for the Bungee GET `/api/v1/supported-chains` response body. */
-export const BungeeSupportedChainsResponseSchema = z.object({
-    success: z.boolean(),
-    statusCode: z.number(),
-    result: z.array(BungeeSupportedChainSchema),
-    message: z.string().nullable().optional(),
-});
-
 // ── Token List ─────────────────────────────────────────
 
 /** Schema for an extended token entry from the Bungee GET `/api/v1/tokens/list` response. */
@@ -434,6 +414,4 @@ export type BungeeOriginData = z.infer<typeof BungeeOriginDataSchema>;
 export type BungeeDestinationData = z.infer<typeof BungeeDestinationDataSchema>;
 export type BungeeStatusResult = z.infer<typeof BungeeStatusResultSchema>;
 export type BungeeStatusResponse = z.infer<typeof BungeeStatusResponseSchema>;
-export type BungeeSupportedChain = z.infer<typeof BungeeSupportedChainSchema>;
-export type BungeeSupportedChainsResponse = z.infer<typeof BungeeSupportedChainsResponseSchema>;
 export type BungeeTokenListResponse = z.infer<typeof BungeeTokenListResponseSchema>;
