@@ -80,10 +80,7 @@ function validateDeadline(fillDeadline: number, nowSeconds: number): void {
 
 // ── Asset classification ────────────────────────────────────────────
 
-/**
- * Same chain: compare by address. Cross-chain: only "different" when symbols mismatch,
- * otherwise "unknown" (symbols alone can't prove sameness).
- */
+/** Same chain: compare by address. Cross-chain: compare by symbol, "unknown" if no metadata. */
 function resolveAssetRelationship(
     inputChainId: number,
     inputAddress: string,
@@ -113,7 +110,7 @@ function compareSameChainAssets(inputAddress: string, outputAddress: string): As
     }
 }
 
-// TODO: Replace with a canonical asset identifier for reliable cross-chain detection.
+// TODO: Replace symbol comparison with a robust token pairing system.
 function compareCrossChainAssets(
     inputChainId: number,
     inputAddress: string,
@@ -124,9 +121,6 @@ function compareCrossChainAssets(
     const inputSymbol = tokenMetadata[inputChainId]?.[inputAddress.toLowerCase()]?.symbol;
     const outputSymbol = tokenMetadata[outputChainId]?.[outputAddress.toLowerCase()]?.symbol;
 
-    if (inputSymbol !== undefined && outputSymbol !== undefined && inputSymbol !== outputSymbol) {
-        return "different";
-    }
-
-    return "unknown";
+    if (inputSymbol === undefined || outputSymbol === undefined) return "unknown";
+    return inputSymbol === outputSymbol ? "same" : "different";
 }
