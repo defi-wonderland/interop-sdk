@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import type { QuoteRequest } from "../../../../src/core/schemas/quoteRequest.js";
 import type {
     BungeeAutoRoute,
     BungeeQuoteResponse,
@@ -10,23 +9,6 @@ import { adaptQuotes } from "../../../../src/protocols/bungee/adapters/quoteResp
 const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 const RECIPIENT_ADDRESS = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
 const PROVIDER_ID = "bungee";
-
-function buildQuoteRequest(overrides: Partial<QuoteRequest> = {}): QuoteRequest {
-    return {
-        user: VALID_ADDRESS,
-        input: {
-            chainId: 1,
-            assetAddress: VALID_ADDRESS,
-            amount: "1000000",
-        },
-        output: {
-            chainId: 10,
-            assetAddress: VALID_ADDRESS,
-            recipient: RECIPIENT_ADDRESS,
-        },
-        ...overrides,
-    } as QuoteRequest;
-}
 
 function buildAutoRoute(overrides: Record<string, unknown> = {}): BungeeAutoRoute {
     return {
@@ -117,8 +99,7 @@ function buildBungeeQuoteResponse(overrides: Record<string, unknown> = {}): Bung
 describe("adaptQuotes", () => {
     it("creates SignatureStep for sign userOp", () => {
         const response = buildBungeeQuoteResponse();
-        const request = buildQuoteRequest();
-        const [quote] = adaptQuotes(request, response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quote!.order.steps[0]!.kind).toBe("signature");
 
@@ -143,16 +124,14 @@ describe("adaptQuotes", () => {
             },
         });
 
-        const request = buildQuoteRequest();
-        const [quote] = adaptQuotes(request, response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quote!.order.steps[0]!.kind).toBe("transaction");
     });
 
     it("maps preview inputs from response.result.input", () => {
         const response = buildBungeeQuoteResponse();
-        const request = buildQuoteRequest();
-        const [quote] = adaptQuotes(request, response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quote!.preview.inputs[0]!.amount).toBe("1000000");
         expect(quote!.preview.inputs[0]!.chainId).toBe(1);
@@ -161,8 +140,7 @@ describe("adaptQuotes", () => {
 
     it("maps preview outputs from autoRoute.output", () => {
         const response = buildBungeeQuoteResponse();
-        const request = buildQuoteRequest();
-        const [quote] = adaptQuotes(request, response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quote!.preview.outputs[0]!.amount).toBe("999000");
         expect(quote!.preview.outputs[0]!.chainId).toBe(10);
@@ -170,8 +148,7 @@ describe("adaptQuotes", () => {
 
     it("uses input.amount for allowance required (not approvalData.amount)", () => {
         const response = buildBungeeQuoteResponse();
-        const request = buildQuoteRequest();
-        const [quote] = adaptQuotes(request, response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
 
         const allowances = quote!.order.checks?.allowances;
         expect(allowances).toHaveLength(1);
@@ -181,16 +158,14 @@ describe("adaptQuotes", () => {
 
     it("sets tracking orderId from requestHash", () => {
         const response = buildBungeeQuoteResponse();
-        const request = buildQuoteRequest();
-        const [quote] = adaptQuotes(request, response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quote!.tracking?.orderId).toBe("0xreqhash123");
     });
 
     it("stores full response and specific autoRoute in metadata", () => {
         const response = buildBungeeQuoteResponse();
-        const request = buildQuoteRequest();
-        const [quote] = adaptQuotes(request, response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quote!.metadata?.bungeeResponse).toBeDefined();
         expect(quote!.metadata?.bungeeAutoRoute).toBeDefined();
@@ -208,8 +183,7 @@ describe("adaptQuotes", () => {
             }),
         ];
 
-        const request = buildQuoteRequest();
-        const quotes = adaptQuotes(request, response as never, PROVIDER_ID);
+        const quotes = adaptQuotes(response as never, PROVIDER_ID);
 
         // quotes[0] is autoRoute (singular, Bungee-recommended)
         expect(quotes[0]!.quoteId).toBe("quote-abc");
@@ -226,8 +200,7 @@ describe("adaptQuotes", () => {
 
     it("sets partialFill and failureHandling", () => {
         const response = buildBungeeQuoteResponse();
-        const request = buildQuoteRequest();
-        const [quote] = adaptQuotes(request, response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quote!.partialFill).toBe(false);
         expect(quote!.failureHandling).toBe("refund-automatic");
@@ -243,8 +216,7 @@ describe("adaptQuotes", () => {
             }),
         ];
 
-        const request = buildQuoteRequest();
-        const quotes = adaptQuotes(request, response as never, PROVIDER_ID);
+        const quotes = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quotes).toHaveLength(2);
     });
@@ -262,8 +234,7 @@ describe("adaptQuotes", () => {
             }),
         ];
 
-        const request = buildQuoteRequest();
-        const quotes = adaptQuotes(request, response as never, PROVIDER_ID);
+        const quotes = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quotes).toHaveLength(3);
         // autoRoute (singular) comes first regardless of output amount
@@ -276,8 +247,7 @@ describe("adaptQuotes", () => {
         const response = buildBungeeQuoteResponse();
         response.result.autoRoute = null as never;
 
-        const request = buildQuoteRequest();
-        const quotes = adaptQuotes(request, response as never, PROVIDER_ID);
+        const quotes = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quotes).toHaveLength(0);
     });

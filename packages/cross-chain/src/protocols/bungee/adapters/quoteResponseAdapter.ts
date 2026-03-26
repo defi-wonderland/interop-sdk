@@ -1,4 +1,4 @@
-import type { Quote, QuoteRequest, Step } from "../../../internal.js";
+import type { Quote, Step } from "../../../internal.js";
 import type {
     BungeeApprovalData,
     BungeeAutoRoute,
@@ -13,15 +13,10 @@ import { adaptFees } from "./quoteFeeAdapter.js";
  * Collects routes from `autoRoute` and `autoRoutes[]`,
  * adapts each into an SDK Quote. The recommended route (`autoRoute`) is first.
  *
- * @param params - The original SDK quote request.
  * @param response - The Bungee API quote response.
  * @param providerId - The provider identifier to stamp on the quotes.
  */
-export function adaptQuotes(
-    _params: QuoteRequest,
-    response: BungeeQuoteResponse,
-    providerId: string,
-): Quote[] {
+export function adaptQuotes(response: BungeeQuoteResponse, providerId: string): Quote[] {
     const result = response.result;
     const quotes: Quote[] = [];
 

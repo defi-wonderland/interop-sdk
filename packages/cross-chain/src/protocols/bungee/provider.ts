@@ -86,7 +86,7 @@ export class BungeeProvider extends CrossChainProvider {
             const bungeeParams = adaptQuoteRequest(params);
             const response = await this.apiService.getQuote(bungeeParams);
 
-            return adaptQuotes(params, response, this.providerId);
+            return adaptQuotes(response, this.providerId);
         } catch (error) {
             if (error instanceof ProviderGetQuoteFailure) {
                 throw error;
