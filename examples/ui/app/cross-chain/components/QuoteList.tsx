@@ -3,7 +3,7 @@
 import { QuoteStatus } from '../hooks/useQuotes';
 import { ErrorList } from './ErrorList';
 import { QuoteCard } from './QuoteCard';
-import { SwapIcon, BoltIcon, ClockIcon } from './icons';
+import { SwapIcon, BoltIcon, ClockIcon, WarningIcon, RefreshIcon } from './icons';
 import type { BridgeState } from '../types/execution';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 
@@ -24,6 +24,7 @@ interface QuoteListProps {
   executionState?: BridgeState;
   onSelectQuote?: (quote: ExecutableQuote) => void;
   onExecuteQuote?: (quote: ExecutableQuote) => void;
+  onRetry?: () => void;
 }
 
 function QuotePlaceholder() {
@@ -61,6 +62,30 @@ function NoQuotesFound() {
       <p className='text-sm text-text-secondary max-w-sm'>
         No providers returned routes for this token pair. Try a different combination.
       </p>
+    </div>
+  );
+}
+
+function QuotesErrorState({ onRetry }: { onRetry?: () => void }) {
+  return (
+    <div className='flex flex-col items-center justify-center py-12 px-6 text-center h-full'>
+      <div className='w-16 h-16 rounded-full bg-error/10 flex items-center justify-center mb-4'>
+        <WarningIcon className='w-8 h-8 text-error' />
+      </div>
+      <h3 className='text-lg font-semibold text-text-primary mb-2'>Failed to Load Quotes</h3>
+      <p className='text-sm text-text-secondary max-w-sm mb-6'>
+        Something went wrong while fetching routes. Check the errors below and try again.
+      </p>
+      {onRetry && (
+        <button
+          type='button'
+          onClick={onRetry}
+          className='inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors'
+        >
+          <RefreshIcon className='w-4 h-4' />
+          Retry
+        </button>
+      )}
     </div>
   );
 }
@@ -121,6 +146,7 @@ export function QuoteList({
   executionState,
   onSelectQuote,
   onExecuteQuote,
+  onRetry,
 }: QuoteListProps) {
   if (status === QuoteStatus.LOADING) {
     return (
@@ -133,7 +159,13 @@ export function QuoteList({
   if (quotes.length === 0) {
     return (
       <QuoteListWrapper errors={errors}>
-        {status === QuoteStatus.IDLE ? <QuotePlaceholder /> : <NoQuotesFound />}
+        {status === QuoteStatus.IDLE ? (
+          <QuotePlaceholder />
+        ) : errors.length > 0 ? (
+          <QuotesErrorState onRetry={onRetry} />
+        ) : (
+          <NoQuotesFound />
+        )}
       </QuoteListWrapper>
     );
   }

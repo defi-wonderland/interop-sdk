@@ -1,4 +1,3 @@
-import { toChainIdentifier } from "@wonderland/interop-addresses";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -47,7 +46,7 @@ describe("AssetDiscoveryFactory", () => {
             chainId: 1,
             assets: [
                 {
-                    address: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                     symbol: "USDC",
                     decimals: 6,
                 },
@@ -57,7 +56,7 @@ describe("AssetDiscoveryFactory", () => {
             chainId: 137,
             assets: [
                 {
-                    address: "0x00010000018902791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                    address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
                     symbol: "USDC",
                     decimals: 6,
                 },
@@ -152,8 +151,8 @@ describe("AssetDiscoveryFactory", () => {
 
             // Verify it returns DiscoveredAssets
             const result = await service.getSupportedAssets();
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
+            expect(Object.keys(result.tokensByChain)).toContain(String(1));
+            expect(Object.keys(result.tokensByChain)).toContain(String(137));
         });
     });
 });
@@ -164,12 +163,12 @@ describe("Static Asset Discovery Service", () => {
             chainId: 1,
             assets: [
                 {
-                    address: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                     symbol: "USDC",
                     decimals: 6,
                 },
                 {
-                    address: "0x000100000101C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                    address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
                     symbol: "WETH",
                     decimals: 18,
                 },
@@ -191,8 +190,8 @@ describe("Static Asset Discovery Service", () => {
         const result = await service.getSupportedAssets();
 
         expect(Object.keys(result.tokensByChain)).toHaveLength(1);
-        expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
-        expect(result.tokensByChain[toChainIdentifier(1) as string]).toHaveLength(2);
+        expect(Object.keys(result.tokensByChain)).toContain(String(1));
+        expect(result.tokensByChain[1]).toHaveLength(2);
     });
 
     it("should return assets for a specific chain", async () => {
@@ -211,7 +210,7 @@ describe("Static Asset Discovery Service", () => {
     it("should check if asset is supported", async () => {
         const result = await service.isAssetSupported(
             1,
-            "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
         );
 
         expect(result).not.toBeNull();
@@ -261,7 +260,7 @@ describe("Static Asset Discovery Service with AssetDiscoveryOptions", () => {
             chainId: 1,
             assets: [
                 {
-                    address: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                     symbol: "USDC",
                     decimals: 6,
                 },
@@ -271,7 +270,7 @@ describe("Static Asset Discovery Service with AssetDiscoveryOptions", () => {
             chainId: 137,
             assets: [
                 {
-                    address: "0x00010000018902791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                    address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
                     symbol: "USDC",
                     decimals: 6,
                 },
@@ -281,7 +280,7 @@ describe("Static Asset Discovery Service with AssetDiscoveryOptions", () => {
             chainId: 42161,
             assets: [
                 {
-                    address: "0x0001000000a5af449f9385dc8d884c99e6836a3fae51acad7f0d9fe9",
+                    address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
                     symbol: "USDC",
                     decimals: 6,
                 },
@@ -304,17 +303,17 @@ describe("Static Asset Discovery Service with AssetDiscoveryOptions", () => {
             const result = await service.getSupportedAssets();
 
             expect(Object.keys(result.tokensByChain)).toHaveLength(3);
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(42161));
+            expect(Object.keys(result.tokensByChain)).toContain(String(1));
+            expect(Object.keys(result.tokensByChain)).toContain(String(137));
+            expect(Object.keys(result.tokensByChain)).toContain(String(42161));
         });
 
         it("should filter by chainIds when provided", async () => {
             const result = await service.getSupportedAssets({ chainIds: [1, 42161] });
 
             expect(Object.keys(result.tokensByChain)).toHaveLength(2);
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(42161));
+            expect(Object.keys(result.tokensByChain)).toContain(String(1));
+            expect(Object.keys(result.tokensByChain)).toContain(String(42161));
         });
 
         it("should return empty when chainIds filter matches nothing", async () => {
@@ -327,7 +326,7 @@ describe("Static Asset Discovery Service with AssetDiscoveryOptions", () => {
             const result = await service.getSupportedAssets({ chainIds: [137] });
 
             expect(Object.keys(result.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
+            expect(Object.keys(result.tokensByChain)).toContain(String(137));
         });
 
         it("should include tokenMetadata in filtered result", async () => {

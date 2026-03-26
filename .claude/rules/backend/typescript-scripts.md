@@ -1,0 +1,25 @@
+---
+paths:
+    - "scripts/**/*.ts"
+---
+
+# Script Guidelines
+
+## Organization
+
+-   Use `process.cwd()` for root directory references
+-   Follow folder conventions:
+-   `infra/` for infrastructure scripts
+-   `utilities/` for utility scripts
+
+## Naming
+
+-   Organize in `package.json` using:
+-   `script:infra:{name}` for infrastructure scripts
+-   `script:util:{name}` for utility scripts
+
+## Best Practices
+
+-   Include proper error handling
+-   Add logging for important operations
+-   Document script purpose and usage

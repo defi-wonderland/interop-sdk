@@ -100,27 +100,37 @@ export function FaqSection() {
                         What is the status of the onchain chain registry?
                     </h3>
                     <p className="font-mono text-sm lg:text-[0.9375rem] text-muted-foreground leading-relaxed">
-                        The onchain chain registry is currently under development in the{" "}
+                        <code>on.eth</code> is a canonical, ENS-native registry for chains and their
+                        associated metadata, covering networks such as Base, Arbitrum, or Ethereum.
+                        The ENS DAO has approved usage of the domain for this purpose, and the
+                        registry is being initialized with chains using the{" "}
                         <a
-                            href="https://github.com/unruggable-labs/chain-resolver"
+                            href="https://github.com/unruggable-labs/chain-resolver/"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="underline hover:no-underline"
                         >
-                            chain-resolver
-                        </a>{" "}
-                        project and is approaching final testing. It will be powered by a custom ENS
-                        resolver under the dedicated ENS name <code>on.eth</code>. Until this is
-                        live, the SDK uses data from{" "}
-                        <a
-                            href="https://github.com/ethereum-lists/chains/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline hover:no-underline"
-                        >
-                            ethereum-lists/chains
+                            custom chain resolver
                         </a>
-                        , using <code>shortName</code> values as identifiers.
+                        . Learn more about the registry in the{" "}
+                        <a
+                            href="https://ens.domains/blog/post/on-eth-chain-registry"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:no-underline"
+                        >
+                            ENS blog post
+                        </a>
+                        . The registry is available as an{" "}
+                        <a
+                            href="https://docs.interop.wonderland.xyz/addresses/getting-started#experimental-onchain-chain-registry"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:no-underline"
+                        >
+                            experimental feature
+                        </a>{" "}
+                        in the <code>interop-addresses</code> package.
                     </p>
                 </div>
 

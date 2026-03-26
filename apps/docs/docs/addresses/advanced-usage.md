@@ -2,105 +2,9 @@
 title: Advanced Usage
 ---
 
-## Two-Layer Architecture
+This page covers advanced patterns for working with interoperable addresses — validation, checksums, error handling, round-trip conversions, and working directly with each layer.
 
-The package follows a clean two-layer architecture with a discriminated union type system:
-
-### Address Layer (EIP-7930 + CAIP-350)
-
-Discriminated union address representation (binary or text) - synchronous encoding/decoding:
-
-```typescript
-import {
-    calculateChecksum,
-    decodeAddress,
-    encodeAddress,
-    isBinaryAddress,
-    isTextAddress,
-    toBinaryRepresentation,
-    toTextRepresentation,
-    validateChecksum,
-    validateInteroperableAddress,
-} from "@wonderland/interop-addresses";
-
-// Decode binary to text representation (default)
-const textAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
-// textAddr.chainType - "eip155" (string)
-// textAddr.chainReference - "1" (string)
-// textAddr.address - "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (string)
-
-// Decode binary to binary representation
-const binaryAddr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045", {
-    representation: "binary",
-});
-// binaryAddr.chainType - Uint8Array
-// binaryAddr.chainReference - Uint8Array
-// binaryAddr.address - Uint8Array
-
-// Encode either representation to binary (auto-converts)
-const hex = encodeAddress(textAddr, { format: "hex" });
-const hex2 = encodeAddress(binaryAddr, { format: "hex" });
-
-// Calculate checksum (accepts either representation)
-const checksum = calculateChecksum(textAddr);
-const checksum2 = calculateChecksum(binaryAddr);
-
-// Validate address structure (accepts either representation)
-const validated = validateInteroperableAddress(textAddr);
-
-// Validate checksum (accepts either representation)
-validateChecksum(textAddr, checksum);
-
-// Convert between representations
-const binaryFromText = toBinaryRepresentation(textAddr);
-const textFromBinary = toTextRepresentation(binaryAddr);
-
-// Use type guards to narrow types
-if (isTextAddress(textAddr)) {
-    console.log(textAddr.chainType); // TypeScript knows this is "eip155" | "solana"
-}
-if (isBinaryAddress(binaryAddr)) {
-    console.log(binaryAddr.chainType); // TypeScript knows this is Uint8Array
-}
-```
-
-### Name Layer (ERC-7828)
-
-Human-readable names with ENS resolution - async operations:
-
-```typescript
-import {
-    binaryToName,
-    formatName,
-    isTextAddress,
-    nameToBinary,
-    parseName,
-} from "@wonderland/interop-addresses";
-
-// Parse with full metadata (defaults to text representation)
-const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
-// result.name - original parsed components
-// result.interoperableAddress - address in text representation (default)
-//   - Use isTextAddress() to access text fields
-//   - result.interoperableAddress.chainType - "eip155" (string)
-//   - result.interoperableAddress.chainReference - "1" (string)
-//   - result.interoperableAddress.address - "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (string)
-// result.meta.checksum - calculated checksum
-// result.meta.isENS - whether address was ENS
-// result.meta.isChainLabel - whether chain reference was a label
-
-// Parse with binary representation
-const resultBinary = await parseName("vitalik.eth@eip155:1#4CA88C9C", {
-    representation: "binary",
-});
-
-// Format to name (accepts either representation, auto-converts, calculates checksum)
-const name = formatName(result.interoperableAddress);
-
-// Simple conversions
-const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "hex" });
-const nameFromBinary = binaryToName("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
-```
+For an explanation of the two-layer architecture and the standards, see [Concepts](./concepts.md).
 
 ## Computing Checksums
 
@@ -288,3 +192,8 @@ if (isTextAddress(textRoundTrip)) {
 8. **Use ENS names for better UX**: ENS names provide a better user experience when available.
 
 9. **Convert representations explicitly when needed**: Use `toBinaryRepresentation()` or `toTextRepresentation()` only when you need to change the representation type explicitly.
+
+## Next steps
+
+-   [API Reference](./api.md) — complete function signatures and types
+-   [Concepts](./concepts.md) — understand the two-layer architecture and the standards

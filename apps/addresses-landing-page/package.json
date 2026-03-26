@@ -1,6 +1,6 @@
 {
     "name": "addresses-landing-page",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "private": true,
     "description": "Landing page for Interoperable Addresses - Chain-aware addressing for the Ethereum ecosystem (ERC-7930 & ERC-7828)",
     "scripts": {
@@ -40,7 +40,7 @@
         "@radix-ui/react-toggle-group": "1.1.1",
         "@radix-ui/react-tooltip": "1.1.6",
         "@vercel/analytics": "1.3.1",
-        "@wonderland/interop-addresses": "0.3.0",
+        "@wonderland/interop-addresses": "workspace:*",
         "autoprefixer": "10.4.20",
         "class-variance-authority": "0.7.1",
         "clsx": "2.1.1",

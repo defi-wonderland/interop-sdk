@@ -1,13 +1,11 @@
-import { isNativeAddress, type ExecutableQuote } from '@wonderland/interop-cross-chain';
-import { crossChainExecutor } from '../sdk';
+import { isNativeAddress, getTransactionSteps, type ExecutableQuote } from '@wonderland/interop-cross-chain';
+import { useCrossChainStore } from '../../stores/crossChainStore';
 import { handleTokenApproval } from './approval';
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
+import type { BridgeState, ChainContext, TrackingIdentifier } from '../../types/execution';
 import type { Address, Hex, PublicClient } from 'viem';
-import { BridgeState, ChainContext } from '~/cross-chain/hooks';
-
-type TrackingIdentifier = { txHash: Hex } | { orderId: Hex };
 
 interface FlowParams {
   quote: ExecutableQuote;
@@ -30,8 +28,8 @@ export const submitOifSignableOrder = async ({
   chainContext,
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
-  // Permit2 approval for escrow orders (3009 doesn't need approval)
-  const isEscrowOrder = quote.order.type === 'oif-escrow-v0';
+  // Permit2 approval for escrow lock orders (3009 doesn't need approval)
+  const isEscrowOrder = quote.order.lock?.type === 'oif-escrow';
   const isNativeInput = isNativeAddress(inputTokenAddress, 'eip155');
   if (isEscrowOrder && !isNativeInput) {
     const PERMIT2 = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as Address;
@@ -48,7 +46,7 @@ export const submitOifSignableOrder = async ({
   }
 
   const { orderId } = await signAndSubmitOrder({
-    executor: crossChainExecutor,
+    executor: useCrossChainStore.getState().executor,
     walletClient,
     quote,
     chainContext,
@@ -67,40 +65,54 @@ export const executeDirectTransaction = async ({
   chainContext,
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
-  const order = quote.order as {
-    payload?: { to?: Address; data?: Hex };
-  };
+  const txSteps = getTransactionSteps(quote.order);
+  const txStep = txSteps[0];
 
-  if (!order?.payload?.to || !order?.payload?.data) {
+  if (!txStep?.transaction?.to || !txStep?.transaction?.data) {
     throw new Error('Invalid quote: missing transaction data');
   }
 
-  const isNativeInput = isNativeAddress(inputTokenAddress, 'eip155');
-
-  if (!isNativeInput) {
+  if (quote.order.checks?.allowances?.length) {
+    for (const allowance of quote.order.checks.allowances) {
+      await handleTokenApproval(
+        publicClient,
+        walletClient,
+        ownerAddress,
+        allowance.tokenAddress as Address,
+        allowance.spender as Address,
+        BigInt(allowance.required),
+        chainContext,
+        onStateChange,
+      );
+    }
+  } else if (!isNativeAddress(inputTokenAddress, 'eip155')) {
     await handleTokenApproval(
       publicClient,
       walletClient,
       ownerAddress,
       inputTokenAddress,
-      order.payload.to,
+      txStep.transaction.to as Address,
       inputAmount,
       chainContext,
       onStateChange,
     );
   }
 
-  const value = isNativeInput ? inputAmount : undefined;
+  const value = txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined;
+  const parsedGas = txStep.transaction.gas ? BigInt(txStep.transaction.gas) : 0n;
+  const gas = parsedGas > 0n ? parsedGas : undefined;
 
   const txHash = await submitBridgeTransaction(
     publicClient,
     walletClient,
-    order.payload.to,
-    order.payload.data,
+    txStep.transaction.to as Address,
+    txStep.transaction.data as Hex,
     chainContext,
     onStateChange,
     value,
+    gas,
   );
 
-  return { txHash };
+  const orderId = quote.tracking?.orderId;
+  return orderId ? { orderId: orderId as Hex, txHash } : { txHash };
 };

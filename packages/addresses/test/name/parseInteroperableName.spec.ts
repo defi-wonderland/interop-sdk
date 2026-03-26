@@ -172,6 +172,37 @@ describe("parseName", () => {
         expect(mockShortnameToChainId).toHaveBeenCalledWith("arbitrum");
     });
 
+    it("parses a bip122 P2SH address", async () => {
+        const name = "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy@bip122:000000000019d6689c085ae165831e93";
+
+        const result = await parseName(name);
+
+        expect(isTextAddress(result.interoperableAddress)).toBe(true);
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.chainType).toBe("bip122");
+            expect(result.interoperableAddress.chainReference).toBe(
+                "000000000019d6689c085ae165831e93",
+            );
+            expect(result.interoperableAddress.address).toBe("3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy");
+        }
+    });
+
+    it("parses a starknet address", async () => {
+        const name =
+            "0x02dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57@starknet:SN_MAIN";
+
+        const result = await parseName(name);
+
+        expect(isTextAddress(result.interoperableAddress)).toBe(true);
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.chainType).toBe("starknet");
+            expect(result.interoperableAddress.chainReference).toBe("SN_MAIN");
+            expect(result.interoperableAddress.address).toBe(
+                "0x02dd1b492765c064eac4039e3841aa5f382773b598097a40073bd8b48170ab57",
+            );
+        }
+    });
+
     it("throws MissingInteroperableName for empty string", async () => {
         await expect(parseName("")).rejects.toThrow(MissingInteroperableName);
         await expect(parseName("   ")).rejects.toThrow(MissingInteroperableName);

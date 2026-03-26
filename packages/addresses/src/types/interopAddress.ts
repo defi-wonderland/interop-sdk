@@ -16,7 +16,7 @@ export type InteroperableAddressBinary = {
  */
 export type InteroperableAddressText = {
     version: number;
-    chainType: "eip155" | "solana";
+    chainType: "eip155" | "bip122" | "solana" | "starknet";
     chainReference?: string;
     address?: string;
 };
@@ -26,7 +26,7 @@ export type InteroperableAddressText = {
  *
  * TypeScript narrows based on the `chainType` field type:
  * - Binary variant: `chainType: Uint8Array`
- * - Text variant: `chainType: "eip155" | "solana"`
+ * - Text variant: `chainType: "eip155" | "bip122" | "solana" | "starknet"`
  *
  * Use type guards to narrow:
  * - `typeof addr.chainType === "string"` → text variant
@@ -89,7 +89,7 @@ export type InteroperableName = `${string}@${string}:${string}#${Checksum}`;
  *
  * @see https://standards.chainagnostic.org/CAIPs/caip-350#chain-identifier-text-representation
  */
-export type ChainIdentifier = `${ChainTypeName}:${number}`;
+export type ChainIdentifier = `${ChainTypeName}:${string}`;
 
 /**
  * Parsed components of a CAIP-350 chain identifier.
@@ -97,8 +97,8 @@ export type ChainIdentifier = `${ChainTypeName}:${number}`;
  * @see https://standards.chainagnostic.org/CAIPs/caip-350#chain-identifier-text-representation
  */
 export interface ChainIdentifierParts {
-    /** Numeric chain reference (e.g. 1, 42161) */
-    chainReference: number;
+    /** Chain reference (e.g. "1", "42161", "000000000019d6689c085ae165831e93") */
+    chainReference: string;
     /** Chain type namespace (e.g. "eip155", "solana") */
     chainType: ChainTypeName;
 }

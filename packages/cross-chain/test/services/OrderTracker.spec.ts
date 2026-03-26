@@ -2,6 +2,7 @@ import { Hex } from "viem";
 import { baseSepolia, sepolia } from "viem/chains";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { FillTimeoutError } from "../../src/core/services/EventBasedFillWatcher.js";
 import {
     FillWatcher,
     OpenedIntentParser,
@@ -12,9 +13,9 @@ import {
     OrderTrackerYield,
     OrderTrackerYieldType,
     OrderTrackingUpdate,
+    PreTracker,
     WatchOrderParams,
 } from "../../src/internal.js";
-import { FillTimeoutError } from "../../src/services/EventBasedFillWatcher.js";
 import { createMockFillEvent, createMockOpenedIntent } from "../mocks/orderTracking.js";
 
 describe("OrderTracker", () => {
@@ -560,6 +561,139 @@ describe("OrderTracker", () => {
 
             const updates = collectUpdates(items);
             expect(updates.at(-1)?.status).toBe(OrderStatus.Failed);
+        });
+    });
+
+    describe("preTracker", () => {
+        it("invokes pre-tracker before tracking starts via watchOrder (txHash path)", async () => {
+            const mockPreTracker: PreTracker = {
+                execute: vi.fn().mockResolvedValue(undefined),
+            };
+            const trackerWithPreTracker = new OrderTracker(
+                mockOpenedIntentParser,
+                mockFillWatcher,
+                undefined,
+                mockPreTracker,
+            );
+
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillInstructions: [
+                    {
+                        destinationChainId: mockDestinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
+            });
+            const mockFillEventData = createMockFillEvent();
+
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
+            vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
+
+            const items: OrderTrackerYield[] = [];
+            for await (const item of trackerWithPreTracker.watchOrder({
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 10000,
+            })) {
+                items.push(item);
+            }
+
+            expect(mockPreTracker.execute).toHaveBeenCalledWith({
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+                orderId: undefined,
+            });
+            expect(items.length).toBeGreaterThan(0);
+        });
+
+        it("invokes pre-tracker with orderId on the orderId path", async () => {
+            const mockPreTracker: PreTracker = {
+                execute: vi.fn().mockResolvedValue(undefined),
+            };
+            const trackerWithPreTracker = new OrderTracker(
+                mockOpenedIntentParser,
+                mockFillWatcher,
+                undefined,
+                mockPreTracker,
+            );
+
+            const mockOrderId =
+                "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hex;
+            const mockOpenTxHash =
+                "0xaaaa567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hex;
+            const mockFillEventData = createMockFillEvent();
+
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: mockFillEventData,
+                status: OrderStatus.Finalized,
+            });
+
+            const items: OrderTrackerYield[] = [];
+            for await (const item of trackerWithPreTracker.watchOrder({
+                orderId: mockOrderId,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                openTxHash: mockOpenTxHash,
+                timeout: 10000,
+            })) {
+                items.push(item);
+            }
+
+            expect(mockPreTracker.execute).toHaveBeenCalledWith({
+                txHash: mockOpenTxHash,
+                originChainId: mockOriginChainId,
+                orderId: mockOrderId,
+            });
+            expect(items.length).toBeGreaterThan(0);
+        });
+
+        it("continues tracking and warns if pre-tracker fails", async () => {
+            const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+            const mockPreTracker: PreTracker = {
+                execute: vi.fn().mockRejectedValue(new Error("network failure")),
+            };
+            const trackerWithPreTracker = new OrderTracker(
+                mockOpenedIntentParser,
+                mockFillWatcher,
+                undefined,
+                mockPreTracker,
+            );
+
+            const mockOpenedIntent = createMockOpenedIntent({
+                fillInstructions: [
+                    {
+                        destinationChainId: mockDestinationChainId,
+                        destinationSettler:
+                            "0x0000000000000000000000000000000000000000000000000000000000000000" as Hex,
+                        originData: "0x" as Hex,
+                    },
+                ],
+            });
+            const mockFillEventData = createMockFillEvent();
+
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(mockOpenedIntent);
+            vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(mockFillEventData);
+
+            const items: OrderTrackerYield[] = [];
+            for await (const item of trackerWithPreTracker.watchOrder({
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 10000,
+            })) {
+                items.push(item);
+            }
+
+            expect(mockPreTracker.execute).toHaveBeenCalled();
+            expect(items.length).toBeGreaterThan(0);
+            expect(warnSpy).toHaveBeenCalledWith(
+                "[OrderTracker] pre-tracker failed:",
+                "network failure",
+            );
+            warnSpy.mockRestore();
         });
     });
 

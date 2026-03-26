@@ -11,45 +11,69 @@ const MOCK_TOKENS = [
 ];
 
 /**
- * Mock quote response from Across API (matches AcrossGetQuoteResponseSchema)
+ * Builds a mock Across API quote response with calldata that matches the requested amount.
+ * The calldata is ABI-encoded for the SpokePool deposit(bytes32,...) function.
  */
-const MOCK_QUOTE_RESPONSE = {
-  id: 'e2e-test-quote-id',
-  inputToken: {
-    address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-    chainId: 11155111,
-    decimals: 6,
-    symbol: 'USDC',
-    name: 'USD Coin',
-  },
-  outputToken: {
-    address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-    chainId: 84532,
-    decimals: 6,
-    symbol: 'USDC',
-    name: 'USD Coin',
-  },
-  inputAmount: '200000',
-  expectedOutputAmount: '199000',
-  minOutputAmount: '198000',
-  fees: {
-    total: {
-      amount: '1000',
-      amountUsd: '0.001',
-      pct: '500000000000000',
+function buildMockQuoteResponse(inputAmount: string) {
+  const input = BigInt(inputAmount);
+  const output = input - 1000n;
+  const inputHex = input.toString(16).padStart(64, '0');
+  const outputHex = output.toString(16).padStart(64, '0');
+
+  const data =
+    '0xad5425c6' + // deposit selector
+    '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266' + // depositor
+    '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266' + // recipient
+    '0000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238' + // inputToken
+    '000000000000000000000000036cbd53842c5426634e7929541ec2318f3dcf7e' + // outputToken
+    inputHex + // inputAmount
+    outputHex + // outputAmount
+    '0000000000000000000000000000000000000000000000000000000000014a34' + // destinationChainId (84532)
+    '0000000000000000000000000000000000000000000000000000000000000000' + // exclusiveRelayer
+    '0000000000000000000000000000000000000000000000000000000000000000' + // quoteTimestamp
+    '0000000000000000000000000000000000000000000000000000000000000000' + // fillDeadline
+    '0000000000000000000000000000000000000000000000000000000000000000' + // exclusivityParameter
+    '0000000000000000000000000000000000000000000000000000000000000180' + // message offset
+    '0000000000000000000000000000000000000000000000000000000000000000'; // message length (empty)
+
+  return {
+    id: 'e2e-test-quote-id',
+    inputToken: {
+      address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+      chainId: 11155111,
+      decimals: 6,
+      symbol: 'USDC',
+      name: 'USD Coin',
     },
-  },
-  swapTx: {
-    simulationSuccess: true,
-    chainId: 11155111,
-    to: '0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662',
-    data: '0xad5425c6000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb922660000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238000000000000000000000000036cbd53842c5426634e7929541ec2318f3dcf7e0000000000000000000000000000000000000000000000000000000000030d400000000000000000000000000000000000000000000000000000000000030718000000000000000000000000000000000000000000000000000000000001499400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001800000000000000000000000000000000000000000000000000000000000000000',
-    gas: '250000',
-    maxFeePerGas: '1000000000',
-    maxPriorityFeePerGas: '1000000000',
-  },
-  expectedFillTime: 60,
-};
+    outputToken: {
+      address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+      chainId: 84532,
+      decimals: 6,
+      symbol: 'USDC',
+      name: 'USD Coin',
+    },
+    inputAmount,
+    expectedOutputAmount: output.toString(),
+    minOutputAmount: (output - 1000n).toString(),
+    fees: {
+      total: {
+        amount: '1000',
+        amountUsd: '0.001',
+        pct: '500000000000000',
+      },
+    },
+    swapTx: {
+      simulationSuccess: true,
+      chainId: 11155111,
+      to: '0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662',
+      data,
+      gas: '250000',
+      maxFeePerGas: '1000000000',
+      maxPriorityFeePerGas: '1000000000',
+    },
+    expectedFillTime: 60,
+  };
+}
 
 test.beforeEach(async ({ page, context }) => {
   // Mock Across asset discovery
@@ -61,12 +85,14 @@ test.beforeEach(async ({ page, context }) => {
     });
   });
 
-  // Mock Across quote
+  // Mock Across quote — build response with calldata matching the requested amount
   await context.route('**/api/swap/approval**', async (route) => {
+    const url = new URL(route.request().url());
+    const amount = url.searchParams.get('amount') || '200000';
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(MOCK_QUOTE_RESPONSE),
+      body: JSON.stringify(buildMockQuoteResponse(amount)),
     });
   });
 
@@ -153,7 +179,7 @@ test.describe('Recipient address input', () => {
 test.describe('Amount input validation', () => {
   test('should enable Get Quotes button for valid positive amount', async ({ page }) => {
     await page.getByRole('textbox', { name: 'Amount' }).fill('10');
-    await expect(page.getByRole('button', { name: 'Get Quotes' })).toBeEnabled();
+    await expect(page.locator('button[type="submit"]')).toBeEnabled();
   });
 
   test('should strip letters from input', async ({ page }) => {
@@ -168,7 +194,7 @@ test.describe('Amount input validation', () => {
 
   test('should disable Get Quotes button for zero value', async ({ page }) => {
     await page.getByRole('textbox', { name: 'Amount' }).fill('0');
-    await expect(page.getByRole('button', { name: 'Get Quotes' })).toBeDisabled();
+    await expect(page.locator('button[type="submit"]')).toBeDisabled();
   });
 });
 
@@ -183,7 +209,7 @@ test.describe('Cross-chain intents', () => {
     await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
 
     await page.getByRole('textbox', { name: 'Amount' }).fill('0.2');
-    await page.getByRole('button', { name: 'Get Quotes' }).click();
+    await page.locator('button[type="submit"]').click();
     await page
       .locator('button')
       .filter({ hasText: /Across Protocol/ })
@@ -210,6 +236,80 @@ test.describe('Address menu', () => {
   });
 });
 
+// TODO: re-enable when buildQuote tab is restored (EFI-856)
+test.describe.skip('Build quote fee display', () => {
+  test('shows fee percentage for same-token with output < input', async ({ page }) => {
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+
+    await page.getByLabel('You send').fill('1');
+    await page.getByLabel('You receive').fill('0.99');
+
+    await expect(page.getByTestId('fee-display')).toBeVisible();
+    await expect(page.getByTestId('fee-hint')).not.toBeVisible();
+  });
+
+  test('shows warning when output equals input for same token', async ({ page }) => {
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+
+    await page.getByLabel('You send').fill('1');
+    await page.getByLabel('You receive').fill('1');
+
+    await expect(page.getByTestId('fee-warning')).toBeVisible();
+    await expect(page.getByTestId('fee-display')).not.toBeVisible();
+  });
+
+  test('shows default hint before output is filled', async ({ page }) => {
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+
+    await page.getByLabel('You send').fill('1');
+
+    await expect(page.getByTestId('fee-hint')).toBeVisible();
+  });
+});
+
+// TODO: re-enable when buildQuote tab is restored (EFI-856)
+test.describe.skip('Build Quote submit validation', () => {
+  test('should disable submit when "You receive" is empty', async ({ page }) => {
+    await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15000 });
+
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+    await page.getByLabel('You send').fill('10');
+
+    const submitBtn = page.locator('button[type="submit"]');
+    await expect(submitBtn).toBeDisabled();
+    await expect(submitBtn).toHaveText('Build Quote');
+  });
+
+  test('should disable submit when output >= input for same token', async ({ page }) => {
+    await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15000 });
+
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+
+    await page.getByLabel('You send').fill('1');
+    await page.getByLabel('You receive').fill('1');
+
+    await expect(page.getByTestId('fee-warning')).toBeVisible();
+    const submitBtn = page.locator('button[type="submit"]');
+    await expect(submitBtn).toBeDisabled();
+    await expect(submitBtn).toHaveText('Build Quote');
+  });
+});
+
 test.describe('Negative test', () => {
   test.beforeEach(async ({ page }) => {
     await page.evaluate(() => {
@@ -233,7 +333,7 @@ test.describe('Negative test', () => {
 
     const amountInput = page.getByLabel('Amount');
     await amountInput.fill('0.1');
-    await page.getByRole('button', { name: 'Get Quotes' }).click();
+    await page.locator('button[type="submit"]').click();
     await page
       .locator('button')
       .filter({ hasText: /Across Protocol/ })

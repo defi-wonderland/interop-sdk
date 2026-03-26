@@ -1,18 +1,14 @@
 import {
   PROTOCOLS,
   createCrossChainProvider,
-  createProviderExecutor,
+  createAggregator,
   OrderTrackerFactory,
+  type Aggregator,
   type CrossChainProvider,
 } from '@wonderland/interop-cross-chain';
 import { MAINNET_RPC_URLS, TESTNET_RPC_URLS } from '../constants/chains';
-import { getIsTestnet } from '../providers';
-
-const IS_TESTNET = getIsTestnet();
-const RPC_URLS = IS_TESTNET ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
 
 const OIF_API_URL = 'https://oif-api.openzeppelin.com/api';
-const OIF_SOLVER_ID = IS_TESTNET ? 'testnet-solver' : 'mainnet-solver';
 
 /**
  * Provider configuration with display names
@@ -26,38 +22,37 @@ const PROVIDER_CONFIGS = [
     providerId: 'oif',
     displayName: 'OIF Sample Solver',
   },
+  {
+    providerId: 'relay',
+    displayName: 'Relay',
+  },
 ];
 
-/**
- * Cross-chain providers
- */
-const providers: CrossChainProvider[] = [
-  createCrossChainProvider(PROTOCOLS.ACROSS, {
-    isTestnet: IS_TESTNET,
-    providerId: 'across',
-  }),
-  createCrossChainProvider(PROTOCOLS.OIF, {
-    solverId: OIF_SOLVER_ID,
-    url: OIF_API_URL,
-    providerId: 'oif',
-  }),
-];
+export function buildExecutor(isTestnet: boolean): Aggregator {
+  const rpcUrls = isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
+  const oifSolverId = isTestnet ? 'testnet-solver' : 'mainnet-solver';
 
-/**
- * Order tracker factory - handles tracking for any provider
- */
-const trackerFactory = new OrderTrackerFactory({ rpcUrls: RPC_URLS });
+  const providers: CrossChainProvider[] = [
+    createCrossChainProvider(PROTOCOLS.ACROSS, {
+      isTestnet,
+      providerId: 'across',
+    }),
+    createCrossChainProvider(PROTOCOLS.OIF, {
+      solverId: oifSolverId,
+      url: OIF_API_URL,
+      providerId: 'oif',
+    }),
+    createCrossChainProvider(PROTOCOLS.RELAY, {
+      isTestnet,
+      providerId: 'relay',
+    }),
+  ];
 
-/**
- * Cross-chain executor singleton
- * - Fetches quotes from all providers
- * - Handles intent tracking for any provider via track() method
- * - Asset discovery via discoverAssets() / getProvidersForRoute()
- */
-export const crossChainExecutor = createProviderExecutor({
-  providers,
-  trackerFactory,
-});
+  return createAggregator({
+    providers,
+    trackerFactory: new OrderTrackerFactory({ rpcUrls }),
+  });
+}
 
 /**
  * Gets the display name for a provider by its ID

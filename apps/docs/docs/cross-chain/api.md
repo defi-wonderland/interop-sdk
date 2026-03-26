@@ -21,6 +21,14 @@ A set of classes and utilities for handling cross-chain operations through vario
     // Across - with testnet config
     const testnetProvider = createCrossChainProvider("across", { isTestnet: true });
 
+    // Relay - config optional (defaults to mainnet)
+    const relayProvider = createCrossChainProvider("relay");
+
+    // Relay - with API key
+    const relayWithKey = createCrossChainProvider("relay", {
+        apiKey: "your-api-key",
+    });
+
     // OIF - config required
     const oifProvider = createCrossChainProvider("oif", {
         solverId: "my-solver",
@@ -32,56 +40,63 @@ A set of classes and utilities for handling cross-chain operations through vario
 
 An abstract class that defines the interface for cross-chain protocol providers.
 
--   **getProtocolName**(): string
+-   **protocolName**: string
 
-    Returns the name of the protocol this provider implements.
-
-    ```typescript
-    const protocolName = provider.getProtocolName(); // e.g., "across"
-    ```
-
--   **getProviderId**(): string
-
-    Returns the unique provider instance ID.
+    The name of the protocol this provider implements.
 
     ```typescript
-    const providerId = provider.getProviderId(); // e.g., "across-1"
+    const protocolName = provider.protocolName; // e.g., "across"
     ```
 
--   **getQuotes**(params: GetQuoteRequest): Promise\<ExecutableQuote[]\>
+-   **providerId**: string
+
+    The unique provider instance ID.
+
+    ```typescript
+    const providerId = provider.providerId; // e.g., "across-1"
+    ```
+
+-   **getQuotes**(params: QuoteRequest): Promise\<Quote[]\>
 
     Fetches quotes for a cross-chain operation.
 
     ```typescript
     const quotes = await provider.getQuotes({
-        user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-        intent: {
-            intentType: "oif-swap",
-            inputs: [
-                {
-                    user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                    asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                    amount: "1000000000000000000",
-                },
-            ],
-            outputs: [
-                {
-                    receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                    asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-                },
-            ],
-            swapType: "exact-input",
+        user: "0xYourAddress",
+        input: {
+            chainId: 1,
+            assetAddress: "0xTokenAddress",
+            amount: "1000000000000000000",
         },
-        supportedTypes: ["across"], // provider-specific: "across", "oif-escrow-v0", "oif-user-open-v0"
+        output: {
+            chainId: 42161,
+            assetAddress: "0xOutputTokenAddress",
+            recipient: "0xRecipientAddress",
+        },
+        swapType: "exact-input",
     });
     ```
 
--   **submitSignedOrder**(quote: ExecutableQuote, signature: Hex): Promise\<PostOrderResponse\>
+-   **buildQuote**(params: BuildQuoteRequest): Promise\<Quote\>
+
+    Builds a quote locally without calling a solver API. Returns a `Quote` with a `TransactionStep` that the consumer can execute directly. Both input and output amounts are required (the user controls the fee). Not all providers support this -- throws `ProviderExecuteNotImplemented` if unsupported.
+
+    ```typescript
+    const quote = await provider.buildQuote({
+        user: "0xYourAddress",
+        input: { chainId: 11155111, assetAddress: "0xInputToken", amount: "1000000" },
+        output: { chainId: 84532, assetAddress: "0xOutputToken", amount: "980000" },
+        escrowContractAddress: "0xSpokePoolAddress",
+        fillDeadline: Math.floor(Date.now() / 1000) + 3600,
+    });
+    ```
+
+-   **submitOrder**(quote: Quote, signature: Hex): Promise\<SubmitOrderResponse\>
 
     Submits a signed order for gasless execution.
 
     ```typescript
-    const response = await provider.submitSignedOrder(quote, signature);
+    const response = await provider.submitOrder(quote, signature);
     ```
 
 -   **getTrackingConfig**(): TrackingConfig
@@ -90,62 +105,60 @@ An abstract class that defines the interface for cross-chain protocol providers.
 
     ```typescript
     const config = provider.getTrackingConfig();
+    // config.openedIntentParserConfig — how to parse opened intents from origin chain
+    // config.fillWatcherConfig — how to watch for fills on destination chain
+    // config.preTrackerConfig — optional pre-tracking step (e.g., notify provider API)
     ```
 
-### Provider Executor
+### Aggregator
 
 A utility for managing multiple cross-chain providers and executing operations across them.
 
 #### Methods
 
--   **createProviderExecutor**(config: ProviderExecutorConfig): ProviderExecutor
+-   **createAggregator**(config: AggregatorConfig): Aggregator
 
-    Creates an executor instance for managing multiple providers.
+    Creates an aggregator instance for managing multiple providers.
 
     ```typescript
     import {
-        createProviderExecutor,
+        AssetDiscoveryFactory,
+        createAggregator,
         OrderTrackerFactory,
         SortingStrategyFactory,
     } from "@wonderland/interop-cross-chain";
 
-    const executor = createProviderExecutor({
+    const aggregator = createAggregator({
         providers: [acrossProvider],
         sortingStrategy: SortingStrategyFactory.createStrategy("bestOutput"), // optional
         timeoutMs: 15000, // optional
         trackerFactory: new OrderTrackerFactory({ rpcUrls }), // optional
+        discoveryFactory: new AssetDiscoveryFactory(), // optional (default)
     });
     ```
 
-#### ProviderExecutor Class
+#### Aggregator Class
 
 A class that manages multiple cross-chain providers and coordinates their operations.
 
--   **getQuotes**(params: GetQuoteRequest): Promise\<GetQuotesResponse\>
+-   **getQuotes**(params: QuoteRequest): Promise\<GetQuotesResponse\>
 
     Retrieves quotes from all available providers for a given operation.
 
     ```typescript
-    const response = await executor.getQuotes({
-        user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-        intent: {
-            intentType: "oif-swap",
-            inputs: [
-                {
-                    user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                    asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                    amount: "1000000000000000000",
-                },
-            ],
-            outputs: [
-                {
-                    receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                    asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-                },
-            ],
-            swapType: "exact-input",
+    const response = await aggregator.getQuotes({
+        user: "0xYourAddress",
+        input: {
+            chainId: 1,
+            assetAddress: "0xInputToken",
+            amount: "1000000000000000000",
         },
-        supportedTypes: ["across"], // provider-specific: "across", "oif-escrow-v0", "oif-user-open-v0"
+        output: {
+            chainId: 42161,
+            assetAddress: "0xOutputToken",
+            recipient: "0xRecipient",
+        },
+        swapType: "exact-input",
     });
 
     // Handle results
@@ -155,6 +168,33 @@ A class that manages multiple cross-chain providers and coordinates their operat
     response.errors.forEach((error) => console.error(error.errorMsg));
     ```
 
+-   **buildQuote**(providerId: string, params: BuildQuoteRequest): Promise\<ExecutableQuote\>
+
+    Builds a quote locally for a specific provider without calling a solver API. The user provides both amounts (controlling the fee) and a fill deadline. The returned quote feeds into the same execution and tracking pipeline as API-fetched quotes.
+
+    ```typescript
+    const quote = await aggregator.buildQuote("across", {
+        user: "0xYourAddress",
+        input: { chainId: 11155111, assetAddress: "0xInputToken", amount: "1000000" },
+        output: { chainId: 84532, assetAddress: "0xOutputToken", amount: "980000" },
+        escrowContractAddress: "0xSpokePoolAddress",
+        fillDeadline: Math.floor(Date.now() / 1000) + 3600,
+    });
+    ```
+
+-   **submitOrder**(quote: ExecutableQuote, signatureOrResults: Hex | StepResult[]): Promise\<SubmitOrderResponse\>
+
+    Submits an order for execution. Pass a single `Hex` signature for single-step orders, or an array of `StepResult` for multi-step orders.
+
+    ```typescript
+    // Single signature
+    const response = await aggregator.submitOrder(quote, signature);
+
+    // Multi-step results
+    const results: StepResult[] = [{ stepIndex: 0, signature: "0x..." }];
+    const response = await aggregator.submitOrder(quote, results);
+    ```
+
 -   **track**(params: TrackParams): OrderTracker
 
     Starts tracking an executed transaction with real-time events.
@@ -162,7 +202,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     ```typescript
     import { OrderStatus } from "@wonderland/interop-cross-chain";
 
-    const tracker = executor.track({
+    const tracker = aggregator.track({
         txHash: hash,
         providerId: quote.provider,
         originChainId: 11155111,
@@ -178,12 +218,45 @@ A class that manages multiple cross-chain providers and coordinates their operat
     Gets the current status of an order without watching.
 
     ```typescript
-    const status = await executor.getOrderStatus({
+    const status = await aggregator.getOrderStatus({
         txHash: "0x...",
         providerId: "across",
         originChainId: 11155111,
     });
     console.log(status.status); // OrderStatus
+    ```
+
+-   **prepareTracking**(providerId: string): OrderTracker
+
+    Returns an OrderTracker instance for a provider. Use this to set up event listeners _before_ sending a transaction.
+
+    ```typescript
+    const tracker = aggregator.prepareTracking(quote.provider);
+    tracker.on(OrderStatus.Finalized, (update) => console.log("Done!", update.fillTxHash));
+    // ...then send the transaction and call tracker.startTracking(...)
+    ```
+
+-   **discoverAssets**(options?: AssetDiscoveryOptions): Promise\<DiscoveredAssets\>
+
+    Discovers supported assets from all configured providers.
+
+    ```typescript
+    const discovered = await aggregator.discoverAssets({ chainIds: [1, 42161] });
+    // discovered.tokensByChain — token addresses grouped by numeric chain ID
+    // discovered.tokenMetadata — token metadata nested by chain ID then lowercase address
+    ```
+
+-   **getProvidersForRoute**(query: RouteQuery): Promise\<string[]\>
+
+    Returns provider IDs that support a given origin/destination asset pair. Uses plain 0x addresses and numeric chain IDs.
+
+    ```typescript
+    const providers = await aggregator.getProvidersForRoute({
+        originChainId: 1,
+        originAsset: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        destinationChainId: 42161,
+        destinationAsset: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    });
     ```
 
 ### Sorting Strategies
@@ -204,8 +277,9 @@ A factory for creating quote sorting strategies.
 
     Available strategies:
 
-    -   `bestOutput` - Sorts quotes by highest output amount
-    -   `lowerEta` - Sorts quotes by lowest estimated time of arrival
+    -   `bestOutput` - Sorts quotes by highest output amount (default)
+
+    Additional sorting strategies may be added in future releases.
 
 ### Order Tracker
 
@@ -262,13 +336,148 @@ A class that tracks cross-chain orders through their lifecycle.
 
 ### Types
 
+#### QuoteRequest
+
+```typescript
+interface QuoteRequest {
+    user: string;
+    input: {
+        chainId: number;
+        assetAddress: string;
+        amount?: string;
+    };
+    output: {
+        chainId: number;
+        assetAddress: string;
+        amount?: string;
+        recipient?: string;
+        calldata?: string;
+    };
+    swapType?: "exact-input" | "exact-output"; // default: "exact-input"
+}
+```
+
+#### BuildQuoteRequest
+
+```typescript
+interface BuildQuoteRequest {
+    user: string;
+    input: {
+        chainId: number;
+        assetAddress: string;
+        amount: string; // required (unlike QuoteRequest)
+    };
+    output: {
+        chainId: number;
+        assetAddress: string;
+        amount: string; // required (unlike QuoteRequest)
+        recipient?: string;
+        calldata?: string;
+    };
+    escrowContractAddress: string; // settlement contract address
+    fillDeadline: number; // unix timestamp
+    orderDataType?: string; // hex-encoded, max 32 bytes (e.g. "0x00")
+    orderData?: string; // hex-encoded (e.g. "0x1234")
+}
+```
+
+#### Quote
+
+```typescript
+interface Quote {
+    order: Order;
+    preview: {
+        inputs: { chainId: number; accountAddress: string; assetAddress: string; amount: string }[];
+        outputs: {
+            chainId: number;
+            accountAddress: string;
+            assetAddress: string;
+            amount: string;
+        }[];
+    };
+    provider: string;
+    validUntil?: number; // quote validity (unix timestamp)
+    eta?: number; // estimated time to completion (seconds)
+    quoteId?: string;
+    failureHandling?: string;
+    partialFill?: boolean;
+    fees?: QuoteFees;
+    tracking?: QuoteTracking;
+    metadata?: Record<string, unknown>;
+}
+```
+
+#### QuoteFeeEntry
+
+```typescript
+interface QuoteFeeEntry {
+    amount: string; // Raw amount in token units
+    amountUsd?: string; // USD equivalent
+    token?: {
+        symbol: string;
+        decimals: number;
+        address?: string;
+    };
+}
+```
+
+#### QuoteTracking
+
+```typescript
+interface QuoteTracking {
+    orderId?: string; // Protocol-specific order identifier for tracking
+}
+```
+
+#### QuoteFees
+
+```typescript
+interface QuoteFees {
+    bridgeFee?: QuoteFeeEntry; // Bridge/relayer fee
+    bridgeFeePct?: string; // Fee as percentage (wei-encoded, 1e18 = 100%)
+    originGas?: QuoteFeeEntry; // Origin chain gas cost
+}
+```
+
+#### Order
+
+```typescript
+interface Order {
+    steps: (SignatureStep | TransactionStep)[];
+    lock?: LockMechanism;
+    checks?: OrderChecks;
+    metadata?: Record<string, unknown>;
+}
+```
+
+#### OrderChecks
+
+```typescript
+interface OrderChecks {
+    allowances?: {
+        chainId: number;
+        tokenAddress: string;
+        owner: string;
+        spender: string;
+        required: string;
+    }[];
+}
+```
+
 #### ExecutableQuote
 
 ```typescript
-interface ExecutableQuote {
-    order: Quote["order"];
-    provider?: string;
-    preparedTransaction?: PrepareTransactionRequestReturnType;
+interface ExecutableQuote extends Quote {
+    // Use quote.provider for provider identification
+}
+```
+
+#### StepResult
+
+```typescript
+interface StepResult {
+    stepIndex: number; // Index into order.steps[]
+    signature: Hex; // EIP-712 signature
 }
 ```
 
@@ -278,6 +487,31 @@ interface ExecutableQuote {
 interface GetQuotesResponse {
     quotes: ExecutableQuote[];
     errors: { errorMsg: string; error: Error }[];
+}
+```
+
+#### TokenTransfer
+
+ERC-7683 token transfer structure used in `OrderTrackingInfo`.
+
+```typescript
+interface TokenTransfer {
+    token: Hex;
+    amount: bigint;
+    recipient: Hex;
+    chainId: number;
+}
+```
+
+#### FillInstruction
+
+ERC-7683 fill instruction for destination chain.
+
+```typescript
+interface FillInstruction {
+    destinationChainId: number;
+    destinationSettler: Hex;
+    originData: Hex;
 }
 ```
 
@@ -292,6 +526,9 @@ interface OrderTrackingInfo {
     originChainId: number;
     openDeadline: number;
     fillDeadline: number;
+    maxSpent: TokenTransfer[];
+    minReceived: TokenTransfer[];
+    fillInstructions: FillInstruction[];
     fillEvent?: FillEvent;
     failureReason?: OrderFailureReason;
 }
@@ -303,7 +540,7 @@ interface OrderTrackingInfo {
 interface OrderTrackingUpdate {
     status: OrderStatus;
     orderId?: Hex;
-    openTxHash: Hex;
+    openTxHash?: Hex;
     fillTxHash?: Hex;
     timestamp: number;
     message: string;
@@ -316,14 +553,76 @@ interface OrderTrackingUpdate {
 ```typescript
 interface FillEvent {
     fillTxHash: Hex;
-    blockNumber: bigint;
+    blockNumber?: bigint;
     timestamp: number;
     originChainId: number;
     orderId: Hex;
-    relayer: Address;
-    recipient: Address;
+    relayer?: Address;
+    recipient?: Address;
+    metadata?: unknown;
 }
 ```
+
+### Provider Configuration
+
+#### Across
+
+| Field        | Type    | Required | Description                                   |
+| ------------ | ------- | -------- | --------------------------------------------- |
+| `isTestnet`  | boolean | No       | Use testnet API (default: false)              |
+| `apiUrl`     | string  | No       | Custom API endpoint URL (overrides isTestnet) |
+| `providerId` | string  | No       | Custom provider identifier                    |
+
+Payload validation:
+
+| Operation                           | Validation                                                    |
+| ----------------------------------- | ------------------------------------------------------------- |
+| Simple bridge (same token)          | Full validation (depositor, recipient, tokens, amount, chain) |
+| Cross-chain swap (different tokens) | Coming soon                                                   |
+
+#### Relay
+
+| Field        | Type    | Required | Description                                   |
+| ------------ | ------- | -------- | --------------------------------------------- |
+| `baseUrl`    | string  | No       | Custom API base URL (overrides isTestnet)     |
+| `isTestnet`  | boolean | No       | Use testnet API (default: false)              |
+| `providerId` | string  | No       | Custom provider identifier (default: "relay") |
+| `apiKey`     | string  | No       | Relay API key for authentication              |
+
+#### OIF
+
+| Field             | Type     | Required | Description                                                                                                |
+| ----------------- | -------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `solverId`        | string   | Yes      | Solver identifier                                                                                          |
+| `url`             | string   | Yes      | Solver API endpoint URL                                                                                    |
+| `headers`         | object   | No       | Custom HTTP headers                                                                                        |
+| `adapterMetadata` | object   | No       | Additional metadata for the solver                                                                         |
+| `providerId`      | string   | No       | Custom provider identifier                                                                                 |
+| `supportedLocks`  | string[] | No       | Lock mechanisms to request (e.g. `["oif-escrow"]`, `["compact-resource-lock"]`). Default: `["oif-escrow"]` |
+| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both (default). Controls order types            |
+
+Lock mechanism mapping:
+
+| Lock Mechanism          | OIF Order Types                |
+| ----------------------- | ------------------------------ |
+| `oif-escrow`            | `oif-escrow-v0`, `oif-3009-v0` |
+| `compact-resource-lock` | `oif-resource-lock-v0`         |
+
+Supported order types:
+
+-   `oif-escrow-v0` — Permit2-based escrow (gasless)
+-   `oif-3009-v0` — EIP-3009 transfer with authorization (gasless)
+-   `oif-resource-lock-v0` — Compact resource locking (gasless)
+-   `oif-user-open-v0` — User executes transaction directly
+
+Payload validation:
+
+| Order Type             | Validation                                |
+| ---------------------- | ----------------------------------------- |
+| `oif-escrow-v0`        | token, amount, deadline                   |
+| `oif-resource-lock-v0` | token, amount, sponsor, expiration        |
+| `oif-3009-v0`          | from, value, token address, expiration    |
+| `oif-user-open-v0`     | allowances (token, user, spender, amount) |
 
 ## References
 

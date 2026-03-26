@@ -1,28 +1,33 @@
-import { viemChainNameMap } from '../utils/viem-chains';
+import { getRegisteredChains } from '@wonderland/interop-addresses';
+import { REGISTRY_CHAINS, type RegistryChainWithStatus } from './registry-chains';
 
-export interface Chain {
-  name: string;
-  chainId: number;
-  shortName: string;
-}
+/** Merges the on.eth onchain registry with the curated list. */
+export async function getChains(): Promise<RegistryChainWithStatus[]> {
+  let onchainEntries: Awaited<ReturnType<typeof getRegisteredChains>>;
 
-/**
- * Fetches all available chains for demo purposes.
- * This allows users exploring interoperable addresses to easily select from all existing chains.
- * Only returns chains that are supported by viem (and therefore by the SDK).
- */
-export async function getChains(): Promise<Chain[]> {
   try {
-    const response = await fetch('https://chainid.network/chains_mini.json');
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch chains');
-    }
-
-    const data: Chain[] = await response.json();
-    return data.filter((chain) => !!viemChainNameMap[chain.chainId]);
-  } catch (error) {
-    console.error('Failed to fetch chains:', error);
-    return [];
+    onchainEntries = await getRegisteredChains({ rpcUrl: process.env.MAINNET_RPC_URL });
+  } catch {
+    onchainEntries = [];
   }
+
+  const onchainKeys = new Set(onchainEntries.map((e) => `${e.chainType}:${e.chainReference}`));
+
+  const result: RegistryChainWithStatus[] = onchainEntries.map((entry) => ({
+    name: entry.name,
+    chainType: entry.chainType,
+    chainReference: entry.chainReference,
+    shortName: entry.label,
+    isRegistered: true,
+  }));
+
+  for (const chain of REGISTRY_CHAINS) {
+    if (onchainKeys.has(`${chain.chainType}:${chain.chainReference}`)) continue;
+    result.push({ ...chain, isRegistered: false });
+  }
+
+  return result.sort((a, b) => {
+    if (a.isRegistered !== b.isRegistered) return a.isRegistered ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
 }

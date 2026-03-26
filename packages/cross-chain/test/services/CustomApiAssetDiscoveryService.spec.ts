@@ -1,4 +1,3 @@
-import { toChainIdentifier } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ZodError } from "zod";
@@ -80,11 +79,11 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             // Returns DiscoveredAssets format
             expect(Object.keys(result.tokensByChain)).toHaveLength(2);
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
+            expect(Object.keys(result.tokensByChain)).toContain(String(1));
+            expect(Object.keys(result.tokensByChain)).toContain(String(137));
 
             // Verify tokensByChain has the expected tokens
-            const ethTokens = result.tokensByChain[toChainIdentifier(1) as string];
+            const ethTokens = result.tokensByChain[1];
             expect(ethTokens).toHaveLength(2);
         });
 
@@ -112,7 +111,7 @@ describe("CustomApiAssetDiscoveryService", () => {
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
             expect(Object.keys(result.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(String(1));
         });
 
         it("should handle empty response array", async () => {
@@ -459,10 +458,10 @@ describe("CustomApiAssetDiscoveryService", () => {
 
             // Each result should have its own filter applied
             expect(Object.keys(result1.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result1.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result1.tokensByChain)).toContain(String(1));
 
             expect(Object.keys(result2.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result2.tokensByChain)).toContain(toChainIdentifier(137));
+            expect(Object.keys(result2.tokensByChain)).toContain(String(137));
         });
     });
 });

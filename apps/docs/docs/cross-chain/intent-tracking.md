@@ -7,7 +7,7 @@ The SDK includes **order tracking** to monitor cross-chain transfers from initia
 Tracking supports **two ways of observing the same lifecycle**, depending on the provider and how the order is created:
 
 -   **Onchain tracking**: derive tracking data from the origin transaction (e.g. ERC-7683 open event), then watch the fill on the destination chain.
--   **Offchain tracking**: query a provider API for order state transitions (e.g. polling an “order status / deposit status” endpoint).
+-   **Offchain tracking**: query a provider API for order state transitions (e.g. polling an "order status / deposit status" endpoint).
 
 ## Overview
 
@@ -23,7 +23,7 @@ The `OrderTracker` streams updates using the full OIF `OrderStatus` set (see the
 -   **Failed**
 -   **Refunded**
 
-In other words, you can subscribe to **any** `OrderStatus` via `tracker.on(OrderStatus.<status>, ...)` — the examples below just show the most common ones.
+In other words, you can subscribe to **any** `OrderStatus` via `tracker.on(OrderStatus.<status>, ...)` --- the examples below just show the most common ones.
 
 In addition, the tracker can emit:
 
@@ -32,18 +32,18 @@ In addition, the tracker can emit:
 
 ## Basic Usage
 
-The recommended way to track orders is through the `ProviderExecutor`, which handles tracker creation and caching automatically:
+The recommended way to track orders is through the `Aggregator`, which handles tracker creation and caching automatically:
 
 ```typescript
 import {
+    createAggregator,
     createCrossChainProvider,
-    createProviderExecutor,
     OrderTrackerFactory,
 } from "@wonderland/interop-cross-chain";
 
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
-const executor = createProviderExecutor({
+const aggregator = createAggregator({
     providers: [acrossProvider],
     trackerFactory: new OrderTrackerFactory({
         rpcUrls: {
@@ -56,15 +56,24 @@ const executor = createProviderExecutor({
 
 ### Tracking an Order
 
-After sending the transaction, use `executor.track()` for real-time updates:
+After sending the transaction, use `aggregator.track()` for real-time updates:
 
 ```typescript
-import { OrderStatus, OrderTrackerEvent } from "@wonderland/interop-cross-chain";
+import {
+    getTransactionSteps,
+    OrderStatus,
+    OrderTrackerEvent,
+} from "@wonderland/interop-cross-chain";
 
 const quote = response.quotes[0];
-const hash = await walletClient.sendTransaction(quote.preparedTransaction);
+const step = getTransactionSteps(quote.order)[0];
+const hash = await walletClient.sendTransaction({
+    to: step.transaction.to,
+    data: step.transaction.data,
+    value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+});
 
-const tracker = executor.track({
+const tracker = aggregator.track({
     txHash: hash,
     providerId: quote.provider,
     originChainId: 11155111,
@@ -85,7 +94,7 @@ tracker.on(OrderTrackerEvent.Error, (error) => console.error("Error:", error));
 Check the current status of an order without watching:
 
 ```typescript
-const status = await executor.getOrderStatus({
+const status = await aggregator.getOrderStatus({
     txHash: "0xabc...",
     providerId: "across",
     originChainId: 11155111,
@@ -105,9 +114,30 @@ if (status.fillEvent) {
 -   **Mainnet**: Across uses **API-based fill tracking** by default (polls `GET /deposit/status?depositTxnRef=...`). This reduces reliance on destination-chain RPCs.
 -   **Testnet**: Across uses **event-based fill tracking** by default (Across testnet API is not reliable), so you should provide RPC URLs for both origin and destination chains.
 
+## Provider Notes (Relay)
+
+-   Relay uses **API-based tracking** for both mainnet and testnet. Both opened intent parsing and fill watching use the `/intents/status/v3` endpoint.
+-   **No RPC URLs required** — all tracking is done through the Relay API.
+-   Transaction notification is **automatic** — when tracking starts, the pre-tracker calls `POST /transactions/index` to accelerate solver indexing. No manual step required.
+
+```typescript
+const originChainId = 11155111;
+const destinationChainId = 84532;
+
+const hash = await walletClient.sendTransaction({ ... });
+
+// Start tracking — Relay is automatically notified via the pre-tracker
+const tracker = aggregator.track({
+    txHash: hash,
+    providerId: quote.provider,
+    originChainId,
+    destinationChainId,
+});
+```
+
 ## Advanced: Standalone Tracker
 
-For advanced use cases, you can create a tracker directly without using the executor:
+For advanced use cases, you can create a tracker directly without using the aggregator:
 
 ```typescript
 import { createCrossChainProvider, createOrderTracker } from "@wonderland/interop-cross-chain";
@@ -215,3 +245,4 @@ Explore more complex scenarios: [Advanced Usage](./advanced-usage.md)
 
 -   [EIP-7683: Open Intent Framework](https://www.erc7683.org/)
 -   [Order Tracking Types](./api.md#order-tracker)
+-   [Concepts](./concepts.md) — how intent-based transfers and tracking work

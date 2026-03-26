@@ -1,7 +1,7 @@
 import { arbitrumSepolia, baseSepolia, sepolia } from "viem/chains";
 import { describe, expect, it } from "vitest";
 
-import { getChainById } from "../../src/utils/chainHelpers.js";
+import { getChainById } from "../../src/core/utils/chainHelpers.js";
 
 describe("chainHelpers", () => {
     describe("getChainById", () => {

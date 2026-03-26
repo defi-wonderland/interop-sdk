@@ -4,7 +4,7 @@ title: Across Provider
 
 The Across Protocol provider enables cross-chain token transfers using the Across bridge infrastructure.
 
-**Status**: Testnet
+**Status**: Active (mainnet + testnet)
 
 ## Configuration
 
@@ -34,36 +34,43 @@ const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 
 ```typescript
 const quotes = await acrossProvider.getQuotes({
-    user: USER_INTEROP_ADDRESS, // user's interop address (binary format)
-    intent: {
-        intentType: "oif-swap",
-        inputs: [
-            // Across only supports single input/output
-            {
-                user: USER_INTEROP_ADDRESS, // sender's interop address (binary format)
-                asset: INPUT_TOKEN_INTEROP_ADDRESS, // input token interop address (binary format)
-                amount: "1000000000000000000", // 1 token (in wei)
-            },
-        ],
-        outputs: [
-            {
-                receiver: RECEIVER_INTEROP_ADDRESS, // recipient's interop address (binary format)
-                asset: OUTPUT_TOKEN_INTEROP_ADDRESS, // output token interop address (binary format)
-            },
-        ],
-        swapType: "exact-input",
+    user: "0xYourAddress",
+    input: {
+        chainId: 11155111,
+        assetAddress: "0xInputTokenAddress",
+        amount: "1000000000000000000", // 1 token (in wei)
     },
-    supportedTypes: ["across"], // Required by OIF interface, value is ignored by Across
+    output: {
+        chainId: 84532,
+        assetAddress: "0xOutputTokenAddress",
+        recipient: "0xRecipientAddress",
+    },
+    swapType: "exact-input",
 });
 
 const quote = quotes[0]; // Select the first quote
 ```
 
-## Executing Transactions
+## Fees
 
-After getting a quote, execute the transaction using the prepared transaction:
+After getting a quote, you can inspect the standardized fee breakdown via `quote.fees`:
 
 ```typescript
+const quote = quotes[0];
+
+console.log(quote.fees?.bridgeFee); // { amount, amountUsd, token }
+console.log(quote.fees?.bridgeFeePct); // percentage (wei-encoded, 1e18 = 100%)
+console.log(quote.fees?.originGas); // origin chain gas estimate
+```
+
+See the [API reference](./api.md#quotefees) for the full `QuoteFees` type.
+
+## Executing Transactions
+
+Across quotes always contain transaction steps. After getting a quote, execute the transaction:
+
+```typescript
+import { getTransactionSteps } from "@wonderland/interop-cross-chain";
 import { createWalletClient, http } from "viem";
 import { sepolia } from "viem/chains";
 
@@ -73,20 +80,14 @@ const walletClient = createWalletClient({
     account: yourAccount,
 });
 
-if (quote.preparedTransaction) {
-    const hash = await walletClient.sendTransaction(quote.preparedTransaction);
-    console.log("Transaction sent:", hash);
-}
+const step = getTransactionSteps(quote.order)[0];
+const hash = await walletClient.sendTransaction({
+    to: step.transaction.to,
+    data: step.transaction.data,
+    value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+});
+console.log("Transaction sent:", hash);
 ```
-
-## Features
-
--   Cross-chain token transfers
--   Quote fetching with fee calculation
--   Transaction simulation
--   Order tracking support
--   EIP-7683 Open Intent Framework integration
--   Payload validation for simple bridges
 
 ## Tracking (Mainnet vs Testnet)
 
@@ -97,15 +98,6 @@ Across tracking is implemented as:
 
 In both cases, the SDK parses the ERC-7683 open event on the **origin chain**, so you should provide an origin-chain RPC URL for robust tracking.
 
-## Payload Validation
-
-The provider validates that calldata from the solver API matches the user's intent:
-
-| Operation                           | Validation                                                    |
-| ----------------------------------- | ------------------------------------------------------------- |
-| Simple bridge (same token)          | Full validation (depositor, recipient, tokens, amount, chain) |
-| Cross-chain swap (different tokens) | Coming soon                                                   |
-
 ## Next Step
 
 See a complete working example: [Execute Intent](./example.md)
@@ -113,3 +105,5 @@ See a complete working example: [Execute Intent](./example.md)
 ## References
 
 -   [Across Protocol Documentation](https://docs.across.to/)
+-   [API Reference](./api.md) — full type definitions for quotes, fees, and orders
+-   [Concepts](./concepts.md) — how intent-based transfers work

@@ -3,6 +3,48 @@ import { getProviderDisplayName } from '../services/sdk';
 import { formatAmount, formatPercentage, formatETA, formatUsdAmount, formatUsdAmountCompact } from './formatting';
 import type { ExecutableQuote, TokenInfo } from '@wonderland/interop-cross-chain';
 
+type ParsedFees = {
+  feeTotal?: string;
+  feeTotalUsd?: string;
+  feePercent?: string;
+  feeTokenSymbol?: string;
+  originGas?: string;
+  originGasUsd?: string;
+  originGasSymbol?: string;
+  hasOriginGas: boolean;
+};
+
+const DEFAULT_FEES: ParsedFees = { hasOriginGas: false };
+
+function parseFees(quote: ExecutableQuote, inputTokenInfo?: { decimals?: number; symbol?: string }): ParsedFees {
+  const fees = quote.fees;
+  if (!fees) return DEFAULT_FEES;
+
+  const result: ParsedFees = { hasOriginGas: false };
+
+  if (fees.bridgeFee?.amount && fees.bridgeFee.amount !== '0') {
+    const feeDecimals = fees.bridgeFee.token?.decimals ?? inputTokenInfo?.decimals ?? 18;
+    result.feeTotal = formatAmount(fees.bridgeFee.amount, feeDecimals);
+    result.feeTokenSymbol = fees.bridgeFee.token?.symbol || inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
+    if (fees.bridgeFee.amountUsd) result.feeTotalUsd = formatUsdAmount(fees.bridgeFee.amountUsd);
+    if (fees.bridgeFeePct) {
+      const pctValue = BigInt(fees.bridgeFeePct);
+      const wei = 1000000000000000000n;
+      result.feePercent = formatPercentage((Number(pctValue) / Number(wei)) * 100);
+    }
+  }
+
+  if (fees.originGas?.amount && fees.originGas.amount !== '0') {
+    result.hasOriginGas = true;
+    const gasDecimals = fees.originGas.token?.decimals ?? 18;
+    result.originGas = formatAmount(fees.originGas.amount, gasDecimals, 8);
+    result.originGasSymbol = fees.originGas.token?.symbol || 'ETH';
+    if (fees.originGas.amountUsd) result.originGasUsd = formatUsdAmount(fees.originGas.amountUsd);
+  }
+
+  return result;
+}
+
 export interface FormattedQuoteData {
   inputAmount: string;
   outputAmount: string;
@@ -50,112 +92,18 @@ export function formatQuoteData(
     : NOT_AVAILABLE;
 
   const eta = quote.eta ? formatETA(quote.eta) : NOT_AVAILABLE;
-  const effectiveProviderId = quote._providerId || (quote.order as { type?: string })?.type || 'unknown';
+  const effectiveProviderId = quote._providerId || quote.provider || 'unknown';
   const providerDisplayName = getProviderDisplayName(effectiveProviderId);
 
-  // Extract fee information from metadata (provider-specific structure)
-  let feeTotal: string | undefined;
-  let feeTotalUsd: string | undefined;
-  let feePercent: string | undefined;
-  let feeTokenSymbol: string | undefined;
-  let originGas: string | undefined;
-  let originGasUsd: string | undefined;
-  let originGasSymbol: string | undefined;
-  let hasOriginGas = false;
-
-  const metadata = quote.metadata as Record<string, unknown>;
-  if (metadata?.acrossResponse) {
-    const acrossResponse = metadata.acrossResponse as {
-      fees?: {
-        total?: {
-          amount?: string;
-          amountUsd?: string;
-          pct?: string;
-          token?: {
-            symbol?: string;
-            decimals?: number;
-          };
-        };
-        originGas?: {
-          amount?: string;
-          amountUsd?: string;
-          token?: {
-            symbol?: string;
-            decimals?: number;
-          };
-        };
-      };
-      steps?: {
-        bridge?: {
-          fees?: {
-            amount?: string;
-            amountUsd?: string;
-            pct?: string;
-            token?: {
-              symbol?: string;
-              decimals?: number;
-            };
-          };
-        };
-      };
-    };
-
-    // Try fees.total first, fallback to steps.bridge.fees if total is 0 or missing
-    const totalFee = acrossResponse.fees?.total;
-    const bridgeFee = acrossResponse.steps?.bridge?.fees;
-
-    // Use totalFee if amount is non-zero, otherwise try bridgeFee
-    const feeSource = totalFee?.amount && totalFee.amount !== '0' ? totalFee : bridgeFee?.amount ? bridgeFee : null;
-
-    if (feeSource) {
-      const feeToken = feeSource.token;
-      const feeDecimals = feeToken?.decimals || inputTokenInfo?.decimals || 18;
-
-      if (feeSource.amount && feeSource.amount !== '0') {
-        feeTotal = formatAmount(feeSource.amount, feeDecimals);
-        feeTokenSymbol = feeToken?.symbol || inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL;
-      }
-
-      // Extract USD value for fee
-      if (feeSource.amountUsd) {
-        feeTotalUsd = formatUsdAmount(feeSource.amountUsd);
-      }
-
-      if (feeSource.pct) {
-        // The pct value is stored in wei format (1e18), representing a decimal fraction
-        // Convert to percentage: divide by 1e18 to get decimal, then multiply by 100
-        const pctValue = BigInt(feeSource.pct);
-        const wei = 1000000000000000000n;
-        const percentage = (Number(pctValue) / Number(wei)) * 100;
-        feePercent = formatPercentage(percentage);
-      }
-    }
-
-    // Extract origin gas (paid by user on source chain)
-    const originGasInfo = acrossResponse.fees?.originGas;
-    if (originGasInfo?.amount && originGasInfo.amount !== '0') {
-      hasOriginGas = true; // Track that gas is present even if formatted value rounds to 0
-      const gasDecimals = originGasInfo.token?.decimals || 18;
-      // Use more decimal places for gas (8) since ETH gas costs can be very small
-      originGas = formatAmount(originGasInfo.amount, gasDecimals, 8);
-      originGasSymbol = originGasInfo.token?.symbol || 'ETH';
-
-      // Extract USD value for gas
-      if (originGasInfo.amountUsd) {
-        originGasUsd = formatUsdAmount(originGasInfo.amountUsd);
-      }
-    }
-  }
+  const fees = parseFees(quote, inputTokenInfo);
+  const { feeTotal, feeTotalUsd, feePercent, feeTokenSymbol, originGas, originGasUsd, originGasSymbol, hasOriginGas } =
+    fees;
 
   // Check if gas simulation failed (affects whether gas estimates are reliable)
   let gasSimulationFailed = false;
-
-  const order = quote.order as { payload?: { simulationSuccess?: boolean } };
-  if (order?.payload) {
-    const simulationSuccess = order.payload.simulationSuccess !== false; // Default to true if not specified
-    if (!simulationSuccess) {
-      gasSimulationFailed = true;
-    }
+  const metadata = quote.metadata as Record<string, unknown> | undefined;
+  if (metadata?.simulationSuccess === false) {
+    gasSimulationFailed = true;
   }
 
   const feeNum = feeTotalUsd ? parseFloat(feeTotalUsd.replace('$', '')) : 0;

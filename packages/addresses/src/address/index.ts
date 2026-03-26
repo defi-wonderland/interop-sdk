@@ -277,7 +277,11 @@ export function decodeAddress(
 
     // Add address if present
     if (addressBinary.length > 0) {
-        const addressTextResult = addressToText(addressBinary, chainTypeBinary);
+        const addressTextResult = addressToText(
+            addressBinary,
+            chainTypeBinary,
+            chainReferenceBinary,
+        );
         textAddr.address = String(addressTextResult);
     }
 
@@ -466,7 +470,7 @@ export function toTextRepresentation(addr: InteroperableAddress): InteroperableA
 
     // Add address if present
     if (address && address.length > 0) {
-        const addressTextResult = addressToText(address, chainType);
+        const addressTextResult = addressToText(address, chainType, chainReference);
         textAddr.address = String(addressTextResult);
     }
 

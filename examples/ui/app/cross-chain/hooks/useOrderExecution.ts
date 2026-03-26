@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isSignatureOnlyOrder, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { useAccount, useConfig, useSwitchChain } from 'wagmi';
 import {
   ensureCorrectChain,
@@ -11,7 +12,6 @@ import {
 import { useBalanceStore } from '../stores/balanceStore';
 import { STEP, isTerminal, type BridgeState, type ChainContext, type ExecuteResult } from '../types/execution';
 import { isUserRejectionError, parseError } from '../utils/errorMessages';
-import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 import type { Address, Hex } from 'viem';
 
 interface UseOrderExecutionReturn {
@@ -97,8 +97,8 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         );
         expectedWalletChainIdRef.current = null;
 
-        // Branch: OIF signable vs direct transaction
-        const isSignable = quote.order.type === 'oif-escrow-v0' || quote.order.type === 'oif-3009-v0';
+        // Branch: signature-based (OIF escrow/3009) vs direct transaction
+        const isSignable = isSignatureOnlyOrder(quote.order);
         const executeFlow = isSignable ? submitOifSignableOrder : executeDirectTransaction;
 
         const trackingId = await executeFlow({

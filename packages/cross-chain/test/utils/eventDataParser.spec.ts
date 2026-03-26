@@ -1,7 +1,10 @@
 import { Hex } from "viem";
 import { describe, expect, it } from "vitest";
 
-import { parseAbiEncodedField, parseAbiEncodedFields } from "../../src/utils/eventDataParser.js";
+import {
+    parseAbiEncodedField,
+    parseAbiEncodedFields,
+} from "../../src/core/utils/eventDataParser.js";
 
 describe("eventDataParser", () => {
     describe("parseAbiEncodedField", () => {

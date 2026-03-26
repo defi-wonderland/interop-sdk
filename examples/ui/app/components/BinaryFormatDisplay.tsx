@@ -33,8 +33,12 @@ const fields: FieldConfig<BinaryPartKey, AddressResult>[] = [
     key: BinaryPartKey.CHAIN_REF,
     label: 'Chain Reference',
     getValue: (r) => r.chainRefHex || null,
-    getDisplayValue: (r) => r.chainRefHex || <span className='text-text-tertiary italic'>(empty)</span>,
-    description: 'Chain ID (e.g., 0x01 = mainnet)',
+    getDisplayValue: (r) => {
+      if (!r.chainRefHex) return <span className='text-text-tertiary italic'>(empty)</span>;
+      const decimal = parseInt(r.chainRefHex, 16);
+      return Number.isNaN(decimal) ? r.chainRefHex : `${r.chainRefHex} (${decimal})`;
+    },
+    description: 'Chain ID in hex and decimal (e.g., 0x01 = 1 = mainnet)',
   },
   {
     key: BinaryPartKey.ADDRESS_LENGTH,

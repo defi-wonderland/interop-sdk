@@ -4,6 +4,9 @@ import * as chains from "viem/chains";
 import { decodeAddress } from "../address/index.js";
 import { ChainTypeName } from "../constants/interopAddress.js";
 
+/** Default onchain ENS registry domain for chain resolution. */
+export const DEFAULT_REGISTRY_DOMAIN = "on.eth";
+
 // Standard ENS registry address (same on all networks)
 const ENS_REGISTRY_ADDRESS: Address = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
 
@@ -32,10 +35,17 @@ export function clearRegistryCache(): void {
     resolutionCache.clear();
 }
 
-async function getResolverAddress(registryDomain: string): Promise<Address | null> {
+function getRpcUrl(rpcUrl?: string): string | undefined {
+    return rpcUrl?.trim() || process.env.MAINNET_RPC_URL?.trim() || undefined;
+}
+
+async function getResolverAddress(
+    registryDomain: string,
+    rpcUrl?: string,
+): Promise<Address | null> {
     const client = createPublicClient({
         chain: chains.mainnet,
-        transport: http(process.env.MAINNET_RPC_URL),
+        transport: http(getRpcUrl(rpcUrl)),
     });
 
     const registryNode = namehash(registryDomain);
@@ -56,15 +66,16 @@ async function getResolverAddress(registryDomain: string): Promise<Address | nul
 async function resolveLabel(
     label: string,
     registryDomain: string,
+    rpcUrl?: string,
 ): Promise<ResolvedChainFromRegistry | null> {
-    const resolverAddr = await getCachedResolver(registryDomain);
+    const resolverAddr = await getCachedResolver(registryDomain, rpcUrl);
     if (!resolverAddr) {
         return null;
     }
 
     const client = createPublicClient({
         chain: chains.mainnet,
-        transport: http(process.env.MAINNET_RPC_URL),
+        transport: http(getRpcUrl(rpcUrl)),
     });
 
     const interopAddrBytes = await client.readContract({
@@ -88,11 +99,11 @@ async function resolveLabel(
     };
 }
 
-function getCachedResolver(registryDomain: string): Promise<Address | null> {
+function getCachedResolver(registryDomain: string, rpcUrl?: string): Promise<Address | null> {
     const existing = resolverCache.get(registryDomain);
     if (existing) return existing;
 
-    const promise = getResolverAddress(registryDomain).catch((error) => {
+    const promise = getResolverAddress(registryDomain, rpcUrl).catch((error) => {
         // Evict on error so the next call retries
         resolverCache.delete(registryDomain);
         throw error;
@@ -105,7 +116,7 @@ function getCachedResolver(registryDomain: string): Promise<Address | null> {
  * Resolves a chain label to chainType and chainReference using an onchain ENS-based registry.
  *
  * This implements forward resolution via the ChainResolver contract:
- * 1. Gets the resolver for the registry domain (e.g., cid.eth) from ENS registry
+ * 1. Gets the resolver for the registry domain (e.g., on.eth) from ENS registry
  * 2. Calls interoperableAddress(label) on the resolver with the label string
  * 3. Decodes the returned ERC-7930 binary format
  *
@@ -113,25 +124,27 @@ function getCachedResolver(registryDomain: string): Promise<Address | null> {
  * in-flight request. Transient errors are not cached and will be retried on the next call.
  *
  * @param label - The chain label to resolve (e.g., "optimism", "arbitrum", "base")
- * @param registryDomain - The ENS registry domain (e.g., "cid.eth", "on.eth")
+ * @param registryDomain - The ENS registry domain (e.g., "on.eth")
+ * @param rpcUrl - Optional custom mainnet RPC URL. Falls back to MAINNET_RPC_URL env var, then a default public endpoint.
  * @returns The resolved chainType and chainReference, or null if resolution fails
  *
  * @example
  * ```ts
- * // Resolve "optimism" using cid.eth registry
- * const result = await resolveChainFromRegistry("optimism", "cid.eth");
+ * // Resolve "optimism" using on.eth registry
+ * const result = await resolveChainFromRegistry("optimism", "on.eth");
  * // result: { chainType: "eip155", chainReference: "10" }
  * ```
  */
 export function resolveChainFromRegistry(
     label: string,
     registryDomain: string,
+    rpcUrl?: string,
 ): Promise<ResolvedChainFromRegistry | null> {
     const cacheKey = `${label}:${registryDomain}`;
     const existing = resolutionCache.get(cacheKey);
     if (existing) return existing;
 
-    const promise = resolveLabel(label, registryDomain).catch(() => {
+    const promise = resolveLabel(label, registryDomain, rpcUrl).catch(() => {
         // Evict on error so the next call retries
         resolutionCache.delete(cacheKey);
         return null;

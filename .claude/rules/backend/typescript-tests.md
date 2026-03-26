@@ -1,0 +1,20 @@
+---
+paths:
+    - "**/*.test.ts"
+---
+
+# Test Guidelines
+
+## Test Structure
+
+-   Write descriptive test names without using "should"
+-   Follow test library best practices (Mocha/Chai/Jest/Vitest/Cypress)
+-   Keep tests focused and single-purpose
+-   Use appropriate test hooks and lifecycle methods
+
+## Best Practices
+
+-   Write clear, descriptive assertions
+-   Test edge cases and error conditions
+-   Use appropriate mocking strategies
+-   Follow the Arrange-Act-Assert pattern

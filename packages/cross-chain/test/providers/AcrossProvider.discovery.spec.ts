@@ -116,7 +116,7 @@ describe("AcrossProvider.discovery", () => {
             expect(polygon?.assets).toHaveLength(1);
         });
 
-        it("should correctly encode addresses to EIP-7930 format", () => {
+        it("returns plain 0x addresses (not EIP-7930 encoded)", () => {
             const mockTokens = [
                 {
                     chainId: 1,
@@ -129,10 +129,9 @@ describe("AcrossProvider.discovery", () => {
             const result: NetworkAssets[] = parseResponse(mockTokens);
             const asset = result[0]?.assets[0];
 
-            // EIP-7930 address format should include chain info
-            // Format: 0x + version (2) + chainType (4) + chainReference (variable) + address
+            // Should be a plain 0x address (42 chars)
             expect(asset?.address).toMatch(/^0x/);
-            expect(asset?.address.length).toBeGreaterThan(42); // Longer than plain address
+            expect(asset?.address.length).toBe(42);
         });
 
         it("should handle empty array", () => {

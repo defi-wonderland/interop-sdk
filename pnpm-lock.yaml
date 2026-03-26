@@ -155,8 +155,8 @@ importers:
                 specifier: 1.3.1
                 version: 1.3.1(next@16.0.10(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
             "@wonderland/interop-addresses":
-                specifier: 0.3.0
-                version: 0.3.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)
+                specifier: workspace:*
+                version: link:../../packages/addresses
             autoprefixer:
                 specifier: 10.4.20
                 version: 10.4.20(postcss@8.5.6)
@@ -287,6 +287,67 @@ importers:
                 version: 3.9.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
             typescript:
                 specifier: ~5.6.2
+                version: 5.6.2
+
+    apps/openintents-landing-page:
+        dependencies:
+            "@radix-ui/react-slot":
+                specifier: 1.1.1
+                version: 1.1.1(@types/react@19.2.7)(react@19.2.0)
+            "@radix-ui/react-tooltip":
+                specifier: 1.1.6
+                version: 1.1.6(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+            "@vercel/analytics":
+                specifier: 1.3.1
+                version: 1.3.1(next@16.0.10(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
+            class-variance-authority:
+                specifier: 0.7.1
+                version: 0.7.1
+            clsx:
+                specifier: 2.1.1
+                version: 2.1.1
+            lucide-react:
+                specifier: 0.454.0
+                version: 0.454.0(react@19.2.0)
+            next:
+                specifier: 16.0.10
+                version: 16.0.10(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+            next-themes:
+                specifier: 0.4.6
+                version: 0.4.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+            react:
+                specifier: 19.2.0
+                version: 19.2.0
+            react-dom:
+                specifier: 19.2.0
+                version: 19.2.0(react@19.2.0)
+            tailwind-merge:
+                specifier: 3.3.1
+                version: 3.3.1
+        devDependencies:
+            "@tailwindcss/postcss":
+                specifier: 4.1.9
+                version: 4.1.9
+            "@types/node":
+                specifier: "22"
+                version: 22.13.14
+            "@types/react":
+                specifier: "19"
+                version: 19.2.7
+            "@types/react-dom":
+                specifier: "19"
+                version: 19.2.3(@types/react@19.2.7)
+            postcss:
+                specifier: "8.5"
+                version: 8.5.6
+            tailwindcss:
+                specifier: 4.1.9
+                version: 4.1.9
+            tw-animate-css:
+                specifier: 1.3.3
+                version: 1.3.3
+            typescript:
+                specifier: 5.6.2
                 version: 5.6.2
 
     apps/sdk:
@@ -421,6 +482,9 @@ importers:
             axios:
                 specifier: 1.13.2
                 version: 1.13.2
+            bech32:
+                specifier: 2.0.0
+                version: 2.0.0
             bs58:
                 specifier: 6.0.0
                 version: 6.0.0
@@ -1572,13 +1636,6 @@ packages:
         resolution:
             {
                 integrity: sha512-h7iEYiW4HebClDEhtvFObtPmIvrd1SSfpI9EhOeKk4CtIK/ngBWFpuhCzhdmRKtg71ylcue+9I6dv54XYO1epQ==,
-            }
-        engines: { node: ">=6.9.0" }
-
-    "@babel/runtime@7.28.4":
-        resolution:
-            {
-                integrity: sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==,
             }
         engines: { node: ">=6.9.0" }
 
@@ -7098,12 +7155,6 @@ packages:
                 integrity: sha512-kPSSXE6De1XOR820C90RIo2ogvZG+c3KiHzqUoO/F34Y2shGzesfqv7o57xrxovZJH/MetF5UjroJ/R/3isoiw==,
             }
 
-    "@wonderland/interop-addresses@0.3.0":
-        resolution:
-            {
-                integrity: sha512-IfX8mdaK9dyy578yJ22V7J8Hd0wArLf1JHyA5xK4+RFDUMj3JeBUBccEWoGjZaA0ZU1GgTw1YcqBZFisQyxb6g==,
-            }
-
     "@wonderland/walletless@1.2.0":
         resolution:
             {
@@ -7662,6 +7713,12 @@ packages:
         resolution:
             {
                 integrity: sha512-x+VAiMRL6UPkx+kudNvxTl6hB2XNNCG2r+7wixVfIYwu/2HKRXimwQyaumLjMveWvT2Hkd/cAJw+QBMfJ/EKVw==,
+            }
+
+    bech32@2.0.0:
+        resolution:
+            {
+                integrity: sha512-LcknSilhIGatDAsY1ak2I8VtGaHNhgMSYVxFrGLXv+xLHytaKZKcaUJJUE7qmBr7h33o5YQwP55pMI0xmkpJwg==,
             }
 
     better-path-resolve@1.0.0:
@@ -10684,6 +10741,7 @@ packages:
                 integrity: sha512-ICsMM1Wk8xSGMowkOmPrzo2Fgmfo4bMHLNX6ytHjajRJUqvHOw/TFapQ+QG75c3X/tTDDhOSRPGC52dDbNM8FQ==,
             }
         engines: { node: ">=16" }
+        deprecated: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
         hasBin: true
 
     github-slugger@1.5.0:
@@ -10726,7 +10784,7 @@ packages:
             {
                 integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==,
             }
-        deprecated: Glob versions prior to v9 are no longer supported
+        deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
     global-directory@4.0.1:
         resolution:
@@ -16473,6 +16531,7 @@ packages:
                 integrity: sha512-7NyxrTE4Anh8km8iEy7o0QYPs+0JKBTj5ZaqHg6B39erLg0qYXN3BijtShwbsNSvQ+LN75+KV+C4QR/f6Gwnpg==,
             }
         engines: { node: ">=18" }
+        deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
     term-size@2.2.1:
         resolution:
@@ -19624,8 +19683,6 @@ snapshots:
         dependencies:
             core-js-pure: 3.47.0
 
-    "@babel/runtime@7.28.4": {}
-
     "@babel/runtime@7.28.6": {}
 
     "@babel/template@7.27.2":
@@ -19882,7 +19939,7 @@ snapshots:
     "@commitlint/is-ignored@20.2.0":
         dependencies:
             "@commitlint/types": 20.2.0
-            semver: 7.7.3
+            semver: 7.7.4
 
     "@commitlint/lint@20.2.0":
         dependencies:
@@ -20277,7 +20334,7 @@ snapshots:
             "@babel/preset-env": 7.28.5(@babel/core@7.28.5)
             "@babel/preset-react": 7.28.5(@babel/core@7.28.5)
             "@babel/preset-typescript": 7.28.5(@babel/core@7.28.5)
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             "@babel/runtime-corejs3": 7.28.4
             "@babel/traverse": 7.28.5
             "@docusaurus/logger": 3.9.2
@@ -21501,14 +21558,14 @@ snapshots:
 
     "@manypkg/find-root@1.1.0":
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             "@types/node": 12.20.55
             find-up: 4.1.0
             fs-extra: 8.1.0
 
     "@manypkg/get-packages@1.1.3":
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             "@changesets/types": 4.1.0
             "@manypkg/find-root": 1.1.0
             fs-extra: 8.1.0
@@ -21646,7 +21703,7 @@ snapshots:
 
     "@metamask/sdk@0.32.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)":
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             "@metamask/onboarding": 1.0.1
             "@metamask/providers": 16.1.0
             "@metamask/sdk-communication-layer": 0.32.0(cross-fetch@4.1.0)(eciesjs@0.4.16)(eventemitter2@6.4.9)(readable-stream@3.6.2)(socket.io-client@4.8.1(bufferutil@4.0.9)(utf-8-validate@5.0.10))
@@ -21692,7 +21749,7 @@ snapshots:
             "@types/debug": 4.1.12
             debug: 4.4.3
             pony-cause: 2.1.11
-            semver: 7.7.3
+            semver: 7.7.4
             uuid: 9.0.1
         transitivePeerDependencies:
             - supports-color
@@ -21701,12 +21758,12 @@ snapshots:
         dependencies:
             "@ethereumjs/tx": 4.2.0
             "@metamask/superstruct": 3.2.1
-            "@noble/hashes": 1.7.2
+            "@noble/hashes": 1.8.0
             "@scure/base": 1.2.5
             "@types/debug": 4.1.12
             debug: 4.4.3
             pony-cause: 2.1.11
-            semver: 7.7.3
+            semver: 7.7.4
             uuid: 9.0.1
         transitivePeerDependencies:
             - supports-color
@@ -24568,18 +24625,6 @@ snapshots:
             "@webassemblyjs/ast": 1.14.1
             "@xtuc/long": 4.2.2
 
-    "@wonderland/interop-addresses@0.3.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)":
-        dependencies:
-            axios: 1.13.2
-            bs58: 6.0.0
-            viem: 2.28.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.3)
-            zod: 3.24.3
-        transitivePeerDependencies:
-            - bufferutil
-            - debug
-            - typescript
-            - utf-8-validate
-
     "@wonderland/walletless@1.2.0(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.14.11(@tanstack/query-core@5.62.16)(@tanstack/react-query@5.62.16(react@19.1.0))(@types/react@19.2.7)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.6.2)(utf-8-validate@5.0.10)(viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76))":
         dependencies:
             viem: 2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76)
@@ -24597,11 +24642,6 @@ snapshots:
     abitype@1.0.8(typescript@5.5.4)(zod@3.24.3):
         optionalDependencies:
             typescript: 5.5.4
-            zod: 3.24.3
-
-    abitype@1.0.8(typescript@5.6.2)(zod@3.24.3):
-        optionalDependencies:
-            typescript: 5.6.2
             zod: 3.24.3
 
     abitype@1.0.8(typescript@5.6.2)(zod@3.25.76):
@@ -24961,6 +25001,8 @@ snapshots:
 
     batch@0.6.1: {}
 
+    bech32@2.0.0: {}
+
     better-path-resolve@1.0.0:
         dependencies:
             is-windows: 1.0.2
@@ -25045,7 +25087,7 @@ snapshots:
     browserslist@4.28.0:
         dependencies:
             baseline-browser-mapping: 2.8.31
-            caniuse-lite: 1.0.30001757
+            caniuse-lite: 1.0.30001760
             electron-to-chromium: 1.5.262
             node-releases: 2.0.27
             update-browserslist-db: 1.1.4(browserslist@4.28.0)
@@ -25849,7 +25891,7 @@ snapshots:
 
     date-fns@2.30.0:
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
 
     date-fns@4.1.0: {}
 
@@ -26017,7 +26059,7 @@ snapshots:
 
     dom-helpers@5.2.1:
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             csstype: 3.1.3
 
     dom-serializer@1.4.1:
@@ -27271,7 +27313,7 @@ snapshots:
 
     history@4.10.1:
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             loose-envify: 1.4.0
             resolve-pathname: 3.0.0
             tiny-invariant: 1.3.3
@@ -28410,7 +28452,7 @@ snapshots:
 
     media-query-parser@2.0.2:
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
 
     media-typer@0.3.0: {}
 
@@ -28872,7 +28914,7 @@ snapshots:
         dependencies:
             "@next/env": 16.0.10
             "@swc/helpers": 0.5.15
-            caniuse-lite: 1.0.30001757
+            caniuse-lite: 1.0.30001760
             postcss: 8.4.31
             react: 19.2.0
             react-dom: 19.2.0(react@19.2.0)
@@ -29123,20 +29165,6 @@ snapshots:
         transitivePeerDependencies:
             - zod
 
-    ox@0.6.9(typescript@5.6.2)(zod@3.24.3):
-        dependencies:
-            "@adraffy/ens-normalize": 1.11.0
-            "@noble/curves": 1.8.2
-            "@noble/hashes": 1.7.2
-            "@scure/bip32": 1.6.2
-            "@scure/bip39": 1.5.4
-            abitype: 1.0.8(typescript@5.6.2)(zod@3.24.3)
-            eventemitter3: 5.0.1
-        optionalDependencies:
-            typescript: 5.6.2
-        transitivePeerDependencies:
-            - zod
-
     ox@0.9.3(typescript@5.6.2)(zod@3.25.76):
         dependencies:
             "@adraffy/ens-normalize": 1.11.0
@@ -29212,7 +29240,7 @@ snapshots:
             got: 12.6.1
             registry-auth-token: 5.1.0
             registry-url: 6.0.1
-            semver: 7.7.3
+            semver: 7.7.4
 
     package-manager-detector@0.2.11:
         dependencies:
@@ -29962,7 +29990,7 @@ snapshots:
 
     react-loadable-ssr-addon-v5-slorber@1.0.1(@docusaurus/react-loadable@6.0.0(react@19.1.0))(webpack@5.103.0):
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             react-loadable: "@docusaurus/react-loadable@6.0.0(react@19.1.0)"
             webpack: 5.103.0
 
@@ -30022,13 +30050,13 @@ snapshots:
 
     react-router-config@5.1.1(react-router@5.3.4(react@19.1.0))(react@19.1.0):
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             react: 19.1.0
             react-router: 5.3.4(react@19.1.0)
 
     react-router-dom@5.3.4(react@19.1.0):
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             history: 4.10.1
             loose-envify: 1.4.0
             prop-types: 15.8.1
@@ -30039,7 +30067,7 @@ snapshots:
 
     react-router@5.3.4(react@19.1.0):
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             history: 4.10.1
             hoist-non-react-statics: 3.3.2
             loose-envify: 1.4.0
@@ -30076,7 +30104,7 @@ snapshots:
 
     react-transition-group@4.4.5(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
         dependencies:
-            "@babel/runtime": 7.28.4
+            "@babel/runtime": 7.28.6
             dom-helpers: 5.2.1
             loose-envify: 1.4.0
             prop-types: 15.8.1
@@ -30599,7 +30627,7 @@ snapshots:
         dependencies:
             "@img/colour": 1.0.0
             detect-libc: 2.1.2
-            semver: 7.7.3
+            semver: 7.7.4
         optionalDependencies:
             "@img/sharp-darwin-arm64": 0.34.5
             "@img/sharp-darwin-x64": 0.34.5
@@ -31542,23 +31570,6 @@ snapshots:
             ws: 8.18.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
         optionalDependencies:
             typescript: 5.5.4
-        transitivePeerDependencies:
-            - bufferutil
-            - utf-8-validate
-            - zod
-
-    viem@2.28.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.24.3):
-        dependencies:
-            "@noble/curves": 1.8.2
-            "@noble/hashes": 1.7.2
-            "@scure/bip32": 1.6.2
-            "@scure/bip39": 1.5.4
-            abitype: 1.0.8(typescript@5.6.2)(zod@3.24.3)
-            isows: 1.0.6(ws@8.18.1(bufferutil@4.0.9)(utf-8-validate@5.0.10))
-            ox: 0.6.9(typescript@5.6.2)(zod@3.24.3)
-            ws: 8.18.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
-        optionalDependencies:
-            typescript: 5.6.2
         transitivePeerDependencies:
             - bufferutil
             - utf-8-validate

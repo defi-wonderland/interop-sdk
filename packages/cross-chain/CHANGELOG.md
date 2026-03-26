@@ -1,5 +1,83 @@
 # @defi-wonderland/interop-cross-chain
 
+## 0.4.0
+
+### Minor Changes
+
+-   52beefd: feat: add LI.FI Intents cross-chain provider
+
+    Add LifiIntentsProvider integrating the LI.FI Intents solver marketplace:
+
+    -   Full CrossChainProvider implementation (getQuotes, getTrackingConfig, getDiscoveryConfig)
+    -   Adapters for quote request/response and order status mapping
+    -   LifiIntentsAssetDiscoveryService with caching and chain filtering
+    -   Zod schemas for config, quotes, status, and routes
+    -   Registered in crossChainProviderFactory as "lifi-intents"
+
+-   8119d95: Add safety validations to `buildQuote()` to prevent zero amounts, insufficient fee margins, and invalid deadlines
+-   c594d16: Refactor asset discovery to use plain addresses and numeric chain IDs
+
+    -   `DiscoveredAssets.tokensByChain` now uses numeric chain ID keys (e.g. `1`) instead of CAIP-350 strings (e.g. `"eip155:1"`)
+    -   `DiscoveredAssets.tokenMetadata` is now nested by chain ID then lowercase address to prevent cross-chain collisions
+    -   `AssetInfo.address` uses plain `0x` format instead of EIP-7930 interop encoding
+    -   `RouteQuery` now takes `originChainId`, `originAsset`, `destinationChainId`, `destinationAsset` (4 fields) instead of two EIP-7930 addresses
+    -   Removed `encodeAddress`/`toChainIdentifier` dependencies from asset discovery pipeline
+    -   Removed `toEVMInteropAddress` helper (no longer needed)
+
+-   22f1bae: feat: add automatic token discovery for Relay bridge
+
+    -   Add `getDiscoveryConfig()` to RelayProvider using GET `/chains` with `solverCurrencies`
+    -   Static testnet tokens for Sepolia and Base Sepolia
+    -   Full `RelayChainsResponseSchema` matching the OpenAPI spec
+
+-   6d4ffd4: feat: replace onBeforeTracking hook with PreTracker interface
+
+    -   Add PreTracker interface and APIPreTracker implementation
+    -   Add PreTrackerFactory for config-driven pre-tracker creation
+    -   Add WatchOrderByOrderId.openTxHash field for order-id tracking path
+    -   Remove OnBeforeTracking callback type
+
+-   f944923: feat: add Relay provider implementation
+
+    -   RelayProvider with quote, status, and tracking support
+    -   Layered architecture with solver notification decorator
+    -   Granular Relay status mapping and fillTxHash extraction
+    -   API-based intent parsing and deposit notification via indexTransaction
+
+-   c92d713: feat: add Relay protocol types and schemas
+
+    Add Zod schemas and TypeScript types for the Relay protocol:
+
+    -   Quote request and response schemas aligned with Relay OpenAPI spec
+    -   Intent status request schema
+    -   Relay-specific types (fees, details, currency)
+
+-   7db71c1: feat: standardize fees and allowances across providers
+
+    -   Add `QuoteFeesSchema` to `QuoteSchema` with `bridgeFee`, `bridgeFeePct`, and `originGas`
+    -   Populate `quote.fees` in Relay and Across adapters
+    -   Extract Relay approve steps into `order.checks.allowances`
+    -   Export `QuoteFeeEntry` and `QuoteFees` types
+
+-   9a0415c: feat: add buildQuote for on-chain intent submission without a solver API
+
+    -   Add `buildQuote` method to `CrossChainProvider` base class (opt-in, default throws)
+    -   Implement `buildQuote` in `OifProvider` using ERC-7683 `open()` calldata encoding
+    -   Implement `buildQuote` in `AcrossProvider` using `SpokePool.deposit()` calldata encoding
+    -   Add `BuildQuoteRequest` schema with required amounts, escrow contract address, and fill deadline
+    -   Expose `buildQuote` on the `Aggregator` for provider-routed local quote building
+
+### Patch Changes
+
+-   5a43e97: Fix Across provider to pass `value` from swapTx response for native ETH inputs, and remove same-symbol restriction since Across supports cross-chain swaps.
+-   Updated dependencies [09c4643]
+-   Updated dependencies [0f626e7]
+-   Updated dependencies [675faa4]
+-   Updated dependencies [bb008d6]
+-   Updated dependencies [ac0ef0a]
+-   Updated dependencies [0573276]
+    -   @wonderland/interop-addresses@0.5.0
+
 ## 0.3.0
 
 ### Minor Changes

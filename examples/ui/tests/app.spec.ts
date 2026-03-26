@@ -33,6 +33,6 @@ test('Navigate to Interoperable Addresses', async ({ page }) => {
 test('Navigate to Cross-Chain Intent Swap', async ({ page }) => {
   await page.getByRole('link', { name: 'Cross-Chain Intent Swap' }).click();
 
-  await expect(page).toHaveURL('/cross-chain');
+  await expect(page).toHaveURL(/\/cross-chain/);
   await expect(page.getByRole('heading', { name: 'Cross-Chain Intent Swap' })).toBeVisible();
 });

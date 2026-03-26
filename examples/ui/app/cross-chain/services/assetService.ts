@@ -1,23 +1,12 @@
-import { decodeAddress } from '@wonderland/interop-addresses';
 import { isNativeAddress } from '@wonderland/interop-cross-chain';
-import { createPublicClient, type Address, erc20Abi, formatUnits, http, type Hex, isAddress } from 'viem';
-import { ALL_CHAINS } from '../constants/chains';
+import { type Address, erc20Abi, formatUnits, isAddress } from 'viem';
+import { getPublicClient } from '../config/publicClient';
 import type { BalanceTarget, TokenBalance } from '../stores/balanceStore';
 import type { DiscoveredAssets } from '../types/assets';
 
-// TODO: SDK will return EIP-7930 interop addresses — all addresses will need decoding
-function resolveEvmAddress(address: string): Address {
-  if (isAddress(address)) return address;
-
-  const decoded = decodeAddress(address as Hex);
-  return decoded.address as Address;
-}
-
 export class AssetService {
   private getClient(chainId: number) {
-    const chain = ALL_CHAINS.find((c) => c.id === chainId);
-    if (!chain) throw new Error(`No chain configured for chainId ${chainId}`);
-    return createPublicClient({ chain, transport: http() });
+    return getPublicClient(chainId);
   }
 
   async fetchAllBalances(
@@ -76,7 +65,10 @@ export class AssetService {
   ): Promise<Record<string, TokenBalance>> {
     if (tokens.length === 0) return {};
 
-    const owner = resolveEvmAddress(userAddress);
+    if (!isAddress(userAddress)) {
+      throw new Error(`Invalid user address: ${userAddress}`);
+    }
+    const owner = userAddress as Address;
     const nativeTokens = tokens.filter((t) => isNativeAddress(t, 'eip155'));
     const erc20Tokens = tokens.filter((t) => !isNativeAddress(t, 'eip155'));
     const balances: Record<string, TokenBalance> = {};
@@ -93,10 +85,11 @@ export class AssetService {
       }
     }
 
-    if (erc20Tokens.length === 0) return balances;
+    const validErc20Tokens = erc20Tokens.filter((token) => isAddress(token));
+    if (validErc20Tokens.length === 0) return balances;
 
-    const contracts = erc20Tokens.map((token) => ({
-      address: resolveEvmAddress(token),
+    const contracts = validErc20Tokens.map((token) => ({
+      address: token as Address,
       abi: erc20Abi,
       functionName: 'balanceOf' as const,
       args: [owner] as const,
@@ -104,7 +97,7 @@ export class AssetService {
 
     const results = await client.multicall({ contracts });
 
-    erc20Tokens.forEach((token, i) => {
+    validErc20Tokens.forEach((token, i) => {
       const result = results[i];
       if (result.status === 'success' && result.result !== undefined) {
         const decimals = chainInfo[token]?.decimals ?? 18;

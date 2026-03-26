@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { InputMode, type InteroperableNamePart, type BinaryPart, type AddressResult } from '../types';
-import { convertFromReadable, type ConversionOptions } from '../utils/address-conversion';
+import { convertFromReadable } from '../utils/address-conversion';
 import { InputSection } from './InputSection';
 import { ResultDisplays } from './ResultDisplays';
-import type { Chain } from '../lib/getChains';
+import { TooltipProvider } from './Tooltip';
+import type { RegistryChainWithStatus } from '../lib/registry-chains';
 
 interface InteractivePlaygroundProps {
-  chains: Chain[];
+  chains: RegistryChainWithStatus[];
 }
 
 export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
@@ -16,7 +17,6 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
   const [readableName, setReadableName] = useState('');
   const [address, setAddress] = useState('');
   const [chainReference, setChainReference] = useState('');
-  const [useOnchainRegistry, setUseOnchainRegistry] = useState(false);
   const [hoveredName, setHoveredName] = useState<InteroperableNamePart>(null);
   const [hoveredBinary, setHoveredBinary] = useState<BinaryPart>(null);
   const [copied, setCopied] = useState(false);
@@ -33,12 +33,7 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
   const [lastReadableInput, setLastReadableInput] = useState('');
   const [lastBuildAddress, setLastBuildAddress] = useState('');
   const [lastBuildChainReference, setLastBuildChainReference] = useState('');
-  const [lastUseOnchainRegistry, setLastUseOnchainRegistry] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  const conversionOptions: ConversionOptions | undefined = useOnchainRegistry
-    ? { useExperimentalChainRegistry: 'cid.eth' }
-    : undefined;
 
   const updateReadableResult = (conversionResult: Awaited<ReturnType<typeof convertFromReadable>>) => {
     setReadableResult({
@@ -49,7 +44,6 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
     });
     setReadableParsedResult(conversionResult.parsedResult);
     setLastReadableInput(readableName.trim());
-    setLastUseOnchainRegistry(useOnchainRegistry);
   };
 
   const updateBuildResult = (conversionResult: Awaited<ReturnType<typeof convertFromReadable>>) => {
@@ -62,14 +56,13 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
     setBuildParsedResult(conversionResult.parsedResult);
     setLastBuildAddress(address.trim());
     setLastBuildChainReference(chainReference.trim());
-    setLastUseOnchainRegistry(useOnchainRegistry);
   };
 
   const convertReadable = async () => {
     try {
       setReadableError('');
       if (!readableName.trim()) return setReadableResult(null);
-      const result = await convertFromReadable(readableName, conversionOptions);
+      const result = await convertFromReadable(readableName);
       updateReadableResult(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to process';
@@ -83,7 +76,7 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
       setBuildError('');
       if (!address.trim() || !chainReference.trim()) return setBuildResult(null);
       const _readableName = `${address}@${chainReference}`;
-      const result = await convertFromReadable(_readableName, conversionOptions);
+      const result = await convertFromReadable(_readableName);
       updateBuildResult(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to process';
@@ -121,48 +114,46 @@ export function InteractivePlayground({ chains }: InteractivePlaygroundProps) {
   const activeResult = mode === InputMode.READABLE ? readableResult : buildResult;
   const activeError = mode === InputMode.READABLE ? readableError : buildError;
   const activeParsedResult = mode === InputMode.READABLE ? readableParsedResult : buildParsedResult;
-  const registryChanged = lastUseOnchainRegistry !== useOnchainRegistry;
-  const isReadableStale =
-    !!readableResult && Boolean(lastReadableInput) && (lastReadableInput !== readableName.trim() || registryChanged);
+  const isReadableStale = !!readableResult && Boolean(lastReadableInput) && lastReadableInput !== readableName.trim();
   const isBuildStale =
     !!buildResult &&
     Boolean(lastBuildAddress || lastBuildChainReference) &&
-    (lastBuildAddress !== address.trim() || lastBuildChainReference !== chainReference.trim() || registryChanged);
+    (lastBuildAddress !== address.trim() || lastBuildChainReference !== chainReference.trim());
   const isStale = mode === InputMode.READABLE ? isReadableStale : isBuildStale;
 
   return (
-    <div className='flex flex-col gap-6'>
-      <InputSection
-        chains={chains}
-        mode={mode}
-        setMode={setMode}
-        readableName={readableName}
-        setReadableName={setReadableName}
-        address={address}
-        setAddress={setAddress}
-        chainReference={chainReference}
-        setChainReference={setChainReference}
-        useOnchainRegistry={useOnchainRegistry}
-        setUseOnchainRegistry={setUseOnchainRegistry}
-        onConvert={handleConvert}
-        onExampleClick={handleExampleClick}
-        isLoading={isLoading}
-      />
+    <TooltipProvider>
+      <div className='flex flex-col gap-6'>
+        <InputSection
+          chains={chains}
+          mode={mode}
+          setMode={setMode}
+          readableName={readableName}
+          setReadableName={setReadableName}
+          address={address}
+          setAddress={setAddress}
+          chainReference={chainReference}
+          setChainReference={setChainReference}
+          onConvert={handleConvert}
+          onExampleClick={handleExampleClick}
+          isLoading={isLoading}
+        />
 
-      <ResultDisplays
-        isLoading={isLoading}
-        error={activeError}
-        result={activeResult}
-        parsedResult={activeParsedResult}
-        isStale={isStale}
-        onRefresh={handleConvert}
-        hoveredName={hoveredName}
-        setHoveredName={setHoveredName}
-        hoveredBinary={hoveredBinary}
-        setHoveredBinary={setHoveredBinary}
-        copied={copied}
-        onCopy={handleCopy}
-      />
-    </div>
+        <ResultDisplays
+          isLoading={isLoading}
+          error={activeError}
+          result={activeResult}
+          parsedResult={activeParsedResult}
+          isStale={isStale}
+          onRefresh={handleConvert}
+          hoveredName={hoveredName}
+          setHoveredName={setHoveredName}
+          hoveredBinary={hoveredBinary}
+          setHoveredBinary={setHoveredBinary}
+          copied={copied}
+          onCopy={handleCopy}
+        />
+      </div>
+    </TooltipProvider>
   );
 }

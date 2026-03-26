@@ -2,6 +2,8 @@ import bs58 from "bs58";
 import { Chain } from "viem";
 import * as chains from "viem/chains";
 
+import { isValidBip122ChainReference } from "../address/bip122/network.js";
+import { isValidStarknetChainReference } from "../address/starknet/network.js";
 import { CHAIN_TYPE, ChainTypeName } from "../constants/interopAddress.js";
 
 /**
@@ -47,6 +49,8 @@ export const isValidChain = (chainType: ChainTypeName, chainReference: string): 
 
             return true;
         }
+        case "bip122":
+            return isValidBip122ChainReference(chainReference);
         case "solana": {
             // Validate that the chain reference is a valid base58-encoded string
             try {
@@ -57,6 +61,8 @@ export const isValidChain = (chainType: ChainTypeName, chainReference: string): 
                 return false;
             }
         }
+        case "starknet":
+            return isValidStarknetChainReference(chainReference);
         default:
             return false;
     }

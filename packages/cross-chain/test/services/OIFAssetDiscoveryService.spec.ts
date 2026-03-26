@@ -1,4 +1,3 @@
-import { toChainIdentifier } from "@wonderland/interop-addresses";
 import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -18,12 +17,12 @@ describe("OIFAssetDiscoveryService", () => {
                 chain_id: 1,
                 assets: [
                     {
-                        address: "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                        address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                         symbol: "USDC",
                         decimals: 6,
                     },
                     {
-                        address: "0x000100000101C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                        address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
                         symbol: "WETH",
                         decimals: 18,
                     },
@@ -33,7 +32,7 @@ describe("OIFAssetDiscoveryService", () => {
                 chain_id: 137,
                 assets: [
                     {
-                        address: "0x00010000018902791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                        address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
                         symbol: "USDC",
                         decimals: 6,
                     },
@@ -63,15 +62,17 @@ describe("OIFAssetDiscoveryService", () => {
 
             // Returns DiscoveredAssets format
             expect(Object.keys(result.tokensByChain)).toHaveLength(2);
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(137));
+            expect(Object.keys(result.tokensByChain)).toContain(String(1));
+            expect(Object.keys(result.tokensByChain)).toContain(String(137));
 
             // Verify tokensByChain has the expected tokens
-            const ethTokens = result.tokensByChain[toChainIdentifier(1) as string];
+            const ethTokens = result.tokensByChain[1];
             expect(ethTokens).toHaveLength(2);
 
-            // Verify tokenMetadata is populated
-            expect(Object.keys(result.tokenMetadata)).toHaveLength(3); // 2 on chain 1 + 1 on chain 137
+            // Verify tokenMetadata is populated (nested by chain)
+            expect(Object.keys(result.tokenMetadata)).toHaveLength(2); // chain 1 and chain 137
+            expect(Object.keys(result.tokenMetadata[1]!)).toHaveLength(2);
+            expect(Object.keys(result.tokenMetadata[137]!)).toHaveLength(1);
         });
 
         it("should cache results permanently after first fetch", async () => {
@@ -102,7 +103,7 @@ describe("OIFAssetDiscoveryService", () => {
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
             expect(Object.keys(result.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result.tokensByChain)).toContain(String(1));
         });
     });
 
@@ -132,21 +133,21 @@ describe("OIFAssetDiscoveryService", () => {
             // Uppercase (as stored)
             const upper = await service.isAssetSupported(
                 1,
-                "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
             );
             expect(upper?.symbol).toBe("USDC");
 
             // Lowercase (user might provide)
             const lower = await service.isAssetSupported(
                 1,
-                "0x000100000101a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+                "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
             );
             expect(lower?.symbol).toBe("USDC");
 
             // Non-existent asset
             const notFound = await service.isAssetSupported(
                 1,
-                "0x0001000001010000000000000000000000000000000000000000",
+                "0x0000000000000000000000000000000000000000",
             );
             expect(notFound).toBeNull();
         });
@@ -189,8 +190,7 @@ describe("OIFAssetDiscoveryService", () => {
                             chain_id: 1,
                             assets: [
                                 {
-                                    address:
-                                        "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                                     decimals: 6,
                                 },
                             ],
@@ -218,8 +218,7 @@ describe("OIFAssetDiscoveryService", () => {
                             chain_id: 1,
                             assets: [
                                 {
-                                    address:
-                                        "0x000100000101A0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
                                     symbol: "FAKE",
                                     decimals: 256,
                                 },
@@ -369,10 +368,10 @@ describe("OIFAssetDiscoveryService", () => {
 
             // Each result should have its own filter applied
             expect(Object.keys(result1.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result1.tokensByChain)).toContain(toChainIdentifier(1));
+            expect(Object.keys(result1.tokensByChain)).toContain(String(1));
 
             expect(Object.keys(result2.tokensByChain)).toHaveLength(1);
-            expect(Object.keys(result2.tokensByChain)).toContain(toChainIdentifier(137));
+            expect(Object.keys(result2.tokensByChain)).toContain(String(137));
         });
     });
 });
