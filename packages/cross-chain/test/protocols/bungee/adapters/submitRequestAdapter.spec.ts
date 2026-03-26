@@ -1,15 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import type { Quote } from "../../../../src/core/schemas/quote.js";
-import type {
-    BungeeAutoRoute,
-    BungeeSubmitResponse,
-} from "../../../../src/protocols/bungee/schemas.js";
+import type { BungeeAutoRoute } from "../../../../src/protocols/bungee/schemas.js";
 import { ProviderExecuteFailure } from "../../../../src/core/errors/ProviderExecuteFailure.exception.js";
-import {
-    adaptSubmitResponse,
-    buildSubmitRequest,
-} from "../../../../src/protocols/bungee/adapters/submitAdapter.js";
+import { buildSubmitRequest } from "../../../../src/protocols/bungee/adapters/submitRequestAdapter.js";
 
 // ── Helpers ─────────────────────────────────────────────
 
@@ -54,16 +48,7 @@ function makeQuote(autoRoute?: BungeeAutoRoute): Quote {
     };
 }
 
-function makeSubmitResponse(overrides: Partial<BungeeSubmitResponse> = {}): BungeeSubmitResponse {
-    return {
-        success: true,
-        statusCode: 200,
-        result: { hash: "0xsubmithash" },
-        ...overrides,
-    };
-}
-
-// ── buildSubmitRequest ──────────────────────────────────
+// ── Tests ───────────────────────────────────────────────
 
 describe("buildSubmitRequest", () => {
     it("extracts witness, quoteId, and requestType from quote metadata", () => {
@@ -116,63 +101,5 @@ describe("buildSubmitRequest", () => {
         const { request } = buildSubmitRequest(quote, "0xsig");
 
         expect(request.requestType).toBe("SWAP_REQUEST");
-    });
-});
-
-// ── adaptSubmitResponse ─────────────────────────────────
-
-describe("adaptSubmitResponse", () => {
-    const autoRoute = makeAutoRoute();
-
-    it("extracts hash from single-object result", () => {
-        const response = makeSubmitResponse({ result: { hash: "0xhash1" } });
-        const result = adaptSubmitResponse(response, autoRoute);
-
-        expect(result.orderId).toBe("0xhash1");
-        expect(result.status).toBe("submitted");
-    });
-
-    it("extracts hash from first element of array result", () => {
-        const response = makeSubmitResponse({
-            result: [{ hash: "0xhash1" }, { hash: "0xhash2" }],
-        });
-        const result = adaptSubmitResponse(response, autoRoute);
-
-        expect(result.orderId).toBe("0xhash1");
-    });
-
-    it("falls back to requestHash from result entry when hash is absent", () => {
-        const response = makeSubmitResponse({ result: { requestHash: "0xreqhash" } });
-        const result = adaptSubmitResponse(response, autoRoute);
-
-        expect(result.orderId).toBe("0xreqhash");
-    });
-
-    it("falls back to autoRoute.requestHash when result has neither hash nor requestHash", () => {
-        const response = makeSubmitResponse({ result: {} });
-        const result = adaptSubmitResponse(response, autoRoute);
-
-        expect(result.orderId).toBe("0xfallbackhash");
-    });
-
-    it("sets status to 'failed' when response.success is false", () => {
-        const response = makeSubmitResponse({ success: false });
-        const result = adaptSubmitResponse(response, autoRoute);
-
-        expect(result.status).toBe("failed");
-    });
-
-    it("converts null message to undefined", () => {
-        const response = makeSubmitResponse({ message: null });
-        const result = adaptSubmitResponse(response, autoRoute);
-
-        expect(result.message).toBeUndefined();
-    });
-
-    it("passes through message string", () => {
-        const response = makeSubmitResponse({ message: "Order accepted" });
-        const result = adaptSubmitResponse(response, autoRoute);
-
-        expect(result.message).toBe("Order accepted");
     });
 });
