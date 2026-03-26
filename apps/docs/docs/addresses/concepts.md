@@ -87,7 +87,7 @@ graph TD
 
 ## Chain resolution
 
-When a name uses a chain shortname (e.g., `@eth` instead of `@eip155:1`), the SDK resolves it using a two-tier strategy:
+When a name uses a chain shortname (e.g., `@ethereum` instead of `@eip155:1`), the SDK resolves it using a two-tier strategy:
 
 1. **Onchain**: Queries the `on.eth` ENS registry on Ethereum mainnet. The registry maps labels like `ethereum` to their ERC-7930 binary representation.
 2. **Offchain fallback**: Uses the chainid.network registry to map shortnames to chain IDs.
@@ -98,13 +98,13 @@ You can customize resolution behavior per call:
 
 ```typescript
 // Disable onchain, use offchain only
-await parseName("0x...@eth", { onchainRegistry: false });
+await parseName("0x...@ethereum", { onchainRegistry: false });
 
 // Custom registry domain
-await parseName("0x...@eth", { onchainRegistry: "custom.eth" });
+await parseName("0x...@ethereum", { onchainRegistry: "custom.eth" });
 
 // Custom RPC URL for onchain resolution
-await parseName("0x...@eth", { rpcUrl: "https://my-rpc.example.com" });
+await parseName("0x...@ethereum", { rpcUrl: "https://my-rpc.example.com" });
 ```
 
 ## Checksums
