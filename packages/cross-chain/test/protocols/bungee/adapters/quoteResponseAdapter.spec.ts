@@ -185,15 +185,15 @@ describe("adaptQuotes", () => {
 
         const quotes = adaptQuotes(response as never, PROVIDER_ID);
 
-        // Sorted by output: route-B (1500000) first, then quote-abc (999000)
-        expect(quotes[0]!.quoteId).toBe("route-B");
+        // Preserves Bungee order: autoRoute first, then autoRoutes[]
+        expect(quotes[0]!.quoteId).toBe("quote-abc");
         expect((quotes[0]!.metadata?.bungeeAutoRoute as Record<string, unknown>).quoteId).toBe(
-            "route-B",
+            "quote-abc",
         );
 
-        expect(quotes[1]!.quoteId).toBe("quote-abc");
+        expect(quotes[1]!.quoteId).toBe("route-B");
         expect((quotes[1]!.metadata?.bungeeAutoRoute as Record<string, unknown>).quoteId).toBe(
-            "quote-abc",
+            "route-B",
         );
     });
 
