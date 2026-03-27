@@ -416,21 +416,6 @@ describe("RelayProvider", () => {
             expect(result.orderId).toBe(REQUEST_ID);
         });
 
-        it("throws ProviderExecuteFailure when no signature step metadata", async () => {
-            const quote = makeQuoteWithSignatureStep();
-            quote.order.steps = [
-                {
-                    kind: "transaction",
-                    chainId: ORIGIN_CHAIN_ID,
-                    description: "Deposit",
-                    transaction: { to: VALID_ADDRESS, data: TX_DATA },
-                },
-            ];
-            await expect(provider.submitOrder(quote, SIGNATURE)).rejects.toThrow(
-                ProviderExecuteFailure,
-            );
-        });
-
         it("propagates API errors as ProviderExecuteFailure", async () => {
             mockPost.mockRejectedValue(
                 makeAxiosError(

@@ -13,17 +13,17 @@ import type {
     QuoteRequest,
     SubmitOrderResponse,
 } from "../../internal.js";
-import type { RelaySubmitPermitRequest } from "./schemas.js";
 import type { RelayConfigs } from "./types.js";
 import {
     CrossChainProvider,
     ProviderConfigFailure,
-    ProviderExecuteFailure,
     ProviderGetQuoteFailure,
 } from "../../internal.js";
 import {
     adaptQuote,
     adaptQuoteRequest,
+    adaptSubmitRequest,
+    adaptSubmitResponse,
     extractFillEvent,
     extractOpenedIntent,
     parseRelayChainsResponse,
@@ -110,10 +110,10 @@ export class RelayProvider extends CrossChainProvider {
      * Reads the permit body from the signature step's metadata (set during quote adaptation).
      */
     override async submitOrder(quote: Quote, signature: Hex): Promise<SubmitOrderResponse> {
-        const permitBody = this.extractPermitBody(quote);
+        const permitBody = adaptSubmitRequest(quote);
         await this.apiService.submitPermit(permitBody, signature);
 
-        return { orderId: quote.tracking!.orderId as Hex };
+        return adaptSubmitResponse(quote);
     }
 
     /**
@@ -184,21 +184,5 @@ export class RelayProvider extends CrossChainProvider {
                 headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
             },
         };
-    }
-
-    /** Extract the permit request body from the signature step's metadata. */
-    private extractPermitBody(quote: Quote): RelaySubmitPermitRequest {
-        const signatureStep = quote.order.steps.find((s) => s.kind === "signature");
-        const metadata = signatureStep?.metadata as Record<string, unknown> | undefined;
-        const postData = metadata?.relayPostData as { body?: RelaySubmitPermitRequest } | undefined;
-
-        if (!postData?.body) {
-            throw new ProviderExecuteFailure(
-                "Missing permit data in signature step metadata. Ensure the quote was obtained with usePermit enabled.",
-                `quoteId: ${quote.quoteId}`,
-            );
-        }
-
-        return postData.body;
     }
 }
