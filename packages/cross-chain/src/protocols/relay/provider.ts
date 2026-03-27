@@ -45,7 +45,7 @@ export class RelayProvider extends CrossChainProvider {
     private readonly http: AxiosInstance;
     private readonly baseUrl: string;
     private readonly isTestnet: boolean;
-    private readonly usePermit: boolean;
+    private readonly submissionModes?: ("user-transaction" | "gasless")[];
     private readonly apiService: RelayApiService;
     private readonly apiHeaders: Record<string, string>;
 
@@ -55,7 +55,7 @@ export class RelayProvider extends CrossChainProvider {
         try {
             const parsed = RelayConfigSchema.parse(config);
             this.isTestnet = parsed.isTestnet ?? false;
-            this.usePermit = parsed.usePermit ?? false;
+            this.submissionModes = parsed.submissionModes;
             this.baseUrl = parsed.baseUrl ?? getRelayApiUrl(this.isTestnet);
             this.providerId = parsed.providerId ?? "relay";
 
@@ -88,7 +88,9 @@ export class RelayProvider extends CrossChainProvider {
      */
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
         try {
-            const relayParams = adaptQuoteRequest(params, { usePermit: this.usePermit });
+            const relayParams = adaptQuoteRequest(params, {
+                submissionModes: this.submissionModes,
+            });
             const response = await this.apiService.getQuote(relayParams);
             return [adaptQuote(params, response, this.providerId)];
         } catch (error) {

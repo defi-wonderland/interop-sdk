@@ -16,7 +16,7 @@ export function adaptSubmitRequest(quote: Quote): RelaySubmitPermitRequest {
 
     if (!postData?.body) {
         throw new ProviderExecuteFailure(
-            "Missing permit data in signature step metadata. Ensure the quote was obtained with usePermit enabled.",
+            "Missing permit data in signature step metadata. Ensure the quote was obtained with submissionModes including 'gasless'.",
             `quoteId: ${quote.quoteId}`,
         );
     }

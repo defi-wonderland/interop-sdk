@@ -5,15 +5,15 @@ import { RelayQuoteRequestSchema } from "../schemas.js";
 
 /** Options forwarded from the provider to the quote request adapter. */
 export interface AdaptQuoteOptions {
-    /** Whether to request permit-based (gasless) transfers. */
-    usePermit?: boolean;
+    /** Submission modes: `"user-transaction"` vs `"gasless"`. */
+    submissionModes?: ("user-transaction" | "gasless")[];
 }
 
 /**
  * Convert an SDK QuoteRequest to Relay API parameters.
  *
  * @param params - The SDK quote request.
- * @param options - Provider-level options (e.g. usePermit).
+ * @param options - Provider-level options (e.g. submissionModes).
  * @returns The Relay-formatted quote request.
  * @throws {ProviderGetQuoteFailure} When the required amount is missing.
  */
@@ -38,6 +38,6 @@ export function adaptQuoteRequest(
         amount,
         tradeType: swapType === "exact-input" ? "EXACT_INPUT" : "EXPECTED_OUTPUT",
         recipient: params.output.recipient,
-        usePermit: options?.usePermit,
+        usePermit: options?.submissionModes?.includes("gasless"),
     });
 }

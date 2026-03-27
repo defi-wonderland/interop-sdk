@@ -8,19 +8,19 @@ The Relay Protocol provider enables cross-chain token transfers using the Relay 
 
 ## Configuration
 
-| Field        | Type    | Required | Description                                            |
-| ------------ | ------- | -------- | ------------------------------------------------------ |
-| `baseUrl`    | string  | No       | Custom API base URL (overrides isTestnet)              |
-| `isTestnet`  | boolean | No       | Use testnet API (default: false)                       |
-| `providerId` | string  | No       | Custom provider identifier (default: "relay")          |
-| `apiKey`     | string  | No       | Relay API key for authentication                       |
-| `usePermit`  | boolean | No       | Enable permit-based gasless transfers (default: false) |
+| Field             | Type     | Required | Description                                                                                                         |
+| ----------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| `baseUrl`         | string   | No       | Custom API base URL (overrides isTestnet)                                                                           |
+| `isTestnet`       | boolean  | No       | Use testnet API (default: false)                                                                                    |
+| `providerId`      | string   | No       | Custom provider identifier (default: "relay")                                                                       |
+| `apiKey`          | string   | No       | Relay API key for authentication                                                                                    |
+| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both. Controls whether quotes use permit-based transfers |
 
 Notes:
 
 -   `baseUrl` overrides the URL derived from `isTestnet`.
 -   When `apiKey` is provided, it is sent as the `x-api-key` header on all requests.
--   When `usePermit` is enabled, the API may return signature steps in addition to transaction steps. Only works on supported currencies (e.g. USDC via EIP-3009). See [Relay docs](https://docs.relay.link/features/gasless-swaps) for details.
+-   When `submissionModes` includes `"gasless"`, the API may return signature steps in addition to transaction steps. Only works on supported currencies (e.g. USDC via EIP-3009). See [Relay docs](https://docs.relay.link/features/gasless-swaps) for details.
 
 ## Creating the Provider
 
@@ -92,7 +92,7 @@ console.log("Transaction sent:", hash);
 
 ## Permit Flow (Gasless)
 
-When `usePermit` is enabled, the quote may include EIP-712 signature steps for supported currencies (e.g. USDC via Permit2, EIP-3009). The user signs the typed data payload and submits it to Relay via `submitOrder`:
+When `submissionModes` includes `"gasless"`, the quote may include EIP-712 signature steps for supported currencies (e.g. USDC via Permit2, EIP-3009). The user signs the typed data payload and submits it to Relay via `submitOrder`:
 
 :::note
 Only EIP-712 signature steps (Permit2, EIP-3009) are currently supported. EIP-191 steps (app fee claims, Hyperliquid deposits) are filtered out.
@@ -101,7 +101,7 @@ Only EIP-712 signature steps (Permit2, EIP-3009) are currently supported. EIP-19
 ```typescript
 import { createCrossChainProvider, getSignatureSteps } from "@wonderland/interop-cross-chain";
 
-const relayProvider = createCrossChainProvider("relay", { usePermit: true });
+const relayProvider = createCrossChainProvider("relay", { submissionModes: ["gasless"] });
 
 const quotes = await relayProvider.getQuotes({
     user: "0xYourAddress",

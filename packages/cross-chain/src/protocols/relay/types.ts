@@ -10,8 +10,8 @@ export const RelayConfigSchema = z.object({
     providerId: z.string().optional(),
     /** Relay API key for authentication. Required in production. */
     apiKey: z.string().optional(),
-    /** Enable permit-based (gasless) transfers when the asset supports it. Defaults to `false`. */
-    usePermit: z.boolean().optional(),
+    /** Execution modes: `["user-transaction"]`, `["gasless"]`, or both. Controls whether quotes use permit-based (gasless) transfers. */
+    submissionModes: z.array(z.enum(["user-transaction", "gasless"])).optional(),
 });
 
 /** Configuration options for {@link RelayProvider}. */
