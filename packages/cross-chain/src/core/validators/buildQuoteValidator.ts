@@ -5,6 +5,7 @@ import type { BuildQuoteRequest } from "../schemas/quoteRequest.js";
 import { InsufficientFee } from "../errors/InsufficientFee.exception.js";
 import { InvalidDeadline } from "../errors/InvalidDeadline.exception.js";
 import { UnsupportedAddress } from "../errors/UnsupportedAddress.exception.js";
+import { UnsupportedAsset } from "../errors/UnsupportedAsset.exception.js";
 import { ZeroAmount } from "../errors/ZeroAmount.exception.js";
 
 /** Minimum seconds between now and fillDeadline. */
@@ -83,6 +84,28 @@ function isSameAsset(
     const outputSymbol = tokenMetadata[outputChainId]?.[outputAddress.toLowerCase()]?.symbol;
 
     return inputSymbol !== undefined && inputSymbol === outputSymbol;
+}
+
+/**
+ * Validates that the provider supports the requested assets.
+ *
+ * Skipped when `allowDangerousParameters` is set on the request.
+ *
+ * @param params - The build quote request to validate
+ * @param providerId - The provider being targeted
+ * @param isSupported - Pre-resolved result from the discovery cache
+ * @throws UnsupportedAsset if the provider does not support the requested asset
+ */
+export function validateAssetSupport(
+    params: BuildQuoteRequest,
+    providerId: string,
+    isSupported: boolean,
+): void {
+    if (params.allowDangerousParameters) return;
+
+    if (!isSupported) {
+        throw new UnsupportedAsset(providerId, params.input, params.output);
+    }
 }
 
 function validateDeadline(fillDeadline: number, nowSeconds: number): void {

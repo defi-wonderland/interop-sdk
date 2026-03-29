@@ -22,7 +22,10 @@ import { CrossChainProvider } from "../interfaces/crossChainProvider.interface.j
 import { SortingStrategy } from "../interfaces/sortingStrategy.interface.js";
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
 import { mergeDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
-import { validateBuildQuoteParams } from "../validators/buildQuoteValidator.js";
+import {
+    validateAssetSupport,
+    validateBuildQuoteParams,
+} from "../validators/buildQuoteValidator.js";
 import { OrderTracker } from "./OrderTracker.js";
 
 interface AggregatorConfig {
@@ -242,6 +245,9 @@ class Aggregator {
 
         const discovered = await this.discoverAssets();
         validateBuildQuoteParams(params, discovered.tokenMetadata);
+
+        const isSupported = await this.supportsRequestedAssets(provider, params);
+        validateAssetSupport(params, providerId, isSupported);
 
         const quote = await provider.buildQuote(params);
         return { ...quote, _providerId: providerId };

@@ -17,3 +17,4 @@ export * from "./APIRequestFailure.exception.js";
 export * from "./ZeroAmount.exception.js";
 export * from "./InsufficientFee.exception.js";
 export * from "./InvalidDeadline.exception.js";
+export * from "./UnsupportedAsset.exception.js";
