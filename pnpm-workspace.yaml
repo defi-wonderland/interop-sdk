@@ -3,5 +3,4 @@ packages:
     - "apps/sdk"
     - "apps/docs"
     - "apps/addresses-landing-page"
-    - "apps/openintents-landing-page"
     - "examples/*"

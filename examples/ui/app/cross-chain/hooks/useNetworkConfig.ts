@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { base, arbitrum, sepolia, baseSepolia, type Chain } from 'viem/chains';
 import { MAINNET_CHAINS, MAINNET_RPC_URLS, TESTNET_CHAINS, TESTNET_RPC_URLS } from '../constants/chains';
-import { useIsTestnet, useDiscoveredAssetsSafe } from '../providers';
+import { useDiscoveredAssetsSafe } from '../providers';
+import { useCrossChainStore } from '../stores/crossChainStore';
 import type { UITokenInfo } from '../types/assets';
 
 /**
@@ -13,7 +14,7 @@ import type { UITokenInfo } from '../types/assets';
  * 2. AND supported by the protocol (returned by asset discovery)
  */
 export function useTokenConfig() {
-  const isTestnet = useIsTestnet();
+  const isTestnet = useCrossChainStore((s) => s.isTestnet);
   const discoveryContext = useDiscoveredAssetsSafe();
 
   return useMemo(() => {
@@ -59,7 +60,7 @@ export function useTokenConfig() {
  * Only shows chains that have discovered assets available.
  */
 export function useChainConfig() {
-  const isTestnet = useIsTestnet();
+  const isTestnet = useCrossChainStore((s) => s.isTestnet);
   const discoveryContext = useDiscoveredAssetsSafe();
 
   return useMemo(() => {
@@ -125,7 +126,7 @@ export function useChainConfig() {
  * Hook to get network-specific RPC URLs
  */
 export function useRpcUrls() {
-  const isTestnet = useIsTestnet();
+  const isTestnet = useCrossChainStore((s) => s.isTestnet);
   return useMemo(() => {
     return isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
   }, [isTestnet]);

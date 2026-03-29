@@ -44,7 +44,7 @@ function mapBuildStatusToQuoteStatus(buildStatus: BuildQuoteStatus): QuoteStatus
   }
 }
 
-export function CrossChainClient() {
+export default function CrossChainClient() {
   const { quotes, errors, status: quoteStatus, fetchQuotes, clearQuotes } = useQuotes();
   const {
     quote: builtQuote,
@@ -169,7 +169,7 @@ export function CrossChainClient() {
           <div className='flex-1 flex flex-col gap-12'>
             <header className='flex flex-col items-center gap-4 text-center relative'>
               <div className='absolute top-0 right-0'>
-                <NetworkSwitch />
+                <NetworkSwitch disabled={isExecutionStarted} />
               </div>
 
               <div className='inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-light text-accent text-xs font-medium'>
