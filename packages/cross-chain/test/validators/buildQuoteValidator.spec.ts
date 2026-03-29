@@ -114,6 +114,18 @@ describe("validateBuildQuoteParams", () => {
             expect(() => validate(params, {})).toThrow(DifferentAssetNotAllowed);
         });
 
+        it("matches addresses case-insensitively", () => {
+            const params = buildParams({
+                input: {
+                    chainId: mainnet.id,
+                    assetAddress: USDC_MAINNET.toUpperCase() as Address,
+                    amount: "1000000",
+                },
+                output: { chainId: optimism.id, assetAddress: USDC_OPTIMISM, amount: "990000" },
+            });
+            expect(() => validate(params)).not.toThrow();
+        });
+
         it("allows cross-chain unknown metadata with allowDangerousParameters", () => {
             const params = buildParams({
                 input: { chainId: mainnet.id, assetAddress: USDC_MAINNET, amount: "1000000" },
@@ -125,10 +137,18 @@ describe("validateBuildQuoteParams", () => {
     });
 
     describe("fee margin", () => {
-        it("rejects cross-chain same asset with output >= input (equal)", () => {
+        it("rejects cross-chain same asset with output equal to input", () => {
             const params = buildParams({
                 input: { chainId: base.id, assetAddress: USDC_BASE, amount: "1000000" },
                 output: { chainId: arbitrum.id, assetAddress: USDC_ARBITRUM, amount: "1000000" },
+            });
+            expect(() => validate(params)).toThrow(InsufficientFee);
+        });
+
+        it("rejects cross-chain same asset with output greater than input", () => {
+            const params = buildParams({
+                input: { chainId: base.id, assetAddress: USDC_BASE, amount: "1000000" },
+                output: { chainId: arbitrum.id, assetAddress: USDC_ARBITRUM, amount: "2000000" },
             });
             expect(() => validate(params)).toThrow(InsufficientFee);
         });
@@ -157,6 +177,11 @@ describe("validateBuildQuoteParams", () => {
             const params = buildParams({ fillDeadline: NOW + 30 });
             expect(() => validate(params)).toThrow(InvalidDeadline);
             expect(() => validate(params)).toThrow("too soon");
+        });
+
+        it("rejects deadline at exactly MIN_DEADLINE_BUFFER_SECONDS - 1", () => {
+            const params = buildParams({ fillDeadline: NOW + MIN_DEADLINE_BUFFER_SECONDS - 1 });
+            expect(() => validate(params)).toThrow(InvalidDeadline);
         });
 
         it("accepts exactly 60s from now", () => {

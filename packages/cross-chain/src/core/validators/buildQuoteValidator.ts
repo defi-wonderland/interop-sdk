@@ -45,7 +45,7 @@ export function validateBuildQuoteParams(
     );
 
     validateSameAssetRequired(relationship);
-    validateFeeMargin(params, relationship);
+    validateFeeMargin(params);
 }
 
 // ── Validators (same order as called above) ─────────────────────────
@@ -90,9 +90,7 @@ function validateSameAssetRequired(relationship: AssetRelationship): void {
 }
 
 /** @throws InsufficientFee if same-asset output amount >= input amount. */
-function validateFeeMargin(params: BuildQuoteRequest, relationship: AssetRelationship): void {
-    if (relationship !== "same") return;
-
+function validateFeeMargin(params: BuildQuoteRequest): void {
     if (BigInt(params.output.amount) >= BigInt(params.input.amount)) {
         throw new InsufficientFee(params.input.amount, params.output.amount);
     }
