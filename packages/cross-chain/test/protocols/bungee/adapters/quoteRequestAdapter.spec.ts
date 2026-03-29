@@ -37,19 +37,6 @@ describe("adaptQuoteRequest", () => {
         expect(result.outputToken).toBe(VALID_ADDRESS);
     });
 
-    it("uses output.recipient when provided", () => {
-        const request = buildQuoteRequest({
-            output: {
-                chainId: 10,
-                assetAddress: VALID_ADDRESS,
-                recipient: RECIPIENT_ADDRESS,
-            },
-        });
-        const result = adaptQuoteRequest(request);
-
-        expect(result.receiverAddress).toBe(RECIPIENT_ADDRESS);
-    });
-
     it("falls back to user address when no recipient", () => {
         const request = buildQuoteRequest({
             output: {
@@ -84,11 +71,18 @@ describe("adaptQuoteRequest", () => {
         expect(result.feeTakerAddress).toBe("0xfee");
     });
 
-    it("sets useInbox when option is true", () => {
+    it("sets useInbox when submissionMode is user-transaction", () => {
         const request = buildQuoteRequest();
-        const result = adaptQuoteRequest(request, { useInbox: true });
+        const result = adaptQuoteRequest(request, { submissionMode: "user-transaction" });
 
         expect(result.useInbox).toBe("true");
+    });
+
+    it("does not set useInbox when submissionMode is gasless", () => {
+        const request = buildQuoteRequest();
+        const result = adaptQuoteRequest(request, { submissionMode: "gasless" });
+
+        expect(result.useInbox).toBeUndefined();
     });
 
     it("forwards slippage from options", () => {

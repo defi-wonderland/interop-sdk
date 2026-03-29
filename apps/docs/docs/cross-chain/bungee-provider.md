@@ -23,23 +23,24 @@ Bungee offers three integration tiers, each with a different base URL and authen
 
 ## Configuration
 
-| Field             | Type            | Required | Description                                                                  |
-| ----------------- | --------------- | -------- | ---------------------------------------------------------------------------- |
-| `tier`            | `BungeeApiTier` | No       | API tier: `"sandbox"`, `"dedicated"`, or `"frontend"` (default: `"sandbox"`) |
-| `baseUrl`         | string          | No       | Custom API base URL. Overrides the URL derived from `tier`                   |
-| `providerId`      | string          | No       | Custom provider identifier (default: `"bungee"`)                             |
-| `apiKey`          | string          | No       | API key for dedicated backend (sent via `x-api-key` header)                  |
-| `affiliateId`     | string          | No       | Affiliate ID for tracking (sent via `affiliate` header)                      |
-| `feeBps`          | string          | No       | Convenience fee in basis points (e.g. `"50"` for 0.5%)                       |
-| `feeTakerAddress` | string          | No       | Address to receive the convenience fee. Required when `feeBps` is set        |
-| `useInbox`        | boolean         | No       | Force onchain tx flow (BungeeInbox) instead of permit2 signatures            |
-| `slippage`        | string          | No       | Default slippage tolerance (e.g. `"0.5"` for 0.5%)                           |
-| `refuel`          | boolean         | No       | Enable native gas refueling on the destination chain                         |
+| Field             | Type            | Required | Description                                                                               |
+| ----------------- | --------------- | -------- | ----------------------------------------------------------------------------------------- |
+| `tier`            | `BungeeApiTier` | No       | API tier: `"sandbox"`, `"dedicated"`, or `"frontend"` (default: `"sandbox"`)              |
+| `baseUrl`         | string          | No       | Custom API base URL. Overrides the URL derived from `tier`                                |
+| `providerId`      | string          | No       | Custom provider identifier (default: `"bungee"`)                                          |
+| `apiKey`          | string          | No       | API key for dedicated backend (sent via `x-api-key` header)                               |
+| `affiliateId`     | string          | No       | Affiliate ID for tracking (sent via `affiliate` header)                                   |
+| `feeBps`          | string          | No       | Convenience fee in basis points (e.g. `"50"` for 0.5%)                                    |
+| `feeTakerAddress` | string          | No       | Address to receive the convenience fee. Required when `feeBps` is set                     |
+| `submissionModes` | string[]        | No       | Transaction submission modes: `"user-transaction"` (onchain) and/or `"gasless"` (permit2) |
+| `slippage`        | string          | No       | Default slippage tolerance (e.g. `"0.5"` for 0.5%)                                        |
+| `refuel`          | boolean         | No       | Enable native gas refueling on the destination chain                                      |
 
 Notes:
 
 -   `baseUrl` overrides the URL derived from `tier`.
 -   `feeBps` and `feeTakerAddress` must be set together. The fee is deducted from the output amount.
+-   `submissionModes` controls how transactions are submitted. `"user-transaction"` forces the onchain BungeeInbox flow (user pays gas), `"gasless"` uses the permit2 signature flow (default). When both modes are specified, quotes are fetched for each mode in parallel and combined.
 -   `slippage` sets the default tolerance for all quotes. If not set, Bungee uses its own default.
 -   `refuel` tops up native gas on the destination chain so the user can transact immediately after bridging.
 
@@ -87,12 +88,14 @@ const quotes = await bungeeProvider.getQuotes({
 const quote = quotes[0];
 ```
 
-### With `useInbox` (Onchain)
+### With `submissionModes` (Onchain)
 
 Force the onchain transaction flow instead of permit2. The quote returns a transaction step:
 
 ```typescript
-const bungeeProvider = createCrossChainProvider("bungee", { useInbox: true });
+const bungeeProvider = createCrossChainProvider("bungee", {
+    submissionModes: ["user-transaction"],
+});
 
 const quotes = await bungeeProvider.getQuotes({
     user: "0xYourAddress",
@@ -182,7 +185,7 @@ See the [API reference](./api.md#quotefees) for the full `QuoteFees` type.
 
 ## Executing Transactions
 
-Bungee quotes can return either a **signature step** (permit2, default for ERC20) or a **transaction step** (native ETH or `useInbox: true`). Use `getSignatureSteps` and `getTransactionSteps` to handle both:
+Bungee quotes can return either a **signature step** (permit2/gasless, default for ERC20) or a **transaction step** (native ETH or `submissionModes: ["user-transaction"]`). Use `getSignatureSteps` and `getTransactionSteps` to handle both:
 
 ```typescript
 import { getSignatureSteps, getTransactionSteps } from "@wonderland/interop-cross-chain";

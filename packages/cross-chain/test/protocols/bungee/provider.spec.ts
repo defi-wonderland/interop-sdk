@@ -212,6 +212,42 @@ describe("BungeeProvider", () => {
                 ProviderGetQuoteFailure,
             );
         });
+
+        it("fetches quotes for each submission mode in parallel", async () => {
+            const multiModeProvider = new BungeeProvider({
+                submissionModes: ["gasless", "user-transaction"],
+            });
+
+            mockGet.mockResolvedValue({ data: makeBungeeQuoteResponse() });
+            const quotes = await multiModeProvider.getQuotes(makeQuoteRequest());
+
+            expect(mockGet).toHaveBeenCalledTimes(2);
+            expect(quotes).toHaveLength(2);
+        });
+
+        it("returns quotes from successful mode when one mode fails", async () => {
+            const multiModeProvider = new BungeeProvider({
+                submissionModes: ["gasless", "user-transaction"],
+            });
+
+            mockGet
+                .mockResolvedValueOnce({ data: makeBungeeQuoteResponse() })
+                .mockRejectedValueOnce(new Error("user-transaction failed"));
+
+            const quotes = await multiModeProvider.getQuotes(makeQuoteRequest());
+            expect(quotes).toHaveLength(1);
+        });
+
+        it("throws when all submission modes fail", async () => {
+            const multiModeProvider = new BungeeProvider({
+                submissionModes: ["gasless", "user-transaction"],
+            });
+
+            mockGet.mockRejectedValue(new Error("all failed"));
+            await expect(multiModeProvider.getQuotes(makeQuoteRequest())).rejects.toThrow(
+                ProviderGetQuoteFailure,
+            );
+        });
     });
 
     describe("submitOrder()", () => {

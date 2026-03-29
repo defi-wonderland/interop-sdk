@@ -58,10 +58,14 @@ const oifProvider = createCrossChainProvider("oif", {
     solverId: "my-solver",
     url: "https://...",
 });
+const bungeeProvider = createCrossChainProvider("bungee", {
+    tier: "dedicated",
+    apiKey: "your-api-key",
+});
 
-// Create aggregator with providers (can mix Across, Relay, OIF, etc.)
+// Create aggregator with providers (can mix Across, Relay, OIF, Bungee, etc.)
 const aggregator = createAggregator({
-    providers: [acrossProvider, relayProvider, oifProvider],
+    providers: [acrossProvider, relayProvider, oifProvider, bungeeProvider],
 });
 
 // Get quotes using SDK QuoteRequest format
@@ -106,7 +110,7 @@ if (selectedQuote) {
 
 ### Providers
 
--   `createCrossChainProvider(protocolName, config?)` -- Create a provider for a supported protocol. Config is optional for Across and Relay (defaults to mainnet), required for OIF.
+-   `createCrossChainProvider(protocolName, config?)` -- Create a provider for a supported protocol. Config is optional for Across, Relay, and Bungee (defaults to sandbox tier), required for OIF.
 -   `CrossChainProvider` (abstract class)
     -   `.protocolName` -- Returns the protocol name.
     -   `.providerId` -- Returns the provider identifier.
@@ -200,6 +204,40 @@ const ethTokens = discovered.tokensByChain[1];
 -   `getTransactionSteps(order)` -- Extract transaction steps from an order.
 -   `isSignatureOnlyOrder(order)` -- Check if an order only requires signatures.
 -   `isTransactionOnlyOrder(order)` -- Check if an order only requires transactions.
+
+## Bungee Provider
+
+The Bungee Provider enables integration with the [Bungee protocol](https://docs.bungee.exchange/) for cross-chain swaps and bridging.
+
+### Configuration
+
+```typescript
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+
+const provider = createCrossChainProvider("bungee", {
+    // API tier: "sandbox" (default, no auth), "dedicated" (API key), or "frontend" (domain whitelist)
+    tier: "dedicated",
+    apiKey: "your-api-key",
+
+    // Fee configuration (shared across protocols)
+    feeBps: "50", // 0.5% fee
+    feeTakerAddress: "0xYourFeeAddress", // required when feeBps is set
+
+    // Submission modes: "user-transaction" (onchain) or "gasless" (permit2)
+    submissionModes: ["gasless"],
+
+    // Optional
+    slippage: "0.5", // 0.5% slippage tolerance
+    refuel: true, // native gas on destination chain
+    affiliateId: "your-affiliate-id",
+});
+```
+
+### Tracking Notes (Bungee)
+
+-   Bungee tracking is fully **API-based** using the `/api/v1/bungee/status` endpoint.
+-   Both opened intent parsing and fill watching use API polling with a 5-second interval.
+-   No RPC URLs are required for Bungee tracking.
 
 ## OIF Provider
 

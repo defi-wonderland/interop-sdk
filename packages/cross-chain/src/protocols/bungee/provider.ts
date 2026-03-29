@@ -3,6 +3,7 @@ import type { Hex } from "viem";
 import axios from "axios";
 import { ZodError } from "zod";
 
+import type { SubmissionMode } from "../../core/schemas/providerConfig.js";
 import type {
     AssetDiscoveryConfig,
     FillWatcherConfig,
@@ -32,6 +33,8 @@ import { BUNGEE_API_URLS } from "./constants.js";
 import { BungeeApiService } from "./services/index.js";
 import { BungeeApiTier, BungeeConfigSchema } from "./types.js";
 
+const DEFAULT_SUBMISSION_MODES: SubmissionMode[] = ["gasless"];
+
 /**
  * A {@link CrossChainProvider} implementation for the Bungee protocol.
  *
@@ -47,6 +50,7 @@ export class BungeeProvider extends CrossChainProvider {
     private readonly apiService: BungeeApiService;
     private readonly apiHeaders: Record<string, string>;
     private readonly quoteOptions: BungeeQuoteOptions;
+    private readonly submissionModes: SubmissionMode[];
 
     constructor(config: BungeeConfigs = {}) {
         super();
@@ -64,10 +68,11 @@ export class BungeeProvider extends CrossChainProvider {
                 this.apiHeaders["affiliate"] = parsed.affiliateId;
             }
 
+            this.submissionModes = parsed.submissionModes ?? DEFAULT_SUBMISSION_MODES;
+
             this.quoteOptions = {
                 feeBps: parsed.feeBps,
                 feeTakerAddress: parsed.feeTakerAddress,
-                useInbox: parsed.useInbox,
                 slippage: parsed.slippage,
                 refuel: parsed.refuel,
             };
@@ -97,24 +102,16 @@ export class BungeeProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      *
-     * Returns quotes from auto routes, sorted by output amount (best first).
+     * Fetches quotes for each configured submission mode in parallel
+     * and returns the combined results. If a mode fails but others succeed,
+     * the successful quotes are still returned.
      */
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
-        try {
-            const bungeeParams = adaptQuoteRequest(params, this.quoteOptions);
-            const response = await this.apiService.getQuote(bungeeParams);
+        const results = await Promise.allSettled(
+            this.submissionModes.map((mode) => this.fetchQuotesForMode(params, mode)),
+        );
 
-            return adaptQuotes(response, this.providerId);
-        } catch (error) {
-            if (error instanceof ProviderGetQuoteFailure) {
-                throw error;
-            }
-            throw new ProviderGetQuoteFailure(
-                "Failed to get Bungee quote",
-                error instanceof Error ? error.message : String(error),
-                error instanceof Error ? error.stack : undefined,
-            );
-        }
+        return this.collectQuotesOrThrow(results);
     }
 
     /**
@@ -187,5 +184,43 @@ export class BungeeProvider extends CrossChainProvider {
                 headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
             },
         };
+    }
+
+    /**
+     * Collect successful quotes from settled results.
+     * Throws only if every mode failed — surfaces the first error.
+     */
+    private collectQuotesOrThrow(results: PromiseSettledResult<Quote[]>[]): Quote[] {
+        const quotes = results
+            .filter((r): r is PromiseFulfilledResult<Quote[]> => r.status === "fulfilled")
+            .flatMap((r) => r.value);
+
+        if (quotes.length > 0) return quotes;
+
+        const firstError = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
+
+        throw (
+            (firstError?.reason as Error) ??
+            new ProviderGetQuoteFailure("No quotes returned from any submission mode")
+        );
+    }
+
+    /** Fetch quotes for a single submission mode. */
+    private async fetchQuotesForMode(params: QuoteRequest, mode: SubmissionMode): Promise<Quote[]> {
+        try {
+            const options: BungeeQuoteOptions = { ...this.quoteOptions, submissionMode: mode };
+            const bungeeParams = adaptQuoteRequest(params, options);
+            const response = await this.apiService.getQuote(bungeeParams);
+            return adaptQuotes(response, this.providerId);
+        } catch (error) {
+            if (error instanceof ProviderGetQuoteFailure) {
+                throw error;
+            }
+            throw new ProviderGetQuoteFailure(
+                `Failed to get Bungee quote for mode "${mode}"`,
+                error instanceof Error ? error.message : String(error),
+                error instanceof Error ? error.stack : undefined,
+            );
+        }
     }
 }

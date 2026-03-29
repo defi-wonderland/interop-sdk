@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+import {
+    FEE_CONFIG_REFINEMENT_ERROR,
+    feeConfigRefinement,
+    FeeConfigSchema,
+    SubmissionModeSchema,
+} from "../../core/schemas/providerConfig.js";
+
 /** Bungee API integration tiers. */
 export enum BungeeApiTier {
     /** Public sandbox — no auth, very limited RPS. For testing only. */
@@ -23,21 +30,15 @@ export const BungeeConfigSchema = z
         apiKey: z.string().optional(),
         /** Bungee affiliate ID for tracking (sent via `affiliate` header). */
         affiliateId: z.string().optional(),
-        /** Fee in basis points charged on the source amount (e.g. `"50"` for 0.5%). */
-        feeBps: z.string().optional(),
-        /** Address to receive the convenience fee. Required when `feeBps` is set. */
-        feeTakerAddress: z.string().optional(),
-        /** Force onchain transaction flow (BungeeInbox) instead of permit2 signatures. */
-        useInbox: z.boolean().optional(),
+        /** Supported transaction submission modes. `"user-transaction"` forces onchain flow, `"gasless"` uses permit2. */
+        submissionModes: z.array(SubmissionModeSchema).optional(),
         /** Default slippage tolerance for quotes (e.g. `"0.5"` for 0.5%). */
         slippage: z.string().optional(),
         /** Enable native gas refueling on the destination chain. */
         refuel: z.boolean().optional(),
     })
-    .refine((config) => !config.feeBps || config.feeTakerAddress, {
-        message: "feeTakerAddress is required when feeBps is set",
-        path: ["feeTakerAddress"],
-    });
+    .merge(FeeConfigSchema)
+    .refine(feeConfigRefinement, FEE_CONFIG_REFINEMENT_ERROR);
 
 /** Configuration options for {@link BungeeProvider}. */
 export type BungeeConfigs = z.infer<typeof BungeeConfigSchema>;

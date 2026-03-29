@@ -1,13 +1,12 @@
+import type { FeeConfig, SubmissionMode } from "../../../core/schemas/providerConfig.js";
 import type { QuoteRequest } from "../../../internal.js";
 import type { BungeeQuoteRequest } from "../schemas.js";
 import { ProviderGetQuoteFailure } from "../../../internal.js";
 import { BungeeQuoteRequestSchema } from "../schemas.js";
 
-/** Optional provider-level config that affects quote requests. */
-export interface BungeeQuoteOptions {
-    feeBps?: string;
-    feeTakerAddress?: string;
-    useInbox?: boolean;
+/** Optional provider-level config that affects a single quote request. */
+export interface BungeeQuoteOptions extends FeeConfig {
+    submissionMode?: SubmissionMode;
     slippage?: string;
     refuel?: boolean;
 }
@@ -16,7 +15,7 @@ export interface BungeeQuoteOptions {
  * Convert an SDK QuoteRequest to Bungee API query parameters.
  *
  * @param params - The SDK quote request.
- * @param options - Provider-level config (fees, useInbox).
+ * @param options - Provider-level config (fees, submissionMode).
  * @returns The Bungee-formatted quote request.
  * @throws {ProviderGetQuoteFailure} When the required amount is missing.
  */
@@ -43,7 +42,7 @@ export function adaptQuoteRequest(
 
     if (options.feeBps) request.feeBps = options.feeBps;
     if (options.feeTakerAddress) request.feeTakerAddress = options.feeTakerAddress;
-    if (options.useInbox) request.useInbox = "true";
+    if (options.submissionMode === "user-transaction") request.useInbox = "true";
     if (options.slippage) request.slippage = options.slippage;
     if (options.refuel) request.refuel = "true";
 
