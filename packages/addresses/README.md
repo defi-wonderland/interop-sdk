@@ -57,7 +57,7 @@ import {
 } from "@wonderland/interop-addresses";
 
 // Convert name to binary (async - may resolve ENS)
-const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "hex" });
+const binary = await nameToBinary("vitalik.eth@eip155:1", { format: "hex" });
 
 // Convert binary to name (synchronous)
 const name = binaryToName("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
@@ -93,7 +93,7 @@ import {
 } from "@wonderland/interop-addresses";
 
 // Parse name with full result (includes metadata) - defaults to text representation
-const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
+const result = await parseName("vitalik.eth@eip155:1");
 // result.name - original parsed components
 // result.interoperableAddress - address in text representation (default)
 //   - result.interoperableAddress.chainType - "eip155" (string)
@@ -105,7 +105,7 @@ const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
 // result.meta.isChainLabel - whether chain reference was a label
 
 // Parse to binary representation
-const resultBinary = await parseName("vitalik.eth@eip155:1#4CA88C9C", { representation: "binary" });
+const resultBinary = await parseName("vitalik.eth@eip155:1", { representation: "binary" });
 // resultBinary.interoperableAddress.chainType - Uint8Array
 // resultBinary.interoperableAddress.chainReference - Uint8Array
 // resultBinary.interoperableAddress.address - Uint8Array
@@ -152,11 +152,11 @@ const name = formatName(textAddr); // Automatically converts if needed and inclu
 import { getAddress, getChainId } from "@wonderland/interop-addresses";
 
 // Get address from binary or name
-const address = await getAddress("vitalik.eth@eip155:1#4CA88C9C");
+const address = await getAddress("vitalik.eth@eip155:1");
 // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 
 // Get chain ID from binary or name
-const chainId = await getChainId("vitalik.eth@eip155:1#4CA88C9C");
+const chainId = await getChainId("vitalik.eth@eip155:1");
 // Returns: "1"
 ```
 
@@ -280,7 +280,7 @@ The text variant uses CAIP-350's text encoding rules, which are chainType-specif
 The ERC-7828-style human-readable name string:
 
 ```typescript
-type InteroperableName = string; // e.g., "vitalik.eth@eip155:1#4CA88C9C"
+type InteroperableName = string; // e.g., "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C"
 ```
 
 ### ParsedInteropNameComponents
@@ -323,7 +323,7 @@ The `address` field contains the `InteroperableAddress` type in the requested re
 ```typescript
 import { isTextAddress } from "@wonderland/interop-addresses";
 
-const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
+const result = await parseName("vitalik.eth@eip155:1");
 
 if (isTextAddress(result.interoperableAddress)) {
     // Access text fields directly

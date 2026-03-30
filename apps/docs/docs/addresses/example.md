@@ -12,7 +12,7 @@ While interop addresses provide a convenient, human-readable way to represent ac
 
 ## Use Case
 
-Suppose you're a wallet developer. You want your users to be able to input an interop address (e.g., `vitalik.eth@base#4CA88C9C`) and seamlessly interact with contracts that only accept canonical addresses. The SDK makes this process straightforward.
+Suppose you're a wallet developer. You want your users to be able to input an interop address (e.g., `vitalik.eth@base`) and seamlessly interact with contracts that only accept canonical addresses. The SDK makes this process straightforward.
 
 Since you're building a wallet and want your product to be as fast and lightweight as possible, it's best to import only the individual functions you need. This approach maximizes tree shaking and minimizes your bundle size.
 
@@ -25,7 +25,7 @@ sequenceDiagram
     participant SDK
     participant SmartContract
 
-    User->>Wallet: vitalik.eth@base#4CA88C9C
+    User->>Wallet: vitalik.eth@base
     Wallet->>SDK: parseName(interopAddress)
     SDK-->>Wallet: result with address, chainType, chainReference, checksum
     Wallet->>Wallet: Validate checksum
@@ -39,7 +39,7 @@ The `parseName` method is the recommended way to extract all components from an 
 ```typescript
 import { isTextAddress, parseName } from "@wonderland/interop-addresses";
 
-const interoperableName = "vitalik.eth@base#4CA88C9C";
+const interoperableName = "vitalik.eth@base";
 const result = await parseName(interoperableName);
 
 // Use type guard to access text fields
@@ -62,7 +62,7 @@ Before using the parsed address, you should validate the checksum to ensure the 
 ```typescript
 import { parseName, validateChecksum } from "@wonderland/interop-addresses";
 
-const interoperableName = "vitalik.eth@base#4CA88C9C";
+const interoperableName = "vitalik.eth@base";
 const result = await parseName(interoperableName);
 
 // Check if there was a checksum mismatch
@@ -91,7 +91,7 @@ If you only need specific components, you can use the individual extraction func
 ```typescript
 import { getAddress, getChainId } from "@wonderland/interop-addresses";
 
-const interoperableName = "vitalik.eth@base#4CA88C9C";
+const interoperableName = "vitalik.eth@base";
 
 // Extract just the address
 const address = await getAddress(interoperableName);
@@ -166,7 +166,7 @@ async function processInteropAddress(interopAddress: string) {
 }
 
 // Usage
-await processInteropAddress("vitalik.eth@base#4CA88C9C");
+await processInteropAddress("vitalik.eth@base");
 ```
 
 ## Additional Notes

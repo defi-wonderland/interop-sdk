@@ -18,7 +18,7 @@ const checksum = await computeChecksum("vitalik.eth@eip155:1");
 // Returns: "4CA88C9C"
 
 // Parse with checksum validation
-const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
+const result = await parseName("vitalik.eth@eip155:1");
 // result.meta.checksum - always calculated
 // result.meta.checksumMismatch - present if provided checksum didn't match
 ```
@@ -35,12 +35,12 @@ import {
 } from "@wonderland/interop-addresses";
 
 // Validate any interop address (binary or name)
-const isValid = await isValidInteropAddress("vitalik.eth@eip155:1#4CA88C9C", {
+const isValid = await isValidInteropAddress("vitalik.eth@eip155:1", {
     validateChecksumFlag: true,
 });
 
 // Validate specifically interoperable names
-const isValidName = await isValidInteroperableName("vitalik.eth@eip155:1#4CA88C9C", {
+const isValidName = await isValidInteroperableName("vitalik.eth@eip155:1", {
     validateChecksumFlag: true,
 });
 
@@ -127,7 +127,7 @@ import {
 } from "@wonderland/interop-addresses";
 
 // Start with name
-const name = "vitalik.eth@eip155:1#4CA88C9C";
+const name = "vitalik.eth@eip155:1";
 
 // Parse to get text address (default)
 const parsed = await parseName(name);

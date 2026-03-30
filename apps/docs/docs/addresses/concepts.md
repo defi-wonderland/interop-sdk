@@ -2,74 +2,65 @@
 title: Concepts
 ---
 
-This page explains the ideas behind the `addresses` package — the standards it implements, the architecture it follows, and the design decisions that shape its API.
+This page explains the standards behind interoperable addresses and how the package implements them.
 
 ## The problem
 
-Blockchain addresses today are chain-specific. An Ethereum address like `0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045` doesn't tell you _which_ chain the account lives on. In a multichain world, this ambiguity leads to lost funds, broken UIs, and manual chain selection.
+An Ethereum address like `0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045` doesn't say _which chain_ the account is on. In a multichain world, this ambiguity leads to lost funds, broken UIs, and manual chain selection.
 
-Interoperable addresses solve this by encoding the chain alongside the address in a single, standardized format.
+Interoperable addresses solve this by encoding the **chain alongside the address** in a single, standardized format — in two complementary ways.
 
-## The standards
+## Human-readable: ERC-7828
 
-The package implements three complementary standards:
+[ERC-7828](https://eips.ethereum.org/EIPS/eip-7828) defines a readable name format designed for end-users, wallets, and UIs:
 
-### EIP-7930: Interoperable Addresses
+```
+vitalik.eth@ethereum
+0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:10#1A2B3C4D
+```
 
-Defines a **binary serialization format** for addresses that includes a version byte, chain type, chain reference, and the address itself. This is the canonical wire format — compact, unambiguous, and suitable for storage and transmission.
+The format is: `{address}@{chain}#{checksum}`
 
-Example (hex): `0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045`
+What makes it user-friendly:
 
-### CAIP-350: Text Encoding Rules
+-   **ENS names** work directly — `vitalik.eth` instead of a raw hex address
+-   **Chain shortnames** like `ethereum`, `base`, or `optimism` resolve automatically via an onchain registry
+-   **Checksums** (4 bytes, calculated from the binary form) catch typos and detect tampering
+-   Fully-qualified CAIP-2 identifiers (`eip155:1`) also work when precision matters
 
-Defines how the binary fields should be represented as human-readable text, with chain-type-specific rules:
+This is what users see and what apps display.
+
+## Onchain-optimized: EIP-7930
+
+[EIP-7930](https://eips.ethereum.org/EIPS/eip-7930) defines a compact binary format optimized for smart contracts, where minimal byte size directly reduces gas costs:
+
+```
+0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045
+```
+
+The binary encodes a version byte, chain type, chain reference, and the address into a single byte sequence — no ambiguity, no resolution needed. This is the format smart contracts pass around and store onchain.
+
+## How they relate
+
+Both formats carry the same information. A human-readable ERC-7828 name resolves to the same structured address that EIP-7930 serializes into bytes:
+
+```
+vitalik.eth@eip155:1  ←→  { chainType: "eip155", chainReference: "1", address: "0xd8dA..." }  ←→  0x0001...
+      (name)                              (structured address)                                    (binary)
+```
+
+A third standard, [CAIP-350](https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-350.md), defines chain-type-specific rules for representing binary fields as text:
 
 -   **eip155**: Chain references as decimal strings, addresses as hex with EIP-55 checksumming
 -   **bip122**: Chain references as 32-char lowercase hex (genesis hash prefix), addresses as base58check or bech32/bech32m
 -   **solana**: Base58 encoding for both chain references and addresses
 
-### ERC-7828: Readable Interoperable Names
+## Package API design
 
-Defines a **human-readable string format** that combines an address (or ENS name), a chain identifier, and an optional checksum:
+The package API reflects the two formats:
 
-```
-vitalik.eth@eip155:1#4CA88C9C
-```
-
-Format: `{address}@{chainType}:{chainReference}#{checksum}`
-
-This format supports ENS names and chain shortnames (like `eth` or `base`) for better UX.
-
-## Two-layer architecture
-
-The package is organized into two layers, each handling a different level of abstraction:
-
-### Address Layer (sync)
-
-Handles the structured `InteroperableAddress` type — a discriminated union that can be either a **text** or **binary** representation:
-
-```typescript
-// Text variant — human-friendly strings
-{ version: 1, chainType: "eip155", chainReference: "1", address: "0xd8dA..." }
-
-// Binary variant — raw bytes
-{ version: 1, chainType: Uint8Array, chainReference: Uint8Array, address: Uint8Array }
-```
-
-All Address Layer operations are **synchronous**: encoding, decoding, checksum calculation, validation, and conversion between representations. Use `isTextAddress()` or `isBinaryAddress()` type guards to narrow the union.
-
-### Name Layer (async)
-
-Handles the human-readable `InteroperableName` string format. Operations that involve resolution (parsing names, converting names to binary) are **asynchronous** because they may need to:
-
--   Resolve ENS names to raw addresses (via ENSIP-11)
--   Resolve chain shortnames (like `eth`) to CAIP-2 identifiers (like `eip155:1`)
-
-Some Name Layer operations are synchronous — `formatName` and `binaryToName` don't require resolution and return immediately.
-
-The Name Layer builds on top of the Address Layer — parsing a name ultimately produces an `InteroperableAddress`.
-
-### How the layers connect
+-   **Functions that work with names** (`parseName`, `nameToBinary`, `getAddress`, `getChainId`) are **async** — they may need to resolve ENS names or chain shortnames over the network.
+-   **Functions that work with binary/structured addresses** (`encodeAddress`, `decodeAddress`, `formatName`, `binaryToName`) are **sync** — everything is already resolved.
 
 ```mermaid
 graph TD
@@ -84,6 +75,18 @@ graph TD
     C -->|"decodeAddress (sync)"| B
     C -->|"binaryToName (sync)"| A
 ```
+
+The structured `InteroperableAddress` in the middle is a discriminated union — it can hold either text strings or raw bytes:
+
+```typescript
+// Text variant — human-friendly strings
+{ version: 1, chainType: "eip155", chainReference: "1", address: "0xd8dA..." }
+
+// Binary variant — raw bytes
+{ version: 1, chainType: Uint8Array, chainReference: Uint8Array, address: Uint8Array }
+```
+
+Use `isTextAddress()` or `isBinaryAddress()` type guards to narrow the union.
 
 ## Chain resolution
 
@@ -112,7 +115,7 @@ await parseName("0x...@ethereum", { rpcUrl: "https://my-rpc.example.com" });
 Checksums protect against typos and address tampering. The checksum is computed from the binary serialization of the address and appended to the name after a `#`:
 
 ```
-vitalik.eth@eip155:1#4CA88C9C
+vitalik.eth@eip155:1
                      ^^^^^^^^ checksum
 ```
 

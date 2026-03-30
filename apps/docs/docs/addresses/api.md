@@ -26,7 +26,7 @@ nameToBinary(
 ```typescript
 import { nameToBinary } from "@wonderland/interop-addresses";
 
-const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "hex" });
+const binary = await nameToBinary("vitalik.eth@eip155:1", { format: "hex" });
 ```
 
 #### `getAddress`
@@ -42,7 +42,7 @@ getAddress(address: string): Promise<string>
 ```typescript
 import { getAddress } from "@wonderland/interop-addresses";
 
-const address = await getAddress("vitalik.eth@eip155:1#4CA88C9C");
+const address = await getAddress("vitalik.eth@eip155:1");
 // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 ```
 
@@ -59,7 +59,7 @@ getChainId(address: string): Promise<string>
 ```typescript
 import { getChainId } from "@wonderland/interop-addresses";
 
-const chainId = await getChainId("vitalik.eth@eip155:1#4CA88C9C");
+const chainId = await getChainId("vitalik.eth@eip155:1");
 // Returns: "1"
 ```
 
@@ -96,7 +96,7 @@ isValidInteropAddress(
 ```typescript
 import { isValidInteropAddress } from "@wonderland/interop-addresses";
 
-const isValid = await isValidInteropAddress("vitalik.eth@eip155:1#4CA88C9C", {
+const isValid = await isValidInteropAddress("vitalik.eth@eip155:1", {
     validateChecksumFlag: true,
 });
 ```
@@ -117,7 +117,7 @@ isValidInteroperableName(
 ```typescript
 import { isValidInteroperableName } from "@wonderland/interop-addresses";
 
-const isValid = await isValidInteroperableName("vitalik.eth@eip155:1#4CA88C9C");
+const isValid = await isValidInteroperableName("vitalik.eth@eip155:1");
 ```
 
 ### Synchronous Methods
@@ -336,7 +336,7 @@ The `address` field is an `InteroperableAddress` in the requested representation
 ```typescript
 import { isTextAddress } from "@wonderland/interop-addresses";
 
-const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
+const result = await parseName("vitalik.eth@eip155:1");
 
 if (isTextAddress(result.interoperableAddress)) {
     // Access text fields directly
@@ -537,7 +537,7 @@ The text variant uses CAIP-350's text encoding rules, which are chainType-specif
 The ERC-7828-style human-readable name string:
 
 ```typescript
-type InteroperableName = string; // e.g., "vitalik.eth@eip155:1#4CA88C9C"
+type InteroperableName = string; // e.g., "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C"
 ```
 
 ### `ParsedInteropNameComponents`
@@ -591,7 +591,7 @@ The `interoperableAddress` field contains the `InteroperableAddress` type in the
 ```typescript
 import { isTextAddress } from "@wonderland/interop-addresses";
 
-const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
+const result = await parseName("vitalik.eth@eip155:1");
 
 if (isTextAddress(result.interoperableAddress)) {
     // Access text fields directly

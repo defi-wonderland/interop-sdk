@@ -2,7 +2,7 @@
 title: Getting Started
 ---
 
-In this tutorial, you'll parse an interoperable address and extract its components. By the end, you'll know how to go from a human-readable name like `vitalik.eth@eip155:1#4CA88C9C` to its raw address and chain ID.
+In this tutorial, you'll parse an interoperable address and extract its components. By the end, you'll know how to go from a human-readable name like `vitalik.eth@eip155:1` to its raw address and chain ID.
 
 ## Install the package
 
@@ -21,7 +21,7 @@ An interoperable name encodes an address, a chain, and a checksum in a single st
 ```typescript
 import { isTextAddress, parseName } from "@wonderland/interop-addresses";
 
-const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
+const result = await parseName("vitalik.eth@eip155:1");
 
 if (isTextAddress(result.interoperableAddress)) {
     console.log(result.interoperableAddress.address);
@@ -60,10 +60,10 @@ If you only need the address or chain ID, use the convenience functions:
 ```typescript
 import { getAddress, getChainId } from "@wonderland/interop-addresses";
 
-const address = await getAddress("vitalik.eth@eip155:1#4CA88C9C");
+const address = await getAddress("vitalik.eth@eip155:1");
 // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 
-const chainId = await getChainId("vitalik.eth@eip155:1#4CA88C9C");
+const chainId = await getChainId("vitalik.eth@eip155:1");
 // "1"
 ```
 
@@ -105,7 +105,7 @@ graph TD
 import { binaryToName, nameToBinary } from "@wonderland/interop-addresses";
 
 // Name → Binary (async, may resolve ENS)
-const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "hex" });
+const binary = await nameToBinary("vitalik.eth@eip155:1", { format: "hex" });
 
 // Binary → Name (sync)
 const name = binaryToName(binary);
