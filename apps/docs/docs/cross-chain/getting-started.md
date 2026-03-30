@@ -142,7 +142,7 @@ response.errors.forEach((err) => console.warn(`Provider error: ${err.errorMsg}`)
 2. **Get quotes** → `provider.getQuotes(request)` or `aggregator.getQuotes(request)`
 3. **Check order type** → `isSignatureOnlyOrder(quote.order)`
     - **Signature (gasless):** `signTypedData()` → `provider.submitOrder(quote, signature)`
-    - **Transaction (user pays gas):** `walletClient.sendTransaction(step.transaction)`
+    - **Transaction (user pays gas):** `walletClient.sendTransaction(...)` (see [example above](#execute-the-transaction) — convert string `value` to `BigInt`)
 4. **Track** → `aggregator.track({ txHash, providerId, originChainId, destinationChainId })`
 
 ### Which function should I use?

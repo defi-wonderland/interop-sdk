@@ -116,7 +116,7 @@ Checksums protect against typos and address tampering. The checksum is computed 
 
 ```
 vitalik.eth@eip155:1#4CA88C9C
-                     ^^^^^^^^^ checksum
+                     ^^^^^^^^ checksum
 ```
 
 The SDK always calculates the checksum when parsing. If the input includes a checksum, the SDK compares it against the calculated value and reports any mismatch via `result.meta.checksumMismatch`.
