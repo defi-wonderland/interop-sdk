@@ -1,6 +1,7 @@
 import type { Quote } from "../../../internal.js";
 import type { RelaySubmitPermitRequest } from "../schemas.js";
 import { ProviderExecuteFailure } from "../../../internal.js";
+import { RelaySignatureStepMetadataSchema, RelaySubmitPermitRequestSchema } from "../schemas.js";
 
 /**
  * Extract the Relay permit request body from a quote's signature step metadata.
@@ -11,15 +12,23 @@ import { ProviderExecuteFailure } from "../../../internal.js";
  */
 export function adaptSubmitRequest(quote: Quote): RelaySubmitPermitRequest {
     const signatureStep = quote.order.steps.find((s) => s.kind === "signature");
-    const metadata = signatureStep?.metadata as Record<string, unknown> | undefined;
-    const postData = metadata?.relayPostData as { body?: RelaySubmitPermitRequest } | undefined;
+    const metadata = RelaySignatureStepMetadataSchema.safeParse(signatureStep?.metadata);
 
-    if (!postData?.body) {
+    if (!metadata.success) {
         throw new ProviderExecuteFailure(
             "Missing permit data in signature step metadata. Ensure the quote was obtained with submissionModes including 'gasless'.",
             `quoteId: ${quote.quoteId}`,
         );
     }
 
-    return postData.body;
+    const body = RelaySubmitPermitRequestSchema.safeParse(metadata.data.relayPostData.body);
+
+    if (!body.success) {
+        throw new ProviderExecuteFailure(
+            "Invalid permit body in signature step metadata. The requestId may be missing.",
+            `quoteId: ${quote.quoteId}`,
+        );
+    }
+
+    return body.data;
 }

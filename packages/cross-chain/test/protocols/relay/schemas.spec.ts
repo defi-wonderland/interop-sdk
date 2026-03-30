@@ -675,20 +675,41 @@ describe("RelaySubmitPermitRequestSchema", () => {
         const result = RelaySubmitPermitRequestSchema.parse({
             kind: "eip712",
             requestId: REQUEST_ID,
-            api: "relay",
+            api: "bridge",
         });
         expect(result.kind).toBe("eip712");
         expect(result.requestId).toBe(REQUEST_ID);
+        expect(result.api).toBe("bridge");
     });
 
-    it("accepts a minimal permit request with only kind", () => {
-        const result = RelaySubmitPermitRequestSchema.parse({ kind: "eip712" });
+    it("accepts a permit request without optional api", () => {
+        const result = RelaySubmitPermitRequestSchema.parse({
+            kind: "eip712",
+            requestId: REQUEST_ID,
+        });
         expect(result.kind).toBe("eip712");
-        expect(result.requestId).toBeUndefined();
+        expect(result.requestId).toBe(REQUEST_ID);
+        expect(result.api).toBeUndefined();
+    });
+
+    it("rejects a permit request missing requestId", () => {
+        expect(() => RelaySubmitPermitRequestSchema.parse({ kind: "eip712" })).toThrow(ZodError);
+    });
+
+    it("rejects a permit request with invalid api value", () => {
+        expect(() =>
+            RelaySubmitPermitRequestSchema.parse({
+                kind: "eip712",
+                requestId: REQUEST_ID,
+                api: "invalid",
+            }),
+        ).toThrow(ZodError);
     });
 
     it("rejects a permit request missing kind", () => {
-        expect(() => RelaySubmitPermitRequestSchema.parse({})).toThrow(ZodError);
+        expect(() => RelaySubmitPermitRequestSchema.parse({ requestId: REQUEST_ID })).toThrow(
+            ZodError,
+        );
     });
 });
 

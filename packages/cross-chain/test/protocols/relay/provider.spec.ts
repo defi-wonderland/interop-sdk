@@ -397,10 +397,9 @@ describe("RelayProvider", () => {
             mockPost.mockResolvedValue({ data: { message: "Permit submitted" } });
             const quote = makeQuoteWithSignatureStep();
             const result = await provider.submitOrder(quote, SIGNATURE);
-            expect(mockPost).toHaveBeenCalledWith(
-                `/execute/permits?signature=${SIGNATURE}`,
-                POST_DATA.body,
-            );
+            expect(mockPost).toHaveBeenCalledWith("/execute/permits", POST_DATA.body, {
+                params: { signature: SIGNATURE },
+            });
             expect(result.orderId).toBe(REQUEST_ID);
         });
 

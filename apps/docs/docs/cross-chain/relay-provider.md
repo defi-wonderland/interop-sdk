@@ -8,13 +8,13 @@ The Relay Protocol provider enables cross-chain token transfers using the Relay 
 
 ## Configuration
 
-| Field             | Type     | Required | Description                                                                                                                                       |
-| ----------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `baseUrl`         | string   | No       | Custom API base URL (overrides isTestnet)                                                                                                         |
-| `isTestnet`       | boolean  | No       | Use testnet API (default: false)                                                                                                                  |
-| `providerId`      | string   | No       | Custom provider identifier (default: "relay")                                                                                                     |
-| `apiKey`          | string   | No       | Relay API key for authentication                                                                                                                  |
-| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both (default: both). Controls whether quotes request permit-based (gasless) execution |
+| Field             | Type     | Required | Description                                                                                                                                                                    |
+| ----------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `baseUrl`         | string   | No       | Custom API base URL (overrides isTestnet)                                                                                                                                      |
+| `isTestnet`       | boolean  | No       | Use testnet API (default: false)                                                                                                                                               |
+| `providerId`      | string   | No       | Custom provider identifier (default: "relay")                                                                                                                                  |
+| `apiKey`          | string   | No       | Relay API key for authentication                                                                                                                                               |
+| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both (default: `["user-transaction", "gasless"]`). Controls whether quotes request permit-based (gasless) execution |
 
 Notes:
 

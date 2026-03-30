@@ -1,4 +1,5 @@
 import type { AxiosInstance } from "axios";
+import type { Hex } from "viem";
 import { AxiosError } from "axios";
 
 import type {
@@ -74,14 +75,13 @@ export class RelayApiService {
     /** POST /execute/permits — submit a signed permit to Relay. */
     async submitPermit(
         params: RelaySubmitPermitRequest,
-        signature: string,
+        signature: Hex,
     ): Promise<RelaySubmitPermitResponse> {
         try {
             const parsed = RelaySubmitPermitRequestSchema.parse(params);
-            const response = await this.http.post(
-                `/execute/permits?signature=${signature}`,
-                parsed,
-            );
+            const response = await this.http.post("/execute/permits", parsed, {
+                params: { signature },
+            });
             return RelaySubmitPermitResponseSchema.parse(response.data);
         } catch (error) {
             this.throwProviderError(error, ProviderExecuteFailure, "Relay permit submission");

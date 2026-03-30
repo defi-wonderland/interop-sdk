@@ -192,17 +192,16 @@ describe("RelayApiService", () => {
     });
 
     describe("submitPermit()", () => {
-        const SIGNATURE = "0xsig123";
+        const SIGNATURE = "0xsig123" as `0x${string}`;
         const PERMIT_BODY = { kind: "eip712", requestId: REQUEST_ID };
 
-        it("posts to /execute/permits with signature query param and returns parsed response", async () => {
+        it("posts to /execute/permits with signature as query param and returns parsed response", async () => {
             mockPost.mockResolvedValue({ data: { message: "Permit submitted" } });
             const result = await service.submitPermit(PERMIT_BODY, SIGNATURE);
             expect(result.message).toBe("Permit submitted");
-            expect(mockPost).toHaveBeenCalledWith(
-                `/execute/permits?signature=${SIGNATURE}`,
-                PERMIT_BODY,
-            );
+            expect(mockPost).toHaveBeenCalledWith("/execute/permits", PERMIT_BODY, {
+                params: { signature: SIGNATURE },
+            });
         });
 
         it("wraps AxiosError in ProviderExecuteFailure", async () => {
