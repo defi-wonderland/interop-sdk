@@ -6,12 +6,12 @@ This document lists all cross-chain providers supported by the Interop SDK.
 
 ## Available Providers
 
-| Provider                                | Status | Description                                     |
-| --------------------------------------- | ------ | ----------------------------------------------- |
-| [Across Protocol](./across-provider.md) | Active | Cross-chain token transfers using Across bridge |
-| [Relay Protocol](./relay-provider.md)   | Active | Cross-chain token transfers using Relay bridge  |
-| [OIF](./oif-provider.md)                | Active | Direct integration with OIF-compliant solvers   |
-| [Bungee Protocol](./bungee-provider.md) | Active | Cross-chain transfers with gasless permit2 flow |
+| Provider                                | Status | Description                                               |
+| --------------------------------------- | ------ | --------------------------------------------------------- |
+| [Across Protocol](./across-provider.md) | Active | Cross-chain token transfers using Across bridge           |
+| [Relay Protocol](./relay-provider.md)   | Active | Cross-chain token transfers using Relay bridge            |
+| [OIF](./oif-provider.md)                | Active | Direct integration with OIF-compliant solvers             |
+| [Bungee Protocol](./bungee-provider.md) | Active | Cross-chain transfers via onchain or gasless permit2 flow |
 
 > Additional protocols are planned for future releases.
 

@@ -117,7 +117,7 @@ export class BungeeProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      *
-     * Submits a signed permit2 order to Bungee.
+     * Submits a signed permit2 order to Bungee (gasless mode only).
      */
     override async submitOrder(quote: Quote, signature: Hex): Promise<SubmitOrderResponse> {
         try {
