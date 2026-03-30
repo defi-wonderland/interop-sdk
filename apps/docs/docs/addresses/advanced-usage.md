@@ -53,12 +53,7 @@ const isValidBinary = isValidBinaryAddress(
 ## Working with Chain References
 
 ```typescript
-import {
-    isValidChain,
-    isValidChainType,
-    resolveChain,
-    shortnameToChainId,
-} from "@wonderland/interop-addresses";
+import { isValidChain, isValidChainType, resolveChain } from "@wonderland/interop-addresses";
 
 // Validate chain type
 const isValid = isValidChainType("eip155"); // true
@@ -69,10 +64,6 @@ const isValidChainRef = isValidChain("eip155", "1"); // true
 // Resolve chain (handles shortname resolution, validation, etc.)
 const resolved = await resolveChain({ chainReference: "eth" });
 // Returns: { chainType: "eip155", chainReference: "1" }
-
-// Resolve shortname to chain ID
-const chainId = await shortnameToChainId("eth");
-// Returns: 1 or undefined
 ```
 
 ## Error Handling

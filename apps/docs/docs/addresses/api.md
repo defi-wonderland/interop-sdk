@@ -418,14 +418,6 @@ resolveChain(
 ): Promise<{ chainType: ChainTypeName; chainReference?: string }>
 ```
 
-#### `shortnameToChainId`
-
-Resolves a chain shortname to its chain ID.
-
-```typescript
-shortnameToChainId(shortName: string): Promise<number | undefined>
-```
-
 #### `getRegisteredChains`
 
 Fetches all chains registered in the on.eth ChainResolver contract. Uses multicall to call `chainCount()` and then `getChainAtIndex()` for each index, decoding the ERC-7930 interoperable address to extract the CAIP-2 chain type and reference.
@@ -471,7 +463,6 @@ import {
     parseName,
     resolveAddress,
     resolveChain,
-    shortnameToChainId,
     toBinaryRepresentation,
     toTextRepresentation,
     validateChecksum,

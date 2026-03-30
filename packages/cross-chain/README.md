@@ -169,7 +169,11 @@ console.log(usdc?.decimals); // 6
 import { createAssetDiscoveryService } from "@wonderland/interop-cross-chain";
 
 const service = createAssetDiscoveryService(provider);
-const discovered = await service.getSupportedAssets(); // Returns DiscoveredAssets directly
+if (!service) {
+    // Provider does not support asset discovery
+    return;
+}
+const discovered = await service.getSupportedAssets();
 
 const ethTokens = discovered.tokensByChain[1];
 ```

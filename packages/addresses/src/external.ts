@@ -37,7 +37,6 @@ export {
     resolveChain,
     resolveChainFromRegistry,
     getRegisteredChains,
-    shortnameToChainId,
     isValidChain,
     isValidChainType,
 } from "./name/index.js";

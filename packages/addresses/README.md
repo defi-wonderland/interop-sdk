@@ -220,7 +220,7 @@ All methods are available as static methods on `InteropAddressProvider` or as st
 -   `isValidChainType(chainType: string): chainType is ChainTypeName`
 -   `resolveAddress(address: string, chainType: ChainTypeName, chainReference: string | undefined): Promise<ResolvedAddress>`
 -   `resolveChain(input: { chainType?: string; chainReference?: string }): Promise<ResolvedChain>`
--   `shortnameToChainId(shortname: string): Promise<number | undefined>`
+-   `resolveChain(input): Promise<ResolvedChain>` — resolve a chain shortname or label to a chain identifier
 
 ## Types
 
