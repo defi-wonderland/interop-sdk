@@ -33,7 +33,7 @@ import { BUNGEE_API_URLS } from "./constants.js";
 import { BungeeApiService } from "./services/index.js";
 import { BungeeApiTier, BungeeConfigSchema } from "./types.js";
 
-const DEFAULT_SUBMISSION_MODES: SubmissionMode[] = ["gasless"];
+const DEFAULT_SUBMISSION_MODES: SubmissionMode[] = ["user-transaction"];
 
 /**
  * A {@link CrossChainProvider} implementation for the Bungee protocol.

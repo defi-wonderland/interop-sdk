@@ -224,7 +224,7 @@ const provider = createCrossChainProvider("bungee", {
     feeTakerAddress: "0xYourFeeAddress", // required when feeBps is set
 
     // Submission modes: "user-transaction" (onchain) or "gasless" (permit2)
-    submissionModes: ["gasless"],
+    submissionModes: ["user-transaction"],
 
     // Optional
     slippage: "0.5", // 0.5% slippage tolerance
