@@ -55,7 +55,7 @@ export class RelayProvider extends CrossChainProvider {
         try {
             const parsed = RelayConfigSchema.parse(config);
             this.isTestnet = parsed.isTestnet ?? false;
-            this.submissionModes = parsed.submissionModes ?? ["user-transaction", "gasless"];
+            this.submissionModes = parsed.submissionModes ?? ["user-transaction"];
             this.baseUrl = parsed.baseUrl ?? getRelayApiUrl(this.isTestnet);
             this.providerId = parsed.providerId ?? "relay";
 

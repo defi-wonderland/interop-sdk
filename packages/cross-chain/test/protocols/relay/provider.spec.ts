@@ -194,11 +194,11 @@ describe("RelayProvider", () => {
     });
 
     describe("getQuotes()", () => {
-        it("returns two quotes by default (both submission modes)", async () => {
+        it("returns one quote by default (user-transaction mode)", async () => {
             mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
             const quotes = await provider.getQuotes(makeQuoteRequest());
-            expect(quotes).toHaveLength(2);
-            expect(mockPost).toHaveBeenCalledTimes(2);
+            expect(quotes).toHaveLength(1);
+            expect(mockPost).toHaveBeenCalledTimes(1);
         });
 
         it("returns quote with standardized fees populated", async () => {
@@ -255,6 +255,9 @@ describe("RelayProvider", () => {
         });
 
         it("returns successful quotes when one mode fails", async () => {
+            const dualModeProvider = new RelayProvider({
+                submissionModes: ["user-transaction", "gasless"],
+            });
             mockPost
                 .mockRejectedValueOnce(
                     makeAxiosError(
@@ -265,7 +268,7 @@ describe("RelayProvider", () => {
                     ),
                 )
                 .mockResolvedValueOnce({ data: makeRelayQuoteResponse() });
-            const quotes = await provider.getQuotes(makeQuoteRequest());
+            const quotes = await dualModeProvider.getQuotes(makeQuoteRequest());
             expect(quotes).toHaveLength(1);
         });
     });
