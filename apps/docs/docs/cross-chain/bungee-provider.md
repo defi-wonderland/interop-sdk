@@ -67,9 +67,9 @@ const bungeeProvider = createCrossChainProvider("bungee", {
 
 ## Getting Quotes
 
-### Default (Permit2)
+### Default (Onchain)
 
-ERC20 transfers use the permit2 signature flow by default. The quote returns a signature step:
+ERC20 transfers use the onchain BungeeInbox flow by default. The quote returns a transaction step:
 
 ```typescript
 const quotes = await bungeeProvider.getQuotes({
@@ -88,13 +88,13 @@ const quotes = await bungeeProvider.getQuotes({
 const quote = quotes[0];
 ```
 
-### With `submissionModes` (Onchain)
+### With `submissionModes` (Gasless)
 
-Force the onchain transaction flow instead of permit2. The quote returns a transaction step:
+Use the gasless permit2 signature flow instead of onchain transactions. The quote returns a signature step:
 
 ```typescript
 const bungeeProvider = createCrossChainProvider("bungee", {
-    submissionModes: ["user-transaction"],
+    submissionModes: ["gasless"],
 });
 
 const quotes = await bungeeProvider.getQuotes({
