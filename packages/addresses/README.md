@@ -220,7 +220,7 @@ All methods are available as static methods on `InteropAddressProvider` or as st
 -   `isValidChainType(chainType: string): chainType is ChainTypeName`
 -   `resolveAddress(address: string, chainType: ChainTypeName, chainReference: string | undefined): Promise<ResolvedAddress>`
 -   `resolveChain(input: { chainType?: string; chainReference?: string }): Promise<ResolvedChain>`
--   `shortnameToChainId(shortname: string): number | null`
+-   `shortnameToChainId(shortname: string): Promise<number | undefined>`
 
 ## Types
 
@@ -238,7 +238,7 @@ type InteroperableAddress =
       }
     | {
           version: number;
-          chainType: "eip155" | "solana"; // Text variant
+          chainType: "eip155" | "bip122" | "solana" | "starknet"; // Text variant
           chainReference?: string;
           address?: string;
       };
@@ -257,7 +257,7 @@ import { isTextAddress } from "@wonderland/interop-addresses";
 const addr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415D37aa96045");
 
 if (isTextAddress(addr)) {
-    // TypeScript knows addr.chainType is "eip155" | "solana"
+    // TypeScript knows addr.chainType is "eip155" | "bip122" | "solana" | "starknet"
     console.log(addr.chainType); // "eip155"
     console.log(addr.chainReference); // "1" (string)
     console.log(addr.address); // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" (string)
@@ -305,7 +305,7 @@ The result from `parseName`:
 ```typescript
 {
   name: ParsedInteropNameComponents;      // Original parsed components
-  address: InteroperableAddress;          // Address in specified representation (defaults to "text")
+  interoperableAddress: InteroperableAddress; // Address in specified representation (defaults to "text")
   meta: {
     checksum: Checksum;                    // Calculated checksum (always present)
     checksumMismatch?: {                   // Present if provided checksum didn't match
@@ -318,7 +318,7 @@ The result from `parseName`:
 }
 ```
 
-The `address` field contains the `InteroperableAddress` type in the requested representation (defaults to "text"). Use type guards to access fields:
+The `interoperableAddress` field contains the `InteroperableAddress` type in the requested representation (defaults to "text"). Use type guards to access fields:
 
 ```typescript
 import { isTextAddress } from "@wonderland/interop-addresses";
