@@ -5,8 +5,8 @@ import { RelayQuoteRequestSchema } from "../schemas.js";
 
 /** Options forwarded from the provider to the quote request adapter. */
 export interface AdaptQuoteOptions {
-    /** Submission modes: `"user-transaction"` vs `"gasless"`. */
-    submissionModes?: ("user-transaction" | "gasless")[];
+    /** Submission mode for this specific quote request. */
+    submissionMode?: "user-transaction" | "gasless";
 }
 
 /**
@@ -38,6 +38,6 @@ export function adaptQuoteRequest(
         amount,
         tradeType: swapType === "exact-input" ? "EXACT_INPUT" : "EXPECTED_OUTPUT",
         recipient: params.output.recipient,
-        usePermit: options?.submissionModes?.includes("gasless"),
+        usePermit: options?.submissionMode === "gasless",
     });
 }

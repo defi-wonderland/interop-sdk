@@ -4,6 +4,7 @@ import type { OrderChecks } from "../../../core/schemas/order.js";
 import type { Quote } from "../../../core/schemas/quote.js";
 import type { QuoteRequest, Step } from "../../../internal.js";
 import type { RelayQuoteResponse, RelayQuoteStep, RelaySignatureStep } from "../schemas.js";
+import { ProviderGetQuoteFailure } from "../../../internal.js";
 import { adaptFees } from "./quoteFeeAdapter.js";
 
 /**
@@ -139,10 +140,14 @@ export function adaptRelaySteps(step: RelayQuoteStep): Step[] {
 /** Map a Relay signature step to SDK SignatureStep entries (EIP-712 only). */
 function adaptSignatureStep(step: RelaySignatureStep): Step[] {
     return step.items.flatMap((item) => {
+        if (item.status !== "incomplete") return [];
+
         const { sign, post } = item.data;
 
-        if (item.status !== "incomplete" || sign.signatureKind !== "eip712") {
-            return [];
+        if (sign.signatureKind !== "eip712") {
+            throw new ProviderGetQuoteFailure(
+                `Unsupported signature kind "${sign.signatureKind}". Only EIP-712 signatures are currently supported.`,
+            );
         }
 
         return {

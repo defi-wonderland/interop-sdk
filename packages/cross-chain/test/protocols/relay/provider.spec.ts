@@ -245,8 +245,55 @@ describe("RelayProvider", () => {
         });
     });
 
+    describe("getQuotes() — multi-mode", () => {
+        it("returns two quotes when both submission modes configured", async () => {
+            mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
+            const multiModeProvider = new RelayProvider({
+                submissionModes: ["user-transaction", "gasless"],
+            });
+            const quotes = await multiModeProvider.getQuotes(makeQuoteRequest());
+            expect(quotes).toHaveLength(2);
+            expect(mockPost).toHaveBeenCalledTimes(2);
+        });
+
+        it("returns successful quotes when one mode fails", async () => {
+            mockPost
+                .mockRejectedValueOnce(
+                    makeAxiosError(
+                        { message: "Route not found", errorCode: RELAY_ERROR_ROUTE_NOT_FOUND },
+                        HTTP_STATUS_BAD_REQUEST,
+                        "bad request",
+                        "ERR_BAD_REQUEST",
+                    ),
+                )
+                .mockResolvedValueOnce({ data: makeRelayQuoteResponse() });
+            const multiModeProvider = new RelayProvider({
+                submissionModes: ["user-transaction", "gasless"],
+            });
+            const quotes = await multiModeProvider.getQuotes(makeQuoteRequest());
+            expect(quotes).toHaveLength(1);
+        });
+
+        it("throws when all modes fail", async () => {
+            mockPost.mockRejectedValue(
+                makeAxiosError(
+                    { message: "Route not found", errorCode: RELAY_ERROR_ROUTE_NOT_FOUND },
+                    HTTP_STATUS_BAD_REQUEST,
+                    "bad request",
+                    "ERR_BAD_REQUEST",
+                ),
+            );
+            const multiModeProvider = new RelayProvider({
+                submissionModes: ["user-transaction", "gasless"],
+            });
+            await expect(multiModeProvider.getQuotes(makeQuoteRequest())).rejects.toThrow(
+                ProviderGetQuoteFailure,
+            );
+        });
+    });
+
     describe("getQuotes() — error handling", () => {
-        it("extracts message from Relay bad request response", async () => {
+        it("preserves the original error cause", async () => {
             mockPost.mockRejectedValue(
                 makeAxiosError(
                     { message: RELAY_ERROR_AMOUNT_TOO_LOW, errorCode: RELAY_ERROR_AMOUNT_TOO_LOW },
@@ -262,47 +309,10 @@ describe("RelayProvider", () => {
             );
         });
 
-        it("falls back to axios message when response body is not parseable", async () => {
-            mockPost.mockRejectedValue(
-                makeAxiosError("not json", 500, "Network Error", "ERR_NETWORK"),
-            );
-            const rejection = expect(provider.getQuotes(makeQuoteRequest())).rejects;
-            await rejection.toThrow(ProviderGetQuoteFailure);
-            await rejection.toSatisfy(
-                (err: ProviderGetQuoteFailure) => err.cause === "Network Error",
-            );
-        });
-
-        it("wraps ZodError from invalid response shape", async () => {
+        it("throws ProviderGetQuoteFailure on invalid response", async () => {
             mockPost.mockResolvedValue({ data: { steps: "not-an-array" } });
             await expect(provider.getQuotes(makeQuoteRequest())).rejects.toThrow(
                 ProviderGetQuoteFailure,
-            );
-        });
-
-        it("wraps unexpected error types", async () => {
-            mockPost.mockRejectedValue("unexpected string error");
-            await expect(provider.getQuotes(makeQuoteRequest())).rejects.toThrow(
-                ProviderGetQuoteFailure,
-            );
-        });
-
-        it("does not double-wrap ProviderGetQuoteFailure", async () => {
-            mockPost.mockRejectedValue(
-                makeAxiosError(
-                    {
-                        message: RELAY_ERROR_ROUTE_NOT_FOUND,
-                        errorCode: RELAY_ERROR_ROUTE_NOT_FOUND,
-                    },
-                    HTTP_STATUS_BAD_REQUEST,
-                    "bad request",
-                    "ERR_BAD_REQUEST",
-                ),
-            );
-            const rejection = expect(provider.getQuotes(makeQuoteRequest())).rejects;
-            await rejection.toBeInstanceOf(ProviderGetQuoteFailure);
-            await rejection.toSatisfy(
-                (err: ProviderGetQuoteFailure) => err.cause === RELAY_ERROR_ROUTE_NOT_FOUND,
             );
         });
     });

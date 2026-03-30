@@ -6,6 +6,7 @@ import type {
     RelayQuoteResponse,
     RelayQuoteStep,
 } from "../../../../src/protocols/relay/schemas.js";
+import { ProviderGetQuoteFailure } from "../../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import {
     adaptQuote,
     adaptRelaySteps,
@@ -382,7 +383,7 @@ describe("adaptRelaySteps — signature steps", () => {
         }
     });
 
-    it("skips EIP-191 signature items", () => {
+    it("throws ProviderGetQuoteFailure for unsupported EIP-191 signature items", () => {
         const eip191Step = makeSignatureStep({
             items: [
                 {
@@ -394,8 +395,7 @@ describe("adaptRelaySteps — signature steps", () => {
                 },
             ],
         } as Partial<RelayQuoteStep>);
-        const steps = adaptRelaySteps(eip191Step);
-        expect(steps).toHaveLength(0);
+        expect(() => adaptRelaySteps(eip191Step)).toThrow(ProviderGetQuoteFailure);
     });
 
     it("stores post data and step id in metadata", () => {

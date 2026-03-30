@@ -45,7 +45,7 @@ export class RelayProvider extends CrossChainProvider {
     private readonly http: AxiosInstance;
     private readonly baseUrl: string;
     private readonly isTestnet: boolean;
-    private readonly submissionModes?: ("user-transaction" | "gasless")[];
+    private readonly submissionModes: ("user-transaction" | "gasless")[];
     private readonly apiService: RelayApiService;
     private readonly apiHeaders: Record<string, string>;
 
@@ -55,7 +55,7 @@ export class RelayProvider extends CrossChainProvider {
         try {
             const parsed = RelayConfigSchema.parse(config);
             this.isTestnet = parsed.isTestnet ?? false;
-            this.submissionModes = parsed.submissionModes;
+            this.submissionModes = parsed.submissionModes ?? ["user-transaction"];
             this.baseUrl = parsed.baseUrl ?? getRelayApiUrl(this.isTestnet);
             this.providerId = parsed.providerId ?? "relay";
 
@@ -84,25 +84,16 @@ export class RelayProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      *
-     * Builds SDK Quote types directly from Relay API response.
+     * Fetches quotes for each configured submission mode in parallel
+     * and returns the combined results. If a mode fails but others succeed,
+     * the successful quotes are still returned.
      */
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
-        try {
-            const relayParams = adaptQuoteRequest(params, {
-                submissionModes: this.submissionModes,
-            });
-            const response = await this.apiService.getQuote(relayParams);
-            return [adaptQuote(params, response, this.providerId)];
-        } catch (error) {
-            if (error instanceof ProviderGetQuoteFailure) {
-                throw error;
-            }
-            throw new ProviderGetQuoteFailure(
-                "Failed to get Relay quote",
-                error instanceof Error ? error.message : String(error),
-                error instanceof Error ? error.stack : undefined,
-            );
-        }
+        const results = await Promise.allSettled(
+            this.submissionModes.map((mode) => this.fetchQuoteForMode(params, mode)),
+        );
+
+        return this.collectQuotes(results);
     }
 
     /**
@@ -186,5 +177,28 @@ export class RelayProvider extends CrossChainProvider {
                 headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
             },
         };
+    }
+
+    /** Fetch a single quote for one submission mode. */
+    private async fetchQuoteForMode(
+        params: QuoteRequest,
+        mode: "user-transaction" | "gasless",
+    ): Promise<Quote> {
+        const relayParams = adaptQuoteRequest(params, { submissionMode: mode });
+        const response = await this.apiService.getQuote(relayParams);
+        return adaptQuote(params, response, this.providerId);
+    }
+
+    /** Collect successful quotes. Re-throws the first error if all modes failed. */
+    private collectQuotes(results: PromiseSettledResult<Quote>[]): Quote[] {
+        const quotes = results
+            .filter((r): r is PromiseFulfilledResult<Quote> => r.status === "fulfilled")
+            .map((r) => r.value);
+
+        if (quotes.length > 0) return quotes;
+
+        const firstError = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
+
+        throw firstError?.reason ?? new ProviderGetQuoteFailure("No quotes returned");
     }
 }

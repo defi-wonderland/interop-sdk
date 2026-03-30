@@ -162,15 +162,18 @@ const RelaySignDataSchema = z.discriminatedUnion("signatureKind", [
     RelaySignDataEip191Schema,
 ]);
 
+/** Schema for the Relay POST `/execute/permits` request body. */
+export const RelaySubmitPermitRequestSchema = z.object({
+    kind: z.string(),
+    requestId: z.string().optional(),
+    api: z.string().optional(),
+});
+
 /** Schema for the post endpoint info in a signature step. */
 const RelayPostDataSchema = z.object({
     endpoint: z.string(),
     method: z.string(),
-    body: z.object({
-        kind: z.string(),
-        requestId: z.string().optional(),
-        api: z.string().optional(),
-    }),
+    body: RelaySubmitPermitRequestSchema,
 });
 
 /** Schema for the data object inside a signature step item. */
@@ -385,13 +388,6 @@ export const RelayIndexTransactionResponseSchema = z.object({
 });
 
 // ── Relay Execute Permits ────────────────────────────────
-
-/** Schema for the Relay POST `/execute/permits` request body. */
-export const RelaySubmitPermitRequestSchema = z.object({
-    kind: z.string(),
-    requestId: z.string().optional(),
-    api: z.string().optional(),
-});
 
 /** Schema for the Relay POST `/execute/permits` response body. */
 export const RelaySubmitPermitResponseSchema = z.object({
