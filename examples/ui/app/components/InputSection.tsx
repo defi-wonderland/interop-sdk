@@ -89,7 +89,7 @@ export function InputSection({
               type='text'
               value={readableName}
               onChange={(e) => setReadableName(e.target.value)}
-              placeholder='alice.eth@eip155:1#4CA88C9C'
+              placeholder='alice.eth@eip155:1'
               autoComplete='off'
               data-1p-ignore
               className='w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 mt-2'

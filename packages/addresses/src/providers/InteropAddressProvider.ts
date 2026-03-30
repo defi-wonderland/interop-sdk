@@ -44,7 +44,7 @@ export class InteropAddressProvider {
      * @returns The binary address in the specified format
      * @example
      * ```ts
-     * const binaryAddress = await InteropAddressProvider.nameToBinary("alice.eth@eip155:1#ABCD1234");
+     * const binaryAddress = await InteropAddressProvider.nameToBinary("alice.eth@eip155:1");
      * ```
      */
     public static async nameToBinary<T extends "hex" | "bytes" | undefined = undefined>(
@@ -153,7 +153,7 @@ export class InteropAddressProvider {
      * @returns boolean - true if the address is a valid interop address, false otherwise
      * @example
      * ```ts
-     * const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@eip155:1#ABCD1234", { validateChecksumFlag: true });
+     * const isValid = await InteropAddressProvider.isValidInteropAddress("alice.eth@eip155:1", { validateChecksumFlag: true });
      * ```
      */
     public static async isValidInteropAddress(
@@ -171,7 +171,7 @@ export class InteropAddressProvider {
      * @returns boolean - true if the address is a valid interop address, false otherwise
      * @example
      * ```ts
-     * const isValid = await InteropAddressProvider.isValidInteroperableName("alice.eth@eip155:1#ABCD1234", { validateChecksumFlag: true });
+     * const isValid = await InteropAddressProvider.isValidInteroperableName("alice.eth@eip155:1", { validateChecksumFlag: true });
      * ```
      */
     public static async isValidInteroperableName(
@@ -353,10 +353,10 @@ export class InteropAddressProvider {
      * @example
      * ```ts
      * // Get text representation (default)
-     * const result = await InteropAddressProvider.parseName("vitalik.eth@eip155:1#4CA88C9C");
+     * const result = await InteropAddressProvider.parseName("vitalik.eth@eip155:1");
      *
      * // Get binary representation
-     * const result2 = await InteropAddressProvider.parseName("vitalik.eth@eip155:1#4CA88C9C", { representation: "binary" });
+     * const result2 = await InteropAddressProvider.parseName("vitalik.eth@eip155:1", { representation: "binary" });
      * ```
      */
     public static parseName(
@@ -448,7 +448,7 @@ export class InteropAddressProvider {
  * @returns The binary address in the specified format
  * @example
  * ```ts
- * const binaryAddress = await nameToBinary("alice.eth@eip155:1#ABCD1234");
+ * const binaryAddress = await nameToBinary("alice.eth@eip155:1");
  * ```
  */
 export async function nameToBinary<T extends "hex" | "bytes" | undefined = undefined>(
@@ -477,7 +477,7 @@ export const binaryToName = InteropAddressProvider.binaryToName;
  * @returns The chain ID in the format of the chain type
  * @example
  * ```ts
- * const chainId = await getChainId("vitalik.eth@eip155:1#4CA88C9C");
+ * const chainId = await getChainId("vitalik.eth@eip155:1");
  * // Returns: "1"
  * ```
  */
@@ -490,7 +490,7 @@ export const getChainId = InteropAddressProvider.getChainId;
  * @returns The address in the format of the chain type
  * @example
  * ```ts
- * const address = await getAddress("vitalik.eth@eip155:1#4CA88C9C");
+ * const address = await getAddress("vitalik.eth@eip155:1");
  * // Returns: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
  * ```
  */
@@ -518,7 +518,7 @@ export const computeChecksum = InteropAddressProvider.computeChecksum;
  * @returns true if the address is a valid interop address, false otherwise
  * @example
  * ```ts
- * const isValid = await isValidInteropAddress("alice.eth@eip155:1#ABCD1234", { validateChecksumFlag: true });
+ * const isValid = await isValidInteropAddress("alice.eth@eip155:1", { validateChecksumFlag: true });
  * ```
  */
 export const isValidInteropAddress = InteropAddressProvider.isValidInteropAddress;
@@ -532,7 +532,7 @@ export const isValidInteropAddress = InteropAddressProvider.isValidInteropAddres
  * @returns true if the address is a valid interop address, false otherwise
  * @example
  * ```ts
- * const isValid = await isValidInteroperableName("alice.eth@eip155:1#ABCD1234", { validateChecksumFlag: true });
+ * const isValid = await isValidInteroperableName("alice.eth@eip155:1", { validateChecksumFlag: true });
  * ```
  */
 export const isValidInteroperableName = InteropAddressProvider.isValidInteroperableName;
