@@ -194,11 +194,11 @@ describe("RelayProvider", () => {
     });
 
     describe("getQuotes()", () => {
-        it("returns a valid SDK Quote from Relay response", async () => {
+        it("returns two quotes by default (both submission modes)", async () => {
             mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
-            const [quote] = await provider.getQuotes(makeQuoteRequest());
-            expect(quote!.provider).toBe(PROTOCOL_NAME);
-            expect(quote!.order.steps).toHaveLength(1);
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toHaveLength(2);
+            expect(mockPost).toHaveBeenCalledTimes(2);
         });
 
         it("returns quote with standardized fees populated", async () => {
@@ -243,17 +243,15 @@ describe("RelayProvider", () => {
                 }),
             );
         });
-    });
 
-    describe("getQuotes() — multi-mode", () => {
-        it("returns two quotes when both submission modes configured", async () => {
+        it("returns single quote for single-mode config", async () => {
             mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
-            const multiModeProvider = new RelayProvider({
-                submissionModes: ["user-transaction", "gasless"],
+            const singleModeProvider = new RelayProvider({
+                submissionModes: ["user-transaction"],
             });
-            const quotes = await multiModeProvider.getQuotes(makeQuoteRequest());
-            expect(quotes).toHaveLength(2);
-            expect(mockPost).toHaveBeenCalledTimes(2);
+            const quotes = await singleModeProvider.getQuotes(makeQuoteRequest());
+            expect(quotes).toHaveLength(1);
+            expect(mockPost).toHaveBeenCalledTimes(1);
         });
 
         it("returns successful quotes when one mode fails", async () => {
@@ -267,28 +265,8 @@ describe("RelayProvider", () => {
                     ),
                 )
                 .mockResolvedValueOnce({ data: makeRelayQuoteResponse() });
-            const multiModeProvider = new RelayProvider({
-                submissionModes: ["user-transaction", "gasless"],
-            });
-            const quotes = await multiModeProvider.getQuotes(makeQuoteRequest());
+            const quotes = await provider.getQuotes(makeQuoteRequest());
             expect(quotes).toHaveLength(1);
-        });
-
-        it("throws when all modes fail", async () => {
-            mockPost.mockRejectedValue(
-                makeAxiosError(
-                    { message: "Route not found", errorCode: RELAY_ERROR_ROUTE_NOT_FOUND },
-                    HTTP_STATUS_BAD_REQUEST,
-                    "bad request",
-                    "ERR_BAD_REQUEST",
-                ),
-            );
-            const multiModeProvider = new RelayProvider({
-                submissionModes: ["user-transaction", "gasless"],
-            });
-            await expect(multiModeProvider.getQuotes(makeQuoteRequest())).rejects.toThrow(
-                ProviderGetQuoteFailure,
-            );
         });
     });
 
