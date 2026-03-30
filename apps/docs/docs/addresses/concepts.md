@@ -115,8 +115,8 @@ await parseName("0x...@ethereum", { rpcUrl: "https://my-rpc.example.com" });
 Checksums protect against typos and address tampering. The checksum is computed from the binary serialization of the address and appended to the name after a `#`:
 
 ```
-vitalik.eth@eip155:1
-                     ^^^^^^^^ checksum
+vitalik.eth@eip155:1#4CA88C9C
+                     ^^^^^^^^^ checksum
 ```
 
 The SDK always calculates the checksum when parsing. If the input includes a checksum, the SDK compares it against the calculated value and reports any mismatch via `result.meta.checksumMismatch`.
