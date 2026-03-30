@@ -128,6 +128,22 @@ Resolution uses a two-tier strategy:
 
 Fully-qualified identifiers (e.g., `eip155:10`) always work without any registry lookup.
 
+## Which function should I use?
+
+| I have...                                    | I need...                      | Use                               |
+| -------------------------------------------- | ------------------------------ | --------------------------------- |
+| A name like `vitalik.eth@eip155:1`           | The full parsed result         | `parseName()` (async)             |
+| A name like `vitalik.eth@eip155:1`           | Just the address               | `getAddress()` (async)            |
+| A name like `vitalik.eth@eip155:1`           | Just the chain ID              | `getChainId()` (async)            |
+| A name like `vitalik.eth@eip155:1`           | The binary form for a contract | `nameToBinary()` (async)          |
+| A binary address (`0x0001...`)               | The structured fields          | `decodeAddress()` (sync)          |
+| A binary address (`0x0001...`)               | A human-readable name          | `binaryToName()` (sync)           |
+| Structured fields (chainType, address, etc.) | A binary address               | `encodeAddress()` (sync)          |
+| Structured fields (chainType, address, etc.) | A human-readable name          | `formatName()` (sync)             |
+| Any address string                           | To check if it's valid         | `isValidInteropAddress()` (async) |
+
+**Rule of thumb:** If your input contains ENS names or chain shortnames (like `ethereum` instead of `eip155:1`), use async functions — they resolve names over the network. If you already have structured data or raw binary, sync functions work.
+
 ## Next steps
 
 -   [Concepts](./concepts.md) — understand the two-layer architecture and the standards behind it

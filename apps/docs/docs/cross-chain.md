@@ -8,7 +8,7 @@ It follows [EIP-7683](https://www.erc7683.org/) for cross-chain intent structure
 
 ## What it does
 
--   Fetch and compare quotes from multiple providers (Across, Relay, OIF)
+-   Fetch and compare quotes from multiple providers (Across, Relay, OIF, LiFi)
 -   Execute cross-chain transfers via signature (gasless) or transaction
 -   Track orders from initiation to completion
 -   Aggregate quotes with configurable sorting strategies
