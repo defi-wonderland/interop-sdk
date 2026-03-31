@@ -8,11 +8,12 @@ import { MINT_AMOUNT, useMintToken } from '../hooks/useMintToken';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { useRouteSelection } from '../hooks/useRouteSelection';
 import { useBalanceStore, type TokenBalance } from '../stores/balanceStore';
+import { useCrossChainStore, type SwapFormMode } from '../stores/crossChainStore';
 import { formatFee, isValidAmount, normalizeAmount, sanitizeAmountInput } from '../utils/amountValidation';
 import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
 
-export type SwapFormMode = 'getQuotes' | 'buildQuote';
+export type { SwapFormMode } from '../stores/crossChainStore';
 
 interface SwapFormSubmitParams {
   sender: string;
@@ -63,7 +64,8 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   const [recipient, setRecipient] = useState('');
   const hasAutoFilledRef = useRef(false);
   const [inputAmount, setInputAmount] = useState('');
-  const [mode, setMode] = useState<SwapFormMode>('getQuotes');
+  const mode = useCrossChainStore((s) => s.mode);
+  const setMode = useCrossChainStore((s) => s.setMode);
   const [outputAmount, setOutputAmount] = useState('');
   const [fillDeadlineSecs, setFillDeadlineSecs] = useState(DEADLINE_OPTIONS[0].value);
 
@@ -190,6 +192,11 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     onInputChange?.();
   };
 
+  const handleModeChange = (newMode: SwapFormMode) => {
+    setMode(newMode);
+    onInputChange?.();
+  };
+
   const handleOutputTokenChange = (address: string) => {
     setOutputToken(address);
     onInputChange?.();
@@ -235,10 +242,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
           <button
             type='button'
             disabled={isDisabled}
-            onClick={() => {
-              setMode('getQuotes');
-              onInputChange?.();
-            }}
+            onClick={() => handleModeChange('getQuotes')}
             className={`flex-1 px-4 py-2 rounded-l-xl text-sm font-medium transition-colors ${
               mode === 'getQuotes'
                 ? 'bg-accent text-white'
@@ -250,10 +254,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
           <button
             type='button'
             disabled={isDisabled}
-            onClick={() => {
-              setMode('buildQuote');
-              onInputChange?.();
-            }}
+            onClick={() => handleModeChange('buildQuote')}
             className={`flex-1 px-4 py-2 rounded-r-xl text-sm font-medium transition-colors ${
               mode === 'buildQuote'
                 ? 'bg-accent text-white'

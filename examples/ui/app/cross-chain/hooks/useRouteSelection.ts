@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCrossChainStore } from '../stores/crossChainStore';
 import { readRouteParams, syncRouteParams } from '../utils/routeParams';
 import { createRouteSelector } from '../utils/routeSelection';
 import { useTokenConfig } from './useNetworkConfig';
@@ -10,8 +11,9 @@ import { useTokenConfig } from './useNetworkConfig';
  */
 export function useRouteSelection(defaultInputChainId: number, defaultOutputChainId: number) {
   const { SUPPORTED_TOKEN_BY_CHAIN_ID: byChain, TOKEN_INFO: tokenInfo } = useTokenConfig();
+  const mode = useCrossChainStore((s) => s.mode);
 
-  const selector = useMemo(() => createRouteSelector({ byChain, tokenInfo }), [byChain, tokenInfo]);
+  const selector = useMemo(() => createRouteSelector({ byChain, tokenInfo, mode }), [byChain, tokenInfo, mode]);
 
   const [selection, setSelection] = useState(() => {
     const urlParams = readRouteParams();
