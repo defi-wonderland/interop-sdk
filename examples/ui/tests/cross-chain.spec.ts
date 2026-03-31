@@ -1,14 +1,7 @@
 import { test, expect } from '@playwright/test';
-
-/**
- * Mock token data for asset discovery
- * Returns USDC tokens for testnet chains (Sepolia, Base Sepolia, Arbitrum Sepolia)
- */
-const MOCK_TOKENS = [
-  { chainId: 11155111, address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', symbol: 'USDC', decimals: 6 },
-  { chainId: 84532, address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 },
-  { chainId: 421614, address: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d', symbol: 'USDC', decimals: 6 },
-];
+import mockTokens from './test-data/mock-tokens.json' with { type: 'json' };
+import mockCalldata from './test-data/mock-quote-calldata.json' with { type: 'json' };
+import mockQuoteResponse from './test-data/mock-quote-response.json' with { type: 'json' };
 
 /**
  * Builds a mock Across API quote response with calldata that matches the requested amount.
@@ -20,58 +13,17 @@ function buildMockQuoteResponse(inputAmount: string) {
   const inputHex = input.toString(16).padStart(64, '0');
   const outputHex = output.toString(16).padStart(64, '0');
 
-  const data =
-    '0xad5425c6' + // deposit selector
-    '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266' + // depositor
-    '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266' + // recipient
-    '0000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238' + // inputToken
-    '000000000000000000000000036cbd53842c5426634e7929541ec2318f3dcf7e' + // outputToken
-    inputHex + // inputAmount
-    outputHex + // outputAmount
-    '0000000000000000000000000000000000000000000000000000000000014a34' + // destinationChainId (84532)
-    '0000000000000000000000000000000000000000000000000000000000000000' + // exclusiveRelayer
-    '0000000000000000000000000000000000000000000000000000000000000000' + // quoteTimestamp
-    '0000000000000000000000000000000000000000000000000000000000000000' + // fillDeadline
-    '0000000000000000000000000000000000000000000000000000000000000000' + // exclusivityParameter
-    '0000000000000000000000000000000000000000000000000000000000000180' + // message offset
-    '0000000000000000000000000000000000000000000000000000000000000000'; // message length (empty)
+  const data = mockCalldata.prefix + inputHex + outputHex + mockCalldata.suffix;
 
   return {
-    id: 'e2e-test-quote-id',
-    inputToken: {
-      address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-      chainId: 11155111,
-      decimals: 6,
-      symbol: 'USDC',
-      name: 'USD Coin',
-    },
-    outputToken: {
-      address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-      chainId: 84532,
-      decimals: 6,
-      symbol: 'USDC',
-      name: 'USD Coin',
-    },
+    ...mockQuoteResponse,
     inputAmount,
     expectedOutputAmount: output.toString(),
     minOutputAmount: (output - 1000n).toString(),
-    fees: {
-      total: {
-        amount: '1000',
-        amountUsd: '0.001',
-        pct: '500000000000000',
-      },
-    },
     swapTx: {
-      simulationSuccess: true,
-      chainId: 11155111,
-      to: '0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662',
+      ...mockQuoteResponse.swapTx,
       data,
-      gas: '250000',
-      maxFeePerGas: '1000000000',
-      maxPriorityFeePerGas: '1000000000',
     },
-    expectedFillTime: 60,
   };
 }
 
@@ -81,7 +33,7 @@ test.beforeEach(async ({ page, context }) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(MOCK_TOKENS),
+      body: JSON.stringify(mockTokens),
     });
   });
 
@@ -140,7 +92,7 @@ test.describe('Asset Discovery', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(MOCK_TOKENS),
+        body: JSON.stringify(mockTokens),
       });
     });
     await retryButton.click();

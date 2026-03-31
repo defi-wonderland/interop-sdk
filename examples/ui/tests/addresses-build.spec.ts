@@ -11,7 +11,7 @@ test.describe('Build tab - Convert address', () => {
       .fill('0x1234567890AbcdEF1234567890aBcdef12345678');
 
     await page.getByRole('button', { name: 'Chain' }).click();
-    await page.getByText('Ethereum').first().click();
+    await page.getByText('Ethereum').last().click();
     await page.getByRole('button', { name: 'Convert' }).click();
 
     await expect(page.getByRole('heading', { name: 'Interoperable Name Format' })).toBeVisible();

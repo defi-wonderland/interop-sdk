@@ -1,0 +1,33 @@
+{
+  "id": "e2e-test-quote-id",
+  "inputToken": {
+    "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "chainId": 11155111,
+    "decimals": 6,
+    "symbol": "USDC",
+    "name": "USD Coin"
+  },
+  "outputToken": {
+    "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "chainId": 84532,
+    "decimals": 6,
+    "symbol": "USDC",
+    "name": "USD Coin"
+  },
+  "fees": {
+    "total": {
+      "amount": "1000",
+      "amountUsd": "0.001",
+      "pct": "500000000000000"
+    }
+  },
+  "swapTx": {
+    "simulationSuccess": true,
+    "chainId": 11155111,
+    "to": "0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662",
+    "gas": "250000",
+    "maxFeePerGas": "1000000000",
+    "maxPriorityFeePerGas": "1000000000"
+  },
+  "expectedFillTime": 60
+}
