@@ -1,4 +1,5 @@
 import type { AxiosInstance } from "axios";
+import type { Hex } from "viem";
 import { AxiosError } from "axios";
 
 import type {
@@ -8,8 +9,14 @@ import type {
     RelayIntentStatusResponse,
     RelayQuoteRequest,
     RelayQuoteResponse,
+    RelaySubmitPermitRequest,
+    RelaySubmitPermitResponse,
 } from "../schemas.js";
-import { ProviderGetQuoteFailure, ProviderGetStatusFailure } from "../../../internal.js";
+import {
+    ProviderExecuteFailure,
+    ProviderGetQuoteFailure,
+    ProviderGetStatusFailure,
+} from "../../../internal.js";
 import {
     RelayIndexTransactionRequestSchema,
     RelayIndexTransactionResponseSchema,
@@ -17,6 +24,8 @@ import {
     RelayIntentStatusResponseSchema,
     RelayQuoteRequestSchema,
     RelayQuoteResponseSchema,
+    RelaySubmitPermitRequestSchema,
+    RelaySubmitPermitResponseSchema,
 } from "../schemas.js";
 
 /**
@@ -60,6 +69,22 @@ export class RelayApiService {
             return RelayIntentStatusResponseSchema.parse(response.data);
         } catch (error) {
             this.throwProviderError(error, ProviderGetStatusFailure, "Relay intent status");
+        }
+    }
+
+    /** POST /execute/permits — submit a signed permit to Relay. */
+    async submitPermit(
+        params: RelaySubmitPermitRequest,
+        signature: Hex,
+    ): Promise<RelaySubmitPermitResponse> {
+        try {
+            const parsed = RelaySubmitPermitRequestSchema.parse(params);
+            const response = await this.http.post("/execute/permits", parsed, {
+                params: { signature },
+            });
+            return RelaySubmitPermitResponseSchema.parse(response.data);
+        } catch (error) {
+            this.throwProviderError(error, ProviderExecuteFailure, "Relay permit submission");
         }
     }
 

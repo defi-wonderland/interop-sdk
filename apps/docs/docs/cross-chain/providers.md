@@ -12,8 +12,45 @@ This document lists all cross-chain providers supported by the Interop SDK.
 | [Relay Protocol](./relay-provider.md)   | Active | Cross-chain token transfers using Relay bridge            |
 | [OIF](./oif-provider.md)                | Active | Direct integration with OIF-compliant solvers             |
 | [Bungee Protocol](./bungee-provider.md) | Active | Cross-chain transfers via onchain or gasless permit2 flow |
+| LiFi Intents                            | Active | Cross-chain via LiFi intent solver                        |
 
-> Additional protocols are planned for future releases.
+## Provider Configuration
+
+```typescript
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+
+// Across — no required config
+createCrossChainProvider("across");
+createCrossChainProvider("across", { isTestnet: true });
+
+// Relay — no required config
+createCrossChainProvider("relay");
+createCrossChainProvider("relay", { apiKey: "...", isTestnet: true });
+
+// OIF — solverId and url are required
+createCrossChainProvider("oif", { solverId: "my-solver", url: "https://solver.example.com" });
+
+// LiFi Intents — orderServerUrl is required
+createCrossChainProvider("lifi-intents", { orderServerUrl: "https://..." });
+```
+
+| Provider       | Required Config   | Optional Config       |
+| -------------- | ----------------- | --------------------- |
+| `across`       | (none)            | `isTestnet`           |
+| `relay`        | (none)            | `apiKey`, `isTestnet` |
+| `oif`          | `solverId`, `url` | —                     |
+| `lifi-intents` | `orderServerUrl`  | —                     |
+
+## Order Tracking Requirements
+
+Different providers use different tracking mechanisms. Some need RPC URLs, others are fully API-based:
+
+| Provider         | Opened Intent Parser | Fill Watcher | RPC URLs Needed?            |
+| ---------------- | -------------------- | ------------ | --------------------------- |
+| Across (mainnet) | OIF event-based      | API-based    | Origin chain only           |
+| Across (testnet) | OIF event-based      | Event-based  | Origin + destination chains |
+| Relay            | API-based            | API-based    | None                        |
+| OIF              | OIF event-based      | Event-based  | Origin + destination chains |
 
 ## Creating Custom Providers
 

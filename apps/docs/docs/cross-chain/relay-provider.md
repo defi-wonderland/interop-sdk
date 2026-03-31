@@ -8,17 +8,19 @@ The Relay Protocol provider enables cross-chain token transfers using the Relay 
 
 ## Configuration
 
-| Field        | Type    | Required | Description                                   |
-| ------------ | ------- | -------- | --------------------------------------------- |
-| `baseUrl`    | string  | No       | Custom API base URL (overrides isTestnet)     |
-| `isTestnet`  | boolean | No       | Use testnet API (default: false)              |
-| `providerId` | string  | No       | Custom provider identifier (default: "relay") |
-| `apiKey`     | string  | No       | Relay API key for authentication              |
+| Field             | Type     | Required | Description                                                                                                                                                         |
+| ----------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `baseUrl`         | string   | No       | Custom API base URL (overrides isTestnet)                                                                                                                           |
+| `isTestnet`       | boolean  | No       | Use testnet API (default: false)                                                                                                                                    |
+| `providerId`      | string   | No       | Custom provider identifier (default: "relay")                                                                                                                       |
+| `apiKey`          | string   | No       | Relay API key for authentication                                                                                                                                    |
+| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both (default: `["user-transaction"]`). Controls whether quotes request permit-based (gasless) execution |
 
 Notes:
 
 -   `baseUrl` overrides the URL derived from `isTestnet`.
 -   When `apiKey` is provided, it is sent as the `x-api-key` header on all requests.
+-   When `submissionModes` includes `"gasless"`, the API requests permit-based execution. Tokens that support EIP-3009 (e.g. USDC) are fully gasless — the quote returns only a signature step. Other ERC-20 tokens still require a one-time approval transaction alongside the signature step. See [Relay docs](https://docs.relay.link/features/gasless-swaps) for details.
 
 ## Creating the Provider
 
@@ -37,6 +39,8 @@ const relayWithKey = createCrossChainProvider("relay", {
 ```
 
 ## Getting Quotes
+
+By default, the provider fetches quotes for the `"user-transaction"` mode only. To enable gasless execution, configure `submissionModes` to include `"gasless"` — e.g. `["user-transaction", "gasless"]`. When multiple modes are configured, quotes are fetched in parallel and if a mode is not available for the requested route, only the successful mode's quote is returned.
 
 ```typescript
 const quotes = await relayProvider.getQuotes({
@@ -86,6 +90,37 @@ const hash = await walletClient.sendTransaction({
     gas: step.transaction.gas ? BigInt(step.transaction.gas) : undefined,
 });
 console.log("Transaction sent:", hash);
+```
+
+## Permit Flow (Gasless)
+
+When `submissionModes` includes `"gasless"`, the quote requests permit-based execution. Tokens supporting EIP-3009 (e.g. USDC) return only a signature step (fully gasless). Other ERC-20 tokens may still require a one-time approval transaction alongside the signature step. The user signs the EIP-712 typed data payload and submits it to Relay via `submitOrder`:
+
+:::note
+Only EIP-712 signature steps (Permit2, EIP-3009) are currently supported. If the Relay API returns an EIP-191 signature step, a `ProviderGetQuoteFailure` is thrown.
+:::
+
+```typescript
+import { createCrossChainProvider, getSignatureSteps } from "@wonderland/interop-cross-chain";
+
+const relayProvider = createCrossChainProvider("relay", { submissionModes: ["gasless"] });
+
+const quotes = await relayProvider.getQuotes({
+    user: "0xYourAddress",
+    input: { chainId: 1, assetAddress: "0xUSDC", amount: "1000000" },
+    output: { chainId: 10, assetAddress: "0xUSDC" },
+});
+
+const quote = quotes[0];
+
+// The quote contains EIP-712 signature steps
+const step = getSignatureSteps(quote.order)[0];
+const { domain, types, primaryType, message } = step.signaturePayload;
+const signature = await walletClient.signTypedData({ domain, types, primaryType, message });
+
+// Submit the signed permit
+const result = await relayProvider.submitOrder(quote, signature);
+console.log("Order ID:", result.orderId);
 ```
 
 ## Tracking

@@ -2,7 +2,7 @@
 title: Getting Started
 ---
 
-In this tutorial, you'll parse an interoperable address and extract its components. By the end, you'll know how to go from a human-readable name like `vitalik.eth@eip155:1#4CA88C9C` to its raw address and chain ID.
+In this tutorial, you'll parse an interoperable address and extract its components. By the end, you'll know how to go from a human-readable name like `vitalik.eth@eip155:1` to its raw address and chain ID.
 
 ## Install the package
 
@@ -21,7 +21,7 @@ An interoperable name encodes an address, a chain, and a checksum in a single st
 ```typescript
 import { isTextAddress, parseName } from "@wonderland/interop-addresses";
 
-const result = await parseName("vitalik.eth@eip155:1#4CA88C9C");
+const result = await parseName("vitalik.eth@eip155:1");
 
 if (isTextAddress(result.interoperableAddress)) {
     console.log(result.interoperableAddress.address);
@@ -60,10 +60,10 @@ If you only need the address or chain ID, use the convenience functions:
 ```typescript
 import { getAddress, getChainId } from "@wonderland/interop-addresses";
 
-const address = await getAddress("vitalik.eth@eip155:1#4CA88C9C");
+const address = await getAddress("vitalik.eth@eip155:1");
 // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 
-const chainId = await getChainId("vitalik.eth@eip155:1#4CA88C9C");
+const chainId = await getChainId("vitalik.eth@eip155:1");
 // "1"
 ```
 
@@ -105,7 +105,7 @@ graph TD
 import { binaryToName, nameToBinary } from "@wonderland/interop-addresses";
 
 // Name → Binary (async, may resolve ENS)
-const binary = await nameToBinary("vitalik.eth@eip155:1#4CA88C9C", { format: "hex" });
+const binary = await nameToBinary("vitalik.eth@eip155:1", { format: "hex" });
 
 // Binary → Name (sync)
 const name = binaryToName(binary);
@@ -127,6 +127,22 @@ Resolution uses a two-tier strategy:
 2. **Offchain fallback**: Uses chainid.network mappings
 
 Fully-qualified identifiers (e.g., `eip155:10`) always work without any registry lookup.
+
+## Which function should I use?
+
+| I have...                                    | I need...                      | Use                               |
+| -------------------------------------------- | ------------------------------ | --------------------------------- |
+| A name like `vitalik.eth@eip155:1`           | The full parsed result         | `parseName()` (async)             |
+| A name like `vitalik.eth@eip155:1`           | Just the address               | `getAddress()` (async)            |
+| A name like `vitalik.eth@eip155:1`           | Just the chain ID              | `getChainId()` (async)            |
+| A name like `vitalik.eth@eip155:1`           | The binary form for a contract | `nameToBinary()` (async)          |
+| A binary address (`0x0001...`)               | The structured fields          | `decodeAddress()` (sync)          |
+| A binary address (`0x0001...`)               | A human-readable name          | `binaryToName()` (sync)           |
+| Structured fields (chainType, address, etc.) | A binary address               | `encodeAddress()` (sync)          |
+| Structured fields (chainType, address, etc.) | A human-readable name          | `formatName()` (sync)             |
+| Any address string                           | To check if it's valid         | `isValidInteropAddress()` (async) |
+
+**Rule of thumb:** If your input contains ENS names or chain shortnames (like `ethereum` instead of `eip155:1`), use async functions — they resolve names over the network. If you already have structured data or raw binary, sync functions work.
 
 ## Next steps
 

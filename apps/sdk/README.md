@@ -52,11 +52,11 @@ Available scripts that can be run using `pnpm`:
 import { InteropAddressProvider, nameToBinary } from "@wonderland/interop";
 
 // Using the Provider
-const interoperableName = "alice.eth@eip155:1#ABCD1234";
+const interoperableName = "alice.eth@eip155:1";
 const binaryAddress = await InteropAddressProvider.nameToBinary(interoperableName);
 
 // Or just importing the method directly
-const binaryAddress2 = await nameToBinary("alice.eth@eip155:1#ABCD1234");
+const binaryAddress2 = await nameToBinary("alice.eth@eip155:1");
 ```
 
 ### Cross-Chain Operations

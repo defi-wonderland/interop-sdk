@@ -78,7 +78,7 @@ Both formats are interchangeable - convert between them as needed for your use c
 import { encodeAddress, InteropAddressProvider } from "@wonderland/interop-addresses";
 
 // Convert between human-readable (interoperable name) and binary addresses
-const interoperableName = "alice.eth@eip155:1#ABCD1234";
+const interoperableName = "alice.eth@eip155:1";
 const binaryAddress = await InteropAddressProvider.nameToBinary(interoperableName);
 // Returns: "0x0001000000010114d8da6bf26964af9d7eed9e03e53415d37aa96045"
 

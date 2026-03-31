@@ -74,3 +74,6 @@ lcov.info
 
 # ESLint cache
 .eslintcache
+
+.serie/
+.mcp.json
