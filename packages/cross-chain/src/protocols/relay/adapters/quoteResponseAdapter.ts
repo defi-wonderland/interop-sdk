@@ -3,7 +3,8 @@ import { decodeFunctionData, erc20Abi } from "viem";
 import type { OrderChecks } from "../../../core/schemas/order.js";
 import type { Quote } from "../../../core/schemas/quote.js";
 import type { QuoteRequest, Step } from "../../../internal.js";
-import type { RelayQuoteResponse, RelayQuoteStep } from "../schemas.js";
+import type { RelayQuoteResponse, RelayQuoteStep, RelaySignatureStep } from "../schemas.js";
+import { ProviderGetQuoteFailure } from "../../../internal.js";
 import { adaptFees } from "./quoteFeeAdapter.js";
 
 /**
@@ -68,9 +69,7 @@ export function adaptQuote(
     const approveSteps = response.steps.filter((s) => s.id === "approve");
     const nonApproveSteps = response.steps.filter((s) => s.id !== "approve");
 
-    const depositStep = nonApproveSteps.find((s) => s.id === "deposit");
-    const relayRequestId = depositStep?.requestId;
-
+    const relayRequestId = nonApproveSteps.find((s) => s.requestId)?.requestId;
     const allowances = extractAllowances(approveSteps, params.user);
     const fees = adaptFees(response);
 
@@ -108,10 +107,10 @@ export function adaptQuote(
     };
 }
 
-/** Map a single Relay step to SDK Step entries (one per incomplete transaction item). */
+/** Map a single Relay step to SDK Step entries (one per incomplete item). */
 export function adaptRelaySteps(step: RelayQuoteStep): Step[] {
-    if (step.kind !== "transaction") {
-        return [];
+    if (step.kind === "signature") {
+        return adaptSignatureStep(step);
     }
 
     return step.items
@@ -136,4 +135,36 @@ export function adaptRelaySteps(step: RelayQuoteStep): Step[] {
                 }),
             },
         }));
+}
+
+/** Map a Relay signature step to SDK SignatureStep entries (EIP-712 only). */
+function adaptSignatureStep(step: RelaySignatureStep): Step[] {
+    return step.items.flatMap((item) => {
+        if (item.status !== "incomplete") return [];
+
+        const { sign, post } = item.data;
+
+        if (sign.signatureKind !== "eip712") {
+            throw new ProviderGetQuoteFailure(
+                `Unsupported signature kind "${sign.signatureKind}". Only EIP-712 signatures are currently supported.`,
+            );
+        }
+
+        return {
+            kind: "signature" as const,
+            chainId: Number(sign.domain.chainId),
+            description: step.description,
+            signaturePayload: {
+                signatureType: "eip712" as const,
+                domain: sign.domain,
+                primaryType: sign.primaryType,
+                types: sign.types,
+                message: sign.value,
+            },
+            metadata: {
+                relayPostData: post,
+                relayStepId: step.id,
+            },
+        };
+    });
 }

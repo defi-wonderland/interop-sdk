@@ -2,7 +2,11 @@ import { encodeFunctionData, erc20Abi } from "viem";
 import { describe, expect, it } from "vitest";
 
 import type { QuoteRequest } from "../../../../src/core/schemas/quoteRequest.js";
-import type { RelayQuoteResponse } from "../../../../src/protocols/relay/schemas.js";
+import type {
+    RelayQuoteResponse,
+    RelayQuoteStep,
+} from "../../../../src/protocols/relay/schemas.js";
+import { ProviderGetQuoteFailure } from "../../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import {
     adaptQuote,
     adaptRelaySteps,
@@ -275,19 +279,12 @@ describe("adaptRelaySteps", () => {
         });
     });
 
-    it("filters out complete items and signature steps", () => {
+    it("filters out complete items", () => {
         const withComplete = [
             { ...baseStep.items[0]!, status: "complete" as const },
             { ...baseStep.items[0]!, status: "incomplete" as const },
         ];
         expect(adaptRelaySteps({ ...baseStep, items: withComplete })).toHaveLength(1);
-
-        const sigStep = {
-            ...baseStep,
-            kind: "signature" as const,
-            items: [{ status: "incomplete" as const, data: {} }],
-        };
-        expect(adaptRelaySteps(sigStep)).toHaveLength(0);
     });
 
     it("includes gas params when present and omits when '0'", () => {
@@ -314,5 +311,192 @@ describe("adaptRelaySteps", () => {
         if (zeroSteps[0]!.kind === "transaction") {
             expect(zeroSteps[0]!.transaction.gas).toBeUndefined();
         }
+    });
+});
+
+// ── Signature Step Tests ────────────────────────────────
+
+const EIP712_DOMAIN = {
+    name: "Permit2",
+    chainId: ORIGIN_CHAIN_ID,
+    verifyingContract: VALID_ADDRESS,
+};
+
+const EIP712_TYPES = {
+    PermitBatch: [
+        { name: "details", type: "PermitDetails[]" },
+        { name: "spender", type: "address" },
+    ],
+};
+
+const EIP712_VALUE = {
+    spender: VALID_ADDRESS,
+    sigDeadline: "1700000000",
+};
+
+const POST_DATA = {
+    endpoint: "/execute/permits",
+    method: "POST",
+    body: { kind: "eip712", requestId: REQUEST_ID },
+};
+
+function makeSignatureStep(overrides?: Partial<RelayQuoteStep>): RelayQuoteStep {
+    return {
+        id: "authorize1",
+        action: "Authorize permit",
+        description: "Sign permit to authorize",
+        kind: "signature",
+        requestId: REQUEST_ID,
+        items: [
+            {
+                status: "incomplete",
+                data: {
+                    sign: {
+                        signatureKind: "eip712",
+                        domain: EIP712_DOMAIN,
+                        types: EIP712_TYPES,
+                        value: EIP712_VALUE,
+                        primaryType: "PermitBatch",
+                    },
+                    post: POST_DATA,
+                },
+            },
+        ],
+        ...overrides,
+    } as RelayQuoteStep;
+}
+
+describe("adaptRelaySteps — signature steps", () => {
+    it("maps EIP-712 signature step to SDK SignatureStep", () => {
+        const steps = adaptRelaySteps(makeSignatureStep());
+        expect(steps).toHaveLength(1);
+        expect(steps[0]!.kind).toBe("signature");
+
+        if (steps[0]!.kind === "signature") {
+            expect(steps[0]!.chainId).toBe(ORIGIN_CHAIN_ID);
+            expect(steps[0]!.description).toBe("Sign permit to authorize");
+            expect(steps[0]!.signaturePayload.signatureType).toBe("eip712");
+            expect(steps[0]!.signaturePayload.domain).toEqual(EIP712_DOMAIN);
+            expect(steps[0]!.signaturePayload.primaryType).toBe("PermitBatch");
+            expect(steps[0]!.signaturePayload.types).toEqual(EIP712_TYPES);
+            expect(steps[0]!.signaturePayload.message).toEqual(EIP712_VALUE);
+        }
+    });
+
+    it("throws ProviderGetQuoteFailure for unsupported EIP-191 signature items", () => {
+        const eip191Step = makeSignatureStep({
+            items: [
+                {
+                    status: "incomplete",
+                    data: {
+                        sign: { signatureKind: "eip191", message: "Sign this" },
+                        post: POST_DATA,
+                    },
+                },
+            ],
+        } as Partial<RelayQuoteStep>);
+        expect(() => adaptRelaySteps(eip191Step)).toThrow(ProviderGetQuoteFailure);
+    });
+
+    it("stores post data and step id in metadata", () => {
+        const steps = adaptRelaySteps(makeSignatureStep());
+        expect(steps[0]!.metadata).toEqual({
+            relayPostData: POST_DATA,
+            relayStepId: "authorize1",
+        });
+    });
+
+    it("filters out complete signature items", () => {
+        const step = makeSignatureStep({
+            items: [
+                {
+                    status: "complete",
+                    data: {
+                        sign: {
+                            signatureKind: "eip712",
+                            domain: EIP712_DOMAIN,
+                            types: EIP712_TYPES,
+                            value: EIP712_VALUE,
+                            primaryType: "PermitBatch",
+                        },
+                        post: POST_DATA,
+                    },
+                },
+            ],
+        } as Partial<RelayQuoteStep>);
+        expect(adaptRelaySteps(step)).toHaveLength(0);
+    });
+});
+
+// ── API Step Pattern Tests ──────────────────────────────
+// Relay returns 4 step patterns depending on token type and usePermit:
+//   Pattern 1: [deposit]                    — native ETH
+//   Pattern 2: [approve, deposit]           — ERC-20, no permit
+//   Pattern 3: [authorize1]                 — ERC-20, permit + token supports EIP-2612
+//   Pattern 4: [approve, authorize1]        — ERC-20, permit + token lacks EIP-2612
+
+describe("adaptQuote — deposit only (native ETH)", () => {
+    it("maps single deposit step to one transaction", () => {
+        const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
+
+        expect(quote.order.steps).toHaveLength(1);
+        expect(quote.order.steps[0]!.kind).toBe("transaction");
+        expect(quote.order.checks).toBeUndefined();
+    });
+});
+
+describe("adaptQuote — signature only (permit, EIP-2612 token)", () => {
+    it("maps single signature step to one signature", () => {
+        const response = makeRelayQuoteResponse({
+            steps: [makeSignatureStep()],
+        } as Partial<RelayQuoteResponse>);
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+
+        expect(quote.order.steps).toHaveLength(1);
+        expect(quote.order.steps[0]!.kind).toBe("signature");
+        expect(quote.order.checks).toBeUndefined();
+    });
+
+    it("extracts tracking.orderId from signature step requestId", () => {
+        const response = makeRelayQuoteResponse({
+            steps: [makeSignatureStep({ requestId: "0xsig-req-456" })],
+        } as Partial<RelayQuoteResponse>);
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+        expect(quote.tracking).toEqual({ orderId: "0xsig-req-456" });
+    });
+});
+
+describe("adaptQuote — approve + signature (permit, non-EIP-2612 token)", () => {
+    it("maps signature step and extracts approve as allowance check", () => {
+        const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, 1000000n);
+        const response = makeRelayQuoteResponse({
+            steps: [
+                {
+                    id: "approve",
+                    action: "Approve token",
+                    description: "Approve USDC",
+                    kind: "transaction",
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                to: TOKEN_ADDRESS,
+                                data: approveCalldata,
+                                chainId: ORIGIN_CHAIN_ID,
+                            },
+                        },
+                    ],
+                },
+                makeSignatureStep(),
+            ],
+        } as Partial<RelayQuoteResponse>);
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+
+        expect(quote.order.steps).toHaveLength(1);
+        expect(quote.order.steps[0]!.kind).toBe("signature");
+        expect(quote.order.checks?.allowances).toHaveLength(1);
     });
 });

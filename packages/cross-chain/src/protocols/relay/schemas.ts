@@ -141,9 +141,50 @@ const RelayTransactionStepItemSchema = RelayStepItemBaseSchema.extend({
     data: RelayStepItemDataSchema,
 });
 
+/** Schema for EIP-712 sign data in a signature step. */
+const RelaySignDataEip712Schema = z.object({
+    signatureKind: z.literal("eip712"),
+    domain: z.record(z.unknown()),
+    types: z.record(z.array(z.object({ name: z.string(), type: z.string() }))),
+    value: z.record(z.unknown()),
+    primaryType: z.string(),
+});
+
+/** Schema for EIP-191 sign data in a signature step. */
+const RelaySignDataEip191Schema = z.object({
+    signatureKind: z.literal("eip191"),
+    message: z.string(),
+});
+
+/** Schema for sign data in a signature step (discriminated union on signatureKind). */
+const RelaySignDataSchema = z.discriminatedUnion("signatureKind", [
+    RelaySignDataEip712Schema,
+    RelaySignDataEip191Schema,
+]);
+
+/** Schema for the body inside a signature step's post data (from the quote response). */
+const RelayPostBodySchema = z.object({
+    kind: z.string(),
+    requestId: z.string().optional(),
+    api: z.string().optional(),
+});
+
+/** Schema for the post endpoint info in a signature step. */
+const RelayPostDataSchema = z.object({
+    endpoint: z.string(),
+    method: z.string(),
+    body: RelayPostBodySchema,
+});
+
+/** Schema for the data object inside a signature step item. */
+const RelaySignatureItemDataSchema = z.object({
+    sign: RelaySignDataSchema,
+    post: RelayPostDataSchema,
+});
+
 /** Schema for a signature step item in a Relay quote response. */
 const RelaySignatureStepItemSchema = RelayStepItemBaseSchema.extend({
-    data: z.record(z.unknown()),
+    data: RelaySignatureItemDataSchema,
 });
 
 /** Schema for a transaction step in a Relay quote response. */
@@ -346,6 +387,21 @@ export const RelayIndexTransactionResponseSchema = z.object({
     message: z.string(),
 });
 
+// ── Relay Execute Permits ────────────────────────────────
+
+/** Schema for the Relay POST `/execute/permits` request body. */
+export const RelaySubmitPermitRequestSchema = z.object({
+    kind: z.string(),
+    requestId: z.string(),
+    api: z.enum(["bridge", "swap", "user-swap"]).optional(),
+});
+
+/** Schema for the Relay POST `/execute/permits` response body. */
+export const RelaySubmitPermitResponseSchema = z.object({
+    message: z.string(),
+    steps: z.array(RelayQuoteStepSchema).optional(),
+});
+
 // ── Types ───────────────────────────────────────────────
 
 /** Request body for the Relay POST `/quote/v2` endpoint. */
@@ -383,6 +439,30 @@ export type RelayRateLimitedResponse = z.infer<typeof RelayRateLimitedResponseSc
 
 /** Relay 500 Server Error response. */
 export type RelayServerErrorResponse = z.infer<typeof RelayServerErrorResponseSchema>;
+
+/** Request body for the Relay POST `/execute/permits` endpoint. */
+export type RelaySubmitPermitRequest = z.infer<typeof RelaySubmitPermitRequestSchema>;
+
+/** Response from the Relay POST `/execute/permits` endpoint. */
+export type RelaySubmitPermitResponse = z.infer<typeof RelaySubmitPermitResponseSchema>;
+
+/** Sign data in a Relay signature step item. */
+export type RelaySignData = z.infer<typeof RelaySignDataSchema>;
+
+/** Post data in a Relay signature step item. */
+export type RelayPostData = z.infer<typeof RelayPostDataSchema>;
+
+/** Data object inside a Relay signature step item. */
+export type RelaySignatureItemData = z.infer<typeof RelaySignatureItemDataSchema>;
+
+/** A signature step in a Relay quote response. */
+export type RelaySignatureStep = z.infer<typeof RelaySignatureStepSchema>;
+
+/** Schema for the metadata stored on SDK signature steps created from Relay quote responses. */
+export const RelaySignatureStepMetadataSchema = z.object({
+    relayPostData: RelayPostDataSchema,
+    relayStepId: z.string(),
+});
 
 // ── Relay Chains (Discovery) ────────────────────────────
 

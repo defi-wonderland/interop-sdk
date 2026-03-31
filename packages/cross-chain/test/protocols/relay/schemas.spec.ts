@@ -12,6 +12,8 @@ import {
     RelayQuoteResponseSchema,
     RelayRateLimitedResponseSchema,
     RelayServerErrorResponseSchema,
+    RelaySubmitPermitRequestSchema,
+    RelaySubmitPermitResponseSchema,
     RelayUnauthorizedResponseSchema,
 } from "../../../src/protocols/relay/schemas.js";
 
@@ -400,7 +402,30 @@ describe("RelayQuoteResponseSchema", () => {
 
     it("accepts a step with kind 'signature'", () => {
         const response = buildQuoteResponse({
-            steps: [buildStep({ kind: "signature" })],
+            steps: [
+                buildStep({
+                    kind: "signature",
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                sign: {
+                                    signatureKind: "eip712",
+                                    domain: { name: "Permit2", chainId: ORIGIN_CHAIN_ID },
+                                    types: {},
+                                    value: {},
+                                    primaryType: "PermitBatch",
+                                },
+                                post: {
+                                    endpoint: "/execute/permits",
+                                    method: "POST",
+                                    body: { kind: "eip712" },
+                                },
+                            },
+                        },
+                    ],
+                }),
+            ],
         });
         const result = RelayQuoteResponseSchema.parse(response);
         expect(result.steps[0]!.kind).toBe("signature");
@@ -512,6 +537,199 @@ describe("RelayServerErrorResponseSchema", () => {
             requestId: REQUEST_ID,
         });
         expect(result.requestId).toBe(REQUEST_ID);
+    });
+});
+
+// ── Signature Step Data Tests ────────────────────────────
+
+describe("RelayQuoteResponseSchema — signature steps", () => {
+    function buildSignatureStepItem(overrides?: Record<string, unknown>): Record<string, unknown> {
+        return {
+            status: "incomplete",
+            data: {
+                sign: {
+                    signatureKind: "eip712",
+                    domain: {
+                        name: "Permit2",
+                        chainId: ORIGIN_CHAIN_ID,
+                        verifyingContract: VALID_ADDRESS,
+                    },
+                    types: {
+                        PermitBatch: [
+                            { name: "details", type: "PermitDetails[]" },
+                            { name: "spender", type: "address" },
+                        ],
+                    },
+                    value: { spender: VALID_ADDRESS, sigDeadline: "1700000000" },
+                    primaryType: "PermitBatch",
+                },
+                post: {
+                    endpoint: "/execute/permits",
+                    method: "POST",
+                    body: { kind: "eip712", requestId: REQUEST_ID },
+                },
+            },
+            ...overrides,
+        };
+    }
+
+    it("accepts a signature step with EIP-712 sign data", () => {
+        const response = buildQuoteResponse({
+            steps: [
+                buildStep({
+                    id: "authorize1",
+                    kind: "signature",
+                    items: [buildSignatureStepItem()],
+                }),
+            ],
+        });
+        const result = RelayQuoteResponseSchema.parse(response);
+        expect(result.steps[0]!.kind).toBe("signature");
+    });
+
+    it("accepts a signature step with EIP-191 sign data", () => {
+        const response = buildQuoteResponse({
+            steps: [
+                buildStep({
+                    id: "authorize1",
+                    kind: "signature",
+                    items: [
+                        buildSignatureStepItem({
+                            data: {
+                                sign: { signatureKind: "eip191", message: "Sign this message" },
+                                post: {
+                                    endpoint: "/execute/permits",
+                                    method: "POST",
+                                    body: { kind: "eip191" },
+                                },
+                            },
+                        }),
+                    ],
+                }),
+            ],
+        });
+        const result = RelayQuoteResponseSchema.parse(response);
+        expect(result.steps[0]!.kind).toBe("signature");
+    });
+
+    it("rejects a signature step with invalid signatureKind", () => {
+        expect(() =>
+            RelayQuoteResponseSchema.parse(
+                buildQuoteResponse({
+                    steps: [
+                        buildStep({
+                            id: "authorize1",
+                            kind: "signature",
+                            items: [
+                                buildSignatureStepItem({
+                                    data: {
+                                        sign: { signatureKind: "invalid" },
+                                        post: {
+                                            endpoint: "/execute/permits",
+                                            method: "POST",
+                                            body: { kind: "invalid" },
+                                        },
+                                    },
+                                }),
+                            ],
+                        }),
+                    ],
+                }),
+            ),
+        ).toThrow(ZodError);
+    });
+
+    it("rejects a signature step item missing post data", () => {
+        expect(() =>
+            RelayQuoteResponseSchema.parse(
+                buildQuoteResponse({
+                    steps: [
+                        buildStep({
+                            id: "authorize1",
+                            kind: "signature",
+                            items: [
+                                buildSignatureStepItem({
+                                    data: {
+                                        sign: {
+                                            signatureKind: "eip712",
+                                            domain: {},
+                                            types: {},
+                                            value: {},
+                                            primaryType: "Test",
+                                        },
+                                    },
+                                }),
+                            ],
+                        }),
+                    ],
+                }),
+            ),
+        ).toThrow(ZodError);
+    });
+});
+
+// ── Submit Permit Tests ─────────────────────────────────
+
+describe("RelaySubmitPermitRequestSchema", () => {
+    it("accepts a valid permit request with all fields", () => {
+        const result = RelaySubmitPermitRequestSchema.parse({
+            kind: "eip712",
+            requestId: REQUEST_ID,
+            api: "bridge",
+        });
+        expect(result.kind).toBe("eip712");
+        expect(result.requestId).toBe(REQUEST_ID);
+        expect(result.api).toBe("bridge");
+    });
+
+    it("accepts a permit request without optional api", () => {
+        const result = RelaySubmitPermitRequestSchema.parse({
+            kind: "eip712",
+            requestId: REQUEST_ID,
+        });
+        expect(result.kind).toBe("eip712");
+        expect(result.requestId).toBe(REQUEST_ID);
+        expect(result.api).toBeUndefined();
+    });
+
+    it("rejects a permit request missing requestId", () => {
+        expect(() => RelaySubmitPermitRequestSchema.parse({ kind: "eip712" })).toThrow(ZodError);
+    });
+
+    it("rejects a permit request with invalid api value", () => {
+        expect(() =>
+            RelaySubmitPermitRequestSchema.parse({
+                kind: "eip712",
+                requestId: REQUEST_ID,
+                api: "invalid",
+            }),
+        ).toThrow(ZodError);
+    });
+
+    it("rejects a permit request missing kind", () => {
+        expect(() => RelaySubmitPermitRequestSchema.parse({ requestId: REQUEST_ID })).toThrow(
+            ZodError,
+        );
+    });
+});
+
+describe("RelaySubmitPermitResponseSchema", () => {
+    it("accepts a response with message only", () => {
+        const result = RelaySubmitPermitResponseSchema.parse({ message: "Permit submitted" });
+        expect(result.message).toBe("Permit submitted");
+        expect(result.steps).toBeUndefined();
+    });
+
+    it("accepts a response with message and steps", () => {
+        const result = RelaySubmitPermitResponseSchema.parse({
+            message: "Permit submitted",
+            steps: [buildStep()],
+        });
+        expect(result.steps).toHaveLength(1);
+    });
+
+    it("rejects a response without message", () => {
+        expect(() => RelaySubmitPermitResponseSchema.parse({})).toThrow(ZodError);
     });
 });
 
