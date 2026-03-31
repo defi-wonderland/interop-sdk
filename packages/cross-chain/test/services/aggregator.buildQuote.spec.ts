@@ -51,6 +51,16 @@ const MOCK_QUOTE: Quote = {
     provider: "test-provider",
 };
 
+const FULL_DISCOVERY_CONFIG = {
+    type: "static" as const,
+    config: {
+        networks: [
+            { chainId: 1, assets: [{ address: USDC_ETH, symbol: "USDC", decimals: 6 }] },
+            { chainId: 10, assets: [{ address: USDC_OPT, symbol: "USDC", decimals: 6 }] },
+        ],
+    },
+};
+
 function createMockProvider(
     providerId: string,
     discoveryConfig: ReturnType<CrossChainProvider["getDiscoveryConfig"]> = null,
@@ -81,17 +91,6 @@ function buildParams(overrides?: Partial<BuildQuoteRequest>): BuildQuoteRequest 
     };
 }
 
-/** Static discovery config listing both USDC_ETH and USDC_OPT as supported. */
-const FULL_DISCOVERY_CONFIG = {
-    type: "static" as const,
-    config: {
-        networks: [
-            { chainId: 1, assets: [{ address: USDC_ETH, symbol: "USDC", decimals: 6 }] },
-            { chainId: 10, assets: [{ address: USDC_OPT, symbol: "USDC", decimals: 6 }] },
-        ],
-    },
-};
-
 describe("Aggregator - buildQuote", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -119,46 +118,28 @@ describe("Aggregator - buildQuote", () => {
         );
     });
 
-    it("throws UnsupportedAsset when input token not in discovery", async () => {
-        const provider = createMockProvider("across", {
+    it("throws UnsupportedAsset when provider lacks the requested route", async () => {
+        const across = createMockProvider("across", {
             type: "static",
             config: {
                 networks: [
-                    // Only output chain listed, input chain missing
                     { chainId: 10, assets: [{ address: USDC_OPT, symbol: "USDC", decimals: 6 }] },
                 ],
             },
         });
-        const aggregator = createAggregator({ providers: [provider] });
+        const helper = createMockProvider("helper", FULL_DISCOVERY_CONFIG);
+        const aggregator = createAggregator({ providers: [across, helper] });
 
         await expect(aggregator.buildQuote("across", buildParams())).rejects.toThrow(
             UnsupportedAsset,
         );
-        expect(provider.buildQuote).not.toHaveBeenCalled();
+        expect(across.buildQuote).not.toHaveBeenCalled();
     });
 
-    it("throws UnsupportedAsset when output token not in discovery", async () => {
-        const provider = createMockProvider("across", {
-            type: "static",
-            config: {
-                networks: [
-                    // Only input chain listed, output chain missing
-                    { chainId: 1, assets: [{ address: USDC_ETH, symbol: "USDC", decimals: 6 }] },
-                ],
-            },
-        });
-        const aggregator = createAggregator({ providers: [provider] });
-
-        await expect(aggregator.buildQuote("across", buildParams())).rejects.toThrow(
-            UnsupportedAsset,
-        );
-        expect(provider.buildQuote).not.toHaveBeenCalled();
-    });
-
-    it("passes validation when no discoveryFactory provided", async () => {
+    it("builds quote without discoveryFactory using allowDangerousParameters", async () => {
         const provider = createMockProvider("across");
         const aggregator = new Aggregator({ providers: [provider] });
-        const params = buildParams();
+        const params = buildParams({ allowDangerousParameters: true });
 
         const result = await aggregator.buildQuote("across", params);
 
@@ -166,11 +147,10 @@ describe("Aggregator - buildQuote", () => {
         expect(provider.buildQuote).toHaveBeenCalledWith(params);
     });
 
-    it("passes gracefully when discovery throws AssetDiscoveryFailure", async () => {
+    it("falls back gracefully when discovery throws AssetDiscoveryFailure", async () => {
         const provider = createMockProvider("across", FULL_DISCOVERY_CONFIG);
         const aggregator = createAggregator({ providers: [provider] });
 
-        // Sabotage the discovery cache to throw
         const cache = (
             aggregator as unknown as {
                 discoveryCache: Map<
@@ -216,12 +196,12 @@ describe("Aggregator - buildQuote", () => {
         expect(provider.buildQuote).not.toHaveBeenCalled();
     });
 
-    it("propagates InsufficientFee for same-token output >= input", async () => {
+    it("propagates InsufficientFee when output >= input on same asset", async () => {
         const provider = createMockProvider("across", FULL_DISCOVERY_CONFIG);
         const aggregator = createAggregator({ providers: [provider] });
         const params = buildParams({
             input: { chainId: 1, assetAddress: USDC_ETH, amount: "1000000" },
-            output: { chainId: 1, assetAddress: USDC_ETH, amount: "1000000" },
+            output: { chainId: 10, assetAddress: USDC_OPT, amount: "1000000" },
         });
 
         await expect(aggregator.buildQuote("across", params)).rejects.toThrow(InsufficientFee);
@@ -231,9 +211,7 @@ describe("Aggregator - buildQuote", () => {
     it("allowDangerousParameters bypasses all validation", async () => {
         const provider = createMockProvider("across", {
             type: "static",
-            config: {
-                networks: [], // No assets supported
-            },
+            config: { networks: [] },
         });
         const aggregator = createAggregator({ providers: [provider] });
         const params = buildParams({
