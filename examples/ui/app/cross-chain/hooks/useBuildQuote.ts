@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { zeroAddress } from 'viem';
 import { useCrossChainStore } from '../stores/crossChainStore';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
 import { useTokenConfig } from './useNetworkConfig';
@@ -16,6 +17,7 @@ export interface BuildQuoteParams {
   inputAmount: string;
   outputAmount: string;
   fillDeadlineSecs?: number;
+  providerId: string;
 }
 
 export enum BuildQuoteStatus {
@@ -79,13 +81,14 @@ export function useBuildQuote(): UseBuildQuoteReturn {
           amount: outputAmountSmallest,
           recipient: params.recipient,
         },
-        // Across provider resolves the SpokePool from its internal mapping;
-        // zero address ensures unsupported chains fail instead of depositing to the user's EOA.
-        escrowContractAddress: '0x0000000000000000000000000000000000000000',
+        // Each provider resolves the contract address from its own mapping.
+        // Zero address is a placeholder that gets overridden; if the provider
+        // can't resolve it, the SDK validator will reject the request.
+        escrowContractAddress: zeroAddress,
         fillDeadline,
       };
 
-      const result = await executor.buildQuote('across', request);
+      const result = await executor.buildQuote(params.providerId, request);
       if (requestIdRef.current !== currentRequestId) return;
       setQuote(result);
       setStatus(BuildQuoteStatus.SUCCESS);
