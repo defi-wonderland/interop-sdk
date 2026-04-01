@@ -125,24 +125,20 @@ describe("LifiIntentsProvider Integration Tests", () => {
             const fillTxHash = "0x" + "cd".repeat(32);
 
             const statusResponse = {
-                data: [
-                    {
-                        meta: {
-                            submitTime: 1700000000,
-                            orderStatus: "Settled",
-                            orderIdentifier: "order_123",
-                            onChainOrderId: orderId,
-                            signedAt: "2025-01-15T10:00:00Z",
-                            deliveredAt: "2025-01-15T10:01:00Z",
-                            settledAt: "2025-01-15T10:02:00Z",
-                            expiredAt: null,
-                            orderInitiatedTxHash: "0x" + "11".repeat(32),
-                            orderDeliveredTxHash: fillTxHash,
-                            orderVerifiedTxHash: "0x" + "33".repeat(32),
-                            orderSettledTxHash: "0x" + "44".repeat(32),
-                        },
-                    },
-                ],
+                meta: {
+                    submitTime: 1700000000,
+                    orderStatus: "Settled",
+                    orderIdentifier: "order_123",
+                    onChainOrderId: orderId,
+                    signedAt: "2025-01-15T10:00:00Z",
+                    deliveredAt: "2025-01-15T10:01:00Z",
+                    settledAt: "2025-01-15T10:02:00Z",
+                    expiredAt: null,
+                    orderInitiatedTxHash: "0x" + "11".repeat(32),
+                    orderDeliveredTxHash: fillTxHash,
+                    orderVerifiedTxHash: "0x" + "33".repeat(32),
+                    orderSettledTxHash: "0x" + "44".repeat(32),
+                },
             };
 
             const result = config.extractFillEvent(statusResponse, {

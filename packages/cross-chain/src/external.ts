@@ -5,6 +5,10 @@ export * from "./core/sorting_strategies/index.js";
 export * from "./core/constants/chains.js";
 export * from "./core/constants/tokens.js";
 export { PERMIT2_TYPES, EIP3009_TYPES } from "./protocols/oif/constants.js";
+export {
+    LIFI_INTENTS_ORDER_SERVER_URL,
+    LIFI_INTENTS_ORDER_SERVER_DEV_URL,
+} from "./protocols/lifi-intents/constants.js";
 
 export {
     // Protocol registry

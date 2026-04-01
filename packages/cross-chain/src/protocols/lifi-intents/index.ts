@@ -1,10 +1,5 @@
 export * from "./provider.js";
 export * from "./LifiIntentsProvider.interface.js";
-export {
-    adaptQuoteRequest as adaptLifiIntentsQuoteRequest,
-    adaptQuoteResponse as adaptLifiIntentsQuoteResponse,
-    adaptOrderStatus as adaptLifiIntentsOrderStatus,
-} from "./adapters/index.js";
 export * from "./services/index.js";
 export {
     LifiIntentsProviderConfigSchema,

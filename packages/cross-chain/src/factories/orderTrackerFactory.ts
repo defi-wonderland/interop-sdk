@@ -6,6 +6,7 @@ import {
     EventBasedFillWatcher,
     FillWatcher,
     FillWatcherConfig,
+    LifiOpenedIntentParser,
     OIFOpenedIntentParser,
     OpenedIntentParser,
     OrderTracker,
@@ -89,6 +90,9 @@ export class OrderTrackerFactory {
         switch (config.type) {
             case "oif":
                 return new OIFOpenedIntentParser({ clientManager: this.clientManager });
+
+            case "lifi":
+                return new LifiOpenedIntentParser({ clientManager: this.clientManager });
 
             case "custom-event":
                 return new CustomEventOpenedIntentParser(config.config, {

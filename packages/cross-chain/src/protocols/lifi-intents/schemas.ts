@@ -121,26 +121,25 @@ export type LifiIntentsQuoteResponse = z.infer<typeof LifiIntentsQuoteResponseSc
 
 // ── Order Status (LI.FI → SDK) ─────────────────────────
 
+const LifiIntentsOrderStatusMetaSchema = z.object({
+    submitTime: z.number().optional(),
+    orderStatus: z.string(),
+    orderIdentifier: z.string().optional(),
+    onChainOrderId: z.string().optional(),
+    signedAt: z.string().nullable().optional(),
+    deliveredAt: z.string().nullable().optional(),
+    settledAt: z.string().nullable().optional(),
+    expiredAt: z.string().nullable().optional(),
+    orderInitiatedTxHash: z.string().nullable().optional(),
+    orderDeliveredTxHash: z.string().nullable().optional(),
+    orderVerifiedTxHash: z.string().nullable().optional(),
+    orderSettledTxHash: z.string().nullable().optional(),
+});
+
+/** Single-order response from /orders/status?onChainOrderId=... */
 export const LifiIntentsOrderStatusResponseSchema = z.object({
-    data: z.array(
-        z.object({
-            order: z.record(z.unknown()).optional(),
-            meta: z.object({
-                submitTime: z.number().optional(),
-                orderStatus: z.string(),
-                orderIdentifier: z.string().optional(),
-                onChainOrderId: z.string().optional(),
-                signedAt: z.string().nullable().optional(),
-                deliveredAt: z.string().nullable().optional(),
-                settledAt: z.string().nullable().optional(),
-                expiredAt: z.string().nullable().optional(),
-                orderInitiatedTxHash: z.string().nullable().optional(),
-                orderDeliveredTxHash: z.string().nullable().optional(),
-                orderVerifiedTxHash: z.string().nullable().optional(),
-                orderSettledTxHash: z.string().nullable().optional(),
-            }),
-        }),
-    ),
+    order: z.record(z.unknown()).optional(),
+    meta: LifiIntentsOrderStatusMetaSchema,
 });
 
 export type LifiIntentsOrderStatusResponse = z.infer<typeof LifiIntentsOrderStatusResponseSchema>;

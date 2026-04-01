@@ -3,6 +3,8 @@ import {
   createCrossChainProvider,
   createAggregator,
   OrderTrackerFactory,
+  LIFI_INTENTS_ORDER_SERVER_URL,
+  LIFI_INTENTS_ORDER_SERVER_DEV_URL,
   type Aggregator,
   type CrossChainProvider,
 } from '@wonderland/interop-cross-chain';
@@ -26,11 +28,16 @@ const PROVIDER_CONFIGS = [
     providerId: 'relay',
     displayName: 'Relay',
   },
+  {
+    providerId: 'lifi-intents',
+    displayName: 'LI.FI',
+  },
 ];
 
 export function buildExecutor(isTestnet: boolean): Aggregator {
   const rpcUrls = isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
   const oifSolverId = isTestnet ? 'testnet-solver' : 'mainnet-solver';
+  const lifiUrl = isTestnet ? LIFI_INTENTS_ORDER_SERVER_DEV_URL : LIFI_INTENTS_ORDER_SERVER_URL;
 
   const providers: CrossChainProvider[] = [
     createCrossChainProvider(PROTOCOLS.ACROSS, {
@@ -45,6 +52,10 @@ export function buildExecutor(isTestnet: boolean): Aggregator {
     createCrossChainProvider(PROTOCOLS.RELAY, {
       isTestnet,
       providerId: 'relay',
+    }),
+    createCrossChainProvider(PROTOCOLS.LIFI_INTENTS, {
+      orderServerUrl: lifiUrl,
+      providerId: 'lifi-intents',
     }),
   ];
 
