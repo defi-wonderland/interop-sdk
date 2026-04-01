@@ -83,9 +83,12 @@ export class LifiIntentsProvider extends CrossChainProvider {
                 .map((q) => adaptQuoteResponse(q, this.providerId));
         } catch (error) {
             if (error instanceof ProviderGetQuoteFailure) throw error;
-            // 4xx = route not supported or bad request, not a real error
-            if (error instanceof AxiosError && error.response && error.response.status < 500) {
-                return [];
+            if (error instanceof AxiosError && error.response) {
+                const status = error.response.status;
+                // 400/404/422 = unsupported route or bad request, not a real error
+                if (status === 400 || status === 404 || status === 422) {
+                    return [];
+                }
             }
             if (error instanceof AxiosError) {
                 throw new ProviderGetQuoteFailure(
