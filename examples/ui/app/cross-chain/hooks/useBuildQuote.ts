@@ -81,9 +81,7 @@ export function useBuildQuote(): UseBuildQuoteReturn {
           amount: outputAmountSmallest,
           recipient: params.recipient,
         },
-        // Each provider resolves the contract address from its own mapping.
-        // Zero address is a placeholder that gets overridden; if the provider
-        // can't resolve it, the SDK validator will reject the request.
+        // Providers resolve the escrow/settler contract from their own internal mappings.
         escrowContractAddress: zeroAddress,
         fillDeadline,
       };
