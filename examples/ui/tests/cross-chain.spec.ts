@@ -236,8 +236,7 @@ test.describe('Address menu', () => {
   });
 });
 
-// TODO: re-enable when buildQuote tab is restored (EFI-856)
-test.describe.skip('Build quote fee display', () => {
+test.describe('Build quote fee display', () => {
   test('shows fee percentage for same-token with output < input', async ({ page }) => {
     await page.getByRole('button', { name: 'Build Quote' }).click();
 
@@ -277,8 +276,7 @@ test.describe.skip('Build quote fee display', () => {
   });
 });
 
-// TODO: re-enable when buildQuote tab is restored (EFI-856)
-test.describe.skip('Build Quote submit validation', () => {
+test.describe('Build Quote submit validation', () => {
   test('should disable submit when "You receive" is empty', async ({ page }) => {
     await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15000 });
 

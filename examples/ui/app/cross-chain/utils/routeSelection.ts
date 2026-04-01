@@ -1,4 +1,5 @@
 import { findTokenCaseInsensitive, type RouteParams } from './routeParams';
+import type { SwapFormMode } from '../stores/crossChainStore';
 import type { UITokenInfo } from '../types/assets';
 
 /** Tokens shown in the demo app. Anything outside this list is hidden regardless of provider. */
@@ -22,6 +23,7 @@ export type TokenInfoByChain = Record<number, Record<string, UITokenInfo>>;
 export interface RouteConfig {
   byChain: TokensByChain;
   tokenInfo: TokenInfoByChain;
+  mode: SwapFormMode;
 }
 
 function isWhitelisted(token: UITokenInfo): boolean {
@@ -74,7 +76,7 @@ function resolveInitialOutputChain(
 }
 
 export function createRouteSelector(config: RouteConfig) {
-  const { byChain, tokenInfo } = config;
+  const { byChain, tokenInfo, mode } = config;
 
   function inputTokensFor(chainId: number): string[] {
     const addresses = byChain[chainId] ?? [];
@@ -86,7 +88,13 @@ export function createRouteSelector(config: RouteConfig) {
     const inputMeta = tokenInfo[inputChainId]?.[inputToken];
     const addresses = byChain[outputChainId] ?? [];
     const meta = tokenInfo[outputChainId] ?? {};
-    return compatibleTokens(addresses, meta, inputMeta?.providers ?? []);
+    const tokens = compatibleTokens(addresses, meta, inputMeta?.providers ?? []);
+
+    if (mode === 'buildQuote' && inputMeta?.symbol) {
+      return tokens.filter((addr) => meta[addr]?.symbol === inputMeta.symbol);
+    }
+
+    return tokens;
   }
 
   function bestOutputToken(
