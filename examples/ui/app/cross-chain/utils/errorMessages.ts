@@ -133,6 +133,20 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; result: ParsedError }> = [
     },
   },
   {
+    pattern: /SameChainIntentNotAllowed|same-chain intents/i,
+    result: {
+      title: 'Same Chain Not Allowed',
+      message: 'Cross-chain quotes require different origin and destination chains.',
+    },
+  },
+  {
+    pattern: /DifferentAssetNotAllowed|same-asset transfers/i,
+    result: {
+      title: 'Different Asset Not Allowed',
+      message: 'Build quote only supports same-asset transfers. Use get quotes for cross-token swaps.',
+    },
+  },
+  {
     pattern: /execution reverted/i,
     result: {
       title: 'Transaction Failed',

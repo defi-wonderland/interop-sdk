@@ -233,7 +233,7 @@ class Aggregator {
      *
      * @param params - The build quote request with required amounts and contract address
      * @returns Sorted quotes and any provider errors
-     * @throws ZeroAmount, InsufficientFee, InvalidDeadline for invalid request parameters
+     * @throws ZeroAmount, InsufficientFee, InvalidDeadline, SameChainIntentNotAllowed, DifferentAssetNotAllowed for invalid request parameters
      */
     async buildQuote(params: BuildQuoteRequest): Promise<GetQuotesResponse> {
         const discovered = await this.discoverAssets();
