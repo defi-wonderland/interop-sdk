@@ -87,7 +87,7 @@ function buildParams(overrides?: Partial<BuildQuoteRequest>): BuildQuoteRequest 
     };
 }
 
-describe("Aggregator - buildQuote", () => {
+describe("Aggregator - buildQuotes", () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -101,7 +101,7 @@ describe("Aggregator - buildQuote", () => {
         );
         const aggregator = createAggregator({ providers: [across, oif, relay] });
 
-        const result = await aggregator.buildQuote(buildParams());
+        const result = await aggregator.buildQuotes(buildParams());
 
         expect(result.quotes.map((q) => q._providerId)).toEqual(["across", "oif"]);
         expect(result.errors).toHaveLength(0);
@@ -119,7 +119,7 @@ describe("Aggregator - buildQuote", () => {
         const full = createMockProvider("oif");
         const aggregator = createAggregator({ providers: [partial, full] });
 
-        const result = await aggregator.buildQuote(buildParams());
+        const result = await aggregator.buildQuotes(buildParams());
 
         expect(result.quotes).toHaveLength(1);
         expect(result.quotes[0]._providerId).toBe("oif");
@@ -134,7 +134,7 @@ describe("Aggregator - buildQuote", () => {
         const working = createMockProvider("oif");
         const aggregator = createAggregator({ providers: [failing, working] });
 
-        const result = await aggregator.buildQuote(buildParams());
+        const result = await aggregator.buildQuotes(buildParams());
 
         expect(result.quotes).toHaveLength(1);
         expect(result.errors).toHaveLength(1);
@@ -164,7 +164,7 @@ describe("Aggregator - buildQuote", () => {
         const provider = createMockProvider("across");
         const aggregator = createAggregator({ providers: [provider] });
 
-        await expect(aggregator.buildQuote(buildParams(overrides))).rejects.toThrow(expectedError);
+        await expect(aggregator.buildQuotes(buildParams(overrides))).rejects.toThrow(expectedError);
         expect(provider.buildQuote).not.toHaveBeenCalled();
     });
 
@@ -181,7 +181,7 @@ describe("Aggregator - buildQuote", () => {
             allowDangerousParameters: true,
         });
 
-        const result = await aggregator.buildQuote(params);
+        const result = await aggregator.buildQuotes(params);
 
         expect(result.quotes).toHaveLength(1);
         expect(provider.buildQuote).toHaveBeenCalledWith(params);

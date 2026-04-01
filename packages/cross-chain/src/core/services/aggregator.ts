@@ -129,6 +129,16 @@ class Aggregator {
         }
     }
 
+    private withTimeout<T>(promise: Promise<T>): Promise<T> {
+        let timeout: NodeJS.Timeout;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            timeout = setTimeout(() => {
+                reject(new ProviderTimeout(`Timeout after ${this.timeoutMs}ms`));
+            }, this.timeoutMs);
+        });
+        return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeout));
+    }
+
     private splitQuotesAndErrors(quotes: (ExecutableQuote | GetQuotesError)[]): GetQuotesResponse {
         return {
             quotes: quotes.filter((quote) => "order" in quote) as ExecutableQuote[],
@@ -224,8 +234,23 @@ class Aggregator {
         return provider.submitOrder(quote, signature);
     }
 
+    private async fetchBuildQuoteFromProvider(
+        provider: CrossChainProvider,
+        params: BuildQuoteRequest,
+    ): Promise<ExecutableQuote> {
+        if (!params.allowDangerousParameters) {
+            const isSupported = await this.supportsRequestedAssets(provider, params);
+            if (!isSupported) {
+                throw new ProviderExecuteNotImplemented("Asset not supported");
+            }
+        }
+
+        const quote = await this.withTimeout(provider.buildQuote(params));
+        return { ...quote, _providerId: provider.getProviderId() };
+    }
+
     /**
-     * Build a quote locally without calling a solver API.
+     * Build quotes locally without calling a solver API.
      *
      * Iterates all registered providers that implement `buildQuote`,
      * collecting results in parallel (same pattern as {@link getQuotes}).
@@ -235,52 +260,30 @@ class Aggregator {
      * @returns Sorted quotes and any provider errors
      * @throws ZeroAmount, InsufficientFee, InvalidDeadline, SameChainIntentNotAllowed, DifferentAssetNotAllowed for invalid request parameters
      */
-    async buildQuote(params: BuildQuoteRequest): Promise<GetQuotesResponse> {
+    async buildQuotes(params: BuildQuoteRequest): Promise<GetQuotesResponse> {
         const discovered = await this.discoverAssets();
         validateBuildQuoteParams(params, discovered.tokenMetadata);
 
-        const resultQuotes = await Promise.all(
-            Object.values(this.providers).map(async (provider) => {
-                try {
-                    if (!params.allowDangerousParameters) {
-                        const isSupported = await this.supportsRequestedAssets(provider, params);
-                        if (!isSupported) {
-                            return [];
-                        }
-                    }
+        const settled = await Promise.allSettled(
+            Object.values(this.providers).map((provider) =>
+                this.fetchBuildQuoteFromProvider(provider, params),
+            ),
+        );
 
-                    const quotePromise = provider.buildQuote(params).then(
-                        (quote): ExecutableQuote => ({
-                            ...quote,
-                            _providerId: provider.getProviderId(),
-                        }),
-                    );
-
-                    let timeout: NodeJS.Timeout;
-
-                    const timeoutPromise = new Promise<never>((_, reject) => {
-                        timeout = setTimeout(() => {
-                            reject(new ProviderTimeout(`Timeout after ${this.timeoutMs}ms`));
-                        }, this.timeoutMs);
-                    });
-
-                    return await Promise.race([quotePromise, timeoutPromise]).finally(() => {
-                        clearTimeout(timeout);
-                    });
-                } catch (error) {
-                    if (error instanceof ProviderExecuteNotImplemented) {
-                        return [];
-                    }
-                    if (error instanceof ProviderTimeout) {
-                        return { error: error, errorMsg: error.message };
-                    }
-                    return {
-                        error: new Error(String(error)),
-                        errorMsg: (error as Error)?.message ?? "Unknown error",
-                    };
+        const resultQuotes = settled
+            .map((result) => {
+                if (result.status === "fulfilled") return result.value;
+                const error = result.reason;
+                if (error instanceof ProviderExecuteNotImplemented) return null;
+                if (error instanceof ProviderTimeout) {
+                    return { error, errorMsg: error.message } as GetQuotesError;
                 }
-            }),
-        ).then((results) => results.flat());
+                return {
+                    error: new Error(String(error)),
+                    errorMsg: (error as Error)?.message ?? "Unknown error",
+                } as GetQuotesError;
+            })
+            .filter((item): item is ExecutableQuote | GetQuotesError => item !== null);
 
         const response = this.splitQuotesAndErrors(resultQuotes);
 

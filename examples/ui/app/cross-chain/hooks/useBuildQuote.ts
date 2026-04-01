@@ -86,7 +86,7 @@ export function useBuildQuote(): UseBuildQuoteReturn {
         fillDeadline,
       };
 
-      const response = await executor.buildQuote(request);
+      const response = await executor.buildQuotes(request);
       if (requestIdRef.current !== currentRequestId) return;
 
       if (response.quotes?.length) {
@@ -96,6 +96,9 @@ export function useBuildQuote(): UseBuildQuoteReturn {
       if (response.errors?.length) {
         setErrors(response.errors);
       }
+
+      if (requestIdRef.current !== currentRequestId) return;
+      setStatus(BuildQuoteStatus.SUCCESS);
     } catch (err) {
       if (requestIdRef.current !== currentRequestId) return;
       setStatus(BuildQuoteStatus.ERROR);
@@ -105,11 +108,7 @@ export function useBuildQuote(): UseBuildQuoteReturn {
           error: err instanceof Error ? err : new Error(String(err)),
         },
       ]);
-      return;
     }
-
-    if (requestIdRef.current !== currentRequestId) return;
-    setStatus(BuildQuoteStatus.SUCCESS);
   };
 
   const clear = useCallback(() => {

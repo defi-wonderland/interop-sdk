@@ -134,7 +134,7 @@ if (selectedQuote) {
     -   Config: `{ providers: CrossChainProvider[], sortingStrategy?, timeoutMs?, trackerFactory? }`
 -   `Aggregator`
     -   `.getQuotes(params: QuoteRequest)` -- Get quotes from all providers. Returns `{ quotes: ExecutableQuote[], errors: GetQuotesError[] }`.
-    -   `.buildQuote(providerId, params: BuildQuoteRequest)` -- Build a quote locally for a specific provider without calling a solver API.
+    -   `.buildQuotes(params: BuildQuoteRequest)` -- Build quotes locally from all providers without calling a solver API.
     -   `.submitOrder(quote, signature)` -- Submit a signed order.
     -   `.prepareTracking(providerId)` -- Prepare order tracking for a provider.
     -   `.track(params)` -- Track an existing transaction.
