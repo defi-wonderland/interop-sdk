@@ -7,11 +7,9 @@ import { DifferentAssetNotAllowed } from "../../src/core/errors/DifferentAssetNo
 import { InsufficientFee } from "../../src/core/errors/InsufficientFee.exception.js";
 import { InvalidDeadline } from "../../src/core/errors/InvalidDeadline.exception.js";
 import { SameChainIntentNotAllowed } from "../../src/core/errors/SameChainIntentNotAllowed.exception.js";
-import { UnsupportedAsset } from "../../src/core/errors/UnsupportedAsset.exception.js";
 import { ZeroAmount } from "../../src/core/errors/ZeroAmount.exception.js";
 import {
     MIN_DEADLINE_BUFFER_SECONDS,
-    validateAssetSupport,
     validateBuildQuoteParams,
 } from "../../src/core/validators/buildQuoteValidator.js";
 
@@ -191,23 +189,6 @@ describe("validateBuildQuoteParams", () => {
 
         it("accepts far future deadline", () => {
             expect(() => validate(buildParams({ fillDeadline: NOW + 86400 }))).not.toThrow();
-        });
-    });
-
-    describe("asset support", () => {
-        it("rejects token the provider does not support", () => {
-            const params = buildParams();
-            expect(() => validateAssetSupport(params, "across", false)).toThrow(UnsupportedAsset);
-        });
-
-        it("accepts token the provider supports", () => {
-            const params = buildParams();
-            expect(() => validateAssetSupport(params, "across", true)).not.toThrow();
-        });
-
-        it("skips validation when allowDangerousParameters is set", () => {
-            const params = buildParams({ allowDangerousParameters: true });
-            expect(() => validateAssetSupport(params, "across", false)).not.toThrow();
         });
     });
 

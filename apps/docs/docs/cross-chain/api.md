@@ -168,18 +168,23 @@ A class that manages multiple cross-chain providers and coordinates their operat
     response.errors.forEach((error) => console.error(error.errorMsg));
     ```
 
--   **buildQuote**(providerId: string, params: BuildQuoteRequest): Promise\<ExecutableQuote\>
+-   **buildQuote**(params: BuildQuoteRequest): Promise\<GetQuotesResponse\>
 
-    Builds a quote locally for a specific provider without calling a solver API. The user provides both amounts (controlling the fee) and a fill deadline. The returned quote feeds into the same execution and tracking pipeline as API-fetched quotes.
+    Builds quotes locally without calling a solver API. Iterates all providers that implement `buildQuote` in parallel, returning sorted quotes and any provider errors. The user provides both amounts (controlling the fee) and a fill deadline. Providers that don't support this method are silently skipped.
 
     ```typescript
-    const quote = await aggregator.buildQuote("across", {
+    const response = await aggregator.buildQuote({
         user: "0xYourAddress",
         input: { chainId: 11155111, assetAddress: "0xInputToken", amount: "1000000" },
         output: { chainId: 84532, assetAddress: "0xOutputToken", amount: "980000" },
         escrowContractAddress: "0xSpokePoolAddress",
         fillDeadline: Math.floor(Date.now() / 1000) + 3600,
     });
+
+    if (response.quotes.length > 0) {
+        const bestQuote = response.quotes[0];
+    }
+    response.errors.forEach((error) => console.error(error.errorMsg));
     ```
 
 -   **submitOrder**(quote: ExecutableQuote, signatureOrResults: Hex | StepResult[]): Promise\<SubmitOrderResponse\>

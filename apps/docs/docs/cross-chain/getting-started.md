@@ -151,7 +151,7 @@ response.errors.forEach((err) => console.warn(`Provider error: ${err.errorMsg}`)
 | --------------------------------------- | ---------------------------------------------------------------------- |
 | Get quotes from one provider            | `provider.getQuotes(request)`                                          |
 | Get quotes from multiple providers      | `aggregator.getQuotes(request)`                                        |
-| Build a quote locally (no provider API) | `aggregator.buildQuote(providerId, request)`                           |
+| Build a quote locally (no provider API) | `aggregator.buildQuote(request)`                                       |
 | Submit a signed order                   | `provider.submitOrder(quote, signature)`                               |
 | Check if order is gasless               | `isSignatureOnlyOrder(quote.order)`                                    |
 | Get signature steps from an order       | `getSignatureSteps(quote.order)`                                       |
