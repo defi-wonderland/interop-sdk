@@ -47,8 +47,8 @@ function mapBuildStatusToQuoteStatus(buildStatus: BuildQuoteStatus): QuoteStatus
 export default function CrossChainClient() {
   const { quotes, errors, status: quoteStatus, fetchQuotes, clearQuotes } = useQuotes();
   const {
-    quote: builtQuote,
-    error: buildError,
+    quotes: builtQuotes,
+    errors: buildErrors,
     status: buildStatus,
     buildQuote,
     clear: clearBuildQuote,
@@ -69,9 +69,8 @@ export default function CrossChainClient() {
   const [currentMode, setCurrentMode] = useState<SwapFormMode>('getQuotes');
   const isExecutionStarted = executionState.step !== STEP.IDLE;
 
-  const effectiveQuotes: ExecutableQuote[] = currentMode === 'buildQuote' && builtQuote ? [builtQuote] : quotes;
-  const effectiveErrors =
-    currentMode === 'buildQuote' && buildError ? [{ errorMsg: buildError, error: new Error(buildError) }] : errors;
+  const effectiveQuotes: ExecutableQuote[] = currentMode === 'buildQuote' ? builtQuotes : quotes;
+  const effectiveErrors = currentMode === 'buildQuote' ? buildErrors : errors;
   const effectiveStatus = currentMode === 'buildQuote' ? mapBuildStatusToQuoteStatus(buildStatus) : quoteStatus;
 
   const closeToast = useCallback(() => {

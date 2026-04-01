@@ -16,16 +16,14 @@ import type {
 } from "../types/assetDiscovery.js";
 import type { OrderTrackingInfo, WatchOrderParams } from "../types/orderTracking.js";
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
+import { ProviderExecuteNotImplemented } from "../errors/ProviderExecuteNotImplemented.exception.js";
 import { ProviderNotFound } from "../errors/ProviderNotFound.exception.js";
 import { ProviderTimeout } from "../errors/ProviderTimeout.exception.js";
 import { CrossChainProvider } from "../interfaces/crossChainProvider.interface.js";
 import { SortingStrategy } from "../interfaces/sortingStrategy.interface.js";
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
 import { mergeDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
-import {
-    validateAssetSupport,
-    validateBuildQuoteParams,
-} from "../validators/buildQuoteValidator.js";
+import { validateBuildQuoteParams } from "../validators/buildQuoteValidator.js";
 import { OrderTracker } from "./OrderTracker.js";
 
 interface AggregatorConfig {
@@ -229,28 +227,67 @@ class Aggregator {
     /**
      * Build a quote locally without calling a solver API.
      *
-     * Routes the request to the specified provider's `buildQuote` implementation.
-     * The returned quote contains a TransactionStep that the consumer can execute
-     * directly via `walletClient.sendTransaction`.
+     * Iterates all registered providers that implement `buildQuote`,
+     * collecting results in parallel (same pattern as {@link getQuotes}).
+     * Providers that do not implement the method are silently skipped.
      *
-     * @param providerId - The provider to use for building the quote
      * @param params - The build quote request with required amounts and contract address
-     * @returns An executable quote containing a TransactionStep
+     * @returns Sorted quotes and any provider errors
+     * @throws ZeroAmount, InsufficientFee, InvalidDeadline for invalid request parameters
      */
-    async buildQuote(providerId: string, params: BuildQuoteRequest): Promise<ExecutableQuote> {
-        const provider = this.providers[providerId];
-        if (!provider) {
-            throw new ProviderNotFound(providerId);
-        }
-
+    async buildQuote(params: BuildQuoteRequest): Promise<GetQuotesResponse> {
         const discovered = await this.discoverAssets();
         validateBuildQuoteParams(params, discovered.tokenMetadata);
 
-        const isSupported = await this.supportsRequestedAssets(provider, params);
-        validateAssetSupport(params, providerId, isSupported);
+        const resultQuotes = await Promise.all(
+            Object.values(this.providers).map(async (provider) => {
+                try {
+                    if (!params.allowDangerousParameters) {
+                        const isSupported = await this.supportsRequestedAssets(provider, params);
+                        if (!isSupported) {
+                            return [];
+                        }
+                    }
 
-        const quote = await provider.buildQuote(params);
-        return { ...quote, _providerId: providerId };
+                    const quotePromise = provider.buildQuote(params).then(
+                        (quote): ExecutableQuote => ({
+                            ...quote,
+                            _providerId: provider.getProviderId(),
+                        }),
+                    );
+
+                    let timeout: NodeJS.Timeout;
+
+                    const timeoutPromise = new Promise<never>((_, reject) => {
+                        timeout = setTimeout(() => {
+                            reject(new ProviderTimeout(`Timeout after ${this.timeoutMs}ms`));
+                        }, this.timeoutMs);
+                    });
+
+                    return await Promise.race([quotePromise, timeoutPromise]).finally(() => {
+                        clearTimeout(timeout);
+                    });
+                } catch (error) {
+                    if (error instanceof ProviderExecuteNotImplemented) {
+                        return [];
+                    }
+                    if (error instanceof ProviderTimeout) {
+                        return { error: error, errorMsg: error.message };
+                    }
+                    return {
+                        error: new Error(String(error)),
+                        errorMsg: (error as Error)?.message ?? "Unknown error",
+                    };
+                }
+            }),
+        ).then((results) => results.flat());
+
+        const response = this.splitQuotesAndErrors(resultQuotes);
+
+        return {
+            quotes: this.sortingStrategy.sort(response.quotes),
+            errors: response.errors,
+        };
     }
 
     /**

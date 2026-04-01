@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useCrossChainStore } from '../stores/crossChainStore';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
 import { useTokenConfig } from './useNetworkConfig';
+import type { GetQuotesError } from './useQuotes';
 import type { ExecutableQuote, BuildQuoteRequest } from '@wonderland/interop-cross-chain';
 
 const DEFAULT_FILL_DEADLINE_SECS = 3600; // 1 hour
@@ -26,8 +27,8 @@ export enum BuildQuoteStatus {
 }
 
 interface UseBuildQuoteReturn {
-  quote: ExecutableQuote | null;
-  error: string | null;
+  quotes: ExecutableQuote[];
+  errors: GetQuotesError[];
   status: BuildQuoteStatus;
   buildQuote: (params: BuildQuoteParams) => Promise<void>;
   clear: () => void;
@@ -36,16 +37,16 @@ interface UseBuildQuoteReturn {
 export function useBuildQuote(): UseBuildQuoteReturn {
   const executor = useCrossChainStore((s) => s.executor);
   const tokenConfig = useTokenConfig();
-  const [quote, setQuote] = useState<ExecutableQuote | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [quotes, setQuotes] = useState<ExecutableQuote[]>([]);
+  const [errors, setErrors] = useState<GetQuotesError[]>([]);
   const [status, setStatus] = useState<BuildQuoteStatus>(BuildQuoteStatus.IDLE);
   const requestIdRef = useRef(0);
 
   const buildQuote = async (params: BuildQuoteParams) => {
     const currentRequestId = ++requestIdRef.current;
     setStatus(BuildQuoteStatus.LOADING);
-    setQuote(null);
-    setError(null);
+    setQuotes([]);
+    setErrors([]);
 
     try {
       const inputTokenInfo = tokenConfig.TOKEN_INFO[params.inputChainId] ?? {};
@@ -85,23 +86,38 @@ export function useBuildQuote(): UseBuildQuoteReturn {
         fillDeadline,
       };
 
-      const result = await executor.buildQuote('across', request);
+      const response = await executor.buildQuote(request);
       if (requestIdRef.current !== currentRequestId) return;
-      setQuote(result);
-      setStatus(BuildQuoteStatus.SUCCESS);
+
+      if (response.quotes?.length) {
+        setQuotes(response.quotes);
+      }
+
+      if (response.errors?.length) {
+        setErrors(response.errors);
+      }
     } catch (err) {
       if (requestIdRef.current !== currentRequestId) return;
       setStatus(BuildQuoteStatus.ERROR);
-      setError(err instanceof Error ? err.message : String(err));
+      setErrors([
+        {
+          errorMsg: err instanceof Error ? err.message : String(err),
+          error: err instanceof Error ? err : new Error(String(err)),
+        },
+      ]);
+      return;
     }
+
+    if (requestIdRef.current !== currentRequestId) return;
+    setStatus(BuildQuoteStatus.SUCCESS);
   };
 
   const clear = useCallback(() => {
     requestIdRef.current++;
-    setQuote(null);
-    setError(null);
+    setQuotes([]);
+    setErrors([]);
     setStatus(BuildQuoteStatus.IDLE);
   }, []);
 
-  return { quote, error, status, buildQuote, clear };
+  return { quotes, errors, status, buildQuote, clear };
 }
