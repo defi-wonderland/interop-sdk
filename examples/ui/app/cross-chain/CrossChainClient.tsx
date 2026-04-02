@@ -22,8 +22,8 @@ import { useBuildQuote, BuildQuoteStatus } from './hooks/useBuildQuote';
 import { useQuotes, QuoteStatus } from './hooks/useQuotes';
 import { useDiscoveredAssets } from './providers';
 import { useFillWorkaround } from './services/orderExecution/fillDetection';
+import { useCrossChainStore, type SwapFormMode } from './stores/crossChainStore';
 import { STEP } from './types/execution';
-import type { SwapFormMode } from './components/SwapForm';
 import type { Address } from 'viem';
 
 interface ToastState {
@@ -66,7 +66,8 @@ export default function CrossChainClient() {
   const [outputChainId, setOutputChainId] = useState<number>(0);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [lastQuoteParams, setLastQuoteParams] = useState<Parameters<typeof fetchQuotes>[0] | null>(null);
-  const [currentMode, setCurrentMode] = useState<SwapFormMode>('getQuotes');
+  const currentMode = useCrossChainStore((s) => s.mode);
+  const buildQuoteProviderId = useCrossChainStore((s) => s.buildQuoteProviderId);
   const isExecutionStarted = executionState.step !== STEP.IDLE;
 
   const effectiveQuotes: ExecutableQuote[] = currentMode === 'buildQuote' && builtQuote ? [builtQuote] : quotes;
@@ -97,7 +98,6 @@ export default function CrossChainClient() {
     setInputChainId(params.inputChainId);
     setOutputChainId(params.outputChainId);
     setSelectedQuote(null);
-    setCurrentMode(params.mode);
     resetExecution();
 
     if (params.mode === 'buildQuote') {
@@ -118,6 +118,7 @@ export default function CrossChainClient() {
         inputAmount: params.inputAmount,
         outputAmount: params.outputAmount,
         fillDeadlineSecs: params.fillDeadlineSecs,
+        providerId: buildQuoteProviderId,
       });
     } else {
       clearBuildQuote();

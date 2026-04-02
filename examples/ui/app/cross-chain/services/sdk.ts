@@ -10,21 +10,32 @@ import { MAINNET_RPC_URLS, TESTNET_RPC_URLS } from '../constants/chains';
 
 const OIF_API_URL = 'https://oif-api.openzeppelin.com/api';
 
+interface ProviderConfig {
+  providerId: string;
+  displayName: string;
+  supportsBuildQuote: boolean;
+}
+
 /**
- * Provider configuration with display names
+ * Provider configuration with display names and capability flags
  */
-const PROVIDER_CONFIGS = [
+const PROVIDER_CONFIGS: ProviderConfig[] = [
   {
     providerId: 'across',
     displayName: 'Across Protocol',
+    supportsBuildQuote: true,
   },
   {
     providerId: 'oif',
     displayName: 'OIF Sample Solver',
+    // TODO: re-enable once OZ confirms on-chain discovery is active on the production solver.
+    // SDK-side implementation is done (StandardOrder encoding, settler addresses, event-based tracking).
+    supportsBuildQuote: false,
   },
   {
     providerId: 'relay',
     displayName: 'Relay',
+    supportsBuildQuote: false,
   },
 ];
 
@@ -63,3 +74,6 @@ export function getProviderDisplayName(providerId: string): string {
   const config = PROVIDER_CONFIGS.find((c) => c.providerId === providerId);
   return config?.displayName || providerId;
 }
+
+/** Providers that support the buildQuote flow. */
+export const BUILD_QUOTE_PROVIDERS = PROVIDER_CONFIGS.filter((c) => c.supportsBuildQuote);

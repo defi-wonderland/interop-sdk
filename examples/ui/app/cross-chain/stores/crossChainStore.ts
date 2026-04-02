@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { buildExecutor } from '../services/sdk';
 import type { Aggregator } from '@wonderland/interop-cross-chain';
 
+export type SwapFormMode = 'getQuotes' | 'buildQuote';
+
 const TESTNET_QUERY_PARAM = 'testnet';
 
 function readIsTestnetFromUrl(): boolean {
@@ -12,7 +14,11 @@ function readIsTestnetFromUrl(): boolean {
 interface CrossChainState {
   isTestnet: boolean;
   executor: Aggregator;
+  mode: SwapFormMode;
+  buildQuoteProviderId: string;
   setIsTestnet: (isTestnet: boolean) => void;
+  setMode: (mode: SwapFormMode) => void;
+  setBuildQuoteProviderId: (providerId: string) => void;
 }
 
 const initialIsTestnet = readIsTestnetFromUrl();
@@ -20,6 +26,8 @@ const initialIsTestnet = readIsTestnetFromUrl();
 export const useCrossChainStore = create<CrossChainState>((set, get) => ({
   isTestnet: initialIsTestnet,
   executor: buildExecutor(initialIsTestnet),
+  mode: 'getQuotes',
+  buildQuoteProviderId: 'across',
 
   setIsTestnet: (isTestnet: boolean) => {
     if (isTestnet === get().isTestnet) return;
@@ -32,4 +40,7 @@ export const useCrossChainStore = create<CrossChainState>((set, get) => ({
     window.history.replaceState({}, '', url.toString());
     set({ isTestnet, executor: buildExecutor(isTestnet) });
   },
+
+  setMode: (mode: SwapFormMode) => set({ mode }),
+  setBuildQuoteProviderId: (providerId: string) => set({ buildQuoteProviderId: providerId }),
 }));
