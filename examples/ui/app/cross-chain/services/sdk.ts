@@ -42,6 +42,7 @@ const PROVIDER_CONFIGS: ProviderConfig[] = [
   {
     providerId: 'lifi-intents',
     displayName: 'LI.FI',
+    supportsBuildQuote: false,
   },
 ];
 
