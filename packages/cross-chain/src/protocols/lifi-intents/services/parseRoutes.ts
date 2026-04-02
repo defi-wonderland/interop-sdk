@@ -1,4 +1,5 @@
 import type { NetworkAssets } from "../../../core/types/assetDiscovery.js";
+import { isNativeAddress } from "../../../core/utils/token.js";
 import { LifiIntentsRoutesResponseSchema } from "../schemas.js";
 
 export function parseRoutesIntoAssets(data: unknown): NetworkAssets[] {
@@ -26,6 +27,8 @@ function addToMap(
     chainId: number,
     token: { address: string; symbol: string | null; name: string | null; decimals: number },
 ): void {
+    if (isNativeAddress(token.address, "eip155")) return;
+
     if (!map.has(chainId)) {
         map.set(chainId, new Map());
     }
