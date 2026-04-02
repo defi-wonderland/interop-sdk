@@ -67,6 +67,7 @@ export default function CrossChainClient() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [lastQuoteParams, setLastQuoteParams] = useState<Parameters<typeof fetchQuotes>[0] | null>(null);
   const currentMode = useCrossChainStore((s) => s.mode);
+  const buildQuoteProviderId = useCrossChainStore((s) => s.buildQuoteProviderId);
   const isExecutionStarted = executionState.step !== STEP.IDLE;
 
   const effectiveQuotes: ExecutableQuote[] = currentMode === 'buildQuote' && builtQuote ? [builtQuote] : quotes;
@@ -117,6 +118,7 @@ export default function CrossChainClient() {
         inputAmount: params.inputAmount,
         outputAmount: params.outputAmount,
         fillDeadlineSecs: params.fillDeadlineSecs,
+        providerId: buildQuoteProviderId,
       });
     } else {
       clearBuildQuote();

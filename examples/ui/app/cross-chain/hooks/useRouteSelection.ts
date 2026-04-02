@@ -12,8 +12,12 @@ import { useTokenConfig } from './useNetworkConfig';
 export function useRouteSelection(defaultInputChainId: number, defaultOutputChainId: number) {
   const { SUPPORTED_TOKEN_BY_CHAIN_ID: byChain, TOKEN_INFO: tokenInfo } = useTokenConfig();
   const mode = useCrossChainStore((s) => s.mode);
+  const buildQuoteProviderId = useCrossChainStore((s) => s.buildQuoteProviderId);
 
-  const selector = useMemo(() => createRouteSelector({ byChain, tokenInfo, mode }), [byChain, tokenInfo, mode]);
+  const selector = useMemo(
+    () => createRouteSelector({ byChain, tokenInfo, mode, buildQuoteProviderId }),
+    [byChain, tokenInfo, mode, buildQuoteProviderId],
+  );
 
   const [selection, setSelection] = useState(() => {
     const urlParams = readRouteParams();

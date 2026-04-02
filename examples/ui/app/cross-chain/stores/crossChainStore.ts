@@ -15,8 +15,10 @@ interface CrossChainState {
   isTestnet: boolean;
   executor: Aggregator;
   mode: SwapFormMode;
+  buildQuoteProviderId: string;
   setIsTestnet: (isTestnet: boolean) => void;
   setMode: (mode: SwapFormMode) => void;
+  setBuildQuoteProviderId: (providerId: string) => void;
 }
 
 const initialIsTestnet = readIsTestnetFromUrl();
@@ -25,6 +27,7 @@ export const useCrossChainStore = create<CrossChainState>((set, get) => ({
   isTestnet: initialIsTestnet,
   executor: buildExecutor(initialIsTestnet),
   mode: 'getQuotes',
+  buildQuoteProviderId: 'across',
 
   setIsTestnet: (isTestnet: boolean) => {
     if (isTestnet === get().isTestnet) return;
@@ -39,4 +42,5 @@ export const useCrossChainStore = create<CrossChainState>((set, get) => ({
   },
 
   setMode: (mode: SwapFormMode) => set({ mode }),
+  setBuildQuoteProviderId: (providerId: string) => set({ buildQuoteProviderId: providerId }),
 }));
