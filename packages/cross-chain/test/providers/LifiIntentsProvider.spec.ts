@@ -265,72 +265,35 @@ describe("LifiIntentsProvider", () => {
     });
 
     describe("getDiscoveryConfig", () => {
-        it("returns custom-api type config", () => {
+        it("returns static type config", () => {
             const config = provider.getDiscoveryConfig();
-            expect(config.type).toBe("custom-api");
+            expect(config.type).toBe("static");
         });
 
-        it("points to /routes endpoint", () => {
+        it("includes supported chains", () => {
             const config = provider.getDiscoveryConfig();
-            expect(config.config.assetsEndpoint).toBe(`${MOCK_ORDER_SERVER_URL}/routes`);
+            const chainIds = config.config.networks.map((n) => n.chainId);
+            expect(chainIds).toContain(1); // Ethereum
+            expect(chainIds).toContain(8453); // Base
+            expect(chainIds).toContain(42161); // Arbitrum
         });
 
-        it("parseResponse handles valid routes data", () => {
+        it("includes USDC, USDT, and WETH on each chain", () => {
             const config = provider.getDiscoveryConfig();
-            const mockRoutes = {
-                routes: [
-                    {
-                        fromChain: { chainId: "8453" },
-                        toChain: { chainId: "42161" },
-                        fromToken: { symbol: "USDC", name: "USDC", address: "0xaaaa", decimals: 6 },
-                        toToken: { symbol: "USDC", name: "USDC", address: "0xbbbb", decimals: 6 },
-                    },
-                    {
-                        fromChain: { chainId: "8453" },
-                        toChain: { chainId: "1" },
-                        fromToken: {
-                            symbol: "WETH",
-                            name: "WETH",
-                            address: "0xcccc",
-                            decimals: 18,
-                        },
-                        toToken: { symbol: "USDC", name: "USDC", address: "0xdddd", decimals: 6 },
-                    },
-                ],
-            };
-
-            const result = config.config.parseResponse(mockRoutes);
-            expect(result.length).toBeGreaterThanOrEqual(2);
-
-            const baseChain = result.find((r) => r.chainId === 8453);
-            expect(baseChain).toBeDefined();
-            expect(baseChain!.assets.length).toBe(2);
-            expect(baseChain!.assets[0]!.symbol).toBe("USDC");
-            expect(baseChain!.assets[0]!.decimals).toBe(6);
+            for (const network of config.config.networks) {
+                const symbols = network.assets.map((a) => a.symbol);
+                expect(symbols).toContain("USDC");
+                expect(symbols).toContain("USDT");
+                expect(symbols).toContain("WETH");
+            }
         });
 
-        it("parseResponse deduplicates assets per chain", () => {
+        it("does not include native ETH as an input token", () => {
             const config = provider.getDiscoveryConfig();
-            const mockRoutes = {
-                routes: [
-                    {
-                        fromChain: { chainId: "8453" },
-                        toChain: { chainId: "42161" },
-                        fromToken: { symbol: "USDC", name: "USDC", address: "0xaaaa", decimals: 6 },
-                        toToken: { symbol: "USDC", name: "USDC", address: "0xbbbb", decimals: 6 },
-                    },
-                    {
-                        fromChain: { chainId: "8453" },
-                        toChain: { chainId: "1" },
-                        fromToken: { symbol: "USDC", name: "USDC", address: "0xaaaa", decimals: 6 },
-                        toToken: { symbol: "ETH", name: "ETH", address: "0xcccc", decimals: 18 },
-                    },
-                ],
-            };
-
-            const result = config.config.parseResponse(mockRoutes);
-            const baseChain = result.find((r) => r.chainId === 8453);
-            expect(baseChain!.assets).toHaveLength(1);
+            for (const network of config.config.networks) {
+                const addresses = network.assets.map((a) => a.address.toLowerCase());
+                expect(addresses).not.toContain("0x0000000000000000000000000000000000000000");
+            }
         });
     });
 

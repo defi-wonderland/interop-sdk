@@ -156,62 +156,26 @@ describe("LifiIntentsProvider Integration Tests", () => {
     });
 
     describe("discovery config integration", () => {
-        it("parseResponse produces correct NetworkAssets from real-like routes", () => {
+        it("returns static config with correct supported chains and tokens", () => {
             const provider = new LifiIntentsProvider({
                 orderServerUrl: MOCK_ORDER_SERVER_URL,
             });
 
             const config = provider.getDiscoveryConfig();
+            expect(config.type).toBe("static");
 
-            const routesData = {
-                routes: [
-                    {
-                        fromChain: { chainId: "8453", name: "Base" },
-                        toChain: { chainId: "42161", name: "Arbitrum" },
-                        fromToken: {
-                            symbol: "USDC",
-                            name: "USDC",
-                            address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-                            decimals: 6,
-                        },
-                        toToken: {
-                            symbol: "USDC",
-                            name: "USDC",
-                            address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-                            decimals: 6,
-                        },
-                    },
-                    {
-                        fromChain: { chainId: "1", name: "Ethereum" },
-                        toChain: { chainId: "8453", name: "Base" },
-                        fromToken: {
-                            symbol: "USDC",
-                            name: "USDC",
-                            address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-                            decimals: 6,
-                        },
-                        toToken: {
-                            symbol: "USDC",
-                            name: "USDC",
-                            address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-                            decimals: 6,
-                        },
-                    },
-                ],
-            };
-
-            const result = config.config.parseResponse(routesData);
-
-            const chains = result.map((r) => r.chainId).sort((a, b) => a - b);
+            const chains = config.config.networks.map((n) => n.chainId).sort((a, b) => a - b);
             expect(chains).toContain(1);
             expect(chains).toContain(8453);
             expect(chains).toContain(42161);
 
-            const baseAssets = result.find((r) => r.chainId === 8453);
+            const baseAssets = config.config.networks.find((n) => n.chainId === 8453);
             expect(baseAssets).toBeDefined();
             expect(baseAssets!.assets.length).toBeGreaterThanOrEqual(1);
-            expect(baseAssets!.assets[0]!.symbol).toBe("USDC");
-            expect(baseAssets!.assets[0]!.decimals).toBe(6);
+
+            const usdc = baseAssets!.assets.find((a) => a.symbol === "USDC");
+            expect(usdc).toBeDefined();
+            expect(usdc!.decimals).toBe(6);
         });
     });
 });

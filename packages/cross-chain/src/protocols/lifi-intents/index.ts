@@ -5,7 +5,6 @@ export {
     LifiIntentsProviderConfigSchema,
     LifiIntentsQuoteResponseSchema,
     LifiIntentsOrderStatusResponseSchema,
-    LifiIntentsRoutesResponseSchema,
     Caip10AddressSchema,
     type Caip10Address,
     type LifiIntentsQuoteRequest,
@@ -13,6 +12,5 @@ export {
     type LifiIntentsQuoteEntry,
     type LifiIntentsOrder,
     type LifiIntentsOrderStatusResponse,
-    type LifiIntentsRoute,
 } from "./schemas.js";
 export * from "./constants.js";

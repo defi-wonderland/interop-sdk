@@ -143,25 +143,3 @@ export const LifiIntentsOrderStatusResponseSchema = z.object({
 });
 
 export type LifiIntentsOrderStatusResponse = z.infer<typeof LifiIntentsOrderStatusResponseSchema>;
-
-// ── Routes (Asset Discovery) ────────────────────────────
-
-const LifiIntentsRouteTokenSchema = z.object({
-    symbol: z.string().nullable(),
-    name: z.string().nullable(),
-    address: z.string(),
-    decimals: z.number(),
-});
-
-export const LifiIntentsRouteSchema = z.object({
-    fromChain: z.object({ chainId: z.string() }).passthrough(),
-    toChain: z.object({ chainId: z.string() }).passthrough(),
-    fromToken: LifiIntentsRouteTokenSchema,
-    toToken: LifiIntentsRouteTokenSchema,
-});
-
-export const LifiIntentsRoutesResponseSchema = z.object({
-    routes: z.array(LifiIntentsRouteSchema),
-});
-
-export type LifiIntentsRoute = z.infer<typeof LifiIntentsRouteSchema>;

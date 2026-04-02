@@ -4,28 +4,27 @@ import { ZodError } from "zod";
 
 import type { Quote } from "../../core/schemas/quote.js";
 import type { QuoteRequest } from "../../core/schemas/quoteRequest.js";
-import type { NetworkAssets } from "../../core/types/assetDiscovery.js";
 import type { FillEvent, GetFillParams } from "../../core/types/orderTracking.js";
 import type { LifiIntentsProviderConfig } from "./LifiIntentsProvider.interface.js";
 import type { LifiIntentsOrderStatusResponse, LifiIntentsQuoteResponse } from "./schemas.js";
 import {
     APIBasedFillWatcherConfig,
     CrossChainProvider,
-    CustomApiAssetDiscoveryConfig,
     FillWatcherConfig,
     OpenedIntentParserConfig,
     OrderFailureReason,
     OrderStatus,
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
+    StaticAssetDiscoveryConfig,
 } from "../../internal.js";
 import { adaptOrderStatus, adaptQuoteRequest, adaptQuoteResponse } from "./adapters/index.js";
+import { LIFI_INTENTS_SUPPORTED_TOKENS } from "./constants.js";
 import {
     LifiIntentsOrderStatusResponseSchema,
     LifiIntentsProviderConfigSchema,
     LifiIntentsQuoteResponseSchema,
 } from "./schemas.js";
-import { parseRoutesIntoAssets } from "./services/parseRoutes.js";
 
 export class LifiIntentsProvider extends CrossChainProvider {
     static readonly PROTOCOL_NAME = "lifi-intents" as const;
@@ -196,18 +195,12 @@ export class LifiIntentsProvider extends CrossChainProvider {
         };
     }
 
-    override getDiscoveryConfig(): CustomApiAssetDiscoveryConfig {
+    override getDiscoveryConfig(): StaticAssetDiscoveryConfig {
         return {
-            type: "custom-api",
+            type: "static",
             config: {
-                assetsEndpoint: `${this.orderServerUrl}/routes`,
-                parseResponse: LifiIntentsProvider.parseRoutesResponse,
-                headers: this.headers,
+                networks: LIFI_INTENTS_SUPPORTED_TOKENS,
             },
         };
-    }
-
-    private static parseRoutesResponse(data: unknown): NetworkAssets[] {
-        return parseRoutesIntoAssets(data);
     }
 }
