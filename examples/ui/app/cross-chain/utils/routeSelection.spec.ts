@@ -31,6 +31,8 @@ const config: RouteConfig = {
       [SHIB]: token('SHIB', ['across']),
     },
   },
+  mode: 'getQuotes',
+  buildQuoteProviderId: 'across',
 };
 
 const VALID_TOKENS = [USDC, WETH, DAI];
@@ -128,6 +130,8 @@ describe('cascading', () => {
         1: { [onlyChain1]: token('UNI', ['sample']), [USDC]: token('USDC', ['across', 'sample']) },
         10: { [USDC]: token('USDC', ['across', 'sample']), [WETH]: token('WETH', ['across']) },
       },
+      mode: 'getQuotes',
+      buildQuoteProviderId: 'across',
     });
     const next = s.setInputChain({ inputChainId: 1, outputChainId: 10, inputToken: onlyChain1, outputToken: USDC }, 10);
     expect(next.inputToken).toBe(USDC);
@@ -157,7 +161,12 @@ describe('cascading', () => {
 
 describe('edge cases', () => {
   it('empty config or unknown chain yields empty results', () => {
-    const empty = createRouteSelector({ byChain: {}, tokenInfo: {} }).resolve(sel());
+    const empty = createRouteSelector({
+      byChain: {},
+      tokenInfo: {},
+      mode: 'getQuotes',
+      buildQuoteProviderId: 'across',
+    }).resolve(sel());
     expect(empty.inputToken).toBe('');
     expect(empty.outputToken).toBe('');
     expect(empty.inputTokens).toEqual([]);
@@ -174,6 +183,8 @@ describe('edge cases', () => {
         1: { [USDC]: token('USDC', ['across', 'sample']) },
         10: { [USDC]: token('USDC', ['across', 'sample']) },
       },
+      mode: 'getQuotes',
+      buildQuoteProviderId: 'across',
     });
     expect(s.resolve(sel({ inputChainId: 1 })).inputTokens).toContain(UNKNOWN);
   });

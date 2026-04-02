@@ -24,6 +24,7 @@ export interface RouteConfig {
   byChain: TokensByChain;
   tokenInfo: TokenInfoByChain;
   mode: SwapFormMode;
+  buildQuoteProviderId: string;
 }
 
 function isWhitelisted(token: UITokenInfo): boolean {
@@ -76,12 +77,19 @@ function resolveInitialOutputChain(
 }
 
 export function createRouteSelector(config: RouteConfig) {
-  const { byChain, tokenInfo, mode } = config;
+  const { byChain, tokenInfo, mode, buildQuoteProviderId } = config;
+
+  /** In buildQuote mode, only show tokens supported by the selected provider. */
+  function filterByProvider(tokens: string[], chainId: number): string[] {
+    if (mode !== 'buildQuote') return tokens;
+    const meta = tokenInfo[chainId] ?? {};
+    return tokens.filter((addr) => meta[addr]?.providers.includes(buildQuoteProviderId));
+  }
 
   function inputTokensFor(chainId: number): string[] {
     const addresses = byChain[chainId] ?? [];
     const meta = tokenInfo[chainId] ?? {};
-    return availableTokens(addresses, meta);
+    return filterByProvider(availableTokens(addresses, meta), chainId);
   }
 
   function outputTokensFor(inputChainId: number, inputToken: string, outputChainId: number): string[] {
@@ -91,7 +99,10 @@ export function createRouteSelector(config: RouteConfig) {
     const tokens = compatibleTokens(addresses, meta, inputMeta?.providers ?? []);
 
     if (mode === 'buildQuote' && inputMeta?.symbol) {
-      return tokens.filter((addr) => meta[addr]?.symbol === inputMeta.symbol);
+      return filterByProvider(
+        tokens.filter((addr) => meta[addr]?.symbol === inputMeta.symbol),
+        outputChainId,
+      );
     }
 
     return tokens;
