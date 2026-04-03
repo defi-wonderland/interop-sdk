@@ -13,6 +13,7 @@ import {
     CrossChainProvider,
     CustomApiAssetDiscoveryConfig,
     FillWatcherConfig,
+    isNativeAddress,
     OpenedIntentParserConfig,
     OrderFailureReason,
     OrderStatus,
@@ -64,6 +65,10 @@ export class LifiIntentsProvider extends CrossChainProvider {
     }
 
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
+        if (isNativeAddress(params.input.assetAddress, "eip155")) {
+            return [];
+        }
+
         try {
             const lifiRequest = adaptQuoteRequest(params);
 

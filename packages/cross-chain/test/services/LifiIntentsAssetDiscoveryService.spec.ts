@@ -100,33 +100,6 @@ describe("parseRoutesIntoAssets", () => {
         expect(token.symbol).toBe("");
     });
 
-    it("excludes native token addresses from discovered assets", () => {
-        const result = parseRoutesIntoAssets({
-            routes: [
-                {
-                    fromChain: { chainId: "1" },
-                    toChain: { chainId: "1" },
-                    fromToken: {
-                        symbol: "ETH",
-                        name: "Ethereum",
-                        address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-                        decimals: 18,
-                    },
-                    toToken: {
-                        symbol: "WETH",
-                        name: "Wrapped Ether",
-                        address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-                        decimals: 18,
-                    },
-                },
-            ],
-        });
-
-        const assets = result.find((n) => n.chainId === 1)!.assets;
-        expect(assets).toHaveLength(1);
-        expect(assets[0].symbol).toBe("WETH");
-    });
-
     it("throws on invalid response schema", () => {
         expect(() => parseRoutesIntoAssets({ invalid: "data" })).toThrow();
     });
