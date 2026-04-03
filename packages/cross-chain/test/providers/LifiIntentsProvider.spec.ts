@@ -255,7 +255,7 @@ describe("LifiIntentsProvider", () => {
     describe("getTrackingConfig", () => {
         it("returns LI.FI opened intent parser config", () => {
             const config = provider.getTrackingConfig();
-            expect(config.openedIntentParserConfig).toEqual({ type: "lifi" });
+            expect(config.openedIntentParserConfig).toEqual({ type: "lifi-intents" });
         });
 
         it("returns API-based fill watcher config", () => {

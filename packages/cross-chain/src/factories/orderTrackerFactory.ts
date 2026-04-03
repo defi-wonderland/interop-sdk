@@ -91,7 +91,7 @@ export class OrderTrackerFactory {
             case "oif":
                 return new OIFOpenedIntentParser({ clientManager: this.clientManager });
 
-            case "lifi":
+            case "lifi-intents":
                 return new LifiOpenedIntentParser({ clientManager: this.clientManager });
 
             case "custom-event":

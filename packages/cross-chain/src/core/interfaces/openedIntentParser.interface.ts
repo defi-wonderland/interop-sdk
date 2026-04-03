@@ -88,6 +88,6 @@ export interface APIOpenedIntentParserConfig<TResponse = unknown> {
  */
 export type OpenedIntentParserConfig =
     | { type: "oif" }
-    | { type: "lifi" }
+    | { type: "lifi-intents" }
     | { type: "custom-event"; config: CustomEventOpenedIntentParserConfig }
     | { type: "api"; config: APIOpenedIntentParserConfig };

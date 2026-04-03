@@ -193,7 +193,7 @@ export class LifiIntentsProvider extends CrossChainProvider {
         fillWatcherConfig: FillWatcherConfig;
     } {
         return {
-            openedIntentParserConfig: { type: "lifi" },
+            openedIntentParserConfig: { type: "lifi-intents" },
             fillWatcherConfig: LifiIntentsProvider.getFillWatcherConfig(
                 this.orderServerUrl,
                 this.headers,
