@@ -61,5 +61,6 @@ export function extractFillEvent(
         },
         status,
         failureReason,
+        fillTxHash,
     };
 }
