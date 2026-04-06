@@ -5,7 +5,9 @@ import type {
     BungeeAutoRoute,
     BungeeQuoteResponse,
     BungeeQuoteResult,
+    BungeeTxData,
 } from "../schemas.js";
+import { BungeeTxDataSchema } from "../schemas.js";
 import { adaptFees } from "./quoteFeeAdapter.js";
 
 /**
@@ -102,7 +104,8 @@ function buildAutoRouteSteps(autoRoute: BungeeAutoRoute, originChainId: number):
     }
 
     if (autoRoute.userOp === "tx" && autoRoute.txData) {
-        return [buildTransactionStep(autoRoute)];
+        const step = buildTransactionStep(autoRoute.txData);
+        return step ? [step] : [];
     }
 
     return [];
@@ -126,18 +129,21 @@ function buildSignatureStep(autoRoute: BungeeAutoRoute, originChainId: number): 
     };
 }
 
-/** Build a TransactionStep from Bungee onchain flow. */
-function buildTransactionStep(autoRoute: BungeeAutoRoute): Step {
-    const txData = autoRoute.txData!;
+/** Build a TransactionStep from Bungee onchain flow. Returns `null` if txData is not valid. */
+function buildTransactionStep(txData: BungeeTxData): Step | null {
+    const parsed = BungeeTxDataSchema.safeParse(txData);
+    if (!parsed.success) return null;
+
+    const { to, data, value, chainId } = parsed.data;
 
     return {
         kind: "transaction" as const,
-        chainId: txData.chainId,
+        chainId,
         description: "Submit transaction to Bungee",
         transaction: {
-            to: txData.to ?? "",
-            data: typeof txData.data === "string" ? txData.data : "",
-            value: txData.value,
+            to: to ?? "",
+            data: typeof data === "string" ? data : JSON.stringify(data),
+            value,
         },
     };
 }

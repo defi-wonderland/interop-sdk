@@ -129,6 +129,48 @@ describe("adaptQuotes", () => {
         expect(quote!.order.steps[0]!.kind).toBe("transaction");
     });
 
+    it("serializes non-string txData.data as JSON", () => {
+        const response = buildBungeeQuoteResponse();
+        response.result.autoRoute = buildAutoRoute({
+            userOp: "tx",
+            signTypedData: null,
+            txData: {
+                to: VALID_ADDRESS,
+                data: { instructions: [], lookupTables: [], signers: [] },
+                value: "0",
+                chainId: 1,
+            },
+        });
+
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+
+        expect(quote!.order.steps).toHaveLength(1);
+        const step = quote!.order.steps[0]!;
+        if (step.kind === "transaction") {
+            expect(JSON.parse(step.transaction.data)).toEqual({
+                instructions: [],
+                lookupTables: [],
+                signers: [],
+            });
+        }
+    });
+
+    it("returns empty steps when txData fails schema validation", () => {
+        const response = buildBungeeQuoteResponse();
+        response.result.autoRoute = buildAutoRoute({
+            userOp: "tx",
+            signTypedData: null,
+            txData: {
+                to: VALID_ADDRESS,
+                data: "0xdeadbeef",
+            },
+        });
+
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+
+        expect(quote!.order.steps).toHaveLength(0);
+    });
+
     it("maps preview inputs from response.result.input", () => {
         const response = buildBungeeQuoteResponse();
         const [quote] = adaptQuotes(response as never, PROVIDER_ID);

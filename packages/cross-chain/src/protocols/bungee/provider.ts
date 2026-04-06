@@ -117,7 +117,7 @@ export class BungeeProvider extends CrossChainProvider {
     /**
      * @inheritdoc
      *
-     * Submits a signed permit2 order to Bungee (gasless mode only).
+     * Submits a signed order to Bungee.
      */
     override async submitOrder(quote: Quote, signature: Hex): Promise<SubmitOrderResponse> {
         try {
@@ -149,6 +149,7 @@ export class BungeeProvider extends CrossChainProvider {
                 type: "api",
                 config: {
                     protocolName: BungeeProvider.PROTOCOL_NAME,
+                    headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
                     buildUrl: (txHash: Hex, _chainId: number): string =>
                         `${this.baseUrl}/api/v1/bungee/status?requestHash=${txHash}`,
                     extractOpenedIntent,
@@ -157,6 +158,7 @@ export class BungeeProvider extends CrossChainProvider {
             fillWatcherConfig: {
                 type: "api-based",
                 baseUrl: this.baseUrl,
+                headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
                 pollingInterval: 5000,
                 retry: {
                     maxAttempts: 3,

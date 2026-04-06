@@ -352,6 +352,44 @@ describe("BungeeProvider", () => {
                 5000,
             );
         });
+
+        it("passes apiHeaders to openedIntentParserConfig and fillWatcherConfig", () => {
+            const authenticatedProvider = new BungeeProvider({
+                apiKey: API_KEY,
+                affiliateId: "my-affiliate",
+            });
+            const config = authenticatedProvider.getTrackingConfig();
+
+            const parserConfig = config.openedIntentParserConfig.config as {
+                headers?: Record<string, string>;
+            };
+            expect(parserConfig.headers).toEqual({
+                "x-api-key": API_KEY,
+                affiliate: "my-affiliate",
+            });
+
+            const fillConfig = config.fillWatcherConfig as {
+                headers?: Record<string, string>;
+            };
+            expect(fillConfig.headers).toEqual({
+                "x-api-key": API_KEY,
+                affiliate: "my-affiliate",
+            });
+        });
+
+        it("omits headers when no apiKey or affiliateId is configured", () => {
+            const config = provider.getTrackingConfig();
+
+            const parserConfig = config.openedIntentParserConfig.config as {
+                headers?: Record<string, string>;
+            };
+            expect(parserConfig.headers).toBeUndefined();
+
+            const fillConfig = config.fillWatcherConfig as {
+                headers?: Record<string, string>;
+            };
+            expect(fillConfig.headers).toBeUndefined();
+        });
     });
 
     describe("getDiscoveryConfig()", () => {
