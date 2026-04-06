@@ -86,7 +86,7 @@ A provider is an adapter that translates the SDK's standardized `QuoteRequest` i
 | [Across](./across-provider.md) | Active | User (transaction)                      | API (mainnet), Events (testnet) |
 | [Relay](./relay-provider.md)   | Active | User (transaction)                      | API-based                       |
 | [OIF](./oif-provider.md)       | Active | Protocol + User                         | Event-based                     |
-| [Bungee](./bungee-provider.md) | Active | Protocol (permit2) + User (transaction) | API-based                       |
+| [Bungee](./bungee-provider.md) | Active | User (transaction) + Protocol (permit2) | API-based                       |
 
 ### Choosing a provider
 
