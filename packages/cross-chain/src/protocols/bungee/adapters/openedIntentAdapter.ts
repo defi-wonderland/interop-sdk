@@ -1,7 +1,8 @@
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 
-import type { OpenedIntent } from "../../../internal.js";
+import type { OpenedIntent, TokenTransfer } from "../../../internal.js";
+import type { BungeeDestinationData, BungeeOriginData } from "../schemas.js";
 import { OpenedIntentNotFoundError } from "../../../internal.js";
 import { BungeeStatusResponseSchema } from "../schemas.js";
 
@@ -17,20 +18,19 @@ export function extractOpenedIntent(response: unknown, txHash: Hex): OpenedInten
     }
 
     const entry = parsed.data.result[0]!;
-    const originChainId = entry.originData.originChainId;
-    const destinationChainId = entry.destinationData.destinationChainId;
+    const { originData, destinationData } = entry;
 
     return {
-        user: zeroAddress as Address,
-        originChainId,
-        openDeadline: 0,
-        fillDeadline: 0xffffffff,
+        user: originData.userAddress as Address,
+        originChainId: originData.originChainId,
+        openDeadline: originData.timestamp ?? 0,
+        fillDeadline: destinationData.timestamp ?? 0xffffffff,
         orderId: entry.hash as Hex,
-        maxSpent: [],
-        minReceived: [],
+        maxSpent: buildMaxSpent(originData),
+        minReceived: buildMinReceived(destinationData),
         fillInstructions: [
             {
-                destinationChainId,
+                destinationChainId: destinationData.destinationChainId,
                 destinationSettler: zeroAddress as Hex,
                 originData: "0x" as Hex,
             },
@@ -39,4 +39,24 @@ export function extractOpenedIntent(response: unknown, txHash: Hex): OpenedInten
         blockNumber: 0n,
         originContract: zeroAddress as Address,
     };
+}
+
+function buildMaxSpent(originData: BungeeOriginData): TokenTransfer[] {
+    return originData.input.map((input) => ({
+        token: input.token.address as Hex,
+        amount: BigInt(input.amount),
+        recipient: originData.userAddress as Hex,
+        chainId: originData.originChainId,
+    }));
+}
+
+function buildMinReceived(destinationData: BungeeDestinationData): TokenTransfer[] {
+    if (!destinationData.output) return [];
+
+    return destinationData.output.map((output) => ({
+        token: output.token.address as Hex,
+        amount: BigInt(output.amount),
+        recipient: destinationData.receiverAddress as Hex,
+        chainId: destinationData.destinationChainId,
+    }));
 }
