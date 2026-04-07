@@ -129,7 +129,7 @@ describe("adaptQuotes", () => {
         expect(quote!.order.steps[0]!.kind).toBe("transaction");
     });
 
-    it("serializes non-string txData.data as JSON", () => {
+    it("filters out quotes when txData.data is not a string", () => {
         const response = buildBungeeQuoteResponse();
         response.result.autoRoute = buildAutoRoute({
             userOp: "tx",
@@ -142,20 +142,12 @@ describe("adaptQuotes", () => {
             },
         });
 
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const quotes = adaptQuotes(response as never, PROVIDER_ID);
 
-        expect(quote!.order.steps).toHaveLength(1);
-        const step = quote!.order.steps[0]!;
-        if (step.kind === "transaction") {
-            expect(JSON.parse(step.transaction.data)).toEqual({
-                instructions: [],
-                lookupTables: [],
-                signers: [],
-            });
-        }
+        expect(quotes).toHaveLength(0);
     });
 
-    it("returns empty steps when txData fails schema validation", () => {
+    it("filters out quotes when txData fails schema validation", () => {
         const response = buildBungeeQuoteResponse();
         response.result.autoRoute = buildAutoRoute({
             userOp: "tx",
@@ -166,9 +158,9 @@ describe("adaptQuotes", () => {
             },
         });
 
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const quotes = adaptQuotes(response as never, PROVIDER_ID);
 
-        expect(quote!.order.steps).toHaveLength(0);
+        expect(quotes).toHaveLength(0);
     });
 
     it("maps preview inputs from response.result.input", () => {

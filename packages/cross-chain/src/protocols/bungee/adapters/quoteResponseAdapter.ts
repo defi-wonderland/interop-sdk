@@ -23,7 +23,9 @@ export function adaptQuotes(response: BungeeQuoteResponse, providerId: string): 
     const result = response.result;
 
     const autoRoutes = collectAutoRoutes(result);
-    return autoRoutes.map((autoRoute) => adaptAutoRouteQuote(response, autoRoute, providerId));
+    return autoRoutes
+        .map((autoRoute) => adaptAutoRouteQuote(response, autoRoute, providerId))
+        .filter((quote) => quote.order.steps.length > 0);
 }
 
 /** Collect all auto routes from the response, deduplicating singular + array forms. */
@@ -135,14 +137,15 @@ function buildTransactionStep(txData: BungeeTxData): Step | null {
     if (!parsed.success) return null;
 
     const { to, data, value, chainId } = parsed.data;
+    if (!to || typeof data !== "string") return null;
 
     return {
         kind: "transaction" as const,
         chainId,
         description: "Submit transaction to Bungee",
         transaction: {
-            to: to ?? "",
-            data: typeof data === "string" ? data : JSON.stringify(data),
+            to,
+            data,
             value,
         },
     };

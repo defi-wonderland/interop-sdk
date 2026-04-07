@@ -46,20 +46,31 @@ Notes:
 
 ## Creating the Provider
 
+### Public Sandbox (Default)
+
+```typescript
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+
+const bungeeProvider = createCrossChainProvider("bungee");
+```
+
+### Dedicated Backend
+
 ```typescript
 import { BungeeApiTier, createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-// Public sandbox (default) — no authentication needed
-const bungeeProvider = createCrossChainProvider("bungee");
-
-// Dedicated backend — with API key and affiliate ID
 const bungeeProvider = createCrossChainProvider("bungee", {
     tier: BungeeApiTier.Dedicated,
     apiKey: "your-api-key",
     affiliateId: "your-affiliate-id",
 });
+```
 
-// Custom base URL — overrides the tier URL
+### Custom Base URL
+
+```typescript
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+
 const bungeeProvider = createCrossChainProvider("bungee", {
     baseUrl: "https://my-proxy.example.com",
 });

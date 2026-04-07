@@ -17,7 +17,7 @@ This document lists all cross-chain providers supported by the Interop SDK.
 ## Provider Configuration
 
 ```typescript
-import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+import { BungeeApiTier, createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 // Across — no required config
 createCrossChainProvider("across");
@@ -32,14 +32,23 @@ createCrossChainProvider("oif", { solverId: "my-solver", url: "https://solver.ex
 
 // LiFi Intents — orderServerUrl is required
 createCrossChainProvider("lifi-intents", { orderServerUrl: "https://..." });
+
+// Bungee — no required config
+createCrossChainProvider("bungee");
+createCrossChainProvider("bungee", {
+    tier: BungeeApiTier.Dedicated,
+    apiKey: "...",
+    affiliateId: "...",
+});
 ```
 
-| Provider       | Required Config   | Optional Config       |
-| -------------- | ----------------- | --------------------- |
-| `across`       | (none)            | `isTestnet`           |
-| `relay`        | (none)            | `apiKey`, `isTestnet` |
-| `oif`          | `solverId`, `url` | —                     |
-| `lifi-intents` | `orderServerUrl`  | —                     |
+| Provider       | Required Config   | Optional Config                                                                                       |
+| -------------- | ----------------- | ----------------------------------------------------------------------------------------------------- |
+| `across`       | (none)            | `isTestnet`                                                                                           |
+| `relay`        | (none)            | `apiKey`, `isTestnet`                                                                                 |
+| `oif`          | `solverId`, `url` | —                                                                                                     |
+| `lifi-intents` | `orderServerUrl`  | —                                                                                                     |
+| `bungee`       | (none)            | `tier`, `apiKey`, `affiliateId`, `feeBps`, `feeTakerAddress`, `submissionModes`, `slippage`, `refuel` |
 
 ## Order Tracking Requirements
 
@@ -51,6 +60,7 @@ Different providers use different tracking mechanisms. Some need RPC URLs, other
 | Across (testnet) | OIF event-based      | Event-based  | Origin + destination chains |
 | Relay            | API-based            | API-based    | None                        |
 | OIF              | OIF event-based      | Event-based  | Origin + destination chains |
+| Bungee           | API-based            | API-based    | None                        |
 
 ## Creating Custom Providers
 

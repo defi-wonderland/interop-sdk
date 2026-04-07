@@ -31,7 +31,7 @@ export const BungeeConfigSchema = z
         /** Bungee affiliate ID for tracking (sent via `affiliate` header). */
         affiliateId: z.string().optional(),
         /** Supported transaction submission modes. `"user-transaction"` uses onchain flow, `"gasless"` uses permit2. Defaults to `["user-transaction"]`. */
-        submissionModes: z.array(SubmissionModeSchema).optional(),
+        submissionModes: z.array(SubmissionModeSchema).min(1).optional(),
         /** Default slippage tolerance for quotes (e.g. `"0.5"` for 0.5%). */
         slippage: z.string().optional(),
         /** Enable native gas refueling on the destination chain. */
