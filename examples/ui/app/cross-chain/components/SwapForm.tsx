@@ -243,8 +243,8 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   const getButtonText = () => {
     if (!isConnected) return 'Connect Wallet';
     if (isLoading) return mode === 'buildQuote' ? 'Building Quote...' : 'Fetching Quotes...';
-    if (hasInsufficientBalance) return 'Insufficient Balance';
     if (exceedsLimit) return 'Amount too large for demo';
+    if (hasInsufficientBalance) return 'Insufficient Balance';
     return mode === 'buildQuote' ? 'Build Quote' : 'Get Quotes';
   };
 
