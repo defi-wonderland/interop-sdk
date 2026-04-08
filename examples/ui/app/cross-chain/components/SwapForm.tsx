@@ -161,7 +161,14 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!connectedAddress || !inputTokenAddress || !outputTokenAddress || !amountIsValid || parsedInputAmount <= 0n) {
+    if (
+      !connectedAddress ||
+      !inputTokenAddress ||
+      !outputTokenAddress ||
+      !amountIsValid ||
+      parsedInputAmount <= 0n ||
+      exceedsLimit
+    ) {
       return;
     }
     if (mode === 'buildQuote' && (!outputAmountIsValid || parsedOutputAmount <= 0n)) {
