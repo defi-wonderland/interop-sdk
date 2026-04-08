@@ -1,3 +1,5 @@
+import { DEMO_MAX_AMOUNT } from '../constants/display';
+
 /** Sanitizes amount input: strips invalid chars, normalizes comma to dot, handles ".5" → "0.5" */
 export function sanitizeAmountInput(value: string, currentValue: string): string {
   const sanitized = value.replace(/[^\d.,]/g, '');
@@ -25,6 +27,15 @@ export function isValidAmount(value: string): boolean {
   const normalized = normalizeAmount(value);
   if (!/^\d+\.?\d*$/.test(normalized)) return false;
   return !isNaN(parseFloat(normalized));
+}
+
+/** Returns true if the amount exceeds the demo limit for the given token symbol. */
+export function exceedsDemoLimit(amount: string, symbol: string | undefined): boolean {
+  if (!symbol?.trim()) return false;
+  const max = DEMO_MAX_AMOUNT[symbol.trim().toUpperCase()];
+  if (max === undefined) return false;
+  if (!isValidAmount(amount)) return false;
+  return parseFloat(normalizeAmount(amount)) > max;
 }
 
 /** Formats the fee between two same-token amounts, e.g. "Fee: 0.0030 (0.60%)". Returns null if not applicable. */

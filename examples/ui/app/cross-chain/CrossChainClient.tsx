@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { isNativeAddress, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { Footer, Navigation } from '../components';
 import {
+  DemoBanner,
   DiscoveryLoading,
   DiscoveryError,
   DiscoveryEmpty,
@@ -181,6 +182,8 @@ export default function CrossChainClient() {
                 Experience seamless cross-chain transfers with intent-based routing
               </p>
             </header>
+
+            <DemoBanner />
 
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 items-start'>
               <div className='flex flex-col gap-6'>

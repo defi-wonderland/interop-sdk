@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isValidAmount, sanitizeAmountInput, formatFee } from './amountValidation';
+import { isValidAmount, sanitizeAmountInput, formatFee, exceedsDemoLimit } from './amountValidation';
 
 describe('sanitizeAmountInput', () => {
   it('allows digits and dot', () => {
@@ -60,5 +60,55 @@ describe('formatFee', () => {
   it('returns null for invalid values', () => {
     expect(formatFee('abc', '0.5')).toBeNull();
     expect(formatFee('0.5', 'xyz')).toBeNull();
+  });
+});
+
+describe('exceedsDemoLimit', () => {
+  it('returns true when amount exceeds max for stablecoins', () => {
+    expect(exceedsDemoLimit('101', 'USDC')).toBe(true);
+    expect(exceedsDemoLimit('101', 'USDT')).toBe(true);
+    expect(exceedsDemoLimit('101', 'DAI')).toBe(true);
+  });
+
+  it('returns true when amount exceeds max for ETH', () => {
+    expect(exceedsDemoLimit('0.04', 'ETH')).toBe(true);
+    expect(exceedsDemoLimit('0.04', 'WETH')).toBe(true);
+  });
+
+  it('returns true when amount exceeds max for BTC', () => {
+    expect(exceedsDemoLimit('0.002', 'BTC')).toBe(true);
+    expect(exceedsDemoLimit('0.002', 'WBTC')).toBe(true);
+  });
+
+  it('returns false when amount is at or below limit', () => {
+    expect(exceedsDemoLimit('100', 'USDC')).toBe(false);
+    expect(exceedsDemoLimit('50', 'USDT')).toBe(false);
+    expect(exceedsDemoLimit('0.03', 'ETH')).toBe(false);
+    expect(exceedsDemoLimit('0.001', 'WBTC')).toBe(false);
+  });
+
+  it('returns false for tokens not in the limit map', () => {
+    expect(exceedsDemoLimit('999999', 'SHIB')).toBe(false);
+  });
+
+  it('returns false when symbol is undefined or empty', () => {
+    expect(exceedsDemoLimit('999999', undefined)).toBe(false);
+    expect(exceedsDemoLimit('999999', '')).toBe(false);
+    expect(exceedsDemoLimit('999999', '   ')).toBe(false);
+  });
+
+  it('returns false for invalid amounts', () => {
+    expect(exceedsDemoLimit('', 'USDC')).toBe(false);
+    expect(exceedsDemoLimit('abc', 'ETH')).toBe(false);
+  });
+
+  it('is case-insensitive on symbol', () => {
+    expect(exceedsDemoLimit('101', 'usdc')).toBe(true);
+    expect(exceedsDemoLimit('101', 'Usdc')).toBe(true);
+  });
+
+  it('handles comma-separated amounts', () => {
+    expect(exceedsDemoLimit('100,5', 'USDC')).toBe(true);
+    expect(exceedsDemoLimit('99,5', 'USDC')).toBe(false);
   });
 });

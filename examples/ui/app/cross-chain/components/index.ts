@@ -1,3 +1,4 @@
+export { DemoBanner } from './DemoBanner';
 export { DiscoveryLoading, DiscoveryError, DiscoveryEmpty } from './DiscoveryState';
 export { ErrorList } from './ErrorList';
 export { ErrorQuoteCard } from './ErrorQuoteCard';

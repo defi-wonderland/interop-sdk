@@ -10,7 +10,13 @@ import { useRouteSelection } from '../hooks/useRouteSelection';
 import { BUILD_QUOTE_PROVIDERS } from '../services/sdk';
 import { useBalanceStore, type TokenBalance } from '../stores/balanceStore';
 import { useCrossChainStore, type SwapFormMode } from '../stores/crossChainStore';
-import { formatFee, isValidAmount, normalizeAmount, sanitizeAmountInput } from '../utils/amountValidation';
+import {
+  exceedsDemoLimit as checkDemoLimit,
+  formatFee,
+  isValidAmount,
+  normalizeAmount,
+  sanitizeAmountInput,
+} from '../utils/amountValidation';
 import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
 
@@ -100,6 +106,8 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   }, [inputAmount, inputTokenInfo?.decimals, amountIsValid]);
 
   const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.raw);
+
+  const exceedsLimit = checkDemoLimit(inputAmount, inputTokenInfo?.symbol);
 
   const outputTokenInfo = outputTokenAddress ? tokenConfig.TOKEN_INFO[outputChainId]?.[outputTokenAddress] : null;
   const isSameToken = Boolean(inputTokenInfo && outputTokenInfo && inputTokenInfo.symbol === outputTokenInfo.symbol);
@@ -215,6 +223,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     !isLoading &&
     !isDisabled &&
     !hasInsufficientBalance &&
+    !exceedsLimit &&
     !noFeeWarning &&
     (mode === 'getQuotes' || (outputAmountIsValid && parsedOutputAmount > 0n));
 
@@ -228,6 +237,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     if (!isConnected) return 'Connect Wallet';
     if (isLoading) return mode === 'buildQuote' ? 'Building Quote...' : 'Fetching Quotes...';
     if (hasInsufficientBalance) return 'Insufficient Balance';
+    if (exceedsLimit) return 'Amount too large for demo';
     return mode === 'buildQuote' ? 'Build Quote' : 'Get Quotes';
   };
 
@@ -485,6 +495,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
 
         <button
           type='submit'
+          data-testid='submit-button'
           disabled={!canSubmit}
           className={`w-full px-6 py-3 rounded-xl font-medium transition-all ${
             canSubmit
