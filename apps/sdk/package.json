@@ -1,6 +1,6 @@
 {
     "name": "@wonderland/interop",
-    "version": "0.3.2",
+    "version": "0.3.3",
     "description": "Complete SDK for blockchain interoperability with cross-chain operations and address utilities",
     "repository": {
         "type": "git",

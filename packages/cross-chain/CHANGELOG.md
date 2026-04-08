@@ -1,5 +1,20 @@
 # @defi-wonderland/interop-cross-chain
 
+## 0.5.0
+
+### Minor Changes
+
+-   c0d48a3: Fix LI.FI Intents order tracking with custom Open event parser, correct order status schema, handle 4xx as empty quotes, remove unused constants and exports
+-   ff33005: Add permit-based (gasless) transfer support for the Relay provider via EIP-712 signatures
+-   02ca558: Restrict buildQuote to same-asset cross-chain transfers only. Same-chain intents are now rejected with `SameChainIntentNotAllowed`. When input and output tokens differ, a `DifferentAssetNotAllowed` error is thrown directing users to `getQuotes()` for cross-token swaps. Cross-chain transfers with unavailable token metadata are also blocked unless `allowDangerousParameters` is set.
+
+### Patch Changes
+
+-   bfcbd52: Add Optimism SpokePool address to Across constants for buildQuote support on OP.
+-   26ce60c: Add asset-support validation to `buildQuote()` — rejects unsupported token routes before calling the provider
+-   Updated dependencies [a716e73]
+    -   @wonderland/interop-addresses@0.5.1
+
 ## 0.4.0
 
 ### Minor Changes
