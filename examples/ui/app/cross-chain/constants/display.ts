@@ -18,4 +18,5 @@ export const DEMO_MAX_AMOUNT: Record<string, number> = {
   WETH: 0.03,
   BTC: 0.001,
   WBTC: 0.001,
+  CBBTC: 0.001,
 };
