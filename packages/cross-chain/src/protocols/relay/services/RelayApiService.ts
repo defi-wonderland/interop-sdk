@@ -84,7 +84,12 @@ export class RelayApiService {
             });
             return RelaySubmitPermitResponseSchema.parse(response.data);
         } catch (error) {
-            this.throwProviderError(error, ProviderExecuteFailure, "Relay permit submission");
+            this.throwProviderError(
+                error,
+                ProviderExecuteFailure,
+                "Relay permit submission",
+                "submit",
+            );
         }
     }
 
@@ -93,6 +98,7 @@ export class RelayApiService {
         error: unknown,
         ErrorClass: new (message: string, cause?: string, stack?: string) => Error,
         operation: string,
+        verb: string = "get",
     ): never {
         const cause =
             error instanceof AxiosError
@@ -102,7 +108,7 @@ export class RelayApiService {
                   : String(error);
 
         throw new ErrorClass(
-            `Failed to get ${operation}`,
+            `Failed to ${verb} ${operation}`,
             cause,
             error instanceof Error ? error.stack : undefined,
         );

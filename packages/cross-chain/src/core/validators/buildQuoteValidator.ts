@@ -1,4 +1,5 @@
 import type { BuildQuoteRequest } from "../schemas/quoteRequest.js";
+import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import { DifferentAssetNotAllowed } from "../errors/DifferentAssetNotAllowed.exception.js";
 import { InsufficientFee } from "../errors/InsufficientFee.exception.js";
 import { InvalidDeadline } from "../errors/InvalidDeadline.exception.js";
@@ -22,7 +23,8 @@ type AssetRelationship = "same" | "different" | "unknown";
  * @throws ZeroAmount if input or output amount is zero
  * @throws InvalidDeadline if deadline is in the past or too soon
  * @throws SameChainIntentNotAllowed if input and output are on the same chain
- * @throws DifferentAssetNotAllowed if input and output are different assets or metadata is unavailable
+ * @throws AssetDiscoveryFailure if token metadata is unavailable for either asset
+ * @throws DifferentAssetNotAllowed if input and output are confirmed different assets
  * @throws InsufficientFee if same-token output amount >= input amount
  */
 export function validateBuildQuoteParams(
@@ -82,9 +84,17 @@ function validateNotSameChain(inputChainId: number, outputChainId: number): void
     }
 }
 
-/** @throws DifferentAssetNotAllowed if assets are confirmed different or metadata is unavailable. */
+/**
+ * @throws AssetDiscoveryFailure if token metadata is missing for either asset.
+ * @throws DifferentAssetNotAllowed if assets are confirmed different.
+ */
 function validateSameAssetRequired(relationship: AssetRelationship): void {
-    if (relationship !== "same") {
+    if (relationship === "unknown") {
+        throw new AssetDiscoveryFailure(
+            "Token metadata is unavailable for one or both assets. Cannot verify they are the same token. Use allowDangerousParameters to skip this check.",
+        );
+    }
+    if (relationship === "different") {
         throw new DifferentAssetNotAllowed();
     }
 }

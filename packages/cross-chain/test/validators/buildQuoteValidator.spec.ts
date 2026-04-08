@@ -3,6 +3,7 @@ import { arbitrum, base, mainnet, optimism } from "viem/chains";
 import { describe, expect, it } from "vitest";
 
 import type { BuildQuoteRequest } from "../../src/core/schemas/quoteRequest.js";
+import { AssetDiscoveryFailure } from "../../src/core/errors/AssetDiscoveryFailure.exception.js";
 import { DifferentAssetNotAllowed } from "../../src/core/errors/DifferentAssetNotAllowed.exception.js";
 import { InsufficientFee } from "../../src/core/errors/InsufficientFee.exception.js";
 import { InvalidDeadline } from "../../src/core/errors/InvalidDeadline.exception.js";
@@ -111,7 +112,8 @@ describe("validateBuildQuoteParams", () => {
                 input: { chainId: mainnet.id, assetAddress: USDC_MAINNET, amount: "1000000" },
                 output: { chainId: optimism.id, assetAddress: USDC_OPTIMISM, amount: "990000" },
             });
-            expect(() => validate(params, {})).toThrow(DifferentAssetNotAllowed);
+            expect(() => validate(params, {})).toThrow(AssetDiscoveryFailure);
+            expect(() => validate(params, {})).toThrow("Token metadata is unavailable");
         });
 
         it("matches addresses case-insensitively", () => {
