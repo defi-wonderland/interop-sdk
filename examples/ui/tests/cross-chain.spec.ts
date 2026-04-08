@@ -178,8 +178,10 @@ test.describe('Recipient address input', () => {
 
 test.describe('Amount input validation', () => {
   test('should enable Get Quotes button for valid positive amount', async ({ page }) => {
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
     await page.getByRole('textbox', { name: 'Amount' }).fill('10');
-    await expect(page.locator('button[type="submit"]')).toBeEnabled();
+    await expect(page.getByTestId('submit-button')).toBeEnabled();
   });
 
   test('should strip letters from input', async ({ page }) => {
@@ -281,9 +283,11 @@ test.describe('Build Quote submit validation', () => {
     await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15000 });
 
     await page.getByRole('button', { name: 'Build Quote' }).click();
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
     await page.getByLabel('You send').fill('10');
 
-    const submitBtn = page.locator('button[type="submit"]');
+    const submitBtn = page.getByTestId('submit-button');
     await expect(submitBtn).toBeDisabled();
     await expect(submitBtn).toHaveText('Build Quote');
   });
