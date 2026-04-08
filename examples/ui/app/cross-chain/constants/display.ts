@@ -7,16 +7,31 @@ export const NOT_AVAILABLE = 'N/A';
 export const UNKNOWN_PROVIDER = 'Unknown Provider';
 
 /**
+ * Tokens shown in the demo app. Adding a new value here requires
+ * a matching entry in DEMO_MAX_AMOUNT (enforced by the Record type).
+ */
+export enum DemoToken {
+  ETH = 'ETH',
+  WETH = 'WETH',
+  USDC = 'USDC',
+  USDT = 'USDT',
+  DAI = 'DAI',
+  WBTC = 'WBTC',
+  cbBTC = 'cbBTC',
+  mockUSDC = 'mockUSDC',
+}
+
+/**
  * Maximum input amounts per token symbol for the demo app.
  * Values are denominated in their native unit (e.g. 100 USDC, 0.03 ETH).
  */
-export const DEMO_MAX_AMOUNT: Record<string, number> = {
-  USDC: 100,
-  USDT: 100,
-  DAI: 100,
-  ETH: 0.03,
-  WETH: 0.03,
-  BTC: 0.001,
-  WBTC: 0.001,
-  CBBTC: 0.001,
+export const DEMO_MAX_AMOUNT: Record<DemoToken, number> = {
+  [DemoToken.USDC]: 100,
+  [DemoToken.USDT]: 100,
+  [DemoToken.DAI]: 100,
+  [DemoToken.mockUSDC]: 100,
+  [DemoToken.ETH]: 0.03,
+  [DemoToken.WETH]: 0.03,
+  [DemoToken.WBTC]: 0.001,
+  [DemoToken.cbBTC]: 0.001,
 };

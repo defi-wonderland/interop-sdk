@@ -75,9 +75,9 @@ describe('exceedsDemoLimit', () => {
     expect(exceedsDemoLimit('0.04', 'WETH')).toBe(true);
   });
 
-  it('returns true when amount exceeds max for BTC', () => {
-    expect(exceedsDemoLimit('0.002', 'BTC')).toBe(true);
+  it('returns true when amount exceeds max for BTC variants', () => {
     expect(exceedsDemoLimit('0.002', 'WBTC')).toBe(true);
+    expect(exceedsDemoLimit('0.002', 'cbBTC')).toBe(true);
   });
 
   it('returns false when amount is at or below limit', () => {
@@ -102,9 +102,14 @@ describe('exceedsDemoLimit', () => {
     expect(exceedsDemoLimit('abc', 'ETH')).toBe(false);
   });
 
-  it('is case-insensitive on symbol', () => {
-    expect(exceedsDemoLimit('101', 'usdc')).toBe(true);
-    expect(exceedsDemoLimit('101', 'Usdc')).toBe(true);
+  it('requires exact enum case for symbol', () => {
+    expect(exceedsDemoLimit('101', 'usdc')).toBe(false);
+    expect(exceedsDemoLimit('101', 'Usdc')).toBe(false);
+  });
+
+  it('enforces limits on mockUSDC', () => {
+    expect(exceedsDemoLimit('101', 'mockUSDC')).toBe(true);
+    expect(exceedsDemoLimit('100', 'mockUSDC')).toBe(false);
   });
 
   it('handles comma-separated amounts', () => {

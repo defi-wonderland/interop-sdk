@@ -1,4 +1,4 @@
-import { DEMO_MAX_AMOUNT } from '../constants/display';
+import { DEMO_MAX_AMOUNT, DemoToken } from '../constants/display';
 
 /** Sanitizes amount input: strips invalid chars, normalizes comma to dot, handles ".5" → "0.5" */
 export function sanitizeAmountInput(value: string, currentValue: string): string {
@@ -32,8 +32,9 @@ export function isValidAmount(value: string): boolean {
 /** Returns true if the amount exceeds the demo limit for the given token symbol. */
 export function exceedsDemoLimit(amount: string, symbol: string | undefined): boolean {
   if (!symbol?.trim()) return false;
-  const max = DEMO_MAX_AMOUNT[symbol.trim().toUpperCase()];
-  if (max === undefined) return false;
+  const key = symbol.trim();
+  if (!(key in DemoToken)) return false;
+  const max = DEMO_MAX_AMOUNT[key as DemoToken];
   if (!isValidAmount(amount)) return false;
   return parseFloat(normalizeAmount(amount)) > max;
 }
