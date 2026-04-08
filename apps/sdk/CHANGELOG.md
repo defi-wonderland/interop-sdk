@@ -1,4 +1,4 @@
-# @defi-wonderland/interop
+# @wonderland/interop
 
 ## 0.3.3
 

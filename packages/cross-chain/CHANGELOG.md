@@ -1,4 +1,4 @@
-# @defi-wonderland/interop-cross-chain
+# @wonderland/interop-cross-chain
 
 ## 0.5.0
 
