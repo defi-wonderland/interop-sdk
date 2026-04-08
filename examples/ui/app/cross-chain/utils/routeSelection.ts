@@ -1,9 +1,10 @@
+import { DemoToken } from '../constants/display';
 import { findTokenCaseInsensitive, type RouteParams } from './routeParams';
 import type { SwapFormMode } from '../stores/crossChainStore';
 import type { UITokenInfo } from '../types/assets';
 
 /** Tokens shown in the demo app. Anything outside this list is hidden regardless of provider. */
-const WHITELISTED_SYMBOLS = new Set(['ETH', 'WETH', 'USDC', 'USDT', 'DAI', 'WBTC', 'cbBTC', 'mockUSDC']);
+const WHITELISTED_SYMBOLS = new Set<string>(Object.values(DemoToken));
 
 export interface Selection {
   inputChainId: number;

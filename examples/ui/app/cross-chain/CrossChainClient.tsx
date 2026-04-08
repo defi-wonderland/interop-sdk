@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { isNativeAddress, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { Footer, Navigation } from '../components';
 import {
+  DemoBanner,
   DiscoveryLoading,
   DiscoveryError,
   DiscoveryEmpty,
@@ -168,11 +169,11 @@ export default function CrossChainClient() {
 
         <div className='flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 py-12 sm:px-6 sm:py-16'>
           <div className='flex-1 flex flex-col gap-12'>
-            <header className='flex flex-col items-center gap-4 text-center relative'>
-              <div className='absolute top-0 right-0'>
-                <NetworkSwitch disabled={isExecutionStarted} />
-              </div>
+            <div className='flex justify-end'>
+              <NetworkSwitch disabled={isExecutionStarted} />
+            </div>
 
+            <header className='flex flex-col items-center gap-4 text-center'>
               <div className='inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-light text-accent text-xs font-medium'>
                 EIP-7683 & Intents
               </div>
@@ -181,6 +182,8 @@ export default function CrossChainClient() {
                 Experience seamless cross-chain transfers with intent-based routing
               </p>
             </header>
+
+            <DemoBanner />
 
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 items-start'>
               <div className='flex flex-col gap-6'>
