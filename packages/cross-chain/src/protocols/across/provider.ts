@@ -20,6 +20,7 @@ import {
     ACROSS_TESTNET_TOKENS,
     ACROSS_UNSUPPORTED_CHAIN_IDS,
     ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
+    ACROSS_WRAPPED_NATIVE_ADDRESSES,
     AcrossConfigs,
     AcrossConfigSchema,
     AcrossDepositStatusResponse,
@@ -350,14 +351,28 @@ export class AcrossProvider extends CrossChainProvider {
         const quoteTimestamp = Math.floor(Date.now() / 1000);
         const recipient = params.output.recipient ?? params.user;
 
+        const nativeInput = isNativeAddress(params.input.assetAddress, "eip155");
+        const nativeOutput = isNativeAddress(params.output.assetAddress, "eip155");
+
+        // The SpokePool contract requires WETH addresses in calldata, even for
+        // native ETH deposits. It auto-wraps when inputToken == wrappedNativeToken
+        // and msg.value > 0, and auto-unwraps on the destination side.
+        const inputTokenForCalldata = nativeInput
+            ? (ACROSS_WRAPPED_NATIVE_ADDRESSES[params.input.chainId] ?? params.input.assetAddress)
+            : params.input.assetAddress;
+
+        const outputTokenForCalldata = nativeOutput
+            ? (ACROSS_WRAPPED_NATIVE_ADDRESSES[params.output.chainId] ?? params.output.assetAddress)
+            : params.output.assetAddress;
+
         const calldata = encodeFunctionData({
             abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
             functionName: "deposit",
             args: [
                 addressToBytes32(params.user),
                 addressToBytes32(recipient),
-                addressToBytes32(params.input.assetAddress),
-                addressToBytes32(params.output.assetAddress),
+                addressToBytes32(inputTokenForCalldata),
+                addressToBytes32(outputTokenForCalldata),
                 BigInt(params.input.amount),
                 BigInt(params.output.amount),
                 BigInt(params.output.chainId),
@@ -369,8 +384,6 @@ export class AcrossProvider extends CrossChainProvider {
             ],
         });
 
-        const native = isNativeAddress(params.input.assetAddress, "eip155");
-
         return {
             provider: this.providerId,
             order: {
@@ -381,12 +394,12 @@ export class AcrossProvider extends CrossChainProvider {
                         transaction: {
                             to: spokePoolAddress,
                             data: calldata,
-                            ...(native && { value: params.input.amount }),
+                            ...(nativeInput && { value: params.input.amount }),
                         },
                     },
                 ],
                 checks: {
-                    allowances: native
+                    allowances: nativeInput
                         ? []
                         : [
                               {
