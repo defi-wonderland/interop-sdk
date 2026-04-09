@@ -12,8 +12,7 @@ import { hexToBytes } from "viem";
 
 import type { Quote } from "../../../core/schemas/quote.js";
 import type { LifiIntentsQuoteEntry } from "../schemas.js";
-import { fromInteropAccountId } from "../../../core/utils/interopAccountId.js";
-import { adaptOifOrder } from "../../oif/adapters/orderAdapter.js";
+import { adaptOifOrder, fromInteropAccountId } from "../../../internal.js";
 
 function toErc7930(chainString: string, address: string): string {
     const chainId = Number(chainString.split(":")[1]);

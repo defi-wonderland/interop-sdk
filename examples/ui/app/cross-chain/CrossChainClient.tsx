@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { isNativeAddress, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { Footer, Navigation } from '../components';
 import {
+  DemoBanner,
   DiscoveryLoading,
   DiscoveryError,
   DiscoveryEmpty,
@@ -22,8 +23,8 @@ import { useBuildQuote, BuildQuoteStatus } from './hooks/useBuildQuote';
 import { useQuotes, QuoteStatus } from './hooks/useQuotes';
 import { useDiscoveredAssets } from './providers';
 import { useFillWorkaround } from './services/orderExecution/fillDetection';
+import { useCrossChainStore, type SwapFormMode } from './stores/crossChainStore';
 import { STEP } from './types/execution';
-import type { SwapFormMode } from './components/SwapForm';
 import type { Address } from 'viem';
 
 interface ToastState {
@@ -66,7 +67,8 @@ export default function CrossChainClient() {
   const [outputChainId, setOutputChainId] = useState<number>(0);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [lastQuoteParams, setLastQuoteParams] = useState<Parameters<typeof fetchQuotes>[0] | null>(null);
-  const [currentMode, setCurrentMode] = useState<SwapFormMode>('getQuotes');
+  const currentMode = useCrossChainStore((s) => s.mode);
+  const buildQuoteProviderId = useCrossChainStore((s) => s.buildQuoteProviderId);
   const isExecutionStarted = executionState.step !== STEP.IDLE;
 
   const effectiveQuotes: ExecutableQuote[] = currentMode === 'buildQuote' && builtQuote ? [builtQuote] : quotes;
@@ -97,7 +99,6 @@ export default function CrossChainClient() {
     setInputChainId(params.inputChainId);
     setOutputChainId(params.outputChainId);
     setSelectedQuote(null);
-    setCurrentMode(params.mode);
     resetExecution();
 
     if (params.mode === 'buildQuote') {
@@ -118,6 +119,7 @@ export default function CrossChainClient() {
         inputAmount: params.inputAmount,
         outputAmount: params.outputAmount,
         fillDeadlineSecs: params.fillDeadlineSecs,
+        providerId: buildQuoteProviderId,
       });
     } else {
       clearBuildQuote();
@@ -167,11 +169,11 @@ export default function CrossChainClient() {
 
         <div className='flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 py-12 sm:px-6 sm:py-16'>
           <div className='flex-1 flex flex-col gap-12'>
-            <header className='flex flex-col items-center gap-4 text-center relative'>
-              <div className='absolute top-0 right-0'>
-                <NetworkSwitch disabled={isExecutionStarted} />
-              </div>
+            <div className='flex justify-end'>
+              <NetworkSwitch disabled={isExecutionStarted} />
+            </div>
 
+            <header className='flex flex-col items-center gap-4 text-center'>
               <div className='inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-light text-accent text-xs font-medium'>
                 EIP-7683 & Intents
               </div>
@@ -180,6 +182,8 @@ export default function CrossChainClient() {
                 Experience seamless cross-chain transfers with intent-based routing
               </p>
             </header>
+
+            <DemoBanner />
 
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 items-start'>
               <div className='flex flex-col gap-6'>

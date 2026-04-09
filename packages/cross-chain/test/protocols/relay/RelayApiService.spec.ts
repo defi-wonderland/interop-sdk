@@ -6,6 +6,7 @@ import type {
     RelayQuoteRequest,
     RelayQuoteResponse,
 } from "../../../src/protocols/relay/schemas.js";
+import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { ProviderGetStatusFailure } from "../../../src/core/errors/ProviderGetStatusFailure.exception.js";
 import { RelayApiService } from "../../../src/protocols/relay/services/RelayApiService.js";
@@ -186,6 +187,34 @@ describe("RelayApiService", () => {
             mockGet.mockResolvedValue({ data: { status: "invalid-status" } });
             await expect(service.getStatus({ requestId: REQUEST_ID })).rejects.toThrow(
                 ProviderGetStatusFailure,
+            );
+        });
+    });
+
+    describe("submitPermit()", () => {
+        const SIGNATURE = "0xsig123" as `0x${string}`;
+        const PERMIT_BODY = { kind: "eip712", requestId: REQUEST_ID };
+
+        it("posts to /execute/permits with signature as query param and returns parsed response", async () => {
+            mockPost.mockResolvedValue({ data: { message: "Permit submitted" } });
+            const result = await service.submitPermit(PERMIT_BODY, SIGNATURE);
+            expect(result.message).toBe("Permit submitted");
+            expect(mockPost).toHaveBeenCalledWith("/execute/permits", PERMIT_BODY, {
+                params: { signature: SIGNATURE },
+            });
+        });
+
+        it("wraps AxiosError in ProviderExecuteFailure", async () => {
+            mockPost.mockRejectedValue(makeAxiosError("Network Error", "ERR_NETWORK"));
+            await expect(service.submitPermit(PERMIT_BODY, SIGNATURE)).rejects.toThrow(
+                ProviderExecuteFailure,
+            );
+        });
+
+        it("wraps ZodError from invalid response in ProviderExecuteFailure", async () => {
+            mockPost.mockResolvedValue({ data: { notMessage: "bad" } });
+            await expect(service.submitPermit(PERMIT_BODY, SIGNATURE)).rejects.toThrow(
+                ProviderExecuteFailure,
             );
         });
     });

@@ -1,5 +1,5 @@
 import { getAddress, Hex } from "viem";
-import { arbitrum, arbitrumSepolia, base, baseSepolia, sepolia } from "viem/chains";
+import { arbitrum, arbitrumSepolia, base, baseSepolia, optimism, sepolia } from "viem/chains";
 
 import type { NetworkAssets } from "../../core/types/assetDiscovery.js";
 
@@ -53,6 +53,7 @@ export { getAcrossApiUrl };
  */
 export const ACROSS_SPOKE_POOL_ADDRESSES: Record<number, Hex> = {
     // Mainnet addresses
+    [optimism.id]: getAddress("0x6f26Bf09B1C792e3228e5467807a900A503c0281"),
     [base.id]: getAddress("0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64"),
     [arbitrum.id]: getAddress("0xe35e9842fceaca96570b734083f4a58e8f7c5f2a"),
     // Testnet addresses

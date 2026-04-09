@@ -180,7 +180,7 @@ describe("LifiIntentsProvider", () => {
             expect(quotes).toHaveLength(0);
         });
 
-        it("throws ProviderGetQuoteFailure with API message on HTTP error", async () => {
+        it("returns empty array on 4xx HTTP error (unsupported route)", async () => {
             const error = new AxiosError("Request failed", "ERR_BAD_REQUEST");
             error.response = {
                 status: 400,
@@ -191,12 +191,27 @@ describe("LifiIntentsProvider", () => {
             } as AxiosError["response"];
             vi.mocked(axios.post).mockRejectedValue(error);
 
+            const quotes = await provider.getQuotes(mockQuoteRequest);
+            expect(quotes).toHaveLength(0);
+        });
+
+        it("throws ProviderGetQuoteFailure on 5xx server error", async () => {
+            const error = new AxiosError("Internal Server Error", "ERR_INTERNAL");
+            error.response = {
+                status: 500,
+                data: { message: "Internal error" },
+                statusText: "Internal Server Error",
+                headers: {},
+                config: { headers: {} },
+            } as AxiosError["response"];
+            vi.mocked(axios.post).mockRejectedValue(error);
+
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
-                /No Polymer oracle configured/,
+                /LI\.FI Intents quote failed/,
             );
         });
 
-        it("throws ProviderGetQuoteFailure on AxiosError without response data", async () => {
+        it("throws ProviderGetQuoteFailure on network error (no response)", async () => {
             const error = new AxiosError("Connection refused", "ECONNREFUSED");
             error.message = "Connection refused";
             vi.mocked(axios.post).mockRejectedValue(error);
@@ -238,9 +253,9 @@ describe("LifiIntentsProvider", () => {
     });
 
     describe("getTrackingConfig", () => {
-        it("returns OIF opened intent parser config", () => {
+        it("returns LI.FI opened intent parser config", () => {
             const config = provider.getTrackingConfig();
-            expect(config.openedIntentParserConfig).toEqual({ type: "oif" });
+            expect(config.openedIntentParserConfig).toEqual({ type: "lifi-intents" });
         });
 
         it("returns API-based fill watcher config", () => {
@@ -332,9 +347,9 @@ describe("LifiIntentsProvider", () => {
             expect(endpoint).toBe("/orders/status?onChainOrderId=0xdeadbeef");
         });
 
-        it("extractFillEvent returns Pending for empty data", () => {
+        it("extractFillEvent returns Pending for empty/invalid response", () => {
             const config = LifiIntentsProvider.getFillWatcherConfig(MOCK_ORDER_SERVER_URL);
-            const result = config.extractFillEvent({ data: [] }, fillParams);
+            const result = config.extractFillEvent({} as never, fillParams);
 
             expect(result.event).toBeNull();
             expect(result.status).toBe(OrderStatus.Pending);
@@ -345,16 +360,12 @@ describe("LifiIntentsProvider", () => {
             const orderId = "0x1234567890abcdef" as `0x${string}`;
             const result = config.extractFillEvent(
                 {
-                    data: [
-                        {
-                            meta: {
-                                orderStatus: "Settled",
-                                onChainOrderId: orderId,
-                                orderDeliveredTxHash: "0xfillhash",
-                                settledAt: "2025-01-15T10:00:00Z",
-                            },
-                        },
-                    ],
+                    meta: {
+                        orderStatus: "Settled",
+                        onChainOrderId: orderId,
+                        orderDeliveredTxHash: "0xfillhash",
+                        settledAt: "2025-01-15T10:00:00Z",
+                    },
                 },
                 { ...fillParams, orderId },
             );
@@ -369,14 +380,10 @@ describe("LifiIntentsProvider", () => {
             const config = LifiIntentsProvider.getFillWatcherConfig(MOCK_ORDER_SERVER_URL);
             const result = config.extractFillEvent(
                 {
-                    data: [
-                        {
-                            meta: {
-                                orderStatus: "Delivered",
-                                onChainOrderId: "0xabc",
-                            },
-                        },
-                    ],
+                    meta: {
+                        orderStatus: "Delivered",
+                        onChainOrderId: "0xabc",
+                    },
                 },
                 { ...fillParams, orderId: "0xabc" as `0x${string}` },
             );
@@ -389,15 +396,11 @@ describe("LifiIntentsProvider", () => {
             const config = LifiIntentsProvider.getFillWatcherConfig(MOCK_ORDER_SERVER_URL);
             const result = config.extractFillEvent(
                 {
-                    data: [
-                        {
-                            meta: {
-                                orderStatus: "Expired",
-                                onChainOrderId: fillParams.orderId,
-                                expiredAt: "2025-01-15T12:00:00Z",
-                            },
-                        },
-                    ],
+                    meta: {
+                        orderStatus: "Expired",
+                        onChainOrderId: fillParams.orderId,
+                        expiredAt: "2025-01-15T12:00:00Z",
+                    },
                 },
                 fillParams,
             );
@@ -411,14 +414,10 @@ describe("LifiIntentsProvider", () => {
             const config = LifiIntentsProvider.getFillWatcherConfig(MOCK_ORDER_SERVER_URL);
             const result = config.extractFillEvent(
                 {
-                    data: [
-                        {
-                            meta: {
-                                orderStatus: "Failed",
-                                onChainOrderId: fillParams.orderId,
-                            },
-                        },
-                    ],
+                    meta: {
+                        orderStatus: "Failed",
+                        onChainOrderId: fillParams.orderId,
+                    },
                 },
                 fillParams,
             );
@@ -432,14 +431,10 @@ describe("LifiIntentsProvider", () => {
             const config = LifiIntentsProvider.getFillWatcherConfig(MOCK_ORDER_SERVER_URL);
             const result = config.extractFillEvent(
                 {
-                    data: [
-                        {
-                            meta: {
-                                orderStatus: "Settled",
-                                onChainOrderId: fillParams.orderId,
-                            },
-                        },
-                    ],
+                    meta: {
+                        orderStatus: "Settled",
+                        onChainOrderId: fillParams.orderId,
+                    },
                 },
                 fillParams,
             );
@@ -448,27 +443,17 @@ describe("LifiIntentsProvider", () => {
             expect(result.event).toBeNull();
         });
 
-        it("extractFillEvent matches by onChainOrderId among multiple entries", () => {
+        it("extractFillEvent reads meta directly from flat response object", () => {
             const config = LifiIntentsProvider.getFillWatcherConfig(MOCK_ORDER_SERVER_URL);
             const targetId = "0xtarget" as `0x${string}`;
             const result = config.extractFillEvent(
                 {
-                    data: [
-                        {
-                            meta: {
-                                orderStatus: "Signed",
-                                onChainOrderId: "0xother",
-                            },
-                        },
-                        {
-                            meta: {
-                                orderStatus: "Settled",
-                                onChainOrderId: targetId,
-                                orderDeliveredTxHash: "0xfill",
-                                settledAt: "2025-06-01T00:00:00Z",
-                            },
-                        },
-                    ],
+                    meta: {
+                        orderStatus: "Settled",
+                        onChainOrderId: targetId,
+                        orderDeliveredTxHash: "0xfill",
+                        settledAt: "2025-06-01T00:00:00Z",
+                    },
                 },
                 { ...fillParams, orderId: targetId },
             );
@@ -477,39 +462,16 @@ describe("LifiIntentsProvider", () => {
             expect(result.event!.fillTxHash).toBe("0xfill");
         });
 
-        it("extractFillEvent falls back to data[0] when no onChainOrderId match", () => {
-            const config = LifiIntentsProvider.getFillWatcherConfig(MOCK_ORDER_SERVER_URL);
-            const result = config.extractFillEvent(
-                {
-                    data: [
-                        {
-                            meta: {
-                                orderStatus: "Delivered",
-                                onChainOrderId: "0xdifferent",
-                            },
-                        },
-                    ],
-                },
-                { ...fillParams, orderId: "0xnonexistent" as `0x${string}` },
-            );
-
-            expect(result.status).toBe(OrderStatus.Settling);
-        });
-
         it("extractFillEvent uses Date.now() when settledAt is missing", () => {
             const config = LifiIntentsProvider.getFillWatcherConfig(MOCK_ORDER_SERVER_URL);
             const nowSec = Math.floor(Date.now() / 1000);
             const result = config.extractFillEvent(
                 {
-                    data: [
-                        {
-                            meta: {
-                                orderStatus: "Settled",
-                                onChainOrderId: fillParams.orderId,
-                                orderDeliveredTxHash: "0xfill",
-                            },
-                        },
-                    ],
+                    meta: {
+                        orderStatus: "Settled",
+                        onChainOrderId: fillParams.orderId,
+                        orderDeliveredTxHash: "0xfill",
+                    },
                 },
                 fillParams,
             );

@@ -27,7 +27,7 @@ const INTEROP_NAME_REGEX = new RegExp(
  * If there is a <chain> but no <chainType>, checks if the <chain> is a valid chain type.
  * If it is, returns it as the chainType (with chain empty). Otherwise, returns it as chainReference.
  *
- * @param value - The Interoperable Name string (e.g., "alice.eth@eip155:1#ABCD1234")
+ * @param value - The Interoperable Name string (e.g., "alice.eth@eip155:1")
  * @returns Raw components extracted from the string
  * @throws {InvalidInteroperableName} If the string doesn't match the expected format
  */

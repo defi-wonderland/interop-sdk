@@ -3,6 +3,8 @@ import {
   createCrossChainProvider,
   createAggregator,
   OrderTrackerFactory,
+  LIFI_INTENTS_ORDER_SERVER_URL,
+  LIFI_INTENTS_ORDER_SERVER_DEV_URL,
   type Aggregator,
   type CrossChainProvider,
 } from '@wonderland/interop-cross-chain';
@@ -10,27 +12,44 @@ import { MAINNET_RPC_URLS, TESTNET_RPC_URLS } from '../constants/chains';
 
 const OIF_API_URL = 'https://oif-api.openzeppelin.com/api';
 
+interface ProviderConfig {
+  providerId: string;
+  displayName: string;
+  supportsBuildQuote: boolean;
+}
+
 /**
- * Provider configuration with display names
+ * Provider configuration with display names and capability flags
  */
-const PROVIDER_CONFIGS = [
+const PROVIDER_CONFIGS: ProviderConfig[] = [
   {
     providerId: 'across',
     displayName: 'Across Protocol',
+    supportsBuildQuote: true,
   },
   {
     providerId: 'oif',
     displayName: 'OIF Sample Solver',
+    // TODO: re-enable once OZ confirms on-chain discovery is active on the production solver.
+    // SDK-side implementation is done (StandardOrder encoding, settler addresses, event-based tracking).
+    supportsBuildQuote: false,
   },
   {
     providerId: 'relay',
     displayName: 'Relay',
+    supportsBuildQuote: false,
+  },
+  {
+    providerId: 'lifi-intents',
+    displayName: 'LI.FI',
+    supportsBuildQuote: false,
   },
 ];
 
 export function buildExecutor(isTestnet: boolean): Aggregator {
   const rpcUrls = isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
   const oifSolverId = isTestnet ? 'testnet-solver' : 'mainnet-solver';
+  const lifiUrl = isTestnet ? LIFI_INTENTS_ORDER_SERVER_DEV_URL : LIFI_INTENTS_ORDER_SERVER_URL;
 
   const providers: CrossChainProvider[] = [
     createCrossChainProvider(PROTOCOLS.ACROSS, {
@@ -45,6 +64,10 @@ export function buildExecutor(isTestnet: boolean): Aggregator {
     createCrossChainProvider(PROTOCOLS.RELAY, {
       isTestnet,
       providerId: 'relay',
+    }),
+    createCrossChainProvider(PROTOCOLS.LIFI_INTENTS, {
+      orderServerUrl: lifiUrl,
+      providerId: 'lifi-intents',
     }),
   ];
 
@@ -63,3 +86,6 @@ export function getProviderDisplayName(providerId: string): string {
   const config = PROVIDER_CONFIGS.find((c) => c.providerId === providerId);
   return config?.displayName || providerId;
 }
+
+/** Providers that support the buildQuote flow. */
+export const BUILD_QUOTE_PROVIDERS = PROVIDER_CONFIGS.filter((c) => c.supportsBuildQuote);

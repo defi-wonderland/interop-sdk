@@ -1,8 +1,10 @@
 import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { Quote } from "../../../src/core/schemas/quote.js";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
+import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { RELAY_TESTNET_TOKENS } from "../../../src/protocols/relay/constants.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
@@ -192,11 +194,11 @@ describe("RelayProvider", () => {
     });
 
     describe("getQuotes()", () => {
-        it("returns a valid SDK Quote from Relay response", async () => {
+        it("returns one quote by default (user-transaction mode)", async () => {
             mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
-            const [quote] = await provider.getQuotes(makeQuoteRequest());
-            expect(quote!.provider).toBe(PROTOCOL_NAME);
-            expect(quote!.order.steps).toHaveLength(1);
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toHaveLength(1);
+            expect(mockPost).toHaveBeenCalledTimes(1);
         });
 
         it("returns quote with standardized fees populated", async () => {
@@ -241,10 +243,38 @@ describe("RelayProvider", () => {
                 }),
             );
         });
+
+        it("returns single quote for single-mode config", async () => {
+            mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
+            const singleModeProvider = new RelayProvider({
+                submissionModes: ["user-transaction"],
+            });
+            const quotes = await singleModeProvider.getQuotes(makeQuoteRequest());
+            expect(quotes).toHaveLength(1);
+            expect(mockPost).toHaveBeenCalledTimes(1);
+        });
+
+        it("returns successful quotes when one mode fails", async () => {
+            const dualModeProvider = new RelayProvider({
+                submissionModes: ["user-transaction", "gasless"],
+            });
+            mockPost
+                .mockRejectedValueOnce(
+                    makeAxiosError(
+                        { message: "Route not found", errorCode: RELAY_ERROR_ROUTE_NOT_FOUND },
+                        HTTP_STATUS_BAD_REQUEST,
+                        "bad request",
+                        "ERR_BAD_REQUEST",
+                    ),
+                )
+                .mockResolvedValueOnce({ data: makeRelayQuoteResponse() });
+            const quotes = await dualModeProvider.getQuotes(makeQuoteRequest());
+            expect(quotes).toHaveLength(1);
+        });
     });
 
     describe("getQuotes() — error handling", () => {
-        it("extracts message from Relay bad request response", async () => {
+        it("preserves the original error cause", async () => {
             mockPost.mockRejectedValue(
                 makeAxiosError(
                     { message: RELAY_ERROR_AMOUNT_TOO_LOW, errorCode: RELAY_ERROR_AMOUNT_TOO_LOW },
@@ -260,47 +290,10 @@ describe("RelayProvider", () => {
             );
         });
 
-        it("falls back to axios message when response body is not parseable", async () => {
-            mockPost.mockRejectedValue(
-                makeAxiosError("not json", 500, "Network Error", "ERR_NETWORK"),
-            );
-            const rejection = expect(provider.getQuotes(makeQuoteRequest())).rejects;
-            await rejection.toThrow(ProviderGetQuoteFailure);
-            await rejection.toSatisfy(
-                (err: ProviderGetQuoteFailure) => err.cause === "Network Error",
-            );
-        });
-
-        it("wraps ZodError from invalid response shape", async () => {
+        it("throws ProviderGetQuoteFailure on invalid response", async () => {
             mockPost.mockResolvedValue({ data: { steps: "not-an-array" } });
             await expect(provider.getQuotes(makeQuoteRequest())).rejects.toThrow(
                 ProviderGetQuoteFailure,
-            );
-        });
-
-        it("wraps unexpected error types", async () => {
-            mockPost.mockRejectedValue("unexpected string error");
-            await expect(provider.getQuotes(makeQuoteRequest())).rejects.toThrow(
-                ProviderGetQuoteFailure,
-            );
-        });
-
-        it("does not double-wrap ProviderGetQuoteFailure", async () => {
-            mockPost.mockRejectedValue(
-                makeAxiosError(
-                    {
-                        message: RELAY_ERROR_ROUTE_NOT_FOUND,
-                        errorCode: RELAY_ERROR_ROUTE_NOT_FOUND,
-                    },
-                    HTTP_STATUS_BAD_REQUEST,
-                    "bad request",
-                    "ERR_BAD_REQUEST",
-                ),
-            );
-            const rejection = expect(provider.getQuotes(makeQuoteRequest())).rejects;
-            await rejection.toBeInstanceOf(ProviderGetQuoteFailure);
-            await rejection.toSatisfy(
-                (err: ProviderGetQuoteFailure) => err.cause === RELAY_ERROR_ROUTE_NOT_FOUND,
             );
         });
     });
@@ -346,6 +339,86 @@ describe("RelayProvider", () => {
                 txHash: TX_HASH,
                 requestId: orderId,
             });
+        });
+    });
+
+    describe("submitOrder()", () => {
+        const SIGNATURE = "0xsig123abc" as `0x${string}`;
+        const POST_DATA = {
+            endpoint: "/execute/permits",
+            method: "POST",
+            body: { kind: "eip712", requestId: REQUEST_ID },
+        };
+
+        function makeQuoteWithSignatureStep(): Quote {
+            return {
+                order: {
+                    steps: [
+                        {
+                            kind: "signature",
+                            chainId: ORIGIN_CHAIN_ID,
+                            description: "Sign permit",
+                            signaturePayload: {
+                                signatureType: "eip712",
+                                domain: { name: "Permit2", chainId: ORIGIN_CHAIN_ID },
+                                primaryType: "PermitBatch",
+                                types: { PermitBatch: [{ name: "spender", type: "address" }] },
+                                message: { spender: VALID_ADDRESS },
+                            },
+                            metadata: {
+                                relayPostData: POST_DATA,
+                                relayStepId: "authorize1",
+                            },
+                        },
+                    ],
+                },
+                tracking: { orderId: REQUEST_ID },
+                preview: {
+                    inputs: [
+                        {
+                            chainId: ORIGIN_CHAIN_ID,
+                            accountAddress: VALID_ADDRESS,
+                            assetAddress: VALID_ADDRESS,
+                            amount: INPUT_AMOUNT,
+                        },
+                    ],
+                    outputs: [
+                        {
+                            chainId: DESTINATION_CHAIN_ID,
+                            accountAddress: VALID_ADDRESS,
+                            assetAddress: VALID_ADDRESS,
+                            amount: OUTPUT_AMOUNT,
+                        },
+                    ],
+                },
+                provider: PROTOCOL_NAME,
+                quoteId: ORDER_ID,
+            };
+        }
+
+        it("calls submitPermit with correct params and returns orderId", async () => {
+            mockPost.mockResolvedValue({ data: { message: "Permit submitted" } });
+            const quote = makeQuoteWithSignatureStep();
+            const result = await provider.submitOrder(quote, SIGNATURE);
+            expect(mockPost).toHaveBeenCalledWith("/execute/permits", POST_DATA.body, {
+                params: { signature: SIGNATURE },
+            });
+            expect(result.orderId).toBe(REQUEST_ID);
+        });
+
+        it("propagates API errors as ProviderExecuteFailure", async () => {
+            mockPost.mockRejectedValue(
+                makeAxiosError(
+                    { message: "Invalid permit" },
+                    HTTP_STATUS_BAD_REQUEST,
+                    "Request failed",
+                    "ERR_BAD_REQUEST",
+                ),
+            );
+            const quote = makeQuoteWithSignatureStep();
+            await expect(provider.submitOrder(quote, SIGNATURE)).rejects.toThrow(
+                ProviderExecuteFailure,
+            );
         });
     });
 

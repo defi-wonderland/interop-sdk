@@ -134,6 +134,32 @@ console.log(`Got ${response.quotes.length} quotes`);
 response.errors.forEach((err) => console.warn(`Provider error: ${err.errorMsg}`));
 ```
 
+## Quick reference
+
+### Execution flow
+
+1. **Create provider** → `createCrossChainProvider("across")` (or use `createAggregator` for multiple)
+2. **Get quotes** → `provider.getQuotes(request)` or `aggregator.getQuotes(request)`
+3. **Check order type** → `isSignatureOnlyOrder(quote.order)`
+    - **Signature (gasless):** `signTypedData()` → `provider.submitOrder(quote, signature)`
+    - **Transaction (user pays gas):** `walletClient.sendTransaction(...)` (see [example above](#execute-the-transaction) — convert string `value` to `BigInt`)
+4. **Track** → `createOrderTracker(provider)` for single-provider or `aggregator.track({ txHash, providerId, originChainId, destinationChainId })` for aggregator
+
+### Which function should I use?
+
+| I want to...                            | Use                                                                    |
+| --------------------------------------- | ---------------------------------------------------------------------- |
+| Get quotes from one provider            | `provider.getQuotes(request)`                                          |
+| Get quotes from multiple providers      | `aggregator.getQuotes(request)`                                        |
+| Build a quote locally (no provider API) | `aggregator.buildQuote(providerId, request)`                           |
+| Submit a signed order                   | `provider.submitOrder(quote, signature)`                               |
+| Check if order is gasless               | `isSignatureOnlyOrder(quote.order)`                                    |
+| Get signature steps from an order       | `getSignatureSteps(quote.order)`                                       |
+| Get transaction steps from an order     | `getTransactionSteps(quote.order)`                                     |
+| Track an order (single provider)        | `createOrderTracker(provider)` → `tracker.watchOrder({ txHash, ... })` |
+| Track an order (aggregator)             | `aggregator.track({ txHash, providerId, originChainId, ... })`         |
+| Discover supported tokens               | `aggregator.discoverAssets()`                                          |
+
 ## Next steps
 
 -   [Order Tracking](./intent-tracking.md) — monitor your transfer from initiation to completion

@@ -33,10 +33,36 @@ export { toChainIdentifier, fromChainIdentifier } from "./address/chainIdentifie
 export {
     parseName,
     formatName,
+    resolveAddress,
+    resolveChain,
     resolveChainFromRegistry,
     getRegisteredChains,
+    isValidChain,
+    isValidChainType,
 } from "./name/index.js";
 export type { RegisteredChain, GetRegisteredChainsOptions } from "./name/index.js";
+
+// Error classes
+export {
+    AddressResolutionFailed,
+    BytesConversionFailed,
+    ChecksumMismatchWarning,
+    ENSLookupFailed,
+    ENSNotFound,
+    FieldNotPresent,
+    InvalidAddress,
+    InvalidBinaryInteropAddress,
+    InvalidChainIdentifier,
+    InvalidChainReference,
+    InvalidChainType,
+    InvalidChecksum,
+    InvalidConversionType,
+    InvalidDecimal,
+    InvalidInteroperableAddress,
+    InvalidInteroperableName,
+    MissingInteroperableName,
+    UnsupportedChainType,
+} from "./errors/index.js";
 
 // Type guards
 export { isTextAddress, isBinaryAddress } from "./types/interopAddress.js";
