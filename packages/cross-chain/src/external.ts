@@ -21,6 +21,9 @@ export {
     LifiIntentsProvider,
     RelayProvider,
     type RelayConfigs,
+    BungeeProvider,
+    BungeeApiTier,
+    type BungeeConfigs,
     createCrossChainProvider,
     // Aggregator
     Aggregator,

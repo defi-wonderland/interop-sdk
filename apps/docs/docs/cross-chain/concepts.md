@@ -81,17 +81,19 @@ A provider is an adapter that translates the SDK's standardized `QuoteRequest` i
 
 ### Available providers
 
-| Provider                       | Status | Execution Modes    | Tracking                        |
-| ------------------------------ | ------ | ------------------ | ------------------------------- |
-| [Across](./across-provider.md) | Active | User (transaction) | API (mainnet), Events (testnet) |
-| [Relay](./relay-provider.md)   | Active | User (transaction) | API-based                       |
-| [OIF](./oif-provider.md)       | Active | Protocol + User    | Event-based                     |
+| Provider                       | Status | Execution Modes                         | Tracking                        |
+| ------------------------------ | ------ | --------------------------------------- | ------------------------------- |
+| [Across](./across-provider.md) | Active | User (transaction)                      | API (mainnet), Events (testnet) |
+| [Relay](./relay-provider.md)   | Active | User (transaction)                      | API-based                       |
+| [OIF](./oif-provider.md)       | Active | Protocol + User                         | Event-based                     |
+| [Bungee](./bungee-provider.md) | Active | User (transaction) + Protocol (permit2) | API-based                       |
 
 ### Choosing a provider
 
 -   **Relay** is a good default — active on mainnet, API-based tracking (no extra RPC URLs needed), automatic transaction notification.
 -   **Across** is well-established and active on both mainnet and testnet. Mainnet uses API tracking; testnet requires RPC URLs for event-based tracking.
 -   **OIF** offers the most flexibility — supports both gasless (protocol) and user-pays-gas execution modes. Requires access to an OIF-compliant solver endpoint.
+-   **Bungee** supports both gasless (permit2 signatures) and user-pays-gas (onchain transactions, default). The onchain flow works for native tokens and ERC20s. API-based tracking, no extra RPC URLs needed.
 
 ## Aggregation and sorting
 
