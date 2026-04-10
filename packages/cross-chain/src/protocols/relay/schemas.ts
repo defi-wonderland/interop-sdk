@@ -166,7 +166,7 @@ const RelaySignDataSchema = z.discriminatedUnion("signatureKind", [
 const RelayPostBodySchema = z.object({
     kind: z.string(),
     requestId: z.string().optional(),
-    api: z.string().optional(),
+    api: z.enum(["bridge", "swap", "user-swap"]).optional(),
 });
 
 /** Schema for the post endpoint info in a signature step. */
