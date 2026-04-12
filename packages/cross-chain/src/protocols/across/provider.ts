@@ -56,7 +56,7 @@ import {
 import { decodeAcrossCalldata } from "./utils.js";
 
 const ZERO_BYTES32 = pad("0x00" as Hex, { size: 32 });
-const ACROSS_DEFAULT_MESSAGE: Hex = "0x73c0de";
+const ACROSS_DEFAULT_MESSAGE: Hex = "0x";
 
 function addressToBytes32(address: string): Hex {
     return pad(address as Address, { size: 32 });
@@ -283,10 +283,18 @@ export class AcrossProvider extends CrossChainProvider {
         const { input, output } = params;
         const recipient = output.recipient ?? params.user;
 
+        // Calldata contains WETH addresses for native tokens, so normalize before comparing.
+        const inputTokenForCalldata = isNativeAddress(input.assetAddress, "eip155")
+            ? (ACROSS_WRAPPED_NATIVE_ADDRESSES[input.chainId] ?? input.assetAddress)
+            : input.assetAddress;
+        const outputTokenForCalldata = isNativeAddress(output.assetAddress, "eip155")
+            ? (ACROSS_WRAPPED_NATIVE_ADDRESSES[output.chainId] ?? output.assetAddress)
+            : output.assetAddress;
+
         if (!isAddressEqual(decoded.depositor as Address, params.user as Address)) return false;
-        if (!isAddressEqual(decoded.inputToken as Address, input.assetAddress as Address))
+        if (!isAddressEqual(decoded.inputToken as Address, inputTokenForCalldata as Address))
             return false;
-        if (!isAddressEqual(decoded.outputToken as Address, output.assetAddress as Address))
+        if (!isAddressEqual(decoded.outputToken as Address, outputTokenForCalldata as Address))
             return false;
         if (!isAddressEqual(decoded.recipient as Address, recipient as Address)) return false;
         if (decoded.destinationChainId !== BigInt(output.chainId)) return false;

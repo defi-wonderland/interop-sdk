@@ -124,7 +124,7 @@ describe("AcrossProvider.buildQuote", () => {
             expect(exclusiveRelayer).toBe(pad("0x00" as Hex, { size: 32 }));
             expect(fillDeadline).toBe(params.fillDeadline);
             expect(exclusivityParameter).toBe(0);
-            expect(message).toBe("0x73c0de");
+            expect(message).toBe("0x");
         }
     });
 
