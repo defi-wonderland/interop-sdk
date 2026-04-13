@@ -180,7 +180,7 @@ describe("LifiIntentsProvider", () => {
             expect(quotes).toHaveLength(0);
         });
 
-        it("returns empty array on 4xx HTTP error (unsupported route)", async () => {
+        it("throws ProviderGetQuoteFailure on 4xx HTTP error", async () => {
             const error = new AxiosError("Request failed", "ERR_BAD_REQUEST");
             error.response = {
                 status: 400,
@@ -191,8 +191,9 @@ describe("LifiIntentsProvider", () => {
             } as AxiosError["response"];
             vi.mocked(axios.post).mockRejectedValue(error);
 
-            const quotes = await provider.getQuotes(mockQuoteRequest);
-            expect(quotes).toHaveLength(0);
+            await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
+                ProviderGetQuoteFailure,
+            );
         });
 
         it("throws ProviderGetQuoteFailure on 5xx server error", async () => {
