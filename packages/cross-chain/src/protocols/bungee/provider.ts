@@ -188,19 +188,16 @@ export class BungeeProvider extends CrossChainProvider {
         };
     }
 
-    /** Collect quotes from settled results, surfacing errors only when no quotes were produced. */
+    /** Collect quotes from settled results, throwing only when every mode rejected. */
     private collectQuotes(results: PromiseSettledResult<Quote[]>[]): Quote[] {
         const fulfilled = results.filter(
             (r): r is PromiseFulfilledResult<Quote[]> => r.status === "fulfilled",
         );
-        const quotes = fulfilled.flatMap((r) => r.value);
 
-        if (quotes.length > 0) return quotes;
+        if (fulfilled.length > 0) return fulfilled.flatMap((r) => r.value);
 
         const firstError = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
-        if (firstError) throw firstError.reason as Error;
-
-        return [];
+        throw (firstError?.reason as Error) ?? new ProviderGetQuoteFailure("No quotes returned");
     }
 
     /** Fetch quotes for a single submission mode. */
