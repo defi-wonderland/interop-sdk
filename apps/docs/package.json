@@ -3,10 +3,11 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
-        "build": "docusaurus build",
+        "build": "npm run generate && docusaurus build",
         "clear": "docusaurus clear",
         "deploy": "docusaurus deploy",
         "docusaurus": "docusaurus",
+        "generate": "npx tsx scripts/generate-llms-txt.ts",
         "serve": "docusaurus serve",
         "start": "docusaurus start",
         "swizzle": "docusaurus swizzle",
