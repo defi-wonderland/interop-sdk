@@ -13,6 +13,7 @@ import {
     CrossChainProvider,
     CustomApiAssetDiscoveryConfig,
     FillWatcherConfig,
+    isNativeAddress,
     OpenedIntentParserConfig,
     OrderFailureReason,
     OrderStatus,
@@ -64,6 +65,10 @@ export class LifiIntentsProvider extends CrossChainProvider {
     }
 
     async getQuotes(params: QuoteRequest): Promise<Quote[]> {
+        if (isNativeAddress(params.input.assetAddress, "eip155")) {
+            return [];
+        }
+
         try {
             const lifiRequest = adaptQuoteRequest(params);
 
@@ -76,13 +81,6 @@ export class LifiIntentsProvider extends CrossChainProvider {
                 },
             );
 
-            if (response.status < 200 || response.status >= 300) {
-                throw new ProviderGetQuoteFailure(
-                    "Failed to get LI.FI Intents quotes",
-                    `Unexpected status: ${response.status}. URL: ${this.orderServerUrl}${LifiIntentsProvider.QUOTE_PATH}`,
-                );
-            }
-
             const { quotes } = LifiIntentsQuoteResponseSchema.parse(response.data);
 
             return quotes
@@ -91,14 +89,8 @@ export class LifiIntentsProvider extends CrossChainProvider {
         } catch (error) {
             if (error instanceof ProviderGetQuoteFailure) throw error;
             if (error instanceof AxiosError) {
-                const errorData = error.response?.data as { message?: string };
-                const detail =
-                    errorData?.message ||
-                    (error.cause as Error | undefined)?.message ||
-                    error.message ||
-                    "unknown error";
                 throw new ProviderGetQuoteFailure(
-                    `LI.FI Intents quote failed: ${detail}`,
+                    `LI.FI Intents quote failed: ${error.message}`,
                     `URL: ${this.orderServerUrl}${LifiIntentsProvider.QUOTE_PATH}`,
                     error.stack,
                 );
@@ -159,24 +151,16 @@ export class LifiIntentsProvider extends CrossChainProvider {
                     throw error;
                 }
 
-                const entry =
-                    validated.data.find((d) => d.meta.onChainOrderId === params.orderId) ??
-                    validated.data[0];
-
-                if (!entry) {
-                    return { event: null, status: OrderStatus.Pending };
-                }
-
-                const status = adaptOrderStatus(entry.meta.orderStatus);
+                const status = adaptOrderStatus(validated.meta.orderStatus);
 
                 let failureReason: OrderFailureReason | undefined;
                 if (status === OrderStatus.Failed) {
-                    failureReason = entry.meta.expiredAt
+                    failureReason = validated.meta.expiredAt
                         ? OrderFailureReason.DeadlineExceeded
                         : OrderFailureReason.Unknown;
                 }
 
-                const fillTxHash = entry.meta.orderDeliveredTxHash;
+                const fillTxHash = validated.meta.orderDeliveredTxHash;
                 if (status !== OrderStatus.Finalized || !fillTxHash) {
                     return { event: null, status, failureReason };
                 }
@@ -184,8 +168,8 @@ export class LifiIntentsProvider extends CrossChainProvider {
                 return {
                     event: {
                         fillTxHash: fillTxHash as Hex,
-                        timestamp: entry.meta.settledAt
-                            ? Math.floor(new Date(entry.meta.settledAt).getTime() / 1000)
+                        timestamp: validated.meta.settledAt
+                            ? Math.floor(new Date(validated.meta.settledAt).getTime() / 1000)
                             : Math.floor(Date.now() / 1000),
                         originChainId: params.originChainId,
                         orderId: params.orderId,
@@ -202,7 +186,7 @@ export class LifiIntentsProvider extends CrossChainProvider {
         fillWatcherConfig: FillWatcherConfig;
     } {
         return {
-            openedIntentParserConfig: { type: "oif" },
+            openedIntentParserConfig: { type: "lifi-intents" },
             fillWatcherConfig: LifiIntentsProvider.getFillWatcherConfig(
                 this.orderServerUrl,
                 this.headers,

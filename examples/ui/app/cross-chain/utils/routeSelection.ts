@@ -1,8 +1,10 @@
+import { DemoToken } from '../constants/display';
 import { findTokenCaseInsensitive, type RouteParams } from './routeParams';
+import type { SwapFormMode } from '../stores/crossChainStore';
 import type { UITokenInfo } from '../types/assets';
 
 /** Tokens shown in the demo app. Anything outside this list is hidden regardless of provider. */
-const WHITELISTED_SYMBOLS = new Set(['ETH', 'WETH', 'USDC', 'USDT', 'DAI', 'WBTC', 'cbBTC', 'mockUSDC']);
+const WHITELISTED_SYMBOLS = new Set<string>(Object.values(DemoToken));
 
 export interface Selection {
   inputChainId: number;
@@ -22,6 +24,8 @@ export type TokenInfoByChain = Record<number, Record<string, UITokenInfo>>;
 export interface RouteConfig {
   byChain: TokensByChain;
   tokenInfo: TokenInfoByChain;
+  mode: SwapFormMode;
+  buildQuoteProviderId: string;
 }
 
 function isWhitelisted(token: UITokenInfo): boolean {
@@ -74,19 +78,35 @@ function resolveInitialOutputChain(
 }
 
 export function createRouteSelector(config: RouteConfig) {
-  const { byChain, tokenInfo } = config;
+  const { byChain, tokenInfo, mode, buildQuoteProviderId } = config;
+
+  /** In buildQuote mode, only show tokens supported by the selected provider. */
+  function filterByProvider(tokens: string[], chainId: number): string[] {
+    if (mode !== 'buildQuote') return tokens;
+    const meta = tokenInfo[chainId] ?? {};
+    return tokens.filter((addr) => meta[addr]?.providers.includes(buildQuoteProviderId));
+  }
 
   function inputTokensFor(chainId: number): string[] {
     const addresses = byChain[chainId] ?? [];
     const meta = tokenInfo[chainId] ?? {};
-    return availableTokens(addresses, meta);
+    return filterByProvider(availableTokens(addresses, meta), chainId);
   }
 
   function outputTokensFor(inputChainId: number, inputToken: string, outputChainId: number): string[] {
     const inputMeta = tokenInfo[inputChainId]?.[inputToken];
     const addresses = byChain[outputChainId] ?? [];
     const meta = tokenInfo[outputChainId] ?? {};
-    return compatibleTokens(addresses, meta, inputMeta?.providers ?? []);
+    const tokens = compatibleTokens(addresses, meta, inputMeta?.providers ?? []);
+
+    if (mode === 'buildQuote' && inputMeta?.symbol) {
+      return filterByProvider(
+        tokens.filter((addr) => meta[addr]?.symbol === inputMeta.symbol),
+        outputChainId,
+      );
+    }
+
+    return tokens;
   }
 
   function bestOutputToken(

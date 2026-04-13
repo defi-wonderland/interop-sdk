@@ -1,4 +1,10 @@
-# @defi-wonderland/interop-addresses
+# @wonderland/interop-addresses
+
+## 0.5.1
+
+### Patch Changes
+
+-   a716e73: Export error classes and missing functions (`resolveAddress`, `resolveChain`, `isValidChain`, `isValidChainType`) from the public API
 
 ## 0.5.0
 

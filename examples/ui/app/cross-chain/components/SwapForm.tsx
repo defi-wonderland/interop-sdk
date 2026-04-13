@@ -7,12 +7,20 @@ import { useAccount } from 'wagmi';
 import { MINT_AMOUNT, useMintToken } from '../hooks/useMintToken';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { useRouteSelection } from '../hooks/useRouteSelection';
+import { BUILD_QUOTE_PROVIDERS } from '../services/sdk';
 import { useBalanceStore, type TokenBalance } from '../stores/balanceStore';
-import { formatFee, isValidAmount, normalizeAmount, sanitizeAmountInput } from '../utils/amountValidation';
+import { useCrossChainStore, type SwapFormMode } from '../stores/crossChainStore';
+import {
+  exceedsDemoLimit as checkDemoLimit,
+  formatFee,
+  isValidAmount,
+  normalizeAmount,
+  sanitizeAmountInput,
+} from '../utils/amountValidation';
 import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
 
-export type SwapFormMode = 'getQuotes' | 'buildQuote';
+export type { SwapFormMode } from '../stores/crossChainStore';
 
 interface SwapFormSubmitParams {
   sender: string;
@@ -63,8 +71,10 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   const [recipient, setRecipient] = useState('');
   const hasAutoFilledRef = useRef(false);
   const [inputAmount, setInputAmount] = useState('');
-  // TODO: restore setMode when buildQuote tab is re-enabled (EFI-856)
-  const [mode] = useState<SwapFormMode>('getQuotes');
+  const mode = useCrossChainStore((s) => s.mode);
+  const setMode = useCrossChainStore((s) => s.setMode);
+  const buildQuoteProviderId = useCrossChainStore((s) => s.buildQuoteProviderId);
+  const setBuildQuoteProviderId = useCrossChainStore((s) => s.setBuildQuoteProviderId);
   const [outputAmount, setOutputAmount] = useState('');
   const [fillDeadlineSecs, setFillDeadlineSecs] = useState(DEADLINE_OPTIONS[0].value);
 
@@ -96,6 +106,8 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   }, [inputAmount, inputTokenInfo?.decimals, amountIsValid]);
 
   const hasInsufficientBalance = Boolean(tokenBalance && inputAmount && parsedInputAmount > tokenBalance.raw);
+
+  const exceedsLimit = checkDemoLimit(inputAmount, inputTokenInfo?.symbol);
 
   const outputTokenInfo = outputTokenAddress ? tokenConfig.TOKEN_INFO[outputChainId]?.[outputTokenAddress] : null;
   const isSameToken = Boolean(inputTokenInfo && outputTokenInfo && inputTokenInfo.symbol === outputTokenInfo.symbol);
@@ -149,7 +161,14 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!connectedAddress || !inputTokenAddress || !outputTokenAddress || !amountIsValid || parsedInputAmount <= 0n) {
+    if (
+      !connectedAddress ||
+      !inputTokenAddress ||
+      !outputTokenAddress ||
+      !amountIsValid ||
+      parsedInputAmount <= 0n ||
+      exceedsLimit
+    ) {
       return;
     }
     if (mode === 'buildQuote' && (!outputAmountIsValid || parsedOutputAmount <= 0n)) {
@@ -191,6 +210,11 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     onInputChange?.();
   };
 
+  const handleModeChange = (newMode: SwapFormMode) => {
+    setMode(newMode);
+    onInputChange?.();
+  };
+
   const handleOutputTokenChange = (address: string) => {
     setOutputToken(address);
     onInputChange?.();
@@ -206,6 +230,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     !isLoading &&
     !isDisabled &&
     !hasInsufficientBalance &&
+    !exceedsLimit &&
     !noFeeWarning &&
     (mode === 'getQuotes' || (outputAmountIsValid && parsedOutputAmount > 0n));
 
@@ -218,6 +243,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   const getButtonText = () => {
     if (!isConnected) return 'Connect Wallet';
     if (isLoading) return mode === 'buildQuote' ? 'Building Quote...' : 'Fetching Quotes...';
+    if (exceedsLimit) return 'Amount too large for demo';
     if (hasInsufficientBalance) return 'Insufficient Balance';
     return mode === 'buildQuote' ? 'Build Quote' : 'Get Quotes';
   };
@@ -232,15 +258,11 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
       <div className='relative flex flex-col gap-6'>
         <WalletConnect />
 
-        {/* TODO: re-enable once buildQuote simulation issues are resolved (EFI-856)
         <div className='flex border border-border/50 rounded-xl'>
           <button
             type='button'
             disabled={isDisabled}
-            onClick={() => {
-              setMode('getQuotes');
-              onInputChange?.();
-            }}
+            onClick={() => handleModeChange('getQuotes')}
             className={`flex-1 px-4 py-2 rounded-l-xl text-sm font-medium transition-colors ${
               mode === 'getQuotes'
                 ? 'bg-accent text-white'
@@ -252,10 +274,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
           <button
             type='button'
             disabled={isDisabled}
-            onClick={() => {
-              setMode('buildQuote');
-              onInputChange?.();
-            }}
+            onClick={() => handleModeChange('buildQuote')}
             className={`flex-1 px-4 py-2 rounded-r-xl text-sm font-medium transition-colors ${
               mode === 'buildQuote'
                 ? 'bg-accent text-white'
@@ -265,7 +284,38 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
             Build Quote
           </button>
         </div>
-        */}
+
+        {mode === 'buildQuote' && (
+          <fieldset>
+            <legend className='text-sm font-medium text-text-secondary mb-2'>Provider</legend>
+            <div className='flex gap-2'>
+              {BUILD_QUOTE_PROVIDERS.map((p) => (
+                <label
+                  key={p.providerId}
+                  className={`flex-1 text-center px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/50 has-[:focus-visible]:ring-offset-1 ${
+                    buildQuoteProviderId === p.providerId
+                      ? 'bg-accent text-white'
+                      : 'bg-background/50 border border-border/50 text-text-secondary hover:text-text-primary hover:border-border-focus/60'
+                  } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <input
+                    type='radio'
+                    name='buildQuoteProvider'
+                    value={p.providerId}
+                    checked={buildQuoteProviderId === p.providerId}
+                    onChange={() => {
+                      setBuildQuoteProviderId(p.providerId);
+                      onInputChange?.();
+                    }}
+                    disabled={isDisabled}
+                    className='sr-only peer'
+                  />
+                  {p.displayName}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         <div>
           <label htmlFor='recipient-address' className='text-sm font-medium text-text-secondary mb-2 block'>
@@ -452,6 +502,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
 
         <button
           type='submit'
+          data-testid='submit-button'
           disabled={!canSubmit}
           className={`w-full px-6 py-3 rounded-xl font-medium transition-all ${
             canSubmit
