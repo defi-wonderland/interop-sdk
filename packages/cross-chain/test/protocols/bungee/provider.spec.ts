@@ -249,7 +249,7 @@ describe("BungeeProvider", () => {
             );
         });
 
-        it("returns an empty array when one mode responds with no routes and another fails", async () => {
+        it("throws when a mode fails and the others responded with no routes", async () => {
             const multiModeProvider = new BungeeProvider({
                 submissionModes: ["gasless", "user-transaction"],
             });
@@ -282,8 +282,9 @@ describe("BungeeProvider", () => {
                 .mockResolvedValueOnce({ data: emptyResponse })
                 .mockRejectedValueOnce(new Error("user-transaction failed"));
 
-            const quotes = await multiModeProvider.getQuotes(makeQuoteRequest());
-            expect(quotes).toEqual([]);
+            await expect(multiModeProvider.getQuotes(makeQuoteRequest())).rejects.toThrow(
+                ProviderGetQuoteFailure,
+            );
         });
 
         it("returns an empty array when every mode responds with no routes", async () => {
