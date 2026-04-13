@@ -188,17 +188,7 @@ export class BungeeProvider extends CrossChainProvider {
         };
     }
 
-    /**
-     * Collect quotes from settled results.
-     *
-     * Behavior:
-     * - If any mode produced at least one quote, returns all fulfilled quotes
-     *   (partial failures are tolerated when routes were found).
-     * - If no quotes were produced and any mode threw, surfaces that API
-     *   error so upstream callers see 4xx/5xx/validation failures.
-     * - If every mode responded successfully with zero routes, returns `[]`
-     *   so empty responses are treated as "no routes" rather than an error.
-     */
+    /** Collect quotes from settled results, surfacing errors only when no quotes were produced. */
     private collectQuotes(results: PromiseSettledResult<Quote[]>[]): Quote[] {
         const fulfilled = results.filter(
             (r): r is PromiseFulfilledResult<Quote[]> => r.status === "fulfilled",
