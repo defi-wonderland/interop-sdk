@@ -10,7 +10,7 @@ This guide demonstrates how to execute a cross-chain intent using the SDK. The p
 
 First, import the required libraries and set up your environment variables, such as your private key and a generic RPC URL.
 
-```js
+```typescript
 import {
     createAggregator,
     createCrossChainProvider,
@@ -35,7 +35,7 @@ const privateAccount = privateKeyToAccount(PRIVATE_KEY);
 
 Create public and wallet clients for interacting with the blockchain, using the generic RPC URL.
 
-```js
+```typescript
 const publicClient = createPublicClient({
     chain: sepolia,
     transport: http(RPC_URL),
@@ -52,9 +52,24 @@ const walletClient = createWalletClient({
 
 Initialize the cross-chain provider and aggregator, which will handle quoting and executing cross-chain transfers.
 
-```js
+### Testnet (Sepolia → Base Sepolia)
+
+```typescript
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 const relayProvider = createCrossChainProvider("relay", { isTestnet: true });
+
+const aggregator = createAggregator({
+    providers: [acrossProvider, relayProvider],
+});
+```
+
+### Mainnet (Base → Arbitrum)
+
+For mainnet, omit `isTestnet` (or set it to `false`) and use the corresponding mainnet chain IDs when building your clients (step 2) and quote request (step 4).
+
+```typescript
+const acrossProvider = createCrossChainProvider("across");
+const relayProvider = createCrossChainProvider("relay");
 
 const aggregator = createAggregator({
     providers: [acrossProvider, relayProvider],
@@ -65,41 +80,95 @@ const aggregator = createAggregator({
 
 Request a quote for a cross-chain transfer using the SDK `QuoteRequest` format.
 
-```js
+### Testnet example
+
+```typescript
 const response = await aggregator.getQuotes({
     user: "0xYourAddress",
     input: {
-        chainId: 11155111,
+        chainId: 11155111, // Sepolia
         assetAddress: "0xInputTokenAddress",
         amount: "100000000000000000", // 0.1 in wei
     },
     output: {
-        chainId: 84532,
+        chainId: 84532, // Base Sepolia
+        assetAddress: "0xOutputTokenAddress",
+        recipient: "0xRecipientAddress",
+    },
+    swapType: "exact-input",
+});
+```
+
+### Mainnet example (Base → Arbitrum)
+
+```typescript
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress",
+    input: {
+        chainId: 8453, // Base
+        assetAddress: "0xInputTokenAddress",
+        amount: "100000000000000000", // 0.1 in wei
+    },
+    output: {
+        chainId: 42161, // Arbitrum One
         assetAddress: "0xOutputTokenAddress",
         recipient: "0xRecipientAddress",
     },
     swapType: "exact-input",
 });
 
-// Check for errors
 if (response.errors.length > 0) {
     console.error("Errors:", response.errors);
 }
 
-// Check if we got quotes
 if (response.quotes.length === 0) {
     console.error("No quotes available");
     return;
 }
 ```
 
-## 5. Execute the Cross-Chain Transaction
+## 5. Check and Handle ERC-20 Approvals
+
+Before submitting the transaction, check whether the selected provider requires an ERC-20 token approval.
+
+```typescript
+import { erc20Abi } from "viem";
+
+const quote = response.quotes[0];
+
+const allowances = quote.order.checks?.allowances ?? [];
+for (const { tokenAddress, spender, required } of allowances) {
+    const allowance = await publicClient.readContract({
+        address: tokenAddress,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [account.address, spender],
+    });
+    if (allowance < BigInt(required)) {
+        const hash = await walletClient.writeContract({
+            address: tokenAddress,
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [spender, BigInt(required)],
+        });
+        await publicClient.waitForTransactionReceipt({ hash });
+    }
+}
+```
+
+:::warning ERC-20 approval behaviour varies by provider
+
+- `checks.allowances` is only populated by **some providers** (OIF, Bungee). When it is present, the loop above handles approvals automatically.
+- **Across does NOT populate `checks.allowances`.** If you are bridging an ERC-20 with Across, you must approve the input token to `step.transaction.to` yourself before calling `walletClient.sendTransaction`.
+- For **native ETH transfers**, no approval is needed regardless of which provider you use.
+
+:::
+
+## 6. Execute the Cross-Chain Transaction
 
 Execute the quote based on its order step type:
 
-```js
-const quote = response.quotes[0];
-
+```typescript
 if (isSignatureOnlyOrder(quote.order)) {
     // Protocol mode: sign and submit (gasless for user)
     // Note: production code should handle all steps, not just the first
@@ -129,11 +198,11 @@ if (isSignatureOnlyOrder(quote.order)) {
 }
 ```
 
-## 6. Run the Main Function
+## 7. Run the Main Function
 
 Finally, call the main function to execute the workflow.
 
-```js
+```typescript
 const main = async (): Promise<void> => {
     // ...all the above steps go here...
 };
