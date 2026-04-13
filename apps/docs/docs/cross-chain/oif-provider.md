@@ -18,7 +18,7 @@ The [OIF (Open Intents Framework)](https://github.com/BootNodeDev/intents-framew
 
 :::info OIF defaults to all submission modes
 
-Unlike Relay and Bungee, the OIF provider requests **all order types** when `submissionModes` is not set — both `"user-transaction"` (user pays gas) and `"gasless"` (solver executes on behalf of the user).
+Unlike Relay and Bungee, the OIF provider enables **both submission modes** when `submissionModes` is not set — `"user-transaction"` (user pays gas) and `"gasless"` (solver executes on behalf of the user). The exact order types available also depend on `supportedLocks` (default: `["oif-escrow"]`).
 
 `"user-transaction"` maps to `oif-user-open-v0`; `"gasless"` maps to escrow-based order types (`oif-escrow-v0`, `oif-3009-v0`, `oif-resource-lock-v0`).
 

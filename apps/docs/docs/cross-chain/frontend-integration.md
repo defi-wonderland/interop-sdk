@@ -127,6 +127,7 @@ type SwapStatus =
   | 'quoting'
   | 'approving'
   | 'submitting'
+  | 'submitted'
   | 'tracking'
   | 'finalized'
   | 'timeout'
@@ -256,9 +257,9 @@ export function useCrossChainSwap() {
           })
         } else {
           // Gasless orders have no origin tx hash — the solver submits on-chain.
-          // Use watchOrder({ orderId, ... }) from a standalone OrderTracker to
-          // track them by orderId rather than txHash.
-          setStatus('tracking')
+          // Track by orderId using watchOrder() from a standalone OrderTracker.
+          // See the intent-tracking docs for the orderId-based flow.
+          setStatus('submitted')
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unexpected error')
