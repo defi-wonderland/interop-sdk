@@ -14,7 +14,19 @@ The [OIF (Open Intents Framework)](https://github.com/BootNodeDev/intents-framew
 | `adapterMetadata` | object   | No       | Additional metadata for the solver                                                                         |
 | `providerId`      | string   | No       | Custom provider identifier                                                                                 |
 | `supportedLocks`  | string[] | No       | Lock mechanisms to request (e.g. `["oif-escrow"]`, `["compact-resource-lock"]`). Default: `["oif-escrow"]` |
-| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both (default). Controls order types            |
+| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]` (default), `["gasless"]`, or both. Controls order types            |
+
+:::info Gasless is opt-in — the default is `["user-transaction"]` only
+
+`submissionModes` defaults to `["user-transaction"]`. To enable gasless execution, explicitly opt in:
+
+```typescript
+submissionModes: ["user-transaction", "gasless"]
+```
+
+When both modes are configured, quotes are fetched in parallel and the aggregator handles either order type seamlessly, so opting in has no extra cost. For OIF, `submissionModes` controls which OIF order types are requested: `"user-transaction"` maps to `oif-user-open-v0` (user pays gas), while `"gasless"` maps to escrow-based order types (`oif-escrow-v0`, `oif-3009-v0`, `oif-resource-lock-v0`) that are executed on the user's behalf by the solver.
+
+:::
 
 ### Lock Mechanism Mapping
 
