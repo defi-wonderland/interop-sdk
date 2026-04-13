@@ -696,8 +696,16 @@ export class AcrossProvider extends CrossChainProvider {
                     return { event: null, status, failureReason };
                 }
 
+                const warnings =
+                    response.actionsSucceeded === false
+                        ? [
+                              "Destination calls failed. The bridged token was sent to the recipient as fallback instead of being swapped to the requested output token.",
+                          ]
+                        : undefined;
+
                 // Note: Across API doesn't provide all fill details
                 // Some fields will have placeholder values
+
                 const event: FillEvent = {
                     fillTxHash: response.fillTxnRef as Hex,
                     blockNumber: 0n, // API doesn't provide block number
@@ -706,6 +714,7 @@ export class AcrossProvider extends CrossChainProvider {
                     orderId: params.orderId,
                     relayer: "0x0000000000000000000000000000000000000000" as Address, // API doesn't provide
                     recipient: "0x0000000000000000000000000000000000000000" as Address, // API doesn't provide
+                    warnings,
                 };
 
                 const metadata: AcrossMetadata = {

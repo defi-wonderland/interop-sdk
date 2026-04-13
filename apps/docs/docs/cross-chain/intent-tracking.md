@@ -82,7 +82,13 @@ const tracker = aggregator.track({
 });
 
 tracker.on(OrderStatus.Pending, (update) => console.log("Pending:", update.message));
-tracker.on(OrderStatus.Finalized, (update) => console.log("Finalized!", update.fillTxHash));
+tracker.on(OrderStatus.Finalized, (update) => {
+    console.log("Finalized!", update.fillTxHash);
+    if (update.warnings?.length) {
+        // e.g. destination swap failed, user received fallback token
+        console.warn("Warnings:", update.warnings);
+    }
+});
 tracker.on(OrderStatus.Failed, (update) => console.log("Failed:", update.failureReason));
 tracker.on(OrderStatus.Refunded, () => console.log("Refunded"));
 tracker.on(OrderTrackerEvent.Timeout, (payload) => console.log("Timeout:", payload.message));
@@ -106,6 +112,10 @@ console.log(status.orderId); // Order ID
 if (status.fillEvent) {
     console.log(`Filled by: ${status.fillEvent.relayer}`);
     console.log(`Fill tx: ${status.fillEvent.fillTxHash}`);
+    if (status.warnings?.length) {
+        // e.g. destination swap failed, user received fallback token
+        console.warn("Warnings:", status.warnings);
+    }
 }
 ```
 
