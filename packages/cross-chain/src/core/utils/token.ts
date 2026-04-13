@@ -1,9 +1,12 @@
 type ChainType = "eip155" | "solana";
 
+/** EIP-7528 canonical native asset placeholder address. Use this when constructing QuoteRequests for native tokens (ETH, MATIC, etc.). */
+export const NATIVE_ASSET_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" as const;
+
 /** Native token placeholder addresses by chain type. */
 const NATIVE_ADDRESSES: Record<ChainType, Set<string>> = {
     eip155: new Set([
-        "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        NATIVE_ASSET_ADDRESS,
         "0x0000000000000000000000000000000000000000",
     ]),
     solana: new Set([
