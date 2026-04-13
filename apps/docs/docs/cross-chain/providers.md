@@ -114,7 +114,14 @@ The table below shows which chains each provider supports **as of April 2026**. 
 
 ### Across
 
-Across has hardcoded origin-settler contract addresses for the following chains. Other chains may be available through the Across API at runtime.
+**Asset discovery** behaves differently between mainnet and testnet:
+
+- **Mainnet**: `discoverAssets()` queries the Across API dynamically — the same as Relay and Bungee. No hardcoded token list is used.
+- **Testnet**: `discoverAssets()` uses a static hardcoded token list. The Across API returns mainnet chain IDs even for testnet queries, so a static list is the only reliable option for testnet.
+
+**Getting quotes** (`getQuotes()`) is fully API-driven for both mainnet and testnet — there is no hardcoded chain constraint.
+
+**Building quotes** (`buildQuote()`) requires a SpokePool contract address and a wrapped-native (WETH) address for the origin chain. The SDK has these hardcoded for the chains below. For any other chain, pass `escrowContractAddress` explicitly in the `buildQuote()` params as a fallback.
 
 | Chain | Chain ID | Mainnet | Testnet |
 |-------|----------|---------|---------|
@@ -154,16 +161,18 @@ Supported chains and tokens depend entirely on the solver you configure.
 
 ### Full Provider Comparison
 
-| Chain | Chain ID | Across | Relay | OIF | Bungee | LI.FI Intents |
-|-------|----------|--------|-------|-----|--------|---------------|
+| Chain | Chain ID | Across¹ | Relay | OIF | Bungee | LI.FI Intents |
+|-------|----------|---------|-------|-----|--------|---------------|
 | Ethereum | 1 | via API | ✓ | via solver API | ✓ | ✓ |
-| Base | 8453 | ✓ | ✓ | via solver API | ✓ | ✓ |
-| Arbitrum One | 42161 | ✓ | ✓ | via solver API | ✓ | ✓ |
-| Optimism | 10 | ✓ | ✓ | via solver API | ✓ | ✓ |
+| Base | 8453 | via API | ✓ | via solver API | ✓ | ✓ |
+| Arbitrum One | 42161 | via API | ✓ | via solver API | ✓ | ✓ |
+| Optimism | 10 | via API | ✓ | via solver API | ✓ | ✓ |
 | Others | varies | via API | via API | via solver API | via API | via API |
 
+¹ `getQuotes()` and `discoverAssets()` are fully API-driven for Across. `buildQuote()` additionally requires hardcoded SpokePool addresses, which the SDK provides for Base, Arbitrum One, Optimism (mainnet) and Sepolia, Base Sepolia, Arbitrum Sepolia (testnet). Pass `escrowContractAddress` in params for other chains.
+
 :::tip
-For Relay, Bungee, LI.FI Intents, and OIF, the chain list grows as providers add support. Always call `discoverAssets()` at runtime rather than relying on a static list.
+For all providers, the chain list grows as providers add support. Always call `discoverAssets()` at runtime rather than relying on a static list.
 :::
 
 ## References
