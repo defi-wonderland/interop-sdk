@@ -1,10 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-const MOCK_TOKENS = [
-  { chainId: 11155111, address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', symbol: 'USDC', decimals: 6 },
-  { chainId: 84532, address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 },
-  { chainId: 421614, address: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d', symbol: 'USDC', decimals: 6 },
-];
+import MOCK_TOKENS from './test-data/mock-tokens.json' with { type: 'json' };
 
 test.beforeEach(async ({ page, context }) => {
   await context.route('**/api/swap/tokens**', async (route) => {
