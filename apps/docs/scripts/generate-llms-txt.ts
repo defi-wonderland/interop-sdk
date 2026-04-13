@@ -2,8 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 
 const SITE_URL = "https://docs.interop.wonderland.xyz";
-const DOCS_DIR = path.resolve(__dirname, "../docs");
-const STATIC_DIR = path.resolve(__dirname, "../static");
+// Script is always run from the apps/docs directory via package.json
+const DOCS_DIR = path.resolve(process.cwd(), "docs");
+const STATIC_DIR = path.resolve(process.cwd(), "static");
 
 /** Ordered list of all doc page IDs, mirroring sidebars.ts */
 const PAGE_IDS: string[] = [
@@ -74,8 +75,12 @@ function extractDescription(content: string): string {
     return "";
 }
 
-function readPage(id: string): PageInfo {
+function readPage(id: string): PageInfo | null {
     const filePath = path.join(DOCS_DIR, `${id}.md`);
+    if (!fs.existsSync(filePath)) {
+        console.warn(`Skipping missing page: ${id}`);
+        return null;
+    }
     const content = fs.readFileSync(filePath, "utf-8");
     const title = extractTitle(content, id);
     const url = `${SITE_URL}/${id}`;
@@ -148,7 +153,7 @@ function generateIndex(pages: PageInfo[]): string {
 }
 
 function main(): void {
-    const pages = PAGE_IDS.map(readPage);
+    const pages = PAGE_IDS.map(readPage).filter((p): p is PageInfo => p !== null);
 
     const fullCorpus = generateFullCorpus(pages);
     const index = generateIndex(pages);
