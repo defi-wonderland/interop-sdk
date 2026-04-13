@@ -108,6 +108,53 @@ class MyCustomProvider extends CrossChainProvider {
 
 See the [API Reference](./api.md) for the full `Quote`, `QuoteRequest`, and tracking config types.
 
+## Supported Chains
+
+The table below shows which chains each provider supports **as of April 2026**. Providers that discover chains dynamically via their API are noted separately — call `discoverAssets()` to get a live list for those providers.
+
+### Across
+
+Across has hardcoded origin-settler contract addresses for the following chains. Other chains may be available through the Across API at runtime.
+
+| Chain | Chain ID | Mainnet | Testnet |
+|-------|----------|---------|---------|
+| Base | 8453 | ✓ | — |
+| Arbitrum One | 42161 | ✓ | — |
+| Optimism | 10 | ✓ | — |
+| Sepolia | 11155111 | — | ✓ |
+| Base Sepolia | 84532 | — | ✓ |
+| Arbitrum Sepolia | 421614 | — | ✓ |
+
+### Relay, Bungee, and LI.FI Intents
+
+These providers discover supported chains and tokens dynamically via their respective APIs. There is no hardcoded chain list in the SDK.
+
+Call `discoverAssets()` on the provider to enumerate all chains and tokens currently available:
+
+```typescript
+const relayProvider = createCrossChainProvider("relay");
+const assets = await relayProvider.discoverAssets();
+// assets is an array of { chainId, assets: [...] }
+```
+
+### OIF
+
+OIF is a solver-specific integration. Supported chains depend entirely on the solver you configure. Contact your solver operator for the list of supported chains and assets.
+
+### Full Provider Comparison
+
+| Chain | Chain ID | Across | Relay | OIF | Bungee | LI.FI Intents |
+|-------|----------|--------|-------|-----|--------|---------------|
+| Ethereum | 1 | via API | ✓ | solver-dependent | ✓ | ✓ |
+| Base | 8453 | ✓ | ✓ | solver-dependent | ✓ | ✓ |
+| Arbitrum One | 42161 | ✓ | ✓ | solver-dependent | ✓ | ✓ |
+| Optimism | 10 | ✓ | ✓ | solver-dependent | ✓ | ✓ |
+| Others | varies | via API | via API | solver-dependent | via API | via API |
+
+:::tip
+For Relay, Bungee, and LI.FI Intents, the chain list grows as providers add support. Always call `discoverAssets()` at runtime rather than relying on a static list.
+:::
+
 ## References
 
 -   [API Reference](./api.md)

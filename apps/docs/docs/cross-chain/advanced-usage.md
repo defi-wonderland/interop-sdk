@@ -170,6 +170,49 @@ try {
 6. Test your implementation on testnet before moving to production
 7. Provide custom RPC URLs for better reliability
 
+## Troubleshooting
+
+### No providers returned a quote
+
+If `response.quotes` is empty and `response.errors` contains failures, work through these checks:
+
+- **Verify the token pair is supported on the route.** Call `discoverAssets()` on the provider to confirm both the origin and destination tokens are available.
+- **Try a smaller input amount.** Most providers enforce minimum transfer sizes, and amounts below the threshold are rejected silently.
+- **Check route directionality.** Some routes are one-directional. If `A → B` fails, try `B → A` to confirm the route exists in the other direction.
+- **Confirm the provider is on the right network.** A provider configured with `isTestnet: true` will not return quotes for mainnet chain IDs and vice versa.
+- **Inspect per-provider failure reasons.** The `ProviderGetQuoteFailure` errors inside `response.errors` each carry a message explaining why that provider declined.
+
+```typescript
+response.errors.forEach((error) => {
+    console.error(error.errorMsg);
+});
+```
+
+### Simulation failure on submit
+
+A simulation failure usually means the transaction would revert on-chain before it is broadcast.
+
+- **Check allowances first.** Inspect `checks.allowances` on the quote and approve the input token before calling `submitOrder()` or sending the transaction.
+- **Retrieve the revert reason.** Catch the error thrown by `submitOrder()` — it may include a `cause` property with simulation failure details from viem.
+
+```typescript
+try {
+    await submitOrder(quote, signature);
+} catch (error) {
+    console.error("Simulation failure cause:", error?.cause);
+}
+```
+
+- **Across allowance note.** For Across, `checks.allowances` is not populated. You must manually approve the input token to the `transaction.to` address before submitting an ERC-20 transfer.
+
+### WalletConnect / web3modal 403 errors
+
+403 errors from WalletConnect infrastructure are unrelated to the interop SDK itself.
+
+- Ensure you have a valid WalletConnect project ID configured in your app.
+- These errors are typically rate-limit or project-ID rejections from the WalletConnect relay service.
+- If the errors appear only on initial page load and the app recovers, they can usually be safely ignored.
+
 ## Next steps
 
 -   [API Reference](./api.md) — complete function signatures and types
