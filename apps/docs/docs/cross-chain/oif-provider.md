@@ -14,17 +14,23 @@ The [OIF (Open Intents Framework)](https://github.com/BootNodeDev/intents-framew
 | `adapterMetadata` | object   | No       | Additional metadata for the solver                                                                         |
 | `providerId`      | string   | No       | Custom provider identifier                                                                                 |
 | `supportedLocks`  | string[] | No       | Lock mechanisms to request (e.g. `["oif-escrow"]`, `["compact-resource-lock"]`). Default: `["oif-escrow"]` |
-| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]` (default), `["gasless"]`, or both. Controls order types            |
+| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both. Default: all modes                        |
 
-:::info Gasless is opt-in — the default is `["user-transaction"]` only
+:::info OIF defaults to all submission modes
 
-`submissionModes` defaults to `["user-transaction"]`. To enable gasless execution, explicitly opt in:
+Unlike Relay and Bungee, the OIF provider requests **all order types** when `submissionModes` is not set — both `"user-transaction"` (user pays gas) and `"gasless"` (solver executes on behalf of the user).
+
+`"user-transaction"` maps to `oif-user-open-v0`; `"gasless"` maps to escrow-based order types (`oif-escrow-v0`, `oif-3009-v0`, `oif-resource-lock-v0`).
+
+To restrict to a specific mode, set it explicitly:
 
 ```typescript
-submissionModes: ["user-transaction", "gasless"]
-```
+// User-pays-gas quotes only
+submissionModes: ["user-transaction"]
 
-When both modes are configured, quotes are fetched in parallel and the aggregator handles either order type seamlessly, so opting in has no extra cost. For OIF, `submissionModes` controls which OIF order types are requested: `"user-transaction"` maps to `oif-user-open-v0` (user pays gas), while `"gasless"` maps to escrow-based order types (`oif-escrow-v0`, `oif-3009-v0`, `oif-resource-lock-v0`) that are executed on the user's behalf by the solver.
+// Gasless quotes only
+submissionModes: ["gasless"]
+```
 
 :::
 

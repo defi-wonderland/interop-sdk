@@ -129,6 +129,7 @@ type SwapStatus =
   | 'submitting'
   | 'tracking'
   | 'finalized'
+  | 'timeout'
   | 'error'
 
 export function useCrossChainSwap() {
@@ -246,16 +247,18 @@ export function useCrossChainSwap() {
             setStatus('error')
           })
           tracker.on(OrderTrackerEvent.Timeout, () => {
-            // The SDK stopped watching but the order may still finalize
-            setStatus('finalized')
+            // The SDK stopped watching but the order may still finalize on-chain
+            setStatus('timeout')
           })
           tracker.on(OrderTrackerEvent.Error, (err) => {
             setError(err instanceof Error ? err.message : 'Tracking error')
             setStatus('error')
           })
         } else {
-          // Signature-based orders (e.g. gasless Across) have no origin tx hash
-          setStatus('finalized')
+          // Gasless orders have no origin tx hash — the solver submits on-chain.
+          // Use watchOrder({ orderId, ... }) from a standalone OrderTracker to
+          // track them by orderId rather than txHash.
+          setStatus('tracking')
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unexpected error')
@@ -268,54 +271,6 @@ export function useCrossChainSwap() {
   return { execute, status, error, quotes }
 }
 ```
-
----
-
-## Optional connector dependency fix
-
-:::warning
-When using wagmi v2 + RainbowKit in a Next.js / webpack build you may see errors such as:
-
-```
-Module not found: Can't resolve 'porto'
-Module not found: Can't resolve '@metamask/connect-evm'
-Module not found: Can't resolve '@safe-global/safe-apps-sdk'
-Module not found: Can't resolve '@walletconnect/ethereum-provider'
-Module not found: Can't resolve '@coinbase/wallet-sdk'
-```
-
-These packages are **optional peer dependencies** of wagmi's connector set. webpack tries to resolve them at build time even if you do not use those connectors.
-
-**Fix option 1** — install the connectors you actually use:
-
-```bash
-pnpm add @walletconnect/ethereum-provider @coinbase/wallet-sdk
-```
-
-**Fix option 2** — stub the connectors you do _not_ use with webpack `resolve.alias`:
-
-```js
-// next.config.js
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'porto': false,
-      '@metamask/connect-evm': false,
-      '@safe-global/safe-apps-sdk': false,
-      '@walletconnect/ethereum-provider': false,
-      '@coinbase/wallet-sdk': false,
-    }
-    return config
-  },
-}
-
-module.exports = nextConfig
-```
-
-Setting an alias to `false` tells webpack to replace that import with an empty module, which prevents the build error without affecting connectors you don't use.
-:::
 
 ---
 
