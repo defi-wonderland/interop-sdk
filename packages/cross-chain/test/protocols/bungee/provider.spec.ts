@@ -248,6 +248,37 @@ describe("BungeeProvider", () => {
                 ProviderGetQuoteFailure,
             );
         });
+
+        it("returns an empty array when every mode responds with no routes", async () => {
+            const emptyResponse = makeBungeeQuoteResponse({
+                result: {
+                    originChainId: ORIGIN_CHAIN_ID,
+                    destinationChainId: DESTINATION_CHAIN_ID,
+                    userAddress: VALID_ADDRESS,
+                    receiverAddress: VALID_ADDRESS,
+                    input: {
+                        token: {
+                            chainId: ORIGIN_CHAIN_ID,
+                            address: VALID_ADDRESS,
+                            name: "ETH",
+                            symbol: "ETH",
+                            decimals: 18,
+                        },
+                        amount: INPUT_AMOUNT,
+                        priceInUsd: 1,
+                        valueInUsd: 1,
+                    },
+                    autoRoute: null,
+                    autoRoutes: [],
+                    manualRoutes: [],
+                },
+            });
+
+            mockGet.mockResolvedValue({ data: emptyResponse });
+
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toEqual([]);
+        });
     });
 
     describe("submitOrder()", () => {

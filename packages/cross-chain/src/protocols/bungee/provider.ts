@@ -111,7 +111,7 @@ export class BungeeProvider extends CrossChainProvider {
             this.submissionModes.map((mode) => this.fetchQuotesForMode(params, mode)),
         );
 
-        return this.collectQuotesOrThrow(results);
+        return this.collectQuotes(results);
     }
 
     /**
@@ -189,22 +189,28 @@ export class BungeeProvider extends CrossChainProvider {
     }
 
     /**
-     * Collect successful quotes from settled results.
-     * Throws only if every mode failed — surfaces the first error.
+     * Collect quotes from settled results.
+     *
+     * Behavior:
+     * - If any mode produced at least one quote, returns all fulfilled quotes
+     *   (partial failures are tolerated when routes were found).
+     * - If no quotes were produced and any mode threw, surfaces that API
+     *   error so upstream callers see 4xx/5xx/validation failures.
+     * - If every mode responded successfully with zero routes, returns `[]`
+     *   so empty responses are treated as "no routes" rather than an error.
      */
-    private collectQuotesOrThrow(results: PromiseSettledResult<Quote[]>[]): Quote[] {
-        const quotes = results
-            .filter((r): r is PromiseFulfilledResult<Quote[]> => r.status === "fulfilled")
-            .flatMap((r) => r.value);
+    private collectQuotes(results: PromiseSettledResult<Quote[]>[]): Quote[] {
+        const fulfilled = results.filter(
+            (r): r is PromiseFulfilledResult<Quote[]> => r.status === "fulfilled",
+        );
+        const quotes = fulfilled.flatMap((r) => r.value);
 
         if (quotes.length > 0) return quotes;
 
         const firstError = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
+        if (firstError) throw firstError.reason as Error;
 
-        throw (
-            (firstError?.reason as Error) ??
-            new ProviderGetQuoteFailure("No quotes returned from any submission mode")
-        );
+        return [];
     }
 
     /** Fetch quotes for a single submission mode. */
