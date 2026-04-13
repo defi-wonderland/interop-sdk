@@ -20,6 +20,7 @@ import {
     ACROSS_TESTNET_TOKENS,
     ACROSS_UNSUPPORTED_CHAIN_IDS,
     ACROSS_V3_FUNDS_DEPOSITED_SIGNATURE,
+    ACROSS_WRAPPED_NATIVE_ADDRESSES,
     AcrossConfigs,
     AcrossConfigSchema,
     AcrossDepositStatusResponse,
@@ -55,7 +56,7 @@ import {
 import { decodeAcrossCalldata } from "./utils.js";
 
 const ZERO_BYTES32 = pad("0x00" as Hex, { size: 32 });
-const ACROSS_DEFAULT_MESSAGE: Hex = "0x73c0de";
+const ACROSS_DEFAULT_MESSAGE: Hex = "0x";
 
 function addressToBytes32(address: string): Hex {
     return pad(address as Address, { size: 32 });
@@ -282,10 +283,18 @@ export class AcrossProvider extends CrossChainProvider {
         const { input, output } = params;
         const recipient = output.recipient ?? params.user;
 
+        // Calldata contains WETH addresses for native tokens, so normalize before comparing.
+        const inputTokenForCalldata = isNativeAddress(input.assetAddress, "eip155")
+            ? (ACROSS_WRAPPED_NATIVE_ADDRESSES[input.chainId] ?? input.assetAddress)
+            : input.assetAddress;
+        const outputTokenForCalldata = isNativeAddress(output.assetAddress, "eip155")
+            ? (ACROSS_WRAPPED_NATIVE_ADDRESSES[output.chainId] ?? output.assetAddress)
+            : output.assetAddress;
+
         if (!isAddressEqual(decoded.depositor as Address, params.user as Address)) return false;
-        if (!isAddressEqual(decoded.inputToken as Address, input.assetAddress as Address))
+        if (!isAddressEqual(decoded.inputToken as Address, inputTokenForCalldata as Address))
             return false;
-        if (!isAddressEqual(decoded.outputToken as Address, output.assetAddress as Address))
+        if (!isAddressEqual(decoded.outputToken as Address, outputTokenForCalldata as Address))
             return false;
         if (!isAddressEqual(decoded.recipient as Address, recipient as Address)) return false;
         if (decoded.destinationChainId !== BigInt(output.chainId)) return false;
@@ -350,14 +359,28 @@ export class AcrossProvider extends CrossChainProvider {
         const quoteTimestamp = Math.floor(Date.now() / 1000);
         const recipient = params.output.recipient ?? params.user;
 
+        const nativeInput = isNativeAddress(params.input.assetAddress, "eip155");
+        const nativeOutput = isNativeAddress(params.output.assetAddress, "eip155");
+
+        // The SpokePool contract requires WETH addresses in calldata, even for
+        // native ETH deposits. It auto-wraps when inputToken == wrappedNativeToken
+        // and msg.value > 0, and auto-unwraps on the destination side.
+        const inputTokenForCalldata = nativeInput
+            ? (ACROSS_WRAPPED_NATIVE_ADDRESSES[params.input.chainId] ?? params.input.assetAddress)
+            : params.input.assetAddress;
+
+        const outputTokenForCalldata = nativeOutput
+            ? (ACROSS_WRAPPED_NATIVE_ADDRESSES[params.output.chainId] ?? params.output.assetAddress)
+            : params.output.assetAddress;
+
         const calldata = encodeFunctionData({
             abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
             functionName: "deposit",
             args: [
                 addressToBytes32(params.user),
                 addressToBytes32(recipient),
-                addressToBytes32(params.input.assetAddress),
-                addressToBytes32(params.output.assetAddress),
+                addressToBytes32(inputTokenForCalldata),
+                addressToBytes32(outputTokenForCalldata),
                 BigInt(params.input.amount),
                 BigInt(params.output.amount),
                 BigInt(params.output.chainId),
@@ -369,8 +392,6 @@ export class AcrossProvider extends CrossChainProvider {
             ],
         });
 
-        const native = isNativeAddress(params.input.assetAddress, "eip155");
-
         return {
             provider: this.providerId,
             order: {
@@ -381,12 +402,12 @@ export class AcrossProvider extends CrossChainProvider {
                         transaction: {
                             to: spokePoolAddress,
                             data: calldata,
-                            ...(native && { value: params.input.amount }),
+                            ...(nativeInput && { value: params.input.amount }),
                         },
                     },
                 ],
                 checks: {
-                    allowances: native
+                    allowances: nativeInput
                         ? []
                         : [
                               {
