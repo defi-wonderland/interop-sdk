@@ -139,20 +139,31 @@ const assets = await relayProvider.discoverAssets();
 
 ### OIF
 
-OIF is a solver-specific integration. Supported chains depend entirely on the solver you configure. Contact your solver operator for the list of supported chains and assets.
+OIF also supports `discoverAssets()` — the SDK queries the configured solver's API to enumerate the chains and tokens it supports:
+
+```typescript
+const oifProvider = createCrossChainProvider("oif", {
+  solverId: "my-solver",
+  url: "https://oif-api.example.com",
+});
+const assets = await oifProvider.discoverAssets();
+// assets is an array of { chainId, assets: [...] }
+```
+
+Supported chains and tokens depend entirely on the solver you configure.
 
 ### Full Provider Comparison
 
 | Chain | Chain ID | Across | Relay | OIF | Bungee | LI.FI Intents |
 |-------|----------|--------|-------|-----|--------|---------------|
-| Ethereum | 1 | via API | ✓ | solver-dependent | ✓ | ✓ |
-| Base | 8453 | ✓ | ✓ | solver-dependent | ✓ | ✓ |
-| Arbitrum One | 42161 | ✓ | ✓ | solver-dependent | ✓ | ✓ |
-| Optimism | 10 | ✓ | ✓ | solver-dependent | ✓ | ✓ |
-| Others | varies | via API | via API | solver-dependent | via API | via API |
+| Ethereum | 1 | via API | ✓ | via solver API | ✓ | ✓ |
+| Base | 8453 | ✓ | ✓ | via solver API | ✓ | ✓ |
+| Arbitrum One | 42161 | ✓ | ✓ | via solver API | ✓ | ✓ |
+| Optimism | 10 | ✓ | ✓ | via solver API | ✓ | ✓ |
+| Others | varies | via API | via API | via solver API | via API | via API |
 
 :::tip
-For Relay, Bungee, and LI.FI Intents, the chain list grows as providers add support. Always call `discoverAssets()` at runtime rather than relying on a static list.
+For Relay, Bungee, LI.FI Intents, and OIF, the chain list grows as providers add support. Always call `discoverAssets()` at runtime rather than relying on a static list.
 :::
 
 ## References
