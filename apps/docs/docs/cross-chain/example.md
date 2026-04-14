@@ -17,6 +17,7 @@ import {
     getSignatureSteps,
     getTransactionSteps,
     isSignatureOnlyOrder,
+    isNativeAddress,
 } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -131,36 +132,65 @@ if (response.quotes.length === 0) {
 
 Before submitting the transaction, check whether the selected provider requires an ERC-20 token approval.
 
+Some providers (Relay, Bungee, OIF) populate `quote.order.checks.allowances` with the exact spender and amount. Others (e.g. Across) do not. The snippet below handles both cases: when checks are present it uses them directly, otherwise it derives the approval from the transaction step's `to` address.
+
 ```typescript
 import { erc20Abi } from "viem";
 
 const quote = response.quotes[0];
+const request = { /* the QuoteRequest you passed to getQuotes */ };
 
+// Primary path: use checks.allowances when the provider populates it
 const allowances = quote.order.checks?.allowances ?? [];
-for (const { tokenAddress, spender, required } of allowances) {
-    const allowance = await publicClient.readContract({
-        address: tokenAddress,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [account.address, spender],
-    });
-    if (allowance < BigInt(required)) {
-        const hash = await walletClient.writeContract({
+
+if (allowances.length > 0) {
+    for (const { tokenAddress, spender, required } of allowances) {
+        const allowance = await publicClient.readContract({
             address: tokenAddress,
             abi: erc20Abi,
+            functionName: "allowance",
+            args: [privateAccount.address, spender],
+        });
+        if (allowance < BigInt(required)) {
+            const hash = await walletClient.writeContract({
+                address: tokenAddress,
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [spender, BigInt(required)],
+            });
+            await publicClient.waitForTransactionReceipt({ hash });
+        }
+    }
+} else if (
+    !isSignatureOnlyOrder(quote.order) &&
+    !isNativeAddress(request.input.assetAddress, "eip155")
+) {
+    // Fallback: provider didn't supply checks (e.g. Across).
+    // Approve the transaction target for the input amount.
+    const step = getTransactionSteps(quote.order)[0];
+    const spender = step.transaction.to;
+
+    const allowance = await publicClient.readContract({
+        address: request.input.assetAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [privateAccount.address, spender],
+    });
+    if (allowance < BigInt(request.input.amount)) {
+        const hash = await walletClient.writeContract({
+            address: request.input.assetAddress as `0x${string}`,
+            abi: erc20Abi,
             functionName: "approve",
-            args: [spender, BigInt(required)],
+            args: [spender, BigInt(request.input.amount)],
         });
         await publicClient.waitForTransactionReceipt({ hash });
     }
 }
 ```
 
-:::warning ERC-20 approval behaviour varies by provider
+:::info Why two paths?
 
-- `checks.allowances` is only populated by **some providers** (OIF, Bungee). When it is present, the loop above handles approvals automatically.
-- **Across does NOT populate `checks.allowances`.** If you are bridging an ERC-20 with Across, you must approve the input token to `step.transaction.to` yourself before calling `walletClient.sendTransaction`.
-- For **native ETH transfers**, no approval is needed regardless of which provider you use.
+Not all providers populate `order.checks.allowances` on `getQuotes` — for example, Across does not. The fallback derives the spender from the transaction step's `to` address (the contract that will pull tokens). Signature-only (gasless) orders and native token inputs are skipped because they don't require an ERC-20 approval.
 
 :::
 
