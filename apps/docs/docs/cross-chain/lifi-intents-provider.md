@@ -23,7 +23,7 @@ All quotes return **transaction steps** (user-pays-gas). The provider does not s
 | ---------------- | ------ | -------- | ------------------------------------------------------------- |
 | `orderServerUrl` | string | Yes      | LI.FI order server URL                                        |
 | `providerId`     | string | No       | Custom provider identifier (default: `"lifi-intents"`)        |
-| `headers`        | object | No       | Custom HTTP headers sent with all requests to the order server |
+| `headers`        | Record&lt;string, string&gt; | No       | Custom HTTP headers sent with all requests to the order server |
 
 ## Creating the Provider
 
