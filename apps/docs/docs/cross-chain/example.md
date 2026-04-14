@@ -166,22 +166,23 @@ if (allowances.length > 0) {
     !isNativeAddress(request.input.assetAddress, "eip155")
 ) {
     // Fallback: provider didn't supply checks (e.g. Across).
-    // Approve the transaction target for the input amount.
+    // Approve the transaction target for the quoted input amount.
     const step = getTransactionSteps(quote.order)[0];
     const spender = step.transaction.to;
+    const inputPreview = quote.preview.inputs[0];
 
     const allowance = await publicClient.readContract({
-        address: request.input.assetAddress as `0x${string}`,
+        address: inputPreview.assetAddress as `0x${string}`,
         abi: erc20Abi,
         functionName: "allowance",
         args: [privateAccount.address, spender],
     });
-    if (allowance < BigInt(request.input.amount)) {
+    if (allowance < BigInt(inputPreview.amount)) {
         const hash = await walletClient.writeContract({
-            address: request.input.assetAddress as `0x${string}`,
+            address: inputPreview.assetAddress as `0x${string}`,
             abi: erc20Abi,
             functionName: "approve",
-            args: [spender, BigInt(request.input.amount)],
+            args: [spender, BigInt(inputPreview.amount)],
         });
         await publicClient.waitForTransactionReceipt({ hash });
     }
