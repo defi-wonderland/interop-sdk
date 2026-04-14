@@ -112,7 +112,7 @@ Both `0x0000000000000000000000000000000000000000` (zero address) and `0xeeeeeeee
 
 ## Handle ERC-20 approvals
 
-Some providers (OIF, Bungee) populate `order.checks.allowances` with the approvals needed before the transaction can be submitted. Check this array and approve as required. For Across, `checks.allowances` is not populated — you must approve the input token to `step.transaction.to` yourself when bridging an ERC-20. Native ETH transfers never need an approval.
+Always check `order.checks.allowances` first — some providers (Relay, Bungee, OIF) populate it with the exact spender and amount, even for signature-only orders. When checks are missing (e.g. Across), derive the spender from the transaction step's `to` address. Native token inputs never need an approval.
 
 See the [full approval pattern](./example.md#5-check-and-handle-erc-20-approvals) in the Execute Intent guide.
 
