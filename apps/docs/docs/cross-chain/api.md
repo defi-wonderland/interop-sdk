@@ -10,10 +10,13 @@ A set of classes and utilities for handling cross-chain operations through vario
 
 -   **createCrossChainProvider**(protocolName: string, config?: ProviderConfig): CrossChainProvider
 
-    Creates a provider instance for a supported cross-chain protocol. Config is optional for Across (uses mainnet defaults), required for OIF.
+    Creates a provider instance for a supported cross-chain protocol. Config is optional for Across (uses mainnet defaults), required for OIF and LiFi Intents.
 
     ```typescript
-    import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+    import {
+        createCrossChainProvider,
+        LIFI_INTENTS_ORDER_SERVER_URL,
+    } from "@wonderland/interop-cross-chain";
 
     // Across - config optional (defaults to mainnet)
     const provider = createCrossChainProvider("across");
@@ -33,6 +36,11 @@ A set of classes and utilities for handling cross-chain operations through vario
     const oifProvider = createCrossChainProvider("oif", {
         solverId: "my-solver",
         url: "https://solver.example.com",
+    });
+
+    // LiFi Intents - orderServerUrl required
+    const lifiProvider = createCrossChainProvider("lifi-intents", {
+        orderServerUrl: LIFI_INTENTS_ORDER_SERVER_URL,
     });
     ```
 
@@ -623,6 +631,20 @@ Payload validation:
 | `oif-resource-lock-v0` | token, amount, sponsor, expiration        |
 | `oif-3009-v0`          | from, value, token address, expiration    |
 | `oif-user-open-v0`     | allowances (token, user, spender, amount) |
+
+#### LiFi Intents
+
+| Field            | Type   | Required | Description                                                   |
+| ---------------- | ------ | -------- | ------------------------------------------------------------- |
+| `orderServerUrl` | string | Yes      | LI.FI order server URL (e.g. `https://order.li.fi`)          |
+| `providerId`     | string | No       | Custom provider identifier (default: `"lifi-intents"`)        |
+| `headers`        | object | No       | Custom HTTP headers sent with all requests to the order server |
+
+Constraints:
+
+-   Only supports **exact-input** swaps
+-   Only supports **ERC-20** token inputs (no native tokens)
+-   All quotes return **transaction steps** (no gasless/signature-based execution)
 
 ## References
 

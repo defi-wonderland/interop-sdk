@@ -12,7 +12,7 @@ This document lists all cross-chain providers supported by the Interop SDK.
 | [Relay Protocol](./relay-provider.md)   | Active | Cross-chain token transfers using Relay bridge            |
 | [OIF](./oif-provider.md)                | Active | Direct integration with OIF-compliant solvers             |
 | [Bungee Protocol](./bungee-provider.md) | Active | Cross-chain transfers via onchain or gasless permit2 flow |
-| LiFi Intents                            | Active | Cross-chain via LiFi intent solver                        |
+| [LiFi Intents](./lifi-intents-provider.md) | Active | Cross-chain via LiFi intent solver marketplace         |
 
 ## Provider Configuration
 
@@ -47,7 +47,7 @@ createCrossChainProvider("bungee", {
 | `across`       | (none)            | `isTestnet`                                                                                           |
 | `relay`        | (none)            | `apiKey`, `isTestnet`                                                                                 |
 | `oif`          | `solverId`, `url` | —                                                                                                     |
-| `lifi-intents` | `orderServerUrl`  | —                                                                                                     |
+| `lifi-intents` | `orderServerUrl`  | `providerId`, `headers`                                                                               |
 | `bungee`       | (none)            | `tier`, `apiKey`, `affiliateId`, `feeBps`, `feeTakerAddress`, `submissionModes`, `slippage`, `refuel` |
 
 ## Order Tracking Requirements
@@ -61,6 +61,7 @@ Different providers use different tracking mechanisms. Some need RPC URLs, other
 | Relay            | API-based            | API-based    | None                        |
 | OIF              | OIF event-based      | Event-based  | Origin + destination chains |
 | Bungee           | API-based            | API-based    | None                        |
+| LiFi Intents     | Custom event-based   | API-based    | Origin chain only           |
 
 ## Creating Custom Providers
 
