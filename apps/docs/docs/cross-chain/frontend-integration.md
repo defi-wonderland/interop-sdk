@@ -200,25 +200,26 @@ export function useCrossChainSwap() {
           !isNativeAddress(request.input.assetAddress, 'eip155')
         ) {
           // Fallback: provider didn't supply checks (e.g. Across).
-          // Approve the transaction target for the input amount.
+          // Approve the transaction target for the quoted input amount.
           setStatus('approving')
 
           const step = getTransactionSteps(quote.order)[0]
           const spender = step.transaction.to
+          const inputPreview = quote.preview.inputs[0]
 
           const currentAllowance = await publicClient.readContract({
-            address: request.input.assetAddress as `0x${string}`,
+            address: inputPreview.assetAddress as `0x${string}`,
             abi: erc20Abi,
             functionName: 'allowance',
             args: [walletClient.account.address, spender],
           })
 
-          if (currentAllowance < BigInt(request.input.amount)) {
+          if (currentAllowance < BigInt(inputPreview.amount)) {
             const approveHash = await walletClient.writeContract({
-              address: request.input.assetAddress as `0x${string}`,
+              address: inputPreview.assetAddress as `0x${string}`,
               abi: erc20Abi,
               functionName: 'approve',
-              args: [spender, BigInt(request.input.amount)],
+              args: [spender, BigInt(inputPreview.amount)],
             })
             await publicClient.waitForTransactionReceipt({ hash: approveHash })
           }
