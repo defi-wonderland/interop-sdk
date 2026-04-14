@@ -17,7 +17,7 @@ Implements [EIP-7930](https://eips.ethereum.org/EIPS/eip-7930), [ERC-7828](https
 
 Fetch quotes, execute transfers, and track orders across chains through a unified provider interface.
 
-Implements [EIP-7683](https://www.erc7683.org/) for cross-chain intents. Supports Across, Relay, and OIF providers.
+Supports Open Intents Framework (OIF), Across, Relay, Bungee, and LiFi Intents providers.
 
 ## Where to start
 

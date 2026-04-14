@@ -132,7 +132,7 @@ if (response.quotes.length === 0) {
 
 Before submitting the transaction, check whether the selected provider requires an ERC-20 token approval.
 
-Some providers (Relay, Bungee, OIF) populate `quote.order.checks.allowances` with the exact spender and amount. Others (e.g. Across) do not. The snippet below handles both cases: when checks are present it uses them directly, otherwise it derives the approval from the transaction step's `to` address.
+Some providers (Relay, Bungee, OIF, LiFi Intents) populate `quote.order.checks.allowances` with the exact spender and amount. Others (e.g. Across) do not. The snippet below handles both cases: when checks are present it uses them directly, otherwise it derives the approval from the transaction step's `to` address.
 
 ```typescript
 import { erc20Abi } from "viem";
@@ -195,7 +195,7 @@ if (allowances.length > 0) {
 
 :::info Why two paths?
 
-Always honor `order.checks.allowances` when present — some providers (e.g. Relay) include required approvals there even for signature-only orders. Not all providers populate this field though (e.g. Across does not), so the fallback derives the spender from the transaction step's `to` address. The fallback only runs for transaction-based orders with ERC-20 inputs; signature-only orders without checks and native token inputs are skipped.
+Always honor `order.checks.allowances` when present — providers like Relay and LiFi Intents include required approvals there. Not all providers populate this field though (e.g. Across does not), so the fallback derives the spender from the transaction step's `to` address. The fallback only runs for transaction-based orders with ERC-20 inputs; signature-only orders without checks and native token inputs are skipped.
 
 :::
 
