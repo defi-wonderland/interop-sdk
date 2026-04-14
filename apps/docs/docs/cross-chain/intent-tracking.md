@@ -38,12 +38,12 @@ The SDK exposes three ways to track an order. Choose based on your use case:
 
 | API | How to call | Input | Use when |
 |-----|-------------|-------|----------|
-| `aggregator.track()` | Event-emitter | `txHash` + `providerId` | You have a tx hash and want real-time events |
-| `tracker.watchOrder()` | Async generator | `txHash` or `orderId` | You need `orderId`-based tracking (required for signature-based/gasless orders), or prefer async iteration |
-| `aggregator.getOrderStatus()` | One-shot promise | `txHash` + `providerId` | You only need the current status without streaming |
+| `aggregator.track()` | Event-emitter | `txHash` + `providerId` + `originChainId` + `destinationChainId` | You have a tx hash and want real-time events |
+| `tracker.watchOrder()` | Async generator | (`txHash` + `originChainId`) or (`orderId` + `originChainId` + `destinationChainId`) | You need `orderId`-based tracking (required for signature-based/gasless orders), or prefer async iteration |
+| `aggregator.getOrderStatus()` | One-shot promise | `txHash` + `providerId` + `originChainId` | You only need the current status without streaming |
 
 :::warning
-`watchOrder` is currently the only path that supports tracking by `orderId`. Signature-based (gasless) orders may not have a `txHash` at open time — for those, `orderId` tracking is required. Pass a `WatchOrderByOrderId` param (with `orderId` and `destinationChainId`) instead of `WatchOrderByTxHash`.
+`watchOrder` is currently the only path that supports tracking by `orderId`. Signature-based (gasless) orders may not have a `txHash` at open time — for those, `orderId` tracking is required. Pass a `WatchOrderByOrderId` param (with `orderId`, `originChainId`, and `destinationChainId`) instead of `WatchOrderByTxHash`.
 :::
 
 :::info Mixed-step orders
