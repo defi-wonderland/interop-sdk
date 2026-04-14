@@ -85,10 +85,9 @@ The hook below covers the complete flow:
 
 1. Create (or reuse) the aggregator
 2. Fetch quotes
-3. Build the quote
-4. Check `checks.allowances` for ERC-20 approvals
-5. Submit the order
-6. Track until finalized
+3. Check `order.checks.allowances` for ERC-20 approvals
+4. Submit the order
+5. Track until finalized
 
 ```typescript
 import { useCallback, useState } from 'react'
@@ -164,42 +163,41 @@ export function useCrossChainSwap() {
         setQuotes(response.quotes)
         const quote = response.quotes[0]
 
-        // ── 2. Build quote (resolves calldata locally) ────────────────────────
-        const built = await aggregator.buildQuote(quote.provider, request)
-
-        // ── 3. ERC-20 approvals ──────────────────────────────────────────────
+        // ── 2. ERC-20 approvals ──────────────────────────────────────────────
         //
-        // built.checks.allowances lists any spend approvals the SDK needs
+        // quote.order.checks.allowances lists any spend approvals the SDK needs
         // before the order can be submitted. Native token transfers are skipped
         // automatically. Note: Across populates this only for ERC-20 inputs —
         // the Across provider does not populate allowances for its signature-
         // based flow, so the array will be empty for gasless Across orders.
-        if (built.checks?.allowances && built.checks.allowances.length > 0) {
+        const allowances = quote.order.checks?.allowances ?? []
+
+        if (allowances.length > 0) {
           setStatus('approving')
 
-          for (const allowance of built.checks.allowances) {
-            const { token, spender, amount } = allowance
+          for (const allowance of allowances) {
+            const { tokenAddress, spender, required } = allowance
 
             const currentAllowance = await publicClient.readContract({
-              address: token,
+              address: tokenAddress,
               abi: erc20Abi,
               functionName: 'allowance',
               args: [walletClient.account.address, spender],
             })
 
-            if (currentAllowance < BigInt(amount)) {
+            if (currentAllowance < BigInt(required)) {
               const approveHash = await walletClient.writeContract({
-                address: token,
+                address: tokenAddress,
                 abi: erc20Abi,
                 functionName: 'approve',
-                args: [spender, BigInt(amount)],
+                args: [spender, BigInt(required)],
               })
               await publicClient.waitForTransactionReceipt({ hash: approveHash })
             }
           }
         }
 
-        // ── 4. Submit the order ──────────────────────────────────────────────
+        // ── 3. Submit the order ──────────────────────────────────────────────
         setStatus('submitting')
 
         let txHash: `0x${string}` | undefined
@@ -230,7 +228,7 @@ export function useCrossChainSwap() {
           await publicClient.waitForTransactionReceipt({ hash: txHash })
         }
 
-        // ── 5. Track until finalized ─────────────────────────────────────────
+        // ── 4. Track until finalized ─────────────────────────────────────────
         setStatus('tracking')
 
         if (txHash) {
