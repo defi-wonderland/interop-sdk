@@ -104,7 +104,7 @@ import {
   type QuoteRequest,
   type Quote,
 } from '@wonderland/interop-cross-chain'
-import { erc20Abi } from 'viem'
+import { erc20Abi, zeroAddress } from 'viem'
 
 // Create the aggregator once (outside the hook so it is a singleton)
 const acrossProvider = createCrossChainProvider('across')
@@ -165,11 +165,10 @@ export function useCrossChainSwap() {
 
         // ── 2. ERC-20 approvals ──────────────────────────────────────────────
         //
-        // quote.order.checks.allowances lists any spend approvals the SDK needs
-        // before the order can be submitted. Native token transfers are skipped
-        // automatically. Note: Across populates this only for ERC-20 inputs —
-        // the Across provider does not populate allowances for its signature-
-        // based flow, so the array will be empty for gasless Across orders.
+        // Some providers (Relay, Bungee, OIF) populate quote.order.checks.allowances
+        // with the exact spender and amount. Others (e.g. Across) do not.
+        // When checks are missing, derive the approval from the transaction step:
+        // the `to` address is the contract that will pull tokens from the user.
         const allowances = quote.order.checks?.allowances ?? []
 
         if (allowances.length > 0) {
@@ -194,6 +193,33 @@ export function useCrossChainSwap() {
               })
               await publicClient.waitForTransactionReceipt({ hash: approveHash })
             }
+          }
+        } else if (
+          !isSignatureOnlyOrder(quote.order) &&
+          request.input.assetAddress !== zeroAddress
+        ) {
+          // Fallback: provider didn't supply checks (e.g. Across).
+          // Approve the transaction target for the input amount.
+          setStatus('approving')
+
+          const step = getTransactionSteps(quote.order)[0]
+          const spender = step.transaction.to
+
+          const currentAllowance = await publicClient.readContract({
+            address: request.input.assetAddress as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'allowance',
+            args: [walletClient.account.address, spender],
+          })
+
+          if (currentAllowance < BigInt(request.input.amount)) {
+            const approveHash = await walletClient.writeContract({
+              address: request.input.assetAddress as `0x${string}`,
+              abi: erc20Abi,
+              functionName: 'approve',
+              args: [spender, BigInt(request.input.amount)],
+            })
+            await publicClient.waitForTransactionReceipt({ hash: approveHash })
           }
         }
 
