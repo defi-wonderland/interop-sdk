@@ -13,17 +13,17 @@ Tracking supports **two ways of observing the same lifecycle**, depending on the
 
 The `OrderTracker` streams updates using the full OIF `OrderStatus` set (from `@openintentsframework/oif-specs`). Not every provider emits every status — the table below shows which statuses each provider actually produces:
 
-| Status | Description | Across | Relay | OIF | Bungee |
-|--------|-------------|--------|-------|-----|--------|
-| `Created` | Order created on-chain | — | — | ✓ | — |
-| `Pending` | Awaiting execution | ✓ | ✓ | ✓ | ✓ |
-| `Executing` | Filler is processing the order | — | ✓ | ✓ | ✓ |
-| `Executed` | Fill transaction submitted | — | — | ✓ | — |
-| `Settling` | Settlement in progress | — | ✓ | — | — |
-| `Settled` | Settlement complete (reserved) | — | — | — | — |
-| `Finalized` | Order fully complete | ✓ | ✓ | ✓ | ✓ |
-| `Failed` | Order failed | ✓ | ✓ | ✓ | ✓ |
-| `Refunded` | Funds returned to sender | ✓ | ✓ | ✓ | ✓ |
+| Status | Description | Across | Relay | OIF | Bungee | LiFi Intents |
+|--------|-------------|--------|-------|-----|--------|--------------|
+| `Created` | Order created on-chain | — | — | ✓ | — | — |
+| `Pending` | Awaiting execution | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `Executing` | Filler is processing the order | — | ✓ | ✓ | ✓ | — |
+| `Executed` | Fill transaction submitted | — | — | ✓ | — | — |
+| `Settling` | Settlement in progress | — | ✓ | — | — | ✓ |
+| `Settled` | Settlement complete (reserved) | — | — | — | — | — |
+| `Finalized` | Order fully complete | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `Failed` | Order failed | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `Refunded` | Funds returned to sender | ✓ | ✓ | ✓ | ✓ | — |
 
 You can subscribe to **any** `OrderStatus` via `tracker.on(OrderStatus.<status>, ...)` — the examples below show the most common ones.
 

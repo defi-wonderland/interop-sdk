@@ -171,7 +171,7 @@ export function useCrossChainSwap() {
 
         // ── 3. ERC-20 approvals ──────────────────────────────────────────────
         //
-        // Some providers (Relay, Bungee, OIF) populate quote.order.checks.allowances
+        // Some providers (Relay, Bungee, OIF, LiFi Intents) populate quote.order.checks.allowances
         // with the exact spender and amount. Others (e.g. Across) do not.
         // When checks are missing, derive the approval from the transaction step:
         // the `to` address is the contract that will pull tokens from the user.
