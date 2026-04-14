@@ -103,8 +103,9 @@ test.describe('Asset Discovery', () => {
 
 test.describe('Recipient address input', () => {
   test('auto-fills with connected address on load', async ({ page }) => {
+    const connectedAddress = process.env.NEXT_PUBLIC_E2E_WALLET_ADDRESS as string;
     const recipientInput = page.getByRole('textbox', { name: 'Recipient Address' });
-    await expect(recipientInput).toHaveValue('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+    await expect(recipientInput).toHaveValue(connectedAddress);
   });
 
   test('allows user to clear input', async ({ page }) => {
@@ -154,32 +155,51 @@ test.describe('Amount input validation', () => {
 
 test.describe('Cross-chain intents', () => {
   test('get quotes', async ({ page }) => {
-    // Select input token via custom dropdown
     await page.getByTestId('input-token-select').click();
     await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
-
-    // Select output token via custom dropdown
     await page.getByTestId('output-token-select').click();
     await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
-
     await page.getByRole('textbox', { name: 'Amount' }).fill('0.2');
     await page.locator('button[type="submit"]').click();
+
+    await expect(page
+      .locator('button')
+      .filter({ hasText: /Relay/ }))
+      .toBeVisible();
+    await expect(page
+      .locator('button')
+      .filter({ hasText: /LI.FI/ }))
+      .toBeVisible();
+  });
+
+  test('executes a cross-chain intent (no mocks)', async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.locator('#input-chain-select').selectOption({ label: 'Sepolia' });
+    await page.locator('#output-chain-select').selectOption({ label: 'Base Sepolia' });
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+    await page.getByRole('textbox', { name: 'Amount' }).fill('0.03');
+    await page.getByRole('button', { name: 'Get Quotes' }).last().click();
     await page
       .locator('button')
-      .filter({ hasText: /Across Protocol/ })
+      .filter({ hasText: /Relay/ })
       .click();
+    await page.getByRole('button', { name: 'Execute' }).click();
 
-    await expect(page.getByRole('button', { name: 'Execute' })).toBeVisible();
+    await expect(page.getByText('Order Filled Successfully!')).toBeVisible({ timeout: 180_000 });
   });
 });
 
 test.describe('Address menu', () => {
   test('copy address', async ({ page }) => {
+    const connectedAddress = process.env.NEXT_PUBLIC_E2E_WALLET_ADDRESS;
     await page.getByTestId('rk-account-button').click();
     await page.getByRole('button', { name: /Copy Address/i }).click();
     const clipboardText = await page.evaluate('navigator.clipboard.readText()');
 
-    expect(clipboardText).toBe('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+    expect(clipboardText).toBe(connectedAddress);
   });
 
   test('disconnect from dapp', async ({ page }) => {
@@ -223,7 +243,6 @@ test.describe('Build quote fee display', () => {
 
   test('shows default hint before output is filled', async ({ page }) => {
     await page.getByRole('button', { name: 'Build Quote' }).click();
-
     await page.getByLabel('You send').fill('1');
 
     await expect(page.getByTestId('fee-hint')).toBeVisible();
@@ -277,11 +296,8 @@ test.describe('Negative test', () => {
   });
 
   test('rejects transaction', async ({ page }) => {
-    // Select input token via custom dropdown
     await page.getByTestId('input-token-select').click();
     await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
-
-    // Select output token via custom dropdown
     await page.getByTestId('output-token-select').click();
     await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
 
@@ -290,7 +306,7 @@ test.describe('Negative test', () => {
     await page.locator('button[type="submit"]').click();
     await page
       .locator('button')
-      .filter({ hasText: /Across Protocol/ })
+      .filter({ hasText: /Relay/ })
       .click();
     await page.getByRole('button', { name: 'Execute' }).click();
 
