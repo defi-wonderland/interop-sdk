@@ -85,13 +85,14 @@ The hook below covers the complete flow:
 
 1. Create (or reuse) the aggregator
 2. Fetch quotes
-3. Check `order.checks.allowances` for ERC-20 approvals
-4. Submit the order
-5. Track until finalized
+3. Switch the wallet to the origin chain
+4. Check `order.checks.allowances` for ERC-20 approvals
+5. Submit the order
+6. Track until finalized
 
 ```typescript
 import { useCallback, useState } from 'react'
-import { useWalletClient, usePublicClient } from 'wagmi'
+import { useWalletClient, usePublicClient, useSwitchChain } from 'wagmi'
 import {
   createAggregator,
   createCrossChainProvider,
@@ -136,6 +137,7 @@ type SwapStatus =
 export function useCrossChainSwap() {
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
+  const { switchChainAsync } = useSwitchChain()
 
   const [status, setStatus] = useState<SwapStatus>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -164,7 +166,10 @@ export function useCrossChainSwap() {
         setQuotes(response.quotes)
         const quote = response.quotes[0]
 
-        // ── 2. ERC-20 approvals ──────────────────────────────────────────────
+        // ── 2. Ensure wallet is on the origin chain ──────────────────────────
+        await switchChainAsync({ chainId: request.input.chainId })
+
+        // ── 3. ERC-20 approvals ──────────────────────────────────────────────
         //
         // Some providers (Relay, Bungee, OIF) populate quote.order.checks.allowances
         // with the exact spender and amount. Others (e.g. Across) do not.
@@ -225,7 +230,7 @@ export function useCrossChainSwap() {
           }
         }
 
-        // ── 3. Submit the order ──────────────────────────────────────────────
+        // ── 4. Submit the order ──────────────────────────────────────────────
         setStatus('submitting')
 
         let txHash: `0x${string}` | undefined
@@ -256,7 +261,7 @@ export function useCrossChainSwap() {
           await publicClient.waitForTransactionReceipt({ hash: txHash })
         }
 
-        // ── 4. Track until finalized ─────────────────────────────────────────
+        // ── 5. Track until finalized ─────────────────────────────────────────
         setStatus('tracking')
 
         if (txHash) {
