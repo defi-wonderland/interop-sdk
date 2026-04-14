@@ -80,6 +80,42 @@ const quote = quotes[0];
 console.log(`Quote from ${quote.provider}`);
 ```
 
+### Native tokens (ETH, MATIC, etc.)
+
+To bridge a native asset, use `NATIVE_ASSET_ADDRESS` as the `assetAddress`:
+
+```typescript
+import {
+    createCrossChainProvider,
+    NATIVE_ASSET_ADDRESS,
+} from "@wonderland/interop-cross-chain";
+
+const quotes = await provider.getQuotes({
+    user: account.address,
+    input: {
+        chainId: 11155111, // Sepolia
+        assetAddress: NATIVE_ASSET_ADDRESS,
+        amount: "100000000000000000", // 0.1 ETH in wei
+    },
+    output: {
+        chainId: 84532, // Base Sepolia
+        assetAddress: NATIVE_ASSET_ADDRESS,
+        recipient: account.address,
+    },
+    swapType: "exact-input",
+});
+```
+
+:::info
+Both `0x0000000000000000000000000000000000000000` (zero address) and `0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee` ([EIP-7528](https://eips.ethereum.org/EIPS/eip-7528)) are accepted by the SDK as native asset sentinels. `NATIVE_ASSET_ADDRESS` exports the EIP-7528 form (`0xeeee...eeee`) and is the canonical constant used in all SDK examples.
+:::
+
+## Handle ERC-20 approvals
+
+Always check `order.checks.allowances` first — some providers (Relay, Bungee, OIF) populate it with the exact spender and amount, even for signature-only orders. When checks are missing (e.g. Across), derive the spender from the transaction step's `to` address. Native token inputs never need an approval.
+
+See the [full approval pattern](./example.md#5-check-and-handle-erc-20-approvals) in the Execute Intent guide.
+
 ## Execute the transaction
 
 Quotes contain either signature steps (gasless) or transaction steps (user pays gas). Handle both:
@@ -140,10 +176,11 @@ response.errors.forEach((err) => console.warn(`Provider error: ${err.errorMsg}`)
 
 1. **Create provider** → `createCrossChainProvider("across")` (or use `createAggregator` for multiple)
 2. **Get quotes** → `provider.getQuotes(request)` or `aggregator.getQuotes(request)`
-3. **Check order type** → `isSignatureOnlyOrder(quote.order)`
+3. **Approve ERC-20 (if needed)** → check `order.checks?.allowances` and approve before submitting (see [approval guide](./example.md#5-check-and-handle-erc-20-approvals))
+4. **Check order type** → `isSignatureOnlyOrder(quote.order)`
     - **Signature (gasless):** `signTypedData()` → `provider.submitOrder(quote, signature)`
     - **Transaction (user pays gas):** `walletClient.sendTransaction(...)` (see [example above](#execute-the-transaction) — convert string `value` to `BigInt`)
-4. **Track** → `createOrderTracker(provider)` for single-provider or `aggregator.track({ txHash, providerId, originChainId, destinationChainId })` for aggregator
+5. **Track** → `createOrderTracker(provider)` for single-provider or `aggregator.track({ txHash, providerId, originChainId, destinationChainId })` for aggregator
 
 ### Which function should I use?
 

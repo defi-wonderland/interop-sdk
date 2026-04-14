@@ -10,13 +10,14 @@ This guide demonstrates how to execute a cross-chain intent using the SDK. The p
 
 First, import the required libraries and set up your environment variables, such as your private key and a generic RPC URL.
 
-```js
+```typescript
 import {
     createAggregator,
     createCrossChainProvider,
     getSignatureSteps,
     getTransactionSteps,
     isSignatureOnlyOrder,
+    isNativeAddress,
 } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -35,7 +36,7 @@ const privateAccount = privateKeyToAccount(PRIVATE_KEY);
 
 Create public and wallet clients for interacting with the blockchain, using the generic RPC URL.
 
-```js
+```typescript
 const publicClient = createPublicClient({
     chain: sepolia,
     transport: http(RPC_URL),
@@ -52,9 +53,24 @@ const walletClient = createWalletClient({
 
 Initialize the cross-chain provider and aggregator, which will handle quoting and executing cross-chain transfers.
 
-```js
+### Testnet (Sepolia → Base Sepolia)
+
+```typescript
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 const relayProvider = createCrossChainProvider("relay", { isTestnet: true });
+
+const aggregator = createAggregator({
+    providers: [acrossProvider, relayProvider],
+});
+```
+
+### Mainnet (Base → Arbitrum)
+
+For mainnet, omit `isTestnet` (or set it to `false`) and use the corresponding mainnet chain IDs when building your clients (step 2) and quote request (step 4).
+
+```typescript
+const acrossProvider = createCrossChainProvider("across");
+const relayProvider = createCrossChainProvider("relay");
 
 const aggregator = createAggregator({
     providers: [acrossProvider, relayProvider],
@@ -65,41 +81,129 @@ const aggregator = createAggregator({
 
 Request a quote for a cross-chain transfer using the SDK `QuoteRequest` format.
 
-```js
+### Testnet example
+
+```typescript
 const response = await aggregator.getQuotes({
     user: "0xYourAddress",
     input: {
-        chainId: 11155111,
+        chainId: 11155111, // Sepolia
         assetAddress: "0xInputTokenAddress",
         amount: "100000000000000000", // 0.1 in wei
     },
     output: {
-        chainId: 84532,
+        chainId: 84532, // Base Sepolia
+        assetAddress: "0xOutputTokenAddress",
+        recipient: "0xRecipientAddress",
+    },
+    swapType: "exact-input",
+});
+```
+
+### Mainnet example (Base → Arbitrum)
+
+```typescript
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress",
+    input: {
+        chainId: 8453, // Base
+        assetAddress: "0xInputTokenAddress",
+        amount: "100000000000000000", // 0.1 in wei
+    },
+    output: {
+        chainId: 42161, // Arbitrum One
         assetAddress: "0xOutputTokenAddress",
         recipient: "0xRecipientAddress",
     },
     swapType: "exact-input",
 });
 
-// Check for errors
 if (response.errors.length > 0) {
     console.error("Errors:", response.errors);
 }
 
-// Check if we got quotes
 if (response.quotes.length === 0) {
     console.error("No quotes available");
     return;
 }
 ```
 
-## 5. Execute the Cross-Chain Transaction
+## 5. Check and Handle ERC-20 Approvals
+
+Before submitting the transaction, check whether the selected provider requires an ERC-20 token approval.
+
+Some providers (Relay, Bungee, OIF) populate `quote.order.checks.allowances` with the exact spender and amount. Others (e.g. Across) do not. The snippet below handles both cases: when checks are present it uses them directly, otherwise it derives the approval from the transaction step's `to` address.
+
+```typescript
+import { erc20Abi } from "viem";
+
+const quote = response.quotes[0];
+const request = { /* the QuoteRequest you passed to getQuotes */ };
+
+// Primary path: use checks.allowances when the provider populates it
+const allowances = quote.order.checks?.allowances ?? [];
+
+if (allowances.length > 0) {
+    for (const { tokenAddress, spender, required } of allowances) {
+        const token = tokenAddress as `0x${string}`;
+        const spenderAddr = spender as `0x${string}`;
+
+        const allowance = await publicClient.readContract({
+            address: token,
+            abi: erc20Abi,
+            functionName: "allowance",
+            args: [privateAccount.address, spenderAddr],
+        });
+        if (allowance < BigInt(required)) {
+            const hash = await walletClient.writeContract({
+                address: token,
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [spenderAddr, BigInt(required)],
+            });
+            await publicClient.waitForTransactionReceipt({ hash });
+        }
+    }
+} else if (
+    !isSignatureOnlyOrder(quote.order) &&
+    !isNativeAddress(request.input.assetAddress, "eip155")
+) {
+    // Fallback: provider didn't supply checks (e.g. Across).
+    // Approve the transaction target for the quoted input amount.
+    const step = getTransactionSteps(quote.order)[0];
+    const spender = step.transaction.to as `0x${string}`;
+    const inputPreview = quote.preview.inputs[0];
+    const token = inputPreview.assetAddress as `0x${string}`;
+
+    const allowance = await publicClient.readContract({
+        address: token,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [privateAccount.address, spender],
+    });
+    if (allowance < BigInt(inputPreview.amount)) {
+        const hash = await walletClient.writeContract({
+            address: token,
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [spender, BigInt(inputPreview.amount)],
+        });
+        await publicClient.waitForTransactionReceipt({ hash });
+    }
+}
+```
+
+:::info Why two paths?
+
+Always honor `order.checks.allowances` when present — some providers (e.g. Relay) include required approvals there even for signature-only orders. Not all providers populate this field though (e.g. Across does not), so the fallback derives the spender from the transaction step's `to` address. The fallback only runs for transaction-based orders with ERC-20 inputs; signature-only orders without checks and native token inputs are skipped.
+
+:::
+
+## 6. Execute the Cross-Chain Transaction
 
 Execute the quote based on its order step type:
 
-```js
-const quote = response.quotes[0];
-
+```typescript
 if (isSignatureOnlyOrder(quote.order)) {
     // Protocol mode: sign and submit (gasless for user)
     // Note: production code should handle all steps, not just the first
@@ -129,11 +233,11 @@ if (isSignatureOnlyOrder(quote.order)) {
 }
 ```
 
-## 6. Run the Main Function
+## 7. Run the Main Function
 
 Finally, call the main function to execute the workflow.
 
-```js
+```typescript
 const main = async (): Promise<void> => {
     // ...all the above steps go here...
 };
