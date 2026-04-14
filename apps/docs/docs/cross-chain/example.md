@@ -145,18 +145,21 @@ const allowances = quote.order.checks?.allowances ?? [];
 
 if (allowances.length > 0) {
     for (const { tokenAddress, spender, required } of allowances) {
+        const token = tokenAddress as `0x${string}`;
+        const spenderAddr = spender as `0x${string}`;
+
         const allowance = await publicClient.readContract({
-            address: tokenAddress,
+            address: token,
             abi: erc20Abi,
             functionName: "allowance",
-            args: [privateAccount.address, spender],
+            args: [privateAccount.address, spenderAddr],
         });
         if (allowance < BigInt(required)) {
             const hash = await walletClient.writeContract({
-                address: tokenAddress,
+                address: token,
                 abi: erc20Abi,
                 functionName: "approve",
-                args: [spender, BigInt(required)],
+                args: [spenderAddr, BigInt(required)],
             });
             await publicClient.waitForTransactionReceipt({ hash });
         }
@@ -168,18 +171,19 @@ if (allowances.length > 0) {
     // Fallback: provider didn't supply checks (e.g. Across).
     // Approve the transaction target for the quoted input amount.
     const step = getTransactionSteps(quote.order)[0];
-    const spender = step.transaction.to;
+    const spender = step.transaction.to as `0x${string}`;
     const inputPreview = quote.preview.inputs[0];
+    const token = inputPreview.assetAddress as `0x${string}`;
 
     const allowance = await publicClient.readContract({
-        address: inputPreview.assetAddress as `0x${string}`,
+        address: token,
         abi: erc20Abi,
         functionName: "allowance",
         args: [privateAccount.address, spender],
     });
     if (allowance < BigInt(inputPreview.amount)) {
         const hash = await walletClient.writeContract({
-            address: inputPreview.assetAddress as `0x${string}`,
+            address: token,
             abi: erc20Abi,
             functionName: "approve",
             args: [spender, BigInt(inputPreview.amount)],
@@ -191,7 +195,7 @@ if (allowances.length > 0) {
 
 :::info Why two paths?
 
-Not all providers populate `order.checks.allowances` on `getQuotes` — for example, Across does not. The fallback derives the spender from the transaction step's `to` address (the contract that will pull tokens). Signature-only (gasless) orders and native token inputs are skipped because they don't require an ERC-20 approval.
+Always honor `order.checks.allowances` when present — some providers (e.g. Relay) include required approvals there even for signature-only orders. Not all providers populate this field though (e.g. Across does not), so the fallback derives the spender from the transaction step's `to` address. The fallback only runs for transaction-based orders with ERC-20 inputs; signature-only orders without checks and native token inputs are skipped.
 
 :::
 
