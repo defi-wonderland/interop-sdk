@@ -98,13 +98,14 @@ import {
   getSignatureSteps,
   getTransactionSteps,
   isSignatureOnlyOrder,
+  isNativeAddress,
   OrderTrackerFactory,
   OrderStatus,
   OrderTrackerEvent,
   type QuoteRequest,
   type Quote,
 } from '@wonderland/interop-cross-chain'
-import { erc20Abi, zeroAddress } from 'viem'
+import { erc20Abi } from 'viem'
 
 // Create the aggregator once (outside the hook so it is a singleton)
 const acrossProvider = createCrossChainProvider('across')
@@ -196,7 +197,7 @@ export function useCrossChainSwap() {
           }
         } else if (
           !isSignatureOnlyOrder(quote.order) &&
-          request.input.assetAddress !== zeroAddress
+          !isNativeAddress(request.input.assetAddress, 'eip155')
         ) {
           // Fallback: provider didn't supply checks (e.g. Across).
           // Approve the transaction target for the input amount.
