@@ -111,7 +111,7 @@ export class BungeeProvider extends CrossChainProvider {
             this.submissionModes.map((mode) => this.fetchQuotesForMode(params, mode)),
         );
 
-        return this.collectQuotesOrThrow(results);
+        return this.collectQuotes(results);
     }
 
     /**
@@ -188,11 +188,8 @@ export class BungeeProvider extends CrossChainProvider {
         };
     }
 
-    /**
-     * Collect successful quotes from settled results.
-     * Throws only if every mode failed — surfaces the first error.
-     */
-    private collectQuotesOrThrow(results: PromiseSettledResult<Quote[]>[]): Quote[] {
+    /** Collect quotes; surface errors when no quotes were produced so failures are not hidden. */
+    private collectQuotes(results: PromiseSettledResult<Quote[]>[]): Quote[] {
         const quotes = results
             .filter((r): r is PromiseFulfilledResult<Quote[]> => r.status === "fulfilled")
             .flatMap((r) => r.value);
@@ -200,11 +197,9 @@ export class BungeeProvider extends CrossChainProvider {
         if (quotes.length > 0) return quotes;
 
         const firstError = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
+        if (firstError) throw firstError.reason as Error;
 
-        throw (
-            (firstError?.reason as Error) ??
-            new ProviderGetQuoteFailure("No quotes returned from any submission mode")
-        );
+        return [];
     }
 
     /** Fetch quotes for a single submission mode. */
