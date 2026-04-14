@@ -36,11 +36,22 @@ Bungee offers three integration tiers, each with a different base URL and authen
 | `slippage`        | string          | No       | Default slippage tolerance (e.g. `"0.5"` for 0.5%)                                                                            |
 | `refuel`          | boolean         | No       | Enable native gas refueling on the destination chain                                                                          |
 
+:::info Gasless is opt-in — the default is `["user-transaction"]` only
+
+`submissionModes` defaults to `["user-transaction"]`. To enable the gasless permit2 flow, explicitly opt in:
+
+```typescript
+submissionModes: ["user-transaction", "gasless"]
+```
+
+When both modes are configured, quotes are fetched in parallel and the aggregator handles either order type seamlessly, so opting in has no extra cost. For Bungee, adding `"gasless"` enables the permit2 signature flow for ERC-20 tokens — the user signs a permit2 message instead of sending an onchain transaction.
+
+:::
+
 Notes:
 
 -   `baseUrl` overrides the URL derived from `tier`.
 -   `feeBps` and `feeTakerAddress` must be set together. The fee is deducted from the output amount.
--   `submissionModes` controls how transactions are submitted. `"user-transaction"` uses the onchain BungeeInbox flow where the user pays gas (default), `"gasless"` uses the permit2 signature flow. When both modes are specified, quotes are fetched for each mode in parallel and combined.
 -   `slippage` sets the default tolerance for all quotes. If not set, Bungee uses its own default.
 -   `refuel` tops up native gas on the destination chain so the user can transact immediately after bridging.
 

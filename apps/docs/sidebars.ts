@@ -50,6 +50,7 @@ const sidebars: SidebarsConfig = {
                 "cross-chain/oif-provider",
                 "cross-chain/bungee-provider",
                 "cross-chain/example",
+                "cross-chain/frontend-integration",
                 "cross-chain/intent-tracking",
                 "cross-chain/advanced-usage",
                 "cross-chain/api",

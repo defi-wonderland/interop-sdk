@@ -14,7 +14,25 @@ The [OIF (Open Intents Framework)](https://github.com/BootNodeDev/intents-framew
 | `adapterMetadata` | object   | No       | Additional metadata for the solver                                                                         |
 | `providerId`      | string   | No       | Custom provider identifier                                                                                 |
 | `supportedLocks`  | string[] | No       | Lock mechanisms to request (e.g. `["oif-escrow"]`, `["compact-resource-lock"]`). Default: `["oif-escrow"]` |
-| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both (default). Controls order types            |
+| `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both. Default: all modes                        |
+
+:::info OIF defaults to all submission modes
+
+Unlike Relay and Bungee, the OIF provider enables **both submission modes** when `submissionModes` is not set — `"user-transaction"` (user pays gas) and `"gasless"` (solver executes on behalf of the user). The exact order types available also depend on `supportedLocks` (default: `["oif-escrow"]`).
+
+`"user-transaction"` maps to `oif-user-open-v0`; `"gasless"` maps to escrow-based order types (`oif-escrow-v0`, `oif-3009-v0`, `oif-resource-lock-v0`).
+
+To restrict to a specific mode, set it explicitly:
+
+```typescript
+// User-pays-gas quotes only
+submissionModes: ["user-transaction"]
+
+// Gasless quotes only
+submissionModes: ["gasless"]
+```
+
+:::
 
 ### Lock Mechanism Mapping
 
