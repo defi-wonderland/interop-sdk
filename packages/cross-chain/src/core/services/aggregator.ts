@@ -1,5 +1,6 @@
 import { Hex } from "viem";
 
+import type { ApprovalService } from "../interfaces/approval.interface.js";
 import type { AssetDiscoveryService } from "../interfaces/assetDiscovery.interface.js";
 import type {
     ExecutableQuote,
@@ -38,6 +39,7 @@ interface AggregatorConfig {
     discoveryFactory?: {
         createService(provider: CrossChainProvider): AssetDiscoveryService | null;
     };
+    approvalService?: ApprovalService;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -53,6 +55,7 @@ class Aggregator {
     private readonly sortingStrategy: SortingStrategy;
     private readonly timeoutMs: number;
     private readonly trackerFactory: AggregatorConfig["trackerFactory"];
+    private readonly approvalService: AggregatorConfig["approvalService"];
     private readonly trackerCache: Map<string, OrderTracker> = new Map();
     private readonly discoveryCache: Map<string, AssetDiscoveryService> = new Map();
 
@@ -62,7 +65,14 @@ class Aggregator {
      * @param config - Configuration for the aggregator
      */
     constructor(config: AggregatorConfig) {
-        const { providers, sortingStrategy, timeoutMs, trackerFactory, discoveryFactory } = config;
+        const {
+            providers,
+            sortingStrategy,
+            timeoutMs,
+            trackerFactory,
+            discoveryFactory,
+            approvalService,
+        } = config;
         this.providers = providers.reduce(
             (acc, provider) => {
                 acc[provider.getProviderId()] = provider;
@@ -73,6 +83,7 @@ class Aggregator {
         this.sortingStrategy = sortingStrategy ?? getDefaultSortingStrategy();
         this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
         this.trackerFactory = trackerFactory;
+        this.approvalService = approvalService;
 
         if (discoveryFactory) {
             this.initDiscoveryServices(providers, discoveryFactory);
@@ -185,9 +196,14 @@ class Aggregator {
         ).then((results) => results.flat());
 
         const response = this.splitQuotesAndErrors(resultQuotes);
+        let sortedQuotes = this.sortingStrategy.sort(response.quotes);
+
+        if (this.approvalService) {
+            sortedQuotes = await this.approvalService.enrichQuotes(sortedQuotes);
+        }
 
         return {
-            quotes: this.sortingStrategy.sort(response.quotes),
+            quotes: sortedQuotes,
             errors: response.errors,
         };
     }
