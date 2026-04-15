@@ -199,7 +199,11 @@ class Aggregator {
         let sortedQuotes = this.sortingStrategy.sort(response.quotes);
 
         if (this.approvalService) {
-            sortedQuotes = await this.approvalService.enrichQuotes(sortedQuotes);
+            try {
+                sortedQuotes = await this.approvalService.enrichQuotes(sortedQuotes);
+            } catch (error) {
+                console.warn("[Aggregator] Approval enrichment failed:", error);
+            }
         }
 
         return {
