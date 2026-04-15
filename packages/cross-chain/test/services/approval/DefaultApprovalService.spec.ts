@@ -8,7 +8,8 @@ import type {
     AllowanceResult,
 } from "../../../src/core/interfaces/approval.interface.js";
 import type { ExecutableQuote } from "../../../src/core/schemas/quote.js";
-import { DefaultApprovalService } from "../../../src/core/services/approval/ApprovalService.js";
+import { allowanceKey } from "../../../src/core/interfaces/approval.interface.js";
+import { DefaultApprovalService } from "../../../src/core/services/approval/DefaultApprovalService.js";
 import { ExactAmountStrategy } from "../../../src/core/services/approval/ExactAmountStrategy.js";
 import { InfiniteAmountStrategy } from "../../../src/core/services/approval/InfiniteAmountStrategy.js";
 
@@ -59,16 +60,18 @@ function mockReader(map: Map<string, bigint | null>): AllowanceReader {
             async (entries: AllowanceEntry[]): Promise<AllowanceResult[]> =>
                 entries.map((entry) => ({
                     entry,
-                    allowance:
-                        map.get(
-                            `${entry.chainId}:${entry.tokenAddress.toLowerCase()}:${entry.owner.toLowerCase()}:${entry.spender.toLowerCase()}`,
-                        ) ?? null,
+                    allowance: map.get(allowanceKey(entry)) ?? null,
                 })),
         ),
     };
 }
 
-const allowanceKey = `${CHAIN_ID}:${TOKEN.toLowerCase()}:${OWNER.toLowerCase()}:${SPENDER.toLowerCase()}`;
+const testKey = allowanceKey({
+    chainId: CHAIN_ID,
+    tokenAddress: TOKEN,
+    owner: OWNER,
+    spender: SPENDER,
+});
 
 // ── Strategies ──────────────────────────────────────────
 
@@ -98,7 +101,7 @@ describe("DefaultApprovalService", () => {
     });
 
     it("does not add a step when on-chain allowance covers the required amount", async () => {
-        const reader = mockReader(new Map([[allowanceKey, 2000n]]));
+        const reader = mockReader(new Map([[testKey, 2000n]]));
         const service = new DefaultApprovalService(reader, new ExactAmountStrategy());
         const quote = makeQuote({
             allowances: [
@@ -118,7 +121,7 @@ describe("DefaultApprovalService", () => {
     });
 
     it("prepends an approve TransactionStep when allowance is insufficient", async () => {
-        const reader = mockReader(new Map([[allowanceKey, 0n]]));
+        const reader = mockReader(new Map([[testKey, 0n]]));
         const service = new DefaultApprovalService(reader, new ExactAmountStrategy());
         const quote = makeQuote({
             allowances: [
@@ -146,7 +149,7 @@ describe("DefaultApprovalService", () => {
     });
 
     it("forwards gas limit to the approval step when configured", async () => {
-        const reader = mockReader(new Map([[allowanceKey, 0n]]));
+        const reader = mockReader(new Map([[testKey, 0n]]));
         const service = new DefaultApprovalService(reader, new ExactAmountStrategy(), 100_000n);
         const quote = makeQuote({
             allowances: [
@@ -168,7 +171,7 @@ describe("DefaultApprovalService", () => {
     });
 
     it("does not mutate the original quote object", async () => {
-        const reader = mockReader(new Map([[allowanceKey, 0n]]));
+        const reader = mockReader(new Map([[testKey, 0n]]));
         const service = new DefaultApprovalService(reader, new ExactAmountStrategy());
         const quote = makeQuote({
             allowances: [
@@ -189,7 +192,7 @@ describe("DefaultApprovalService", () => {
     });
 
     it("leaves the quote unchanged when the allowance read returned null", async () => {
-        const reader = mockReader(new Map([[allowanceKey, null]]));
+        const reader = mockReader(new Map([[testKey, null]]));
         const service = new DefaultApprovalService(reader, new ExactAmountStrategy());
         const quote = makeQuote({
             allowances: [
@@ -233,7 +236,7 @@ describe("DefaultApprovalService", () => {
     });
 
     it("deduplicates allowance reads when multiple quotes share the same entry", async () => {
-        const reader = mockReader(new Map([[allowanceKey, 0n]]));
+        const reader = mockReader(new Map([[testKey, 0n]]));
         const service = new DefaultApprovalService(reader, new ExactAmountStrategy());
         const quoteA = makeQuote({
             allowances: [
