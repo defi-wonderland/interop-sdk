@@ -14,6 +14,7 @@ concurrency:
 jobs:
     build-lint:
         uses: ./.github/workflows/build-lint.yml
+        secrets: inherit
 
     test:
         uses: ./.github/workflows/test.yml
