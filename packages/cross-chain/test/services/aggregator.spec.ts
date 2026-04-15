@@ -215,6 +215,27 @@ describe("Aggregator", () => {
             expect(errors[0]?.error).toBeInstanceOf(Error);
         });
 
+        it("returns unenriched quotes when the approval service throws", async () => {
+            vi.mocked(mockProviderA.getQuotes).mockResolvedValue([mockExecutableQuoteA]);
+            vi.mocked(mockProviderB.getQuotes).mockResolvedValue([mockExecutableQuoteB]);
+            const enrichQuotes = vi.fn().mockRejectedValue(new Error("RPC read failed"));
+            const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+            const aggregator = createAggregator({
+                providers: [mockProviderA, mockProviderB],
+                approvalService: { enrichQuotes },
+            });
+
+            const { quotes, errors } = await aggregator.getQuotes(mockGetQuoteRequest);
+
+            expect(quotes).toHaveLength(2);
+            expect(errors).toHaveLength(0);
+            expect(enrichQuotes).toHaveBeenCalledOnce();
+            expect(warnSpy).toHaveBeenCalled();
+
+            warnSpy.mockRestore();
+        });
+
         it("call to getQuotes for each provider", async () => {
             const aggregator = createAggregator({
                 providers: [mockProviderA, mockProviderB],

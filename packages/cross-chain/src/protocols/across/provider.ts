@@ -235,6 +235,19 @@ export class AcrossProvider extends CrossChainProvider {
                         },
                     },
                 ],
+                checks: {
+                    allowances: isNativeAddress(params.input.assetAddress, "eip155")
+                        ? []
+                        : [
+                              {
+                                  chainId: params.input.chainId,
+                                  tokenAddress: response.inputToken.address,
+                                  owner: params.user,
+                                  spender: response.swapTx.to,
+                                  required: response.inputAmount,
+                              },
+                          ],
+                },
             },
             preview: {
                 inputs: [
