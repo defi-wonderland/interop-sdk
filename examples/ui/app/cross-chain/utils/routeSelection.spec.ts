@@ -181,6 +181,20 @@ describe('reverseDirection', () => {
     expect(resolved.inputToken).toBe(DAI);
     expect(resolved.outputToken).toBe(USDC);
   });
+
+  it('resolves empty tokens before reversing so the swap reflects the displayed selection', () => {
+    // Initial-load scenario: URL omits fromToken/toToken, so the raw selection has empty strings.
+    // The UI renders the resolved selection. A reverse at that moment must swap what's being
+    // displayed, not the empty underlying state — otherwise the post-reverse tokens could differ
+    // from just flipping what the user saw.
+    const emptyTokens = sel({ inputToken: '', outputToken: '' });
+    const displayed = selector.resolve(emptyTokens);
+    const reversed = selector.reverseDirection(emptyTokens);
+    expect(reversed.inputChainId).toBe(displayed.outputChainId);
+    expect(reversed.outputChainId).toBe(displayed.inputChainId);
+    expect(reversed.inputToken).toBe(displayed.outputToken);
+    expect(reversed.outputToken).toBe(displayed.inputToken);
+  });
 });
 
 describe('edge cases', () => {
