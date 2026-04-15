@@ -2,6 +2,10 @@
 title: "Installation"
 ---
 
+:::warning Beta — under active development
+APIs may change between releases. We're shipping quickly and welcome bug reports and feedback via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+:::
+
 ## Prerequisites
 
 -   **Node.js** v20.x or higher
@@ -24,8 +28,6 @@ pnpm add @wonderland/interop-addresses
 ```
 
 ### Cross-Chain Package
-
-> 🚧 This package is currently under development 🚧
 
 For cross-chain operations:
 

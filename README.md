@@ -1,5 +1,7 @@
 # interop-sdk
 
+> **Beta — under active development.** APIs may change between releases. We're shipping quickly and welcome bug reports and feedback via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+
 This repository is a monorepo consisting of the following packages:
 
 -   [`@wonderland/interop-addresses`](./packages/addresses/): A utility library for interoperable addresses based on ERC-7930.
