@@ -112,9 +112,9 @@ Both `0x0000000000000000000000000000000000000000` (zero address) and `0xeeeeeeee
 
 ## Handle ERC-20 approvals
 
-Always check `order.checks.allowances` first — some providers (Relay, Bungee, OIF, LiFi Intents) populate it with the exact spender and amount, even for signature-only orders. When checks are missing (e.g. Across), derive the spender from the transaction step's `to` address. Native token inputs never need an approval.
+ERC-20 inputs need an `approve` before the transfer step. The SDK can do this for you: wire an `approvalService` into the aggregator and every returned quote already has the necessary `approve` `TransactionStep`s prepended to `order.steps`. Iterate the steps in order and each `approve` fires before the step that needs it.
 
-See the [full approval pattern](./example.md#5-check-and-handle-erc-20-approvals) in the Execute Intent guide.
+See [Automatic ERC-20 Approvals](./advanced-usage.md#automatic-erc-20-approvals) for the setup, or the [Execute Intent guide](./example.md) for a full runnable example.
 
 ## Execute the transaction
 
@@ -174,13 +174,12 @@ response.errors.forEach((err) => console.warn(`Provider error: ${err.errorMsg}`)
 
 ### Execution flow
 
-1. **Create provider** → `createCrossChainProvider("across")` (or use `createAggregator` for multiple)
+1. **Create provider** → `createCrossChainProvider("across")` (or use `createAggregator` for multiple — wire an `approvalService` to enrich quotes with ERC-20 `approve` steps automatically)
 2. **Get quotes** → `provider.getQuotes(request)` or `aggregator.getQuotes(request)`
-3. **Approve ERC-20 (if needed)** → check `order.checks?.allowances` and approve before submitting (see [approval guide](./example.md#5-check-and-handle-erc-20-approvals))
-4. **Check order type** → `isSignatureOnlyOrder(quote.order)`
+3. **Check order type** → `isSignatureOnlyOrder(quote.order)`
     - **Signature (gasless):** `signTypedData()` → `provider.submitOrder(quote, signature)`
-    - **Transaction (user pays gas):** `walletClient.sendTransaction(...)` (see [example above](#execute-the-transaction) — convert string `value` to `BigInt`)
-5. **Track** → `createOrderTracker(provider)` for single-provider or `aggregator.track({ txHash, providerId, originChainId, destinationChainId })` for aggregator
+    - **Transaction (user pays gas):** iterate `getTransactionSteps(quote.order)` and send each — approval steps (when present) come first (see [example above](#execute-the-transaction) — convert string `value` to `BigInt`)
+4. **Track** → `createOrderTracker(provider)` for single-provider or `aggregator.track({ txHash, providerId, originChainId, destinationChainId })` for aggregator
 
 ### Which function should I use?
 

@@ -72,6 +72,83 @@ response.errors.forEach((error) => {
 
 For more details on the Aggregator configuration, see the [API Reference](./api.md#aggregator).
 
+## Automatic ERC-20 Approvals
+
+When ERC-20 inputs need an `approve` before the transfer, the aggregator can handle it for you. Pass an `approvalService` to `createAggregator` and every quote it returns already has the necessary `approve` `TransactionStep`s prepended to `order.steps`. If the user already holds sufficient allowance, nothing is prepended.
+
+```typescript
+import {
+    createAggregator,
+    createApprovalService,
+    createCrossChainProvider,
+} from "@wonderland/interop-cross-chain";
+
+const relayProvider = createCrossChainProvider("relay");
+
+const approvalService = createApprovalService({
+    rpcUrls: {
+        1: "https://mainnet.infura.io/v3/YOUR_API_KEY",
+        8453: "https://base-mainnet.g.alchemy.com/v2/YOUR_API_KEY",
+    },
+});
+
+const aggregator = createAggregator({
+    providers: [relayProvider],
+    approvalService,
+});
+
+// Every quote returned now has approval steps prepended when needed.
+const response = await aggregator.getQuotes({ /* ... */ });
+```
+
+Because approval steps live inside the normal `order.steps` array, your execution loop does not need a separate approval code path — iterate the steps in order and each `approve` fires before the transfer step that needs it:
+
+```typescript
+import { getTransactionSteps } from "@wonderland/interop-cross-chain";
+
+for (const step of getTransactionSteps(quote.order)) {
+    const hash = await walletClient.sendTransaction({
+        to: step.transaction.to,
+        data: step.transaction.data,
+        value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+    });
+    await publicClient.waitForTransactionReceipt({ hash });
+}
+```
+
+### Choosing an amount strategy
+
+`ApprovalAmountStrategy` decides the amount encoded in each generated `approve`. Two implementations ship with the SDK:
+
+-   **`ExactAmountStrategy`** (default): approves exactly `required`. Smallest allowance footprint — one `approve` per order against the same `(token, spender)` pair.
+-   **`InfiniteAmountStrategy`**: approves `type(uint256).max`. The first order grants an unbounded allowance and later orders for the same pair skip the approval step entirely, at the cost of an unbounded allowance to the spender.
+
+```typescript
+import { createApprovalService, InfiniteAmountStrategy } from "@wonderland/interop-cross-chain";
+
+const approvalService = createApprovalService({
+    rpcUrls,
+    amountStrategy: new InfiniteAmountStrategy(),
+});
+```
+
+You can also supply your own strategy by implementing the `ApprovalAmountStrategy` interface — for example, a capped-allowance strategy that approves `min(required * 10, cap)`.
+
+### Failure handling
+
+The service is best-effort. If an allowance read fails for a chain, the affected quotes pass through unmodified rather than being dropped. Without an `approvalService`, aggregator output is unchanged.
+
+### Provider coverage
+
+The approval service can only enrich a quote whose provider declares its allowance requirements in `order.checks.allowances`. Coverage across shipped providers:
+
+-   **Across, LiFi Intents, OIF `oif-user-open-v0`** — always populated for ERC-20 inputs.
+-   **Relay, Bungee** — populated whenever the API flags an approve as needed (including the one-time Permit2 approval for Bungee's gasless path). Omitted when the API considers no approve required.
+-   **OIF `oif-escrow-v0`** (Permit2-based gasless) — **not populated**. The OIF wire format does not surface Permit2 approval state, so the adapter has no entry to forward. If your configuration accepts these quotes, the user's first transfer against a given token will fail when the solver cannot pull funds. Handle the one-time `approve(PERMIT2, ...)` yourself, or restrict the provider to `submissionModes: ["user-transaction"]` until the OIF adapter is updated.
+-   **OIF `oif-3009-v0`, `oif-resource-lock-v0`** — not populated, and correctly so: EIP-3009 and resource-lock flows don't use ERC-20 `approve`.
+
+For the full API reference see [Approval Service](./api.md#approval-service).
+
 ## Order Tracking
 
 The aggregator includes built-in order tracking when configured with a `trackerFactory`. After executing a transaction, use `aggregator.track()` to monitor the cross-chain transfer:
