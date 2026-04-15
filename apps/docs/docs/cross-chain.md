@@ -2,6 +2,10 @@
 title: Cross-Chain
 ---
 
+:::warning Beta — under active development
+APIs may change between releases. We're shipping quickly and welcome bug reports and feedback via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+:::
+
 The `cross-chain` package provides a standardized interface for cross-chain token transfers. It lets you fetch quotes from multiple bridge providers, execute transfers, and track orders through a unified API.
 
 It follows [EIP-7683](https://www.erc7683.org/) for cross-chain intent structures.
