@@ -71,10 +71,14 @@ export class DefaultApprovalService implements ApprovalService {
         checks: AllowanceCheck[],
         lookup: AllowanceLookup,
     ): ExecutableQuote {
+        if (checks.some((check) => lookup[allowanceKey(check)] == null)) {
+            return quote;
+        }
+
         const approvalSteps = checks
             .filter((check) => {
-                const onChain = lookup[allowanceKey(check)];
-                return onChain != null && onChain < BigInt(check.required);
+                const onChain = lookup[allowanceKey(check)]!;
+                return onChain < BigInt(check.required);
             })
             .map((check) => this.createApprovalStep(check));
 
