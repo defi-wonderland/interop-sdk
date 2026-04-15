@@ -135,17 +135,23 @@ if (isSignatureOnlyOrder(quote.order)) {
     await provider.submitOrder(quote, signature);
     console.log("Order submitted via signature");
 } else {
-    // User pays gas: send the transaction directly
-    const step = getTransactionSteps(quote.order)[0];
-    const hash = await walletClient.sendTransaction({
-        to: step.transaction.to,
-        data: step.transaction.data,
-        value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
-    });
-    console.log("Transaction sent:", hash);
+    // User pays gas: iterate every transaction step in order.
+    // With an aggregator + approvalService, any required approve steps are
+    // already prepended, so this single loop handles approvals and the transfer.
+    for (const step of getTransactionSteps(quote.order)) {
+        const hash = await walletClient.sendTransaction({
+            to: step.transaction.to,
+            data: step.transaction.data,
+            value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+        });
+        console.log("Transaction sent:", hash);
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
-    console.log("Confirmed:", receipt.status);
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (receipt.status !== "success") {
+            throw new Error(`Step failed: ${step.description ?? "transaction"}`);
+        }
+        console.log("Confirmed: Success");
+    }
 }
 ```
 

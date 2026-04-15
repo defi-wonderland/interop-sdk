@@ -173,7 +173,10 @@ if (isSignatureOnlyOrder(quote.order)) {
             maxPriorityFeePerGas: maxPriorityFeePerGas ? BigInt(maxPriorityFeePerGas) : undefined,
         });
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
-        console.log("Confirmed:", receipt.status === "success" ? "Success" : "Failed");
+        if (receipt.status !== "success") {
+            throw new Error(`Step failed: ${step.description ?? "transaction"}`);
+        }
+        console.log("Confirmed: Success");
     }
 }
 ```

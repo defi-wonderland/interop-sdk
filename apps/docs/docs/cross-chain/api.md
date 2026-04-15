@@ -132,6 +132,7 @@ A utility for managing multiple cross-chain providers and executing operations a
     import {
         AssetDiscoveryFactory,
         createAggregator,
+        createApprovalService,
         OrderTrackerFactory,
         SortingStrategyFactory,
     } from "@wonderland/interop-cross-chain";
