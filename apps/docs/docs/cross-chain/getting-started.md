@@ -136,8 +136,10 @@ if (isSignatureOnlyOrder(quote.order)) {
     console.log("Order submitted via signature");
 } else {
     // User pays gas: iterate every transaction step in order.
-    // With an aggregator + approvalService, any required approve steps are
-    // already prepended, so this single loop handles approvals and the transfer.
+    // Quotes from a single `provider` have one transaction step (the transfer).
+    // Quotes from an `Aggregator` configured with `approvalService` may have
+    // `approve` steps prepended before the transfer — this single loop handles
+    // both cases.
     for (const step of getTransactionSteps(quote.order)) {
         const hash = await walletClient.sendTransaction({
             to: step.transaction.to,
