@@ -135,11 +135,10 @@ if (isSignatureOnlyOrder(quote.order)) {
     await provider.submitOrder(quote, signature);
     console.log("Order submitted via signature");
 } else {
-    // User pays gas: iterate every transaction step in order.
+    // User pays gas: send every transaction step in order.
     // A quote may contain one or more transaction steps depending on the provider.
     // Quotes from an `Aggregator` configured with `approvalService` may also have
-    // `approve` steps prepended before the transfer. This single loop handles
-    // all cases.
+    // `approve` steps prepended before the transfer.
     for (const step of getTransactionSteps(quote.order)) {
         const hash = await walletClient.sendTransaction({
             to: step.transaction.to,
