@@ -5,7 +5,8 @@ import {
   OrderTrackerFactory,
   LIFI_INTENTS_ORDER_SERVER_URL,
   LIFI_INTENTS_ORDER_SERVER_DEV_URL,
-  BungeeApiTier,
+  // TODO: enable after release
+  // BungeeApiTier,
   type Aggregator,
   type CrossChainProvider,
 } from '@wonderland/interop-cross-chain';
@@ -45,11 +46,12 @@ const PROVIDER_CONFIGS: ProviderConfig[] = [
     displayName: 'LI.FI',
     supportsBuildQuote: false,
   },
-  {
-    providerId: 'bungee',
-    displayName: 'Bungee',
-    supportsBuildQuote: false,
-  },
+  // TODO: enable after release
+  // {
+  //   providerId: 'bungee',
+  //   displayName: 'Bungee',
+  //   supportsBuildQuote: false,
+  // },
 ];
 
 export function buildExecutor(isTestnet: boolean): Aggregator {
@@ -77,14 +79,15 @@ export function buildExecutor(isTestnet: boolean): Aggregator {
     }),
   ];
 
-  if (!isTestnet) {
-    providers.push(
-      createCrossChainProvider(PROTOCOLS.BUNGEE, {
-        tier: BungeeApiTier.Sandbox,
-        providerId: 'bungee',
-      }),
-    );
-  }
+  // TODO: enable after release
+  // if (!isTestnet) {
+  //   providers.push(
+  //     createCrossChainProvider(PROTOCOLS.BUNGEE, {
+  //       tier: BungeeApiTier.Sandbox,
+  //       providerId: 'bungee',
+  //     }),
+  //   );
+  // }
 
   return createAggregator({
     providers,
