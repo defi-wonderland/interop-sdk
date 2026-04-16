@@ -101,12 +101,17 @@ const aggregator = createAggregator({
 const response = await aggregator.getQuotes({ /* ... */ });
 ```
 
-Because approval steps live inside the normal `order.steps` array, your execution loop does not need a separate approval code path — iterate the steps in order and each `approve` fires before the transfer step that needs it:
+Because approval steps live inside the normal `order.steps` array, your execution loop does not need a separate approval code path — iterate the steps in order and each `approve` fires before the transfer step that needs it.
+
+Each step carries an optional `description` field. Approval steps created by the SDK have `description: "Token approval"`, so you can surface different UI states:
 
 ```typescript
 import { getTransactionSteps } from "@wonderland/interop-cross-chain";
 
 for (const step of getTransactionSteps(quote.order)) {
+    const isApproval = step.description === "Token approval";
+    console.log(isApproval ? "Approving token…" : "Sending bridge tx…");
+
     const hash = await walletClient.sendTransaction({
         to: step.transaction.to,
         data: step.transaction.data,
