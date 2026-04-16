@@ -615,6 +615,7 @@ interface OrderTrackingInfo {
     fillInstructions: FillInstruction[];
     fillEvent?: FillEvent;
     failureReason?: OrderFailureReason;
+    warnings?: string[]; // e.g. destination swap failed
 }
 ```
 
@@ -629,6 +630,7 @@ interface OrderTrackingUpdate {
     timestamp: number;
     message: string;
     failureReason?: OrderFailureReason;
+    warnings?: string[]; // e.g. destination swap failed
 }
 ```
 
@@ -644,6 +646,7 @@ interface FillEvent {
     relayer?: Address;
     recipient?: Address;
     metadata?: unknown;
+    warnings?: string[]; // e.g. destination swap failed but tokens delivered as fallback
 }
 ```
 

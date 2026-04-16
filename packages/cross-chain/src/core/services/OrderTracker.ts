@@ -126,6 +126,7 @@ export class OrderTracker extends EventEmitter {
             fillInstructions: openedIntent.fillInstructions,
             fillEvent: fillEvent || undefined,
             failureReason,
+            warnings: fillEvent?.warnings,
         };
     }
 
@@ -341,13 +342,15 @@ export class OrderTracker extends EventEmitter {
                 await this.fillWatcher.getFill(fillParams);
 
             if (fillEvent) {
+                const hasWarnings = fillEvent.warnings && fillEvent.warnings.length > 0;
                 yield {
                     type: OrderTrackerYieldType.Update,
                     update: this.createUpdate({
                         status: OrderStatus.Finalized,
                         orderId: fillParams.orderId,
                         fillTxHash: fillEvent.fillTxHash,
-                        message: "Order completed",
+                        message: hasWarnings ? "Order filled with warnings" : "Order completed",
+                        warnings: fillEvent.warnings,
                     }),
                 };
                 return;
@@ -414,6 +417,7 @@ export class OrderTracker extends EventEmitter {
         fillDeadline: number,
     ): OrderTrackerYield {
         if (fillResult.status === FillResultStatus.Finalized) {
+            const hasWarnings = fillResult.warnings && fillResult.warnings.length > 0;
             return {
                 type: OrderTrackerYieldType.Update,
                 update: this.createUpdate({
@@ -421,9 +425,12 @@ export class OrderTracker extends EventEmitter {
                     orderId,
                     openTxHash,
                     fillTxHash: fillResult.fillTxHash,
-                    message: fillResult.blockNumber
-                        ? `Order completed in block ${fillResult.blockNumber}`
-                        : "Order completed",
+                    message: hasWarnings
+                        ? "Order filled with warnings"
+                        : fillResult.blockNumber
+                          ? `Order completed in block ${fillResult.blockNumber}`
+                          : "Order completed",
+                    warnings: fillResult.warnings,
                 }),
             };
         }
@@ -605,6 +612,7 @@ export class OrderTracker extends EventEmitter {
               status: typeof FillResultStatus.Finalized;
               fillTxHash: Hex;
               blockNumber?: bigint;
+              warnings?: string[];
           }
         | { status: typeof FillResultStatus.Failed; failureReason?: OrderFailureReason }
         | { status: typeof FillResultStatus.DeadlineExceeded }
@@ -616,6 +624,7 @@ export class OrderTracker extends EventEmitter {
                 status: FillResultStatus.Finalized,
                 fillTxHash: fillEvent.fillTxHash,
                 blockNumber: fillEvent.blockNumber,
+                warnings: fillEvent.warnings,
             };
         } catch (error) {
             if (error instanceof Error && error.name === "FillFailedError") {
