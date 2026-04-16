@@ -547,54 +547,6 @@ interface ExecutableQuote extends Quote {
 }
 ```
 
-#### TransactionStep
-
-```typescript
-interface TransactionStep {
-    kind: "transaction";
-    chainId: number;
-    description?: string;
-    approval?: boolean; // true for approval steps prepended by ApprovalService
-    transaction: {
-        to: string;
-        data: string;
-        value?: string;
-        gas?: string;
-        maxFeePerGas?: string;
-        maxPriorityFeePerGas?: string;
-    };
-}
-```
-
-#### SignatureStep
-
-```typescript
-interface SignatureStep {
-    kind: "signature";
-    chainId: number;
-    description?: string;
-    signaturePayload: {
-        signatureType: "eip712";
-        domain: Record<string, unknown>;
-        primaryType: string;
-        types: Record<string, { name: string; type: string }[]>;
-        message: Record<string, unknown>;
-    };
-    metadata?: Record<string, unknown>;
-}
-```
-
-#### Step helpers
-
-Utility functions for working with order steps:
-
--   `getTransactionSteps(order)` -- returns all `TransactionStep`s (including approval steps).
--   `getApprovalSteps(order)` -- returns only `TransactionStep`s where `approval === true`.
--   `getSignatureSteps(order)` -- returns all `SignatureStep`s.
--   `isApprovalStep(step)` -- returns `true` when `step.approval === true`.
--   `isSignatureOnlyOrder(order)` -- returns `true` when every step is a signature.
--   `isTransactionOnlyOrder(order)` -- returns `true` when every step is a transaction.
-
 #### StepResult
 
 ```typescript
