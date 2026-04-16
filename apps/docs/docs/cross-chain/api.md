@@ -132,6 +132,7 @@ A utility for managing multiple cross-chain providers and executing operations a
     import {
         AssetDiscoveryFactory,
         createAggregator,
+        createApprovalService,
         OrderTrackerFactory,
         SortingStrategyFactory,
     } from "@wonderland/interop-cross-chain";
@@ -142,8 +143,11 @@ A utility for managing multiple cross-chain providers and executing operations a
         timeoutMs: 15000, // optional
         trackerFactory: new OrderTrackerFactory({ rpcUrls }), // optional
         discoveryFactory: new AssetDiscoveryFactory(), // optional (default)
+        approvalService: createApprovalService({ rpcUrls }), // optional
     });
     ```
+
+    When `approvalService` is set, the aggregator reads on-chain ERC-20 allowances for every `order.checks.allowances` entry and prepends an `approve` `TransactionStep` to `order.steps` when the current allowance is below `required`. Without it, quotes pass through unchanged. See [Approval Service](#approval-service).
 
 #### Aggregator Class
 
@@ -266,6 +270,78 @@ A class that manages multiple cross-chain providers and coordinates their operat
         destinationAsset: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
     });
     ```
+
+### Approval Service
+
+An opt-in service that enriches aggregator quotes with ERC-20 approval steps. Pass one to `createAggregator({ approvalService })` and the aggregator will read on-chain allowances for every `order.checks.allowances` entry on the sorted quotes, then prepend an `approve` `TransactionStep` to `order.steps` when the current allowance is below `required`.
+
+Best-effort: on any read failure the affected quotes pass through unmodified. Quotes with sufficient existing allowance are not touched.
+
+#### Methods
+
+-   **createApprovalService**(config?: CreateApprovalServiceConfig): ApprovalService
+
+    Creates a `DefaultApprovalService` wired to a `MulticallAllowanceReader`.
+
+    ```typescript
+    import { createAggregator, createApprovalService } from "@wonderland/interop-cross-chain";
+
+    const approvalService = createApprovalService({
+        rpcUrls: {
+            1: "https://mainnet.infura.io/v3/YOUR_API_KEY",
+            8453: "https://base-mainnet.g.alchemy.com/v2/YOUR_API_KEY",
+        },
+    });
+
+    const aggregator = createAggregator({
+        providers: [acrossProvider],
+        approvalService,
+    });
+    ```
+
+#### CreateApprovalServiceConfig
+
+| Field              | Type                          | Required | Description                                                                                                              |
+| ------------------ | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `rpcUrls`          | `Record<number, string>`      | No       | RPC URLs per chain ID. Used to build public clients for `allowance()` multicalls when `publicClient` is not supplied.    |
+| `publicClient`     | `PublicClient` (viem)         | No       | Pre-configured viem public client. Takes precedence over `rpcUrls`.                                                      |
+| `amountStrategy`   | `ApprovalAmountStrategy`      | No       | Strategy that decides the `amount` encoded in each `approve` call. Defaults to `ExactAmountStrategy`.                    |
+| `approvalGasLimit` | `bigint`                      | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas.   |
+
+#### Amount Strategies
+
+`ApprovalAmountStrategy` controls the amount encoded in each generated `approve` call.
+
+| Strategy                  | Approves            | Trade-off                                                                                                                       |
+| ------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `ExactAmountStrategy`     | exactly `required`  | Smallest allowance footprint. Next order against the same `(token, spender)` pair needs another `approve`.                      |
+| `InfiniteAmountStrategy`  | `type(uint256).max` | One `approve` per `(token, spender)` pair for its lifetime. Later orders skip the approval step, at the cost of unbounded allowance. |
+
+```typescript
+import { createApprovalService, InfiniteAmountStrategy } from "@wonderland/interop-cross-chain";
+
+const approvalService = createApprovalService({
+    rpcUrls,
+    amountStrategy: new InfiniteAmountStrategy(),
+});
+```
+
+Custom strategies implement the `ApprovalAmountStrategy` interface:
+
+```typescript
+interface ApprovalAmountStrategy {
+    resolve(required: bigint): bigint;
+}
+```
+
+#### Low-level classes
+
+Exported for advanced use cases (custom readers, custom service compositions):
+
+-   **DefaultApprovalService**(reader: AllowanceReader, amountStrategy: ApprovalAmountStrategy, gasLimit?: bigint) — implements `ApprovalService.enrichQuotes(quotes)`.
+-   **MulticallAllowanceReader**(clientManager: PublicClientManager) — batches ERC-20 `allowance()` calls into one `multicall` per chain. Failures on one chain do not affect others.
+
+Most consumers should use `createApprovalService(...)` rather than instantiating these directly.
 
 ### Sorting Strategies
 

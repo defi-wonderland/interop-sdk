@@ -103,6 +103,8 @@ The `Aggregator` fetches quotes from multiple providers in parallel and returns 
 
 The aggregator also collects errors from individual providers, so you can show partial results even when some providers fail.
 
+Optionally, the aggregator can enrich sorted quotes with ERC-20 approval steps: configure an `approvalService` and every quote returned will already have any required `approve` `TransactionStep` prepended to `order.steps`. See [Automatic ERC-20 Approvals](./advanced-usage.md#automatic-erc-20-approvals).
+
 ## Order tracking
 
 After a transaction is submitted, the SDK can monitor the order through its lifecycle:
