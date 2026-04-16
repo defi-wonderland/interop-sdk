@@ -17,6 +17,7 @@ import {
     createCrossChainProvider,
     getSignatureSteps,
     getTransactionSteps,
+    isApprovalStep,
     isSignatureOnlyOrder,
 } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
@@ -163,7 +164,7 @@ if (isSignatureOnlyOrder(quote.order)) {
     // User mode: send each transaction step in order (approvals first, then transfer)
     for (const step of getTransactionSteps(quote.order)) {
         const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } = step.transaction;
-        console.log(`Sending step: ${step.description ?? "transaction"}`);
+        console.log(isApprovalStep(step) ? "Approving token…" : "Sending bridge tx…");
         const hash = await walletClient.sendTransaction({
             to,
             data,
