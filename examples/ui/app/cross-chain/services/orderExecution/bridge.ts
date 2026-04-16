@@ -14,7 +14,8 @@ export async function submitBridgeTransaction(
   onStateChange({ step: STEP.WALLET, action: WALLET_ACTION.SUBMITTING, ...chainContext });
 
   const value = step.transaction.value ? BigInt(step.transaction.value) : undefined;
-  const gas = step.transaction.gas != null ? BigInt(step.transaction.gas) : undefined;
+  const parsedGas = step.transaction.gas ? BigInt(step.transaction.gas) : 0n;
+  const gas = parsedGas > 0n ? parsedGas : undefined;
 
   const txHash = await walletClient.sendTransaction({
     to: step.transaction.to as Address,
