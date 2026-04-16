@@ -99,6 +99,7 @@ export class DefaultApprovalService implements ApprovalService {
             kind: "transaction",
             chainId: check.chainId,
             description: "Token approval",
+            approval: true,
             transaction: {
                 to: check.tokenAddress,
                 data: encodeFunctionData({

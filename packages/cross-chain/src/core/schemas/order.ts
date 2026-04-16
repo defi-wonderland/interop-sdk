@@ -8,6 +8,7 @@ export const TransactionStepSchema = z.object({
     kind: z.literal("transaction"),
     chainId: chainIdSchema,
     description: z.string().optional(),
+    approval: z.boolean().optional(),
     transaction: z.object({
         to: addressString,
         data: z.string(),

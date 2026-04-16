@@ -140,6 +140,7 @@ describe("DefaultApprovalService", () => {
         expect(enriched!.order.steps).toHaveLength(2);
         const step = enriched!.order.steps[0]!;
         if (step.kind !== "transaction") throw new Error("expected transaction step");
+        expect(step.approval).toBe(true);
         expect(step.chainId).toBe(CHAIN_ID);
         expect(step.transaction.to).toBe(TOKEN);
         expect(step.description).toBe("Token approval");
@@ -167,6 +168,7 @@ describe("DefaultApprovalService", () => {
 
         const step = enriched!.order.steps[0]!;
         if (step.kind !== "transaction") throw new Error("expected transaction step");
+        expect(step.approval).toBe(true);
         expect(step.transaction.gas).toBe("100000");
     });
 

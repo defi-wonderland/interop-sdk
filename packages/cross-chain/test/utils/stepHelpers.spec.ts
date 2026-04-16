@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import type { Order, SignatureStep, TransactionStep } from "../../src/core/schemas/order.js";
 import {
+    getApprovalSteps,
     getSignatureSteps,
     getTransactionSteps,
+    isApprovalStep,
     isSignatureOnlyOrder,
     isTransactionOnlyOrder,
 } from "../../src/core/utils/stepHelpers.js";
@@ -14,6 +16,16 @@ const mockTxStep: TransactionStep = {
     transaction: {
         to: "0x1234567890123456789012345678901234567890",
         data: "0xabcdef",
+    },
+};
+
+const mockApprovalStep: TransactionStep = {
+    kind: "transaction",
+    chainId: 1,
+    approval: true,
+    transaction: {
+        to: "0x2222222222222222222222222222222222222222",
+        data: "0x095ea7b3",
     },
 };
 
@@ -51,12 +63,12 @@ describe("stepHelpers", () => {
     });
 
     describe("getTransactionSteps", () => {
-        it("returns only transaction steps", () => {
-            const order: Order = { steps: [mockSigStep, mockTxStep, mockSigStep] };
+        it("returns all transaction steps including approval steps", () => {
+            const order: Order = { steps: [mockApprovalStep, mockTxStep, mockSigStep] };
             const result = getTransactionSteps(order);
 
-            expect(result).toHaveLength(1);
-            expect(result[0]!.kind).toBe("transaction");
+            expect(result).toHaveLength(2);
+            expect(result.every((s) => s.kind === "transaction")).toBe(true);
         });
 
         it("returns empty array when no transaction steps", () => {
@@ -82,13 +94,62 @@ describe("stepHelpers", () => {
         });
     });
 
+    describe("isApprovalStep", () => {
+        it("returns true for a step with approval flag set to true", () => {
+            expect(isApprovalStep(mockApprovalStep)).toBe(true);
+        });
+
+        it("returns false for a regular transaction step", () => {
+            expect(isApprovalStep(mockTxStep)).toBe(false);
+        });
+
+        it("returns false when approval is explicitly false", () => {
+            const step: TransactionStep = { ...mockTxStep, approval: false };
+            expect(isApprovalStep(step)).toBe(false);
+        });
+
+        it("returns false when approval is undefined", () => {
+            const step: TransactionStep = { ...mockTxStep, approval: undefined };
+            expect(isApprovalStep(step)).toBe(false);
+        });
+    });
+
+    describe("getApprovalSteps", () => {
+        it("returns only the approval transaction steps from a mixed order", () => {
+            const order: Order = {
+                steps: [mockApprovalStep, mockTxStep, mockSigStep],
+            };
+            const result = getApprovalSteps(order);
+
+            expect(result).toHaveLength(1);
+            expect(result[0]).toBe(mockApprovalStep);
+        });
+
+        it("returns an empty array when no approval steps are present", () => {
+            const order: Order = { steps: [mockTxStep, mockSigStep] };
+            expect(getApprovalSteps(order)).toHaveLength(0);
+        });
+
+        it("returns every approval when multiple approvals are prepended", () => {
+            const order: Order = {
+                steps: [mockApprovalStep, mockApprovalStep, mockTxStep],
+            };
+            expect(getApprovalSteps(order)).toHaveLength(2);
+        });
+    });
+
     describe("isTransactionOnlyOrder", () => {
         it("returns true when all steps are transactions", () => {
             const order: Order = { steps: [mockTxStep, mockTxStep] };
             expect(isTransactionOnlyOrder(order)).toBe(true);
         });
 
-        it("returns false when mixed steps", () => {
+        it("returns true when steps include approval-flagged transactions", () => {
+            const order: Order = { steps: [mockApprovalStep, mockTxStep] };
+            expect(isTransactionOnlyOrder(order)).toBe(true);
+        });
+
+        it("returns false when mixed with signature steps", () => {
             const order: Order = { steps: [mockTxStep, mockSigStep] };
             expect(isTransactionOnlyOrder(order)).toBe(false);
         });

@@ -1,8 +1,5 @@
 import type { Order, SignatureStep, TransactionStep } from "../schemas/order.js";
 
-/** ERC-20 `approve(address,uint256)` function selector. */
-const ERC20_APPROVE_SELECTOR = "0x095ea7b3";
-
 /** Get all signature steps from an order. */
 export function getSignatureSteps(order: Order): SignatureStep[] {
     return order.steps.filter((s): s is SignatureStep => s.kind === "signature");
@@ -13,14 +10,14 @@ export function getTransactionSteps(order: Order): TransactionStep[] {
     return order.steps.filter((s): s is TransactionStep => s.kind === "transaction");
 }
 
-/** Check whether a transaction step is an ERC-20 `approve` call. */
+/** Check whether a transaction step is an approval prepended by the ApprovalService. */
 export function isApprovalStep(step: TransactionStep): boolean {
-    return step.transaction.data.toLowerCase().startsWith(ERC20_APPROVE_SELECTOR);
+    return step.approval === true;
 }
 
 /** Get all approval transaction steps from an order. */
 export function getApprovalSteps(order: Order): TransactionStep[] {
-    return getTransactionSteps(order).filter(isApprovalStep);
+    return getTransactionSteps(order).filter((s) => s.approval === true);
 }
 
 /** Check if an order requires only signatures (no user-submitted transactions). */
