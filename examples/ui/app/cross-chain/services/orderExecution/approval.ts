@@ -4,12 +4,6 @@ import { waitForReceiptWithRetry } from '../../utils/transactionReceipt';
 import type { ConfiguredWalletClient } from './chainSetup';
 import type { TransactionStep } from '@wonderland/interop-cross-chain';
 
-/**
- * Execute an approval `TransactionStep` that the SDK's `ApprovalService`
- * prepended to the order. The SDK has already verified on-chain that this
- * approval is needed, so we only send the tx and wait for its receipt while
- * driving the wallet-state UI transitions.
- */
 export async function executeApprovalStep(
   publicClient: PublicClient,
   walletClient: ConfiguredWalletClient,
