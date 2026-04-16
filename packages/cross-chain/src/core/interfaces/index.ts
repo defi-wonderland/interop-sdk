@@ -1,3 +1,4 @@
+export * from "./approval.interface.js";
 export * from "./crossChainProvider.interface.js";
 export * from "./openedIntentParser.interface.js";
 export * from "./orderTracker.interface.js";

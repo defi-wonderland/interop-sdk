@@ -80,6 +80,42 @@ const quote = quotes[0];
 console.log(`Quote from ${quote.provider}`);
 ```
 
+### Native tokens (ETH, MATIC, etc.)
+
+To bridge a native asset, use `NATIVE_ASSET_ADDRESS` as the `assetAddress`:
+
+```typescript
+import {
+    createCrossChainProvider,
+    NATIVE_ASSET_ADDRESS,
+} from "@wonderland/interop-cross-chain";
+
+const quotes = await provider.getQuotes({
+    user: account.address,
+    input: {
+        chainId: 11155111, // Sepolia
+        assetAddress: NATIVE_ASSET_ADDRESS,
+        amount: "100000000000000000", // 0.1 ETH in wei
+    },
+    output: {
+        chainId: 84532, // Base Sepolia
+        assetAddress: NATIVE_ASSET_ADDRESS,
+        recipient: account.address,
+    },
+    swapType: "exact-input",
+});
+```
+
+:::info
+Both `0x0000000000000000000000000000000000000000` (zero address) and `0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee` ([EIP-7528](https://eips.ethereum.org/EIPS/eip-7528)) are accepted by the SDK as native asset sentinels. `NATIVE_ASSET_ADDRESS` exports the EIP-7528 form (`0xeeee...eeee`) and is the canonical constant used in all SDK examples.
+:::
+
+## Handle ERC-20 approvals
+
+ERC-20 inputs need an `approve` before the transfer step. The SDK can do this for you: wire an `approvalService` into the aggregator and every returned quote already has the necessary `approve` `TransactionStep`s prepended to `order.steps`. Iterate the steps in order and each `approve` fires before the step that needs it.
+
+See [Automatic ERC-20 Approvals](./advanced-usage.md#automatic-erc-20-approvals) for the setup, or the [Execute Intent guide](./example.md) for a full runnable example.
+
 ## Execute the transaction
 
 Quotes contain either signature steps (gasless) or transaction steps (user pays gas). Handle both:
@@ -99,17 +135,24 @@ if (isSignatureOnlyOrder(quote.order)) {
     await provider.submitOrder(quote, signature);
     console.log("Order submitted via signature");
 } else {
-    // User pays gas: send the transaction directly
-    const step = getTransactionSteps(quote.order)[0];
-    const hash = await walletClient.sendTransaction({
-        to: step.transaction.to,
-        data: step.transaction.data,
-        value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
-    });
-    console.log("Transaction sent:", hash);
+    // User pays gas: send every transaction step in order.
+    // A quote may contain one or more transaction steps depending on the provider.
+    // Quotes from an `Aggregator` configured with `approvalService` may also have
+    // `approve` steps prepended before the transfer.
+    for (const step of getTransactionSteps(quote.order)) {
+        const hash = await walletClient.sendTransaction({
+            to: step.transaction.to,
+            data: step.transaction.data,
+            value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+        });
+        console.log("Transaction sent:", hash);
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
-    console.log("Confirmed:", receipt.status);
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (receipt.status !== "success") {
+            throw new Error(`Step failed: ${step.description ?? "transaction"}`);
+        }
+        console.log("Confirmed: Success");
+    }
 }
 ```
 
@@ -138,11 +181,11 @@ response.errors.forEach((err) => console.warn(`Provider error: ${err.errorMsg}`)
 
 ### Execution flow
 
-1. **Create provider** → `createCrossChainProvider("across")` (or use `createAggregator` for multiple)
+1. **Create provider** → `createCrossChainProvider("across")` (or use `createAggregator` for multiple — wire an `approvalService` to enrich quotes with ERC-20 `approve` steps automatically)
 2. **Get quotes** → `provider.getQuotes(request)` or `aggregator.getQuotes(request)`
 3. **Check order type** → `isSignatureOnlyOrder(quote.order)`
     - **Signature (gasless):** `signTypedData()` → `provider.submitOrder(quote, signature)`
-    - **Transaction (user pays gas):** `walletClient.sendTransaction(...)` (see [example above](#execute-the-transaction) — convert string `value` to `BigInt`)
+    - **Transaction (user pays gas):** iterate `getTransactionSteps(quote.order)` and send each — approval steps (when present) come first (see [example above](#execute-the-transaction) — convert string `value` to `BigInt`)
 4. **Track** → `createOrderTracker(provider)` for single-provider or `aggregator.track({ txHash, providerId, originChainId, destinationChainId })` for aggregator
 
 ### Which function should I use?

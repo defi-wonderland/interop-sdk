@@ -1,4 +1,4 @@
-# @defi-wonderland/interop-addresses
+# @wonderland/interop-addresses
 
 ## 0.5.1
 

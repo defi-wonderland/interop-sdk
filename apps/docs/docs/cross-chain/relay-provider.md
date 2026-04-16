@@ -16,11 +16,22 @@ The Relay Protocol provider enables cross-chain token transfers using the Relay 
 | `apiKey`          | string   | No       | Relay API key for authentication                                                                                                                                    |
 | `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both (default: `["user-transaction"]`). Controls whether quotes request permit-based (gasless) execution |
 
+:::info Gasless is opt-in — the default is `["user-transaction"]` only
+
+`submissionModes` defaults to `["user-transaction"]`. To enable gasless execution, explicitly opt in:
+
+```typescript
+submissionModes: ["user-transaction", "gasless"]
+```
+
+When both modes are configured, quotes are fetched in parallel and the aggregator handles either order type seamlessly, so opting in has no extra cost. For Relay, tokens that support EIP-3009 (e.g. USDC) are **fully gasless** — the quote returns only a signature step. Other ERC-20 tokens may still require a one-time approval transaction alongside the signature step.
+
+:::
+
 Notes:
 
 -   `baseUrl` overrides the URL derived from `isTestnet`.
 -   When `apiKey` is provided, it is sent as the `x-api-key` header on all requests.
--   When `submissionModes` includes `"gasless"`, the API requests permit-based execution. Tokens that support EIP-3009 (e.g. USDC) are fully gasless — the quote returns only a signature step. Other ERC-20 tokens still require a one-time approval transaction alongside the signature step. See [Relay docs](https://docs.relay.link/features/gasless-swaps) for details.
 
 ## Creating the Provider
 

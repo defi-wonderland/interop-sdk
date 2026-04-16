@@ -1,4 +1,5 @@
 export * from "./aggregator.js";
+export * from "./approval/index.js";
 export * from "./APIOpenedIntentParser.js";
 export * from "./CustomEventOpenedIntentParser.js";
 export * from "./EventBasedFillWatcher.js";

@@ -159,6 +159,44 @@ describe('cascading', () => {
   });
 });
 
+describe('reverseDirection', () => {
+  const selector = createRouteSelector(config);
+
+  it('swaps chainIds and tokens so each token stays on its original chain', () => {
+    const next = selector.reverseDirection(
+      sel({ inputChainId: 1, outputChainId: 10, inputToken: USDC, outputToken: DAI }),
+    );
+    expect(next.inputChainId).toBe(10);
+    expect(next.outputChainId).toBe(1);
+    expect(next.inputToken).toBe(DAI);
+    expect(next.outputToken).toBe(USDC);
+  });
+
+  it('resolve preserves the reversed selection when tokens remain compatible', () => {
+    // USDC (across+sample) ↔ DAI (sample) share the `sample` provider on both chains,
+    // so the reversed route still resolves cleanly.
+    const resolved = selector.resolve(selector.reverseDirection(sel({ inputToken: USDC, outputToken: DAI })));
+    expect(resolved.inputChainId).toBe(10);
+    expect(resolved.outputChainId).toBe(1);
+    expect(resolved.inputToken).toBe(DAI);
+    expect(resolved.outputToken).toBe(USDC);
+  });
+
+  it('resolves empty tokens before reversing so the swap reflects the displayed selection', () => {
+    // Initial-load scenario: URL omits fromToken/toToken, so the raw selection has empty strings.
+    // The UI renders the resolved selection. A reverse at that moment must swap what's being
+    // displayed, not the empty underlying state — otherwise the post-reverse tokens could differ
+    // from just flipping what the user saw.
+    const emptyTokens = sel({ inputToken: '', outputToken: '' });
+    const displayed = selector.resolve(emptyTokens);
+    const reversed = selector.reverseDirection(emptyTokens);
+    expect(reversed.inputChainId).toBe(displayed.outputChainId);
+    expect(reversed.outputChainId).toBe(displayed.inputChainId);
+    expect(reversed.inputToken).toBe(displayed.outputToken);
+    expect(reversed.outputToken).toBe(displayed.inputToken);
+  });
+});
+
 describe('edge cases', () => {
   it('empty config or unknown chain yields empty results', () => {
     const empty = createRouteSelector({

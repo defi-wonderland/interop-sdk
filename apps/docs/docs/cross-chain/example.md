@@ -10,9 +10,10 @@ This guide demonstrates how to execute a cross-chain intent using the SDK. The p
 
 First, import the required libraries and set up your environment variables, such as your private key and a generic RPC URL.
 
-```js
+```typescript
 import {
     createAggregator,
+    createApprovalService,
     createCrossChainProvider,
     getSignatureSteps,
     getTransactionSteps,
@@ -35,7 +36,7 @@ const privateAccount = privateKeyToAccount(PRIVATE_KEY);
 
 Create public and wallet clients for interacting with the blockchain, using the generic RPC URL.
 
-```js
+```typescript
 const publicClient = createPublicClient({
     chain: sepolia,
     transport: http(RPC_URL),
@@ -50,14 +51,45 @@ const walletClient = createWalletClient({
 
 ## 3. Set Up Cross-Chain Provider and Aggregator
 
-Initialize the cross-chain provider and aggregator, which will handle quoting and executing cross-chain transfers.
+Initialize the cross-chain provider and aggregator, which will handle quoting and executing cross-chain transfers. Wire an `approvalService` so the aggregator prepends any required ERC-20 `approve` steps to each quote automatically.
 
-```js
+### Testnet (Sepolia → Base Sepolia)
+
+```typescript
 const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
 const relayProvider = createCrossChainProvider("relay", { isTestnet: true });
 
+const approvalService = createApprovalService({
+    rpcUrls: {
+        11155111: RPC_URL, // Sepolia
+        84532: "https://base-sepolia.g.alchemy.com/v2/YOUR_API_KEY",
+    },
+});
+
 const aggregator = createAggregator({
     providers: [acrossProvider, relayProvider],
+    approvalService,
+});
+```
+
+### Mainnet (Base → Arbitrum)
+
+For mainnet, omit `isTestnet` (or set it to `false`) and use the corresponding mainnet chain IDs when building your clients (step 2), the approval service, and the quote request (step 4).
+
+```typescript
+const acrossProvider = createCrossChainProvider("across");
+const relayProvider = createCrossChainProvider("relay");
+
+const approvalService = createApprovalService({
+    rpcUrls: {
+        8453: RPC_URL, // Base
+        42161: "https://arb-mainnet.g.alchemy.com/v2/YOUR_API_KEY",
+    },
+});
+
+const aggregator = createAggregator({
+    providers: [acrossProvider, relayProvider],
+    approvalService,
 });
 ```
 
@@ -65,28 +97,47 @@ const aggregator = createAggregator({
 
 Request a quote for a cross-chain transfer using the SDK `QuoteRequest` format.
 
-```js
+### Testnet example
+
+```typescript
 const response = await aggregator.getQuotes({
     user: "0xYourAddress",
     input: {
-        chainId: 11155111,
+        chainId: 11155111, // Sepolia
         assetAddress: "0xInputTokenAddress",
         amount: "100000000000000000", // 0.1 in wei
     },
     output: {
-        chainId: 84532,
+        chainId: 84532, // Base Sepolia
+        assetAddress: "0xOutputTokenAddress",
+        recipient: "0xRecipientAddress",
+    },
+    swapType: "exact-input",
+});
+```
+
+### Mainnet example (Base → Arbitrum)
+
+```typescript
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress",
+    input: {
+        chainId: 8453, // Base
+        assetAddress: "0xInputTokenAddress",
+        amount: "100000000000000000", // 0.1 in wei
+    },
+    output: {
+        chainId: 42161, // Arbitrum One
         assetAddress: "0xOutputTokenAddress",
         recipient: "0xRecipientAddress",
     },
     swapType: "exact-input",
 });
 
-// Check for errors
 if (response.errors.length > 0) {
     console.error("Errors:", response.errors);
 }
 
-// Check if we got quotes
 if (response.quotes.length === 0) {
     console.error("No quotes available");
     return;
@@ -95,45 +146,50 @@ if (response.quotes.length === 0) {
 
 ## 5. Execute the Cross-Chain Transaction
 
-Execute the quote based on its order step type:
+Because the aggregator was configured with an `approvalService` (step 3), each returned `quote.order.steps` already contains any ERC-20 `approve` step that the transfer needs, prepended before the transfer itself. Iterate the steps in order and each `approve` fires before the step that depends on it.
 
-```js
+```typescript
 const quote = response.quotes[0];
 
 if (isSignatureOnlyOrder(quote.order)) {
     // Protocol mode: sign and submit (gasless for user)
-    // Note: production code should handle all steps, not just the first
+    // Note: production code should handle all signature steps, not just the first
     const step = getSignatureSteps(quote.order)[0];
     const { signatureType, ...typedData } = step.signaturePayload;
     const signature = await walletClient.signTypedData(typedData);
     await aggregator.submitOrder(quote, signature);
     console.log("Order submitted via signature");
 } else {
-    // User mode: send transaction directly
-    // Note: production code should handle all steps, not just the first
-    const step = getTransactionSteps(quote.order)[0];
-    const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } = step.transaction;
-    console.log("Sending transaction...");
-    const hash = await walletClient.sendTransaction({
-        to,
-        data,
-        value: value ? BigInt(value) : undefined,
-        gas: gas ? BigInt(gas) : undefined,
-        maxFeePerGas: maxFeePerGas ? BigInt(maxFeePerGas) : undefined,
-        maxPriorityFeePerGas: maxPriorityFeePerGas ? BigInt(maxPriorityFeePerGas) : undefined,
-    });
-    console.log("Transaction sent:", hash);
-
-    const receipt = await publicClient.waitForTransactionReceipt({ hash });
-    console.log("Transaction confirmed:", receipt.status === "success" ? "Success" : "Failed");
+    // User mode: send each transaction step in order (approvals first, then transfer)
+    for (const step of getTransactionSteps(quote.order)) {
+        const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } = step.transaction;
+        console.log(`Sending step: ${step.description ?? "transaction"}`);
+        const hash = await walletClient.sendTransaction({
+            to,
+            data,
+            value: value ? BigInt(value) : undefined,
+            gas: gas ? BigInt(gas) : undefined,
+            maxFeePerGas: maxFeePerGas ? BigInt(maxFeePerGas) : undefined,
+            maxPriorityFeePerGas: maxPriorityFeePerGas ? BigInt(maxPriorityFeePerGas) : undefined,
+        });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        if (receipt.status !== "success") {
+            throw new Error(`Step failed: ${step.description ?? "transaction"}`);
+        }
+        console.log("Confirmed: Success");
+    }
 }
 ```
+
+:::info Native token inputs
+Native token inputs (ETH, MATIC, etc.) never require approval, so no `approve` step is prepended. The approval service only enriches quotes whose `order.checks.allowances` lists an ERC-20 allowance that is below `required` on-chain.
+:::
 
 ## 6. Run the Main Function
 
 Finally, call the main function to execute the workflow.
 
-```js
+```typescript
 const main = async (): Promise<void> => {
     // ...all the above steps go here...
 };

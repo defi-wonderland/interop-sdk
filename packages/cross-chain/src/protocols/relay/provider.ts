@@ -198,7 +198,14 @@ export class RelayProvider extends CrossChainProvider {
         if (quotes.length > 0) return quotes;
 
         const firstError = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
+        const reason = firstError?.reason;
 
-        throw firstError?.reason ?? new ProviderGetQuoteFailure("No quotes returned");
+        if (reason instanceof ProviderGetQuoteFailure) throw reason;
+
+        throw new ProviderGetQuoteFailure(
+            reason instanceof Error ? reason.message : "No quotes returned",
+            undefined,
+            reason instanceof Error ? reason.stack : undefined,
+        );
     }
 }

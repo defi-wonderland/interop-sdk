@@ -173,5 +173,23 @@ export function createRouteSelector(config: RouteConfig) {
     return { ...prev, inputToken: address, outputToken };
   }
 
-  return { selectionFromUrl, resolve, setInputChain, setOutputChain, setInputToken };
+  /**
+   * Reverse the direction of the route: origin ↔ destination.
+   * Resolves `prev` first so the swap always reflects the tokens the user is
+   * actually seeing (on initial load when the URL omits token params, the raw
+   * selection has empty token strings but `resolve` fills them with the
+   * first-available tokens that the UI is rendering). Each token then moves
+   * with its chain, so the post-swap state stays valid.
+   */
+  function reverseDirection(prev: Selection): Selection {
+    const { inputChainId, outputChainId, inputToken, outputToken } = resolve(prev);
+    return {
+      inputChainId: outputChainId,
+      outputChainId: inputChainId,
+      inputToken: outputToken,
+      outputToken: inputToken,
+    };
+  }
+
+  return { selectionFromUrl, resolve, setInputChain, setOutputChain, setInputToken, reverseDirection };
 }

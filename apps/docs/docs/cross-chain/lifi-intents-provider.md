@@ -1,0 +1,153 @@
+---
+title: LiFi Intents Provider
+---
+
+The [LiFi Intents](https://docs.li.fi/lifi-intents/introduction) provider enables cross-chain token transfers through the LI.FI intent solver marketplace, where solvers compete to fulfill users' transfer requests at the best rates.
+
+**Status**: Active (mainnet)
+
+## How It Works
+
+LiFi Intents uses an intent-based architecture:
+
+1. The user deposits tokens into a resource lock (escrow contract) via an onchain transaction
+2. The LI.FI order server broadcasts the deposit proof to competing solvers
+3. The winning solver delivers the destination-chain assets
+4. Settlement verification releases the locked funds to the solver
+
+All quotes return **transaction steps** (user-pays-gas). The provider does not support gasless/signature-based execution.
+
+## Configuration
+
+| Field            | Type   | Required | Description                                                   |
+| ---------------- | ------ | -------- | ------------------------------------------------------------- |
+| `orderServerUrl` | string | Yes      | LI.FI order server URL                                        |
+| `providerId`     | string | No       | Custom provider identifier (default: `"lifi-intents"`)        |
+| `headers`        | Record&lt;string, string&gt; | No       | Custom HTTP headers sent with all requests to the order server |
+
+## Creating the Provider
+
+### Mainnet
+
+```typescript
+import {
+    createCrossChainProvider,
+    LIFI_INTENTS_ORDER_SERVER_URL,
+} from "@wonderland/interop-cross-chain";
+
+const lifiProvider = createCrossChainProvider("lifi-intents", {
+    orderServerUrl: LIFI_INTENTS_ORDER_SERVER_URL, // https://order.li.fi
+});
+```
+
+### Dev Environment
+
+```typescript
+import {
+    createCrossChainProvider,
+    LIFI_INTENTS_ORDER_SERVER_DEV_URL,
+} from "@wonderland/interop-cross-chain";
+
+const lifiProvider = createCrossChainProvider("lifi-intents", {
+    orderServerUrl: LIFI_INTENTS_ORDER_SERVER_DEV_URL, // https://order-dev.li.fi
+});
+```
+
+### With Custom Headers
+
+```typescript
+import {
+    createCrossChainProvider,
+    LIFI_INTENTS_ORDER_SERVER_URL,
+} from "@wonderland/interop-cross-chain";
+
+const lifiProvider = createCrossChainProvider("lifi-intents", {
+    orderServerUrl: LIFI_INTENTS_ORDER_SERVER_URL,
+    headers: { "x-api-key": "your-api-key" },
+});
+```
+
+## Getting Quotes
+
+LiFi Intents only supports **exact-input** swaps with **ERC-20 tokens** (native token inputs are not supported):
+
+```typescript
+const quotes = await lifiProvider.getQuotes({
+    user: "0xYourAddress",
+    input: {
+        chainId: 1, // Ethereum
+        assetAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC
+        amount: "1000000", // 1 USDC
+    },
+    output: {
+        chainId: 42161, // Arbitrum
+        assetAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", // USDC
+    },
+    swapType: "exact-input",
+});
+
+const quote = quotes[0];
+```
+
+## Executing Transactions
+
+LiFi Intents quotes contain transaction steps. The user sends the transaction directly — the order server detects the deposit via the onchain Open event:
+
+```typescript
+import { getTransactionSteps } from "@wonderland/interop-cross-chain";
+
+const step = getTransactionSteps(quote.order)[0];
+const hash = await walletClient.sendTransaction({
+    to: step.transaction.to,
+    data: step.transaction.data,
+    value: step.transaction.value ? BigInt(step.transaction.value) : undefined,
+});
+console.log("Transaction sent:", hash);
+```
+
+## Approvals
+
+Access approval information from the order checks:
+
+```typescript
+const allowances = quote.order.checks?.allowances ?? [];
+for (const { spender, tokenAddress, required } of allowances) {
+    // Approve token spend if needed
+}
+```
+
+## Tracking
+
+LiFi Intents uses a custom Open event parser on the origin chain combined with API-based fill tracking. The SDK polls the order server status endpoint at 5-second intervals:
+
+```
+GET /orders/status?onChainOrderId=<orderId>
+```
+
+The origin chain requires an RPC URL for parsing the Open event. Fill tracking is handled entirely through the LI.FI order server API.
+
+### Order Statuses
+
+The LI.FI order server reports the following statuses, mapped to SDK statuses:
+
+| LI.FI Status | SDK Status   | Description                               |
+| ------------ | ------------ | ----------------------------------------- |
+| `Signed`     | Pending      | Order registered, awaiting solver pickup   |
+| `Delivered`  | Settling     | Solver delivered assets, awaiting settlement |
+| `Settled`    | Finalized    | Settlement complete, funds released         |
+| `Expired`    | Failed       | Order deadline exceeded                    |
+| `Failed`     | Failed       | Order failed for another reason            |
+
+## Asset Discovery
+
+The provider supports asset discovery via the LI.FI `/routes` endpoint, which returns the supported chains and tokens for cross-chain transfers.
+
+## Next Step
+
+See a complete working example: [Execute Intent](./example.md)
+
+## References
+
+-   [LI.FI Intents Documentation](https://docs.li.fi/lifi-intents/introduction)
+-   [API Reference](./api.md) — full type definitions for quotes, fees, and orders
+-   [Concepts](./concepts.md) — how intent-based transfers work

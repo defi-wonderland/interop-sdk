@@ -19,6 +19,7 @@ import {
 } from '../utils/amountValidation';
 import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
+import { SwapIcon } from './icons';
 
 export type { SwapFormMode } from '../stores/crossChainStore';
 
@@ -66,6 +67,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     setOutputChain,
     setInputToken,
     setOutputToken,
+    reverseDirection,
   } = useRouteSelection(chainConfig.DEFAULT_INPUT_CHAIN_ID, chainConfig.DEFAULT_OUTPUT_CHAIN_ID);
 
   const [recipient, setRecipient] = useState('');
@@ -205,6 +207,11 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
     onInputChange?.();
   };
 
+  const handleReverseDirection = () => {
+    reverseDirection();
+    onInputChange?.();
+  };
+
   const handleInputTokenChange = (address: string) => {
     setInputToken(address);
     onInputChange?.();
@@ -335,7 +342,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
           <p className='text-xs text-text-tertiary mt-1'>Leave empty to use your wallet address.</p>
         </div>
 
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+        <div className='grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-3'>
           <div className='flex flex-col gap-3'>
             <label htmlFor='input-chain-select' className='text-sm font-medium text-text-secondary'>
               From
@@ -362,6 +369,20 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
               disabled={isDisabled}
               dataTestId='input-token-select'
             />
+          </div>
+
+          <div className='flex items-center justify-center'>
+            <button
+              type='button'
+              onClick={handleReverseDirection}
+              disabled={isDisabled}
+              aria-label='Reverse direction'
+              title='Reverse direction'
+              data-testid='reverse-direction-button'
+              className={`p-2 rounded-lg border border-border/50 bg-background/50 text-text-secondary hover:text-accent hover:border-accent/60 transition-colors focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-1 ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <SwapIcon className='w-4 h-4' />
+            </button>
           </div>
 
           <div className='flex flex-col gap-3'>

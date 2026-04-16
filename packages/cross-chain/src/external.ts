@@ -21,10 +21,20 @@ export {
     LifiIntentsProvider,
     RelayProvider,
     type RelayConfigs,
+    BungeeProvider,
+    BungeeApiTier,
+    type BungeeConfigs,
     createCrossChainProvider,
     // Aggregator
     Aggregator,
     createAggregator,
+    // Approval
+    DefaultApprovalService,
+    createApprovalService,
+    type CreateApprovalServiceConfig,
+    ExactAmountStrategy,
+    InfiniteAmountStrategy,
+    MulticallAllowanceReader,
     // Tracking
     createOrderTracker,
     OrderTracker,

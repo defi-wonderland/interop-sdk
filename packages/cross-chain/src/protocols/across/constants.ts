@@ -163,6 +163,23 @@ export const ACROSS_SPOKE_POOL_DEPOSIT_ABI = [
 ] as const;
 
 /**
+ * Wrapped native token (WETH) addresses per chain.
+ * The SpokePool contract requires the WETH address in calldata even when
+ * the user deposits native ETH via msg.value.
+ * @see https://docs.across.to/reference/contract-addresses/
+ */
+export const ACROSS_WRAPPED_NATIVE_ADDRESSES: Record<number, Hex> = {
+    // Mainnet
+    [base.id]: getAddress("0x4200000000000000000000000000000000000006"),
+    [arbitrum.id]: getAddress("0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"),
+    [optimism.id]: getAddress("0x4200000000000000000000000000000000000006"),
+    // Testnet
+    [sepolia.id]: getAddress("0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14"),
+    [baseSepolia.id]: getAddress("0x4200000000000000000000000000000000000006"),
+    [arbitrumSepolia.id]: getAddress("0x980B62Da83eFf3D4576C647993b0c1D7faf17c73"),
+} as const;
+
+/**
  * Chain IDs returned by Across API that are not supported by this SDK
  * These non-EVM chains are filtered out during asset discovery
  */

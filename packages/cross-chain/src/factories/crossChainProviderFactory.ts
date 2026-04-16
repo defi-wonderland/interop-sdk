@@ -1,5 +1,6 @@
 import type {
     AcrossConfigs,
+    BungeeConfigs,
     CrossChainProvider,
     LifiIntentsProviderConfig,
     OifProviderConfig,
@@ -7,6 +8,7 @@ import type {
 } from "../internal.js";
 import {
     AcrossProvider,
+    BungeeProvider,
     LifiIntentsProvider,
     OifProvider,
     PROTOCOLS,
@@ -51,6 +53,15 @@ export function createCrossChainProvider(
     config?: RelayConfigs,
 ): CrossChainProvider;
 /**
+ * Creates a CrossChainProvider for Bungee protocol
+ * @param protocolName - "bungee"
+ * @param config - Optional configuration (defaults to mainnet)
+ */
+export function createCrossChainProvider(
+    protocolName: typeof PROTOCOLS.BUNGEE,
+    config?: BungeeConfigs,
+): CrossChainProvider;
+/**
  * Creates a CrossChainProvider for the specified protocol
  * @param protocolName - The name of the protocol
  * @param config - The configuration for the provider
@@ -67,5 +78,7 @@ export function createCrossChainProvider(
     if (protocolName === PROTOCOLS.LIFI_INTENTS)
         return new LifiIntentsProvider(config as LifiIntentsProviderConfig);
     if (protocolName === PROTOCOLS.RELAY) return new RelayProvider((config as RelayConfigs) ?? {});
+    if (protocolName === PROTOCOLS.BUNGEE)
+        return new BungeeProvider((config as BungeeConfigs) ?? {});
     throw new UnsupportedProtocol(protocolName);
 }

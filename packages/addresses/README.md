@@ -1,5 +1,7 @@
 # @wonderland/interop-addresses
 
+> **Beta — under active development.** APIs may change between releases. We're shipping quickly and welcome bug reports and feedback via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+
 A TypeScript library for handling interoperable blockchain addresses across different networks.
 
 This package provides methods to convert between interoperable names (ERC-7828), structured objects with CAIP-350 text-encoded fields, and binary addresses (EIP-7930), following a clean two-layer architecture.
