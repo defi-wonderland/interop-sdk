@@ -29,12 +29,9 @@ export {
     Aggregator,
     createAggregator,
     // Approval
-    DefaultApprovalService,
     createApprovalService,
-    type CreateApprovalServiceConfig,
     ExactAmountStrategy,
     InfiniteAmountStrategy,
-    MulticallAllowanceReader,
     // Tracking
     createOrderTracker,
     OrderTracker,

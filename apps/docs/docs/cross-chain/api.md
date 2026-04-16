@@ -301,21 +301,21 @@ Best-effort: on any read failure the affected quotes pass through unmodified. Qu
 
 #### CreateApprovalServiceConfig
 
-| Field              | Type                          | Required | Description                                                                                                              |
-| ------------------ | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `rpcUrls`          | `Record<number, string>`      | No       | RPC URLs per chain ID. Used to build public clients for `allowance()` multicalls when `publicClient` is not supplied.    |
-| `publicClient`     | `PublicClient` (viem)         | No       | Pre-configured viem public client. Takes precedence over `rpcUrls`.                                                      |
-| `amountStrategy`   | `ApprovalAmountStrategy`      | No       | Strategy that decides the `amount` encoded in each `approve` call. Defaults to `ExactAmountStrategy`.                    |
-| `approvalGasLimit` | `bigint`                      | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas.   |
+| Field              | Type                     | Required | Description                                                                                                            |
+| ------------------ | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `rpcUrls`          | `Record<number, string>` | No       | RPC URLs per chain ID. Used to build public clients for `allowance()` multicalls when `publicClient` is not supplied.  |
+| `publicClient`     | `PublicClient` (viem)    | No       | Pre-configured viem public client. Takes precedence over `rpcUrls`.                                                    |
+| `amountStrategy`   | `ApprovalAmountStrategy` | No       | Strategy that decides the `amount` encoded in each `approve` call. Defaults to `ExactAmountStrategy`.                  |
+| `approvalGasLimit` | `bigint`                 | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas. |
 
 #### Amount Strategies
 
 `ApprovalAmountStrategy` controls the amount encoded in each generated `approve` call.
 
-| Strategy                  | Approves            | Trade-off                                                                                                                       |
-| ------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `ExactAmountStrategy`     | exactly `required`  | Smallest allowance footprint. Next order against the same `(token, spender)` pair needs another `approve`.                      |
-| `InfiniteAmountStrategy`  | `type(uint256).max` | One `approve` per `(token, spender)` pair for its lifetime. Later orders skip the approval step, at the cost of unbounded allowance. |
+| Strategy                 | Approves            | Trade-off                                                                                                                            |
+| ------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `ExactAmountStrategy`    | exactly `required`  | Smallest allowance footprint. Next order against the same `(token, spender)` pair needs another `approve`.                           |
+| `InfiniteAmountStrategy` | `type(uint256).max` | One `approve` per `(token, spender)` pair for its lifetime. Later orders skip the approval step, at the cost of unbounded allowance. |
 
 ```typescript
 import { createApprovalService, InfiniteAmountStrategy } from "@wonderland/interop-cross-chain";
@@ -333,15 +333,6 @@ interface ApprovalAmountStrategy {
     resolve(required: bigint): bigint;
 }
 ```
-
-#### Low-level classes
-
-Exported for advanced use cases (custom readers, custom service compositions):
-
--   **DefaultApprovalService**(reader: AllowanceReader, amountStrategy: ApprovalAmountStrategy, gasLimit?: bigint) — implements `ApprovalService.enrichQuotes(quotes)`.
--   **MulticallAllowanceReader**(clientManager: PublicClientManager) — batches ERC-20 `allowance()` calls into one `multicall` per chain. Failures on one chain do not affect others.
-
-Most consumers should use `createApprovalService(...)` rather than instantiating these directly.
 
 ### Sorting Strategies
 
@@ -710,10 +701,10 @@ Payload validation:
 
 #### LiFi Intents
 
-| Field            | Type   | Required | Description                                                   |
-| ---------------- | ------ | -------- | ------------------------------------------------------------- |
-| `orderServerUrl` | string | Yes      | LI.FI order server URL (e.g. `https://order.li.fi`)          |
-| `providerId`     | string | No       | Custom provider identifier (default: `"lifi-intents"`)        |
+| Field            | Type                         | Required | Description                                                    |
+| ---------------- | ---------------------------- | -------- | -------------------------------------------------------------- |
+| `orderServerUrl` | string                       | Yes      | LI.FI order server URL (e.g. `https://order.li.fi`)            |
+| `providerId`     | string                       | No       | Custom provider identifier (default: `"lifi-intents"`)         |
 | `headers`        | Record&lt;string, string&gt; | No       | Custom HTTP headers sent with all requests to the order server |
 
 Constraints:
