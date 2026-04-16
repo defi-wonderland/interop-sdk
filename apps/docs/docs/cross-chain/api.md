@@ -273,7 +273,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
 
 ### Approval Service
 
-An opt-in service that enriches aggregator quotes with ERC-20 approval steps. Pass one to `createAggregator({ approvalService })` and the aggregator will read on-chain allowances for every `order.checks.allowances` entry on the sorted quotes, then prepend an `approve` `TransactionStep` to `order.steps` when the current allowance is below `required`.
+An opt-in service that enriches aggregator quotes with ERC-20 approval steps. Pass one to `createAggregator({ approvalService })` and the aggregator will read on-chain allowances for every `order.checks.allowances` entry on the sorted quotes, then prepend an `approve` `TransactionStep` (with `approval: true`) to `order.steps` when the current allowance is below `required`. Use `isApprovalStep(step)` or `getApprovalSteps(order)` to identify these steps programmatically.
 
 Best-effort: on any read failure the affected quotes pass through unmodified. Quotes with sufficient existing allowance are not touched.
 
@@ -546,6 +546,54 @@ interface ExecutableQuote extends Quote {
     // Use quote.provider for provider identification
 }
 ```
+
+#### TransactionStep
+
+```typescript
+interface TransactionStep {
+    kind: "transaction";
+    chainId: number;
+    description?: string;
+    approval?: boolean; // true for approval steps prepended by ApprovalService
+    transaction: {
+        to: string;
+        data: string;
+        value?: string;
+        gas?: string;
+        maxFeePerGas?: string;
+        maxPriorityFeePerGas?: string;
+    };
+}
+```
+
+#### SignatureStep
+
+```typescript
+interface SignatureStep {
+    kind: "signature";
+    chainId: number;
+    description?: string;
+    signaturePayload: {
+        signatureType: "eip712";
+        domain: Record<string, unknown>;
+        primaryType: string;
+        types: Record<string, { name: string; type: string }[]>;
+        message: Record<string, unknown>;
+    };
+    metadata?: Record<string, unknown>;
+}
+```
+
+#### Step helpers
+
+Utility functions for working with order steps:
+
+-   `getTransactionSteps(order)` -- returns all `TransactionStep`s (including approval steps).
+-   `getApprovalSteps(order)` -- returns only `TransactionStep`s where `approval === true`.
+-   `getSignatureSteps(order)` -- returns all `SignatureStep`s.
+-   `isApprovalStep(step)` -- returns `true` when `step.approval === true`.
+-   `isSignatureOnlyOrder(order)` -- returns `true` when every step is a signature.
+-   `isTransactionOnlyOrder(order)` -- returns `true` when every step is a transaction.
 
 #### StepResult
 
