@@ -18,6 +18,7 @@ import {
     getSignatureSteps,
     getTransactionSteps,
     isSignatureOnlyOrder,
+    PROTOCOLS,
 } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -56,8 +57,8 @@ Initialize the cross-chain provider and aggregator, which will handle quoting an
 ### Testnet (Sepolia → Base Sepolia)
 
 ```typescript
-const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
-const relayProvider = createCrossChainProvider("relay", { isTestnet: true });
+const acrossProvider = createCrossChainProvider(PROTOCOLS.ACROSS, { isTestnet: true });
+const relayProvider = createCrossChainProvider(PROTOCOLS.RELAY, { isTestnet: true });
 
 const approvalService = createApprovalService({
     rpcUrls: {
@@ -77,8 +78,8 @@ const aggregator = createAggregator({
 For mainnet, omit `isTestnet` (or set it to `false`) and use the corresponding mainnet chain IDs when building your clients (step 2), the approval service, and the quote request (step 4).
 
 ```typescript
-const acrossProvider = createCrossChainProvider("across");
-const relayProvider = createCrossChainProvider("relay");
+const acrossProvider = createCrossChainProvider(PROTOCOLS.ACROSS);
+const relayProvider = createCrossChainProvider(PROTOCOLS.RELAY);
 
 const approvalService = createApprovalService({
     rpcUrls: {

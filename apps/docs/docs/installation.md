@@ -2,8 +2,8 @@
 title: "Installation"
 ---
 
-:::warning Beta — under active development
-APIs may change between releases. We're shipping quickly and welcome bug reports and feedback via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+:::warning Beta version under active development — use it at your own risk
+Bug reports and feedback are welcome via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
 :::
 
 ## Prerequisites

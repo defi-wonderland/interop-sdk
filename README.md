@@ -1,6 +1,6 @@
 # interop-sdk
 
-> **Beta — under active development.** APIs may change between releases. We're shipping quickly and welcome bug reports and feedback via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+> **Beta version under active development — use it at your own risk.** Bug reports and feedback are welcome via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
 
 This repository is a monorepo consisting of the following packages:
 

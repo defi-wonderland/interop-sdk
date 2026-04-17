@@ -9,9 +9,13 @@ For complex scenarios, use the Aggregator to manage multiple providers with sort
 ### Minimal Setup
 
 ```typescript
-import { createAggregator, createCrossChainProvider } from "@wonderland/interop-cross-chain";
+import {
+    createAggregator,
+    createCrossChainProvider,
+    PROTOCOLS,
+} from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
+const acrossProvider = createCrossChainProvider(PROTOCOLS.ACROSS, { isTestnet: true });
 
 const aggregator = createAggregator({
     providers: [acrossProvider],
@@ -26,10 +30,11 @@ import {
     createAggregator,
     createCrossChainProvider,
     OrderTrackerFactory,
+    PROTOCOLS,
     SortingStrategyFactory,
 } from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
+const acrossProvider = createCrossChainProvider(PROTOCOLS.ACROSS, { isTestnet: true });
 
 const aggregator = createAggregator({
     providers: [acrossProvider],
@@ -81,9 +86,10 @@ import {
     createAggregator,
     createApprovalService,
     createCrossChainProvider,
+    PROTOCOLS,
 } from "@wonderland/interop-cross-chain";
 
-const relayProvider = createCrossChainProvider("relay");
+const relayProvider = createCrossChainProvider(PROTOCOLS.RELAY);
 
 const approvalService = createApprovalService({
     rpcUrls: {
@@ -98,8 +104,18 @@ const aggregator = createAggregator({
 });
 
 // Every quote returned now has approval steps prepended when needed.
-const response = await aggregator.getQuotes({ /* ... */ });
+const response = await aggregator.getQuotes({
+    /* ... */
+});
 ```
+
+### Picking a client source
+
+`createApprovalService` has three ways to reach the chain:
+
+-   **No config** (`createApprovalService()`) — the service falls back to viem's default public transport for each chain. Fine for quick experiments; public endpoints are rate-limited and should not be used in production.
+-   **`rpcUrls`** — a `Record<number, string>` keyed by chain ID. The right choice for multichain apps: the service reads allowances on the input chain of each quote, so every origin chain you intend to bridge from needs an entry.
+-   **`publicClient`** — a pre-configured viem `PublicClient`. Takes precedence over `rpcUrls` and is used for **every** chain the service is asked about, so it only makes sense when every quote originates on the same chain (e.g. a checkout that only accepts USDC on mainnet). Passing a single-chain client into a multichain service will send `multicall` traffic for the wrong network.
 
 Because approval steps live inside the normal `order.steps` array, your execution loop does not need a separate approval code path — iterate the steps in order and each `approve` fires before the transfer step that needs it.
 
@@ -208,6 +224,44 @@ if (status.fillEvent) {
 ```
 
 For more details, see [Order Tracking](./intent-tracking.md).
+
+## Exact-input vs. exact-output swaps
+
+`QuoteRequest.swapType` decides which side of the transfer is fixed:
+
+-   **`"exact-input"`** (default): you fix `input.amount`. The provider quotes the output amount the user will receive after fees and slippage. Right when the user starts from a known balance — "send 100 USDC across, whatever lands is fine as long as it clears slippage".
+-   **`"exact-output"`**: you fix `output.amount`. The provider quotes the input amount the user must supply. Right when the destination amount is what matters — paying an invoice, topping up to an exact balance, funding a contract that expects a specific amount.
+
+Exact-output example:
+
+```typescript
+// Deliver exactly 50 USDC on Base. The provider tells us how much USDC
+// we need to send from Optimism to cover fees and slippage.
+const response = await aggregator.getQuotes({
+    user: "0xYourAddress",
+    input: {
+        chainId: 10, // Optimism
+        assetAddress: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", // USDC
+        // no `amount` — provider fills this in
+    },
+    output: {
+        chainId: 8453, // Base
+        assetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
+        recipient: "0xRecipient",
+        amount: "50000000", // 50 USDC (6 decimals)
+    },
+    swapType: "exact-output",
+});
+
+const quote = response.quotes[0];
+// Read the quoted input back from the preview
+console.log(`Needs ${quote.preview.inputs[0].amount} input wei`);
+```
+
+Provider coverage:
+
+-   **Across, Relay, OIF** — support both modes.
+-   **Bungee, LiFi Intents** — `exact-input` only. Requesting `exact-output` from these providers surfaces an error in `response.errors` (the original message is preserved via `errorMsg`); the rest of the aggregator's providers continue normally.
 
 ## Error Handling
 
