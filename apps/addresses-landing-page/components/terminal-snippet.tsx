@@ -7,7 +7,7 @@ interface TerminalSnippetProps {
 }
 
 export function TerminalSnippet({
-    command = "npm install @wonderland/interop-addresses",
+    command = "npm install @wonderland/interop-addresses viem",
 }: TerminalSnippetProps) {
     const [copied, setCopied] = useState(false);
 

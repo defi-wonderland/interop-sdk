@@ -220,6 +220,9 @@ importers:
             vaul:
                 specifier: 0.9.9
                 version: 0.9.9(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+            viem:
+                specifier: 2.37.0
+                version: 2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76)
             zod:
                 specifier: 3.25.76
                 version: 3.25.76
@@ -297,6 +300,10 @@ importers:
             "@wonderland/interop-cross-chain":
                 specifier: workspace:*
                 version: link:../../packages/cross-chain
+        devDependencies:
+            viem:
+                specifier: 2.28.0
+                version: 2.28.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76)
 
     examples/ui:
         dependencies:
@@ -463,8 +470,8 @@ importers:
                 specifier: 5.5.4
                 version: 5.5.4
             viem:
-                specifier: 2.29.2
-                version: 2.29.2(bufferutil@4.0.9)(typescript@5.5.4)(utf-8-validate@5.0.10)(zod@3.24.3)
+                specifier: 2.28.0
+                version: 2.28.0(bufferutil@4.0.9)(typescript@5.5.4)(utf-8-validate@5.0.10)(zod@3.24.3)
 
 packages:
     "@adraffy/ens-normalize@1.11.0":
@@ -17352,17 +17359,6 @@ packages:
             typescript:
                 optional: true
 
-    viem@2.29.2:
-        resolution:
-            {
-                integrity: sha512-cukRxab90jvQ+TDD84sU3qB3UmejYqgCw4cX8SfWzvh7JPfZXI3kAMUaT5OSR2As1Mgvx1EJawccwPjGqkSSwA==,
-            }
-        peerDependencies:
-            typescript: ">=5.0.4"
-        peerDependenciesMeta:
-            typescript:
-                optional: true
-
     viem@2.37.0:
         resolution:
             {
@@ -19812,9 +19808,9 @@ snapshots:
 
     "@coinbase/wallet-sdk@4.3.0":
         dependencies:
-            "@noble/hashes": 1.7.2
+            "@noble/hashes": 1.8.0
             clsx: 1.2.1
-            eventemitter3: 5.0.1
+            eventemitter3: 5.0.4
             preact: 10.28.0
 
     "@colors/colors@1.5.0":
@@ -23087,7 +23083,7 @@ snapshots:
 
     "@scure/bip32@1.7.0":
         dependencies:
-            "@noble/curves": 1.9.1
+            "@noble/curves": 1.9.7
             "@noble/hashes": 1.8.0
             "@scure/base": 1.2.5
 
@@ -24571,6 +24567,11 @@ snapshots:
         optionalDependencies:
             typescript: 5.6.2
             zod: 3.25.76
+
+    abitype@1.2.2(typescript@5.5.4)(zod@3.24.3):
+        optionalDependencies:
+            typescript: 5.5.4
+            zod: 3.24.3
 
     abitype@1.2.2(typescript@5.6.2)(zod@3.25.76):
         optionalDependencies:
@@ -28049,7 +28050,7 @@ snapshots:
         dependencies:
             cli-truncate: 4.0.0
             colorette: 2.0.20
-            eventemitter3: 5.0.1
+            eventemitter3: 5.0.4
             log-update: 6.1.0
             rfdc: 1.4.1
             wrap-ansi: 9.0.0
@@ -29077,14 +29078,28 @@ snapshots:
     ox@0.6.9(typescript@5.5.4)(zod@3.24.3):
         dependencies:
             "@adraffy/ens-normalize": 1.11.0
-            "@noble/curves": 1.8.2
-            "@noble/hashes": 1.7.2
-            "@scure/bip32": 1.6.2
-            "@scure/bip39": 1.5.4
-            abitype: 1.0.8(typescript@5.5.4)(zod@3.24.3)
+            "@noble/curves": 1.9.7
+            "@noble/hashes": 1.8.0
+            "@scure/bip32": 1.7.0
+            "@scure/bip39": 1.6.0
+            abitype: 1.2.2(typescript@5.5.4)(zod@3.24.3)
             eventemitter3: 5.0.1
         optionalDependencies:
             typescript: 5.5.4
+        transitivePeerDependencies:
+            - zod
+
+    ox@0.6.9(typescript@5.6.2)(zod@3.25.76):
+        dependencies:
+            "@adraffy/ens-normalize": 1.11.0
+            "@noble/curves": 1.9.7
+            "@noble/hashes": 1.8.0
+            "@scure/bip32": 1.7.0
+            "@scure/bip39": 1.6.0
+            abitype: 1.2.2(typescript@5.6.2)(zod@3.25.76)
+            eventemitter3: 5.0.1
+        optionalDependencies:
+            typescript: 5.6.2
         transitivePeerDependencies:
             - zod
 
@@ -31498,18 +31513,18 @@ snapshots:
             - utf-8-validate
             - zod
 
-    viem@2.29.2(bufferutil@4.0.9)(typescript@5.5.4)(utf-8-validate@5.0.10)(zod@3.24.3):
+    viem@2.28.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76):
         dependencies:
             "@noble/curves": 1.8.2
             "@noble/hashes": 1.7.2
             "@scure/bip32": 1.6.2
             "@scure/bip39": 1.5.4
-            abitype: 1.0.8(typescript@5.5.4)(zod@3.24.3)
+            abitype: 1.0.8(typescript@5.6.2)(zod@3.25.76)
             isows: 1.0.6(ws@8.18.1(bufferutil@4.0.9)(utf-8-validate@5.0.10))
-            ox: 0.6.9(typescript@5.5.4)(zod@3.24.3)
+            ox: 0.6.9(typescript@5.6.2)(zod@3.25.76)
             ws: 8.18.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
         optionalDependencies:
-            typescript: 5.5.4
+            typescript: 5.6.2
         transitivePeerDependencies:
             - bufferutil
             - utf-8-validate
@@ -31728,7 +31743,7 @@ snapshots:
             sockjs: 0.3.24
             spdy: 4.0.2
             webpack-dev-middleware: 7.4.5(webpack@5.103.0)
-            ws: 8.18.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+            ws: 8.19.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
         optionalDependencies:
             webpack: 5.103.0
         transitivePeerDependencies:
@@ -31943,7 +31958,6 @@ snapshots:
         optionalDependencies:
             bufferutil: 4.0.9
             utf-8-validate: 5.0.10
-        optional: true
 
     wsl-utils@0.1.0:
         dependencies:
