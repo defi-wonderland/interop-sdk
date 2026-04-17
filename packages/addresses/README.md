@@ -8,8 +8,10 @@ This package provides methods to convert between interoperable names (ERC-7828),
 
 ## Installation
 
+`viem` is a peer dependency (`^2.28.0`) — install it alongside the package:
+
 ```
-pnpm add @wonderland/interop-addresses
+pnpm add @wonderland/interop-addresses viem
 ```
 
 > **Tip:** Set `MAINNET_RPC_URL` env var for faster ENS resolution.

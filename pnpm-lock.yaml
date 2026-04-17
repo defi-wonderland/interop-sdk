@@ -427,9 +427,6 @@ importers:
             bs58:
                 specifier: 6.0.0
                 version: 6.0.0
-            viem:
-                specifier: 2.28.0
-                version: 2.28.0(bufferutil@4.0.9)(typescript@5.5.4)(utf-8-validate@5.0.10)(zod@3.24.3)
             zod:
                 specifier: 3.24.3
                 version: 3.24.3
@@ -437,12 +434,12 @@ importers:
             typescript:
                 specifier: 5.5.4
                 version: 5.5.4
+            viem:
+                specifier: 2.28.0
+                version: 2.28.0(bufferutil@4.0.9)(typescript@5.5.4)(utf-8-validate@5.0.10)(zod@3.24.3)
 
     packages/cross-chain:
         dependencies:
-            "@across-protocol/app-sdk":
-                specifier: 0.2.2
-                version: 0.2.2(viem@2.29.2(bufferutil@4.0.9)(typescript@5.5.4)(utf-8-validate@5.0.10)(zod@3.24.3))
             "@openintentsframework/oif-specs":
                 specifier: 1.0.0
                 version: 1.0.0
@@ -455,9 +452,6 @@ importers:
             uuid:
                 specifier: 13.0.0
                 version: 13.0.0
-            viem:
-                specifier: 2.29.2
-                version: 2.29.2(bufferutil@4.0.9)(typescript@5.5.4)(utf-8-validate@5.0.10)(zod@3.24.3)
             zod:
                 specifier: 3.24.3
                 version: 3.24.3
@@ -468,17 +462,11 @@ importers:
             typescript:
                 specifier: 5.5.4
                 version: 5.5.4
+            viem:
+                specifier: 2.29.2
+                version: 2.29.2(bufferutil@4.0.9)(typescript@5.5.4)(utf-8-validate@5.0.10)(zod@3.24.3)
 
 packages:
-    "@across-protocol/app-sdk@0.2.2":
-        resolution:
-            {
-                integrity: sha512-jn+tR79L3Ntu7xSsyy3x40k4cTMODMRB+Vu6i04PVhcJFU33JCLNz8w4yttwx0rtOURTXR6xt4KKsndv8SBc1A==,
-            }
-        engines: { node: ">=18.0.0" }
-        peerDependencies:
-            viem: ^2.20.1
-
     "@adraffy/ens-normalize@1.11.0":
         resolution:
             {
@@ -18073,10 +18061,6 @@ packages:
             }
 
 snapshots:
-    "@across-protocol/app-sdk@0.2.2(viem@2.29.2(bufferutil@4.0.9)(typescript@5.5.4)(utf-8-validate@5.0.10)(zod@3.24.3))":
-        dependencies:
-            viem: 2.29.2(bufferutil@4.0.9)(typescript@5.5.4)(utf-8-validate@5.0.10)(zod@3.24.3)
-
     "@adraffy/ens-normalize@1.11.0": {}
 
     "@ai-sdk/gateway@2.0.17(zod@4.1.13)":

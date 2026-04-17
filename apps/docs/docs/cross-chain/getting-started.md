@@ -12,12 +12,14 @@ In this tutorial, you'll execute a cross-chain token transfer using the Interop 
 
 ## Install the package
 
+`viem` is a peer dependency (`^2.28.0`) — install it alongside the package:
+
 ```bash
-npm install @wonderland/interop-cross-chain
+npm install @wonderland/interop-cross-chain viem
 # or
-yarn add @wonderland/interop-cross-chain
+yarn add @wonderland/interop-cross-chain viem
 # or
-pnpm add @wonderland/interop-cross-chain
+pnpm add @wonderland/interop-cross-chain viem
 ```
 
 ## Create a provider
@@ -85,10 +87,7 @@ console.log(`Quote from ${quote.provider}`);
 To bridge a native asset, use `NATIVE_ASSET_ADDRESS` as the `assetAddress`:
 
 ```typescript
-import {
-    createCrossChainProvider,
-    NATIVE_ASSET_ADDRESS,
-} from "@wonderland/interop-cross-chain";
+import { createCrossChainProvider, NATIVE_ASSET_ADDRESS } from "@wonderland/interop-cross-chain";
 
 const quotes = await provider.getQuotes({
     user: account.address,
