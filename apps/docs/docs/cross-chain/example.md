@@ -15,9 +15,6 @@ import {
     createAggregator,
     createApprovalService,
     createCrossChainProvider,
-    getSignatureSteps,
-    getTransactionSteps,
-    isSignatureOnlyOrder,
     PROTOCOLS,
 } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
@@ -147,22 +144,21 @@ if (response.quotes.length === 0) {
 
 ## 5. Execute the Cross-Chain Transaction
 
-Because the aggregator was configured with an `approvalService` (step 3), each returned `quote.order.steps` already contains any ERC-20 `approve` step that the transfer needs, prepended before the transfer itself. Iterate the steps in order and each `approve` fires before the step that depends on it.
+Because the aggregator was configured with an `approvalService` (step 3), each returned `quote.order.steps` already contains any ERC-20 `approve` step that the transfer needs, prepended before the transfer itself. Iterate the steps in order and handle each by `step.kind` — a single order can mix `transaction` steps (approvals, user-submitted bridges) and `signature` steps (gasless). Collect any signatures as `StepResult[]` and submit them once after the loop.
 
 ```typescript
+// The signature payload submitOrder accepts for each signed step.
+// (Not re-exported from the package yet — define locally.)
+type StepResult = { stepIndex: number; signature: `0x${string}` };
+
 const quote = response.quotes[0];
 
-if (isSignatureOnlyOrder(quote.order)) {
-    // Protocol mode: sign and submit (gasless for user)
-    // Note: production code should handle all signature steps, not just the first
-    const step = getSignatureSteps(quote.order)[0];
-    const { signatureType, ...typedData } = step.signaturePayload;
-    const signature = await walletClient.signTypedData(typedData);
-    await aggregator.submitOrder(quote, signature);
-    console.log("Order submitted via signature");
-} else {
-    // User mode: send each transaction step in order (approvals first, then transfer)
-    for (const step of getTransactionSteps(quote.order)) {
+const stepResults: StepResult[] = [];
+
+for (let i = 0; i < quote.order.steps.length; i++) {
+    const step = quote.order.steps[i];
+
+    if (step.kind === "transaction") {
         const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } = step.transaction;
         console.log(`Sending step: ${step.description ?? "transaction"}`);
         const hash = await walletClient.sendTransaction({
@@ -178,7 +174,17 @@ if (isSignatureOnlyOrder(quote.order)) {
             throw new Error(`Step failed: ${step.description ?? "transaction"}`);
         }
         console.log("Confirmed: Success");
+    } else {
+        // signature step
+        const { signatureType, ...typedData } = step.signaturePayload;
+        const signature = await walletClient.signTypedData(typedData);
+        stepResults.push({ stepIndex: i, signature });
     }
+}
+
+if (stepResults.length > 0) {
+    await aggregator.submitOrder(quote, stepResults);
+    console.log("Order submitted via signature");
 }
 ```
 

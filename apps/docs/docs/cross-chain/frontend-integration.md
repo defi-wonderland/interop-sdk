@@ -150,14 +150,11 @@ The hook below covers the complete flow:
 5. Track until finalized
 
 ```typescript
-import type { Quote, QuoteRequest } from "@wonderland/interop-cross-chain";
+import type { ExecutableQuote, QuoteRequest } from "@wonderland/interop-cross-chain";
 import {
     createAggregator,
     createApprovalService,
     createCrossChainProvider,
-    getSignatureSteps,
-    getTransactionSteps,
-    isSignatureOnlyOrder,
     OrderStatus,
     OrderTrackerEvent,
     OrderTrackerFactory,
@@ -165,6 +162,10 @@ import {
 } from "@wonderland/interop-cross-chain";
 import { useCallback, useState } from "react";
 import { usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
+
+// The signature payload submitOrder accepts for each signed step.
+// (Not re-exported as `StepResult` from the package yet — define locally.)
+type StepResult = { stepIndex: number; signature: `0x${string}` };
 
 // Create the aggregator once (outside the hook so it is a singleton)
 const rpcUrls = {
@@ -198,7 +199,7 @@ export function useCrossChainSwap() {
 
     const [status, setStatus] = useState<SwapStatus>("idle");
     const [error, setError] = useState<string | null>(null);
-    const [quotes, setQuotes] = useState<Quote[]>([]);
+    const [quotes, setQuotes] = useState<ExecutableQuote[]>([]);
 
     const execute = useCallback(
         async (request: QuoteRequest) => {
@@ -227,22 +228,18 @@ export function useCrossChainSwap() {
                 await switchChainAsync({ chainId: request.input.chainId });
 
                 // ── 3. Submit the order ──────────────────────────────────────────────
-                // Approvals (if needed) are already prepended to quote.order.steps by
-                // the approvalService wired into the aggregator — just iterate in order.
+                // Iterate order.steps in emission order. approvalService prepends
+                // approval TransactionSteps onto signature-based quotes too, so a
+                // single order can mix both kinds — handle each by `step.kind`.
                 setStatus("submitting");
 
-                let txHash: `0x${string}` | undefined;
+                const stepResults: StepResult[] = [];
+                let lastTxHash: `0x${string}` | undefined;
 
-                if (isSignatureOnlyOrder(quote.order)) {
-                    // Gasless: sign EIP-712 typed data, solver submits on your behalf
-                    const step = getSignatureSteps(quote.order)[0];
-                    const { signatureType, ...typedData } = step.signaturePayload;
-                    const signature = await walletClient.signTypedData(typedData);
-                    await aggregator.submitOrder(quote, signature);
-                } else {
-                    // User pays gas: send every transaction step in order.
-                    // Steps may include a prepended `approve` from the approvalService.
-                    for (const step of getTransactionSteps(quote.order)) {
+                for (let i = 0; i < quote.order.steps.length; i++) {
+                    const step = quote.order.steps[i];
+
+                    if (step.kind === "transaction") {
                         const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } =
                             step.transaction;
 
@@ -258,18 +255,29 @@ export function useCrossChainSwap() {
                         });
 
                         await publicClient.waitForTransactionReceipt({ hash });
-
-                        // The last step is the bridge transaction; remember its hash for tracking.
-                        txHash = hash;
+                        lastTxHash = hash;
+                    } else {
+                        // signature step
+                        const { signatureType, ...typedData } = step.signaturePayload;
+                        const signature = await walletClient.signTypedData(typedData);
+                        stepResults.push({ stepIndex: i, signature });
                     }
                 }
 
+                if (stepResults.length > 0) {
+                    await aggregator.submitOrder(quote, stepResults);
+                }
+
                 // ── 4. Track until finalized ─────────────────────────────────────────
+                // If the order contained a signature step, the solver submits the
+                // bridge on-chain — there is no user-side bridge tx hash to follow.
+                // Track by orderId instead (see intent-tracking.md).
+                // Otherwise lastTxHash is the bridge tx (approvals are prepended).
                 setStatus("tracking");
 
-                if (txHash) {
+                if (stepResults.length === 0 && lastTxHash) {
                     const tracker = aggregator.track({
-                        txHash,
+                        txHash: lastTxHash,
                         providerId: quote.provider,
                         originChainId: request.input.chainId,
                         destinationChainId: request.output.chainId,
@@ -290,9 +298,9 @@ export function useCrossChainSwap() {
                         setStatus("error");
                     });
                 } else {
-                    // Gasless orders have no origin tx hash — the solver submits on-chain.
-                    // Track by orderId using watchOrder() from a standalone OrderTracker.
-                    // See the intent-tracking docs for the orderId-based flow.
+                    // Solver-submitted: the bridge opens without a user-side tx hash.
+                    // Track via quote.tracking?.orderId using watchOrder() from a
+                    // standalone OrderTracker — see intent-tracking.md.
                     setStatus("submitted");
                 }
             } catch (err) {
