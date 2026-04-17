@@ -1,4 +1,3 @@
-import { EventEmitter } from "events";
 import { Address, Hex } from "viem";
 
 import type { FillWatcher } from "../interfaces/fillWatcher.interface.js";
@@ -19,6 +18,7 @@ import { OrderTrackerEvent } from "../interfaces/orderTracker.interface.js";
 import { OrderFailureReason, OrderStatus, OrderTrackerYieldType } from "../types/orderTracking.js";
 import { getChainById } from "../utils/chainHelpers.js";
 import { PublicClientManager } from "../utils/publicClientManager.js";
+import { TypedEventEmitter } from "../utils/typedEventEmitter.js";
 
 const FillResultStatus = {
     Finalized: "finalized",
@@ -27,35 +27,7 @@ const FillResultStatus = {
     Timeout: "timeout",
 } as const;
 
-export class OrderTracker extends EventEmitter {
-    override on<K extends keyof OrderTrackerEvents>(
-        event: K,
-        listener: OrderTrackerEvents[K],
-    ): this {
-        return super.on(event, listener as (...args: unknown[]) => void);
-    }
-
-    override once<K extends keyof OrderTrackerEvents>(
-        event: K,
-        listener: OrderTrackerEvents[K],
-    ): this {
-        return super.once(event, listener as (...args: unknown[]) => void);
-    }
-
-    override off<K extends keyof OrderTrackerEvents>(
-        event: K,
-        listener: OrderTrackerEvents[K],
-    ): this {
-        return super.off(event, listener as (...args: unknown[]) => void);
-    }
-
-    override emit<K extends keyof OrderTrackerEvents>(
-        event: K,
-        ...args: Parameters<OrderTrackerEvents[K]>
-    ): boolean {
-        return super.emit(event, ...args);
-    }
-
+export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
     static readonly GRACE_PERIOD_SECONDS = 60;
     static readonly DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 
