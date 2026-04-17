@@ -163,10 +163,6 @@ import {
 import { useCallback, useState } from "react";
 import { usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
 
-// The signature payload submitOrder accepts for each signed step.
-// (Not re-exported as `StepResult` from the package yet — define locally.)
-type StepResult = { stepIndex: number; signature: `0x${string}` };
-
 // Create the aggregator once (outside the hook so it is a singleton)
 const rpcUrls = {
     1: process.env.NEXT_PUBLIC_ETH_RPC_URL!,
@@ -231,14 +227,15 @@ export function useCrossChainSwap() {
                 // Iterate order.steps in emission order. approvalService prepends
                 // approval TransactionSteps onto signature-based quotes too, so a
                 // single order can mix both kinds — handle each by `step.kind`.
+                // On the first signature step, sign + submit and stop — the solver
+                // takes the order from there. (`submitOrder` currently forwards one
+                // signature per order; multi-signature orders aren't yet supported.)
                 setStatus("submitting");
 
-                const stepResults: StepResult[] = [];
                 let lastTxHash: `0x${string}` | undefined;
+                let submittedViaSignature = false;
 
-                for (let i = 0; i < quote.order.steps.length; i++) {
-                    const step = quote.order.steps[i];
-
+                for (const step of quote.order.steps) {
                     if (step.kind === "transaction") {
                         const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } =
                             step.transaction;
@@ -257,25 +254,22 @@ export function useCrossChainSwap() {
                         await publicClient.waitForTransactionReceipt({ hash });
                         lastTxHash = hash;
                     } else {
-                        // signature step
                         const { signatureType, ...typedData } = step.signaturePayload;
                         const signature = await walletClient.signTypedData(typedData);
-                        stepResults.push({ stepIndex: i, signature });
+                        await aggregator.submitOrder(quote, signature);
+                        submittedViaSignature = true;
+                        break;
                     }
                 }
 
-                if (stepResults.length > 0) {
-                    await aggregator.submitOrder(quote, stepResults);
-                }
-
                 // ── 4. Track until finalized ─────────────────────────────────────────
-                // If the order contained a signature step, the solver submits the
+                // If the order was submitted via signature, the solver submits the
                 // bridge on-chain — there is no user-side bridge tx hash to follow.
                 // Track by orderId instead (see intent-tracking.md).
                 // Otherwise lastTxHash is the bridge tx (approvals are prepended).
                 setStatus("tracking");
 
-                if (stepResults.length === 0 && lastTxHash) {
+                if (!submittedViaSignature && lastTxHash) {
                     const tracker = aggregator.track({
                         txHash: lastTxHash,
                         providerId: quote.provider,

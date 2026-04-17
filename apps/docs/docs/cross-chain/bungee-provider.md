@@ -40,7 +40,9 @@ See [Bungee's API access docs](https://docs.bungee.exchange/integrate/get-api-ac
 `submissionModes` defaults to `["user-transaction"]`. To enable the gasless permit2 flow, explicitly opt in:
 
 ```typescript
-submissionModes: ["user-transaction", "gasless"];
+createCrossChainProvider("bungee", {
+    submissionModes: ["user-transaction", "gasless"],
+});
 ```
 
 When both modes are configured, quotes are fetched in parallel and the aggregator handles either order type seamlessly, so opting in has no extra cost. For Bungee, adding `"gasless"` enables the permit2 signature flow for ERC-20 tokens — the user signs a permit2 message instead of sending an onchain transaction.
