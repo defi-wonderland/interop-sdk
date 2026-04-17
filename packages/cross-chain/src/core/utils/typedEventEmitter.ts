@@ -14,7 +14,7 @@ type EventListener = (...args: never[]) => void;
  */
 export class TypedEventEmitter<EventMap extends Record<string, EventListener>> {
     private readonly listenersByEvent: Map<keyof EventMap, Set<EventListener>> = new Map();
-    private readonly onceWrappers: WeakMap<object, EventListener> = new WeakMap();
+    private readonly onceWrapperToListener: WeakMap<EventListener, EventListener> = new WeakMap();
 
     /**
      * Register `listener` to be called every time `event` is emitted.
@@ -35,22 +35,28 @@ export class TypedEventEmitter<EventMap extends Record<string, EventListener>> {
      * Register `listener` to be called the next time `event` is emitted, then removed.
      *
      * {@link off} called with the original `listener` after a `once` registration
-     * will remove it, even before it fires.
+     * will remove it, even before it fires. Multiple `once` registrations of the
+     * same listener — on the same or different events — are tracked independently.
      *
      * @returns The emitter instance, for chaining.
      */
     once<K extends keyof EventMap>(event: K, listener: EventMap[K]): this {
         const wrapper: EventListener = (...args) => {
-            this.off(event, listener);
+            const current = this.listenersByEvent.get(event);
+            if (current) {
+                current.delete(wrapper);
+                if (current.size === 0) this.listenersByEvent.delete(event);
+            }
             (listener as EventListener)(...args);
         };
-        this.onceWrappers.set(listener as unknown as object, wrapper);
+        this.onceWrapperToListener.set(wrapper, listener as EventListener);
         return this.on(event, wrapper as EventMap[K]);
     }
 
     /**
-     * Remove a previously registered listener. Works for listeners registered
-     * via {@link on} as well as {@link once}.
+     * Remove every registration of `listener` for `event`. Removes both direct
+     * {@link on} listeners and any pending {@link once} wrapper(s) for the pair
+     * `(event, listener)`, without touching registrations bound to other events.
      *
      * @returns The emitter instance, for chaining.
      */
@@ -58,14 +64,13 @@ export class TypedEventEmitter<EventMap extends Record<string, EventListener>> {
         const set = this.listenersByEvent.get(event);
         if (!set) return this;
 
-        const wrapper = this.onceWrappers.get(listener as unknown as object);
-        set.delete((wrapper ?? listener) as EventListener);
-        if (wrapper) {
-            this.onceWrappers.delete(listener as unknown as object);
+        const target = listener as EventListener;
+        for (const registered of [...set]) {
+            if (registered === target || this.onceWrapperToListener.get(registered) === target) {
+                set.delete(registered);
+            }
         }
-        if (set.size === 0) {
-            this.listenersByEvent.delete(event);
-        }
+        if (set.size === 0) this.listenersByEvent.delete(event);
         return this;
     }
 

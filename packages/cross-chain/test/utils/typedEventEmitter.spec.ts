@@ -140,5 +140,56 @@ describe("TypedEventEmitter", () => {
 
             expect(listener).not.toHaveBeenCalled();
         });
+
+        it("fires each wrapper when once is registered twice with the same listener on the same event", () => {
+            const emitter = createEmitter();
+            const listener = vi.fn();
+
+            emitter.once("ping", listener);
+            emitter.once("ping", listener);
+            emitter.emit("ping", 1);
+
+            expect(listener).toHaveBeenCalledTimes(2);
+            expect(listener).toHaveBeenNthCalledWith(1, 1);
+            expect(listener).toHaveBeenNthCalledWith(2, 1);
+
+            listener.mockClear();
+            emitter.emit("ping", 2);
+            expect(listener).not.toHaveBeenCalled();
+        });
+
+        it("tracks once registrations independently across events", () => {
+            const emitter = createEmitter();
+            const listener = vi.fn();
+
+            emitter.once("ping", listener as TestEvents["ping"]);
+            emitter.once("error", listener as TestEvents["error"]);
+
+            emitter.emit("ping", 1);
+            expect(listener).toHaveBeenCalledTimes(1);
+            expect(listener).toHaveBeenLastCalledWith(1);
+
+            const err = new Error("boom");
+            emitter.emit("error", err);
+            expect(listener).toHaveBeenCalledTimes(2);
+            expect(listener).toHaveBeenLastCalledWith(err);
+        });
+
+        it("removes the on-listener of a different event when the same function is also once-registered", () => {
+            const emitter = createEmitter();
+            const shared = vi.fn();
+
+            emitter.once("ping", shared as TestEvents["ping"]);
+            emitter.on("error", shared as TestEvents["error"]);
+            emitter.off("error", shared as TestEvents["error"]);
+
+            const err = new Error("boom");
+            emitter.emit("error", err);
+            expect(shared).not.toHaveBeenCalled();
+
+            emitter.emit("ping", 42);
+            expect(shared).toHaveBeenCalledTimes(1);
+            expect(shared).toHaveBeenCalledWith(42);
+        });
     });
 });
