@@ -44,6 +44,7 @@ import {
     GetFillParams,
     InvalidOpenEventError,
     isNativeAddress,
+    NATIVE_ZERO_ADDRESS,
     NetworkAssets,
     OpenedIntent,
     OpenedIntentParserConfig,
@@ -52,22 +53,15 @@ import {
     parseAbiEncodedFields,
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
+    withNativePlaceholder,
 } from "../../internal.js";
 import { decodeAcrossCalldata } from "./utils.js";
 
 const ZERO_BYTES32 = pad("0x00" as Hex, { size: 32 });
 const ACROSS_DEFAULT_MESSAGE: Hex = "0x";
 
-/** Native placeholder the Across API expects for EVM chains. */
-const ACROSS_NATIVE_PLACEHOLDER = "0x0000000000000000000000000000000000000000";
-
 function addressToBytes32(address: string): Hex {
     return pad(address as Address, { size: 32 });
-}
-
-/** Map any native placeholder variant to the one Across expects. */
-function toAcrossNativeAddress(address: string): string {
-    return isNativeAddress(address, "eip155") ? ACROSS_NATIVE_PLACEHOLDER : address;
 }
 
 /**
@@ -166,9 +160,9 @@ export class AcrossProvider extends CrossChainProvider {
 
         return AcrossGetQuoteParamsSchema.parse({
             tradeType: swapType,
-            inputToken: toAcrossNativeAddress(input.assetAddress),
+            inputToken: withNativePlaceholder(input.assetAddress, "eip155", NATIVE_ZERO_ADDRESS),
             amount,
-            outputToken: toAcrossNativeAddress(output.assetAddress),
+            outputToken: withNativePlaceholder(output.assetAddress, "eip155", NATIVE_ZERO_ADDRESS),
             originChainId: input.chainId,
             destinationChainId: output.chainId,
             depositor: params.user,

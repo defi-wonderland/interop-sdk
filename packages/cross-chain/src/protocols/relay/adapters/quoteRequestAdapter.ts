@@ -1,15 +1,11 @@
 import type { QuoteRequest } from "../../../internal.js";
 import type { RelayQuoteRequest } from "../schemas.js";
-import { isNativeAddress, ProviderGetQuoteFailure } from "../../../internal.js";
+import {
+    NATIVE_ZERO_ADDRESS,
+    ProviderGetQuoteFailure,
+    withNativePlaceholder,
+} from "../../../internal.js";
 import { RelayQuoteRequestSchema } from "../schemas.js";
-
-/** Native placeholder the Relay API expects for EVM chains. */
-const RELAY_NATIVE_PLACEHOLDER = "0x0000000000000000000000000000000000000000";
-
-/** Map any native placeholder variant to the one Relay expects. */
-function toRelayNativeAddress(address: string): string {
-    return isNativeAddress(address, "eip155") ? RELAY_NATIVE_PLACEHOLDER : address;
-}
 
 /** Options forwarded from the provider to the quote request adapter. */
 export interface AdaptQuoteOptions {
@@ -40,9 +36,17 @@ export function adaptQuoteRequest(
     return RelayQuoteRequestSchema.parse({
         user: params.user,
         originChainId: params.input.chainId,
-        originCurrency: toRelayNativeAddress(params.input.assetAddress),
+        originCurrency: withNativePlaceholder(
+            params.input.assetAddress,
+            "eip155",
+            NATIVE_ZERO_ADDRESS,
+        ),
         destinationChainId: params.output.chainId,
-        destinationCurrency: toRelayNativeAddress(params.output.assetAddress),
+        destinationCurrency: withNativePlaceholder(
+            params.output.assetAddress,
+            "eip155",
+            NATIVE_ZERO_ADDRESS,
+        ),
         amount,
         tradeType: swapType === "exact-input" ? "EXACT_INPUT" : "EXPECTED_OUTPUT",
         recipient: params.output.recipient,

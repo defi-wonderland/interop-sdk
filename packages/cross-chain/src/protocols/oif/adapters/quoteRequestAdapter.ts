@@ -8,15 +8,7 @@ import type { GetQuoteRequest } from "@openintentsframework/oif-specs";
 
 import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
 import { fromInteropAccountId } from "../../../core/utils/interopAccountId.js";
-import { isNativeAddress } from "../../../core/utils/token.js";
-
-/** Native placeholder the OIF solver expects for EVM chains. */
-const OIF_NATIVE_PLACEHOLDER = "0x0000000000000000000000000000000000000000";
-
-/** Map any native placeholder variant to the one OIF expects. */
-function toOifNativeAddress(address: string): string {
-    return isNativeAddress(address, "eip155") ? OIF_NATIVE_PLACEHOLDER : address;
-}
+import { NATIVE_ZERO_ADDRESS, withNativePlaceholder } from "../../../core/utils/token.js";
 
 /**
  * Options passed from the provider to control OIF-specific request behaviour.
@@ -110,7 +102,7 @@ export function adaptQuoteRequest(request: QuoteRequest, options?: AdaptOptions)
             user: userOnInputChain,
             asset: fromInteropAccountId({
                 chainId: input.chainId,
-                address: toOifNativeAddress(input.assetAddress),
+                address: withNativePlaceholder(input.assetAddress, "eip155", NATIVE_ZERO_ADDRESS),
             }),
             ...(input.amount !== undefined && { amount: input.amount }),
         },
@@ -123,7 +115,7 @@ export function adaptQuoteRequest(request: QuoteRequest, options?: AdaptOptions)
             receiver: fromInteropAccountId({ chainId: output.chainId, address: recipientAddress }),
             asset: fromInteropAccountId({
                 chainId: output.chainId,
-                address: toOifNativeAddress(output.assetAddress),
+                address: withNativePlaceholder(output.assetAddress, "eip155", NATIVE_ZERO_ADDRESS),
             }),
             ...(output.amount !== undefined && { amount: output.amount }),
             ...(output.calldata !== undefined && { calldata: output.calldata }),

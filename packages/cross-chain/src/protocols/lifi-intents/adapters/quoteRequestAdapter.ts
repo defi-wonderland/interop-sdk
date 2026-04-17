@@ -7,18 +7,10 @@
 
 import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
 import type { LifiIntentsQuoteRequest } from "../schemas.js";
-import { isNativeAddress } from "../../../core/utils/token.js";
-
-/** Native placeholder the LI.FI Intents API expects for EVM chains. */
-const LIFI_INTENTS_NATIVE_PLACEHOLDER = "0x0000000000000000000000000000000000000000";
+import { NATIVE_ZERO_ADDRESS, withNativePlaceholder } from "../../../core/utils/token.js";
 
 function toChainString(chainId: number): string {
     return `eip155:${chainId}`;
-}
-
-/** Map any native placeholder variant to the one LI.FI Intents expects. */
-function toLifiIntentsNativeAddress(address: string): string {
-    return isNativeAddress(address, "eip155") ? LIFI_INTENTS_NATIVE_PLACEHOLDER : address;
 }
 
 export function adaptQuoteRequest(request: QuoteRequest): LifiIntentsQuoteRequest {
@@ -44,7 +36,7 @@ export function adaptQuoteRequest(request: QuoteRequest): LifiIntentsQuoteReques
                 {
                     chain: toChainString(input.chainId),
                     user: request.user,
-                    asset: toLifiIntentsNativeAddress(input.assetAddress),
+                    asset: withNativePlaceholder(input.assetAddress, "eip155", NATIVE_ZERO_ADDRESS),
                     amount: input.amount,
                 },
             ],
@@ -52,7 +44,11 @@ export function adaptQuoteRequest(request: QuoteRequest): LifiIntentsQuoteReques
                 {
                     chain: toChainString(output.chainId),
                     receiver: recipientAddress,
-                    asset: toLifiIntentsNativeAddress(output.assetAddress),
+                    asset: withNativePlaceholder(
+                        output.assetAddress,
+                        "eip155",
+                        NATIVE_ZERO_ADDRESS,
+                    ),
                     amount: null,
                 },
             ],

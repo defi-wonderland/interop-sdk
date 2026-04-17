@@ -6,12 +6,18 @@ type ChainType = "eip155" | "solana";
  */
 export const NATIVE_ASSET_ADDRESS = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" as const;
 
+/**
+ * Zero-address native placeholder used by providers that pre-date EIP-7528
+ * (Across, OIF, Relay, LI.FI Intents).
+ */
+export const NATIVE_ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
+
 /** Solana canonical native placeholder — the System Program account. */
 const SOLANA_NATIVE_ADDRESS = "11111111111111111111111111111111" as const;
 
 /** Native token placeholder addresses by chain type. */
 const NATIVE_ADDRESSES: Record<ChainType, Set<string>> = {
-    eip155: new Set([NATIVE_ASSET_ADDRESS, "0x0000000000000000000000000000000000000000"]),
+    eip155: new Set([NATIVE_ASSET_ADDRESS, NATIVE_ZERO_ADDRESS]),
     solana: new Set([SOLANA_NATIVE_ADDRESS]),
 };
 
@@ -39,3 +45,13 @@ export const toCanonicalNativeAddress = (address: string, chainType: ChainType):
     if (isNativeAddress(address, chainType)) return CANONICAL_BY_CHAIN_TYPE[chainType];
     return chainType === "eip155" ? address.toLowerCase() : address;
 };
+
+/**
+ * Map any native placeholder variant to the one a specific provider expects.
+ * Non-native addresses pass through unchanged (original casing preserved).
+ */
+export const withNativePlaceholder = (
+    address: string,
+    chainType: ChainType,
+    placeholder: string,
+): string => (isNativeAddress(address, chainType) ? placeholder : address);

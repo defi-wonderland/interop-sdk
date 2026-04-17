@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
     isNativeAddress,
     NATIVE_ASSET_ADDRESS,
+    NATIVE_ZERO_ADDRESS,
     toCanonicalNativeAddress,
+    withNativePlaceholder,
 } from "../../src/core/utils/token.js";
 
 const NATIVE_ZERO = "0x0000000000000000000000000000000000000000";
@@ -52,5 +54,44 @@ describe("toCanonicalNativeAddress", () => {
 
     it("preserves the casing of non-native Solana addresses (base58 is case-sensitive)", () => {
         expect(toCanonicalNativeAddress(SOLANA_MINT, "solana")).toBe(SOLANA_MINT);
+    });
+});
+
+describe("NATIVE_ZERO_ADDRESS", () => {
+    it("matches the 0x0000…0 sentinel", () => {
+        expect(NATIVE_ZERO_ADDRESS).toBe(NATIVE_ZERO);
+    });
+
+    it("is recognised as a native placeholder on eip155", () => {
+        expect(isNativeAddress(NATIVE_ZERO_ADDRESS, "eip155")).toBe(true);
+    });
+});
+
+describe("withNativePlaceholder", () => {
+    it("maps 0xEEE… to the provided placeholder on eip155", () => {
+        expect(withNativePlaceholder(NATIVE_EEE_UPPER, "eip155", NATIVE_ZERO_ADDRESS)).toBe(
+            NATIVE_ZERO_ADDRESS,
+        );
+    });
+
+    it("maps 0x000… to NATIVE_ASSET_ADDRESS when that is the provider placeholder", () => {
+        expect(withNativePlaceholder(NATIVE_ZERO, "eip155", NATIVE_ASSET_ADDRESS)).toBe(
+            NATIVE_ASSET_ADDRESS,
+        );
+    });
+
+    it("passes non-native addresses through unchanged (no lowercasing)", () => {
+        expect(withNativePlaceholder(USDC, "eip155", NATIVE_ZERO_ADDRESS)).toBe(USDC);
+    });
+
+    it("maps the Solana system program to a custom placeholder", () => {
+        const customPlaceholder = "SoL1111111111111111111111111111111111111111";
+        expect(withNativePlaceholder(SOLANA_SYSTEM, "solana", customPlaceholder)).toBe(
+            customPlaceholder,
+        );
+    });
+
+    it("passes non-native Solana addresses through unchanged", () => {
+        expect(withNativePlaceholder(SOLANA_MINT, "solana", SOLANA_SYSTEM)).toBe(SOLANA_MINT);
     });
 });
