@@ -1,5 +1,28 @@
 # @wonderland/interop-cross-chain
 
+## 0.6.1
+
+### Patch Changes
+
+-   Updated dependencies [da0cf09]
+    -   @wonderland/interop-addresses@0.5.2
+
+## 0.6.0
+
+### Minor Changes
+
+-   7f7db50: Add optional warnings field to FillEvent, OrderTrackingUpdate and OrderTrackingInfo; Across fills now surface destination call failures through it
+-   b6be559: Add Bungee cross-chain provider with permit2 signature and onchain transaction flows, API-based tracking, and token discovery.
+-   01310c7: Add optional `ApprovalService` that enriches `ExecutableQuote`s with ERC-20 `TransactionStep` approvals when the on-chain allowance is insufficient. Ships with `ExactAmountStrategy` (default) and `InfiniteAmountStrategy` to control how much is approved.
+
+### Patch Changes
+
+-   c352336: Bungee provider returns an empty array when no routes are available instead of throwing.
+-   8204784: Fix Across native token handling: normalize native addresses (0x0...0, 0xEeee...eE) to WETH in SpokePool calldata
+-   c072a01: Remove 4xx special-casing in LI.FI Intents provider for uniform error handling
+-   9d639c9: Wrap raw errors in ProviderGetQuoteFailure in Relay provider collectQuotes
+-   9a8ee1e: Restrict RelayPostBodySchema.api to valid enum values matching the submit schema
+
 ## 0.5.0
 
 ### Minor Changes

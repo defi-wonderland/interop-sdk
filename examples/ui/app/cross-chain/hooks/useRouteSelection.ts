@@ -45,6 +45,8 @@ export function useRouteSelection(defaultInputChainId: number, defaultOutputChai
     setSelection((prev) => ({ ...prev, outputToken: address }));
   }, []);
 
+  const reverseDirection = useCallback(() => setSelection((prev) => selector.reverseDirection(prev)), [selector]);
+
   useEffect(() => {
     const configLoaded = Object.keys(byChain).length > 0;
     if (!configLoaded) return;
@@ -62,5 +64,6 @@ export function useRouteSelection(defaultInputChainId: number, defaultOutputChai
     setOutputChain,
     setInputToken,
     setOutputToken,
+    reverseDirection,
   };
 }

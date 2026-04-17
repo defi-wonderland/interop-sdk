@@ -11,24 +11,44 @@ Tracking supports **two ways of observing the same lifecycle**, depending on the
 
 ## Overview
 
-The `OrderTracker` streams updates using the full OIF `OrderStatus` set (see the OIF Order API docs for the canonical list). Depending on the provider, you may observe statuses such as:
+The `OrderTracker` streams updates using the full OIF `OrderStatus` set (from `@openintentsframework/oif-specs`). Not every provider emits every status — the table below shows which statuses each provider actually produces:
 
--   **Created**
--   **Pending**
--   **Executing**
--   **Executed**
--   **Settling**
--   **Settled**
--   **Finalized**
--   **Failed**
--   **Refunded**
+| Status | Description | Across | Relay | OIF | Bungee | LiFi Intents |
+|--------|-------------|--------|-------|-----|--------|--------------|
+| `Created` | Order created on-chain | — | — | ✓ | — | — |
+| `Pending` | Awaiting execution | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `Executing` | Filler is processing the order | — | ✓ | ✓ | ✓ | — |
+| `Executed` | Fill transaction submitted | — | — | ✓ | — | — |
+| `Settling` | Settlement in progress | — | ✓ | — | — | ✓ |
+| `Settled` | Settlement complete (reserved) | — | — | — | — | — |
+| `Finalized` | Order fully complete | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `Failed` | Order failed | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `Refunded` | Funds returned to sender | ✓ | ✓ | ✓ | ✓ | — |
 
-In other words, you can subscribe to **any** `OrderStatus` via `tracker.on(OrderStatus.<status>, ...)` --- the examples below just show the most common ones.
+You can subscribe to **any** `OrderStatus` via `tracker.on(OrderStatus.<status>, ...)` — the examples below show the most common ones.
 
 In addition, the tracker can emit:
 
 -   `Timeout` - the SDK stopped watching (the order may still finalize before its onchain deadline)
 -   `Error` - an unexpected error occurred
+
+## Which Tracker API to Use?
+
+The SDK exposes three ways to track an order. Choose based on your use case:
+
+| API | How to call | Input | Use when |
+|-----|-------------|-------|----------|
+| `aggregator.track()` | Event-emitter | `txHash` + `providerId` + `originChainId` + `destinationChainId` | You have a tx hash and want real-time events |
+| `tracker.watchOrder()` | Async generator | (`txHash` + `originChainId`) or (`orderId` + `originChainId` + `destinationChainId`) | You need `orderId`-based tracking (required for signature-based/gasless orders), or prefer async iteration |
+| `aggregator.getOrderStatus()` | One-shot promise | `txHash` + `providerId` + `originChainId` | You only need the current status without streaming |
+
+:::warning
+`watchOrder` is currently the only path that supports tracking by `orderId`. Signature-based (gasless) orders may not have a `txHash` at open time — for those, `orderId` tracking is required. Pass a `WatchOrderByOrderId` param (with `orderId`, `originChainId`, and `destinationChainId`) instead of `WatchOrderByTxHash`.
+:::
+
+:::info Mixed-step orders
+Mixed-step orders (containing both transaction steps and signature steps) are not currently emitted by any supported provider. Consumers can safely handle either `isSignatureOnlyOrder()` or `isTransactionOnlyOrder()` without defensive mixed-order handling.
+:::
 
 ## Basic Usage
 
@@ -82,7 +102,13 @@ const tracker = aggregator.track({
 });
 
 tracker.on(OrderStatus.Pending, (update) => console.log("Pending:", update.message));
-tracker.on(OrderStatus.Finalized, (update) => console.log("Finalized!", update.fillTxHash));
+tracker.on(OrderStatus.Finalized, (update) => {
+    console.log("Finalized!", update.fillTxHash);
+    if (update.warnings?.length) {
+        // e.g. destination swap failed, user received fallback token
+        console.warn("Warnings:", update.warnings);
+    }
+});
 tracker.on(OrderStatus.Failed, (update) => console.log("Failed:", update.failureReason));
 tracker.on(OrderStatus.Refunded, () => console.log("Refunded"));
 tracker.on(OrderTrackerEvent.Timeout, (payload) => console.log("Timeout:", payload.message));
@@ -106,6 +132,10 @@ console.log(status.orderId); // Order ID
 if (status.fillEvent) {
     console.log(`Filled by: ${status.fillEvent.relayer}`);
     console.log(`Fill tx: ${status.fillEvent.fillTxHash}`);
+    if (status.warnings?.length) {
+        // e.g. destination swap failed, user received fallback token
+        console.warn("Warnings:", status.warnings);
+    }
 }
 ```
 

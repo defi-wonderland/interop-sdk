@@ -3,6 +3,10 @@ slug: "/"
 title: Interop SDK
 ---
 
+:::warning Beta — under active development
+APIs may change between releases. We're shipping quickly and welcome bug reports and feedback via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+:::
+
 The _Interop SDK_ is a TypeScript library for cross-chain applications. It brings the latest interoperability standards to wallet and app developers who want to provide seamless multichain experiences.
 
 ## Modules
@@ -17,7 +21,7 @@ Implements [EIP-7930](https://eips.ethereum.org/EIPS/eip-7930), [ERC-7828](https
 
 Fetch quotes, execute transfers, and track orders across chains through a unified provider interface.
 
-Implements [EIP-7683](https://www.erc7683.org/) for cross-chain intents. Supports Across, Relay, and OIF providers.
+Supports Open Intents Framework (OIF), Across, Relay, Bungee, and LiFi Intents providers.
 
 ## Where to start
 

@@ -1,12 +1,13 @@
 import type { Address, Hex } from "viem";
 import { decodeFunctionData, pad } from "viem";
-import { baseSepolia, sepolia } from "viem/chains";
+import { base, baseSepolia, sepolia } from "viem/chains";
 import { describe, expect, it } from "vitest";
 
 import type { BuildQuoteRequest } from "../../src/core/schemas/quoteRequest.js";
 import {
     ACROSS_SPOKE_POOL_ADDRESSES,
     ACROSS_SPOKE_POOL_DEPOSIT_ABI,
+    ACROSS_WRAPPED_NATIVE_ADDRESSES,
 } from "../../src/protocols/across/constants.js";
 import { AcrossProvider } from "../../src/protocols/across/provider.js";
 
@@ -123,7 +124,7 @@ describe("AcrossProvider.buildQuote", () => {
             expect(exclusiveRelayer).toBe(pad("0x00" as Hex, { size: 32 }));
             expect(fillDeadline).toBe(params.fillDeadline);
             expect(exclusivityParameter).toBe(0);
-            expect(message).toBe("0x73c0de");
+            expect(message).toBe("0x");
         }
     });
 
@@ -240,5 +241,87 @@ describe("AcrossProvider.buildQuote", () => {
             expect(step.transaction.value).toBeUndefined();
         }
         expect(quote.order.checks!.allowances).toHaveLength(1);
+    });
+
+    it("normalizes native input address to WETH in calldata", async () => {
+        const nativeAddress = "0x0000000000000000000000000000000000000000" as Address;
+        const quote = await provider.buildQuote(
+            createRequest({
+                input: { chainId: base.id, assetAddress: nativeAddress, amount: "1000000" },
+                output: { chainId: baseSepolia.id, assetAddress: OUTPUT_TOKEN, amount: "980000" },
+            }),
+        );
+
+        const step = quote.order.steps[0]!;
+        expect(step.kind).toBe("transaction");
+        if (step.kind === "transaction") {
+            const decoded = decodeFunctionData({
+                abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
+                data: step.transaction.data as Hex,
+            });
+            const inputTokenInCalldata = (decoded.args[2] as string).toLowerCase();
+            const expectedWeth = pad(
+                ACROSS_WRAPPED_NATIVE_ADDRESSES[base.id]!.toLowerCase() as Hex,
+                { size: 32 },
+            ).toLowerCase();
+            expect(inputTokenInCalldata).toBe(expectedWeth);
+        }
+    });
+
+    it("normalizes native output address to WETH in calldata", async () => {
+        const nativeAddress = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" as Address;
+        const quote = await provider.buildQuote(
+            createRequest({
+                input: { chainId: sepolia.id, assetAddress: INPUT_TOKEN, amount: "1000000" },
+                output: { chainId: base.id, assetAddress: nativeAddress, amount: "980000" },
+            }),
+        );
+
+        const step = quote.order.steps[0]!;
+        expect(step.kind).toBe("transaction");
+        if (step.kind === "transaction") {
+            const decoded = decodeFunctionData({
+                abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
+                data: step.transaction.data as Hex,
+            });
+            const outputTokenInCalldata = (decoded.args[3] as string).toLowerCase();
+            const expectedWeth = pad(
+                ACROSS_WRAPPED_NATIVE_ADDRESSES[base.id]!.toLowerCase() as Hex,
+                { size: 32 },
+            ).toLowerCase();
+            expect(outputTokenInCalldata).toBe(expectedWeth);
+        }
+    });
+
+    it("preserves original native address in preview (not WETH)", async () => {
+        const nativeAddress = "0x0000000000000000000000000000000000000000" as Address;
+        const quote = await provider.buildQuote(
+            createRequest({
+                input: { chainId: base.id, assetAddress: nativeAddress, amount: "1000000" },
+                output: { chainId: base.id, assetAddress: nativeAddress, amount: "980000" },
+            }),
+        );
+
+        expect(quote.preview.inputs[0]!.assetAddress).toBe(nativeAddress);
+        expect(quote.preview.outputs[0]!.assetAddress).toBe(nativeAddress);
+    });
+
+    it("does not normalize ERC-20 tokens in calldata", async () => {
+        const quote = await provider.buildQuote(createRequest());
+
+        const step = quote.order.steps[0]!;
+        expect(step.kind).toBe("transaction");
+        if (step.kind === "transaction") {
+            const decoded = decodeFunctionData({
+                abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
+                data: step.transaction.data as Hex,
+            });
+            expect((decoded.args[2] as string).toLowerCase()).toBe(
+                pad(INPUT_TOKEN as Hex, { size: 32 }).toLowerCase(),
+            );
+            expect((decoded.args[3] as string).toLowerCase()).toBe(
+                pad(OUTPUT_TOKEN as Hex, { size: 32 }).toLowerCase(),
+            );
+        }
     });
 });
