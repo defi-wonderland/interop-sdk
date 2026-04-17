@@ -19,7 +19,7 @@ jobs:
         runs-on: ubuntu-latest
         outputs:
             addresses: ${{ steps.detect.outputs.addresses }}
-            cross-chain: ${{ steps.detect.outputs.cross-chain }}
+            cross_chain: ${{ steps.detect.outputs.cross_chain }}
             sdk: ${{ steps.detect.outputs.sdk }}
         steps:
             - name: Check out github repository
@@ -74,7 +74,7 @@ jobs:
 
                   {
                     echo "addresses=$a"
-                    echo "cross-chain=$c"
+                    echo "cross_chain=$c"
                     echo "sdk=$s"
                   } >> "$GITHUB_OUTPUT"
 
@@ -89,7 +89,7 @@ jobs:
                   } >> "$GITHUB_STEP_SUMMARY"
 
             - name: Abort when nothing to publish
-              if: steps.detect.outputs.addresses != 'true' && steps.detect.outputs.cross-chain != 'true' && steps.detect.outputs.sdk != 'true'
+              if: steps.detect.outputs.addresses != 'true' && steps.detect.outputs.cross_chain != 'true' && steps.detect.outputs.sdk != 'true'
               run: |
                   echo "::error::No package has a new version on this release. Nothing to publish."
                   exit 1
@@ -106,7 +106,7 @@ jobs:
         if: |
             always()
             && needs.check-versions.result == 'success'
-            && needs.check-versions.outputs.cross-chain == 'true'
+            && needs.check-versions.outputs.cross_chain == 'true'
             && (needs.publish-addresses-package.result == 'success' || needs.publish-addresses-package.result == 'skipped')
         uses: ./.github/workflows/publish-cross-chain-package.yml
 
