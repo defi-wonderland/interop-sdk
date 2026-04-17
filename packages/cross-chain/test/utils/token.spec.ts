@@ -49,4 +49,8 @@ describe("toCanonicalNativeAddress", () => {
     it("maps the Solana system program to its canonical form", () => {
         expect(toCanonicalNativeAddress(SOLANA_SYSTEM, "solana")).toBe(SOLANA_SYSTEM);
     });
+
+    it("preserves the casing of non-native Solana addresses (base58 is case-sensitive)", () => {
+        expect(toCanonicalNativeAddress(SOLANA_MINT, "solana")).toBe(SOLANA_MINT);
+    });
 });

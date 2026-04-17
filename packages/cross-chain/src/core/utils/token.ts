@@ -31,10 +31,11 @@ export const isNativeAddress = (address: string, chainType: ChainType): boolean 
  * Native placeholders collapse to the canonical form for the given chain type
  * ({@link NATIVE_ASSET_ADDRESS} on EVM), so native tokens reported under
  * different sentinels (e.g. `0xEEE…E` vs `0x000…0`) deduplicate in the SDK's
- * discovery, routing, and validation surfaces. Non-native addresses are
- * returned lowercase for case-insensitive comparisons.
+ * discovery, routing, and validation surfaces. Non-native EVM addresses are
+ * returned lowercase for case-insensitive comparisons; Solana addresses keep
+ * their original casing because base58 is case-sensitive.
  */
-export const toCanonicalNativeAddress = (address: string, chainType: ChainType): string =>
-    isNativeAddress(address, chainType)
-        ? CANONICAL_BY_CHAIN_TYPE[chainType]
-        : address.toLowerCase();
+export const toCanonicalNativeAddress = (address: string, chainType: ChainType): string => {
+    if (isNativeAddress(address, chainType)) return CANONICAL_BY_CHAIN_TYPE[chainType];
+    return chainType === "eip155" ? address.toLowerCase() : address;
+};
