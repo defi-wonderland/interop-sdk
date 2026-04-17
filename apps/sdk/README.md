@@ -28,6 +28,20 @@ graph LR
 
 1. Install dependencies running `pnpm install`
 
+## Installation
+
+`viem` is a peer dependency — install it alongside the package:
+
+```bash
+npm install @wonderland/interop viem
+# or
+yarn add @wonderland/interop viem
+# or
+pnpm add @wonderland/interop viem
+```
+
+Supported `viem` range: `^2.28.0`.
+
 ## Available Scripts
 
 Available scripts that can be run using `pnpm`:

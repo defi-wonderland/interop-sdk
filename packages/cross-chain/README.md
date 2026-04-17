@@ -17,6 +17,20 @@ Key features:
 
 1. Install dependencies running `pnpm install`
 
+## Installation
+
+`viem` is a peer dependency — install it alongside the package:
+
+```bash
+npm install @wonderland/interop-cross-chain viem
+# or
+yarn add @wonderland/interop-cross-chain viem
+# or
+pnpm add @wonderland/interop-cross-chain viem
+```
+
+Supported `viem` range: `^2.28.0`.
+
 ## Available Scripts
 
 Available scripts that can be run using `pnpm`:
