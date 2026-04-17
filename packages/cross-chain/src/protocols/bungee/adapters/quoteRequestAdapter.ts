@@ -1,8 +1,17 @@
 import type { FeeConfig, SubmissionMode } from "../../../core/schemas/providerConfig.js";
 import type { QuoteRequest } from "../../../internal.js";
 import type { BungeeQuoteRequest } from "../schemas.js";
-import { ProviderGetQuoteFailure } from "../../../internal.js";
+import {
+    isNativeAddress,
+    NATIVE_ASSET_ADDRESS,
+    ProviderGetQuoteFailure,
+} from "../../../internal.js";
 import { BungeeQuoteRequestSchema } from "../schemas.js";
+
+/** Map any native placeholder variant to the one Bungee expects (EIP-7528). */
+function toBungeeNativeAddress(address: string): string {
+    return isNativeAddress(address, "eip155") ? NATIVE_ASSET_ADDRESS : address;
+}
 
 /** Optional provider-level config that affects a single quote request. */
 export interface BungeeQuoteOptions extends FeeConfig {
@@ -33,10 +42,10 @@ export function adaptQuoteRequest(
         userAddress: params.user,
         originChainId: String(params.input.chainId),
         destinationChainId: String(params.output.chainId),
-        inputToken: params.input.assetAddress,
+        inputToken: toBungeeNativeAddress(params.input.assetAddress),
         inputAmount: amount,
         receiverAddress: params.output.recipient ?? params.user,
-        outputToken: params.output.assetAddress,
+        outputToken: toBungeeNativeAddress(params.output.assetAddress),
         enableMultipleAutoRoutes: "true",
     };
 

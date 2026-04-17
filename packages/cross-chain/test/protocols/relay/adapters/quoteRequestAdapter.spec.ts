@@ -92,4 +92,33 @@ describe("adaptQuoteRequest", () => {
             ),
         ).toThrow(ProviderGetQuoteFailure);
     });
+
+    describe("native token placeholder translation", () => {
+        const ZERO_NATIVE = "0x0000000000000000000000000000000000000000";
+        const EEE_NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
+        it("maps canonical 0xEEE… input to Relay's 0x000… placeholder", () => {
+            const result = adaptQuoteRequest(
+                makeQuoteRequest({
+                    input: { chainId: ORIGIN_CHAIN_ID, assetAddress: EEE_NATIVE, amount: "10" },
+                }),
+            );
+            expect(result.originCurrency).toBe(ZERO_NATIVE);
+        });
+
+        it("maps canonical 0xEEE… output to Relay's 0x000… placeholder", () => {
+            const result = adaptQuoteRequest(
+                makeQuoteRequest({
+                    output: { chainId: DESTINATION_CHAIN_ID, assetAddress: EEE_NATIVE },
+                }),
+            );
+            expect(result.destinationCurrency).toBe(ZERO_NATIVE);
+        });
+
+        it("leaves ERC-20 addresses untouched", () => {
+            const result = adaptQuoteRequest(makeQuoteRequest());
+            expect(result.originCurrency).toBe(VALID_ADDRESS);
+            expect(result.destinationCurrency).toBe(VALID_ADDRESS);
+        });
+    });
 });
