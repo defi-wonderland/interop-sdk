@@ -57,6 +57,8 @@ export {
     // Utilities
     isSignableOifOrder,
     isNativeAddress,
+    NATIVE_ASSET_ADDRESS,
+    toCanonicalNativeAddress,
     toInteropAccountId,
     fromInteropAccountId,
     getSignatureSteps,
@@ -74,4 +76,6 @@ export {
     type QuoteTracking,
     type QuoteRequest,
     type BuildQuoteRequest,
+    type GetQuotesError,
+    type GetQuotesResponse,
 } from "./internal.js";

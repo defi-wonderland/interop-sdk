@@ -1,5 +1,11 @@
 # @wonderland/interop-addresses
 
+## 0.6.0
+
+### Minor Changes
+
+-   59afd29: Move `viem` from a direct dependency to a peer dependency (`^2.28.0`). Consumers must now install `viem` alongside these packages. This avoids duplicate viem installs and lets apps control the exact `viem` version. The `@wonderland/interop` facade propagates the same peer requirement.
+
 ## 0.5.2
 
 ### Patch Changes

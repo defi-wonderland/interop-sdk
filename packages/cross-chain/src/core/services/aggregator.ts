@@ -6,7 +6,6 @@ import type {
     ExecutableQuote,
     GetQuotesError,
     GetQuotesResponse,
-    StepResult,
     SubmitOrderResponse,
 } from "../schemas/quote.js";
 import type { BuildQuoteRequest, QuoteRequest } from "../schemas/quoteRequest.js";
@@ -23,6 +22,7 @@ import { CrossChainProvider } from "../interfaces/crossChainProvider.interface.j
 import { SortingStrategy } from "../interfaces/sortingStrategy.interface.js";
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
 import { mergeDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
+import { toCanonicalNativeAddress } from "../utils/token.js";
 import {
     validateAssetSupport,
     validateBuildQuoteParams,
@@ -215,32 +215,14 @@ class Aggregator {
     /**
      * Submit a signature-step order to the solver.
      *
-     * Accepts either a single EIP-712 signature or an array of StepResult
-     * for future multi-step orders with multiple signature steps.
-     *
-     * @throws {Error} If the order has no signature steps
+     * @throws {ProviderNotFound} If the quote's provider is not registered
      */
-    async submitOrder(
-        quote: ExecutableQuote,
-        signatureOrResults: Hex | StepResult[],
-    ): Promise<SubmitOrderResponse> {
+    async submitOrder(quote: ExecutableQuote, signature: Hex): Promise<SubmitOrderResponse> {
         const providerId = quote._providerId;
 
         const provider = this.providers[providerId];
         if (!provider) {
             throw new ProviderNotFound(providerId);
-        }
-
-        // Extract the signature
-        let signature: Hex;
-        if (typeof signatureOrResults === "string") {
-            signature = signatureOrResults;
-        } else {
-            const sigResult = signatureOrResults.find((r) => r.signature);
-            if (!sigResult?.signature) {
-                throw new Error("No signature found in step results");
-            }
-            signature = sigResult.signature;
         }
 
         return provider.submitOrder(quote, signature);
@@ -353,9 +335,13 @@ class Aggregator {
         const assets = await this.discoverAssets();
 
         const originMeta =
-            assets.tokenMetadata[query.originChainId]?.[query.originAsset.toLowerCase()];
+            assets.tokenMetadata[query.originChainId]?.[
+                toCanonicalNativeAddress(query.originAsset, "eip155")
+            ];
         const destMeta =
-            assets.tokenMetadata[query.destinationChainId]?.[query.destinationAsset.toLowerCase()];
+            assets.tokenMetadata[query.destinationChainId]?.[
+                toCanonicalNativeAddress(query.destinationAsset, "eip155")
+            ];
 
         if (!originMeta || !destMeta) {
             return [];

@@ -15,9 +15,7 @@ import {
     createAggregator,
     createApprovalService,
     createCrossChainProvider,
-    getSignatureSteps,
-    getTransactionSteps,
-    isSignatureOnlyOrder,
+    PROTOCOLS,
 } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -56,8 +54,8 @@ Initialize the cross-chain provider and aggregator, which will handle quoting an
 ### Testnet (Sepolia → Base Sepolia)
 
 ```typescript
-const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
-const relayProvider = createCrossChainProvider("relay", { isTestnet: true });
+const acrossProvider = createCrossChainProvider(PROTOCOLS.ACROSS, { isTestnet: true });
+const relayProvider = createCrossChainProvider(PROTOCOLS.RELAY, { isTestnet: true });
 
 const approvalService = createApprovalService({
     rpcUrls: {
@@ -77,8 +75,8 @@ const aggregator = createAggregator({
 For mainnet, omit `isTestnet` (or set it to `false`) and use the corresponding mainnet chain IDs when building your clients (step 2), the approval service, and the quote request (step 4).
 
 ```typescript
-const acrossProvider = createCrossChainProvider("across");
-const relayProvider = createCrossChainProvider("relay");
+const acrossProvider = createCrossChainProvider(PROTOCOLS.ACROSS);
+const relayProvider = createCrossChainProvider(PROTOCOLS.RELAY);
 
 const approvalService = createApprovalService({
     rpcUrls: {
@@ -146,22 +144,19 @@ if (response.quotes.length === 0) {
 
 ## 5. Execute the Cross-Chain Transaction
 
-Because the aggregator was configured with an `approvalService` (step 3), each returned `quote.order.steps` already contains any ERC-20 `approve` step that the transfer needs, prepended before the transfer itself. Iterate the steps in order and each `approve` fires before the step that depends on it.
+Because the aggregator was configured with an `approvalService` (step 3), each returned `quote.order.steps` already contains any ERC-20 `approve` step that the transfer needs, prepended before the transfer itself. Iterate the steps in order and handle each by `step.kind` — a single order can mix `transaction` steps (approvals, user-submitted bridges) and `signature` steps (gasless). On the first signature step, sign and submit, then stop: the solver takes the order from there.
 
 ```typescript
 const quote = response.quotes[0];
 
-if (isSignatureOnlyOrder(quote.order)) {
-    // Protocol mode: sign and submit (gasless for user)
-    // Note: production code should handle all signature steps, not just the first
-    const step = getSignatureSteps(quote.order)[0];
-    const { signatureType, ...typedData } = step.signaturePayload;
-    const signature = await walletClient.signTypedData(typedData);
-    await aggregator.submitOrder(quote, signature);
-    console.log("Order submitted via signature");
-} else {
-    // User mode: send each transaction step in order (approvals first, then transfer)
-    for (const step of getTransactionSteps(quote.order)) {
+// Iterate order.steps in emission order. approvalService prepends approval
+// TransactionSteps onto signature-based quotes too, so a single order can
+// mix both kinds — handle each by `step.kind`. On the first signature step,
+// sign + submit and stop: the solver takes the order from there. (`submitOrder`
+// currently forwards one signature per order; multi-signature orders aren't
+// yet supported.)
+for (const step of quote.order.steps) {
+    if (step.kind === "transaction") {
         const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } = step.transaction;
         console.log(`Sending step: ${step.description ?? "transaction"}`);
         const hash = await walletClient.sendTransaction({
@@ -177,6 +172,12 @@ if (isSignatureOnlyOrder(quote.order)) {
             throw new Error(`Step failed: ${step.description ?? "transaction"}`);
         }
         console.log("Confirmed: Success");
+    } else {
+        const { signatureType, ...typedData } = step.signaturePayload;
+        const signature = await walletClient.signTypedData(typedData);
+        await aggregator.submitOrder(quote, signature);
+        console.log("Order submitted via signature");
+        break;
     }
 }
 ```

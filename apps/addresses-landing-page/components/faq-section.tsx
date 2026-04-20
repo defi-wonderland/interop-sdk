@@ -81,7 +81,7 @@ export function FaqSection() {
                         How do I get started as a developer?
                     </h3>
                     <p className="font-mono text-sm lg:text-[0.9375rem] text-muted-foreground leading-relaxed">
-                        Install the SDK: npm install @wonderland/interop-addresses. For
+                        Install the SDK: npm install @wonderland/interop-addresses viem. For
                         implementation examples and guides, see the{" "}
                         <a
                             href="https://docs.interop.wonderland.xyz/addresses"

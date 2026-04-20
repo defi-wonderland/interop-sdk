@@ -1,6 +1,10 @@
 import type { QuoteRequest } from "../../../internal.js";
 import type { RelayQuoteRequest } from "../schemas.js";
-import { ProviderGetQuoteFailure } from "../../../internal.js";
+import {
+    NATIVE_ZERO_ADDRESS,
+    ProviderGetQuoteFailure,
+    withNativePlaceholder,
+} from "../../../internal.js";
 import { RelayQuoteRequestSchema } from "../schemas.js";
 
 /** Options forwarded from the provider to the quote request adapter. */
@@ -32,9 +36,17 @@ export function adaptQuoteRequest(
     return RelayQuoteRequestSchema.parse({
         user: params.user,
         originChainId: params.input.chainId,
-        originCurrency: params.input.assetAddress,
+        originCurrency: withNativePlaceholder(
+            params.input.assetAddress,
+            "eip155",
+            NATIVE_ZERO_ADDRESS,
+        ),
         destinationChainId: params.output.chainId,
-        destinationCurrency: params.output.assetAddress,
+        destinationCurrency: withNativePlaceholder(
+            params.output.assetAddress,
+            "eip155",
+            NATIVE_ZERO_ADDRESS,
+        ),
         amount,
         tradeType: swapType === "exact-input" ? "EXACT_INPUT" : "EXPECTED_OUTPUT",
         recipient: params.output.recipient,

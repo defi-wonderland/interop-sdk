@@ -1,7 +1,11 @@
 import type { FeeConfig, SubmissionMode } from "../../../core/schemas/providerConfig.js";
 import type { QuoteRequest } from "../../../internal.js";
 import type { BungeeQuoteRequest } from "../schemas.js";
-import { ProviderGetQuoteFailure } from "../../../internal.js";
+import {
+    NATIVE_ASSET_ADDRESS,
+    ProviderGetQuoteFailure,
+    withNativePlaceholder,
+} from "../../../internal.js";
 import { BungeeQuoteRequestSchema } from "../schemas.js";
 
 /** Optional provider-level config that affects a single quote request. */
@@ -33,10 +37,18 @@ export function adaptQuoteRequest(
         userAddress: params.user,
         originChainId: String(params.input.chainId),
         destinationChainId: String(params.output.chainId),
-        inputToken: params.input.assetAddress,
+        inputToken: withNativePlaceholder(
+            params.input.assetAddress,
+            "eip155",
+            NATIVE_ASSET_ADDRESS,
+        ),
         inputAmount: amount,
         receiverAddress: params.output.recipient ?? params.user,
-        outputToken: params.output.assetAddress,
+        outputToken: withNativePlaceholder(
+            params.output.assetAddress,
+            "eip155",
+            NATIVE_ASSET_ADDRESS,
+        ),
         enableMultipleAutoRoutes: "true",
     };
 

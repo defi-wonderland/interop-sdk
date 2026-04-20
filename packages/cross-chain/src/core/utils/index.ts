@@ -5,5 +5,6 @@ export * from "./eventDataParser.js";
 export * from "./orderTypeHelpers.js";
 export * from "./publicClientManager.js";
 export * from "./token.js";
+export * from "./typedEventEmitter.js";
 export * from "./interopAccountId.js";
 export * from "./stepHelpers.js";

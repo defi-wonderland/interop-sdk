@@ -149,6 +149,17 @@ A utility for managing multiple cross-chain providers and executing operations a
 
     When `approvalService` is set, the aggregator reads on-chain ERC-20 allowances for every `order.checks.allowances` entry and prepends an `approve` `TransactionStep` to `order.steps` when the current allowance is below `required`. Without it, quotes pass through unchanged. See [Approval Service](#approval-service).
 
+#### AggregatorConfig
+
+| Field              | Type                   | Required | Default                       | Description                                                                                                                                                                                                                                                                                                |
+| ------------------ | ---------------------- | -------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `providers`        | `CrossChainProvider[]` | Yes      | —                             | Providers to aggregate over.                                                                                                                                                                                                                                                                               |
+| `sortingStrategy`  | `SortingStrategy`      | No       | `BestOutputStrategy`          | Sorts the merged quote list. See [Sorting Strategies](#sorting-strategies).                                                                                                                                                                                                                                |
+| `timeoutMs`        | `number`               | No       | `15_000`                      | Per-provider quote-fetch timeout. Each `provider.getQuotes(...)` call races a `setTimeout`; providers that don't respond in time surface a `ProviderTimeout` in `response.errors` rather than stalling `getQuotes`. Others continue normally.                                                              |
+| `trackerFactory`   | `{ createTracker }`    | No       | `new OrderTrackerFactory()`   | Factory used by `aggregator.track(...)` and `aggregator.prepareTracking(...)` to build per-provider `OrderTracker` instances. The default falls back to viem's public transport per chain — supply `new OrderTrackerFactory({ rpcUrls })` for production reliability. See [Order Tracker](#order-tracker). |
+| `discoveryFactory` | `{ createService }`    | No       | `new AssetDiscoveryFactory()` | Factory used by `aggregator.discoverAssets(...)` and `aggregator.getProvidersForRoute(...)` to build per-provider `AssetDiscoveryService` instances. Providers with no discovery support are skipped. Supply a custom factory only when you want to override discovery wiring for every provider.          |
+| `approvalService`  | `ApprovalService`      | No       | —                             | Enriches sorted quotes with ERC-20 `approve` steps. See [Approval Service](#approval-service).                                                                                                                                                                                                             |
+
 #### Aggregator Class
 
 A class that manages multiple cross-chain providers and coordinates their operations.
@@ -194,17 +205,12 @@ A class that manages multiple cross-chain providers and coordinates their operat
     });
     ```
 
--   **submitOrder**(quote: ExecutableQuote, signatureOrResults: Hex | StepResult[]): Promise\<SubmitOrderResponse\>
+-   **submitOrder**(quote: ExecutableQuote, signature: Hex): Promise\<SubmitOrderResponse\>
 
-    Submits an order for execution. Pass a single `Hex` signature for single-step orders, or an array of `StepResult` for multi-step orders.
+    Submits a signed order for execution. Pass the EIP-712 signature returned from the user's wallet.
 
     ```typescript
-    // Single signature
     const response = await aggregator.submitOrder(quote, signature);
-
-    // Multi-step results
-    const results: StepResult[] = [{ stepIndex: 0, signature: "0x..." }];
-    const response = await aggregator.submitOrder(quote, results);
     ```
 
 -   **track**(params: TrackParams): OrderTracker
@@ -301,21 +307,21 @@ Best-effort: on any read failure the affected quotes pass through unmodified. Qu
 
 #### CreateApprovalServiceConfig
 
-| Field              | Type                          | Required | Description                                                                                                              |
-| ------------------ | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `rpcUrls`          | `Record<number, string>`      | No       | RPC URLs per chain ID. Used to build public clients for `allowance()` multicalls when `publicClient` is not supplied.    |
-| `publicClient`     | `PublicClient` (viem)         | No       | Pre-configured viem public client. Takes precedence over `rpcUrls`.                                                      |
-| `amountStrategy`   | `ApprovalAmountStrategy`      | No       | Strategy that decides the `amount` encoded in each `approve` call. Defaults to `ExactAmountStrategy`.                    |
-| `approvalGasLimit` | `bigint`                      | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas.   |
+| Field              | Type                     | Required | Description                                                                                                            |
+| ------------------ | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `rpcUrls`          | `Record<number, string>` | No       | RPC URLs per chain ID. Used to build public clients for `allowance()` multicalls when `publicClient` is not supplied.  |
+| `publicClient`     | `PublicClient` (viem)    | No       | Pre-configured viem public client. Takes precedence over `rpcUrls`.                                                    |
+| `amountStrategy`   | `ApprovalAmountStrategy` | No       | Strategy that decides the `amount` encoded in each `approve` call. Defaults to `ExactAmountStrategy`.                  |
+| `approvalGasLimit` | `bigint`                 | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas. |
 
 #### Amount Strategies
 
 `ApprovalAmountStrategy` controls the amount encoded in each generated `approve` call.
 
-| Strategy                  | Approves            | Trade-off                                                                                                                       |
-| ------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `ExactAmountStrategy`     | exactly `required`  | Smallest allowance footprint. Next order against the same `(token, spender)` pair needs another `approve`.                      |
-| `InfiniteAmountStrategy`  | `type(uint256).max` | One `approve` per `(token, spender)` pair for its lifetime. Later orders skip the approval step, at the cost of unbounded allowance. |
+| Strategy                 | Approves            | Trade-off                                                                                                                            |
+| ------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `ExactAmountStrategy`    | exactly `required`  | Smallest allowance footprint. Next order against the same `(token, spender)` pair needs another `approve`.                           |
+| `InfiniteAmountStrategy` | `type(uint256).max` | One `approve` per `(token, spender)` pair for its lifetime. Later orders skip the approval step, at the cost of unbounded allowance. |
 
 ```typescript
 import { createApprovalService, InfiniteAmountStrategy } from "@wonderland/interop-cross-chain";
@@ -556,15 +562,6 @@ interface ExecutableQuote extends Quote {
 }
 ```
 
-#### StepResult
-
-```typescript
-interface StepResult {
-    stepIndex: number; // Index into order.steps[]
-    signature: Hex; // EIP-712 signature
-}
-```
-
 #### GetQuotesResponse
 
 ```typescript
@@ -713,10 +710,10 @@ Payload validation:
 
 #### LiFi Intents
 
-| Field            | Type   | Required | Description                                                   |
-| ---------------- | ------ | -------- | ------------------------------------------------------------- |
-| `orderServerUrl` | string | Yes      | LI.FI order server URL (e.g. `https://order.li.fi`)          |
-| `providerId`     | string | No       | Custom provider identifier (default: `"lifi-intents"`)        |
+| Field            | Type                         | Required | Description                                                    |
+| ---------------- | ---------------------------- | -------- | -------------------------------------------------------------- |
+| `orderServerUrl` | string                       | Yes      | LI.FI order server URL (e.g. `https://order.li.fi`)            |
+| `providerId`     | string                       | No       | Custom provider identifier (default: `"lifi-intents"`)         |
 | `headers`        | Record&lt;string, string&gt; | No       | Custom HTTP headers sent with all requests to the order server |
 
 Constraints:

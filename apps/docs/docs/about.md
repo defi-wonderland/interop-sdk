@@ -3,8 +3,11 @@ slug: "/"
 title: Interop SDK
 ---
 
-:::warning Beta — under active development
-APIs may change between releases. We're shipping quickly and welcome bug reports and feedback via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+:::danger Experimental release — not for production use
+
+This SDK is an early, preview release and has not been audited. It handles transaction and signature data for cross-chain value transfers, so a defect in the SDK could result in permanent, irrecoverable loss of user funds.
+
+Do not use this SDK in production or with real user value.
 :::
 
 The _Interop SDK_ is a TypeScript library for cross-chain applications. It brings the latest interoperability standards to wallet and app developers who want to provide seamless multichain experiences.
@@ -30,6 +33,7 @@ Supports Open Intents Framework (OIF), Across, Relay, Bungee, and LiFi Intents p
 | Install the packages           | [Installation](./installation)                                                               |
 | Parse an interoperable address | [Addresses — Getting Started](./addresses/getting-started)                                   |
 | Send a cross-chain transfer    | [Cross-Chain — Getting Started](./cross-chain/getting-started)                               |
+| Build a cross-chain frontend   | [Cross-Chain — Frontend Integration](./cross-chain/frontend-integration)                     |
 | Understand the architecture    | [Addresses Concepts](./addresses/concepts) or [Cross-Chain Concepts](./cross-chain/concepts) |
 
 ## Who it's for
