@@ -342,6 +342,36 @@ describe("BaseAssetDiscoveryService", () => {
 
                 expect(result).toBeNull();
             });
+
+            it("resolves native tokens regardless of which placeholder the caller passes", async () => {
+                const nativeOnlyService = new TestAssetDiscoveryService(
+                    { providerId: "bungee-like" },
+                    async () => [
+                        {
+                            chainId: 1,
+                            assets: [
+                                {
+                                    address: "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+                                    symbol: "ETH",
+                                    decimals: 18,
+                                },
+                            ],
+                        },
+                    ],
+                );
+
+                const viaZero = await nativeOnlyService.isAssetSupported(
+                    1,
+                    "0x0000000000000000000000000000000000000000",
+                );
+                const viaEee = await nativeOnlyService.isAssetSupported(
+                    1,
+                    "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+                );
+
+                expect(viaZero?.symbol).toBe("ETH");
+                expect(viaEee?.symbol).toBe("ETH");
+            });
         });
 
         describe("getSupportedChainIds", () => {

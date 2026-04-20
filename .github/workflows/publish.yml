@@ -9,16 +9,116 @@ permissions:
     contents: read
     id-token: write
 
+concurrency:
+    group: publish-${{ github.ref }}
+    cancel-in-progress: false
+
 jobs:
+    check-versions:
+        name: Check which packages need publishing
+        runs-on: ubuntu-latest
+        outputs:
+            addresses: ${{ steps.detect.outputs.addresses }}
+            cross_chain: ${{ steps.detect.outputs.cross_chain }}
+            sdk: ${{ steps.detect.outputs.sdk }}
+        steps:
+            - name: Check out github repository
+              uses: actions/checkout@v4
+
+            - name: Use Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: Detect unpublished versions
+              id: detect
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  should_publish() {
+                    local dir=$1
+                    local name version out rc err
+                    name=$(jq -r .name "$dir/package.json")
+                    version=$(jq -r .version "$dir/package.json")
+                    err=$(mktemp)
+
+                    set +e
+                    out=$(npm view "${name}@${version}" version 2>"$err")
+                    rc=$?
+                    set -e
+
+                    if [ "$rc" -eq 0 ]; then
+                      if [ -n "$out" ]; then
+                        echo "skip    ${name}@${version} (already on npm)" >&2
+                        echo "false"
+                      else
+                        echo "publish ${name}@${version} (new version)" >&2
+                        echo "true"
+                      fi
+                    else
+                      if grep -q 'E404' "$err"; then
+                        echo "publish ${name}@${version} (never published)" >&2
+                        echo "true"
+                      else
+                        echo "::error::npm view failed for ${name}@${version}" >&2
+                        cat "$err" >&2
+                        exit 1
+                      fi
+                    fi
+                  }
+
+                  a=$(should_publish packages/addresses)
+                  c=$(should_publish packages/cross-chain)
+                  s=$(should_publish apps/sdk)
+
+                  {
+                    echo "addresses=$a"
+                    echo "cross_chain=$c"
+                    echo "sdk=$s"
+                  } >> "$GITHUB_OUTPUT"
+
+                  {
+                    echo "### Publish plan"
+                    echo ""
+                    echo "| package | action |"
+                    echo "| --- | --- |"
+                    echo "| @wonderland/interop-addresses | $([ "$a" = "true" ] && echo publish || echo skip) |"
+                    echo "| @wonderland/interop-cross-chain | $([ "$c" = "true" ] && echo publish || echo skip) |"
+                    echo "| @wonderland/interop | $([ "$s" = "true" ] && echo publish || echo skip) |"
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+            - name: Abort when nothing to publish
+              if: steps.detect.outputs.addresses != 'true' && steps.detect.outputs.cross_chain != 'true' && steps.detect.outputs.sdk != 'true'
+              run: |
+                  echo "::error::No package has a new version on this release. Nothing to publish."
+                  exit 1
+
     publish-addresses-package:
+        needs: check-versions
+        if: needs.check-versions.outputs.addresses == 'true'
         uses: ./.github/workflows/publish-addresses-package.yml
 
     publish-cross-chain-package:
-        needs: publish-addresses-package
+        needs:
+            - check-versions
+            - publish-addresses-package
+        if: |
+            always()
+            && needs.check-versions.result == 'success'
+            && needs.check-versions.outputs.cross_chain == 'true'
+            && (needs.publish-addresses-package.result == 'success' || needs.publish-addresses-package.result == 'skipped')
         uses: ./.github/workflows/publish-cross-chain-package.yml
 
     publish-sdk:
         needs:
+            - check-versions
             - publish-addresses-package
             - publish-cross-chain-package
+        if: |
+            always()
+            && needs.check-versions.result == 'success'
+            && needs.check-versions.outputs.sdk == 'true'
+            && (needs.publish-addresses-package.result == 'success' || needs.publish-addresses-package.result == 'skipped')
+            && (needs.publish-cross-chain-package.result == 'success' || needs.publish-cross-chain-package.result == 'skipped')
         uses: ./.github/workflows/publish-sdk.yml

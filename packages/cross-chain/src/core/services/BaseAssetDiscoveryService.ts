@@ -10,6 +10,7 @@ import {
     NetworkAssets,
 } from "../types/assetDiscovery.js";
 import { toDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
+import { toCanonicalNativeAddress } from "../utils/token.js";
 
 /**
  * Shared configuration for all asset discovery services
@@ -108,8 +109,12 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
         const network = await this.getAssetsForChain(chainId, options);
         if (!network) return null;
 
-        const normalizedAddress = assetAddress.toLowerCase();
-        return network.assets.find((a) => a.address.toLowerCase() === normalizedAddress) ?? null;
+        const canonicalAddress = toCanonicalNativeAddress(assetAddress, "eip155");
+        return (
+            network.assets.find(
+                (a) => toCanonicalNativeAddress(a.address, "eip155") === canonicalAddress,
+            ) ?? null
+        );
     }
 
     /**

@@ -106,4 +106,27 @@ describe("LI.FI Intents adaptQuoteRequest", () => {
         };
         expect(() => adaptQuoteRequest(request)).toThrow(/input\.amount/);
     });
+
+    describe("native token placeholder translation", () => {
+        const ZERO_NATIVE = "0x0000000000000000000000000000000000000000";
+        const EEE_NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
+        it("maps canonical 0xEEE… input asset to LI.FI's 0x000… placeholder", () => {
+            const request: QuoteRequest = {
+                ...baseRequest,
+                input: { chainId: INPUT_CHAIN_ID, assetAddress: EEE_NATIVE, amount: "10" },
+            };
+            const result = adaptQuoteRequest(request);
+            expect(result.intent.inputs[0]!.asset).toBe(ZERO_NATIVE);
+        });
+
+        it("maps canonical 0xEEE… output asset to LI.FI's 0x000… placeholder", () => {
+            const request: QuoteRequest = {
+                ...baseRequest,
+                output: { chainId: OUTPUT_CHAIN_ID, assetAddress: EEE_NATIVE },
+            };
+            const result = adaptQuoteRequest(request);
+            expect(result.intent.outputs[0]!.asset).toBe(ZERO_NATIVE);
+        });
+    });
 });

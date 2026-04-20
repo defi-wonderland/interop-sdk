@@ -5,6 +5,7 @@ import { InvalidDeadline } from "../errors/InvalidDeadline.exception.js";
 import { SameChainIntentNotAllowed } from "../errors/SameChainIntentNotAllowed.exception.js";
 import { UnsupportedAsset } from "../errors/UnsupportedAsset.exception.js";
 import { ZeroAmount } from "../errors/ZeroAmount.exception.js";
+import { toCanonicalNativeAddress } from "../utils/token.js";
 
 /** Minimum seconds between now and fillDeadline. */
 export const MIN_DEADLINE_BUFFER_SECONDS = 60;
@@ -107,8 +108,10 @@ function resolveAssetRelationship(
     outputAddress: string,
     tokenMetadata: Record<number, Record<string, { symbol: string }>>,
 ): AssetRelationship {
-    const inputSymbol = tokenMetadata[inputChainId]?.[inputAddress.toLowerCase()]?.symbol;
-    const outputSymbol = tokenMetadata[outputChainId]?.[outputAddress.toLowerCase()]?.symbol;
+    const inputSymbol =
+        tokenMetadata[inputChainId]?.[toCanonicalNativeAddress(inputAddress, "eip155")]?.symbol;
+    const outputSymbol =
+        tokenMetadata[outputChainId]?.[toCanonicalNativeAddress(outputAddress, "eip155")]?.symbol;
 
     if (inputSymbol === undefined || outputSymbol === undefined) return "unknown";
     return inputSymbol === outputSymbol ? "same" : "different";
