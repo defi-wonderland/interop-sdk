@@ -1,10 +1,13 @@
 # @wonderland/interop-addresses
 
-> [!CAUTION] > **Experimental release — not for production use.**
+<!-- prettier-ignore-start -->
+> [!CAUTION]
+> **Experimental release — not for production use.**
 >
 > This SDK is an early, preview release and has not been audited. It handles transaction and signature data for cross-chain value transfers, so a defect in the SDK could result in permanent, irrecoverable loss of user funds.
 >
 > Do not use this SDK in production or with real user value.
+<!-- prettier-ignore-end -->
 
 A TypeScript library for handling interoperable blockchain addresses across different networks.
 
