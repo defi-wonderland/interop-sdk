@@ -551,15 +551,6 @@ interface ExecutableQuote extends Quote {
 }
 ```
 
-#### StepResult
-
-```typescript
-interface StepResult {
-    stepIndex: number; // Index into order.steps[]
-    signature: Hex; // EIP-712 signature
-}
-```
-
 #### GetQuotesResponse
 
 ```typescript

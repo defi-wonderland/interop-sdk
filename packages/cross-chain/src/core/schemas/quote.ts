@@ -87,14 +87,6 @@ export interface SubmitOrderResponse {
     message?: string;
 }
 
-/** Result of executing a signature step. */
-export interface StepResult {
-    /** Index into order.steps[] */
-    stepIndex: number;
-    /** EIP-712 signature */
-    signature: Hex;
-}
-
 export interface GetQuotesError {
     error: Error;
     errorMsg: string;
