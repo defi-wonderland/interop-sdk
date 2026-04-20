@@ -20,6 +20,16 @@ const DEFAULT_FORK_RPC = 'https://base-sepolia-rpc.publicnode.com';
 const DEFAULT_PORT = '8545';
 const DEFAULT_BLOCK_OFFSET = 32;
 const BLOCK_NUMBER_TIMEOUT_MS = 10_000;
+const RPC_MAX_ATTEMPTS = 3;
+const RPC_RETRY_BACKOFF_MS = 500;
+
+/**
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * @param {string} rpcUrl
@@ -65,6 +75,27 @@ async function fetchLatestBlockNumber(rpcUrl) {
 }
 
 /**
+ * @param {string} rpcUrl
+ * @returns {Promise<number>}
+ */
+async function fetchLatestBlockNumberWithRetry(rpcUrl) {
+  let lastError;
+  for (let attempt = 1; attempt <= RPC_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fetchLatestBlockNumber(rpcUrl);
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[anvil-fork] ${rpcUrl} attempt ${attempt}/${RPC_MAX_ATTEMPTS} failed: ${message}`);
+      if (attempt < RPC_MAX_ATTEMPTS) {
+        await delay(RPC_RETRY_BACKOFF_MS * attempt);
+      }
+    }
+  }
+  throw lastError;
+}
+
+/**
  * @param {{ rpcUrl: string, port: string, offset: number, explicitBlock: number | null }} config
  * @returns {Promise<number>}
  */
@@ -74,7 +105,7 @@ async function resolveForkBlock({ rpcUrl, offset, explicitBlock }) {
     return explicitBlock;
   }
 
-  const latestBlock = await fetchLatestBlockNumber(rpcUrl);
+  const latestBlock = await fetchLatestBlockNumberWithRetry(rpcUrl);
   const forkBlock = latestBlock - offset;
 
   if (forkBlock <= 0) {
