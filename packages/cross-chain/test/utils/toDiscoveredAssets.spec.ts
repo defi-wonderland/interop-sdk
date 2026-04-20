@@ -14,11 +14,16 @@ const USDC_ETH = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const WETH_ETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const USDC_ARB = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
 const WETH_ARB = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1";
+const NATIVE_ZERO = "0x0000000000000000000000000000000000000000";
+const NATIVE_EEE = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE";
+const NATIVE_EEE_LOWER = NATIVE_EEE.toLowerCase();
 
 const usdcEth: AssetInfo = { address: USDC_ETH, symbol: "USDC", decimals: 6 };
 const wethEth: AssetInfo = { address: WETH_ETH, symbol: "WETH", decimals: 18 };
 const usdcArb: AssetInfo = { address: USDC_ARB, symbol: "USDC", decimals: 6 };
 const wethArb: AssetInfo = { address: WETH_ARB, symbol: "WETH", decimals: 18 };
+const ethZero: AssetInfo = { address: NATIVE_ZERO, symbol: "ETH", decimals: 18 };
+const ethEee: AssetInfo = { address: NATIVE_EEE, symbol: "ETH", decimals: 18 };
 
 function result(providerId: string, ...networks: NetworkAssets[]): AssetDiscoveryResult {
     return { networks, providerId };
@@ -130,6 +135,32 @@ describe("toDiscoveredAssets", () => {
         });
     });
 
+    describe("native token placeholders", () => {
+        it("collapses 0xEEE… and 0x000… into a single canonical entry (NATIVE_ASSET_ADDRESS)", () => {
+            const out = toDiscoveredAssets([
+                result("bungee", { chainId: 1, assets: [ethEee] }),
+                result("across", { chainId: 1, assets: [ethZero] }),
+            ]);
+
+            expect(out.tokensByChain[1]).toEqual([NATIVE_EEE_LOWER]);
+            expect(Object.keys(out.tokenMetadata[1]!)).toEqual([NATIVE_EEE_LOWER]);
+            expect(out.tokenMetadata[1]![NATIVE_EEE_LOWER]!.providers).toEqual([
+                "bungee",
+                "across",
+            ]);
+            expect(out.tokenMetadata[1]![NATIVE_EEE_LOWER]!.address).toBe(NATIVE_EEE_LOWER);
+        });
+
+        it("leaves ERC-20 addresses lowercase, not canonicalized", () => {
+            const out = toDiscoveredAssets([
+                result("provider-a", { chainId: 1, assets: [usdcEth] }),
+            ]);
+
+            expect(out.tokensByChain[1]).toEqual([USDC_ETH.toLowerCase()]);
+            expect(out.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.address).toBe(USDC_ETH);
+        });
+    });
+
     describe("multiple chains", () => {
         it("have chain keys in tokensByChain", () => {
             const out = toDiscoveredAssets([
@@ -238,5 +269,38 @@ describe("mergeDiscoveredAssets", () => {
 
         expect(merged.tokensByChain).toEqual({});
         expect(merged.tokenMetadata).toEqual({});
+    });
+
+    it("collapses native placeholders across discovered sources", () => {
+        const sourceA = toDiscoveredAssets([result("bungee", { chainId: 1, assets: [ethEee] })]);
+        const sourceB = toDiscoveredAssets([result("across", { chainId: 1, assets: [ethZero] })]);
+
+        const merged = mergeDiscoveredAssets([sourceA, sourceB]);
+
+        expect(merged.tokensByChain[1]).toEqual([NATIVE_EEE_LOWER]);
+        expect(Object.keys(merged.tokenMetadata[1]!)).toEqual([NATIVE_EEE_LOWER]);
+        expect(merged.tokenMetadata[1]![NATIVE_EEE_LOWER]!.providers).toEqual(["bungee", "across"]);
+    });
+
+    it("canonicalizes native placeholders from raw input keys", () => {
+        const raw = {
+            tokensByChain: { 1: [NATIVE_ZERO] },
+            tokenMetadata: {
+                1: {
+                    [NATIVE_ZERO]: {
+                        address: NATIVE_ZERO,
+                        symbol: "ETH",
+                        decimals: 18,
+                        providers: ["legacy"],
+                    },
+                },
+            },
+        };
+
+        const merged = mergeDiscoveredAssets([raw]);
+
+        expect(merged.tokensByChain[1]).toEqual([NATIVE_EEE_LOWER]);
+        expect(merged.tokenMetadata[1]![NATIVE_EEE_LOWER]).toBeDefined();
+        expect(merged.tokenMetadata[1]![NATIVE_EEE_LOWER]!.address).toBe(NATIVE_EEE_LOWER);
     });
 });
