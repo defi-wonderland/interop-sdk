@@ -1,6 +1,13 @@
 # interop-sdk
 
-> **Beta — under active development.** APIs may change between releases. We're shipping quickly and welcome bug reports and feedback via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+<!-- prettier-ignore-start -->
+> [!CAUTION]
+> **Experimental release — not for production use.**
+>
+> This SDK is an early, preview release and has not been audited. It handles transaction and signature data for cross-chain value transfers, so a defect in the SDK could result in permanent, irrecoverable loss of user funds.
+>
+> Do not use this SDK in production or with real user value.
+<!-- prettier-ignore-end -->
 
 This repository is a monorepo consisting of the following packages:
 

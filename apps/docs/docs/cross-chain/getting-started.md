@@ -2,7 +2,11 @@
 title: Getting Started
 ---
 
-In this tutorial, you'll execute a cross-chain token transfer using the Interop SDK. By the end, you'll know how to create a provider, fetch a quote, and send a transaction.
+:::tip Building a frontend?
+This guide uses `privateKeyToAccount` and a plain Node.js script to keep the flow focused on the SDK. If you're wiring the SDK into a React / Next.js app with an injected wallet, jump to [Frontend Integration](./frontend-integration.md) for the wagmi-based pattern.
+:::
+
+In this tutorial, you'll execute a cross-chain token transfer using the Interop SDK. By the end, you'll know how to create a provider, fetch a quote, send a transaction, and [discover which chains and tokens are supported](#which-chains-and-tokens-are-supported).
 
 ## Prerequisites
 
@@ -27,10 +31,12 @@ pnpm add @wonderland/interop-cross-chain viem
 The SDK uses a factory pattern. Let's start with Relay on testnet:
 
 ```typescript
-import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
+import { createCrossChainProvider, PROTOCOLS } from "@wonderland/interop-cross-chain";
 
-const provider = createCrossChainProvider("relay", { isTestnet: true });
+const provider = createCrossChainProvider(PROTOCOLS.RELAY, { isTestnet: true });
 ```
+
+Examples throughout the docs use the `PROTOCOLS` constant (`PROTOCOLS.RELAY`, `PROTOCOLS.ACROSS`, `PROTOCOLS.OIF`, `PROTOCOLS.BUNGEE`, `PROTOCOLS.LIFI_INTENTS`) rather than the literal strings it maps to — it keeps the protocol name typo-safe and discoverable in your IDE.
 
 Other available providers: [Across](./across-provider.md), [OIF](./oif-provider.md). See [Supported Providers](./providers.md) for the full list.
 
@@ -155,14 +161,36 @@ if (isSignatureOnlyOrder(quote.order)) {
 }
 ```
 
+## Which chains and tokens are supported?
+
+Rather than hard-coding a supported-tokens list, ask the aggregator at runtime. `discoverAssets()` queries every configured provider in parallel and returns a pre-processed map keyed by numeric chain ID:
+
+```typescript
+const discovered = await aggregator.discoverAssets({ chainIds: [1, 8453] });
+
+// Token addresses available on each chain
+console.log(discovered.tokensByChain[1]); // Ethereum
+console.log(discovered.tokensByChain[8453]); // Base
+
+// Token metadata (nested by chain ID then lowercase address)
+const usdc = discovered.tokenMetadata[1]?.["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"];
+console.log(usdc?.symbol, usdc?.decimals); // "USDC", 6
+```
+
+Omit `chainIds` to discover across every chain each provider supports. For a single-provider variant and the full `DiscoveredAssets` shape, see the [API Reference](./api.md#aggregator).
+
 ## Compare quotes from multiple providers
 
 Use the `Aggregator` to fetch and sort quotes from multiple providers at once:
 
 ```typescript
-import { createAggregator, createCrossChainProvider } from "@wonderland/interop-cross-chain";
+import {
+    createAggregator,
+    createCrossChainProvider,
+    PROTOCOLS,
+} from "@wonderland/interop-cross-chain";
 
-const acrossProvider = createCrossChainProvider("across", { isTestnet: true });
+const acrossProvider = createCrossChainProvider(PROTOCOLS.ACROSS, { isTestnet: true });
 
 const aggregator = createAggregator({
     providers: [provider, acrossProvider],
@@ -180,7 +208,7 @@ response.errors.forEach((err) => console.warn(`Provider error: ${err.errorMsg}`)
 
 ### Execution flow
 
-1. **Create provider** → `createCrossChainProvider("across")` (or use `createAggregator` for multiple — wire an `approvalService` to enrich quotes with ERC-20 `approve` steps automatically)
+1. **Create provider** → `createCrossChainProvider(PROTOCOLS.ACROSS)` (or use `createAggregator` for multiple — wire an `approvalService` to enrich quotes with ERC-20 `approve` steps automatically)
 2. **Get quotes** → `provider.getQuotes(request)` or `aggregator.getQuotes(request)`
 3. **Check order type** → `isSignatureOnlyOrder(quote.order)`
     - **Signature (gasless):** `signTypedData()` → `provider.submitOrder(quote, signature)`
