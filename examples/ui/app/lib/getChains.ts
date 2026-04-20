@@ -7,17 +7,23 @@ import { REGISTRY_CHAINS, type RegistryChainWithStatus } from './registry-chains
  */
 const ONCHAIN_FETCH_TIMEOUT_MS = 10_000;
 
-const timeout = (ms: number): Promise<never> =>
-  new Promise((_, reject) => setTimeout(() => reject(new Error('on.eth registry fetch timed out')), ms));
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('on.eth registry fetch timed out')), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 /** Merges the on.eth onchain registry with the curated list. */
 export async function getChains(): Promise<RegistryChainWithStatus[]> {
   let onchainEntries: Awaited<ReturnType<typeof getRegisteredChains>>;
 
-  const fetchRegistry = getRegisteredChains({ rpcUrl: process.env.MAINNET_RPC_URL });
-
   try {
-    onchainEntries = await Promise.race([fetchRegistry, timeout(ONCHAIN_FETCH_TIMEOUT_MS)]);
+    onchainEntries = await withTimeout(
+      getRegisteredChains({ rpcUrl: process.env.MAINNET_RPC_URL }),
+      ONCHAIN_FETCH_TIMEOUT_MS,
+    );
   } catch {
     onchainEntries = [];
   }
