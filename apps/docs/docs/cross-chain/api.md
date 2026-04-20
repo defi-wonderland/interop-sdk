@@ -194,17 +194,12 @@ A class that manages multiple cross-chain providers and coordinates their operat
     });
     ```
 
--   **submitOrder**(quote: ExecutableQuote, signatureOrResults: Hex | StepResult[]): Promise\<SubmitOrderResponse\>
+-   **submitOrder**(quote: ExecutableQuote, signature: Hex): Promise\<SubmitOrderResponse\>
 
-    Submits an order for execution. Pass a single `Hex` signature for single-step orders, or an array of `StepResult` for multi-step orders.
+    Submits a signed order for execution. Pass the EIP-712 signature returned from the user's wallet.
 
     ```typescript
-    // Single signature
     const response = await aggregator.submitOrder(quote, signature);
-
-    // Multi-step results
-    const results: StepResult[] = [{ stepIndex: 0, signature: "0x..." }];
-    const response = await aggregator.submitOrder(quote, results);
     ```
 
 -   **track**(params: TrackParams): OrderTracker
@@ -301,21 +296,21 @@ Best-effort: on any read failure the affected quotes pass through unmodified. Qu
 
 #### CreateApprovalServiceConfig
 
-| Field              | Type                          | Required | Description                                                                                                              |
-| ------------------ | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `rpcUrls`          | `Record<number, string>`      | No       | RPC URLs per chain ID. Used to build public clients for `allowance()` multicalls when `publicClient` is not supplied.    |
-| `publicClient`     | `PublicClient` (viem)         | No       | Pre-configured viem public client. Takes precedence over `rpcUrls`.                                                      |
-| `amountStrategy`   | `ApprovalAmountStrategy`      | No       | Strategy that decides the `amount` encoded in each `approve` call. Defaults to `ExactAmountStrategy`.                    |
-| `approvalGasLimit` | `bigint`                      | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas.   |
+| Field              | Type                     | Required | Description                                                                                                            |
+| ------------------ | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `rpcUrls`          | `Record<number, string>` | No       | RPC URLs per chain ID. Used to build public clients for `allowance()` multicalls when `publicClient` is not supplied.  |
+| `publicClient`     | `PublicClient` (viem)    | No       | Pre-configured viem public client. Takes precedence over `rpcUrls`.                                                    |
+| `amountStrategy`   | `ApprovalAmountStrategy` | No       | Strategy that decides the `amount` encoded in each `approve` call. Defaults to `ExactAmountStrategy`.                  |
+| `approvalGasLimit` | `bigint`                 | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas. |
 
 #### Amount Strategies
 
 `ApprovalAmountStrategy` controls the amount encoded in each generated `approve` call.
 
-| Strategy                  | Approves            | Trade-off                                                                                                                       |
-| ------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `ExactAmountStrategy`     | exactly `required`  | Smallest allowance footprint. Next order against the same `(token, spender)` pair needs another `approve`.                      |
-| `InfiniteAmountStrategy`  | `type(uint256).max` | One `approve` per `(token, spender)` pair for its lifetime. Later orders skip the approval step, at the cost of unbounded allowance. |
+| Strategy                 | Approves            | Trade-off                                                                                                                            |
+| ------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `ExactAmountStrategy`    | exactly `required`  | Smallest allowance footprint. Next order against the same `(token, spender)` pair needs another `approve`.                           |
+| `InfiniteAmountStrategy` | `type(uint256).max` | One `approve` per `(token, spender)` pair for its lifetime. Later orders skip the approval step, at the cost of unbounded allowance. |
 
 ```typescript
 import { createApprovalService, InfiniteAmountStrategy } from "@wonderland/interop-cross-chain";
@@ -713,10 +708,10 @@ Payload validation:
 
 #### LiFi Intents
 
-| Field            | Type   | Required | Description                                                   |
-| ---------------- | ------ | -------- | ------------------------------------------------------------- |
-| `orderServerUrl` | string | Yes      | LI.FI order server URL (e.g. `https://order.li.fi`)          |
-| `providerId`     | string | No       | Custom provider identifier (default: `"lifi-intents"`)        |
+| Field            | Type                         | Required | Description                                                    |
+| ---------------- | ---------------------------- | -------- | -------------------------------------------------------------- |
+| `orderServerUrl` | string                       | Yes      | LI.FI order server URL (e.g. `https://order.li.fi`)            |
+| `providerId`     | string                       | No       | Custom provider identifier (default: `"lifi-intents"`)         |
 | `headers`        | Record&lt;string, string&gt; | No       | Custom HTTP headers sent with all requests to the order server |
 
 Constraints:
