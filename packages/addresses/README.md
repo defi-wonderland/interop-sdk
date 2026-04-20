@@ -1,6 +1,10 @@
 # @wonderland/interop-addresses
 
-> **Beta version under active development — use it at your own risk.** Bug reports and feedback are welcome via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+> [!CAUTION] > **Experimental release — not for production use.**
+>
+> This SDK is an early, preview release and has not been audited. It handles transaction and signature data for cross-chain value transfers, so a defect in the SDK could result in permanent, irrecoverable loss of user funds.
+>
+> Do not use this SDK in production or with real user value.
 
 A TypeScript library for handling interoperable blockchain addresses across different networks.
 

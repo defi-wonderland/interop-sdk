@@ -1,6 +1,10 @@
 # @wonderland/interop-cross-chain
 
-> **Beta version under active development — use it at your own risk.** Bug reports and feedback are welcome via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+> [!CAUTION] > **Experimental release — not for production use.**
+>
+> This SDK is an early, preview release and has not been audited. It handles transaction and signature data for cross-chain value transfers, so a defect in the SDK could result in permanent, irrecoverable loss of user funds.
+>
+> Do not use this SDK in production or with real user value.
 
 The cross-chain package provides a standardized interface for interacting with cross-chain bridges and protocols. It enables seamless token transfers and swaps between different blockchain networks through a unified API.
 

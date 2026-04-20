@@ -3,8 +3,11 @@ slug: "/"
 title: Interop SDK
 ---
 
-:::warning Beta version under active development — use it at your own risk
-Bug reports and feedback are welcome via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+:::danger Experimental release — not for production use
+
+This SDK is an early, preview release and has not been audited. It handles transaction and signature data for cross-chain value transfers, so a defect in the SDK could result in permanent, irrecoverable loss of user funds.
+
+Do not use this SDK in production or with real user value.
 :::
 
 The _Interop SDK_ is a TypeScript library for cross-chain applications. It brings the latest interoperability standards to wallet and app developers who want to provide seamless multichain experiences.
