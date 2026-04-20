@@ -5,6 +5,8 @@ import type {
     LifiIntentsProviderConfig,
     OifProviderConfig,
     RelayConfigs,
+    SupportedProtocols,
+    SupportedProtocolsConfigs,
 } from "../internal.js";
 import {
     AcrossProvider,
@@ -16,69 +18,58 @@ import {
     UnsupportedProtocol,
 } from "../internal.js";
 
+type RequiredConfigProtocols = typeof PROTOCOLS.OIF | typeof PROTOCOLS.LIFI_INTENTS;
+type OptionalConfigProtocols =
+    | typeof PROTOCOLS.ACROSS
+    | typeof PROTOCOLS.RELAY
+    | typeof PROTOCOLS.BUNGEE;
+
 /**
- * Creates a CrossChainProvider for Across protocol
- * @param protocolName - "across"
- * @param config - Optional configuration (defaults to mainnet)
+ * Creates a CrossChainProvider for a protocol whose configuration is required
+ * (currently `oif` and `lifi-intents`).
+ * @param protocolName - The protocol identifier
+ * @param config - Required protocol configuration
  */
-export function createCrossChainProvider(
-    protocolName: typeof PROTOCOLS.ACROSS,
-    config?: AcrossConfigs,
+export function createCrossChainProvider<P extends RequiredConfigProtocols>(
+    protocolName: P,
+    config: SupportedProtocolsConfigs<P>,
 ): CrossChainProvider;
 /**
- * Creates a CrossChainProvider for OIF protocol
- * @param protocolName - "oif"
- * @param config - Required configuration with solverId and url
+ * Creates a CrossChainProvider for a protocol whose configuration is optional
+ * (currently `across`, `relay`, `bungee`).
+ * @param protocolName - The protocol identifier
+ * @param config - Optional protocol configuration (defaults applied by the provider)
  */
-export function createCrossChainProvider(
-    protocolName: typeof PROTOCOLS.OIF,
-    config: OifProviderConfig,
+export function createCrossChainProvider<P extends OptionalConfigProtocols>(
+    protocolName: P,
+    config?: SupportedProtocolsConfigs<P>,
 ): CrossChainProvider;
 /**
- * Creates a CrossChainProvider for LI.FI Intents protocol
- * @param protocolName - "lifi-intents"
- * @param config - Required configuration with orderServerUrl
- */
-export function createCrossChainProvider(
-    protocolName: typeof PROTOCOLS.LIFI_INTENTS,
-    config: LifiIntentsProviderConfig,
-): CrossChainProvider;
-/**
- * Creates a CrossChainProvider for Relay protocol
- * @param protocolName - "relay"
- * @param config - Optional configuration (defaults to mainnet)
- */
-export function createCrossChainProvider(
-    protocolName: typeof PROTOCOLS.RELAY,
-    config?: RelayConfigs,
-): CrossChainProvider;
-/**
- * Creates a CrossChainProvider for Bungee protocol
- * @param protocolName - "bungee"
- * @param config - Optional configuration (defaults to mainnet)
- */
-export function createCrossChainProvider(
-    protocolName: typeof PROTOCOLS.BUNGEE,
-    config?: BungeeConfigs,
-): CrossChainProvider;
-/**
- * Creates a CrossChainProvider for the specified protocol
- * @param protocolName - The name of the protocol
+ * Creates a CrossChainProvider for the specified protocol.
+ * @param protocolName - The protocol identifier, constrained to {@link SupportedProtocols}
  * @param config - The configuration for the provider
  * @returns A CrossChainProvider
- * @throws {UnsupportedProtocol} If the protocol is not supported
+ * @throws {UnsupportedProtocol} If called with a protocol that is not handled
+ *   (only reachable if callers bypass the type system via `as` / `@ts-expect-error`)
  */
-export function createCrossChainProvider(
-    protocolName: string,
-    config?: unknown,
+export function createCrossChainProvider<P extends SupportedProtocols>(
+    protocolName: P,
+    config?: SupportedProtocolsConfigs<P>,
 ): CrossChainProvider {
-    if (protocolName === PROTOCOLS.ACROSS)
-        return new AcrossProvider((config as AcrossConfigs) ?? {});
-    if (protocolName === PROTOCOLS.OIF) return new OifProvider(config as OifProviderConfig);
-    if (protocolName === PROTOCOLS.LIFI_INTENTS)
-        return new LifiIntentsProvider(config as LifiIntentsProviderConfig);
-    if (protocolName === PROTOCOLS.RELAY) return new RelayProvider((config as RelayConfigs) ?? {});
-    if (protocolName === PROTOCOLS.BUNGEE)
-        return new BungeeProvider((config as BungeeConfigs) ?? {});
-    throw new UnsupportedProtocol(protocolName);
+    switch (protocolName) {
+        case PROTOCOLS.ACROSS:
+            return new AcrossProvider((config as AcrossConfigs | undefined) ?? {});
+        case PROTOCOLS.OIF:
+            return new OifProvider(config as OifProviderConfig);
+        case PROTOCOLS.LIFI_INTENTS:
+            return new LifiIntentsProvider(config as LifiIntentsProviderConfig);
+        case PROTOCOLS.RELAY:
+            return new RelayProvider((config as RelayConfigs | undefined) ?? {});
+        case PROTOCOLS.BUNGEE:
+            return new BungeeProvider((config as BungeeConfigs | undefined) ?? {});
+        default: {
+            const _exhaustive: never = protocolName;
+            throw new UnsupportedProtocol(_exhaustive as string);
+        }
+    }
 }
