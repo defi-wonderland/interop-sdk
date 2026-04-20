@@ -2,16 +2,15 @@
 /**
  * Boots an anvil fork pinned to a concrete block number.
  *
- * The e2e Playwright suite previously forked at `latest` against a public
- * full-node RPC, which only retains ~128 blocks of historical state. Anvil's
- * boot sequence makes two calls (resolve `latest`, then read the foundry
- * default account state); if the pruning window advanced between them, the
- * second call returned `historical state not available` and the webServer
- * exited 1 before any test ran.
+ * Public full-node RPCs typically retain only ~128 blocks of historical
+ * state. Forking at `latest` can race the retention window: anvil resolves
+ * `latest` during boot and then reads the foundry default account, and if
+ * the RPC prunes between those calls the second one fails with
+ * `historical state not available`.
  *
- * Pinning the fork block to `latest - ANVIL_FORK_BLOCK_OFFSET` (default 32)
- * collapses that race into a single deterministic call while staying well
- * inside the RPC's retention window — no archive endpoint / secret required.
+ * Pinning the fork to `latest - ANVIL_FORK_BLOCK_OFFSET` (default 32)
+ * collapses that race into a single deterministic lookup while staying
+ * inside the RPC's retention window. No archive endpoint or secret needed.
  */
 
 import { spawn } from 'node:child_process';
