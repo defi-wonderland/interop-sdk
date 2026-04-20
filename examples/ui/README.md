@@ -27,9 +27,30 @@ cd examples/ui
 pnpm test:e2e
 ```
 
+Playwright boots an `anvil` fork of Base Sepolia via
+`scripts/start-anvil-fork.mjs`. The script resolves the RPC's `latest` block
+and pins the fork to `latest - 32` so the boot sequence is immune to the
+pruning window of public full-node RPCs (see EFI-877).
+
+Optional environment variables (set in `.env.e2e` or exported):
+
+| Variable                  | Default                                   | Purpose                                                    |
+| ------------------------- | ----------------------------------------- | ---------------------------------------------------------- |
+| `ANVIL_FORK_RPC`          | `https://base-sepolia-rpc.publicnode.com` | Upstream RPC used by anvil's fork.                         |
+| `ANVIL_PORT`              | `8545`                                    | Port anvil listens on; must match `NEXT_PUBLIC_ANVIL_URL`. |
+| `ANVIL_FORK_BLOCK_OFFSET` | `32`                                      | Blocks behind `latest` to pin the fork.                    |
+| `ANVIL_FORK_BLOCK`        | _(unset)_                                 | Hard-pin the fork block, bypassing the offset.             |
+
+If the default RPC is misbehaving, override it:
+
+```bash
+ANVIL_FORK_RPC=https://my-archive-rpc.example pnpm test:e2e
+```
+
 ## Features
 
 ### Interactive Playground
+
 - **Dual Input Modes**: Enter a complete interoperable name OR build from address + chain
 - **Live Conversion**: Real-time conversion between ERC-7930 and ERC-7828 formats
 - **Component Breakdown**: Visual breakdown of address parts with hover interactions
@@ -37,12 +58,14 @@ pnpm test:e2e
 - **Example Addresses**: Pre-filled valid examples for quick testing
 
 ### Educational Focus
+
 - **Format Explanations**: Clear descriptions of what each format represents
 - **Binary Structure**: Detailed view of binary encoding with all fields
 - **Interactive Hovers**: Hover over any component to highlight related parts
 - **Theme Support**: Light and dark themes for comfortable viewing
 
 ### Format Support
+
 - **Binary (ERC-7930)**: Compact byte representation for on-chain efficiency
 - **Interoperable Name (ERC-7828)**: `0xAddress@chainType:chainRef#checksum`
 - **EVM Chains**: Supports eip155 chain type for Ethereum and EVM-compatible chains ([CAIP-2 spec](https://chainagnostic.org/CAIPs/caip-2))

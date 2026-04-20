@@ -5,7 +5,6 @@ dotenv.config({ path: '.env.e2e' });
 
 const anvilUrl = process.env.NEXT_PUBLIC_ANVIL_URL ?? 'http://127.0.0.1:8545';
 const anvilPort = Number(new URL(anvilUrl).port) || 8545;
-const anvilForkRpc = process.env.ANVIL_FORK_RPC ?? 'https://base-sepolia-rpc.publicnode.com';
 
 export default defineConfig({
   testDir: './tests',
@@ -31,8 +30,9 @@ export default defineConfig({
 
   webServer: [
     {
-      command: `anvil --port ${anvilPort} --fork-url ${anvilForkRpc} --block-time 1 --silent`,
+      command: 'node ./scripts/start-anvil-fork.mjs',
       port: anvilPort,
+      env: { ANVIL_PORT: String(anvilPort) },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },
