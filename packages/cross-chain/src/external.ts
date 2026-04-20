@@ -74,4 +74,6 @@ export {
     type QuoteTracking,
     type QuoteRequest,
     type BuildQuoteRequest,
+    type GetQuotesError,
+    type GetQuotesResponse,
 } from "./internal.js";
