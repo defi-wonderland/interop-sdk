@@ -86,7 +86,7 @@ async function fetchLatestBlockNumberWithRetry(rpcUrl) {
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
-      console.warn(`[anvil-fork] ${rpcUrl} attempt ${attempt}/${RPC_MAX_ATTEMPTS} failed: ${message}`);
+      console.warn(`[anvil-fork] RPC attempt ${attempt}/${RPC_MAX_ATTEMPTS} failed: ${message}`);
       if (attempt < RPC_MAX_ATTEMPTS) {
         await delay(RPC_RETRY_BACKOFF_MS * attempt);
       }
@@ -140,7 +140,12 @@ function spawnAnvil({ rpcUrl, port, forkBlock }) {
   });
 
   child.on('exit', (code, signal) => {
-    process.exit(code ?? (signal ? 1 : 0));
+    if (code !== null) {
+      process.exit(code);
+      return;
+    }
+    const graceful = signal === 'SIGINT' || signal === 'SIGTERM';
+    process.exit(graceful ? 0 : 1);
   });
 
   const forwardSignal = (signal) => {
