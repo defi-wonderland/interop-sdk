@@ -29,8 +29,9 @@ pnpm test:e2e
 
 Playwright boots an `anvil` fork of Base Sepolia via
 `scripts/start-anvil-fork.mjs`. The script resolves the RPC's `latest` block
-and pins the fork to `latest - 32` so the boot sequence is immune to the
-pruning window of public full-node RPCs (see EFI-877).
+and pins the fork to `latest - 32` so the boot sequence stays inside the
+retention window of public full-node RPCs (which typically prune after
+~128 blocks).
 
 Optional environment variables (set in `.env.e2e` or exported):
 
