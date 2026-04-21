@@ -8,6 +8,7 @@ import type { GetQuoteRequest } from "@openintentsframework/oif-specs";
 
 import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
 import { fromInteropAccountId } from "../../../core/utils/interopAccountId.js";
+import { NATIVE_ZERO_ADDRESS, withNativePlaceholder } from "../../../core/utils/token.js";
 
 /**
  * Options passed from the provider to control OIF-specific request behaviour.
@@ -99,7 +100,10 @@ export function adaptQuoteRequest(request: QuoteRequest, options?: AdaptOptions)
     const inputs = [
         {
             user: userOnInputChain,
-            asset: fromInteropAccountId({ chainId: input.chainId, address: input.assetAddress }),
+            asset: fromInteropAccountId({
+                chainId: input.chainId,
+                address: withNativePlaceholder(input.assetAddress, "eip155", NATIVE_ZERO_ADDRESS),
+            }),
             ...(input.amount !== undefined && { amount: input.amount }),
         },
     ];
@@ -109,7 +113,10 @@ export function adaptQuoteRequest(request: QuoteRequest, options?: AdaptOptions)
     const outputs = [
         {
             receiver: fromInteropAccountId({ chainId: output.chainId, address: recipientAddress }),
-            asset: fromInteropAccountId({ chainId: output.chainId, address: output.assetAddress }),
+            asset: fromInteropAccountId({
+                chainId: output.chainId,
+                address: withNativePlaceholder(output.assetAddress, "eip155", NATIVE_ZERO_ADDRESS),
+            }),
             ...(output.amount !== undefined && { amount: output.amount }),
             ...(output.calldata !== undefined && { calldata: output.calldata }),
         },

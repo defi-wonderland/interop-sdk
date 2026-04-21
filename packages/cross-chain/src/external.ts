@@ -59,6 +59,8 @@ export {
     // Utilities
     isSignableOifOrder,
     isNativeAddress,
+    NATIVE_ASSET_ADDRESS,
+    toCanonicalNativeAddress,
     toInteropAccountId,
     fromInteropAccountId,
     getSignatureSteps,

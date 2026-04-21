@@ -22,6 +22,7 @@ import { CrossChainProvider } from "../interfaces/crossChainProvider.interface.j
 import { SortingStrategy } from "../interfaces/sortingStrategy.interface.js";
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
 import { mergeDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
+import { toCanonicalNativeAddress } from "../utils/token.js";
 import {
     validateAssetSupport,
     validateBuildQuoteParams,
@@ -334,9 +335,13 @@ class Aggregator {
         const assets = await this.discoverAssets();
 
         const originMeta =
-            assets.tokenMetadata[query.originChainId]?.[query.originAsset.toLowerCase()];
+            assets.tokenMetadata[query.originChainId]?.[
+                toCanonicalNativeAddress(query.originAsset, "eip155")
+            ];
         const destMeta =
-            assets.tokenMetadata[query.destinationChainId]?.[query.destinationAsset.toLowerCase()];
+            assets.tokenMetadata[query.destinationChainId]?.[
+                toCanonicalNativeAddress(query.destinationAsset, "eip155")
+            ];
 
         if (!originMeta || !destMeta) {
             return [];

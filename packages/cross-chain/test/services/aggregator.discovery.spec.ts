@@ -6,6 +6,9 @@ import { createAggregator, CrossChainProvider } from "../../src/internal.js";
 const USDC_ETH = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const WETH_ETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const USDC_ARB = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+const NATIVE_ZERO = "0x0000000000000000000000000000000000000000";
+const NATIVE_EEE = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE";
+const NATIVE_EEE_LOWER = NATIVE_EEE.toLowerCase();
 
 function createMockProvider(
     providerId: string,
@@ -145,6 +148,43 @@ describe("Aggregator - Asset Discovery", () => {
 
             expect(result.tokensByChain[1]).toBeDefined();
             expect(result.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.providers).toEqual(["across"]);
+        });
+
+        it("collapses native placeholders across providers into one canonical entry", async () => {
+            const bungee = createMockProvider("bungee", {
+                type: "static",
+                config: {
+                    networks: [
+                        {
+                            chainId: 1,
+                            assets: [{ address: NATIVE_EEE, symbol: "ETH", decimals: 18 }],
+                        },
+                    ],
+                },
+            });
+
+            const across = createMockProvider("across", {
+                type: "static",
+                config: {
+                    networks: [
+                        {
+                            chainId: 1,
+                            assets: [{ address: NATIVE_ZERO, symbol: "ETH", decimals: 18 }],
+                        },
+                    ],
+                },
+            });
+
+            const executor = createAggregator({ providers: [bungee, across] });
+
+            const result = await executor.discoverAssets();
+
+            expect(result.tokensByChain[1]).toEqual([NATIVE_EEE_LOWER]);
+            expect(Object.keys(result.tokenMetadata[1]!)).toEqual([NATIVE_EEE_LOWER]);
+            expect(result.tokenMetadata[1]![NATIVE_EEE_LOWER]!.providers).toEqual([
+                "bungee",
+                "across",
+            ]);
         });
 
         it("should deduplicate same token from same provider", async () => {
@@ -299,6 +339,59 @@ describe("Aggregator - Asset Discovery", () => {
             });
 
             expect(providers).toEqual([]);
+        });
+
+        it("matches native tokens regardless of which placeholder the caller passes", async () => {
+            const bungee = createMockProvider("bungee", {
+                type: "static",
+                config: {
+                    networks: [
+                        {
+                            chainId: 1,
+                            assets: [{ address: NATIVE_EEE, symbol: "ETH", decimals: 18 }],
+                        },
+                        {
+                            chainId: 42161,
+                            assets: [{ address: NATIVE_EEE, symbol: "ETH", decimals: 18 }],
+                        },
+                    ],
+                },
+            });
+
+            const across = createMockProvider("across", {
+                type: "static",
+                config: {
+                    networks: [
+                        {
+                            chainId: 1,
+                            assets: [{ address: NATIVE_ZERO, symbol: "ETH", decimals: 18 }],
+                        },
+                        {
+                            chainId: 42161,
+                            assets: [{ address: NATIVE_ZERO, symbol: "ETH", decimals: 18 }],
+                        },
+                    ],
+                },
+            });
+
+            const executor = createAggregator({ providers: [bungee, across] });
+
+            const viaZero = await executor.getProvidersForRoute({
+                originChainId: 1,
+                originAsset: NATIVE_ZERO,
+                destinationChainId: 42161,
+                destinationAsset: NATIVE_ZERO,
+            });
+
+            const viaEee = await executor.getProvidersForRoute({
+                originChainId: 1,
+                originAsset: NATIVE_EEE,
+                destinationChainId: 42161,
+                destinationAsset: NATIVE_EEE,
+            });
+
+            expect(viaZero).toEqual(expect.arrayContaining(["bungee", "across"]));
+            expect(viaEee).toEqual(expect.arrayContaining(["bungee", "across"]));
         });
 
         it("should return multiple providers when both support the route", async () => {

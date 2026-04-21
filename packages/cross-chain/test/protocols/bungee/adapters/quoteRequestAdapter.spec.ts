@@ -109,4 +109,40 @@ describe("adaptQuoteRequest", () => {
         expect(result.slippage).toBeUndefined();
         expect(result.refuel).toBeUndefined();
     });
+
+    describe("native token placeholder translation", () => {
+        const BUNGEE_NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+        const ZERO_NATIVE = "0x0000000000000000000000000000000000000000";
+
+        it("maps 0x000… input to Bungee's 0xEEE… placeholder", () => {
+            const request = buildQuoteRequest({
+                input: { chainId: 1, assetAddress: ZERO_NATIVE, amount: "1000000" },
+            });
+            const result = adaptQuoteRequest(request);
+            expect(result.inputToken).toBe(BUNGEE_NATIVE);
+        });
+
+        it("maps 0x000… output to Bungee's 0xEEE… placeholder", () => {
+            const request = buildQuoteRequest({
+                output: { chainId: 10, assetAddress: ZERO_NATIVE, recipient: RECIPIENT_ADDRESS },
+            });
+            const result = adaptQuoteRequest(request);
+            expect(result.outputToken).toBe(BUNGEE_NATIVE);
+        });
+
+        it("keeps 0xEEE… unchanged when already Bungee's placeholder", () => {
+            const request = buildQuoteRequest({
+                input: { chainId: 1, assetAddress: BUNGEE_NATIVE, amount: "1000000" },
+            });
+            const result = adaptQuoteRequest(request);
+            expect(result.inputToken).toBe(BUNGEE_NATIVE);
+        });
+
+        it("leaves ERC-20 addresses untouched", () => {
+            const request = buildQuoteRequest();
+            const result = adaptQuoteRequest(request);
+            expect(result.inputToken).toBe(VALID_ADDRESS);
+            expect(result.outputToken).toBe(VALID_ADDRESS);
+        });
+    });
 });
