@@ -195,6 +195,39 @@ describe("extractPermit2Allowances", () => {
         expect(result[0]!.tokenAddress).toBe(TOKEN_A);
     });
 
+    it("returns [] and warns when batch primaryType receives a non-array permitted", () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+        const result = extractPermit2Allowances(
+            basePayload({
+                primaryType: "PermitBatchWitnessTransferFrom",
+                message: {
+                    permitted: { token: TOKEN_A, amount: "1" },
+                    spender: SETTLER,
+                },
+            }),
+            SIGNER,
+        );
+
+        expect(result).toEqual([]);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining("expected array"));
+    });
+
+    it("returns [] and warns when single primaryType receives a non-object permitted", () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+        const result = extractPermit2Allowances(
+            basePayload({
+                primaryType: "PermitTransferFrom",
+                message: { permitted: null, spender: SETTLER },
+            }),
+            SIGNER,
+        );
+
+        expect(result).toEqual([]);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining("expected object"));
+    });
+
     it("skips malformed permitted entries without throwing", () => {
         const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 

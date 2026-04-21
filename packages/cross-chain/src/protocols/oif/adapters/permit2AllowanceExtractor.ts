@@ -66,14 +66,35 @@ export function extractPermit2Allowances(
 
 /** Reads the `permitted` field and normalizes it to an array. */
 function readPermitted(primaryType: string, message: Record<string, unknown>): TokenPermission[] {
+    const { permitted } = message;
+
     if ((SINGLE_TOKEN_TYPES as readonly string[]).includes(primaryType)) {
-        return [message.permitted as TokenPermission];
+        if (!isTokenPermissionLike(permitted)) {
+            console.warn(
+                `[permit2AllowanceExtractor] Malformed permitted for ${primaryType}: expected object`,
+            );
+            return [];
+        }
+        return [permitted];
     }
+
     if ((BATCH_TOKEN_TYPES as readonly string[]).includes(primaryType)) {
-        return (message.permitted as TokenPermission[]) ?? [];
+        if (!Array.isArray(permitted)) {
+            console.warn(
+                `[permit2AllowanceExtractor] Malformed permitted for ${primaryType}: expected array`,
+            );
+            return [];
+        }
+        return permitted as TokenPermission[];
     }
+
     console.warn(`[permit2AllowanceExtractor] Unknown primaryType: ${primaryType}`);
     return [];
+}
+
+/** Narrow guard: the value looks like a `TokenPermission` object (shape checked later). */
+function isTokenPermissionLike(value: unknown): value is TokenPermission {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** Reads `domain.chainId` as a positive finite number, or `null` if it isn't. */
