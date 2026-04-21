@@ -26,7 +26,7 @@ function createMockProviderQuote(): ProviderQuote {
                 types: {
                     PermitBatchWitnessTransferFrom: [{ name: "spender", type: "address" }],
                 },
-                message: { spender: "0xabc" },
+                message: { permitted: [], spender: "0xabc" },
             },
         },
         preview: {

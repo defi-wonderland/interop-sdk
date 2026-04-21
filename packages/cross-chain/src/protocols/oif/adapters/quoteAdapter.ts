@@ -68,14 +68,7 @@ function withPermit2Allowances(order: Order, pq: ProviderQuote): Order {
         return order;
     }
 
-    const allowances = extractPermit2Allowances(
-        {
-            domain: oifOrder.payload.domain as Record<string, unknown>,
-            primaryType: oifOrder.payload.primaryType,
-            message: oifOrder.payload.message as Record<string, unknown>,
-        },
-        signer,
-    );
+    const allowances = extractPermit2Allowances(oifOrder.payload, signer);
     if (allowances.length === 0) return order;
 
     const existing = order.checks?.allowances ?? [];

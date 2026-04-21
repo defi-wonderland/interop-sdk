@@ -7,10 +7,11 @@
  * `message.spender` field is the settler, not the target of the `approve`.
  */
 
+import type { OifEscrowOrder } from "@openintentsframework/oif-specs";
 import type { Address } from "viem";
 import { getAddress } from "viem";
 
-import type { OrderChecks } from "../../../core/schemas/order.js";
+import type { AllowanceCheck } from "../../../core/interfaces/approval.interface.js";
 
 /** Permit2 is deployed at the same address on every EVM chain. */
 const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3" as Address;
@@ -23,13 +24,7 @@ interface TokenPermission {
     amount: string;
 }
 
-interface Permit2Payload {
-    domain: Record<string, unknown>;
-    primaryType: string;
-    message: Record<string, unknown>;
-}
-
-type AllowanceCheck = NonNullable<OrderChecks["allowances"]>[number];
+type EscrowPayload = OifEscrowOrder["payload"];
 
 /**
  * Turn a Permit2 EIP-712 payload into `AllowanceCheck`s.
@@ -41,13 +36,16 @@ type AllowanceCheck = NonNullable<OrderChecks["allowances"]>[number];
  * token owner: the signature itself identifies them.
  */
 export function extractPermit2Allowances(
-    payload: Permit2Payload,
+    payload: EscrowPayload,
     signer: Address,
 ): AllowanceCheck[] {
-    const permitted = readPermitted(payload.primaryType, payload.message);
+    const message = payload.message as Record<string, unknown>;
+    const domain = payload.domain as Record<string, unknown>;
+
+    const permitted = readPermitted(payload.primaryType, message);
     if (permitted.length === 0) return [];
 
-    const chainId = readChainId(payload.domain);
+    const chainId = readChainId(domain);
     if (chainId === null) return [];
 
     const owner = getAddress(signer);
