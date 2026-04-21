@@ -26,10 +26,10 @@ To restrict to a specific mode, set it explicitly:
 
 ```typescript
 // User-pays-gas quotes only
-submissionModes: ["user-transaction"]
+submissionModes: ["user-transaction"];
 
 // Gasless quotes only
-submissionModes: ["gasless"]
+submissionModes: ["gasless"];
 ```
 
 :::
@@ -44,14 +44,6 @@ The `supportedLocks` option controls which OIF order types the solver returns:
 | `compact-resource-lock` | `oif-resource-lock-v0`         |
 
 `oif-user-open-v0` (user-pays-gas) is controlled by `submissionModes` independently.
-
-:::warning `oif-escrow-v0` Permit2 approval not auto-handled
-
-`oif-escrow-v0` quotes rely on Permit2 and require a one-time `approve(PERMIT2, ...)` per token before the solver can pull funds. The OIF wire format does not surface this in `order.checks.allowances`, so the [approval service](./advanced-usage.md#automatic-erc-20-approvals) cannot prepend the step automatically for these quotes.
-
-Workaround until the OIF adapter is updated: either handle the Permit2 approval yourself, or restrict the provider to `submissionModes: ["user-transaction"]` (which uses `oif-user-open-v0`, where approvals are declared correctly). `oif-3009-v0` and `oif-resource-lock-v0` do not need ERC-20 approvals and are unaffected.
-
-:::
 
 ## Creating the Provider
 

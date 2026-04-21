@@ -1,5 +1,5 @@
 import { encodeAddress } from "@wonderland/interop-addresses";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ProviderQuote } from "../../src/core/interfaces/quotes.interface.js";
 import { adaptQuote } from "../../src/protocols/oif/adapters/quoteAdapter.js";
@@ -117,5 +117,97 @@ describe("quoteAdapter", () => {
 
         const result = adaptQuote(quote);
         expect(result.provider).toBe("");
+    });
+
+    describe("Permit2 allowances for oif-escrow-v0", () => {
+        const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+        const PERMITTED_TOKEN = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        function withEscrowPermit2(
+            overrides?: Partial<{ permittedToken: string; amount: string; primaryType: string }>,
+        ): ProviderQuote {
+            const quote = createMockProviderQuote();
+            quote.order = {
+                type: "oif-escrow-v0" as const,
+                payload: {
+                    signatureType: "eip712" as const,
+                    domain: { name: "Permit2", chainId: 1, verifyingContract: PERMIT2 },
+                    primaryType: overrides?.primaryType ?? "PermitBatchWitnessTransferFrom",
+                    types: {
+                        PermitBatchWitnessTransferFrom: [{ name: "spender", type: "address" }],
+                    },
+                    message: {
+                        permitted: [
+                            {
+                                token: overrides?.permittedToken ?? PERMITTED_TOKEN,
+                                amount: overrides?.amount ?? "500000",
+                            },
+                        ],
+                        spender: "0x1234567890abcdef1234567890abcdef12345678",
+                        nonce: "1",
+                        deadline: "1700000000",
+                    },
+                },
+            };
+            return quote;
+        }
+
+        it("surfaces checks.allowances with Permit2 spender using the preview signer", () => {
+            const result = adaptQuote(withEscrowPermit2());
+
+            expect(result.order.checks?.allowances).toEqual([
+                {
+                    chainId: 1,
+                    tokenAddress: PERMITTED_TOKEN,
+                    owner: expect.stringMatching(new RegExp(`^${USER_ADDRESS}$`, "i")),
+                    spender: PERMIT2,
+                    required: "500000",
+                },
+            ]);
+        });
+
+        it("warns and omits checks when preview.inputs is empty", () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+            const quote = withEscrowPermit2();
+            quote.preview.inputs = [];
+
+            const result = adaptQuote(quote);
+
+            expect(result.order.checks).toBeUndefined();
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining("missing signer in preview"));
+        });
+
+        it("omits checks when the extractor returns no allowances", () => {
+            const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+            const result = adaptQuote(withEscrowPermit2({ primaryType: "UnknownType" }));
+
+            expect(result.order.checks).toBeUndefined();
+            expect(warn).toHaveBeenCalled();
+        });
+
+        it("does not touch order.checks on non-escrow order types", () => {
+            const quote = createMockProviderQuote();
+            // Default mock order is oif-escrow-v0 with no `permitted` → no allowances.
+            // Switch to a resource-lock style payload to exercise the non-escrow path.
+            quote.order = {
+                type: "oif-resource-lock-v0" as const,
+                payload: {
+                    signatureType: "eip712" as const,
+                    domain: { chainId: 1 },
+                    primaryType: "BatchCompact",
+                    types: { BatchCompact: [{ name: "arbiter", type: "address" }] },
+                    message: {},
+                },
+            };
+
+            const result = adaptQuote(quote);
+
+            expect(result.order.checks).toBeUndefined();
+        });
     });
 });

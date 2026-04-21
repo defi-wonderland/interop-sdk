@@ -6,11 +6,14 @@
  */
 
 import type { Order as OifOrder } from "@openintentsframework/oif-specs";
+import type { Address } from "viem";
 
 import type { ProviderQuote } from "../../../core/interfaces/quotes.interface.js";
+import type { Order, OrderChecks } from "../../../core/schemas/order.js";
 import type { Quote, QuotePreviewEntry } from "../../../core/schemas/quote.js";
 import { toInteropAccountId } from "../../../core/utils/interopAccountId.js";
 import { adaptOifOrder } from "./orderAdapter.js";
+import { extractPermit2Allowances } from "./permit2AllowanceExtractor.js";
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -34,6 +37,52 @@ function adaptPreviewEntry(entry: {
     }
 }
 
+/**
+ * Takes the first preview input as the payer. Today intents are single-input,
+ * so this matches the schema; it will need a second look if multi-payer
+ * intents ever show up.
+ */
+function extractSigner(pq: ProviderQuote): Address | undefined {
+    const firstInput = pq.preview.inputs[0];
+    if (!firstInput) return undefined;
+    try {
+        return toInteropAccountId(firstInput.user).address as Address;
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Adds Permit2 `checks.allowances` to escrow orders when the payload and
+ * preview give us enough to build them. Other order types are returned as-is.
+ */
+function withPermit2Allowances(order: Order, pq: ProviderQuote): Order {
+    const oifOrder = pq.order as OifOrder;
+    if (oifOrder.type !== "oif-escrow-v0") return order;
+
+    const signer = extractSigner(pq);
+    if (!signer) {
+        console.warn(
+            "[quoteAdapter] Skipping Permit2 allowance extraction: missing signer in preview",
+        );
+        return order;
+    }
+
+    const allowances = extractPermit2Allowances(
+        {
+            domain: oifOrder.payload.domain as Record<string, unknown>,
+            primaryType: oifOrder.payload.primaryType,
+            message: oifOrder.payload.message as Record<string, unknown>,
+        },
+        signer,
+    );
+    if (allowances.length === 0) return order;
+
+    const existing = order.checks?.allowances ?? [];
+    const merged: NonNullable<OrderChecks["allowances"]> = [...existing, ...allowances];
+    return { ...order, checks: { ...order.checks, allowances: merged } };
+}
+
 // ── Public API ───────────────────────────────────────────
 
 /**
@@ -41,10 +90,14 @@ function adaptPreviewEntry(entry: {
  *
  * - Converts the order to a step-based {@link Order}
  * - Converts ERC-7930 addresses in preview to {@link InteropAccountId}
+ * - Adds Permit2 `checks.allowances` for `oif-escrow-v0` orders
  * - Preserves all other quote fields
  */
 export function adaptQuote(providerQuote: ProviderQuote): Quote {
-    const order = adaptOifOrder(providerQuote.order as OifOrder);
+    const order = withPermit2Allowances(
+        adaptOifOrder(providerQuote.order as OifOrder),
+        providerQuote,
+    );
 
     const preview = {
         inputs: providerQuote.preview.inputs

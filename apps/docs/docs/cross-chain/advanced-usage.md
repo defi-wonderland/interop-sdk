@@ -144,6 +144,8 @@ for (const step of getTransactionSteps(quote.order)) {
 -   **`ExactAmountStrategy`** (default): approves exactly `required`. Smallest allowance footprint — one `approve` per order against the same `(token, spender)` pair.
 -   **`InfiniteAmountStrategy`**: approves `type(uint256).max`. The first order grants an unbounded allowance and later orders for the same pair skip the approval step entirely, at the cost of an unbounded allowance to the spender.
 
+If your app accepts Permit2-based gasless flows (OIF `oif-escrow-v0`, Bungee gasless), prefer `InfiniteAmountStrategy`: Permit2 pulls tokens via the ERC-20 allowance every transfer, so `ExactAmountStrategy` would require re-approving Permit2 on every order and defeat the point of the gasless path.
+
 ```typescript
 import { createApprovalService, InfiniteAmountStrategy } from "@wonderland/interop-cross-chain";
 
@@ -165,7 +167,7 @@ The approval service can only enrich a quote whose provider declares its allowan
 
 -   **Across, LiFi Intents, OIF `oif-user-open-v0`** — always populated for ERC-20 inputs.
 -   **Relay, Bungee** — populated whenever the API flags an approve as needed (including the one-time Permit2 approval for Bungee's gasless path). Omitted when the API considers no approve required.
--   **OIF `oif-escrow-v0`** (Permit2-based gasless) — **not populated**. The OIF wire format does not surface Permit2 approval state, so the adapter has no entry to forward. If your configuration accepts these quotes, the user's first transfer against a given token will fail when the solver cannot pull funds. Handle the one-time `approve(PERMIT2, ...)` yourself, or restrict the provider to `submissionModes: ["user-transaction"]` until the OIF adapter is updated.
+-   **OIF `oif-escrow-v0`** (Permit2-based gasless) — populated: the adapter parses the EIP-712 payload and surfaces a Permit2 allowance entry so the first-time `approve(PERMIT2, ...)` is prepended automatically. Pair with `InfiniteAmountStrategy` (see above) to avoid re-approving on every order, since Permit2 consumes the ERC-20 allowance on each pull.
 -   **OIF `oif-3009-v0`, `oif-resource-lock-v0`** — not populated, and correctly so: EIP-3009 and resource-lock flows don't use ERC-20 `approve`.
 
 For the full API reference see [Approval Service](./api.md#approval-service).
