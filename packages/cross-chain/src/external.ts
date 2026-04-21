@@ -32,6 +32,7 @@ export {
     DefaultApprovalService,
     createApprovalService,
     type CreateApprovalServiceConfig,
+    type ApprovalReadFailure,
     ExactAmountStrategy,
     InfiniteAmountStrategy,
     MulticallAllowanceReader,

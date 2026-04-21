@@ -5,6 +5,7 @@ import type {
     AllowanceEntry,
     AllowanceReader,
     AllowanceResult,
+    ApprovalReadFailure,
 } from "../../interfaces/approval.interface.js";
 import { getChainById } from "../../utils/chainHelpers.js";
 import { PublicClientManager } from "../../utils/publicClientManager.js";
@@ -27,9 +28,17 @@ interface ChainBatch {
 /**
  * Reads ERC-20 allowances by batching `allowance()` calls into one
  * `multicall` per chain. Failures on one chain cannot affect others.
+ *
+ * An optional `onReadFailure` callback is invoked whenever an entire chain
+ * batch fails (registry lookup miss or multicall rejection). Individual
+ * probe reverts are represented as `null` allowances per entry and do not
+ * trigger the callback.
  */
 export class MulticallAllowanceReader implements AllowanceReader {
-    constructor(private readonly clientManager: PublicClientManager) {}
+    constructor(
+        private readonly clientManager: PublicClientManager,
+        private readonly onReadFailure: (failure: ApprovalReadFailure) => void = () => {},
+    ) {}
 
     async readAllowances(entries: AllowanceEntry[]): Promise<AllowanceResult[]> {
         const batches = groupByChain(entries);
@@ -52,8 +61,15 @@ export class MulticallAllowanceReader implements AllowanceReader {
         chainId: number,
         entries: AllowanceEntry[],
     ): Promise<Allowance[]> {
+        let client;
         try {
-            const client = this.clientManager.getClient(getChainById(chainId));
+            client = this.clientManager.getClient(getChainById(chainId));
+        } catch (error) {
+            this.onReadFailure({ chainId, reason: "unknown-chain", error });
+            return entries.map(() => null);
+        }
+
+        try {
             const results = await client.multicall({
                 contracts: entries.map((e) => ({
                     address: e.tokenAddress,
@@ -63,7 +79,8 @@ export class MulticallAllowanceReader implements AllowanceReader {
                 })),
             });
             return results.map((r) => (r.status === "success" ? (r.result as bigint) : null));
-        } catch {
+        } catch (error) {
+            this.onReadFailure({ chainId, reason: "multicall", error });
             return entries.map(() => null);
         }
     }

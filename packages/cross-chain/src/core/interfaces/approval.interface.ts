@@ -36,6 +36,20 @@ export interface AllowanceReader {
     readAllowances(entries: AllowanceEntry[]): Promise<AllowanceResult[]>;
 }
 
+/**
+ * Context passed to an `onReadFailure` callback when an allowance read
+ * fails for an entire chain batch.
+ *
+ * Distinguishes a registry lookup miss (`unknown-chain`) from an RPC or
+ * multicall failure (`multicall`). Individual on-chain probe reverts do
+ * **not** produce this — they surface as `null` allowances per entry.
+ */
+export interface ApprovalReadFailure {
+    chainId: number;
+    reason: "multicall" | "unknown-chain";
+    error: unknown;
+}
+
 /** Enriches executable quotes with ERC-20 approval steps when needed. */
 export interface ApprovalService {
     enrichQuotes(quotes: ExecutableQuote[]): Promise<ExecutableQuote[]>;

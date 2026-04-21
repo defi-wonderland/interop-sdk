@@ -1,45 +1,55 @@
-import { arbitrumSepolia, baseSepolia, sepolia } from "viem/chains";
+import { arbitrumSepolia, baseSepolia, mainnet, polygon, sepolia } from "viem/chains";
 import { describe, expect, it } from "vitest";
 
 import { getChainById } from "../../src/core/utils/chainHelpers.js";
 
+const UNKNOWN_CHAIN_ID = 123_456_789;
+
 describe("chainHelpers", () => {
     describe("getChainById", () => {
-        it("should return Sepolia chain for chain ID 11155111", () => {
+        it("resolves Ethereum mainnet (chain 1) without an allowlist entry", () => {
+            const chain = getChainById(mainnet.id);
+
+            expect(chain).toEqual(mainnet);
+            expect(chain.id).toBe(1);
+        });
+
+        it("resolves Polygon to prove we are not gated on a curated list", () => {
+            const chain = getChainById(polygon.id);
+
+            expect(chain).toEqual(polygon);
+            expect(chain.id).toBe(137);
+        });
+
+        it("resolves Sepolia", () => {
             const chain = getChainById(sepolia.id);
 
             expect(chain).toEqual(sepolia);
-            expect(chain.id).toBe(11155111);
-            expect(chain.name).toBe("Sepolia");
         });
 
-        it("should return Base Sepolia chain for chain ID 84532", () => {
+        it("resolves Base Sepolia", () => {
             const chain = getChainById(baseSepolia.id);
 
             expect(chain).toEqual(baseSepolia);
-            expect(chain.id).toBe(84532);
         });
 
-        it("should return Arbitrum Sepolia chain for chain ID 421614", () => {
+        it("resolves Arbitrum Sepolia", () => {
             const chain = getChainById(arbitrumSepolia.id);
 
             expect(chain).toEqual(arbitrumSepolia);
-            expect(chain.id).toBe(421614);
         });
 
-        it("should throw error for unsupported chain ID", () => {
-            const unsupportedChainId = 999999;
-
-            expect(() => getChainById(unsupportedChainId)).toThrow(
-                `Unsupported chain ID: ${unsupportedChainId}`,
+        it("throws for a chain ID viem does not know", () => {
+            expect(() => getChainById(UNKNOWN_CHAIN_ID)).toThrow(
+                `Unsupported chain ID: ${UNKNOWN_CHAIN_ID}`,
             );
         });
 
-        it("should throw error for zero chain ID", () => {
+        it("throws for zero", () => {
             expect(() => getChainById(0)).toThrow("Unsupported chain ID: 0");
         });
 
-        it("should throw error for negative chain ID", () => {
+        it("throws for negative IDs", () => {
             expect(() => getChainById(-1)).toThrow("Unsupported chain ID: -1");
         });
     });

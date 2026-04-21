@@ -1,6 +1,6 @@
 import type { PublicClient } from "viem";
 
-import type { ApprovalAmountStrategy, ApprovalService } from "../internal.js";
+import type { ApprovalAmountStrategy, ApprovalReadFailure, ApprovalService } from "../internal.js";
 import {
     DefaultApprovalService,
     ExactAmountStrategy,
@@ -24,11 +24,27 @@ export interface CreateApprovalServiceConfig {
      * relayer estimates it.
      */
     approvalGasLimit?: bigint;
+    /**
+     * Invoked when an allowance read fails for an entire chain batch
+     * (RPC down, multicall rejected, or chain unknown to viem).
+     *
+     * Defaults to `console.warn` so misconfigurations are visible. Pass
+     * `() => {}` to silence. Individual probe reverts do not trigger this.
+     */
+    onReadFailure?: (failure: ApprovalReadFailure) => void;
 }
+
+const defaultOnReadFailure = ({ chainId, reason, error }: ApprovalReadFailure): void => {
+    console.warn(
+        `[ApprovalService] allowance read failed (chainId=${chainId}, reason=${reason}):`,
+        error,
+    );
+};
 
 export function createApprovalService(config?: CreateApprovalServiceConfig): ApprovalService {
     const clientManager = new PublicClientManager(config?.publicClient, config?.rpcUrls);
-    const reader = new MulticallAllowanceReader(clientManager);
+    const onReadFailure = config?.onReadFailure ?? defaultOnReadFailure;
+    const reader = new MulticallAllowanceReader(clientManager, onReadFailure);
     const strategy = config?.amountStrategy ?? new ExactAmountStrategy();
     return new DefaultApprovalService(reader, strategy, config?.approvalGasLimit);
 }
