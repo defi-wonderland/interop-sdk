@@ -1,11 +1,12 @@
-import { z } from "zod";
+import { chainIdSchema } from "./common.js";
 
 /**
  * A chain ID.
  *
- * The SDK does not gate on a curated list — whether a chain is actually
- * supported for bridging is decided by the registered providers at runtime
- * via asset discovery. Generic chain-registry lookups (multicall, allowance
- * reads, etc.) resolve against the full `viem/chains` catalogue.
+ * Accepts any positive safe integer. The SDK does not keep a curated list;
+ * bridging support is decided by the registered providers at runtime, and
+ * generic chain lookups resolve against viem's catalogue.
+ *
+ * Delegates validation to `chainIdSchema` so the rules live in one place.
  */
-export const SupportedChainIdSchema = z.number().int().positive();
+export const SupportedChainIdSchema = chainIdSchema;

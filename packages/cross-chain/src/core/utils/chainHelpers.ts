@@ -2,24 +2,15 @@ import type { Chain } from "viem";
 import { extractChain } from "viem";
 import * as viemChains from "viem/chains";
 
-const ALL_VIEM_CHAINS: Chain[] = (Object.values(viemChains) as unknown[]).filter(
-    (value): value is Chain =>
-        typeof value === "object" &&
-        value !== null &&
-        typeof (value as Chain).id === "number" &&
-        typeof (value as Chain).name === "string" &&
-        "rpcUrls" in value,
-);
-
 /**
  * Get a chain by its chain ID.
  *
- * Resolves against the full `viem/chains` catalogue, so any chain viem knows
- * works out of the box — no SDK release required to add a new chain.
+ * Looks up the chain in viem's catalogue, so any chain viem ships with is
+ * available without adding it to the SDK.
  *
  * @param chainId - The chain ID to look up
  * @returns The chain configuration
- * @throws {Error} If the chain ID is not known to viem
+ * @throws {Error} If viem does not know the chain ID
  *
  * @example
  * ```typescript
@@ -29,7 +20,7 @@ const ALL_VIEM_CHAINS: Chain[] = (Object.values(viemChains) as unknown[]).filter
  */
 export function getChainById(chainId: number): Chain {
     const chain = extractChain({
-        chains: ALL_VIEM_CHAINS,
+        chains: Object.values(viemChains) as Chain[],
         id: chainId as Chain["id"],
     });
     if (!chain) {

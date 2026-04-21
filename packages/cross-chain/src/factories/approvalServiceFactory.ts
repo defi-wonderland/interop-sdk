@@ -25,11 +25,11 @@ export interface CreateApprovalServiceConfig {
      */
     approvalGasLimit?: bigint;
     /**
-     * Invoked when an allowance read fails for an entire chain batch
-     * (RPC down, multicall rejected, or chain unknown to viem).
+     * Called when a whole allowance batch read fails (RPC down, multicall
+     * rejected, or chain unknown to viem).
      *
-     * Defaults to `console.warn` so misconfigurations are visible. Pass
-     * `() => {}` to silence. Individual probe reverts do not trigger this.
+     * Defaults to `console.warn` so bad configuration is visible. Pass
+     * `() => {}` to silence. Single probe reverts do not trigger this.
      */
     onReadFailure?: (failure: ApprovalReadFailure) => void;
 }

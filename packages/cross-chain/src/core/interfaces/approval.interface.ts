@@ -37,12 +37,11 @@ export interface AllowanceReader {
 }
 
 /**
- * Context passed to an `onReadFailure` callback when an allowance read
- * fails for an entire chain batch.
+ * Payload for a failed allowance batch read.
  *
- * Distinguishes a registry lookup miss (`unknown-chain`) from an RPC or
- * multicall failure (`multicall`). Individual on-chain probe reverts do
- * **not** produce this — they surface as `null` allowances per entry.
+ * The `reason` splits chain-registry misses (`unknown-chain`) from RPC or
+ * multicall errors (`multicall`). Single probe reverts are not reported
+ * here; they show up as `null` allowances on the affected entries.
  */
 export interface ApprovalReadFailure {
     chainId: number;

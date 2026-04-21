@@ -44,7 +44,7 @@ describe("MulticallAllowanceReader", () => {
         expect(results[0]!.allowance).toBe(500n);
     });
 
-    it("resolves allowances on Ethereum mainnet (chain 1) without gating on an allowlist", async () => {
+    it("reads allowances on Ethereum mainnet", async () => {
         const clientManager = makeClientManager(async () => [
             { status: "success", result: 1_000n },
         ]);
@@ -69,7 +69,7 @@ describe("MulticallAllowanceReader", () => {
         expect(multicall).toHaveBeenCalledTimes(2);
     });
 
-    it("returns null for individual failed calls within a multicall without invoking onReadFailure", async () => {
+    it("returns null on a reverting probe without calling onReadFailure", async () => {
         const onReadFailure = vi.fn();
         const clientManager = makeClientManager(async () => [
             { status: "success", result: 500n },
@@ -87,7 +87,7 @@ describe("MulticallAllowanceReader", () => {
         expect(onReadFailure).not.toHaveBeenCalled();
     });
 
-    it("surfaces a multicall rejection through onReadFailure with reason 'multicall'", async () => {
+    it("reports a multicall rejection via onReadFailure with reason 'multicall'", async () => {
         const rpcError = new Error("RPC down");
         const onReadFailure = vi.fn();
         const getClient = vi.fn((chain: Chain) => ({
@@ -113,7 +113,7 @@ describe("MulticallAllowanceReader", () => {
         } satisfies ApprovalReadFailure);
     });
 
-    it("surfaces an unknown-chain lookup through onReadFailure with reason 'unknown-chain'", async () => {
+    it("reports an unknown-chain lookup via onReadFailure with reason 'unknown-chain'", async () => {
         const onReadFailure = vi.fn();
         const clientManager = makeClientManager(async () => [{ status: "success", result: 100n }]);
         const reader = new MulticallAllowanceReader(clientManager, onReadFailure);

@@ -29,10 +29,9 @@ interface ChainBatch {
  * Reads ERC-20 allowances by batching `allowance()` calls into one
  * `multicall` per chain. Failures on one chain cannot affect others.
  *
- * An optional `onReadFailure` callback is invoked whenever an entire chain
- * batch fails (registry lookup miss or multicall rejection). Individual
- * probe reverts are represented as `null` allowances per entry and do not
- * trigger the callback.
+ * When a whole batch fails (registry miss or multicall error), the optional
+ * `onReadFailure` callback runs. Single probe reverts are not reported
+ * through it; they map to `null` per entry.
  */
 export class MulticallAllowanceReader implements AllowanceReader {
     constructor(

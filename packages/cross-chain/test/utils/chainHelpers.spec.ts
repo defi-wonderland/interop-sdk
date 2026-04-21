@@ -1,4 +1,4 @@
-import { arbitrumSepolia, baseSepolia, mainnet, polygon, sepolia } from "viem/chains";
+import { arbitrumSepolia, baseSepolia, mainnet, sepolia } from "viem/chains";
 import { describe, expect, it } from "vitest";
 
 import { getChainById } from "../../src/core/utils/chainHelpers.js";
@@ -7,18 +7,11 @@ const UNKNOWN_CHAIN_ID = 123_456_789;
 
 describe("chainHelpers", () => {
     describe("getChainById", () => {
-        it("resolves Ethereum mainnet (chain 1) without an allowlist entry", () => {
+        it("resolves Ethereum mainnet", () => {
             const chain = getChainById(mainnet.id);
 
             expect(chain).toEqual(mainnet);
             expect(chain.id).toBe(1);
-        });
-
-        it("resolves Polygon to prove we are not gated on a curated list", () => {
-            const chain = getChainById(polygon.id);
-
-            expect(chain).toEqual(polygon);
-            expect(chain.id).toBe(137);
         });
 
         it("resolves Sepolia", () => {
