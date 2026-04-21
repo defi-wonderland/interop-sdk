@@ -1,6 +1,6 @@
 import type { PublicClient } from "viem";
 
-import type { ApprovalAmountStrategy, ApprovalReadFailure, ApprovalService } from "../internal.js";
+import type { AllowanceReadFailure, ApprovalAmountStrategy, ApprovalService } from "../internal.js";
 import {
     DefaultApprovalService,
     ExactAmountStrategy,
@@ -31,10 +31,10 @@ export interface CreateApprovalServiceConfig {
      * Defaults to `console.warn` so bad configuration is visible. Pass
      * `() => {}` to silence. Single probe reverts do not trigger this.
      */
-    onReadFailure?: (failure: ApprovalReadFailure) => void;
+    onReadFailure?: (failure: AllowanceReadFailure) => void;
 }
 
-const defaultOnReadFailure = ({ chainId, reason, error }: ApprovalReadFailure): void => {
+const defaultOnReadFailure = ({ chainId, reason, error }: AllowanceReadFailure): void => {
     console.warn(
         `[ApprovalService] allowance read failed (chainId=${chainId}, reason=${reason}):`,
         error,

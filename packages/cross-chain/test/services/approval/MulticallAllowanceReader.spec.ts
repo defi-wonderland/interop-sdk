@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type {
     AllowanceEntry,
-    ApprovalReadFailure,
+    AllowanceReadFailure,
 } from "../../../src/core/interfaces/approval.interface.js";
 import type { PublicClientManager } from "../../../src/core/utils/publicClientManager.js";
 import { MulticallAllowanceReader } from "../../../src/core/services/approval/MulticallAllowanceReader.js";
@@ -110,7 +110,7 @@ describe("MulticallAllowanceReader", () => {
             chainId: 42,
             reason: "multicall",
             error: rpcError,
-        } satisfies ApprovalReadFailure);
+        } satisfies AllowanceReadFailure);
     });
 
     it("reports an unknown-chain lookup via onReadFailure with reason 'unknown-chain'", async () => {

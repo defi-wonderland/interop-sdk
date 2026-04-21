@@ -5,9 +5,10 @@ import type {
     Allowance,
     AllowanceEntry,
     AllowanceReader,
+    AllowanceReadFailure,
     AllowanceResult,
-    ApprovalReadFailure,
 } from "../../interfaces/approval.interface.js";
+import { AllowanceReadFailureReason } from "../../interfaces/approval.interface.js";
 import { getChainById } from "../../utils/chainHelpers.js";
 import { PublicClientManager } from "../../utils/publicClientManager.js";
 
@@ -37,7 +38,7 @@ interface ChainBatch {
 export class MulticallAllowanceReader implements AllowanceReader {
     constructor(
         private readonly clientManager: PublicClientManager,
-        private readonly onReadFailure: (failure: ApprovalReadFailure) => void = () => {},
+        private readonly onReadFailure: (failure: AllowanceReadFailure) => void = () => {},
     ) {}
 
     async readAllowances(entries: AllowanceEntry[]): Promise<AllowanceResult[]> {
@@ -76,7 +77,11 @@ export class MulticallAllowanceReader implements AllowanceReader {
             });
             return results.map((r) => (r.status === "success" ? (r.result as bigint) : null));
         } catch (error) {
-            this.onReadFailure({ chainId, reason: "multicall", error });
+            this.onReadFailure({
+                chainId,
+                reason: AllowanceReadFailureReason.Multicall,
+                error,
+            });
             return entries.map(() => null);
         }
     }
@@ -85,7 +90,11 @@ export class MulticallAllowanceReader implements AllowanceReader {
         try {
             return getChainById(chainId);
         } catch (error) {
-            this.onReadFailure({ chainId, reason: "unknown-chain", error });
+            this.onReadFailure({
+                chainId,
+                reason: AllowanceReadFailureReason.UnknownChain,
+                error,
+            });
             return null;
         }
     }

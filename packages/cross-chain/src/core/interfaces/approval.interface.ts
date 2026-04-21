@@ -37,15 +37,23 @@ export interface AllowanceReader {
 }
 
 /**
+ * Distinguishes chain-registry misses from RPC or multicall errors when an
+ * allowance batch read fails.
+ */
+export enum AllowanceReadFailureReason {
+    Multicall = "multicall",
+    UnknownChain = "unknown-chain",
+}
+
+/**
  * Payload for a failed allowance batch read.
  *
- * The `reason` splits chain-registry misses (`unknown-chain`) from RPC or
- * multicall errors (`multicall`). Single probe reverts are not reported
- * here; they show up as `null` allowances on the affected entries.
+ * Single probe reverts are not reported here; they show up as `null`
+ * allowances on the affected entries.
  */
-export interface ApprovalReadFailure {
+export interface AllowanceReadFailure {
     chainId: number;
-    reason: "multicall" | "unknown-chain";
+    reason: AllowanceReadFailureReason;
     error: unknown;
 }
 
