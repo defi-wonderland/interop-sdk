@@ -33,6 +33,7 @@ export {
     createApprovalService,
     type CreateApprovalServiceConfig,
     type AllowanceReadFailure,
+    type AllowanceReadFailureHandler,
     AllowanceReadFailureReason,
     ExactAmountStrategy,
     InfiniteAmountStrategy,

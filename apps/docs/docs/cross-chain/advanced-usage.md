@@ -157,7 +157,9 @@ You can also supply your own strategy by implementing the `ApprovalAmountStrateg
 
 ### Failure handling
 
-The service is best-effort. If an allowance read fails for a chain, the affected quotes pass through unmodified rather than being dropped. Without an `approvalService`, aggregator output is unchanged.
+The service is best-effort. Allowance reads run through `MulticallAllowanceReader`, which batches one `multicall` per chain so a failure on one chain never affects reads on another. When a whole batch fails (RPC down, chain unknown to viem), the affected quotes pass through unmodified. Without an `approvalService`, aggregator output is unchanged.
+
+Pass a `failureHandler` to observe batch failures. Defaults to `console.warn`; pass `{ handle: () => {} }` to silence, or your own implementation to route failures into telemetry.
 
 ### Provider coverage
 

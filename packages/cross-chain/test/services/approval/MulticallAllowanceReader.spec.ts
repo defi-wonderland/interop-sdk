@@ -4,9 +4,14 @@ import { describe, expect, it, vi } from "vitest";
 import type {
     AllowanceEntry,
     AllowanceReadFailure,
+    AllowanceReadFailureHandler,
 } from "../../../src/core/interfaces/approval.interface.js";
 import type { PublicClientManager } from "../../../src/core/utils/publicClientManager.js";
 import { MulticallAllowanceReader } from "../../../src/core/services/approval/MulticallAllowanceReader.js";
+
+function makeHandler(): AllowanceReadFailureHandler & { handle: ReturnType<typeof vi.fn> } {
+    return { handle: vi.fn() };
+}
 
 const UNKNOWN_CHAIN_ID = 123_456_789;
 
@@ -69,13 +74,13 @@ describe("MulticallAllowanceReader", () => {
         expect(multicall).toHaveBeenCalledTimes(2);
     });
 
-    it("returns null on a reverting probe without calling onReadFailure", async () => {
-        const onReadFailure = vi.fn();
+    it("returns null on a reverting probe without invoking the failure handler", async () => {
+        const handler = makeHandler();
         const clientManager = makeClientManager(async () => [
             { status: "success", result: 500n },
             { status: "failure", error: new Error("revert") },
         ]);
-        const reader = new MulticallAllowanceReader(clientManager, onReadFailure);
+        const reader = new MulticallAllowanceReader(clientManager, handler);
 
         const results = await reader.readAllowances([
             entry(1),
@@ -84,12 +89,12 @@ describe("MulticallAllowanceReader", () => {
 
         expect(results[0]!.allowance).toBe(500n);
         expect(results[1]!.allowance).toBeNull();
-        expect(onReadFailure).not.toHaveBeenCalled();
+        expect(handler.handle).not.toHaveBeenCalled();
     });
 
-    it("reports a multicall rejection via onReadFailure with reason 'multicall'", async () => {
+    it("reports a multicall rejection through the failure handler with reason 'multicall'", async () => {
         const rpcError = new Error("RPC down");
-        const onReadFailure = vi.fn();
+        const handler = makeHandler();
         const getClient = vi.fn((chain: Chain) => ({
             multicall:
                 chain.id === 42
@@ -99,31 +104,31 @@ describe("MulticallAllowanceReader", () => {
                     : vi.fn(async () => [{ status: "success", result: 100n }]),
         }));
         const clientManager = { getClient } as unknown as PublicClientManager;
-        const reader = new MulticallAllowanceReader(clientManager, onReadFailure);
+        const reader = new MulticallAllowanceReader(clientManager, handler);
 
         const results = await reader.readAllowances([entry(1), entry(42)]);
 
         expect(results.find((r) => r.entry.chainId === 1)!.allowance).toBe(100n);
         expect(results.find((r) => r.entry.chainId === 42)!.allowance).toBeNull();
-        expect(onReadFailure).toHaveBeenCalledTimes(1);
-        expect(onReadFailure).toHaveBeenCalledWith({
+        expect(handler.handle).toHaveBeenCalledTimes(1);
+        expect(handler.handle).toHaveBeenCalledWith({
             chainId: 42,
             reason: "multicall",
             error: rpcError,
         } satisfies AllowanceReadFailure);
     });
 
-    it("reports an unknown-chain lookup via onReadFailure with reason 'unknown-chain'", async () => {
-        const onReadFailure = vi.fn();
+    it("reports an unknown-chain lookup through the failure handler with reason 'unknown-chain'", async () => {
+        const handler = makeHandler();
         const clientManager = makeClientManager(async () => [{ status: "success", result: 100n }]);
-        const reader = new MulticallAllowanceReader(clientManager, onReadFailure);
+        const reader = new MulticallAllowanceReader(clientManager, handler);
 
         const results = await reader.readAllowances([entry(1), entry(UNKNOWN_CHAIN_ID)]);
 
         expect(results.find((r) => r.entry.chainId === 1)!.allowance).toBe(100n);
         expect(results.find((r) => r.entry.chainId === UNKNOWN_CHAIN_ID)!.allowance).toBeNull();
-        expect(onReadFailure).toHaveBeenCalledTimes(1);
-        expect(onReadFailure).toHaveBeenCalledWith(
+        expect(handler.handle).toHaveBeenCalledTimes(1);
+        expect(handler.handle).toHaveBeenCalledWith(
             expect.objectContaining({
                 chainId: UNKNOWN_CHAIN_ID,
                 reason: "unknown-chain",
@@ -131,7 +136,8 @@ describe("MulticallAllowanceReader", () => {
         );
     });
 
-    it("defaults to a no-op onReadFailure when none is provided", async () => {
+    it("defaults to DefaultAllowanceReadFailureHandler when none is provided", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
         const clientManager = makeClientManager(async () => {
             throw new Error("boom");
         });
@@ -140,6 +146,8 @@ describe("MulticallAllowanceReader", () => {
         const results = await reader.readAllowances([entry(1)]);
 
         expect(results[0]!.allowance).toBeNull();
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
     });
 
     it("returns empty array for empty input", async () => {

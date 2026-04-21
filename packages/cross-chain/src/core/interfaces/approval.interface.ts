@@ -57,6 +57,11 @@ export interface AllowanceReadFailure {
     error: unknown;
 }
 
+/** Handles full chain batch failures emitted by an `AllowanceReader`. */
+export interface AllowanceReadFailureHandler {
+    handle(failure: AllowanceReadFailure): void;
+}
+
 /** Enriches executable quotes with ERC-20 approval steps when needed. */
 export interface ApprovalService {
     enrichQuotes(quotes: ExecutableQuote[]): Promise<ExecutableQuote[]>;

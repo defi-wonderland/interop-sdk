@@ -5,12 +5,13 @@ import type {
     Allowance,
     AllowanceEntry,
     AllowanceReader,
-    AllowanceReadFailure,
+    AllowanceReadFailureHandler,
     AllowanceResult,
 } from "../../interfaces/approval.interface.js";
 import { AllowanceReadFailureReason } from "../../interfaces/approval.interface.js";
 import { getChainById } from "../../utils/chainHelpers.js";
 import { PublicClientManager } from "../../utils/publicClientManager.js";
+import { DefaultAllowanceReadFailureHandler } from "./DefaultAllowanceReadFailureHandler.js";
 
 interface IndexedEntry {
     entry: AllowanceEntry;
@@ -31,14 +32,15 @@ interface ChainBatch {
  * Reads ERC-20 allowances by batching `allowance()` calls into one
  * `multicall` per chain. Failures on one chain cannot affect others.
  *
- * When a whole batch fails (registry miss or multicall error), the optional
- * `onReadFailure` callback runs. Single probe reverts are not reported
- * through it; they map to `null` per entry.
+ * When a whole batch fails (registry miss or multicall error), the
+ * `failureHandler` is notified. Single probe reverts are not reported
+ * through it; they map to `null` per entry. Defaults to
+ * {@link DefaultAllowanceReadFailureHandler}.
  */
 export class MulticallAllowanceReader implements AllowanceReader {
     constructor(
         private readonly clientManager: PublicClientManager,
-        private readonly onReadFailure: (failure: AllowanceReadFailure) => void = () => {},
+        private readonly failureHandler: AllowanceReadFailureHandler = new DefaultAllowanceReadFailureHandler(),
     ) {}
 
     async readAllowances(entries: AllowanceEntry[]): Promise<AllowanceResult[]> {
@@ -77,7 +79,7 @@ export class MulticallAllowanceReader implements AllowanceReader {
             });
             return results.map((r) => (r.status === "success" ? (r.result as bigint) : null));
         } catch (error) {
-            this.onReadFailure({
+            this.failureHandler.handle({
                 chainId,
                 reason: AllowanceReadFailureReason.Multicall,
                 error,
@@ -90,7 +92,7 @@ export class MulticallAllowanceReader implements AllowanceReader {
         try {
             return getChainById(chainId);
         } catch (error) {
-            this.onReadFailure({
+            this.failureHandler.handle({
                 chainId,
                 reason: AllowanceReadFailureReason.UnknownChain,
                 error,

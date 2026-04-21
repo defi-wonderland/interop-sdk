@@ -1,6 +1,10 @@
 import type { PublicClient } from "viem";
 
-import type { AllowanceReadFailure, ApprovalAmountStrategy, ApprovalService } from "../internal.js";
+import type {
+    AllowanceReadFailureHandler,
+    ApprovalAmountStrategy,
+    ApprovalService,
+} from "../internal.js";
 import {
     DefaultApprovalService,
     ExactAmountStrategy,
@@ -25,26 +29,17 @@ export interface CreateApprovalServiceConfig {
      */
     approvalGasLimit?: bigint;
     /**
-     * Called when a whole allowance batch read fails (RPC down, multicall
-     * rejected, or chain unknown to viem).
-     *
-     * Defaults to `console.warn` so bad configuration is visible. Pass
-     * `() => {}` to silence. Single probe reverts do not trigger this.
+     * Handler invoked when a whole allowance batch read fails. Defaults to
+     * {@link DefaultAllowanceReadFailureHandler} (logs through
+     * `console.warn`). Provide your own implementation to route failures into
+     * custom telemetry, or a no-op handler to silence them.
      */
-    onReadFailure?: (failure: AllowanceReadFailure) => void;
+    failureHandler?: AllowanceReadFailureHandler;
 }
-
-const defaultOnReadFailure = ({ chainId, reason, error }: AllowanceReadFailure): void => {
-    console.warn(
-        `[ApprovalService] allowance read failed (chainId=${chainId}, reason=${reason}):`,
-        error,
-    );
-};
 
 export function createApprovalService(config?: CreateApprovalServiceConfig): ApprovalService {
     const clientManager = new PublicClientManager(config?.publicClient, config?.rpcUrls);
-    const onReadFailure = config?.onReadFailure ?? defaultOnReadFailure;
-    const reader = new MulticallAllowanceReader(clientManager, onReadFailure);
+    const reader = new MulticallAllowanceReader(clientManager, config?.failureHandler);
     const strategy = config?.amountStrategy ?? new ExactAmountStrategy();
     return new DefaultApprovalService(reader, strategy, config?.approvalGasLimit);
 }
