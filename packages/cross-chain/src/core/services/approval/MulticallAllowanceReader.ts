@@ -1,3 +1,4 @@
+import type { Chain } from "viem";
 import { erc20Abi } from "viem";
 
 import type {
@@ -60,15 +61,11 @@ export class MulticallAllowanceReader implements AllowanceReader {
         chainId: number,
         entries: AllowanceEntry[],
     ): Promise<Allowance[]> {
-        let client;
-        try {
-            client = this.clientManager.getClient(getChainById(chainId));
-        } catch (error) {
-            this.onReadFailure({ chainId, reason: "unknown-chain", error });
-            return entries.map(() => null);
-        }
+        const chain = this.resolveChain(chainId);
+        if (!chain) return entries.map(() => null);
 
         try {
+            const client = this.clientManager.getClient(chain);
             const results = await client.multicall({
                 contracts: entries.map((e) => ({
                     address: e.tokenAddress,
@@ -81,6 +78,15 @@ export class MulticallAllowanceReader implements AllowanceReader {
         } catch (error) {
             this.onReadFailure({ chainId, reason: "multicall", error });
             return entries.map(() => null);
+        }
+    }
+
+    private resolveChain(chainId: number): Chain | null {
+        try {
+            return getChainById(chainId);
+        } catch (error) {
+            this.onReadFailure({ chainId, reason: "unknown-chain", error });
+            return null;
         }
     }
 }
