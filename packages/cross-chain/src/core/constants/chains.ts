@@ -11,10 +11,7 @@ export const MAINNET_CHAINS = [base, arbitrum, optimism] as const;
 export const TESTNET_CHAINS = [sepolia, baseSepolia, arbitrumSepolia] as const;
 
 /**
- * Default chain list, handy for UI pickers or tests.
- *
- * It does not define which chains the SDK can bridge through. Bridging
- * support comes from the registered providers at runtime, and generic
- * chain lookups resolve against viem's full catalogue.
+ * Supported chains for cross-chain operations
+ * Includes both mainnet and testnet networks
  */
 export const SUPPORTED_CHAINS = [...MAINNET_CHAINS, ...TESTNET_CHAINS] as const;
