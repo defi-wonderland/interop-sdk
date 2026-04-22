@@ -35,15 +35,7 @@ interface TokenPermission {
     amount: string;
 }
 
-/**
- * Returns the ERC-20 allowances a Permit2 escrow order needs from the user.
- *
- * Trusts the payload (already validated by `validateEscrowOrder`). Unknown
- * Permit2 primary types return an empty list.
- *
- * The signer is passed in because Permit2 messages don't carry the owner:
- * the signature identifies them.
- */
+/** Extracts the ERC-20 allowances from a validated Permit2 escrow payload. */
 export function extractPermit2Allowances(
     payload: EscrowPayload,
     signer: Address,
