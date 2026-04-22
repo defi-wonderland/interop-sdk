@@ -1,6 +1,10 @@
 import type { PublicClient } from "viem";
 
-import type { ApprovalAmountStrategy, ApprovalService } from "../internal.js";
+import type {
+    AllowanceReadFailureHandler,
+    ApprovalAmountStrategy,
+    ApprovalService,
+} from "../internal.js";
 import {
     DefaultApprovalService,
     ExactAmountStrategy,
@@ -24,11 +28,18 @@ export interface CreateApprovalServiceConfig {
      * relayer estimates it.
      */
     approvalGasLimit?: bigint;
+    /**
+     * Handler invoked when a whole allowance batch read fails. Defaults to
+     * {@link DefaultAllowanceReadFailureHandler} (logs through
+     * `console.warn`). Provide your own implementation to route failures into
+     * custom telemetry, or a no-op handler to silence them.
+     */
+    failureHandler?: AllowanceReadFailureHandler;
 }
 
 export function createApprovalService(config?: CreateApprovalServiceConfig): ApprovalService {
     const clientManager = new PublicClientManager(config?.publicClient, config?.rpcUrls);
-    const reader = new MulticallAllowanceReader(clientManager);
+    const reader = new MulticallAllowanceReader(clientManager, config?.failureHandler);
     const strategy = config?.amountStrategy ?? new ExactAmountStrategy();
     return new DefaultApprovalService(reader, strategy, config?.approvalGasLimit);
 }
