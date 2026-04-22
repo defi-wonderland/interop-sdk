@@ -147,9 +147,6 @@ function fromOifUserOpenOrder(order: {
 
 /**
  * Convert an OIF wire-format order to an SDK {@link Order}.
- *
- * Permit2 allowances for `oif-escrow-v0` are filled in separately by the
- * quote adapter, which has the signer from the preview.
  */
 export function adaptOifOrder(order: OifOrder): Order {
     switch (order.type) {
