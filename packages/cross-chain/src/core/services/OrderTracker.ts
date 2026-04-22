@@ -1,4 +1,3 @@
-import { EventEmitter } from "events";
 import { Address, Hex } from "viem";
 
 import type { FillWatcher } from "../interfaces/fillWatcher.interface.js";
@@ -19,6 +18,7 @@ import { OrderTrackerEvent } from "../interfaces/orderTracker.interface.js";
 import { OrderFailureReason, OrderStatus, OrderTrackerYieldType } from "../types/orderTracking.js";
 import { getChainById } from "../utils/chainHelpers.js";
 import { PublicClientManager } from "../utils/publicClientManager.js";
+import { TypedEventEmitter } from "../utils/typedEventEmitter.js";
 
 const FillResultStatus = {
     Finalized: "finalized",
@@ -27,35 +27,7 @@ const FillResultStatus = {
     Timeout: "timeout",
 } as const;
 
-export class OrderTracker extends EventEmitter {
-    override on<K extends keyof OrderTrackerEvents>(
-        event: K,
-        listener: OrderTrackerEvents[K],
-    ): this {
-        return super.on(event, listener as (...args: unknown[]) => void);
-    }
-
-    override once<K extends keyof OrderTrackerEvents>(
-        event: K,
-        listener: OrderTrackerEvents[K],
-    ): this {
-        return super.once(event, listener as (...args: unknown[]) => void);
-    }
-
-    override off<K extends keyof OrderTrackerEvents>(
-        event: K,
-        listener: OrderTrackerEvents[K],
-    ): this {
-        return super.off(event, listener as (...args: unknown[]) => void);
-    }
-
-    override emit<K extends keyof OrderTrackerEvents>(
-        event: K,
-        ...args: Parameters<OrderTrackerEvents[K]>
-    ): boolean {
-        return super.emit(event, ...args);
-    }
-
+export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
     static readonly GRACE_PERIOD_SECONDS = 60;
     static readonly DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -126,6 +98,7 @@ export class OrderTracker extends EventEmitter {
             fillInstructions: openedIntent.fillInstructions,
             fillEvent: fillEvent || undefined,
             failureReason,
+            warnings: fillEvent?.warnings,
         };
     }
 
@@ -341,13 +314,15 @@ export class OrderTracker extends EventEmitter {
                 await this.fillWatcher.getFill(fillParams);
 
             if (fillEvent) {
+                const hasWarnings = fillEvent.warnings && fillEvent.warnings.length > 0;
                 yield {
                     type: OrderTrackerYieldType.Update,
                     update: this.createUpdate({
                         status: OrderStatus.Finalized,
                         orderId: fillParams.orderId,
                         fillTxHash: fillEvent.fillTxHash,
-                        message: "Order completed",
+                        message: hasWarnings ? "Order filled with warnings" : "Order completed",
+                        warnings: fillEvent.warnings,
                     }),
                 };
                 return;
@@ -414,6 +389,7 @@ export class OrderTracker extends EventEmitter {
         fillDeadline: number,
     ): OrderTrackerYield {
         if (fillResult.status === FillResultStatus.Finalized) {
+            const hasWarnings = fillResult.warnings && fillResult.warnings.length > 0;
             return {
                 type: OrderTrackerYieldType.Update,
                 update: this.createUpdate({
@@ -421,9 +397,12 @@ export class OrderTracker extends EventEmitter {
                     orderId,
                     openTxHash,
                     fillTxHash: fillResult.fillTxHash,
-                    message: fillResult.blockNumber
-                        ? `Order completed in block ${fillResult.blockNumber}`
-                        : "Order completed",
+                    message: hasWarnings
+                        ? "Order filled with warnings"
+                        : fillResult.blockNumber
+                          ? `Order completed in block ${fillResult.blockNumber}`
+                          : "Order completed",
+                    warnings: fillResult.warnings,
                 }),
             };
         }
@@ -605,6 +584,7 @@ export class OrderTracker extends EventEmitter {
               status: typeof FillResultStatus.Finalized;
               fillTxHash: Hex;
               blockNumber?: bigint;
+              warnings?: string[];
           }
         | { status: typeof FillResultStatus.Failed; failureReason?: OrderFailureReason }
         | { status: typeof FillResultStatus.DeadlineExceeded }
@@ -616,6 +596,7 @@ export class OrderTracker extends EventEmitter {
                 status: FillResultStatus.Finalized,
                 fillTxHash: fillEvent.fillTxHash,
                 blockNumber: fillEvent.blockNumber,
+                warnings: fillEvent.warnings,
             };
         } catch (error) {
             if (error instanceof Error && error.name === "FillFailedError") {

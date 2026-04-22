@@ -12,14 +12,13 @@ Bungee offers three integration tiers, each with a different base URL and authen
 
 | Tier              | Endpoint                                     | Authentication        | Rate Limit          | Use Case                  |
 | ----------------- | -------------------------------------------- | --------------------- | ------------------- | ------------------------- |
-| Public Sandbox    | `https://public-backend.bungee.exchange/`    | None                  | Very Limited        | Testing only              |
+| Public Sandbox    | `https://public-backend.bungee.exchange/`    | None                  | Very limited        | Testing only              |
 | Dedicated Backend | `https://dedicated-backend.bungee.exchange/` | API Key (`x-api-key`) | 20 RPS (extendable) | Production backends       |
-| Frontend / Direct | `https://backend.bungee.exchange/`           | Whitelisted Domains   | 100 RPM             | Frontends, dApps, wallets |
+| Frontend / Direct | `https://backend.bungee.exchange/`           | Whitelisted domains   | 100 RPM             | Frontends, dApps, wallets |
 
--   The **public sandbox** requires no setup and is used by default.
--   For production, [request API access](https://forms.gle/z3q5RdXjouuXR85k9) to get an API key and affiliate ID.
--   The **dedicated backend** is recommended for server-to-server integrations. Keep your API key server-side.
--   The **frontend/direct** tier uses domain whitelisting instead of API keys.
+The SDK uses the **public sandbox** by default — `createCrossChainProvider("bungee")` works with no setup but is rate-limited and intended for integration testing only. For production, upgrade to Dedicated (server-to-server) or Frontend (browser) and pass the matching `tier` in the config.
+
+See [Bungee's API access docs](https://docs.bungee.exchange/integrate/get-api-access) for how to request a key or whitelist your domains.
 
 ## Configuration
 
@@ -41,7 +40,9 @@ Bungee offers three integration tiers, each with a different base URL and authen
 `submissionModes` defaults to `["user-transaction"]`. To enable the gasless permit2 flow, explicitly opt in:
 
 ```typescript
-submissionModes: ["user-transaction", "gasless"]
+createCrossChainProvider("bungee", {
+    submissionModes: ["user-transaction", "gasless"],
+});
 ```
 
 When both modes are configured, quotes are fetched in parallel and the aggregator handles either order type seamlessly, so opting in has no extra cost. For Bungee, adding `"gasless"` enables the permit2 signature flow for ERC-20 tokens — the user signs a permit2 message instead of sending an onchain transaction.

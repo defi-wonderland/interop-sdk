@@ -1,6 +1,6 @@
 {
     "name": "addresses-landing-page",
-    "version": "0.1.2",
+    "version": "0.1.4",
     "private": true,
     "description": "Landing page for Interoperable Addresses - Chain-aware addressing for the Ethereum ecosystem (ERC-7930 & ERC-7828)",
     "scripts": {
@@ -62,6 +62,7 @@
         "tailwind-merge": "3.3.1",
         "tailwindcss-animate": "1.0.7",
         "vaul": "0.9.9",
+        "viem": "2.37.0",
         "zod": "3.25.76"
     },
     "devDependencies": {

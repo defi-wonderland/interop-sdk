@@ -6,12 +6,14 @@ In this tutorial, you'll parse an interoperable address and extract its componen
 
 ## Install the package
 
+`viem` is a peer dependency (`^2.28.0`) — install it alongside the package:
+
 ```bash
-npm install @wonderland/interop-addresses
+npm install @wonderland/interop-addresses viem
 # or
-yarn add @wonderland/interop-addresses
+yarn add @wonderland/interop-addresses viem
 # or
-pnpm add @wonderland/interop-addresses
+pnpm add @wonderland/interop-addresses viem
 ```
 
 ## Parse an interoperable name

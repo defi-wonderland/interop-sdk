@@ -1,5 +1,47 @@
 # @examples/ui
 
+## 0.1.12
+
+### Patch Changes
+
+- Updated dependencies [30b0347]
+  - @wonderland/interop-cross-chain@0.8.0
+
+## 0.1.11
+
+### Patch Changes
+
+- Updated dependencies [522cd53]
+- Updated dependencies [08b637d]
+- Updated dependencies [eec04ae]
+- Updated dependencies [eec04ae]
+- Updated dependencies [59afd29]
+- Updated dependencies [59afd29]
+  - @wonderland/interop-cross-chain@0.7.0
+  - @wonderland/interop-addresses@0.6.0
+
+## 0.1.10
+
+### Patch Changes
+
+- Updated dependencies [da0cf09]
+  - @wonderland/interop-addresses@0.5.2
+  - @wonderland/interop-cross-chain@0.6.1
+
+## 0.1.9
+
+### Patch Changes
+
+- Updated dependencies [7f7db50]
+- Updated dependencies [b6be559]
+- Updated dependencies [01310c7]
+- Updated dependencies [c352336]
+- Updated dependencies [8204784]
+- Updated dependencies [c072a01]
+- Updated dependencies [9d639c9]
+- Updated dependencies [9a8ee1e]
+  - @wonderland/interop-cross-chain@0.6.0
+
 ## 0.1.8
 
 ### Patch Changes

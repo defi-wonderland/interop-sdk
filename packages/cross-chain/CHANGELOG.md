@@ -1,5 +1,62 @@
 # @wonderland/interop-cross-chain
 
+## 0.8.0
+
+### Minor Changes
+
+-   30b0347: Open up the chain registry and surface allowance-read failures.
+
+    `getChainById` now resolves any chain viem knows and only throws when viem has no record of the chain ID.
+
+    `MulticallAllowanceReader` no longer swallows registry or RPC failures. It takes an optional `failureHandler` (`AllowanceReadFailureHandler`) that receives `{ chainId, reason, error }` when a full chain batch fails. `CreateApprovalServiceConfig` exposes the same hook and defaults to `console.warn`; pass `{ handle: () => {} }` to silence it. Only the `AllowanceReadFailureHandler` interface is exported — the failure payload and reason strings are reachable through inference from `handle(failure)`.
+
+    `SupportedChainIdSchema` is no longer a curated `z.union`; it is an alias of the internal `chainIdSchema` (positive safe integer). Bridging support is decided by the registered providers at runtime.
+
+## 0.7.0
+
+### Minor Changes
+
+-   522cd53: Clean up `cross-chain` public type surface (EFI-880):
+
+    -   Re-export `GetQuotesError` and `GetQuotesResponse` from the package entrypoint so consumers can name the return type of `Aggregator.getQuotes`.
+    -   Narrow `createCrossChainProvider` to `SupportedProtocols`. The factory now has two overloads (one for protocols whose config is required, one for protocols whose config is optional) plus a generic implementation, and does an exhaustiveness check on the protocol name. Unknown protocol strings are now a compile error instead of a runtime throw.
+    -   Drop the `StepResult[]` variant from `Aggregator.submitOrder`. The signature is now `submitOrder(quote, signature: Hex)`. No provider currently produces multi-step signature orders, so this variant was untested surface area. Callers passing a `StepResult[]` should extract the signature themselves before calling. The `StepResult` interface itself has also been removed — with no producers or consumers and no API point referencing it, it was speculative scaffolding. It can be reintroduced alongside a concrete multi-sig flow if one lands.
+    -   Remove the unused token constants from `core/constants/tokens.ts`: `MAINNET_SUPPORTED_TOKEN_BY_CHAIN_ID`, `TESTNET_SUPPORTED_TOKEN_BY_CHAIN_ID`, `SUPPORTED_TOKEN_BY_CHAIN_ID`, `MAINNET_TOKEN_INFO`, and `TESTNET_TOKEN_INFO`. These were partial bootstrap lists with no in-repo consumers and implied authority they didn't have. For a runtime-accurate view of supported tokens per configuration, use `aggregator.discoverAssets()`. The `TokenInfo` type remains exported.
+
+-   59afd29: Move `viem` from a direct dependency to a peer dependency (`^2.28.0`). Consumers must now install `viem` alongside these packages. This avoids duplicate viem installs and lets apps control the exact `viem` version. The `@wonderland/interop` facade propagates the same peer requirement.
+
+### Patch Changes
+
+-   08b637d: Fix `OrderTracker` breaking browser bundles. Replace the Node `EventEmitter` base with an in-repo `TypedEventEmitter` so importing `@wonderland/interop-cross-chain` no longer requires a `node:events` polyfill under Vite, Webpack, Rolldown, or any browser-targeting bundler. Public API (`on` / `once` / `off` / `emit`) is unchanged.
+-   eec04ae: Normalize native token placeholders to the canonical `NATIVE_ASSET_ADDRESS` (EIP-7528 `0xEEE…E`) across discovery, routing, validation, and asset-support lookups, deduplicating ETH in `DiscoveredAssets` when providers report different sentinels (Bungee: `0xEEE…E`, Across/Relay/LI.FI Intents/OIF: `0x000…0`). Each provider's quote-request adapter translates the canonical address to the placeholder its API expects, so callers can pass either variant without breaking any provider. Adds the public `toCanonicalNativeAddress` helper.
+-   eec04ae: Export `NATIVE_ASSET_ADDRESS` constant (EIP-7528 canonical native sentinel address)
+-   59afd29: Remove unused `@across-protocol/app-sdk` dependency. The Across provider talks to the API directly via axios; the SDK was only referenced by a dead test mock, which has been deleted.
+-   Updated dependencies [59afd29]
+    -   @wonderland/interop-addresses@0.6.0
+
+## 0.6.1
+
+### Patch Changes
+
+-   Updated dependencies [da0cf09]
+    -   @wonderland/interop-addresses@0.5.2
+
+## 0.6.0
+
+### Minor Changes
+
+-   7f7db50: Add optional warnings field to FillEvent, OrderTrackingUpdate and OrderTrackingInfo; Across fills now surface destination call failures through it
+-   b6be559: Add Bungee cross-chain provider with permit2 signature and onchain transaction flows, API-based tracking, and token discovery.
+-   01310c7: Add optional `ApprovalService` that enriches `ExecutableQuote`s with ERC-20 `TransactionStep` approvals when the on-chain allowance is insufficient. Ships with `ExactAmountStrategy` (default) and `InfiniteAmountStrategy` to control how much is approved.
+
+### Patch Changes
+
+-   c352336: Bungee provider returns an empty array when no routes are available instead of throwing.
+-   8204784: Fix Across native token handling: normalize native addresses (0x0...0, 0xEeee...eE) to WETH in SpokePool calldata
+-   c072a01: Remove 4xx special-casing in LI.FI Intents provider for uniform error handling
+-   9d639c9: Wrap raw errors in ProviderGetQuoteFailure in Relay provider collectQuotes
+-   9a8ee1e: Restrict RelayPostBodySchema.api to valid enum values matching the submit schema
+
 ## 0.5.0
 
 ### Minor Changes

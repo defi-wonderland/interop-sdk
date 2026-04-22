@@ -6,13 +6,13 @@ This document lists all cross-chain providers supported by the Interop SDK.
 
 ## Available Providers
 
-| Provider                                | Status | Description                                               |
-| --------------------------------------- | ------ | --------------------------------------------------------- |
-| [Across Protocol](./across-provider.md) | Active | Cross-chain token transfers using Across bridge           |
-| [Relay Protocol](./relay-provider.md)   | Active | Cross-chain token transfers using Relay bridge            |
-| [OIF](./oif-provider.md)                | Active | Direct integration with OIF-compliant solvers             |
-| [Bungee Protocol](./bungee-provider.md) | Active | Cross-chain transfers via onchain or gasless permit2 flow |
-| [LiFi Intents](./lifi-intents-provider.md) | Active | Cross-chain via LiFi intent solver marketplace         |
+| Provider                                   | Status | Description                                               |
+| ------------------------------------------ | ------ | --------------------------------------------------------- |
+| [Across Protocol](./across-provider.md)    | Active | Cross-chain token transfers using Across bridge           |
+| [Relay Protocol](./relay-provider.md)      | Active | Cross-chain token transfers using Relay bridge            |
+| [OIF](./oif-provider.md)                   | Active | Direct integration with OIF-compliant solvers             |
+| [Bungee Protocol](./bungee-provider.md)    | Active | Cross-chain transfers via onchain or gasless permit2 flow |
+| [LiFi Intents](./lifi-intents-provider.md) | Active | Cross-chain via LiFi intent solver marketplace            |
 
 ## Provider Configuration
 
@@ -49,6 +49,17 @@ createCrossChainProvider("bungee", {
 | `oif`          | `solverId`, `url` | —                                                                                                     |
 | `lifi-intents` | `orderServerUrl`  | `providerId`, `headers`                                                                               |
 | `bungee`       | (none)            | `tier`, `apiKey`, `affiliateId`, `feeBps`, `feeTakerAddress`, `submissionModes`, `slippage`, `refuel` |
+
+## `isTestnet` semantics
+
+Only `across` and `relay` accept `isTestnet`. What it changes:
+
+| Provider | API host                                      | Supported chains                                           | Tracking                                                                       | Asset discovery           |
+| -------- | --------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------- |
+| `across` | `app.across.to/api` → `testnet.across.to/api` | Mainnet routes → testnet routes (Sepolia, Base Sepolia, …) | Mainnet: API-based fill watcher. Testnet: event-based (needs destination RPC). | API → static testnet list |
+| `relay`  | `api.relay.link` → `api.testnets.relay.link`  | Mainnet routes → testnet routes                            | API-based in both modes — no RPC URLs needed.                                  | API → static testnet list |
+
+`oif`, `bungee`, and `lifi-intents` don't take an `isTestnet` flag. For those providers, switch networks by pointing `url` / `orderServerUrl` / `baseUrl` at a testnet endpoint.
 
 ## Order Tracking Requirements
 

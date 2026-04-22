@@ -1,4 +1,4 @@
-import type { Address } from "viem";
+import type { Address, Chain } from "viem";
 import { encodeFunctionData, erc20Abi, maxUint256 } from "viem";
 import { describe, expect, it, vi } from "vitest";
 
@@ -8,10 +8,12 @@ import type {
     AllowanceResult,
 } from "../../../src/core/interfaces/approval.interface.js";
 import type { ExecutableQuote } from "../../../src/core/schemas/quote.js";
+import type { PublicClientManager } from "../../../src/core/utils/publicClientManager.js";
 import { allowanceKey } from "../../../src/core/interfaces/approval.interface.js";
 import { DefaultApprovalService } from "../../../src/core/services/approval/DefaultApprovalService.js";
 import { ExactAmountStrategy } from "../../../src/core/services/approval/ExactAmountStrategy.js";
 import { InfiniteAmountStrategy } from "../../../src/core/services/approval/InfiniteAmountStrategy.js";
+import { MulticallAllowanceReader } from "../../../src/core/services/approval/MulticallAllowanceReader.js";
 
 const TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as Address;
 const OWNER = "0x0000000000000000000000000000000000000001" as Address;
@@ -235,6 +237,88 @@ describe("DefaultApprovalService", () => {
         const result = await service.enrichQuotes([quote]);
 
         expect(result).toEqual([quote]);
+    });
+
+    // Guards against a chain allowlist regression: the real reader and
+    // real chain lookup are wired together; only the RPC client is mocked.
+    // If a curated allowlist ever comes back, the approval step disappears
+    // and this test fails.
+    it("prepends an approval step on mainnet when the allowance is zero", async () => {
+        const usdcMainnet = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as Address;
+        const acrossSpender = "0x5c7BCd6E7De5423a257D81B442095A1a6ced35C5" as Address;
+        const owner = "0x000000000000000000000000000000000000dEaD" as Address;
+        const required = 5_000_000n;
+
+        const multicall = vi.fn(async () => [{ status: "success", result: 0n }]);
+        const getClient = vi.fn((chain: Chain) => {
+            expect(chain.id).toBe(1);
+            return { multicall };
+        });
+        const clientManager = { getClient } as unknown as PublicClientManager;
+
+        const reader = new MulticallAllowanceReader(clientManager);
+        const service = new DefaultApprovalService(reader, new ExactAmountStrategy());
+
+        const quote: ExecutableQuote = {
+            order: {
+                steps: [
+                    {
+                        kind: "transaction",
+                        chainId: 1,
+                        transaction: { to: acrossSpender, data: "0xdeadbeef" },
+                    },
+                ],
+                checks: {
+                    allowances: [
+                        {
+                            chainId: 1,
+                            tokenAddress: usdcMainnet,
+                            owner,
+                            spender: acrossSpender,
+                            required: required.toString(),
+                        },
+                    ],
+                },
+            },
+            preview: {
+                inputs: [
+                    {
+                        chainId: 1,
+                        accountAddress: owner,
+                        assetAddress: usdcMainnet,
+                        amount: required.toString(),
+                    },
+                ],
+                outputs: [
+                    {
+                        chainId: 42161,
+                        accountAddress: owner,
+                        assetAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+                        amount: required.toString(),
+                    },
+                ],
+            },
+            provider: "across",
+            _providerId: "across",
+        };
+
+        const [enriched] = await service.enrichQuotes([quote]);
+
+        expect(enriched!.order.steps).toHaveLength(2);
+        const approvalStep = enriched!.order.steps[0]!;
+        if (approvalStep.kind !== "transaction") throw new Error("expected transaction step");
+        expect(approvalStep.chainId).toBe(1);
+        expect(approvalStep.transaction.to).toBe(usdcMainnet);
+        expect(approvalStep.description).toBe("Token approval");
+        expect(approvalStep.transaction.data).toBe(
+            encodeFunctionData({
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [acrossSpender, required],
+            }),
+        );
+        expect(getClient).toHaveBeenCalledTimes(1);
+        expect(multicall).toHaveBeenCalledTimes(1);
     });
 
     it("deduplicates allowance reads when multiple quotes share the same entry", async () => {

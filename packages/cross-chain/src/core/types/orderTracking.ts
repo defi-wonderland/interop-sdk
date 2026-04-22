@@ -112,6 +112,8 @@ export interface FillEvent<TMetadata = unknown> {
      * Can include: solver info, fees, routes, multi-hop data, etc.
      */
     metadata?: TMetadata;
+    /** Warnings about the fill (e.g. destination swap failed but tokens were delivered as fallback) */
+    warnings?: string[];
 }
 
 /**
@@ -142,6 +144,8 @@ export interface OrderTrackingInfo<TMetadata = unknown> {
     fillEvent?: FillEvent<TMetadata>;
     /** Reason for failure (present when status is Failed) */
     failureReason?: OrderFailureReason;
+    /** Warnings about the fill (e.g. destination swap failed) */
+    warnings?: string[];
 }
 
 /**
@@ -162,6 +166,8 @@ export interface OrderTrackingUpdate {
     message: string;
     /** Reason for failure (present when status is Failed) */
     failureReason?: OrderFailureReason;
+    /** Warnings about the fill (e.g. destination swap failed) */
+    warnings?: string[];
 }
 
 /**

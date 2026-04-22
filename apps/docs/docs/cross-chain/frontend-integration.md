@@ -24,14 +24,14 @@ Create a wagmi config and wrap your Next.js app with the required providers:
 
 ```typescript
 // lib/wagmi.ts
-import { getDefaultConfig } from '@rainbow-me/rainbowkit'
-import { mainnet, base, optimism, arbitrum } from 'wagmi/chains'
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { arbitrum, base, mainnet, optimism } from "wagmi/chains";
 
 export const config = getDefaultConfig({
-  appName: 'My Cross-Chain App',
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
-  chains: [mainnet, base, optimism, arbitrum],
-})
+    appName: "My Cross-Chain App",
+    projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
+    chains: [mainnet, base, optimism, arbitrum],
+});
 ```
 
 ```typescript
@@ -59,6 +59,30 @@ export function Providers({ children }: { children: React.ReactNode }) {
 }
 ```
 
+### Injected-only (no WalletConnect)
+
+If you don't need WalletConnect — for example, you're targeting browser-extension wallets only and want to skip the WalletConnect project ID, RainbowKit, and the extra bundle weight — use wagmi's `injected` connector directly:
+
+```typescript
+// lib/wagmi.ts
+import { createConfig, http } from "wagmi";
+import { arbitrum, base, mainnet, optimism } from "wagmi/chains";
+import { injected } from "wagmi/connectors";
+
+export const config = createConfig({
+    chains: [mainnet, base, optimism, arbitrum],
+    connectors: [injected()],
+    transports: {
+        [mainnet.id]: http(),
+        [base.id]: http(),
+        [optimism.id]: http(),
+        [arbitrum.id]: http(),
+    },
+});
+```
+
+The `Providers` tree simplifies to just `WagmiProvider` + `QueryClientProvider` — no `RainbowKitProvider` and no `'@rainbow-me/rainbowkit/styles.css'` import. `useWalletClient()` / `usePublicClient()` work the same way with either config.
+
 ---
 
 ## Core hook pattern
@@ -66,12 +90,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 wagmi exposes `useWalletClient()` and `usePublicClient()` which return viem clients that are already connected to the user's injected wallet. These are exactly what the SDK needs.
 
 ```typescript
-import { useWalletClient, usePublicClient } from 'wagmi'
+import { usePublicClient, useWalletClient } from "wagmi";
 
 function useCrossChainSwap() {
-  const { data: walletClient } = useWalletClient()
-  const publicClient = usePublicClient()
-  // ... use with SDK aggregator
+    const { data: walletClient } = useWalletClient();
+    const publicClient = usePublicClient();
+    // ... use with SDK aggregator
 }
 ```
 
@@ -79,228 +103,209 @@ function useCrossChainSwap() {
 
 ---
 
+## ERC-20 approvals
+
+Wire an `approvalService` into `createAggregator` once and every quote the aggregator returns already has any required `approve` `TransactionStep` prepended to `order.steps`. Your execution loop iterates all steps and fires each one in order — no separate approval code path, no per-render allowance reads.
+
+```typescript
+import {
+    createAggregator,
+    createApprovalService,
+    createCrossChainProvider,
+    PROTOCOLS,
+} from "@wonderland/interop-cross-chain";
+
+const approvalService = createApprovalService({
+    rpcUrls: {
+        1: process.env.NEXT_PUBLIC_ETH_RPC_URL!,
+        8453: process.env.NEXT_PUBLIC_BASE_RPC_URL!,
+    },
+});
+
+const aggregator = createAggregator({
+    providers: [
+        createCrossChainProvider(PROTOCOLS.ACROSS),
+        createCrossChainProvider(PROTOCOLS.RELAY),
+    ],
+    approvalService,
+});
+```
+
+The service reads on-chain allowances through a single `multicall` per chain and only prepends an `approve` step when the user's current allowance is below `required`. See [Automatic ERC-20 Approvals](./advanced-usage.md#automatic-erc-20-approvals) for the full configuration surface, including the `InfiniteAmountStrategy` variant.
+
+`rpcUrls` is the right fit here because this demo bridges across multiple origin chains and the service reads allowances on each quote's input chain. Two other options exist for simpler setups: omit the config entirely to fall back to viem's default public RPC per chain (fine for quick experiments, rate-limited in production), or pass `publicClient` when every quote originates on the same chain (e.g. a checkout that only ever accepts USDC on mainnet). Note that reusing the wagmi `usePublicClient()` value here would not work — it is bound to one chain, and `publicClient` is used for every chain the service is asked about. See [Picking a client source](./advanced-usage.md#picking-a-client-source).
+
+If you need the manual `readContract` / `writeContract` flow (no aggregator, or a provider that doesn't populate `order.checks.allowances`), see [Appendix: manual approval fallback](#appendix-manual-approval-fallback) below.
+
+---
+
 ## Full example
 
 The hook below covers the complete flow:
 
-1. Create (or reuse) the aggregator
+1. Create (or reuse) the aggregator (wired with `approvalService`)
 2. Fetch quotes
 3. Switch the wallet to the origin chain
-4. Check `order.checks.allowances` for ERC-20 approvals
-5. Submit the order
-6. Track until finalized
+4. Iterate `order.steps` — approvals are prepended automatically
+5. Track until finalized
 
 ```typescript
-import { useCallback, useState } from 'react'
-import { useWalletClient, usePublicClient, useSwitchChain } from 'wagmi'
+import type { ExecutableQuote, QuoteRequest } from "@wonderland/interop-cross-chain";
 import {
-  createAggregator,
-  createCrossChainProvider,
-  getSignatureSteps,
-  getTransactionSteps,
-  isSignatureOnlyOrder,
-  isNativeAddress,
-  OrderTrackerFactory,
-  OrderStatus,
-  OrderTrackerEvent,
-  type QuoteRequest,
-  type Quote,
-} from '@wonderland/interop-cross-chain'
-import { erc20Abi } from 'viem'
+    createAggregator,
+    createApprovalService,
+    createCrossChainProvider,
+    OrderStatus,
+    OrderTrackerEvent,
+    OrderTrackerFactory,
+    PROTOCOLS,
+} from "@wonderland/interop-cross-chain";
+import { useCallback, useState } from "react";
+import { usePublicClient, useSwitchChain, useWalletClient } from "wagmi";
 
 // Create the aggregator once (outside the hook so it is a singleton)
-const acrossProvider = createCrossChainProvider('across')
-const relayProvider = createCrossChainProvider('relay')
+const rpcUrls = {
+    1: process.env.NEXT_PUBLIC_ETH_RPC_URL!,
+    8453: process.env.NEXT_PUBLIC_BASE_RPC_URL!,
+};
 
 const aggregator = createAggregator({
-  providers: [acrossProvider, relayProvider],
-  trackerFactory: new OrderTrackerFactory({
-    rpcUrls: {
-      // Provide RPC URLs for any chains you want to track on
-      1: process.env.NEXT_PUBLIC_ETH_RPC_URL!,
-      8453: process.env.NEXT_PUBLIC_BASE_RPC_URL!,
-    },
-  }),
-})
+    providers: [
+        createCrossChainProvider(PROTOCOLS.ACROSS),
+        createCrossChainProvider(PROTOCOLS.RELAY),
+    ],
+    approvalService: createApprovalService({ rpcUrls }),
+    trackerFactory: new OrderTrackerFactory({ rpcUrls }),
+});
 
 type SwapStatus =
-  | 'idle'
-  | 'quoting'
-  | 'approving'
-  | 'submitting'
-  | 'submitted'
-  | 'tracking'
-  | 'finalized'
-  | 'timeout'
-  | 'error'
+    | "idle"
+    | "quoting"
+    | "submitting"
+    | "submitted"
+    | "tracking"
+    | "finalized"
+    | "timeout"
+    | "error";
 
 export function useCrossChainSwap() {
-  const { data: walletClient } = useWalletClient()
-  const publicClient = usePublicClient()
-  const { switchChainAsync } = useSwitchChain()
+    const { data: walletClient } = useWalletClient();
+    const publicClient = usePublicClient();
+    const { switchChainAsync } = useSwitchChain();
 
-  const [status, setStatus] = useState<SwapStatus>('idle')
-  const [error, setError] = useState<string | null>(null)
-  const [quotes, setQuotes] = useState<Quote[]>([])
+    const [status, setStatus] = useState<SwapStatus>("idle");
+    const [error, setError] = useState<string | null>(null);
+    const [quotes, setQuotes] = useState<ExecutableQuote[]>([]);
 
-  const execute = useCallback(
-    async (request: QuoteRequest) => {
-      if (!walletClient || !publicClient) {
-        setError('Wallet not connected')
-        return
-      }
-
-      setError(null)
-
-      try {
-        // ── 1. Fetch quotes ──────────────────────────────────────────────────
-        setStatus('quoting')
-        const response = await aggregator.getQuotes(request)
-
-        if (response.quotes.length === 0) {
-          setError('No quotes available')
-          setStatus('error')
-          return
-        }
-
-        setQuotes(response.quotes)
-        const quote = response.quotes[0]
-
-        // ── 2. Ensure wallet is on the origin chain ──────────────────────────
-        await switchChainAsync({ chainId: request.input.chainId })
-
-        // ── 3. ERC-20 approvals ──────────────────────────────────────────────
-        //
-        // Some providers (Relay, Bungee, OIF, LiFi Intents) populate quote.order.checks.allowances
-        // with the exact spender and amount. Others (e.g. Across) do not.
-        // When checks are missing, derive the approval from the transaction step:
-        // the `to` address is the contract that will pull tokens from the user.
-        const allowances = quote.order.checks?.allowances ?? []
-
-        if (allowances.length > 0) {
-          setStatus('approving')
-
-          for (const allowance of allowances) {
-            const { tokenAddress, spender, required } = allowance
-
-            const currentAllowance = await publicClient.readContract({
-              address: tokenAddress,
-              abi: erc20Abi,
-              functionName: 'allowance',
-              args: [walletClient.account.address, spender],
-            })
-
-            if (currentAllowance < BigInt(required)) {
-              const approveHash = await walletClient.writeContract({
-                address: tokenAddress,
-                abi: erc20Abi,
-                functionName: 'approve',
-                args: [spender, BigInt(required)],
-              })
-              await publicClient.waitForTransactionReceipt({ hash: approveHash })
+    const execute = useCallback(
+        async (request: QuoteRequest) => {
+            if (!walletClient || !publicClient) {
+                setError("Wallet not connected");
+                return;
             }
-          }
-        } else if (
-          !isSignatureOnlyOrder(quote.order) &&
-          !isNativeAddress(request.input.assetAddress, 'eip155')
-        ) {
-          // Fallback: provider didn't supply checks (e.g. Across).
-          // Approve the transaction target for the quoted input amount.
-          setStatus('approving')
 
-          const step = getTransactionSteps(quote.order)[0]
-          const spender = step.transaction.to
-          const inputPreview = quote.preview.inputs[0]
+            setError(null);
 
-          const currentAllowance = await publicClient.readContract({
-            address: inputPreview.assetAddress as `0x${string}`,
-            abi: erc20Abi,
-            functionName: 'allowance',
-            args: [walletClient.account.address, spender],
-          })
+            try {
+                // ── 1. Fetch quotes ──────────────────────────────────────────────────
+                setStatus("quoting");
+                const response = await aggregator.getQuotes(request);
 
-          if (currentAllowance < BigInt(inputPreview.amount)) {
-            const approveHash = await walletClient.writeContract({
-              address: inputPreview.assetAddress as `0x${string}`,
-              abi: erc20Abi,
-              functionName: 'approve',
-              args: [spender, BigInt(inputPreview.amount)],
-            })
-            await publicClient.waitForTransactionReceipt({ hash: approveHash })
-          }
-        }
+                if (response.quotes.length === 0) {
+                    setError("No quotes available");
+                    setStatus("error");
+                    return;
+                }
 
-        // ── 4. Submit the order ──────────────────────────────────────────────
-        setStatus('submitting')
+                setQuotes(response.quotes);
+                const quote = response.quotes[0];
 
-        let txHash: `0x${string}` | undefined
+                // ── 2. Ensure wallet is on the origin chain ──────────────────────────
+                await switchChainAsync({ chainId: request.input.chainId });
 
-        if (isSignatureOnlyOrder(quote.order)) {
-          // Gasless: sign EIP-712 typed data, solver submits on your behalf
-          const step = getSignatureSteps(quote.order)[0]
-          const { signatureType, ...typedData } = step.signaturePayload
-          const signature = await walletClient.signTypedData(typedData)
-          await aggregator.submitOrder(quote, signature)
-        } else {
-          // User pays gas: send transaction directly
-          const step = getTransactionSteps(quote.order)[0]
-          const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } =
-            step.transaction
+                // ── 3. Submit the order ──────────────────────────────────────────────
+                // Iterate order.steps in emission order. approvalService prepends
+                // approval TransactionSteps onto signature-based quotes too, so a
+                // single order can mix both kinds — handle each by `step.kind`.
+                // On the first signature step, sign + submit and stop — the solver
+                // takes the order from there. (`submitOrder` currently forwards one
+                // signature per order; multi-signature orders aren't yet supported.)
+                setStatus("submitting");
 
-          txHash = await walletClient.sendTransaction({
-            to,
-            data,
-            value: value ? BigInt(value) : undefined,
-            gas: gas ? BigInt(gas) : undefined,
-            maxFeePerGas: maxFeePerGas ? BigInt(maxFeePerGas) : undefined,
-            maxPriorityFeePerGas: maxPriorityFeePerGas
-              ? BigInt(maxPriorityFeePerGas)
-              : undefined,
-          })
+                let lastTxHash: `0x${string}` | undefined;
+                let submittedViaSignature = false;
 
-          await publicClient.waitForTransactionReceipt({ hash: txHash })
-        }
+                for (const step of quote.order.steps) {
+                    if (step.kind === "transaction") {
+                        const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } =
+                            step.transaction;
 
-        // ── 5. Track until finalized ─────────────────────────────────────────
-        setStatus('tracking')
+                        const hash = await walletClient.sendTransaction({
+                            to,
+                            data,
+                            value: value ? BigInt(value) : undefined,
+                            gas: gas ? BigInt(gas) : undefined,
+                            maxFeePerGas: maxFeePerGas ? BigInt(maxFeePerGas) : undefined,
+                            maxPriorityFeePerGas: maxPriorityFeePerGas
+                                ? BigInt(maxPriorityFeePerGas)
+                                : undefined,
+                        });
 
-        if (txHash) {
-          const tracker = aggregator.track({
-            txHash,
-            providerId: quote.provider,
-            originChainId: request.input.chainId,
-            destinationChainId: request.output.chainId,
-            timeout: 300_000, // 5 minutes
-          })
+                        await publicClient.waitForTransactionReceipt({ hash });
+                        lastTxHash = hash;
+                    } else {
+                        const { signatureType, ...typedData } = step.signaturePayload;
+                        const signature = await walletClient.signTypedData(typedData);
+                        await aggregator.submitOrder(quote, signature);
+                        submittedViaSignature = true;
+                        break;
+                    }
+                }
 
-          tracker.on(OrderStatus.Finalized, () => setStatus('finalized'))
-          tracker.on(OrderStatus.Failed, (update) => {
-            setError(update.failureReason ?? 'Order failed')
-            setStatus('error')
-          })
-          tracker.on(OrderTrackerEvent.Timeout, () => {
-            // The SDK stopped watching but the order may still finalize on-chain
-            setStatus('timeout')
-          })
-          tracker.on(OrderTrackerEvent.Error, (err) => {
-            setError(err instanceof Error ? err.message : 'Tracking error')
-            setStatus('error')
-          })
-        } else {
-          // Gasless orders have no origin tx hash — the solver submits on-chain.
-          // Track by orderId using watchOrder() from a standalone OrderTracker.
-          // See the intent-tracking docs for the orderId-based flow.
-          setStatus('submitted')
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unexpected error')
-        setStatus('error')
-      }
-    },
-    [walletClient, publicClient],
-  )
+                // ── 4. Track until finalized ─────────────────────────────────────────
+                // If the order was submitted via signature, the solver submits the
+                // bridge on-chain — there is no user-side bridge tx hash to follow.
+                // Track by orderId instead (see intent-tracking.md).
+                // Otherwise lastTxHash is the bridge tx (approvals are prepended).
+                setStatus("tracking");
 
-  return { execute, status, error, quotes }
+                if (!submittedViaSignature && lastTxHash) {
+                    const tracker = aggregator.track({
+                        txHash: lastTxHash,
+                        providerId: quote.provider,
+                        originChainId: request.input.chainId,
+                        destinationChainId: request.output.chainId,
+                        timeout: 300_000, // 5 minutes
+                    });
+
+                    tracker.on(OrderStatus.Finalized, () => setStatus("finalized"));
+                    tracker.on(OrderStatus.Failed, (update) => {
+                        setError(update.failureReason ?? "Order failed");
+                        setStatus("error");
+                    });
+                    tracker.on(OrderTrackerEvent.Timeout, () => {
+                        // The SDK stopped watching but the order may still finalize on-chain
+                        setStatus("timeout");
+                    });
+                    tracker.on(OrderTrackerEvent.Error, (err) => {
+                        setError(err instanceof Error ? err.message : "Tracking error");
+                        setStatus("error");
+                    });
+                } else {
+                    // Solver-submitted: the bridge opens without a user-side tx hash.
+                    // Track via quote.tracking?.orderId using watchOrder() from a
+                    // standalone OrderTracker — see intent-tracking.md.
+                    setStatus("submitted");
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Unexpected error");
+                setStatus("error");
+            }
+        },
+        [walletClient, publicClient],
+    );
+
+    return { execute, status, error, quotes };
 }
 ```
 
@@ -312,3 +317,70 @@ export function useCrossChainSwap() {
 -   [Execute Intent](./example.md) — the equivalent Node.js script using `privateKeyToAccount`
 -   [Advanced Usage](./advanced-usage.md) — sorting strategies, timeouts, error handling
 -   [API Reference](./api.md) — complete function signatures and types
+
+---
+
+## Appendix: manual approval fallback
+
+Reach for this when you can't use the aggregator's `approvalService` — for example, when you're driving a single provider directly, or the quote's provider doesn't declare its allowance requirements in `order.checks.allowances` (notably the OIF `oif-escrow-v0` Permit2 flow).
+
+```typescript
+import {
+    getTransactionSteps,
+    isNativeAddress,
+    isSignatureOnlyOrder,
+} from "@wonderland/interop-cross-chain";
+import { erc20Abi } from "viem";
+
+// 1. Prefer order.checks.allowances when the provider populates it.
+const allowances = quote.order.checks?.allowances ?? [];
+
+if (allowances.length > 0) {
+    for (const { tokenAddress, spender, required } of allowances) {
+        const current = await publicClient.readContract({
+            address: tokenAddress,
+            abi: erc20Abi,
+            functionName: "allowance",
+            args: [walletClient.account.address, spender],
+        });
+
+        if (current < BigInt(required)) {
+            const hash = await walletClient.writeContract({
+                address: tokenAddress,
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [spender, BigInt(required)],
+            });
+            await publicClient.waitForTransactionReceipt({ hash });
+        }
+    }
+} else if (
+    !isSignatureOnlyOrder(quote.order) &&
+    !isNativeAddress(request.input.assetAddress, "eip155")
+) {
+    // 2. Fallback: derive the approval target from the transaction step.
+    //    The `to` address is the contract that will pull tokens from the user.
+    const step = getTransactionSteps(quote.order)[0];
+    const spender = step.transaction.to;
+    const input = quote.preview.inputs[0];
+
+    const current = await publicClient.readContract({
+        address: input.assetAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [walletClient.account.address, spender],
+    });
+
+    if (current < BigInt(input.amount)) {
+        const hash = await walletClient.writeContract({
+            address: input.assetAddress as `0x${string}`,
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [spender, BigInt(input.amount)],
+        });
+        await publicClient.waitForTransactionReceipt({ hash });
+    }
+}
+```
+
+For production use, `approvalService` is the recommended path — it batches the `allowance()` reads into a single `multicall` per chain and composes cleanly with the aggregator's sorting and tracking.

@@ -1,5 +1,5 @@
 import { useChainConfig } from '../../hooks/useNetworkConfig';
-import { CheckIcon, ExternalLinkIcon } from '../icons';
+import { CheckIcon, ExternalLinkIcon, WarningIcon } from '../icons';
 import type { SuccessViewProps } from './types';
 
 export function SuccessView({ state, onReset }: SuccessViewProps) {
@@ -10,19 +10,52 @@ export function SuccessView({ state, onReset }: SuccessViewProps) {
   const originTxUrl = chainConfig.getExplorerTxUrl(state.originChainId, openTxHash);
   const fillTxHash = state.update.fillTxHash;
   const fillTxUrl = chainConfig.getExplorerTxUrl(state.destinationChainId, fillTxHash);
+  const warnings = state.update.warnings;
+  const hasWarnings = warnings && warnings.length > 0;
 
   return (
-    <div className='p-4 sm:p-6 rounded-xl border border-accent/30 bg-accent/5'>
-      {/* Success header */}
-      <div className='flex items-start gap-3 mb-4'>
-        <div className='w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-accent flex items-center justify-center shrink-0'>
-          <CheckIcon className='w-5 h-5 sm:w-6 sm:h-6 text-white' />
+    <div
+      className={
+        hasWarnings
+          ? 'p-4 sm:p-6 rounded-xl border border-warning/30 bg-warning/5'
+          : 'p-4 sm:p-6 rounded-xl border border-accent/30 bg-accent/5'
+      }
+    >
+      {/* Header */}
+      {hasWarnings ? (
+        <div className='flex items-start gap-3 mb-4'>
+          <div className='w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-warning flex items-center justify-center shrink-0'>
+            <WarningIcon className='w-5 h-5 sm:w-6 sm:h-6 text-white' />
+          </div>
+          <div className='min-w-0'>
+            <h3 className='text-base sm:text-lg font-semibold text-warning'>Order Filled With Warnings</h3>
+            <p className='text-xs sm:text-sm text-text-secondary break-words'>{state.update.message}</p>
+          </div>
         </div>
-        <div className='min-w-0'>
-          <h3 className='text-base sm:text-lg font-semibold text-accent'>Order Filled Successfully!</h3>
-          <p className='text-xs sm:text-sm text-text-secondary break-words'>{state.update.message}</p>
+      ) : (
+        <div className='flex items-start gap-3 mb-4'>
+          <div className='w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-accent flex items-center justify-center shrink-0'>
+            <CheckIcon className='w-5 h-5 sm:w-6 sm:h-6 text-white' />
+          </div>
+          <div className='min-w-0'>
+            <h3 className='text-base sm:text-lg font-semibold text-accent'>Order Filled Successfully!</h3>
+            <p className='text-xs sm:text-sm text-text-secondary break-words'>{state.update.message}</p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Warning details */}
+      {hasWarnings && (
+        <div className='mb-4 p-3 rounded-lg bg-warning-light border border-warning/20'>
+          <ul className='space-y-1'>
+            {warnings.map((warning, i) => (
+              <li key={i} className='text-xs sm:text-sm text-text-primary'>
+                {warning}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Transaction links */}
       <div className='space-y-2 mb-4'>

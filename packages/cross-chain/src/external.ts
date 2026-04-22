@@ -2,7 +2,6 @@ export * from "./core/errors/index.js";
 export * from "./core/interfaces/index.js";
 export * from "./core/types/index.js";
 export * from "./core/sorting_strategies/index.js";
-export * from "./core/constants/chains.js";
 export * from "./core/constants/tokens.js";
 export { PERMIT2_TYPES, EIP3009_TYPES } from "./protocols/oif/constants.js";
 export {
@@ -54,6 +53,8 @@ export {
     // Utilities
     isSignableOifOrder,
     isNativeAddress,
+    NATIVE_ASSET_ADDRESS,
+    toCanonicalNativeAddress,
     toInteropAccountId,
     fromInteropAccountId,
     getSignatureSteps,
@@ -74,4 +75,6 @@ export {
     type QuoteRequest,
     type BuildQuoteRequest,
     type TransactionStep,
+    type GetQuotesError,
+    type GetQuotesResponse,
 } from "./internal.js";

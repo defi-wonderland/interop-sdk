@@ -3,14 +3,17 @@ import type {
     DiscoveredAssetInfo,
     DiscoveredAssets,
 } from "../types/assetDiscovery.js";
+import { isNativeAddress, toCanonicalNativeAddress } from "./token.js";
 
 /**
  * Convert one or more AssetDiscoveryResults into a lookup-friendly
  * DiscoveredAssets structure.
  *
  * Chain grouping uses numeric chain IDs. Token metadata is nested by
- * chain ID then lowercase address to prevent cross-chain collisions.
- * All addresses use plain 0x format.
+ * chain ID then canonical address — native placeholders collapse to the
+ * canonical EIP-7528 form so tokens reported under different sentinels
+ * (e.g. `0xEEE…E` vs `0x000…0`) deduplicate across providers. Non-native
+ * addresses are stored lowercase. All addresses use plain 0x format.
  * Each metadata entry includes a `providers` array listing which provider IDs
  * reported the asset.
  *
@@ -34,21 +37,23 @@ export function toDiscoveredAssets(
             tokenMetadata[chainId] ??= {};
 
             for (const asset of assets) {
-                const addr = asset.address;
-                const addrLower = addr.toLowerCase();
+                const canonicalAddr = toCanonicalNativeAddress(asset.address, "eip155");
+                const publicAddr = isNativeAddress(asset.address, "eip155")
+                    ? canonicalAddr
+                    : asset.address;
 
-                if (!tokensByChain[chainId].includes(addrLower)) {
-                    tokensByChain[chainId].push(addrLower);
+                if (!tokensByChain[chainId].includes(canonicalAddr)) {
+                    tokensByChain[chainId].push(canonicalAddr);
                 }
 
-                const existing = tokenMetadata[chainId][addrLower];
+                const existing = tokenMetadata[chainId][canonicalAddr];
                 if (existing) {
                     if (!existing.providers.includes(result.providerId)) {
                         existing.providers.push(result.providerId);
                     }
                 } else {
-                    tokenMetadata[chainId][addrLower] = {
-                        address: asset.address,
+                    tokenMetadata[chainId][canonicalAddr] = {
+                        address: publicAddr,
                         symbol: asset.symbol,
                         decimals: asset.decimals,
                         providers: [result.providerId],
@@ -68,7 +73,8 @@ export function toDiscoveredAssets(
  * Merge multiple DiscoveredAssets into a single structure.
  *
  * Used by Aggregator to combine results from multiple providers.
- * Deduplicates tokens by address; merges `providers` arrays (first-write-wins
+ * Deduplicates tokens by canonical address (native placeholders collapse
+ * to the canonical EIP-7528 form); merges `providers` arrays (first-write-wins
  * for symbol/decimals, union for providers).
  *
  * @internal Used by Aggregator - not exported publicly
@@ -83,8 +89,9 @@ export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAs
             const chainId = Number(chainKeyStr);
             tokensByChain[chainId] ??= [];
             for (const token of tokens) {
-                if (!tokensByChain[chainId].includes(token)) {
-                    tokensByChain[chainId].push(token);
+                const canonical = toCanonicalNativeAddress(token, "eip155");
+                if (!tokensByChain[chainId].includes(canonical)) {
+                    tokensByChain[chainId].push(canonical);
                 }
             }
         }
@@ -93,7 +100,8 @@ export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAs
             const chainId = Number(chainKeyStr);
             tokenMetadata[chainId] ??= {};
             for (const [addr, meta] of Object.entries(chainMeta)) {
-                const existing = tokenMetadata[chainId][addr];
+                const canonical = toCanonicalNativeAddress(addr, "eip155");
+                const existing = tokenMetadata[chainId][canonical];
                 if (existing) {
                     for (const pid of meta.providers) {
                         if (!existing.providers.includes(pid)) {
@@ -101,7 +109,14 @@ export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAs
                         }
                     }
                 } else {
-                    tokenMetadata[chainId][addr] = { ...meta, providers: [...meta.providers] };
+                    const publicAddr = isNativeAddress(meta.address, "eip155")
+                        ? canonical
+                        : meta.address;
+                    tokenMetadata[chainId][canonical] = {
+                        ...meta,
+                        address: publicAddr,
+                        providers: [...meta.providers],
+                    };
                 }
             }
         }

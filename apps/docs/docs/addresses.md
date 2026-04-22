@@ -2,8 +2,11 @@
 title: Addresses
 ---
 
-:::warning Beta — under active development
-APIs may change between releases. We're shipping quickly and welcome bug reports and feedback via [GitHub Issues](https://github.com/defi-wonderland/interop-sdk/issues).
+:::danger Experimental release — not for production use
+
+This SDK is an early, preview release and has not been audited. It handles transaction and signature data for cross-chain value transfers, so a defect in the SDK could result in permanent, irrecoverable loss of user funds.
+
+Do not use this SDK in production or with real user value.
 :::
 
 Ethereum is multichain. An address like `0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045` doesn't tell you _which_ chain it's on — and sending to the right address on the wrong chain can mean lost funds.
