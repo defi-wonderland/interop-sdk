@@ -166,6 +166,7 @@ describe("quoteAdapter", () => {
                     owner: expect.stringMatching(new RegExp(`^${USER_ADDRESS}$`, "i")),
                     spender: PERMIT2,
                     required: "500000",
+                    preferInfinite: true,
                 },
             ]);
         });

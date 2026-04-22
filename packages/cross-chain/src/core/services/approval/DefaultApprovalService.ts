@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { encodeFunctionData, erc20Abi } from "viem";
+import { encodeFunctionData, erc20Abi, maxUint256 } from "viem";
 
 import type {
     AllowanceCheck,
@@ -94,7 +94,7 @@ export class DefaultApprovalService implements ApprovalService {
     }
 
     private createApprovalStep(check: AllowanceCheck): TransactionStep {
-        const amount = this.amountStrategy.resolve(BigInt(check.required));
+        const amount = this.resolveApprovalAmount(check);
         return {
             kind: "transaction",
             chainId: check.chainId,
@@ -109,5 +109,10 @@ export class DefaultApprovalService implements ApprovalService {
                 ...(this.gasLimit != null ? { gas: this.gasLimit.toString() } : {}),
             },
         };
+    }
+
+    private resolveApprovalAmount(check: AllowanceCheck): bigint {
+        if (check.preferInfinite) return maxUint256;
+        return this.amountStrategy.resolve(BigInt(check.required));
     }
 }

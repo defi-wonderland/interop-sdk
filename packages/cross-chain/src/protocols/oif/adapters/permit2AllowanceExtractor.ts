@@ -14,23 +14,34 @@ import { getAddress } from "viem";
 import type { AllowanceCheck } from "../../../core/interfaces/approval.interface.js";
 
 /** Permit2 is deployed at the same address on every EVM chain. */
-const PERMIT2_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3" as Address;
+const PERMIT2_ADDRESS = getAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3");
 
-const SINGLE_TOKEN_TYPES = ["PermitTransferFrom", "PermitWitnessTransferFrom"] as const;
-const BATCH_TOKEN_TYPES = ["PermitBatchTransferFrom", "PermitBatchWitnessTransferFrom"] as const;
+const LOG_PREFIX = "[permit2AllowanceExtractor]";
 
+const SINGLE_PERMIT_TYPES: ReadonlySet<string> = new Set([
+    "PermitTransferFrom",
+    "PermitWitnessTransferFrom",
+]);
+
+const BATCH_PERMIT_TYPES: ReadonlySet<string> = new Set([
+    "PermitBatchTransferFrom",
+    "PermitBatchWitnessTransferFrom",
+]);
+
+type EscrowPayload = OifEscrowOrder["payload"];
+
+/** Raw `TokenPermissions` entry as it arrives in a Permit2 EIP-712 message. */
 interface TokenPermission {
     token: string;
     amount: string;
 }
 
-type EscrowPayload = OifEscrowOrder["payload"];
-
 /**
- * Turn a Permit2 EIP-712 payload into `AllowanceCheck`s.
+ * Turn a validated Permit2 EIP-712 payload into `AllowanceCheck`s.
  *
- * Returns `[]` and logs a warning on unknown `primaryType`, an invalid
- * `chainId`, or malformed entries — never throws.
+ * Assumes the payload has already been validated upstream (see
+ * `validateEscrowOrder`). Its only runtime guard is dispatch by
+ * `primaryType`: unknown Permit2 types return `[]` with a warning.
  *
  * The signer comes from outside because Permit2 messages don't carry the
  * token owner: the signature itself identifies them.
@@ -39,15 +50,10 @@ export function extractPermit2Allowances(
     payload: EscrowPayload,
     signer: Address,
 ): AllowanceCheck[] {
-    const message = payload.message as Record<string, unknown>;
-    const domain = payload.domain as Record<string, unknown>;
-
-    const permitted = readPermitted(payload.primaryType, message);
+    const permitted = readPermittedEntries(payload);
     if (permitted.length === 0) return [];
 
-    const chainId = readChainId(domain);
-    if (chainId === null) return [];
-
+    const chainId = Number((payload.domain as { chainId: number | string }).chainId);
     const owner = getAddress(signer);
     const totalsByToken = sumAmountsByToken(permitted);
 
@@ -57,64 +63,30 @@ export function extractPermit2Allowances(
         owner,
         spender: PERMIT2_ADDRESS,
         required: required.toString(),
+        preferInfinite: true,
     }));
 }
 
 // ── helpers ─────────────────────────────────────────────
 
-/** Reads the `permitted` field and normalizes it to an array. */
-function readPermitted(primaryType: string, message: Record<string, unknown>): TokenPermission[] {
-    const { permitted } = message;
+function readPermittedEntries(payload: EscrowPayload): TokenPermission[] {
+    const { primaryType } = payload;
+    const { permitted } = payload.message as {
+        permitted: TokenPermission | TokenPermission[];
+    };
 
-    if ((SINGLE_TOKEN_TYPES as readonly string[]).includes(primaryType)) {
-        if (!isTokenPermissionLike(permitted)) {
-            console.warn(
-                `[permit2AllowanceExtractor] Malformed permitted for ${primaryType}: expected object`,
-            );
-            return [];
-        }
-        return [permitted];
-    }
+    if (SINGLE_PERMIT_TYPES.has(primaryType)) return [permitted as TokenPermission];
+    if (BATCH_PERMIT_TYPES.has(primaryType)) return permitted as TokenPermission[];
 
-    if ((BATCH_TOKEN_TYPES as readonly string[]).includes(primaryType)) {
-        if (!Array.isArray(permitted)) {
-            console.warn(
-                `[permit2AllowanceExtractor] Malformed permitted for ${primaryType}: expected array`,
-            );
-            return [];
-        }
-        return permitted as TokenPermission[];
-    }
-
-    console.warn(`[permit2AllowanceExtractor] Unknown primaryType: ${primaryType}`);
+    console.warn(`${LOG_PREFIX} Unknown primaryType: ${primaryType}`);
     return [];
 }
 
-/** Narrow guard: the value looks like a `TokenPermission` object (shape checked later). */
-function isTokenPermissionLike(value: unknown): value is TokenPermission {
-    return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/** Reads `domain.chainId` as a positive finite number, or `null` if it isn't. */
-function readChainId(domain: Record<string, unknown>): number | null {
-    const chainId = Number(domain.chainId);
-    if (Number.isFinite(chainId) && chainId > 0) return chainId;
-    console.warn(`[permit2AllowanceExtractor] Invalid domain.chainId: ${String(domain.chainId)}`);
-    return null;
-}
-
-/** Groups `permitted` by checksummed token address, summing amounts per token. */
 function sumAmountsByToken(permitted: TokenPermission[]): Map<Address, bigint> {
     const totals = new Map<Address, bigint>();
-    for (const entry of permitted) {
-        try {
-            const token = getAddress(entry.token);
-            totals.set(token, (totals.get(token) ?? 0n) + BigInt(entry.amount));
-        } catch {
-            console.warn(
-                "[permit2AllowanceExtractor] Skipping permitted entry with invalid token/amount",
-            );
-        }
+    for (const { token, amount } of permitted) {
+        const checksummed = getAddress(token);
+        totals.set(checksummed, (totals.get(checksummed) ?? 0n) + BigInt(amount));
     }
     return totals;
 }

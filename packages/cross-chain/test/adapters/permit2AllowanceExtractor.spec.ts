@@ -46,6 +46,7 @@ describe("extractPermit2Allowances", () => {
                 owner: SIGNER,
                 spender: PERMIT2,
                 required: "1000000",
+                preferInfinite: true,
             },
         ]);
     });
@@ -113,6 +114,7 @@ describe("extractPermit2Allowances", () => {
                     owner: SIGNER,
                     spender: PERMIT2,
                     required: "777",
+                    preferInfinite: true,
                 },
             ]);
         },
@@ -162,18 +164,6 @@ describe("extractPermit2Allowances", () => {
         expect(result[0]!.chainId).toBe(137);
     });
 
-    it("returns [] when domain.chainId is invalid", () => {
-        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
-        const result = extractPermit2Allowances(
-            { ...basePayload(), domain: { chainId: "not-a-number" } },
-            SIGNER,
-        );
-
-        expect(result).toEqual([]);
-        expect(warn).toHaveBeenCalledWith(expect.stringContaining("Invalid domain.chainId"));
-    });
-
     it("returns [] when permitted array is empty", () => {
         const result = extractPermit2Allowances(
             basePayload({ message: { permitted: [], spender: SETTLER } }),
@@ -193,60 +183,5 @@ describe("extractPermit2Allowances", () => {
         );
 
         expect(result[0]!.tokenAddress).toBe(TOKEN_A);
-    });
-
-    it("returns [] and warns when batch primaryType receives a non-array permitted", () => {
-        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
-        const result = extractPermit2Allowances(
-            basePayload({
-                primaryType: "PermitBatchWitnessTransferFrom",
-                message: {
-                    permitted: { token: TOKEN_A, amount: "1" },
-                    spender: SETTLER,
-                },
-            }),
-            SIGNER,
-        );
-
-        expect(result).toEqual([]);
-        expect(warn).toHaveBeenCalledWith(expect.stringContaining("expected array"));
-    });
-
-    it("returns [] and warns when single primaryType receives a non-object permitted", () => {
-        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
-        const result = extractPermit2Allowances(
-            basePayload({
-                primaryType: "PermitTransferFrom",
-                message: { permitted: null, spender: SETTLER },
-            }),
-            SIGNER,
-        );
-
-        expect(result).toEqual([]);
-        expect(warn).toHaveBeenCalledWith(expect.stringContaining("expected object"));
-    });
-
-    it("skips malformed permitted entries without throwing", () => {
-        const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
-        const result = extractPermit2Allowances(
-            basePayload({
-                message: {
-                    permitted: [
-                        { token: "not-an-address", amount: "1" },
-                        { token: TOKEN_A, amount: "42" },
-                    ],
-                    spender: SETTLER,
-                },
-            }),
-            SIGNER,
-        );
-
-        expect(result).toEqual([
-            expect.objectContaining({ tokenAddress: TOKEN_A, required: "42" }),
-        ]);
-        expect(warn).toHaveBeenCalledWith(expect.stringContaining("invalid token/amount"));
     });
 });

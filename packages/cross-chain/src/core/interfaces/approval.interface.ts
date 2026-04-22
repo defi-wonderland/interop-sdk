@@ -26,7 +26,9 @@ export interface AllowanceResult {
 }
 
 /** Allowance slot plus the amount required by an order's checks. */
-export type AllowanceCheck = NonNullable<OrderChecks["allowances"]>[number];
+export type AllowanceCheck = NonNullable<OrderChecks["allowances"]>[number] & {
+    preferInfinite?: boolean;
+};
 
 /** Fast lookup from a composite allowance key to its on-chain value. */
 export type AllowanceLookup = Record<string, Allowance | undefined>;

@@ -26,6 +26,7 @@ function makeQuote(
             owner: string;
             spender: string;
             required: string;
+            preferInfinite?: boolean;
         }[];
         steps?: ExecutableQuote["order"]["steps"];
     } = {},
@@ -233,6 +234,35 @@ describe("DefaultApprovalService", () => {
         const result = await service.enrichQuotes([quote]);
 
         expect(result).toEqual([quote]);
+    });
+
+    it("approves maxUint256 for preferInfinite entries regardless of strategy", async () => {
+        const reader = mockReader(new Map([[testKey, 0n]]));
+        const service = new DefaultApprovalService(reader, new ExactAmountStrategy());
+        const quote = makeQuote({
+            allowances: [
+                {
+                    chainId: CHAIN_ID,
+                    tokenAddress: TOKEN,
+                    owner: OWNER,
+                    spender: SPENDER,
+                    required: "1000",
+                    preferInfinite: true,
+                },
+            ],
+        });
+
+        const [enriched] = await service.enrichQuotes([quote]);
+
+        const step = enriched!.order.steps[0]!;
+        if (step.kind !== "transaction") throw new Error("expected transaction step");
+        expect(step.transaction.data).toBe(
+            encodeFunctionData({
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [SPENDER, maxUint256],
+            }),
+        );
     });
 
     it("deduplicates allowance reads when multiple quotes share the same entry", async () => {
