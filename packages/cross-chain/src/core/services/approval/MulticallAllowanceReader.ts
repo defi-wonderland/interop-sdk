@@ -1,13 +1,17 @@
+import type { Chain } from "viem";
 import { erc20Abi } from "viem";
 
 import type {
     Allowance,
     AllowanceEntry,
     AllowanceReader,
+    AllowanceReadFailureHandler,
     AllowanceResult,
 } from "../../interfaces/approval.interface.js";
+import { AllowanceReadFailureReason } from "../../interfaces/approval.interface.js";
 import { getChainById } from "../../utils/chainHelpers.js";
 import { PublicClientManager } from "../../utils/publicClientManager.js";
+import { DefaultAllowanceReadFailureHandler } from "./DefaultAllowanceReadFailureHandler.js";
 
 interface IndexedEntry {
     entry: AllowanceEntry;
@@ -27,9 +31,17 @@ interface ChainBatch {
 /**
  * Reads ERC-20 allowances by batching `allowance()` calls into one
  * `multicall` per chain. Failures on one chain cannot affect others.
+ *
+ * When a whole batch fails (registry miss or multicall error), the
+ * `failureHandler` is notified. Single probe reverts are not reported
+ * through it; they map to `null` per entry. Defaults to
+ * {@link DefaultAllowanceReadFailureHandler}.
  */
 export class MulticallAllowanceReader implements AllowanceReader {
-    constructor(private readonly clientManager: PublicClientManager) {}
+    constructor(
+        private readonly clientManager: PublicClientManager,
+        private readonly failureHandler: AllowanceReadFailureHandler = new DefaultAllowanceReadFailureHandler(),
+    ) {}
 
     async readAllowances(entries: AllowanceEntry[]): Promise<AllowanceResult[]> {
         const batches = groupByChain(entries);
@@ -52,8 +64,11 @@ export class MulticallAllowanceReader implements AllowanceReader {
         chainId: number,
         entries: AllowanceEntry[],
     ): Promise<Allowance[]> {
+        const chain = this.resolveChain(chainId);
+        if (!chain) return entries.map(() => null);
+
         try {
-            const client = this.clientManager.getClient(getChainById(chainId));
+            const client = this.clientManager.getClient(chain);
             const results = await client.multicall({
                 contracts: entries.map((e) => ({
                     address: e.tokenAddress,
@@ -63,8 +78,26 @@ export class MulticallAllowanceReader implements AllowanceReader {
                 })),
             });
             return results.map((r) => (r.status === "success" ? (r.result as bigint) : null));
-        } catch {
+        } catch (error) {
+            this.failureHandler.handle({
+                chainId,
+                reason: AllowanceReadFailureReason.Multicall,
+                error,
+            });
             return entries.map(() => null);
+        }
+    }
+
+    private resolveChain(chainId: number): Chain | null {
+        try {
+            return getChainById(chainId);
+        } catch (error) {
+            this.failureHandler.handle({
+                chainId,
+                reason: AllowanceReadFailureReason.UnknownChain,
+                error,
+            });
+            return null;
         }
     }
 }

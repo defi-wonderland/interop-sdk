@@ -185,4 +185,30 @@ describe("adaptQuoteRequest", () => {
             expect(result.supportedTypes).not.toContain("oif-escrow-v0");
         });
     });
+
+    describe("native token placeholder translation", () => {
+        const EEE_NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" as Address;
+
+        function zeroAssetHex(chainId: number): string {
+            return toErc7930(chainId, "0x0000000000000000000000000000000000000000");
+        }
+
+        it("encodes canonical 0xEEE… input as 0x000… inside the ERC-7930 asset hex", () => {
+            const request: QuoteRequest = {
+                ...baseRequest,
+                input: { chainId: INPUT_CHAIN_ID, assetAddress: EEE_NATIVE, amount: "10" },
+            };
+            const result = adaptQuoteRequest(request);
+            expect(result.intent.inputs[0]!.asset).toBe(zeroAssetHex(INPUT_CHAIN_ID));
+        });
+
+        it("encodes canonical 0xEEE… output as 0x000… inside the ERC-7930 asset hex", () => {
+            const request: QuoteRequest = {
+                ...baseRequest,
+                output: { chainId: OUTPUT_CHAIN_ID, assetAddress: EEE_NATIVE },
+            };
+            const result = adaptQuoteRequest(request);
+            expect(result.intent.outputs[0]!.asset).toBe(zeroAssetHex(OUTPUT_CHAIN_ID));
+        });
+    });
 });

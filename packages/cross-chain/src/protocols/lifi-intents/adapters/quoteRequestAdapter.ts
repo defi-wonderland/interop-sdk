@@ -7,6 +7,7 @@
 
 import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
 import type { LifiIntentsQuoteRequest } from "../schemas.js";
+import { NATIVE_ZERO_ADDRESS, withNativePlaceholder } from "../../../core/utils/token.js";
 
 function toChainString(chainId: number): string {
     return `eip155:${chainId}`;
@@ -35,7 +36,7 @@ export function adaptQuoteRequest(request: QuoteRequest): LifiIntentsQuoteReques
                 {
                     chain: toChainString(input.chainId),
                     user: request.user,
-                    asset: input.assetAddress,
+                    asset: withNativePlaceholder(input.assetAddress, "eip155", NATIVE_ZERO_ADDRESS),
                     amount: input.amount,
                 },
             ],
@@ -43,7 +44,11 @@ export function adaptQuoteRequest(request: QuoteRequest): LifiIntentsQuoteReques
                 {
                     chain: toChainString(output.chainId),
                     receiver: recipientAddress,
-                    asset: output.assetAddress,
+                    asset: withNativePlaceholder(
+                        output.assetAddress,
+                        "eip155",
+                        NATIVE_ZERO_ADDRESS,
+                    ),
                     amount: null,
                 },
             ],

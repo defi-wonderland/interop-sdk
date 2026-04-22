@@ -44,6 +44,7 @@ import {
     GetFillParams,
     InvalidOpenEventError,
     isNativeAddress,
+    NATIVE_ZERO_ADDRESS,
     NetworkAssets,
     OpenedIntent,
     OpenedIntentParserConfig,
@@ -52,6 +53,7 @@ import {
     parseAbiEncodedFields,
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
+    withNativePlaceholder,
 } from "../../internal.js";
 import { decodeAcrossCalldata } from "./utils.js";
 
@@ -158,9 +160,9 @@ export class AcrossProvider extends CrossChainProvider {
 
         return AcrossGetQuoteParamsSchema.parse({
             tradeType: swapType,
-            inputToken: input.assetAddress,
+            inputToken: withNativePlaceholder(input.assetAddress, "eip155", NATIVE_ZERO_ADDRESS),
             amount,
-            outputToken: output.assetAddress,
+            outputToken: withNativePlaceholder(output.assetAddress, "eip155", NATIVE_ZERO_ADDRESS),
             originChainId: input.chainId,
             destinationChainId: output.chainId,
             depositor: params.user,

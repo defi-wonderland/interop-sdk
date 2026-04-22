@@ -38,6 +38,32 @@ export interface AllowanceReader {
     readAllowances(entries: AllowanceEntry[]): Promise<AllowanceResult[]>;
 }
 
+/**
+ * Distinguishes chain-registry misses from RPC or multicall errors when an
+ * allowance batch read fails.
+ */
+export enum AllowanceReadFailureReason {
+    Multicall = "multicall",
+    UnknownChain = "unknown-chain",
+}
+
+/**
+ * Payload for a failed allowance batch read.
+ *
+ * Single probe reverts are not reported here; they show up as `null`
+ * allowances on the affected entries.
+ */
+export interface AllowanceReadFailure {
+    chainId: number;
+    reason: AllowanceReadFailureReason;
+    error: unknown;
+}
+
+/** Handles full chain batch failures emitted by an `AllowanceReader`. */
+export interface AllowanceReadFailureHandler {
+    handle(failure: AllowanceReadFailure): void;
+}
+
 /** Enriches executable quotes with ERC-20 approval steps when needed. */
 export interface ApprovalService {
     enrichQuotes(quotes: ExecutableQuote[]): Promise<ExecutableQuote[]>;

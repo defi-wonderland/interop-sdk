@@ -281,7 +281,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
 
 An opt-in service that enriches aggregator quotes with ERC-20 approval steps. Pass one to `createAggregator({ approvalService })` and the aggregator will read on-chain allowances for every `order.checks.allowances` entry on the sorted quotes, then prepend an `approve` `TransactionStep` to `order.steps` when the current allowance is below `required`.
 
-Best-effort: on any read failure the affected quotes pass through unmodified. Quotes with sufficient existing allowance are not touched.
+Best-effort: on any read failure the affected quotes pass through unmodified. Quotes with sufficient existing allowance are not touched. Reads run through `MulticallAllowanceReader`, which batches one `multicall` per chain so a failure on one chain does not affect reads on another.
 
 #### Methods
 
@@ -307,12 +307,13 @@ Best-effort: on any read failure the affected quotes pass through unmodified. Qu
 
 #### CreateApprovalServiceConfig
 
-| Field              | Type                     | Required | Description                                                                                                            |
-| ------------------ | ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `rpcUrls`          | `Record<number, string>` | No       | RPC URLs per chain ID. Used to build public clients for `allowance()` multicalls when `publicClient` is not supplied.  |
-| `publicClient`     | `PublicClient` (viem)    | No       | Pre-configured viem public client. Takes precedence over `rpcUrls`.                                                    |
-| `amountStrategy`   | `ApprovalAmountStrategy` | No       | Strategy that decides the `amount` encoded in each `approve` call. Defaults to `ExactAmountStrategy`.                  |
-| `approvalGasLimit` | `bigint`                 | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas. |
+| Field              | Type                          | Required | Description                                                                                                            |
+| ------------------ | ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `rpcUrls`          | `Record<number, string>`      | No       | RPC URLs per chain ID. Used to build public clients for `allowance()` multicalls when `publicClient` is not supplied.  |
+| `publicClient`     | `PublicClient` (viem)         | No       | Pre-configured viem public client. Takes precedence over `rpcUrls`.                                                    |
+| `amountStrategy`   | `ApprovalAmountStrategy`      | No       | Strategy that decides the `amount` encoded in each `approve` call. Defaults to `ExactAmountStrategy`.                  |
+| `approvalGasLimit` | `bigint`                      | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas. |
+| `failureHandler`   | `AllowanceReadFailureHandler` | No       | Handler for full-batch allowance read failures. Defaults to `console.warn`; pass `{ handle: () => {} }` to silence.    |
 
 #### Amount Strategies
 
@@ -345,7 +346,7 @@ interface ApprovalAmountStrategy {
 Exported for advanced use cases (custom readers, custom service compositions):
 
 -   **DefaultApprovalService**(reader: AllowanceReader, amountStrategy: ApprovalAmountStrategy, gasLimit?: bigint) — implements `ApprovalService.enrichQuotes(quotes)`.
--   **MulticallAllowanceReader**(clientManager: PublicClientManager) — batches ERC-20 `allowance()` calls into one `multicall` per chain. Failures on one chain do not affect others.
+-   **MulticallAllowanceReader**(clientManager: PublicClientManager, failureHandler?: AllowanceReadFailureHandler) — the default `AllowanceReader`. Batches one `multicall` per chain; notifies `failureHandler` when a whole chain batch fails.
 
 Most consumers should use `createApprovalService(...)` rather than instantiating these directly.
 
