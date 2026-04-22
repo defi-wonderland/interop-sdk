@@ -1,0 +1,182 @@
+#!/usr/bin/env node
+/**
+ * Boots an anvil fork pinned to a concrete block number.
+ *
+ * Public full-node RPCs typically retain only ~128 blocks of historical
+ * state. Forking at `latest` can race the retention window: anvil resolves
+ * `latest` during boot and then reads the foundry default account, and if
+ * the RPC prunes between those calls the second one fails with
+ * `historical state not available`.
+ *
+ * Pinning the fork to `latest - ANVIL_FORK_BLOCK_OFFSET` (default 32)
+ * collapses that race into a single deterministic lookup while staying
+ * inside the RPC's retention window. No archive endpoint or secret needed.
+ */
+
+import { spawn } from 'node:child_process';
+
+const DEFAULT_FORK_RPC = 'https://base-sepolia-rpc.publicnode.com';
+const DEFAULT_PORT = '8545';
+const DEFAULT_BLOCK_OFFSET = 32;
+const BLOCK_NUMBER_TIMEOUT_MS = 10_000;
+const RPC_MAX_ATTEMPTS = 3;
+const RPC_RETRY_BACKOFF_MS = 500;
+
+/**
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * @param {string} rpcUrl
+ * @returns {Promise<number>}
+ */
+async function fetchLatestBlockNumber(rpcUrl) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), BLOCK_NUMBER_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_blockNumber',
+        params: [],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`RPC responded with HTTP ${response.status}`);
+    }
+
+    const payload = await response.json();
+
+    if (payload.error) {
+      throw new Error(`RPC error: ${payload.error.message ?? JSON.stringify(payload.error)}`);
+    }
+
+    const blockNumber = Number.parseInt(payload.result, 16);
+
+    if (!Number.isFinite(blockNumber) || blockNumber <= 0) {
+      throw new Error(`Invalid block number from RPC: ${payload.result}`);
+    }
+
+    return blockNumber;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * @param {string} rpcUrl
+ * @returns {Promise<number>}
+ */
+async function fetchLatestBlockNumberWithRetry(rpcUrl) {
+  let lastError;
+  for (let attempt = 1; attempt <= RPC_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fetchLatestBlockNumber(rpcUrl);
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[anvil-fork] RPC attempt ${attempt}/${RPC_MAX_ATTEMPTS} failed: ${message}`);
+      if (attempt < RPC_MAX_ATTEMPTS) {
+        await delay(RPC_RETRY_BACKOFF_MS * attempt);
+      }
+    }
+  }
+  throw lastError;
+}
+
+/**
+ * @param {{ rpcUrl: string, port: string, offset: number, explicitBlock: number | null }} config
+ * @returns {Promise<number>}
+ */
+async function resolveForkBlock({ rpcUrl, offset, explicitBlock }) {
+  if (explicitBlock !== null) {
+    console.log(`[anvil-fork] using explicit fork block ${explicitBlock}`);
+    return explicitBlock;
+  }
+
+  const latestBlock = await fetchLatestBlockNumberWithRetry(rpcUrl);
+  const forkBlock = latestBlock - offset;
+
+  if (forkBlock <= 0) {
+    throw new Error(`Computed fork block ${forkBlock} is invalid (latest=${latestBlock}, offset=${offset})`);
+  }
+
+  console.log(`[anvil-fork] forking ${rpcUrl} at block ${forkBlock} (latest=${latestBlock}, offset=${offset})`);
+  return forkBlock;
+}
+
+/**
+ * @param {{ rpcUrl: string, port: string, forkBlock: number }} config
+ */
+function spawnAnvil({ rpcUrl, port, forkBlock }) {
+  const anvilArgs = [
+    '--port',
+    port,
+    '--fork-url',
+    rpcUrl,
+    '--fork-block-number',
+    String(forkBlock),
+    '--block-time',
+    '1',
+    '--silent',
+  ];
+
+  const child = spawn('anvil', anvilArgs, { stdio: 'inherit' });
+
+  child.on('error', (error) => {
+    console.error(`[anvil-fork] failed to spawn anvil: ${error.message}`);
+    process.exit(1);
+  });
+
+  child.on('exit', (code, signal) => {
+    if (code !== null) {
+      process.exit(code);
+      return;
+    }
+    const graceful = signal === 'SIGINT' || signal === 'SIGTERM';
+    process.exit(graceful ? 0 : 1);
+  });
+
+  const forwardSignal = (signal) => {
+    if (!child.killed) child.kill(signal);
+  };
+  process.on('SIGINT', () => forwardSignal('SIGINT'));
+  process.on('SIGTERM', () => forwardSignal('SIGTERM'));
+}
+
+async function main() {
+  const rpcUrl = process.env.ANVIL_FORK_RPC ?? DEFAULT_FORK_RPC;
+  const port = process.env.ANVIL_PORT ?? DEFAULT_PORT;
+  const offset = Number.parseInt(process.env.ANVIL_FORK_BLOCK_OFFSET ?? String(DEFAULT_BLOCK_OFFSET), 10);
+
+  if (!Number.isFinite(offset) || offset < 0) {
+    throw new Error(
+      `ANVIL_FORK_BLOCK_OFFSET must be a non-negative integer, got "${process.env.ANVIL_FORK_BLOCK_OFFSET}"`,
+    );
+  }
+
+  const explicitBlockEnv = process.env.ANVIL_FORK_BLOCK;
+  const explicitBlock = explicitBlockEnv ? Number.parseInt(explicitBlockEnv, 10) : null;
+
+  if (explicitBlock !== null && (!Number.isFinite(explicitBlock) || explicitBlock <= 0)) {
+    throw new Error(`ANVIL_FORK_BLOCK must be a positive integer, got "${explicitBlockEnv}"`);
+  }
+
+  const forkBlock = await resolveForkBlock({ rpcUrl, port, offset, explicitBlock });
+  spawnAnvil({ rpcUrl, port, forkBlock });
+}
+
+main().catch((error) => {
+  console.error(`[anvil-fork] ${error.message}`);
+  process.exit(1);
+});

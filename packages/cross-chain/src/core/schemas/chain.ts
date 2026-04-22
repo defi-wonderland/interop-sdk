@@ -1,11 +1,12 @@
-import { z } from "zod";
+import { chainIdSchema } from "./common.js";
 
-import { SUPPORTED_CHAINS } from "../constants/chains.js";
-
-export const SupportedChainIdSchema = z.union(
-    SUPPORTED_CHAINS.map((chain) => z.literal(chain.id)) as unknown as [
-        z.ZodLiteral<(typeof SUPPORTED_CHAINS)[number]["id"]>,
-        z.ZodLiteral<(typeof SUPPORTED_CHAINS)[number]["id"]>,
-        ...z.ZodLiteral<(typeof SUPPORTED_CHAINS)[number]["id"]>[],
-    ],
-);
+/**
+ * A chain ID.
+ *
+ * Accepts any positive safe integer. The SDK does not keep a curated list;
+ * bridging support is decided by the registered providers at runtime, and
+ * generic chain lookups resolve against viem's catalogue.
+ *
+ * Delegates validation to `chainIdSchema` so the rules live in one place.
+ */
+export const SupportedChainIdSchema = chainIdSchema;
