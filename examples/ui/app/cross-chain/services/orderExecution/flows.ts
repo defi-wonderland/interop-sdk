@@ -4,6 +4,7 @@ import {
   getApprovalSteps,
   getTransactionSteps,
   type ExecutableQuote,
+  type TransactionStep,
 } from '@wonderland/interop-cross-chain';
 import { useCrossChainStore } from '../../stores/crossChainStore';
 import { executeApprovalStep, handleTokenApproval } from './approval';
@@ -68,7 +69,7 @@ export const executeDirectTransaction = async ({
   chainContext,
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
-  const [bridgeStep] = getTransactionSteps(quote.order).filter((s) => !isApprovalStep(s));
+  const [bridgeStep] = getTransactionSteps(quote.order).filter((s): s is TransactionStep => !isApprovalStep(s));
   if (!bridgeStep) {
     throw new Error('Invalid quote: missing bridge transaction step');
   }

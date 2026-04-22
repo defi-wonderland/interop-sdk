@@ -79,7 +79,7 @@ For more details on the Aggregator configuration, see the [API Reference](./api.
 
 ## Automatic ERC-20 Approvals
 
-When ERC-20 inputs need an `approve` before the transfer, the aggregator can handle it for you. Pass an `approvalService` to `createAggregator` and every quote it returns already has the necessary `approve` `TransactionStep`s prepended to `order.steps`. If the user already holds sufficient allowance, nothing is prepended.
+When ERC-20 inputs need an `approve` before the transfer, the aggregator can handle it for you. Pass an `approvalService` to `createAggregator` and every quote it returns already has the necessary `approve` `ApprovalStep`s prepended to `order.steps`. If the user already holds sufficient allowance, nothing is prepended.
 
 ```typescript
 import {
@@ -119,7 +119,7 @@ const response = await aggregator.getQuotes({
 
 Because approval steps live inside the normal `order.steps` array, your execution loop does not need a separate approval code path — iterate the steps in order and each `approve` fires before the transfer step that needs it.
 
-Approval steps carry `approval: true` on the `TransactionStep`. Use the `isApprovalStep` helper to tell them apart from transfer steps when you need different UI states:
+Approval steps live under the dedicated `kind: "approval"` in `order.steps` with the same `transaction` payload as `TransactionStep`. `getTransactionSteps(order)` returns every user-submittable on-chain step (transfers and approvals, in emission order) so your execution loop stays a single `for` and the approval fires before the transfer that needs it. Use `isApprovalStep(step)` only when you want to surface a different UI state:
 
 ```typescript
 import { getTransactionSteps, isApprovalStep } from "@wonderland/interop-cross-chain";

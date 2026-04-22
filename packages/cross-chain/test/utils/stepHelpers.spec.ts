@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import type { Order, SignatureStep, TransactionStep } from "../../src/core/schemas/order.js";
+import type {
+    ApprovalStep,
+    Order,
+    SignatureStep,
+    TransactionStep,
+} from "../../src/core/schemas/order.js";
 import {
     getApprovalSteps,
     getSignatureSteps,
@@ -19,10 +24,9 @@ const mockTxStep: TransactionStep = {
     },
 };
 
-const mockApprovalStep: TransactionStep = {
-    kind: "transaction",
+const mockApprovalStep: ApprovalStep = {
+    kind: "approval",
     chainId: 1,
-    approval: true,
     transaction: {
         to: "0x2222222222222222222222222222222222222222",
         data: "0x095ea7b3",
@@ -63,15 +67,17 @@ describe("stepHelpers", () => {
     });
 
     describe("getTransactionSteps", () => {
-        it("returns all transaction steps including approval steps", () => {
+        it("returns all on-chain steps including approval steps", () => {
             const order: Order = { steps: [mockApprovalStep, mockTxStep, mockSigStep] };
             const result = getTransactionSteps(order);
 
             expect(result).toHaveLength(2);
-            expect(result.every((s) => s.kind === "transaction")).toBe(true);
+            expect(result.every((s) => s.kind === "transaction" || s.kind === "approval")).toBe(
+                true,
+            );
         });
 
-        it("returns empty array when no transaction steps", () => {
+        it("returns empty array when no on-chain steps", () => {
             const order: Order = { steps: [mockSigStep] };
             expect(getTransactionSteps(order)).toHaveLength(0);
         });
@@ -95,7 +101,7 @@ describe("stepHelpers", () => {
     });
 
     describe("isApprovalStep", () => {
-        it("returns true for a step with approval flag set to true", () => {
+        it("returns true for a step with kind approval", () => {
             expect(isApprovalStep(mockApprovalStep)).toBe(true);
         });
 
@@ -103,19 +109,13 @@ describe("stepHelpers", () => {
             expect(isApprovalStep(mockTxStep)).toBe(false);
         });
 
-        it("returns false when approval is explicitly false", () => {
-            const step: TransactionStep = { ...mockTxStep, approval: false };
-            expect(isApprovalStep(step)).toBe(false);
-        });
-
-        it("returns false when approval is undefined", () => {
-            const step: TransactionStep = { ...mockTxStep, approval: undefined };
-            expect(isApprovalStep(step)).toBe(false);
+        it("returns false for a signature step", () => {
+            expect(isApprovalStep(mockSigStep)).toBe(false);
         });
     });
 
     describe("getApprovalSteps", () => {
-        it("returns only the approval transaction steps from a mixed order", () => {
+        it("returns only the approval steps from a mixed order", () => {
             const order: Order = {
                 steps: [mockApprovalStep, mockTxStep, mockSigStep],
             };
@@ -144,8 +144,13 @@ describe("stepHelpers", () => {
             expect(isTransactionOnlyOrder(order)).toBe(true);
         });
 
-        it("returns true when steps include approval-flagged transactions", () => {
+        it("returns true when steps mix transactions and approvals", () => {
             const order: Order = { steps: [mockApprovalStep, mockTxStep] };
+            expect(isTransactionOnlyOrder(order)).toBe(true);
+        });
+
+        it("returns true when all steps are approvals", () => {
+            const order: Order = { steps: [mockApprovalStep, mockApprovalStep] };
             expect(isTransactionOnlyOrder(order)).toBe(true);
         });
 

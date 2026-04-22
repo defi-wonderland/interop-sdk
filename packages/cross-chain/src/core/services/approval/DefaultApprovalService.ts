@@ -9,13 +9,13 @@ import type {
     ApprovalAmountStrategy,
     ApprovalService,
 } from "../../interfaces/approval.interface.js";
-import type { TransactionStep } from "../../schemas/order.js";
+import type { ApprovalStep } from "../../schemas/order.js";
 import type { ExecutableQuote } from "../../schemas/quote.js";
 import { allowanceKey, toAllowanceEntry } from "../../interfaces/approval.interface.js";
 
 /**
- * Reads on-chain ERC-20 allowances for every quote and prepends approval
- * `TransactionStep`s into `order.steps` when the current allowance is
+ * Reads on-chain ERC-20 allowances for every quote and prepends
+ * `ApprovalStep`s into `order.steps` when the current allowance is
  * insufficient.
  *
  * Never throws -- on any failure the affected quotes pass through unmodified.
@@ -93,13 +93,12 @@ export class DefaultApprovalService implements ApprovalService {
         };
     }
 
-    private createApprovalStep(check: AllowanceCheck): TransactionStep {
+    private createApprovalStep(check: AllowanceCheck): ApprovalStep {
         const amount = this.amountStrategy.resolve(BigInt(check.required));
         return {
-            kind: "transaction",
+            kind: "approval",
             chainId: check.chainId,
             description: "Token approval",
-            approval: true,
             transaction: {
                 to: check.tokenAddress,
                 data: encodeFunctionData({

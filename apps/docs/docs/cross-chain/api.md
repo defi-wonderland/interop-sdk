@@ -279,7 +279,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
 
 ### Approval Service
 
-An opt-in service that enriches aggregator quotes with ERC-20 approval steps. Pass one to `createAggregator({ approvalService })` and the aggregator will read on-chain allowances for every `order.checks.allowances` entry on the sorted quotes, then prepend an `approve` `TransactionStep` (with `approval: true`) to `order.steps` when the current allowance is below `required`. Use `isApprovalStep(step)` or `getApprovalSteps(order)` to identify these steps programmatically.
+An opt-in service that enriches aggregator quotes with ERC-20 approval steps. Pass one to `createAggregator({ approvalService })` and the aggregator will read on-chain allowances for every `order.checks.allowances` entry on the sorted quotes, then prepend an `ApprovalStep` (`kind: "approval"`) to `order.steps` when the current allowance is below `required`. Use `isApprovalStep(step)` or `getApprovalSteps(order)` to identify these steps programmatically.
 
 Best-effort: on any read failure the affected quotes pass through unmodified. Quotes with sufficient existing allowance are not touched. Reads run through `MulticallAllowanceReader`, which batches one `multicall` per chain so a failure on one chain does not affect reads on another.
 
@@ -525,7 +525,7 @@ interface QuoteFees {
 
 ```typescript
 interface Order {
-    steps: (SignatureStep | TransactionStep)[];
+    steps: (SignatureStep | TransactionStep | ApprovalStep)[];
     lock?: LockMechanism;
     checks?: OrderChecks;
     metadata?: Record<string, unknown>;

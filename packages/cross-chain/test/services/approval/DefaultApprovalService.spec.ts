@@ -122,7 +122,7 @@ describe("DefaultApprovalService", () => {
         expect(enriched!.order.steps).toHaveLength(1);
     });
 
-    it("prepends an approve TransactionStep when allowance is insufficient", async () => {
+    it("prepends an ApprovalStep when allowance is insufficient", async () => {
         const reader = mockReader(new Map([[testKey, 0n]]));
         const service = new DefaultApprovalService(reader, new ExactAmountStrategy());
         const quote = makeQuote({
@@ -141,8 +141,7 @@ describe("DefaultApprovalService", () => {
 
         expect(enriched!.order.steps).toHaveLength(2);
         const step = enriched!.order.steps[0]!;
-        if (step.kind !== "transaction") throw new Error("expected transaction step");
-        expect(step.approval).toBe(true);
+        if (step.kind !== "approval") throw new Error("expected approval step");
         expect(step.chainId).toBe(CHAIN_ID);
         expect(step.transaction.to).toBe(TOKEN);
         expect(step.description).toBe("Token approval");
@@ -169,8 +168,7 @@ describe("DefaultApprovalService", () => {
         const [enriched] = await service.enrichQuotes([quote]);
 
         const step = enriched!.order.steps[0]!;
-        if (step.kind !== "transaction") throw new Error("expected transaction step");
-        expect(step.approval).toBe(true);
+        if (step.kind !== "approval") throw new Error("expected approval step");
         expect(step.transaction.gas).toBe("100000");
     });
 
@@ -306,7 +304,7 @@ describe("DefaultApprovalService", () => {
 
         expect(enriched!.order.steps).toHaveLength(2);
         const approvalStep = enriched!.order.steps[0]!;
-        if (approvalStep.kind !== "transaction") throw new Error("expected transaction step");
+        if (approvalStep.kind !== "approval") throw new Error("expected approval step");
         expect(approvalStep.chainId).toBe(1);
         expect(approvalStep.transaction.to).toBe(usdcMainnet);
         expect(approvalStep.description).toBe("Token approval");

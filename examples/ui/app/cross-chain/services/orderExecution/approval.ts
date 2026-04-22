@@ -2,12 +2,12 @@ import { erc20Abi, type Address, type Hex, type PublicClient } from 'viem';
 import { STEP, WALLET_ACTION, type BridgeState, type ChainContext } from '../../types/execution';
 import { waitForReceiptWithRetry } from '../../utils/transactionReceipt';
 import type { ConfiguredWalletClient } from './chainSetup';
-import type { TransactionStep } from '@wonderland/interop-cross-chain';
+import type { ApprovalStep } from '@wonderland/interop-cross-chain';
 
 export async function executeApprovalStep(
   publicClient: PublicClient,
   walletClient: ConfiguredWalletClient,
-  step: TransactionStep,
+  step: ApprovalStep,
   chainContext: ChainContext,
   onStateChange: (state: BridgeState) => void,
 ): Promise<void> {

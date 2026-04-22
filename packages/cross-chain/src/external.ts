@@ -75,6 +75,7 @@ export {
     type QuoteRequest,
     type BuildQuoteRequest,
     type TransactionStep,
+    type ApprovalStep,
     type GetQuotesError,
     type GetQuotesResponse,
 } from "./internal.js";
