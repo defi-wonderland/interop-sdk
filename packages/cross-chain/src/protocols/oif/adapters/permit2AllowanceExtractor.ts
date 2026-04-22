@@ -30,21 +30,19 @@ const BATCH_PERMIT_TYPES: ReadonlySet<string> = new Set([
 
 type EscrowPayload = OifEscrowOrder["payload"];
 
-/** Raw `TokenPermissions` entry as it arrives in a Permit2 EIP-712 message. */
 interface TokenPermission {
     token: string;
     amount: string;
 }
 
 /**
- * Turn a validated Permit2 EIP-712 payload into `AllowanceCheck`s.
+ * Returns the ERC-20 allowances a Permit2 escrow order needs from the user.
  *
- * Assumes the payload has already been validated upstream (see
- * `validateEscrowOrder`). Its only runtime guard is dispatch by
- * `primaryType`: unknown Permit2 types return `[]` with a warning.
+ * Trusts the payload (already validated by `validateEscrowOrder`). Unknown
+ * Permit2 primary types return an empty list.
  *
- * The signer comes from outside because Permit2 messages don't carry the
- * token owner: the signature itself identifies them.
+ * The signer is passed in because Permit2 messages don't carry the owner:
+ * the signature identifies them.
  */
 export function extractPermit2Allowances(
     payload: EscrowPayload,
