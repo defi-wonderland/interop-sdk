@@ -195,28 +195,35 @@ interface WatchOrderBase {
     pollingInterval?: number;
 }
 
-/** Watch by txHash (user-open orders) */
+/** Watch by txHash only - tracks on-chain (event-based). */
 export interface WatchOrderByTxHash extends WatchOrderBase {
-    /** Transaction hash where the order was opened */
     txHash: Hex;
     orderId?: never;
-    /** Optional - extracted from parsed order's fillInstructions */
+    tracking?: never;
     destinationChainId?: number;
 }
 
-/** Watch by order identifier instead of transaction hash */
+/** Watch by orderId only - tracks via API. */
 export interface WatchOrderByOrderId extends WatchOrderBase {
     txHash?: never;
-    /** Order or request identifier returned by the protocol */
     orderId: Hex;
-    /** Required when no origin transaction is available to parse */
+    tracking?: never;
     destinationChainId: number;
-    /** Origin transaction hash, passed to the pre-tracker when provided */
     openTxHash?: Hex;
 }
 
-/** Pass txHash for user-open orders, orderId for escrow orders */
-export type WatchOrderParams = WatchOrderByTxHash | WatchOrderByOrderId;
+/** Watch with both identifiers. Defaults to API tracking if not specified. */
+export interface WatchOrderExplicit extends WatchOrderBase {
+    txHash: Hex;
+    orderId: Hex;
+    tracking?: "on-chain" | "api";
+    destinationChainId?: number;
+}
+
+export type WatchOrderParams = WatchOrderByTxHash | WatchOrderByOrderId | WatchOrderExplicit;
+
+/** Tracking identifiers returned by execution flows, used to start order tracking. */
+export type TrackingIdentifier = Pick<WatchOrderParams, "txHash" | "orderId" | "tracking">;
 
 /**
  * Parameters for getting fill status on destination chain
