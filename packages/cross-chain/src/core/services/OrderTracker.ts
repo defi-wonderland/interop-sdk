@@ -36,6 +36,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
         private readonly fillWatcher: FillWatcher,
         private readonly clientManager?: PublicClientManager,
         private readonly preTracker?: PreTracker,
+        private readonly onChainFillWatcher?: FillWatcher,
     ) {
         super();
     }
@@ -247,7 +248,9 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
             throw new Error("Order has no destination chain in fillInstructions");
         }
 
+        const watcher = this.onChainFillWatcher ?? this.fillWatcher;
         const fillResult = await this.waitForFillWithTimeout(
+            watcher,
             {
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
@@ -570,6 +573,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
     }
 
     private async waitForFillWithTimeout(
+        watcher: FillWatcher,
         fillParams: {
             orderId: Hex;
             openTxHash?: Hex;
@@ -591,7 +595,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
         | { status: typeof FillResultStatus.Timeout }
     > {
         try {
-            const fillEvent = await this.fillWatcher.waitForFill(fillParams, timeout);
+            const fillEvent = await watcher.waitForFill(fillParams, timeout);
             return {
                 status: FillResultStatus.Finalized,
                 fillTxHash: fillEvent.fillTxHash,

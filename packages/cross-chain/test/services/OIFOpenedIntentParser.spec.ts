@@ -1,65 +1,64 @@
-import { Address, encodeAbiParameters, Hex, Log, PublicClient } from "viem";
+import type { Address, Hex, Log, PublicClient } from "viem";
+import { encodeAbiParameters } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     InvalidOpenEventError,
     OIFOpenedIntentParser,
     OIFOpenEventNotFoundError,
-    OPEN_EVENT_SIGNATURE,
     PublicClientManager,
 } from "../../src/internal.js";
+import {
+    OIF_INPUT_SETTLER_ESCROW_BY_CHAIN,
+    OIF_OPEN_EVENT_SIGNATURE,
+} from "../../src/protocols/oif/constants.js";
 
 /**
- * Create mock Open event log with full EIP-7683 ResolvedCrossChainOrder data
+ * Create a mock Open event log with OIF StandardOrder data.
  */
 const createMockOpenEventLog = (overrides?: Partial<Log>): Log => {
     const orderId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hex;
     const user = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as Address;
-    const originChainId = 11155111n;
-    const openDeadline = 1700000000;
+    const originChainId = 42161n;
+    const nonce = 1700000000000n;
+    const expires = 1700003900;
     const fillDeadline = 1700003600;
-    const destinationChainId = 84532n; // Base Sepolia
-    const inputAmount = 1000000000000000000n; // 1 ETH
-    const outputAmount = 990000000000000000n; // 0.99 ETH
+    const inputOracle = "0x0b88D54A39F330Dd7e773af4806BDC490c79cAB6" as Address;
+    const inputToken = BigInt("0x7e13e59a15e4703a54a0976ddd970f8fe52d3a76");
+    const inputAmount = 1000000n;
+    const outputOracle =
+        "0x0000000000000000000000000b88D54A39F330Dd7e773af4806BDC490c79cAB6" as Hex;
+    const outputSettler =
+        "0x0000000000000000000000002404F8e3c37c002c89bA78086a119e68E3fF8824" as Hex;
+    const outputChainId = 8453n;
+    const outputToken = "0x000000000000000000000000c0b782920b2de8b55f08fc98004eb5c7d4fbf287" as Hex;
+    const outputAmount = 960000n;
+    const recipient = "0x000000000000000000000000d8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as Hex;
 
-    // Encode the full ResolvedCrossChainOrder struct
     const data = encodeAbiParameters(
         [
             {
                 type: "tuple",
                 components: [
                     { type: "address", name: "user" },
+                    { type: "uint256", name: "nonce" },
                     { type: "uint256", name: "originChainId" },
-                    { type: "uint32", name: "openDeadline" },
+                    { type: "uint32", name: "expires" },
                     { type: "uint32", name: "fillDeadline" },
-                    { type: "bytes32", name: "orderId" },
+                    { type: "address", name: "inputOracle" },
+                    { type: "uint256[2][]", name: "inputs" },
                     {
                         type: "tuple[]",
-                        name: "maxSpent",
+                        name: "outputs",
                         components: [
+                            { type: "bytes32", name: "oracle" },
+                            { type: "bytes32", name: "settler" },
+                            { type: "uint256", name: "chainId" },
                             { type: "bytes32", name: "token" },
                             { type: "uint256", name: "amount" },
                             { type: "bytes32", name: "recipient" },
-                            { type: "uint256", name: "chainId" },
-                        ],
-                    },
-                    {
-                        type: "tuple[]",
-                        name: "minReceived",
-                        components: [
-                            { type: "bytes32", name: "token" },
-                            { type: "uint256", name: "amount" },
-                            { type: "bytes32", name: "recipient" },
-                            { type: "uint256", name: "chainId" },
-                        ],
-                    },
-                    {
-                        type: "tuple[]",
-                        name: "fillInstructions",
-                        components: [
-                            { type: "uint256", name: "destinationChainId" },
-                            { type: "bytes32", name: "destinationSettler" },
-                            { type: "bytes", name: "originData" },
+                            { type: "bytes", name: "callbackData" },
+                            { type: "bytes", name: "context" },
                         ],
                     },
                 ],
@@ -68,34 +67,22 @@ const createMockOpenEventLog = (overrides?: Partial<Log>): Log => {
         [
             {
                 user,
+                nonce,
                 originChainId,
-                openDeadline,
+                expires,
                 fillDeadline,
-                orderId,
-                maxSpent: [
+                inputOracle,
+                inputs: [[inputToken, inputAmount]],
+                outputs: [
                     {
-                        token: "0x0000000000000000000000000000000000000000000000000000000000000001" as Hex,
-                        amount: inputAmount,
-                        recipient:
-                            "0x0000000000000000000000000000000000000000000000000000000000000002" as Hex,
-                        chainId: originChainId,
-                    },
-                ],
-                minReceived: [
-                    {
-                        token: "0x0000000000000000000000000000000000000000000000000000000000000003" as Hex,
+                        oracle: outputOracle,
+                        settler: outputSettler,
+                        chainId: outputChainId,
+                        token: outputToken,
                         amount: outputAmount,
-                        recipient:
-                            "0x0000000000000000000000000000000000000000000000000000000000000004" as Hex,
-                        chainId: destinationChainId,
-                    },
-                ],
-                fillInstructions: [
-                    {
-                        destinationChainId,
-                        destinationSettler:
-                            "0x0000000000000000000000000000000000000000000000000000000000000005" as Hex,
-                        originData: "0x" as Hex,
+                        recipient,
+                        callbackData: "0x",
+                        context: "0x",
                     },
                 ],
             },
@@ -103,164 +90,103 @@ const createMockOpenEventLog = (overrides?: Partial<Log>): Log => {
     );
 
     return {
-        address: "0x5f9D51679F5A0C7C1e2b7F0aE8F2c3c7c9c1c2c3" as Address,
-        blockHash: "0xaabbccdd1234567890aabbccdd1234567890aabbccdd1234567890aabbccdd12" as Hex,
-        blockNumber: 1000000n,
+        address: OIF_INPUT_SETTLER_ESCROW_BY_CHAIN[42161]! as Address,
+        blockHash: "0xblockhash" as Hex,
+        blockNumber: 100n,
         data,
         logIndex: 0,
-        removed: false,
-        topics: [OPEN_EVENT_SIGNATURE as Hex, orderId], // topic[0] = event sig, topic[1] = orderId (indexed)
-        transactionHash:
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" as Hex,
+        topics: [OIF_OPEN_EVENT_SIGNATURE, orderId],
+        transactionHash: "0xtxhash" as Hex,
         transactionIndex: 0,
+        removed: false,
         ...overrides,
-    } as Log;
+    };
 };
+
+const mockTxHash = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" as Hex;
+const mockChainId = 42161;
 
 describe("OIFOpenedIntentParser", () => {
     let parser: OIFOpenedIntentParser;
-    let mockClientManager: PublicClientManager;
-    let mockPublicClient: PublicClient;
-
-    const mockTxHash = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" as Hex;
-    const mockChainId = 11155111; // Sepolia
+    let mockGetTransactionReceipt: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
-        vi.clearAllMocks();
+        mockGetTransactionReceipt = vi.fn();
 
-        mockPublicClient = {
-            getTransactionReceipt: vi.fn(),
-        } as unknown as PublicClient;
-
-        mockClientManager = {
-            getClient: vi.fn().mockReturnValue(mockPublicClient),
+        const mockClientManager = {
+            getClient: vi.fn().mockReturnValue({
+                getTransactionReceipt: mockGetTransactionReceipt,
+            } as unknown as PublicClient),
         } as unknown as PublicClientManager;
 
-        parser = new OIFOpenedIntentParser({
-            clientManager: mockClientManager,
-        });
+        parser = new OIFOpenedIntentParser({ clientManager: mockClientManager });
     });
 
-    describe("getOpenedIntent", () => {
-        it("should parse OIF Open event and return complete OpenedIntent", async () => {
-            const mockOpenLog = createMockOpenEventLog();
+    it("parses a valid OIF StandardOrder Open event", async () => {
+        const openLog = createMockOpenEventLog();
 
-            vi.mocked(mockPublicClient.getTransactionReceipt).mockResolvedValue({
-                logs: [mockOpenLog],
-                blockNumber: 1000000n,
-            } as unknown as ReturnType<PublicClient["getTransactionReceipt"]>);
-
-            const result = await parser.getOpenedIntent(mockTxHash, mockChainId);
-
-            // Basic fields
-            expect(result.orderId).toBe(
-                "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-            );
-            expect(result.txHash).toBe(mockTxHash);
-            expect(result.blockNumber).toBe(1000000n);
-            expect(result.originContract).toBe(mockOpenLog.address);
-
-            // Check fillInstructions array
-            expect(result.fillInstructions).toBeDefined();
-            expect(result.fillInstructions.length).toBeGreaterThan(0);
+        mockGetTransactionReceipt.mockResolvedValue({
+            logs: [openLog],
+            blockNumber: 100n,
         });
 
-        it("should throw OIFOpenEventNotFoundError when no Open event in receipt", async () => {
-            const nonOpenLog: Log = {
-                address: "0x5f9D51679F5A0C7C1e2b7F0aE8F2c3c7c9c1c2c3" as Address,
-                blockHash: "0xaabbccdd" as Hex,
-                blockNumber: 1000000n,
-                data: "0x" as Hex,
-                logIndex: 0,
-                removed: false,
-                topics: ["0xdifferentsignature" as Hex],
-                transactionHash: mockTxHash,
-                transactionIndex: 0,
-            };
+        const intent = await parser.getOpenedIntent(mockTxHash, mockChainId);
 
-            vi.mocked(mockPublicClient.getTransactionReceipt).mockResolvedValue({
-                logs: [nonOpenLog],
-                blockNumber: 1000000n,
-            } as unknown as ReturnType<PublicClient["getTransactionReceipt"]>);
+        expect(intent.orderId).toBe(
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        );
+        expect(intent.user.toLowerCase()).toBe(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045".toLowerCase(),
+        );
+        expect(intent.originChainId).toBe(42161);
+        expect(intent.fillDeadline).toBe(1700003600);
+        expect(intent.openDeadline).toBe(1700003900); // mapped from expires
+        expect(intent.maxSpent).toHaveLength(1);
+        expect(intent.maxSpent[0]!.amount).toBe(1000000n);
+        expect(intent.minReceived).toHaveLength(1);
+        expect(intent.minReceived[0]!.amount).toBe(960000n);
+        expect(intent.minReceived[0]!.chainId).toBe(8453);
+        expect(intent.fillInstructions).toHaveLength(1);
+        expect(intent.fillInstructions[0]!.destinationChainId).toBe(8453);
+    });
 
-            await expect(parser.getOpenedIntent(mockTxHash, mockChainId)).rejects.toThrow(
-                OIFOpenEventNotFoundError,
-            );
+    it("throws OIFOpenEventNotFoundError when no Open event in receipt", async () => {
+        mockGetTransactionReceipt.mockResolvedValue({
+            logs: [],
+            blockNumber: 100n,
         });
 
-        it("should throw OIFOpenEventNotFoundError when receipt has no logs", async () => {
-            vi.mocked(mockPublicClient.getTransactionReceipt).mockResolvedValue({
-                logs: [],
-                blockNumber: 1000000n,
-            } as unknown as ReturnType<PublicClient["getTransactionReceipt"]>);
+        await expect(parser.getOpenedIntent(mockTxHash, mockChainId)).rejects.toBeInstanceOf(
+            OIFOpenEventNotFoundError,
+        );
+    });
 
-            await expect(parser.getOpenedIntent(mockTxHash, mockChainId)).rejects.toThrow(
-                OIFOpenEventNotFoundError,
-            );
+    it("throws InvalidOpenEventError when event data is malformed", async () => {
+        const badLog = createMockOpenEventLog({ data: "0x0000" as Hex });
+
+        mockGetTransactionReceipt.mockResolvedValue({
+            logs: [badLog],
+            blockNumber: 100n,
         });
 
-        it("should find Open event among multiple logs", async () => {
-            const otherLog: Log = {
-                address: "0x1111111111111111111111111111111111111111" as Address,
-                blockHash: "0xaabbccdd" as Hex,
-                blockNumber: 1000000n,
-                data: "0x" as Hex,
-                logIndex: 0,
-                removed: false,
-                topics: ["0xothersignature" as Hex],
-                transactionHash: mockTxHash,
-                transactionIndex: 0,
-            };
+        await expect(parser.getOpenedIntent(mockTxHash, mockChainId)).rejects.toBeInstanceOf(
+            InvalidOpenEventError,
+        );
+    });
 
-            const mockOpenLog = createMockOpenEventLog();
-
-            vi.mocked(mockPublicClient.getTransactionReceipt).mockResolvedValue({
-                logs: [otherLog, mockOpenLog, otherLog],
-                blockNumber: 1000000n,
-            } as unknown as ReturnType<PublicClient["getTransactionReceipt"]>);
-
-            const result = await parser.getOpenedIntent(mockTxHash, mockChainId);
-
-            expect(result.orderId).toBe(
-                "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-            );
+    it("includes SDK metadata in the result", async () => {
+        const openLog = createMockOpenEventLog();
+        mockGetTransactionReceipt.mockResolvedValue({
+            logs: [openLog],
+            blockNumber: 100n,
         });
 
-        it("should use correct chain client", async () => {
-            const mockOpenLog = createMockOpenEventLog();
+        const intent = await parser.getOpenedIntent(mockTxHash, mockChainId);
 
-            vi.mocked(mockPublicClient.getTransactionReceipt).mockResolvedValue({
-                logs: [mockOpenLog],
-                blockNumber: 1000000n,
-            } as unknown as ReturnType<PublicClient["getTransactionReceipt"]>);
-
-            await parser.getOpenedIntent(mockTxHash, mockChainId);
-
-            expect(mockClientManager.getClient).toHaveBeenCalled();
-        });
-
-        it("should throw InvalidOpenEventError for malformed event data", async () => {
-            // Create a log with the correct signature but invalid data
-            const malformedLog: Log = {
-                address: "0x5f9D51679F5A0C7C1e2b7F0aE8F2c3c7c9c1c2c3" as Address,
-                blockHash: "0xaabbccdd" as Hex,
-                blockNumber: 1000000n,
-                data: "0x" as Hex, // Empty data will cause decode to fail
-                logIndex: 0,
-                removed: false,
-                topics: [OPEN_EVENT_SIGNATURE as Hex], // Correct signature but missing orderId topic
-                transactionHash: mockTxHash,
-                transactionIndex: 0,
-            };
-
-            vi.mocked(mockPublicClient.getTransactionReceipt).mockResolvedValue({
-                logs: [malformedLog],
-                blockNumber: 1000000n,
-            } as unknown as ReturnType<PublicClient["getTransactionReceipt"]>);
-
-            await expect(parser.getOpenedIntent(mockTxHash, mockChainId)).rejects.toThrow(
-                InvalidOpenEventError,
-            );
-        });
+        expect(intent.txHash).toBe(mockTxHash);
+        expect(intent.blockNumber).toBe(100n);
+        expect(intent.originContract.toLowerCase()).toBe(
+            OIF_INPUT_SETTLER_ESCROW_BY_CHAIN[42161]!.toLowerCase(),
+        );
     });
 });

@@ -59,7 +59,17 @@ export class OrderTrackerFactory {
                 ? this.preTrackerFactory.create(trackingConfig.preTrackerConfig)
                 : undefined);
 
-        return new OrderTracker(openedIntentParser, fillWatcher, this.clientManager, preTracker);
+        const onChainFillWatcher = trackingConfig.onChainFillWatcherConfig
+            ? this.createFillWatcher(trackingConfig.onChainFillWatcherConfig as FillWatcherConfig)
+            : undefined;
+
+        return new OrderTracker(
+            openedIntentParser,
+            fillWatcher,
+            this.clientManager,
+            preTracker,
+            onChainFillWatcher,
+        );
     }
 
     /**

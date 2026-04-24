@@ -13,6 +13,7 @@ import { ZodError } from "zod";
 
 import type { Quote, QuoteFeeEntry } from "../../core/schemas/quote.js";
 import type { BuildQuoteRequest, QuoteRequest } from "../../core/schemas/quoteRequest.js";
+import { addressToBytes32 } from "../../core/utils/addressHelpers.js";
 import {
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
@@ -59,10 +60,6 @@ import { decodeAcrossCalldata } from "./utils.js";
 
 const ZERO_BYTES32 = pad("0x00" as Hex, { size: 32 });
 const ACROSS_DEFAULT_MESSAGE: Hex = "0x";
-
-function addressToBytes32(address: string): Hex {
-    return pad(address as Address, { size: 32 });
-}
 
 /**
  * An implementation of the CrossChainProvider interface for the Across protocol

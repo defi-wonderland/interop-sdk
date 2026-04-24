@@ -1,5 +1,18 @@
 import type { Address } from "viem";
-import { Hex } from "viem";
+import { Hex, pad } from "viem";
+
+/**
+ * Left-pad a 20-byte address to a bytes32 hex string.
+ *
+ * @example
+ * ```typescript
+ * addressToBytes32("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48");
+ * // Returns: "0x000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+ * ```
+ */
+export function addressToBytes32(addr: string): Hex {
+    return pad(addr as Hex, { size: 32 });
+}
 
 /**
  * Convert a bytes32 value to an Ethereum address

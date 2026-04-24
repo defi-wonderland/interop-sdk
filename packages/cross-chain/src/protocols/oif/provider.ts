@@ -5,7 +5,7 @@ import {
     PostOrderResponse,
 } from "@openintentsframework/oif-specs";
 import axios, { AxiosError } from "axios";
-import { encodeFunctionData, Hex, hexToBytes, pad } from "viem";
+import { encodeFunctionData, Hex, hexToBytes } from "viem";
 import { ZodError } from "zod";
 
 import type {
@@ -14,10 +14,12 @@ import type {
 } from "../../core/interfaces/quotes.interface.js";
 import type { Quote, SubmitOrderResponse } from "../../core/schemas/quote.js";
 import type { BuildQuoteRequest, QuoteRequest } from "../../core/schemas/quoteRequest.js";
+import { addressToBytes32 } from "../../core/utils/addressHelpers.js";
 import { isSignableOifOrder } from "../../core/utils/orderTypeHelpers.js";
 import {
     APIBasedFillWatcherConfig,
     CrossChainProvider,
+    EventBasedFillWatcherConfig,
     FillEvent,
     FillWatcherConfig,
     GetFillParams,
@@ -42,9 +44,13 @@ import {
     adaptQuoteRequest,
     adaptTypedDataPayload,
 } from "./adapters/index.js";
-import { OPEN_ABI } from "./constants.js";
-
-const DEFAULT_ORDER_DATA_TYPE = pad("0x00" as Hex, { size: 32 });
+import {
+    OIF_BROADCASTER_ORACLE,
+    OIF_INPUT_SETTLER_ESCROW_BY_CHAIN,
+    OIF_OUTPUT_SETTLER_BY_CHAIN,
+    OUTPUT_FILLED_EVENT_ABI,
+    STANDARD_ORDER_OPEN_ABI,
+} from "./constants.js";
 
 /**
  * OIF Provider implementation
@@ -278,25 +284,52 @@ export class OifProvider extends CrossChainProvider {
             );
         }
 
-        const orderDataType = params.orderDataType
-            ? (pad(params.orderDataType as Hex, { size: 32 }) as Hex)
-            : DEFAULT_ORDER_DATA_TYPE;
+        const escrowAddress = OIF_INPUT_SETTLER_ESCROW_BY_CHAIN[params.input.chainId];
 
-        const orderData = (params.orderData ?? "0x") as Hex;
+        if (!escrowAddress) {
+            throw new ProviderExecuteNotImplemented(
+                `OIF has no input settler on chain ${params.input.chainId}`,
+            );
+        }
+
+        const outputSettler = OIF_OUTPUT_SETTLER_BY_CHAIN[params.output.chainId];
+        if (!outputSettler) {
+            throw new ProviderExecuteNotImplemented(
+                `OIF has no output settler on chain ${params.output.chainId}`,
+            );
+        }
+
+        // Nonce only needs to be unique per user. Millisecond timestamp avoids collisions.
+        const nonce = BigInt(Date.now());
+        const recipient = params.output.recipient ?? params.user;
 
         const calldata = encodeFunctionData({
-            abi: OPEN_ABI,
+            abi: STANDARD_ORDER_OPEN_ABI,
             functionName: "open",
             args: [
                 {
+                    user: params.user as Hex,
+                    nonce,
+                    originChainId: BigInt(params.input.chainId),
+                    expires: params.fillDeadline,
                     fillDeadline: params.fillDeadline,
-                    orderDataType,
-                    orderData,
+                    inputOracle: OIF_BROADCASTER_ORACLE,
+                    inputs: [[BigInt(params.input.assetAddress), BigInt(params.input.amount)]],
+                    outputs: [
+                        {
+                            oracle: addressToBytes32(OIF_BROADCASTER_ORACLE),
+                            settler: addressToBytes32(outputSettler),
+                            chainId: BigInt(params.output.chainId),
+                            token: addressToBytes32(params.output.assetAddress),
+                            amount: BigInt(params.output.amount),
+                            recipient: addressToBytes32(recipient),
+                            callbackData: "0x" as Hex,
+                            context: "0x" as Hex,
+                        },
+                    ],
                 },
             ],
         });
-
-        const recipient = params.output.recipient ?? params.user;
 
         return {
             provider: this.providerId,
@@ -306,7 +339,7 @@ export class OifProvider extends CrossChainProvider {
                         kind: "transaction" as const,
                         chainId: params.input.chainId,
                         transaction: {
-                            to: params.escrowContractAddress,
+                            to: escrowAddress,
                             data: calldata,
                         },
                     },
@@ -317,7 +350,7 @@ export class OifProvider extends CrossChainProvider {
                             chainId: params.input.chainId,
                             tokenAddress: params.input.assetAddress,
                             owner: params.user,
-                            spender: params.escrowContractAddress,
+                            spender: escrowAddress,
                             required: params.input.amount,
                         },
                     ],
@@ -344,12 +377,13 @@ export class OifProvider extends CrossChainProvider {
             metadata: {
                 buildQuote: true,
                 fillDeadline: params.fillDeadline,
-                escrowContractAddress: params.escrowContractAddress,
+                escrowContractAddress: escrowAddress,
+                nonce: nonce.toString(),
             },
         };
     }
 
-    static getFillWatcherConfig(baseUrl: string): APIBasedFillWatcherConfig<unknown> {
+    static getApiFillWatcherConfig(baseUrl: string): APIBasedFillWatcherConfig<unknown> {
         return {
             type: "api-based",
             baseUrl,
@@ -387,17 +421,41 @@ export class OifProvider extends CrossChainProvider {
                     return { event: null, status, failureReason, fillTxHash };
                 }
 
-                const event: FillEvent = {
-                    fillTxHash,
-                    timestamp:
-                        validatedResponse.updatedAt ??
-                        validatedResponse.createdAt ??
-                        Math.floor(Date.now() / 1000),
+                return {
+                    event: {
+                        fillTxHash,
+                        timestamp:
+                            validatedResponse.updatedAt ??
+                            validatedResponse.createdAt ??
+                            Math.floor(Date.now() / 1000),
+                        originChainId: params.originChainId,
+                        orderId: params.orderId,
+                    },
+                    status,
+                    failureReason,
+                };
+            },
+        };
+    }
+
+    static getOnChainFillWatcherConfig(): EventBasedFillWatcherConfig {
+        return {
+            type: "event-based",
+            contractAddresses: OIF_OUTPUT_SETTLER_BY_CHAIN,
+            eventAbi: OUTPUT_FILLED_EVENT_ABI,
+            buildLogsArgs: (params: GetFillParams, contractAddress) => ({
+                address: contractAddress,
+                event: OUTPUT_FILLED_EVENT_ABI[0],
+                args: { orderId: params.orderId },
+            }),
+            extractFillEvent: (log, params): FillEvent | null => {
+                if (!log.transactionHash) return null;
+                return {
+                    fillTxHash: log.transactionHash,
+                    timestamp: 0,
                     originChainId: params.originChainId,
                     orderId: params.orderId,
                 };
-
-                return { event, status, failureReason };
             },
         };
     }
@@ -405,10 +463,12 @@ export class OifProvider extends CrossChainProvider {
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
         fillWatcherConfig: FillWatcherConfig;
+        onChainFillWatcherConfig?: FillWatcherConfig;
     } {
         return {
             openedIntentParserConfig: { type: "oif" },
-            fillWatcherConfig: OifProvider.getFillWatcherConfig(this.url),
+            fillWatcherConfig: OifProvider.getApiFillWatcherConfig(this.url),
+            onChainFillWatcherConfig: OifProvider.getOnChainFillWatcherConfig(),
         };
     }
 

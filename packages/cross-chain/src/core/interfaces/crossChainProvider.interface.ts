@@ -91,8 +91,10 @@ export abstract class CrossChainProvider {
     abstract getTrackingConfig(): {
         /** Configuration for parsing opened intent data */
         openedIntentParserConfig: OpenedIntentParserConfig;
-        /** Configuration for watching fill events */
+        /** Fill watcher for API-based tracking (orderId path, used by getQuotes flow) */
         fillWatcherConfig: FillWatcherConfig;
+        /** Fill watcher for on-chain tracking (txHash path, used by buildQuote flow). Falls back to fillWatcherConfig if not set. */
+        onChainFillWatcherConfig?: FillWatcherConfig;
         /** Optional config for the pre-tracker that runs before tracking begins */
         preTrackerConfig?: PreTrackerConfig;
     };
