@@ -15,8 +15,8 @@ import { allowanceKey, toAllowanceEntry } from "../../interfaces/approval.interf
 
 /**
  * Reads on-chain ERC-20 allowances for every quote and prepends approval
- * `TransactionStep`s (`category: "approval"`) into `order.steps` when the
- * current allowance is insufficient.
+ * `TransactionStep`s into `order.steps` when the current allowance is
+ * insufficient.
  *
  * Never throws -- on any failure the affected quotes pass through unmodified.
  */
