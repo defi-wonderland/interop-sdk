@@ -2,10 +2,21 @@
 "@wonderland/interop-cross-chain": minor
 ---
 
-Add a dedicated `approval` step kind and expose approval step helpers:
+Approvals are now tagged transactions instead of a separate step kind:
 
--   New `ApprovalStep` (`kind: "approval"`) in `Order.steps` with the same `transaction` payload as `TransactionStep`. The `ApprovalService` prepends steps of this kind instead of regular `TransactionStep`s.
--   `isApprovalStep(step)` — type-predicate narrowing `Step` to `ApprovalStep`.
--   `getApprovalSteps(order)` — return every approval step in an order.
--   `getTransactionSteps(order)` keeps its behaviour: returns every user-submittable on-chain step (both `transaction` and `approval` kinds, in emission order) so the standard "iterate and forget" execution loop still fires approvals before the transfer that needs them. Its return type is now `(TransactionStep | ApprovalStep)[]`.
--   `isTransactionOnlyOrder(order)` accepts orders whose steps mix `transaction` and `approval` kinds.
+-   `TransactionStep` gains an optional `category: "approval"` field. The `ApprovalService` now prepends `TransactionStep`s with this tag instead of a dedicated `ApprovalStep` kind.
+-   The `ApprovalStep` type and the `kind: "approval"` discriminant are removed.
+-   `StepSchema` is now `discriminatedUnion("kind", [TransactionStepSchema, SignatureStepSchema])`.
+-   `getTransactionSteps(order)` still returns every user-submittable on-chain step in emission order, but its return type is now `TransactionStep[]` (approvals included via `category`).
+-   `isApprovalStep(step)` returns a plain `boolean`; checks `step.kind === "transaction" && step.category === "approval"`.
+-   `getApprovalSteps(order)` returns `TransactionStep[]` filtered by `category === "approval"`.
+
+Low-level approval internals are no longer re-exported from the package entrypoint:
+
+-   `DefaultApprovalService`, `MulticallAllowanceReader`, `CreateApprovalServiceConfig`, and `AllowanceReadFailureHandler` are no longer part of `@wonderland/interop-cross-chain`. Use the `createApprovalService` factory and the `ExactAmountStrategy` / `InfiniteAmountStrategy` exports.
+
+Migration:
+
+-   Replace `step.kind === "approval"` with `isApprovalStep(step)` (or `step.kind === "transaction" && step.category === "approval"`).
+-   Replace imports of `ApprovalStep` with `TransactionStep`.
+-   Drop direct imports of `DefaultApprovalService` / `MulticallAllowanceReader` / `CreateApprovalServiceConfig` / `AllowanceReadFailureHandler`; build the service through `createApprovalService(config)`.

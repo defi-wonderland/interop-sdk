@@ -6,20 +6,7 @@ import { addressString, amountSchema, chainIdSchema } from "./common.js";
 
 export const TransactionStepSchema = z.object({
     kind: z.literal("transaction"),
-    chainId: chainIdSchema,
-    description: z.string().optional(),
-    transaction: z.object({
-        to: addressString,
-        data: z.string(),
-        value: z.string().optional(),
-        gas: z.string().optional(),
-        maxFeePerGas: z.string().optional(),
-        maxPriorityFeePerGas: z.string().optional(),
-    }),
-});
-
-export const ApprovalStepSchema = z.object({
-    kind: z.literal("approval"),
+    category: z.literal("approval").optional(),
     chainId: chainIdSchema,
     description: z.string().optional(),
     transaction: z.object({
@@ -48,7 +35,6 @@ export const SignatureStepSchema = z.object({
 
 export const StepSchema = z.discriminatedUnion("kind", [
     TransactionStepSchema,
-    ApprovalStepSchema,
     SignatureStepSchema,
 ]);
 
@@ -87,7 +73,6 @@ export const OrderSchema = z.object({
 // ── Types ───────────────────────────────────────────────
 
 export type TransactionStep = z.infer<typeof TransactionStepSchema>;
-export type ApprovalStep = z.infer<typeof ApprovalStepSchema>;
 export type SignatureStep = z.infer<typeof SignatureStepSchema>;
 export type Step = z.infer<typeof StepSchema>;
 export type LockMechanism = z.infer<typeof LockMechanismSchema>;
