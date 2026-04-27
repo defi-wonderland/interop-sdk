@@ -31,19 +31,21 @@ export interface AdaptOptions {
  */
 const LOCK_TO_ORDER_TYPES: Record<string, string[]> = {
     "oif-escrow": ["oif-escrow-v0", "oif-3009-v0"],
-    "compact-resource-lock": ["oif-resource-lock-v0"],
+    // TODO (EFI-887): re-enable when resource-lock support lands.
+    // "compact-resource-lock": ["oif-resource-lock-v0"],
 };
 
 /** All known OIF order types (used when no lock filter is specified). */
 const ALL_OIF_ORDER_TYPES = [
     "oif-escrow-v0",
     "oif-3009-v0",
-    "oif-resource-lock-v0",
+    // TODO (EFI-887): re-enable when resource-lock support lands.
+    // "oif-resource-lock-v0",
     "oif-user-open-v0",
 ];
 
 /** Gasless (signature-based) order types */
-const GASLESS_ORDER_TYPES = new Set(["oif-escrow-v0", "oif-3009-v0", "oif-resource-lock-v0"]);
+const GASLESS_ORDER_TYPES = new Set(["oif-escrow-v0", "oif-3009-v0"]);
 
 function toSupportedTypes(options?: AdaptOptions): string[] {
     const { supportedLocks, submissionModes } = options ?? {};

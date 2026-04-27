@@ -76,7 +76,8 @@ describe("validateOifPayload", () => {
         });
     });
 
-    describe("oif-resource-lock-v0", () => {
+    // TODO (EFI-887): re-enable when resource-lock support lands.
+    describe.skip("oif-resource-lock-v0", () => {
         it("returns true when order matches intent", async () => {
             const response = getMockedOifResourceLockQuoteResponse();
             const intent = createIntentFromQuote(response, "oif-resource-lock-v0");
