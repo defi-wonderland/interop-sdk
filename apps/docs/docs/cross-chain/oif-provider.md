@@ -140,15 +140,29 @@ await walletClient.sendTransaction({
 
 ## Approvals
 
-Access approval information from the order checks:
+`oif-user-open-v0` and `oif-escrow-v0` need an ERC-20 `approve` before the transfer (the latter approves the canonical Permit2 address). `oif-3009-v0` and `oif-resource-lock-v0` do not.
+
+The SDK surfaces what is needed under `quote.order.checks.allowances`. Read it yourself, or pass an `ApprovalService` to the aggregator and the `approve` step is prepended to `order.steps` when the on-chain allowance is short.
+
+For `oif-escrow-v0`, use `InfiniteAmountStrategy`: Permit2 consumes the allowance on every pull, so an exact-amount approval would re-trigger before every order.
 
 ```typescript
-// Allowance requirements from order checks
-const allowances = quote.order.checks?.allowances ?? [];
-for (const { spender, tokenAddress, required } of allowances) {
-    // Approve token spend if needed
-}
+import {
+    createAggregator,
+    createApprovalService,
+    InfiniteAmountStrategy,
+} from "@wonderland/interop-cross-chain";
+
+const aggregator = createAggregator({
+    providers: [oifProvider],
+    approvalService: createApprovalService({
+        rpcUrls: { 8453: "https://base-mainnet.g.alchemy.com/v2/YOUR_API_KEY" },
+        amountStrategy: new InfiniteAmountStrategy(),
+    }),
+});
 ```
+
+See [Automatic ERC-20 Approvals](./advanced-usage.md#automatic-erc-20-approvals) for the full reference.
 
 ## Next Step
 
