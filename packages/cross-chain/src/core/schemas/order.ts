@@ -55,6 +55,7 @@ export const OrderChecksSchema = z.object({
                 owner: addressString,
                 spender: addressString,
                 required: amountSchema,
+                preferInfinite: z.boolean().optional(),
             }),
         )
         .optional(),
