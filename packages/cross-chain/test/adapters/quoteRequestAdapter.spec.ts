@@ -143,8 +143,8 @@ describe("adaptQuoteRequest", () => {
             const result = adaptQuoteRequest(baseRequest);
             expect(result.supportedTypes).toContain("oif-escrow-v0");
             expect(result.supportedTypes).toContain("oif-3009-v0");
-            expect(result.supportedTypes).toContain("oif-resource-lock-v0");
             expect(result.supportedTypes).toContain("oif-user-open-v0");
+            expect(result.supportedTypes).not.toContain("oif-resource-lock-v0");
         });
 
         it("returns all OIF order types when options has empty supportedLocks", () => {
@@ -161,7 +161,8 @@ describe("adaptQuoteRequest", () => {
             expect(result.supportedTypes).not.toContain("oif-resource-lock-v0");
         });
 
-        it("maps compact-resource-lock to resource lock type", () => {
+        // TODO (EFI-887): re-enable when resource-lock support lands.
+        it.skip("maps compact-resource-lock to resource lock type", () => {
             const options: AdaptOptions = { supportedLocks: ["compact-resource-lock"] };
             const result = adaptQuoteRequest(baseRequest, options);
             expect(result.supportedTypes).toContain("oif-resource-lock-v0");
@@ -174,7 +175,7 @@ describe("adaptQuoteRequest", () => {
             const result = adaptQuoteRequest(baseRequest, options);
             expect(result.supportedTypes).toContain("oif-escrow-v0");
             expect(result.supportedTypes).toContain("oif-3009-v0");
-            expect(result.supportedTypes).toContain("oif-resource-lock-v0");
+            expect(result.supportedTypes).not.toContain("oif-resource-lock-v0");
             expect(result.supportedTypes).not.toContain("oif-user-open-v0");
         });
 
