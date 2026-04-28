@@ -186,6 +186,9 @@ export type OrderTrackerYield =
     | { type: typeof OrderTrackerYieldType.Update; update: OrderTrackingUpdate }
     | { type: typeof OrderTrackerYieldType.Timeout; payload: OrderTrackerTimeoutPayload };
 
+/** Strategy for tracking an order's fill: on-chain events or solver API. */
+export type OrderTrackingStrategy = "on-chain" | "api";
+
 interface WatchOrderBase {
     /** Origin chain ID */
     originChainId: number;
@@ -216,7 +219,7 @@ export interface WatchOrderByOrderId extends WatchOrderBase {
 export interface WatchOrderExplicit extends WatchOrderBase {
     txHash: Hex;
     orderId: Hex;
-    tracking?: "on-chain" | "api";
+    tracking?: OrderTrackingStrategy;
     destinationChainId?: number;
 }
 

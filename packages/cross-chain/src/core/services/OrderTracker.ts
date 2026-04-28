@@ -53,14 +53,10 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
      * Explicit `tracking` field wins. Otherwise: txHash-only → on-chain, anything with orderId → api.
      */
     private shouldTrackOnChain(params: WatchOrderParams): boolean {
-        if ("tracking" in params && params.tracking) {
-            return params.tracking === "on-chain";
-        }
+        if (params.tracking === "on-chain") return true;
+        if (params.tracking === "api") return false;
 
-        const hasTxHash = "txHash" in params && !!params.txHash;
-        const hasOrderId = "orderId" in params && !!params.orderId;
-
-        return hasTxHash && !hasOrderId;
+        return !!params.txHash && !params.orderId;
     }
 
     async getOrderStatus(txHash: Hex, originChainId: number): Promise<OrderTrackingInfo> {
