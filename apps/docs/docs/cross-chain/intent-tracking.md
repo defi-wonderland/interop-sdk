@@ -48,7 +48,8 @@ The SDK exposes three ways to track an order. Choose based on your use case:
 -   `WatchOrderByTxHash` — pass `txHash` only. Uses on-chain event tracking.
 -   `WatchOrderByOrderId` — pass `orderId` only. Uses API-based tracking. Required for signature-based/gasless orders that don't have a `txHash` at open time.
 -   `WatchOrderExplicit` — pass both `txHash` and `orderId`, plus an optional `tracking: 'on-chain' | 'api'` field. Defaults to `'api'` when not specified.
-    :::
+
+:::
 
 :::info Mixed-step orders
 Mixed-step orders (containing both transaction steps and signature steps) are not currently emitted by any supported provider. Consumers can safely handle either `isSignatureOnlyOrder()` or `isTransactionOnlyOrder()` without defensive mixed-order handling.
