@@ -97,6 +97,7 @@ export class DefaultApprovalService implements ApprovalService {
         const amount = this.amountStrategy.resolve(BigInt(check.required));
         return {
             kind: "transaction",
+            category: "approval",
             chainId: check.chainId,
             description: "Token approval",
             transaction: {

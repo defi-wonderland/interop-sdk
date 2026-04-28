@@ -79,7 +79,7 @@ For more details on the Aggregator configuration, see the [API Reference](./api.
 
 ## Automatic ERC-20 Approvals
 
-When ERC-20 inputs need an `approve` before the transfer, the aggregator can handle it for you. Pass an `approvalService` to `createAggregator` and every quote it returns already has the necessary `approve` `TransactionStep`s prepended to `order.steps`. If the user already holds sufficient allowance, nothing is prepended.
+When ERC-20 inputs need an `approve` before the transfer, the aggregator can handle it for you. Pass an `approvalService` to `createAggregator` and every quote it returns already has the necessary `approve` transactions (`TransactionStep`s with `category: "approval"`) prepended to `order.steps`. If the user already holds sufficient allowance, nothing is prepended.
 
 ```typescript
 import {
@@ -119,14 +119,13 @@ const response = await aggregator.getQuotes({
 
 Because approval steps live inside the normal `order.steps` array, your execution loop does not need a separate approval code path — iterate the steps in order and each `approve` fires before the transfer step that needs it.
 
-Each step carries an optional `description` field. Approval steps created by the SDK have `description: "Token approval"`, so you can surface different UI states:
+Approval steps live in `order.steps` as regular `TransactionStep`s tagged with `category: "approval"`. `getTransactionSteps(order)` returns every user-submittable on-chain step (transfers and approvals, in emission order) so your execution loop stays a single `for` and the approval fires before the transfer that needs it. Use `isApprovalStep(step)` only when you want to surface a different UI state:
 
 ```typescript
-import { getTransactionSteps } from "@wonderland/interop-cross-chain";
+import { getTransactionSteps, isApprovalStep } from "@wonderland/interop-cross-chain";
 
 for (const step of getTransactionSteps(quote.order)) {
-    const isApproval = step.description === "Token approval";
-    console.log(isApproval ? "Approving token…" : "Sending bridge tx…");
+    console.log(isApprovalStep(step) ? "Approving token…" : "Sending bridge tx…");
 
     const hash = await walletClient.sendTransaction({
         to: step.transaction.to,

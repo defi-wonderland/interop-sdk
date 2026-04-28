@@ -15,6 +15,7 @@ import {
     createAggregator,
     createApprovalService,
     createCrossChainProvider,
+    isApprovalStep,
     PROTOCOLS,
 } from "@wonderland/interop-cross-chain";
 import { createPublicClient, createWalletClient, http } from "viem";
@@ -144,21 +145,21 @@ if (response.quotes.length === 0) {
 
 ## 5. Execute the Cross-Chain Transaction
 
-Because the aggregator was configured with an `approvalService` (step 3), each returned `quote.order.steps` already contains any ERC-20 `approve` step that the transfer needs, prepended before the transfer itself. Iterate the steps in order and handle each by `step.kind` — a single order can mix `transaction` steps (approvals, user-submitted bridges) and `signature` steps (gasless). On the first signature step, sign and submit, then stop: the solver takes the order from there.
+Because the aggregator was configured with an `approvalService` (step 3), each returned `quote.order.steps` already contains any ERC-20 `approve` transaction (a `TransactionStep` with `category: "approval"`) that the transfer needs, prepended before the transfer itself. Iterate the steps in order and handle each by `step.kind` — a single order can mix `transaction` steps (including prepended approval steps) and `signature` steps (gasless). On the first signature step, sign and submit, then stop: the solver takes the order from there.
 
 ```typescript
 const quote = response.quotes[0];
 
 // Iterate order.steps in emission order. approvalService prepends approval
-// TransactionSteps onto signature-based quotes too, so a single order can
-// mix both kinds — handle each by `step.kind`. On the first signature step,
-// sign + submit and stop: the solver takes the order from there. (`submitOrder`
-// currently forwards one signature per order; multi-signature orders aren't
-// yet supported.)
+// transactions onto signature-based quotes too, so a single order can mix
+// transaction and signature steps — handle each by `step.kind`. On the first
+// signature step, sign + submit and stop: the solver takes the order from
+// there. (`submitOrder` currently forwards one signature per order;
+// multi-signature orders aren't yet supported.)
 for (const step of quote.order.steps) {
     if (step.kind === "transaction") {
         const { to, data, value, gas, maxFeePerGas, maxPriorityFeePerGas } = step.transaction;
-        console.log(`Sending step: ${step.description ?? "transaction"}`);
+        console.log(isApprovalStep(step) ? "Approving token…" : "Sending bridge tx…");
         const hash = await walletClient.sendTransaction({
             to,
             data,
@@ -169,7 +170,7 @@ for (const step of quote.order.steps) {
         });
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         if (receipt.status !== "success") {
-            throw new Error(`Step failed: ${step.description ?? "transaction"}`);
+            throw new Error(`Step failed: ${step.description ?? step.kind}`);
         }
         console.log("Confirmed: Success");
     } else {

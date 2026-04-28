@@ -2,6 +2,7 @@ import {
   PROTOCOLS,
   createCrossChainProvider,
   createAggregator,
+  createApprovalService,
   OrderTrackerFactory,
   LIFI_INTENTS_ORDER_SERVER_URL,
   LIFI_INTENTS_ORDER_SERVER_DEV_URL,
@@ -92,6 +93,7 @@ export function buildExecutor(isTestnet: boolean): Aggregator {
   return createAggregator({
     providers,
     trackerFactory: new OrderTrackerFactory({ rpcUrls }),
+    approvalService: createApprovalService({ rpcUrls }),
   });
 }
 
