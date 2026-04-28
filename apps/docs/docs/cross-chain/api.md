@@ -114,7 +114,8 @@ An abstract class that defines the interface for cross-chain protocol providers.
     ```typescript
     const config = provider.getTrackingConfig();
     // config.openedIntentParserConfig — how to parse opened intents from origin chain
-    // config.fillWatcherConfig — how to watch for fills on destination chain
+    // config.fillWatcherConfig — how to watch for fills on destination chain (API-based, used for orderId tracking)
+    // config.onChainFillWatcherConfig — optional on-chain fill watcher (event-based, used for txHash tracking)
     // config.preTrackerConfig — optional pre-tracking step (e.g., notify provider API)
     ```
 
