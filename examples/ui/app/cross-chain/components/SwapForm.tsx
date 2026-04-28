@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { isNativeAddress } from '@wonderland/interop-cross-chain';
 import { formatUnits, parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
+import { Select } from '../../components';
 import { MINT_AMOUNT, useMintToken } from '../hooks/useMintToken';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { useRouteSelection } from '../hooks/useRouteSelection';
@@ -297,22 +298,16 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
             <label htmlFor='buildQuoteProvider' className='text-sm font-medium text-text-secondary mb-2 block'>
               Provider
             </label>
-            <select
+            <Select
               id='buildQuoteProvider'
               value={buildQuoteProviderId}
-              onChange={(e) => {
-                setBuildQuoteProviderId(e.target.value);
+              options={BUILD_QUOTE_PROVIDERS.map((p) => ({ value: p.providerId, label: p.displayName }))}
+              onChange={(value) => {
+                setBuildQuoteProviderId(value);
                 onInputChange?.();
               }}
               disabled={isDisabled}
-              className='w-full px-3 py-2 rounded-lg text-sm font-medium bg-background/50 border border-border/50 text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/50 disabled:opacity-50 disabled:cursor-not-allowed'
-            >
-              {BUILD_QUOTE_PROVIDERS.map((p) => (
-                <option key={p.providerId} value={p.providerId}>
-                  {p.displayName}
-                </option>
-              ))}
-            </select>
+            />
           </div>
         )}
 

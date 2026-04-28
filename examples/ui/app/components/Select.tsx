@@ -19,6 +19,7 @@ interface SelectProps {
   id?: string;
   className?: string;
   emptyMessage?: string;
+  disabled?: boolean;
   renderOption?: (option: SelectOption) => ReactNode;
   renderSelected?: (option: SelectOption) => ReactNode;
 }
@@ -32,6 +33,7 @@ export function Select({
   id,
   className,
   emptyMessage = 'No results found',
+  disabled = false,
   renderOption,
   renderSelected,
 }: SelectProps) {
@@ -77,13 +79,14 @@ export function Select({
   );
 
   return (
-    <Popover.Root open={isOpen} onOpenChange={handleOpenChange}>
+    <Popover.Root open={isOpen && !disabled} onOpenChange={handleOpenChange}>
       <Popover.Trigger asChild>
         <button
           id={id}
           type='button'
+          disabled={disabled}
           className={cn(
-            'w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 text-left flex items-center justify-between',
+            'w-full px-4 py-3 bg-background/50 border border-border/50 rounded-xl font-mono text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 text-left flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed',
             className,
           )}
         >
