@@ -134,6 +134,15 @@ export class OifProvider extends CrossChainProvider {
             getQuoteResponseSchema.parse(response.data);
             const { quotes } = response.data as GetQuoteResponse;
 
+            // TODO (EFI-887): re-enable when resource-lock support lands.
+            for (const quote of quotes) {
+                if (quote.order.type === "oif-resource-lock-v0") {
+                    throw new ProviderGetQuoteFailure(
+                        "oif-resource-lock-v0 is not supported in this release",
+                    );
+                }
+            }
+
             // 2. Map OIF quotes → ProviderQuote (with typedData normalization)
             const providerQuotes: ProviderQuote[] = quotes.map((quote): ProviderQuote => {
                 const adaptedQuote = adaptTypedDataPayload(quote);

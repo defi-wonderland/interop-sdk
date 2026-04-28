@@ -280,7 +280,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
 
 ### Approval Service
 
-An opt-in service that enriches aggregator quotes with ERC-20 approval steps. Pass one to `createAggregator({ approvalService })` and the aggregator will read on-chain allowances for every `order.checks.allowances` entry on the sorted quotes, then prepend an `approve` `TransactionStep` to `order.steps` when the current allowance is below `required`.
+An opt-in service that enriches aggregator quotes with ERC-20 approval steps. Pass one to `createAggregator({ approvalService })` and the aggregator will read on-chain allowances for every `order.checks.allowances` entry on the sorted quotes, then prepend a `TransactionStep` with `category: "approval"` to `order.steps` when the current allowance is below `required`. Use `isApprovalStep(step)` or `getApprovalSteps(order)` to identify these steps programmatically.
 
 Best-effort: on any read failure the affected quotes pass through unmodified. Quotes with sufficient existing allowance are not touched. Reads run through `MulticallAllowanceReader`, which batches one `multicall` per chain so a failure on one chain does not affect reads on another.
 
@@ -341,15 +341,6 @@ interface ApprovalAmountStrategy {
     resolve(required: bigint): bigint;
 }
 ```
-
-#### Low-level classes
-
-Exported for advanced use cases (custom readers, custom service compositions):
-
--   **DefaultApprovalService**(reader: AllowanceReader, amountStrategy: ApprovalAmountStrategy, gasLimit?: bigint) — implements `ApprovalService.enrichQuotes(quotes)`.
--   **MulticallAllowanceReader**(clientManager: PublicClientManager, failureHandler?: AllowanceReadFailureHandler) — the default `AllowanceReader`. Batches one `multicall` per chain; notifies `failureHandler` when a whole chain batch fails.
-
-Most consumers should use `createApprovalService(...)` rather than instantiating these directly.
 
 ### Sorting Strategies
 

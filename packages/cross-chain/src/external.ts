@@ -28,13 +28,9 @@ export {
     Aggregator,
     createAggregator,
     // Approval
-    DefaultApprovalService,
     createApprovalService,
-    type CreateApprovalServiceConfig,
-    type AllowanceReadFailureHandler,
     ExactAmountStrategy,
     InfiniteAmountStrategy,
-    MulticallAllowanceReader,
     // Tracking
     createOrderTracker,
     OrderTracker,
@@ -63,6 +59,8 @@ export {
     fromInteropAccountId,
     getSignatureSteps,
     getTransactionSteps,
+    getApprovalSteps,
+    isApprovalStep,
     isSignatureOnlyOrder,
     isTransactionOnlyOrder,
     // SDK type adapters
@@ -76,6 +74,7 @@ export {
     type QuoteTracking,
     type QuoteRequest,
     type BuildQuoteRequest,
+    type TransactionStep,
     type GetQuotesError,
     type GetQuotesResponse,
 } from "./internal.js";

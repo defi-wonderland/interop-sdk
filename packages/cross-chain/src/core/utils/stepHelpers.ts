@@ -1,4 +1,4 @@
-import type { Order, SignatureStep, TransactionStep } from "../schemas/order.js";
+import type { Order, SignatureStep, Step, TransactionStep } from "../schemas/order.js";
 
 /** Get all signature steps from an order. */
 export function getSignatureSteps(order: Order): SignatureStep[] {
@@ -8,6 +8,18 @@ export function getSignatureSteps(order: Order): SignatureStep[] {
 /** Get all transaction steps from an order. */
 export function getTransactionSteps(order: Order): TransactionStep[] {
     return order.steps.filter((s): s is TransactionStep => s.kind === "transaction");
+}
+
+/** Check whether a step is a token approval transaction. */
+export function isApprovalStep(step: Step): boolean {
+    return step.kind === "transaction" && step.category === "approval";
+}
+
+/** Get all approval steps from an order. */
+export function getApprovalSteps(order: Order): TransactionStep[] {
+    return order.steps.filter(
+        (s): s is TransactionStep => s.kind === "transaction" && s.category === "approval",
+    );
 }
 
 /** Check if an order requires only signatures (no user-submitted transactions). */

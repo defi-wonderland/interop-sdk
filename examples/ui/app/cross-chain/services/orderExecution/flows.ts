@@ -1,11 +1,13 @@
 import {
   isNativeAddress,
+  isApprovalStep,
+  getApprovalSteps,
   getTransactionSteps,
   type ExecutableQuote,
   type TrackingIdentifier,
 } from '@wonderland/interop-cross-chain';
 import { useCrossChainStore } from '../../stores/crossChainStore';
-import { handleTokenApproval } from './approval';
+import { executeApprovalStep, handleTokenApproval } from './approval';
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
@@ -64,59 +66,19 @@ export const executeDirectTransaction = async ({
   quote,
   walletClient,
   publicClient,
-  ownerAddress,
-  inputTokenAddress,
-  inputAmount,
   chainContext,
   onStateChange,
 }: FlowParams): Promise<TrackingIdentifier> => {
-  const txSteps = getTransactionSteps(quote.order);
-  const txStep = txSteps[0];
-
-  if (!txStep?.transaction?.to || !txStep?.transaction?.data) {
-    throw new Error('Invalid quote: missing transaction data');
+  const bridgeStep = getTransactionSteps(quote.order).find((s) => !isApprovalStep(s));
+  if (!bridgeStep) {
+    throw new Error('Invalid quote: missing bridge transaction step');
   }
 
-  if (quote.order.checks?.allowances?.length) {
-    for (const allowance of quote.order.checks.allowances) {
-      await handleTokenApproval(
-        publicClient,
-        walletClient,
-        ownerAddress,
-        allowance.tokenAddress as Address,
-        allowance.spender as Address,
-        BigInt(allowance.required),
-        chainContext,
-        onStateChange,
-      );
-    }
-  } else if (!isNativeAddress(inputTokenAddress, 'eip155')) {
-    await handleTokenApproval(
-      publicClient,
-      walletClient,
-      ownerAddress,
-      inputTokenAddress,
-      txStep.transaction.to as Address,
-      inputAmount,
-      chainContext,
-      onStateChange,
-    );
+  for (const step of getApprovalSteps(quote.order)) {
+    await executeApprovalStep(publicClient, walletClient, step, chainContext, onStateChange);
   }
 
-  const value = txStep.transaction.value ? BigInt(txStep.transaction.value) : undefined;
-  const parsedGas = txStep.transaction.gas ? BigInt(txStep.transaction.gas) : 0n;
-  const gas = parsedGas > 0n ? parsedGas : undefined;
-
-  const txHash = await submitBridgeTransaction(
-    publicClient,
-    walletClient,
-    txStep.transaction.to as Address,
-    txStep.transaction.data as Hex,
-    chainContext,
-    onStateChange,
-    value,
-    gas,
-  );
+  const txHash = await submitBridgeTransaction(publicClient, walletClient, bridgeStep, chainContext, onStateChange);
 
   const orderId = quote.tracking?.orderId;
   return orderId ? { orderId: orderId as Hex, txHash } : { txHash };
