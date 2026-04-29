@@ -322,7 +322,7 @@ export function useCrossChainSwap() {
 
 ## Appendix: manual approval fallback
 
-Reach for this when you can't use the aggregator's `approvalService` — for example, when you're driving a single provider directly, or the quote's provider doesn't declare its allowance requirements in `order.checks.allowances` (notably the OIF `oif-escrow-v0` Permit2 flow).
+Reach for this when you can't use the aggregator's `approvalService` — for example, when you're driving a single provider directly, or the quote's provider doesn't declare its allowance requirements in `order.checks.allowances`.
 
 ```typescript
 import {
