@@ -4,13 +4,14 @@ import {
   getApprovalSteps,
   getTransactionSteps,
   type ExecutableQuote,
+  type TrackingIdentifier,
 } from '@wonderland/interop-cross-chain';
 import { useCrossChainStore } from '../../stores/crossChainStore';
 import { executeApprovalStep, handleTokenApproval } from './approval';
 import { submitBridgeTransaction } from './bridge';
 import { signAndSubmitOrder } from './signing';
 import type { ConfiguredWalletClient } from './chainSetup';
-import type { BridgeState, ChainContext, TrackingIdentifier } from '../../types/execution';
+import type { BridgeState, ChainContext } from '../../types/execution';
 import type { Address, Hex, PublicClient } from 'viem';
 
 interface FlowParams {

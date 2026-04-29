@@ -33,9 +33,7 @@ const PROVIDER_CONFIGS: ProviderConfig[] = [
   {
     providerId: 'oif',
     displayName: 'OIF Sample Solver',
-    // TODO: re-enable once OZ confirms on-chain discovery is active on the production solver.
-    // SDK-side implementation is done (StandardOrder encoding, settler addresses, event-based tracking).
-    supportsBuildQuote: false,
+    supportsBuildQuote: true,
   },
   {
     providerId: 'relay',

@@ -65,14 +65,14 @@ Only `across` and `relay` accept `isTestnet`. What it changes:
 
 Different providers use different tracking mechanisms. Some need RPC URLs, others are fully API-based:
 
-| Provider         | Opened Intent Parser | Fill Watcher | RPC URLs Needed?            |
-| ---------------- | -------------------- | ------------ | --------------------------- |
-| Across (mainnet) | OIF event-based      | API-based    | Origin chain only           |
-| Across (testnet) | OIF event-based      | Event-based  | Origin + destination chains |
-| Relay            | API-based            | API-based    | None                        |
-| OIF              | OIF event-based      | Event-based  | Origin + destination chains |
-| Bungee           | API-based            | API-based    | None                        |
-| LiFi Intents     | Custom event-based   | API-based    | Origin chain only           |
+| Provider         | Opened Intent Parser | Fill Watcher                   | RPC URLs Needed?                                   |
+| ---------------- | -------------------- | ------------------------------ | -------------------------------------------------- |
+| Across (mainnet) | OIF event-based      | API-based                      | Origin chain only                                  |
+| Across (testnet) | OIF event-based      | Event-based                    | Origin + destination chains                        |
+| Relay            | API-based            | API-based                      | None                                               |
+| OIF              | OIF event-based      | API-based + Event-based (dual) | Origin always; destination when tracking by txHash |
+| Bungee           | API-based            | API-based                      | None                                               |
+| LiFi Intents     | Custom event-based   | API-based                      | Origin chain only                                  |
 
 ## Creating Custom Providers
 
@@ -104,10 +104,13 @@ class MyCustomProvider extends CrossChainProvider {
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
         fillWatcherConfig: FillWatcherConfig;
+        onChainFillWatcherConfig?: FillWatcherConfig; // optional, for on-chain fill detection
         preTrackerConfig?: PreTrackerConfig;
     } {
         // Return protocol-specific tracking configuration
-        // See Relay or Across providers for examples
+        // fillWatcherConfig is used for orderId/API tracking
+        // onChainFillWatcherConfig (if set) is used for txHash/on-chain tracking
+        // See OIF provider for a dual-watcher example, Across for single-watcher
     }
 
     // Optional: override to support gasless (signature-based) order submission

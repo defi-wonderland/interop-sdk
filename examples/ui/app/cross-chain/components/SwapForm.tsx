@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { isNativeAddress } from '@wonderland/interop-cross-chain';
 import { formatUnits, parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
+import { Select } from '../../components';
 import { MINT_AMOUNT, useMintToken } from '../hooks/useMintToken';
 import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { useRouteSelection } from '../hooks/useRouteSelection';
@@ -293,35 +294,21 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
         </div>
 
         {mode === 'buildQuote' && (
-          <fieldset>
-            <legend className='text-sm font-medium text-text-secondary mb-2'>Provider</legend>
-            <div className='flex gap-2'>
-              {BUILD_QUOTE_PROVIDERS.map((p) => (
-                <label
-                  key={p.providerId}
-                  className={`flex-1 text-center px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/50 has-[:focus-visible]:ring-offset-1 ${
-                    buildQuoteProviderId === p.providerId
-                      ? 'bg-accent text-white'
-                      : 'bg-background/50 border border-border/50 text-text-secondary hover:text-text-primary hover:border-border-focus/60'
-                  } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <input
-                    type='radio'
-                    name='buildQuoteProvider'
-                    value={p.providerId}
-                    checked={buildQuoteProviderId === p.providerId}
-                    onChange={() => {
-                      setBuildQuoteProviderId(p.providerId);
-                      onInputChange?.();
-                    }}
-                    disabled={isDisabled}
-                    className='sr-only peer'
-                  />
-                  {p.displayName}
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <div>
+            <label htmlFor='buildQuoteProvider' className='text-sm font-medium text-text-secondary mb-2 block'>
+              Provider
+            </label>
+            <Select
+              id='buildQuoteProvider'
+              value={buildQuoteProviderId}
+              options={BUILD_QUOTE_PROVIDERS.map((p) => ({ value: p.providerId, label: p.displayName }))}
+              onChange={(value) => {
+                setBuildQuoteProviderId(value);
+                onInputChange?.();
+              }}
+              disabled={isDisabled}
+            />
+          </div>
         )}
 
         <div>
