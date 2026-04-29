@@ -1,5 +1,4 @@
-import type { Hex } from "viem";
-import { hexToBigInt, slice } from "viem";
+import { bytesToHex, hexToBigInt, isHex, slice } from "viem";
 
 /**
  * Byte layout observed across multiple live LiFi `oif-user-open-v0`
@@ -31,14 +30,23 @@ const MAX_PLAUSIBLE_TIMESTAMP = 7_000_000_000;
  * Best-effort extraction of the intent expiry from a LiFi
  * `oif-user-open-v0` open-intent calldata.
  *
- * @returns the expiry unix-second timestamp, or `undefined` when the
- *   calldata does not match the expected layout.
+ * Accepts the calldata as either a hex string, raw bytes, or `undefined`
+ * (so callers can pass `entry.order?.openIntentTx?.data` directly without
+ * a guard). Returns `undefined` for any input that is not a valid hex
+ * string of the expected shape.
  */
-export function extractLifiIntentExpiry(calldata: Hex | Uint8Array): number | undefined {
+export function extractLifiIntentExpiry(
+    calldata: string | Uint8Array | undefined,
+): number | undefined {
+    if (calldata === undefined) return undefined;
+
     try {
         const hex = typeof calldata === "string" ? calldata : bytesToHex(calldata);
+        if (!isHex(hex)) return undefined;
+
         const word = slice(hex, EXPIRY_BYTE_OFFSET, EXPIRY_BYTE_END);
         const value = Number(hexToBigInt(word));
+
         if (value < MIN_PLAUSIBLE_TIMESTAMP || value > MAX_PLAUSIBLE_TIMESTAMP) {
             return undefined;
         }
@@ -46,12 +54,4 @@ export function extractLifiIntentExpiry(calldata: Hex | Uint8Array): number | un
     } catch {
         return undefined;
     }
-}
-
-function bytesToHex(bytes: Uint8Array): Hex {
-    let hex = "0x";
-    for (const byte of bytes) {
-        hex += byte.toString(16).padStart(2, "0");
-    }
-    return hex as Hex;
 }

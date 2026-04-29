@@ -60,10 +60,7 @@ export function adaptQuoteResponse(entry: LifiIntentsQuoteEntry, providerId: str
     const inputChainId = Number(inputEntry.chain.split(":")[1]);
     const outputChainId = Number(outputEntry.chain.split(":")[1]);
 
-    const calldataExpiry =
-        entry.order?.openIntentTx?.data !== undefined
-            ? extractLifiIntentExpiry(entry.order.openIntentTx.data as `0x${string}`)
-            : undefined;
+    const calldataExpiry = extractLifiIntentExpiry(entry.order?.openIntentTx?.data);
 
     return {
         order: sdkOrder,

@@ -17,7 +17,7 @@ const LIVE_EXPIRY = 0x69f4cbe3; // 1777481443
 
 describe("extractLifiIntentExpiry", () => {
     it("extracts the expiry timestamp from real LiFi open-intent calldata", () => {
-        expect(extractLifiIntentExpiry(LIVE_CALLDATA as `0x${string}`)).toBe(LIVE_EXPIRY);
+        expect(extractLifiIntentExpiry(LIVE_CALLDATA)).toBe(LIVE_EXPIRY);
     });
 
     it("accepts Uint8Array input as well as hex strings", () => {
@@ -29,8 +29,12 @@ describe("extractLifiIntentExpiry", () => {
         expect(extractLifiIntentExpiry(bytes)).toBe(LIVE_EXPIRY);
     });
 
+    it("returns undefined for undefined input", () => {
+        expect(extractLifiIntentExpiry(undefined)).toBeUndefined();
+    });
+
     it("returns undefined when the calldata is shorter than the expected layout", () => {
-        expect(extractLifiIntentExpiry("0x1234" as `0x${string}`)).toBeUndefined();
+        expect(extractLifiIntentExpiry("0x1234")).toBeUndefined();
     });
 
     it("returns undefined when the decoded value is implausible", () => {
@@ -43,10 +47,10 @@ describe("extractLifiIntentExpiry", () => {
             "0000000000000000000000000000000000000000000000000000000000002105" +
             "0000000000000000000000000000000000000000000000000000000000000000" + // expiry = 0
             "0000000000000000000000000000000000000000000000000000000000000000";
-        expect(extractLifiIntentExpiry(bogus as `0x${string}`)).toBeUndefined();
+        expect(extractLifiIntentExpiry(bogus)).toBeUndefined();
     });
 
-    it("returns undefined for malformed hex", () => {
-        expect(extractLifiIntentExpiry("not-hex" as `0x${string}`)).toBeUndefined();
+    it("returns undefined for non-hex strings", () => {
+        expect(extractLifiIntentExpiry("not-hex")).toBeUndefined();
     });
 });
