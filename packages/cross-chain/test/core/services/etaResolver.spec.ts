@@ -44,6 +44,16 @@ describe("EtaResolverService", () => {
         expect(service.resolve(undefined, [Infinity, NOW + 200])).toBe(200);
     });
 
+    it("floors fractional provider eta to an integer", () => {
+        // Real case: Relay's `details.timeEstimate` returns 2.5 for some routes.
+        expect(service.resolve(2.5, [])).toBe(2);
+        expect(service.resolve(0.9, [])).toBe(0);
+    });
+
+    it("floors fractional deadline diffs", () => {
+        expect(service.resolve(undefined, [NOW + 0.7])).toBe(0);
+    });
+
     it("uses the injected clock for deterministic computations", () => {
         const customClock = (): number => 2_000_000_000;
         const customService = new EtaResolverService(customClock);

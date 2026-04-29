@@ -16,6 +16,11 @@ const defaultClock: Clock = () => Math.floor(Date.now() / 1000);
  *   2. `max(0, deadline - now)` for the first defined deadline candidate.
  *   3. `undefined` when no information is available.
  *
+ * The result is always a non-negative integer (or `undefined`). Fractional
+ * inputs are floored, since `Quote.eta` is constrained to integer seconds
+ * and at least one upstream API (Relay `details.timeEstimate`) is known to
+ * return values like `2.5`.
+ *
  * Adapters depend on this service so the fallback policy lives in one
  * place and is open for extension (e.g. adding the order's fillDeadline
  * as an extra deadline candidate) without modifying call sites.
@@ -43,12 +48,12 @@ export class EtaResolverService {
         deadlines: ReadonlyArray<number | undefined> = [],
     ): number | undefined {
         if (Number.isFinite(providerEta) && (providerEta as number) >= 0) {
-            return providerEta;
+            return Math.floor(providerEta as number);
         }
 
         for (const deadline of deadlines) {
             if (Number.isFinite(deadline)) {
-                return Math.max(0, (deadline as number) - this.clock());
+                return Math.max(0, Math.floor((deadline as number) - this.clock()));
             }
         }
 
