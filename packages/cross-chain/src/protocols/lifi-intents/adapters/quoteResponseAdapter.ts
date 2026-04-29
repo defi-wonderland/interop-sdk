@@ -12,7 +12,8 @@ import { hexToBytes } from "viem";
 
 import type { Quote } from "../../../core/schemas/quote.js";
 import type { LifiIntentsQuoteEntry } from "../schemas.js";
-import { adaptOifOrder, fromInteropAccountId } from "../../../internal.js";
+import { adaptOifOrder, etaResolverService, fromInteropAccountId } from "../../../internal.js";
+import { extractLifiIntentExpiry } from "../utils/calldataDecoder.js";
 
 function toErc7930(chainString: string, address: string): string {
     const chainId = Number(chainString.split(":")[1]);
@@ -59,6 +60,11 @@ export function adaptQuoteResponse(entry: LifiIntentsQuoteEntry, providerId: str
     const inputChainId = Number(inputEntry.chain.split(":")[1]);
     const outputChainId = Number(outputEntry.chain.split(":")[1]);
 
+    const calldataExpiry =
+        entry.order?.openIntentTx?.data !== undefined
+            ? extractLifiIntentExpiry(entry.order.openIntentTx.data as `0x${string}`)
+            : undefined;
+
     return {
         order: sdkOrder,
         preview: {
@@ -81,6 +87,7 @@ export function adaptQuoteResponse(entry: LifiIntentsQuoteEntry, providerId: str
         },
         quoteId: entry.quoteId,
         validUntil: entry.validUntil,
+        eta: etaResolverService.resolve(undefined, [entry.validUntil ?? calldataExpiry]),
         provider: providerId,
         failureHandling: entry.failureHandling,
         partialFill: entry.partialFill,

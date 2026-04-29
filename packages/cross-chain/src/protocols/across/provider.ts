@@ -38,6 +38,7 @@ import {
     bytes32ToAddress,
     CrossChainProvider,
     CustomEventOpenedIntentParserConfig,
+    etaResolverService,
     EventBasedFillWatcherConfig,
     FillEvent,
     FillWatcherConfig,
@@ -267,7 +268,9 @@ export class AcrossProvider extends CrossChainProvider {
                 ],
             },
             quoteId: response.id,
-            eta: response.expectedFillTime,
+            eta: etaResolverService.resolve(response.expectedFillTime, [
+                response.quoteExpiryTimestamp,
+            ]),
             provider: this.providerId,
             partialFill: false,
             failureHandling: "refund-automatic",

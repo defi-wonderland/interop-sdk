@@ -286,10 +286,22 @@ const RelayDetailsSchema = z.object({
         .optional(),
 });
 
+/** Partial shape for the v2 order data; we only model the fields we read. */
+const RelayOrderDataSchema = z
+    .object({
+        output: z
+            .object({
+                deadline: z.number().int().nonnegative().optional(),
+            })
+            .passthrough()
+            .optional(),
+    })
+    .passthrough();
+
 /** Schema for the protocol-specific v2 order data. */
 const RelayProtocolV2Schema = z.object({
     orderId: z.string().optional(),
-    orderData: z.unknown().optional(),
+    orderData: RelayOrderDataSchema.optional(),
     paymentDetails: z
         .object({
             chainId: z.string().optional(),

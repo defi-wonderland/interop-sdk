@@ -4,7 +4,7 @@ import type { OrderChecks } from "../../../core/schemas/order.js";
 import type { Quote } from "../../../core/schemas/quote.js";
 import type { QuoteRequest, Step } from "../../../internal.js";
 import type { RelayQuoteResponse, RelayQuoteStep, RelaySignatureStep } from "../schemas.js";
-import { ProviderGetQuoteFailure } from "../../../internal.js";
+import { etaResolverService, ProviderGetQuoteFailure } from "../../../internal.js";
 import { adaptFees } from "./quoteFeeAdapter.js";
 
 /**
@@ -97,7 +97,9 @@ export function adaptQuote(
             ],
         },
         quoteId: response.protocol?.v2?.orderId,
-        eta: response.details?.timeEstimate,
+        eta: etaResolverService.resolve(response.details?.timeEstimate, [
+            response.protocol?.v2?.orderData?.output?.deadline,
+        ]),
         partialFill: false,
         failureHandling: "refund-automatic",
         provider: providerId,

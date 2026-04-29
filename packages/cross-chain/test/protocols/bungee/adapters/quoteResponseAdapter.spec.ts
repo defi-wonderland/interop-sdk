@@ -228,6 +228,13 @@ describe("adaptQuotes", () => {
         expect(quote!.failureHandling).toBe("refund-automatic");
     });
 
+    it("propagates eta from the auto route's estimatedTime", () => {
+        const response = buildBungeeQuoteResponse();
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+
+        expect(quote!.eta).toBe(30);
+    });
+
     it("deduplicates autoRoute and autoRoutes by quoteId", () => {
         const response = buildBungeeQuoteResponse();
         (response.result as Record<string, unknown>).autoRoutes = [

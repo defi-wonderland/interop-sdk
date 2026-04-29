@@ -103,6 +103,17 @@ describe("quoteAdapter", () => {
         expect(result.eta).toBe(30);
     });
 
+    it("falls back to validUntil when the provider does not return an eta", () => {
+        const quote = createMockProviderQuote();
+        quote.eta = undefined;
+        quote.validUntil = Math.floor(Date.now() / 1000) + 120;
+
+        const result = adaptQuote(quote);
+
+        expect(result.eta).toBeGreaterThan(0);
+        expect(result.eta).toBeLessThanOrEqual(120);
+    });
+
     it("defaults amount to '0' when undefined", () => {
         const quote = createMockProviderQuote();
         quote.preview.inputs[0]!.amount = undefined as unknown as string;

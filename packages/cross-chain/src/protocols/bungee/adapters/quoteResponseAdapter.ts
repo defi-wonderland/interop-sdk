@@ -7,6 +7,7 @@ import type {
     BungeeQuoteResult,
     BungeeTxData,
 } from "../schemas.js";
+import { etaResolverService } from "../../../internal.js";
 import { BungeeTxDataSchema } from "../schemas.js";
 import { adaptFees } from "./quoteFeeAdapter.js";
 
@@ -87,7 +88,7 @@ function adaptAutoRouteQuote(
             ],
         },
         quoteId: autoRoute.quoteId,
-        eta: autoRoute.estimatedTime,
+        eta: etaResolverService.resolve(autoRoute.estimatedTime, [autoRoute.quoteExpiry]),
         partialFill: false,
         failureHandling: "refund-automatic",
         provider: providerId,

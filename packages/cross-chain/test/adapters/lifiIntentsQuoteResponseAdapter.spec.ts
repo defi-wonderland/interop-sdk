@@ -48,6 +48,14 @@ describe("LI.FI Intents adaptQuoteResponse", () => {
         expect(quote.preview.outputs[0]!.amount).toBe("9968269");
     });
 
+    it("derives eta from validUntil when the LiFi response omits an explicit ETA", () => {
+        const entry = getMockedLifiQuoteResponse().quotes[0]!;
+        const quote = adaptQuoteResponse(entry, PROVIDER_ID);
+
+        expect(quote.eta).toBeGreaterThan(0);
+        expect(quote.eta).toBeLessThanOrEqual(600);
+    });
+
     it("preserves metadata fields", () => {
         const entry = getMockedLifiQuoteResponse().quotes[0]!;
         const quote = adaptQuoteResponse(entry, PROVIDER_ID);

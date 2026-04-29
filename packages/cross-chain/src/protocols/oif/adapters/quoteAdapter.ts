@@ -11,6 +11,7 @@ import type { Address } from "viem";
 import type { ProviderQuote } from "../../../core/interfaces/quotes.interface.js";
 import type { Order } from "../../../core/schemas/order.js";
 import type { Quote, QuotePreviewEntry } from "../../../core/schemas/quote.js";
+import { etaResolverService } from "../../../core/services/etaResolver.js";
 import { toInteropAccountId } from "../../../core/utils/interopAccountId.js";
 import { adaptOifOrder } from "./orderAdapter.js";
 import { extractPermit2Allowances } from "./permit2AllowanceExtractor.js";
@@ -58,7 +59,7 @@ export function adaptQuote(providerQuote: ProviderQuote): Quote {
         order,
         preview,
         validUntil: providerQuote.validUntil,
-        eta: providerQuote.eta,
+        eta: etaResolverService.resolve(providerQuote.eta, [providerQuote.validUntil]),
         provider: providerQuote.provider ?? "",
         quoteId: providerQuote.quoteId,
         failureHandling: providerQuote.failureHandling as string | undefined,
