@@ -1,7 +1,7 @@
 import type { Hex } from "viem";
 import { z } from "zod";
 
-import { addressString, amountSchema, chainIdSchema } from "./common.js";
+import { addressString, amountSchema, amountUsdSchema, chainIdSchema } from "./common.js";
 import { OrderSchema } from "./order.js";
 
 export const QuotePreviewEntrySchema = z.object({
@@ -9,6 +9,7 @@ export const QuotePreviewEntrySchema = z.object({
     accountAddress: addressString,
     assetAddress: addressString,
     amount: amountSchema,
+    amountUsd: amountUsdSchema,
 });
 
 export const QuotePreviewSchema = z.object({
@@ -21,7 +22,7 @@ export const QuoteFeeEntrySchema = z.object({
     /** Raw fee amount in token smallest units. */
     amount: z.string(),
     /** USD equivalent of the fee (decimal string). */
-    amountUsd: z.string().optional(),
+    amountUsd: amountUsdSchema,
     /** Token metadata for display (symbol, decimals, address). */
     token: z
         .object({

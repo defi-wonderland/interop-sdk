@@ -180,6 +180,27 @@ describe("adaptQuotes", () => {
         expect(quote!.preview.outputs[0]!.chainId).toBe(10);
     });
 
+    it("maps valueInUsd to preview.amountUsd as decimal string", () => {
+        const response = buildBungeeQuoteResponse();
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+
+        expect(quote!.preview.inputs[0]!.amountUsd).toBe("1800");
+        expect(quote!.preview.outputs[0]!.amountUsd).toBe("999");
+    });
+
+    it("serializes fractional valueInUsd losslessly", () => {
+        const response = buildBungeeQuoteResponse();
+        response.result.input.valueInUsd = 1800.42;
+        response.result.autoRoute = buildAutoRoute({
+            output: { ...buildAutoRoute().output, valueInUsd: 4.9972825837 },
+        });
+
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+
+        expect(quote!.preview.inputs[0]!.amountUsd).toBe("1800.42");
+        expect(quote!.preview.outputs[0]!.amountUsd).toBe("4.9972825837");
+    });
+
     it("uses input.amount for allowance required (not approvalData.amount)", () => {
         const response = buildBungeeQuoteResponse();
         const [quote] = adaptQuotes(response as never, PROVIDER_ID);
