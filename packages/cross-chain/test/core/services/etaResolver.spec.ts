@@ -33,6 +33,17 @@ describe("EtaResolverService", () => {
         expect(service.resolve(-1, [NOW + 200])).toBe(200);
     });
 
+    it("rejects NaN inputs and falls through cleanly", () => {
+        expect(service.resolve(NaN, [NOW + 200])).toBe(200);
+        expect(service.resolve(undefined, [NaN, NOW + 200])).toBe(200);
+        expect(service.resolve(NaN, [NaN])).toBeUndefined();
+    });
+
+    it("rejects Infinity inputs", () => {
+        expect(service.resolve(Infinity, [NOW + 200])).toBe(200);
+        expect(service.resolve(undefined, [Infinity, NOW + 200])).toBe(200);
+    });
+
     it("uses the injected clock for deterministic computations", () => {
         const customClock = (): number => 2_000_000_000;
         const customService = new EtaResolverService(customClock);

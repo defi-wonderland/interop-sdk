@@ -42,13 +42,13 @@ export class EtaResolverService {
         providerEta: number | undefined,
         deadlines: ReadonlyArray<number | undefined> = [],
     ): number | undefined {
-        if (typeof providerEta === "number" && providerEta >= 0) {
+        if (Number.isFinite(providerEta) && (providerEta as number) >= 0) {
             return providerEta;
         }
 
         for (const deadline of deadlines) {
-            if (typeof deadline === "number") {
-                return Math.max(0, deadline - this.clock());
+            if (Number.isFinite(deadline)) {
+                return Math.max(0, (deadline as number) - this.clock());
             }
         }
 

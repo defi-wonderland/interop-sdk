@@ -78,7 +78,7 @@ export const AcrossGetQuoteResponseSchema = z.object({
         })
         .optional(),
     swapTx: AcrossSwapTxSchema,
-    expectedFillTime: z.number(),
+    expectedFillTime: z.number().optional(),
     quoteExpiryTimestamp: z.number().int().nonnegative().optional(),
 });
 
