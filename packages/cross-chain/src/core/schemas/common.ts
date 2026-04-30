@@ -15,3 +15,5 @@ export const amountSchema = z
 export const chainIdSchema = z.number().int().positive().refine(Number.isSafeInteger, {
     message: "chainId must be a safe integer",
 });
+
+export const amountUsdSchema = z.string().optional().describe("USD equivalent as a decimal string");

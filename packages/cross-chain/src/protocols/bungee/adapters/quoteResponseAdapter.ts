@@ -75,6 +75,7 @@ function adaptAutoRouteQuote(
                     accountAddress: result.userAddress,
                     assetAddress: result.input.token.address,
                     amount: result.input.amount,
+                    amountUsd: String(result.input.valueInUsd),
                 },
             ],
             outputs: [
@@ -83,6 +84,7 @@ function adaptAutoRouteQuote(
                     accountAddress: result.receiverAddress,
                     assetAddress: autoRoute.output.token.address,
                     amount: autoRoute.output.amount,
+                    amountUsd: String(autoRoute.output.valueInUsd),
                 },
             ],
         },

@@ -142,6 +142,32 @@ describe("adaptQuote", () => {
         expect(quote.eta).toBeUndefined();
         expect(quote.preview.inputs[0]!.amount).toBe(INPUT_AMOUNT);
         expect(quote.preview.outputs[0]!.amount).toBe("0");
+        expect(quote.preview.inputs[0]!.amountUsd).toBeUndefined();
+        expect(quote.preview.outputs[0]!.amountUsd).toBeUndefined();
+    });
+
+    it("maps amountUsd from details.currencyIn and currencyOut", () => {
+        const baseResponse = makeRelayQuoteResponse();
+        const response: RelayQuoteResponse = {
+            ...baseResponse,
+            details: {
+                ...baseResponse.details!,
+                currencyIn: { ...baseResponse.details!.currencyIn!, amountUsd: "10.50" },
+                currencyOut: { ...baseResponse.details!.currencyOut!, amountUsd: "10.45" },
+            },
+        };
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+
+        expect(quote.preview.inputs[0]!.amountUsd).toBe("10.50");
+        expect(quote.preview.outputs[0]!.amountUsd).toBe("10.45");
+    });
+
+    it("leaves amountUsd undefined when raw response omits it", () => {
+        const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
+
+        expect(quote.preview.inputs[0]!.amountUsd).toBeUndefined();
+        expect(quote.preview.outputs[0]!.amountUsd).toBeUndefined();
     });
 
     it("handles missing protocol.v2 gracefully", () => {
