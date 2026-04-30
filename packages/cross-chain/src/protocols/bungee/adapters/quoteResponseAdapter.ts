@@ -48,6 +48,19 @@ function collectAutoRoutes(result: BungeeQuoteResult): BungeeAutoRoute[] {
     return routes;
 }
 
+/**
+ * Convert a Bungee `valueInUsd` (number) to a plain decimal string.
+ *
+ * Returns `undefined` for non-finite values (NaN, Infinity) and expands
+ * scientific notation that `String(...)` would emit for very small numbers
+ * (e.g. `1e-7`) to keep the `amountUsd` decimal-string contract.
+ */
+function toUsdString(value: number): string | undefined {
+    if (!Number.isFinite(value)) return undefined;
+    const str = String(value);
+    return str.includes("e") ? value.toFixed(20).replace(/\.?0+$/, "") : str;
+}
+
 /** Adapt a single auto route into an SDK Quote. */
 function adaptAutoRouteQuote(
     response: BungeeQuoteResponse,
@@ -75,7 +88,7 @@ function adaptAutoRouteQuote(
                     accountAddress: result.userAddress,
                     assetAddress: result.input.token.address,
                     amount: result.input.amount,
-                    amountUsd: String(result.input.valueInUsd),
+                    amountUsd: toUsdString(result.input.valueInUsd),
                 },
             ],
             outputs: [
@@ -84,7 +97,7 @@ function adaptAutoRouteQuote(
                     accountAddress: result.receiverAddress,
                     assetAddress: autoRoute.output.token.address,
                     amount: autoRoute.output.amount,
-                    amountUsd: String(autoRoute.output.valueInUsd),
+                    amountUsd: toUsdString(autoRoute.output.valueInUsd),
                 },
             ],
         },

@@ -201,6 +201,32 @@ describe("adaptQuotes", () => {
         expect(quote!.preview.outputs[0]!.amountUsd).toBe("4.9972825837");
     });
 
+    it("expands scientific notation to a plain decimal string", () => {
+        const response = buildBungeeQuoteResponse();
+        response.result.input.valueInUsd = 1e-7;
+        response.result.autoRoute = buildAutoRoute({
+            output: { ...buildAutoRoute().output, valueInUsd: 1e-10 },
+        });
+
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+
+        expect(quote!.preview.inputs[0]!.amountUsd).toBe("0.0000001");
+        expect(quote!.preview.outputs[0]!.amountUsd).toBe("0.0000000001");
+    });
+
+    it("leaves amountUsd undefined for non-finite valueInUsd", () => {
+        const response = buildBungeeQuoteResponse();
+        response.result.input.valueInUsd = Number.NaN;
+        response.result.autoRoute = buildAutoRoute({
+            output: { ...buildAutoRoute().output, valueInUsd: Number.POSITIVE_INFINITY },
+        });
+
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+
+        expect(quote!.preview.inputs[0]!.amountUsd).toBeUndefined();
+        expect(quote!.preview.outputs[0]!.amountUsd).toBeUndefined();
+    });
+
     it("uses input.amount for allowance required (not approvalData.amount)", () => {
         const response = buildBungeeQuoteResponse();
         const [quote] = adaptQuotes(response as never, PROVIDER_ID);
