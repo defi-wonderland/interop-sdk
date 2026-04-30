@@ -470,12 +470,19 @@ interface BuildQuoteRequest {
 interface Quote {
     order: Order;
     preview: {
-        inputs: { chainId: number; accountAddress: string; assetAddress: string; amount: string }[];
+        inputs: {
+            chainId: number;
+            accountAddress: string;
+            assetAddress: string;
+            amount: string;
+            amountUsd?: string;
+        }[];
         outputs: {
             chainId: number;
             accountAddress: string;
             assetAddress: string;
             amount: string;
+            amountUsd?: string;
         }[];
     };
     provider: string;
