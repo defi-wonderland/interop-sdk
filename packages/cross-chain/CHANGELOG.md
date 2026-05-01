@@ -1,5 +1,50 @@
 # @wonderland/interop-cross-chain
 
+## 0.9.0
+
+### Minor Changes
+
+-   2d95b83: Expose USD values on quote preview inputs and outputs
+
+    -   `QuotePreviewEntrySchema` now includes an optional `amountUsd` decimal-string field, mirroring the convention of `QuoteFeeEntrySchema.amountUsd`.
+    -   Relay adapter populates `amountUsd` from `details.currencyIn.amountUsd` and `details.currencyOut.amountUsd`.
+    -   Bungee adapter populates `amountUsd` from `result.input.valueInUsd` and `autoRoute.output.valueInUsd`.
+
+-   ca022d4: Add buildQuote support for OIF provider
+
+    -   OIF provider now supports `buildQuote()` using the InputSettlerEscrow `open(StandardOrder)` function
+    -   Fill tracking uses on-chain `OutputFilled` events from the OutputSettler contract
+    -   Dual fill watcher: API-based for getQuotes flow, event-based for buildQuote flow (available to all providers via `onChainFillWatcherConfig`)
+    -   Fixed OIFOpenedIntentParser to parse the actual OIF `Open(bytes32, StandardOrder)` event instead of the ERC-7683 standard event
+    -   Removed dead code: unused ERC-7683 ABIs and types that didn't match the real OIF contracts
+    -   Shared `addressToBytes32` utility extracted from Across and OIF providers
+
+-   518b2d9: Approvals are now tagged transactions instead of a separate step kind:
+
+    -   `TransactionStep` gains an optional `category: "approval"` field. The `ApprovalService` now prepends `TransactionStep`s with this tag instead of a dedicated `ApprovalStep` kind.
+    -   The `ApprovalStep` type and the `kind: "approval"` discriminant are removed.
+    -   `StepSchema` is now `discriminatedUnion("kind", [TransactionStepSchema, SignatureStepSchema])`.
+    -   `getTransactionSteps(order)` still returns every user-submittable on-chain step in emission order, but its return type is now `TransactionStep[]` (approvals included via `category`).
+    -   `isApprovalStep(step)` returns a plain `boolean`; checks `step.kind === "transaction" && step.category === "approval"`.
+    -   `getApprovalSteps(order)` returns `TransactionStep[]` filtered by `category === "approval"`.
+
+    Low-level approval internals are no longer re-exported from the package entrypoint:
+
+    -   `DefaultApprovalService`, `MulticallAllowanceReader`, `CreateApprovalServiceConfig`, and `AllowanceReadFailureHandler` are no longer part of `@wonderland/interop-cross-chain`. Use the `createApprovalService` factory and the `ExactAmountStrategy` / `InfiniteAmountStrategy` exports.
+
+    Migration:
+
+    -   Replace `step.kind === "approval"` with `isApprovalStep(step)` (or `step.kind === "transaction" && step.category === "approval"`).
+    -   Replace imports of `ApprovalStep` with `TransactionStep`.
+    -   Drop direct imports of `DefaultApprovalService` / `MulticallAllowanceReader` / `CreateApprovalServiceConfig` / `AllowanceReadFailureHandler`; build the service through `createApprovalService(config)`.
+
+### Patch Changes
+
+-   c4513b9: Gate `oif-resource-lock-v0` at the SDK entry points until support is finalized. The OIF request adapter no longer requests it from solvers, and the payload validator throws if a solver returns one.
+-   be18f27: The OIF adapter now surfaces Permit2 allowances for `oif-escrow-v0` quotes. The EIP-712 payload is parsed and a `checks.allowances` entry is added pointing at the canonical Permit2 address, so the approval service prepends the required `approve(PERMIT2, ...)` automatically instead of the first transfer silently failing. All four Permit2 primaryTypes are handled; anything else is ignored with a warning.
+
+    If your app accepts Permit2-based gasless flows, pair the approval service with `InfiniteAmountStrategy`. Permit2 consumes the ERC-20 allowance on every pull, so approving only the exact amount forces another approve before each order.
+
 ## 0.8.0
 
 ### Minor Changes
