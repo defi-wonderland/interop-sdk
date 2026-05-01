@@ -1,7 +1,12 @@
-import { OrderStatus, OrderTrackerYieldType } from '@wonderland/interop-cross-chain';
+import {
+  OrderStatus,
+  OrderTrackerYieldType,
+  type TrackingIdentifier,
+  type WatchOrderParams,
+} from '@wonderland/interop-cross-chain';
 import { TIMEOUT_MS } from '../../constants';
 import { useCrossChainStore } from '../../stores/crossChainStore';
-import { STEP, type BridgeState, type ChainContext, type TrackingIdentifier } from '../../types/execution';
+import { STEP, type BridgeState, type ChainContext } from '../../types/execution';
 import type { Hex } from 'viem';
 
 export class TrackingError extends Error {
@@ -17,8 +22,8 @@ export class TrackingError extends Error {
 }
 
 /**
- * Track an order by txHash (Across) or orderId (OIF escrow/3009).
- * The SDK's watchOrder accepts either identifier.
+ * Track an order using the SDK's watchOrder.
+ * Tracking method is determined by the identifier fields.
  */
 export async function trackOrder(
   providerId: string,
@@ -28,15 +33,16 @@ export async function trackOrder(
   onStateChange: (state: BridgeState) => void,
 ): Promise<void> {
   const tracker = useCrossChainStore.getState().executor.prepareTracking(providerId);
-  const { txHash, orderId } = identifier;
+  const { txHash, orderId, tracking } = identifier;
 
-  const baseParams = {
+  const watchParams = {
+    txHash,
+    orderId,
+    tracking,
     originChainId: chainContext.originChainId,
     destinationChainId: chainContext.destinationChainId,
     timeout: TIMEOUT_MS.INTENT_TRACKING_TIMEOUT,
-  };
-
-  const watchParams = orderId ? { ...baseParams, orderId, openTxHash: txHash } : { ...baseParams, txHash: txHash! };
+  } as WatchOrderParams;
 
   try {
     for await (const item of tracker.watchOrder(watchParams)) {

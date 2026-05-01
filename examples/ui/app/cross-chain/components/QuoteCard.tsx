@@ -39,11 +39,13 @@ function ChainPill({ name }: { name: string }) {
 
 function TokenAmount({
   amount,
+  amountUsd,
   symbol,
   chainName,
   variant,
 }: {
   amount: string;
+  amountUsd?: string;
   symbol: string;
   chainName: string;
   variant: 'input' | 'output';
@@ -60,6 +62,7 @@ function TokenAmount({
         <span className={`font-medium ${isOutput ? 'text-sm text-text-primary' : 'text-xs text-text-tertiary'}`}>
           {symbol}
         </span>
+        {amountUsd && <span className='text-[10px] text-text-tertiary tabular-nums'>~{amountUsd}</span>}
       </div>
       <ChainPill name={chainName} />
     </div>
@@ -208,6 +211,7 @@ export function QuoteCard({
         <div className='flex items-center gap-2'>
           <TokenAmount
             amount={formatted.inputAmount}
+            amountUsd={formatted.inputAmountUsd}
             symbol={formatted.inputSymbol}
             chainName={inputChainName}
             variant='input'
@@ -221,6 +225,7 @@ export function QuoteCard({
 
           <TokenAmount
             amount={formatted.outputAmount}
+            amountUsd={formatted.outputAmountUsd}
             symbol={formatted.outputSymbol}
             chainName={outputChainName}
             variant='output'

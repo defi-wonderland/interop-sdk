@@ -11,6 +11,7 @@ import {
 import { OIF_ADDRESSES } from "../mocks/fixtures.js";
 import {
     getMockedOifQuoteResponse,
+    getMockedOifResourceLockQuoteResponse,
     getMockedOifUserOpenQuoteResponse,
 } from "../mocks/oif/index.js";
 
@@ -149,6 +150,18 @@ describe("OifProvider", () => {
             expect(quotes[0]!.order.steps).toBeDefined();
             expect(quotes[0]!.order.steps.length).toBeGreaterThan(0);
             expect(quotes[0]!.order.steps[0]!.kind).toBe("transaction");
+        });
+
+        // TODO (EFI-887): re-enable when resource-lock support lands.
+        it("rejects oif-resource-lock-v0 quotes returned by the solver", async () => {
+            vi.mocked(axios.post).mockResolvedValue({
+                status: 200,
+                data: getMockedOifResourceLockQuoteResponse(),
+            });
+
+            await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
+                ProviderGetQuoteFailure,
+            );
         });
     });
 

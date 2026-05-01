@@ -838,4 +838,102 @@ describe("OrderTracker", () => {
             expect(timeoutEvents[0]!.message).toContain("Stopped watching after timeout");
         });
     });
+
+    describe("tracking method routing", () => {
+        const orderId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef" as Hex;
+        let mockOnChainWatcher: FillWatcher;
+
+        beforeEach(() => {
+            mockOnChainWatcher = {
+                getFill: vi.fn(),
+                waitForFill: vi.fn(),
+            } as unknown as FillWatcher;
+
+            tracker = new OrderTracker(
+                mockOpenedIntentParser,
+                mockFillWatcher,
+                undefined,
+                undefined,
+                mockOnChainWatcher,
+            );
+        });
+
+        async function runWatchOrder(params: WatchOrderParams): Promise<void> {
+            for await (const item of tracker.watchOrder(params)) {
+                if (
+                    item.type === OrderTrackerYieldType.Update &&
+                    item.update.status === OrderStatus.Finalized
+                )
+                    break;
+            }
+        }
+
+        function setupOnChainFill(): void {
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(
+                createMockOpenedIntent(),
+            );
+            vi.mocked(mockOnChainWatcher.waitForFill).mockResolvedValue(createMockFillEvent());
+        }
+
+        function setupApiFill(): void {
+            vi.mocked(mockFillWatcher.getFill).mockResolvedValue({
+                fillEvent: createMockFillEvent(),
+                status: OrderStatus.Finalized,
+            });
+        }
+
+        it("txHash only → on-chain watcher", async () => {
+            setupOnChainFill();
+            await runWatchOrder({ txHash: mockTxHash, originChainId: mockOriginChainId });
+            expect(mockOnChainWatcher.waitForFill).toHaveBeenCalled();
+            expect(mockFillWatcher.waitForFill).not.toHaveBeenCalled();
+        });
+
+        it("orderId only → API watcher", async () => {
+            setupApiFill();
+            await runWatchOrder({
+                orderId,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+            });
+            expect(mockFillWatcher.getFill).toHaveBeenCalled();
+            expect(mockOnChainWatcher.getFill).not.toHaveBeenCalled();
+        });
+
+        it("both + tracking: 'on-chain' → on-chain watcher", async () => {
+            setupOnChainFill();
+            await runWatchOrder({
+                txHash: mockTxHash,
+                orderId,
+                tracking: "on-chain",
+                originChainId: mockOriginChainId,
+            });
+            expect(mockOnChainWatcher.waitForFill).toHaveBeenCalled();
+        });
+
+        it("both + tracking: 'api' → API watcher", async () => {
+            setupApiFill();
+            await runWatchOrder({
+                txHash: mockTxHash,
+                orderId,
+                tracking: "api",
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+            });
+            expect(mockFillWatcher.getFill).toHaveBeenCalled();
+            expect(mockOnChainWatcher.getFill).not.toHaveBeenCalled();
+        });
+
+        it("both without tracking → defaults to API", async () => {
+            setupApiFill();
+            await runWatchOrder({
+                txHash: mockTxHash,
+                orderId,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+            });
+            expect(mockFillWatcher.getFill).toHaveBeenCalled();
+            expect(mockOnChainWatcher.getFill).not.toHaveBeenCalled();
+        });
+    });
 });

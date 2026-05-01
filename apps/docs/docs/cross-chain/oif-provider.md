@@ -26,10 +26,10 @@ To restrict to a specific mode, set it explicitly:
 
 ```typescript
 // User-pays-gas quotes only
-submissionModes: ["user-transaction"]
+submissionModes: ["user-transaction"];
 
 // Gasless quotes only
-submissionModes: ["gasless"]
+submissionModes: ["gasless"];
 ```
 
 :::
@@ -44,14 +44,6 @@ The `supportedLocks` option controls which OIF order types the solver returns:
 | `compact-resource-lock` | `oif-resource-lock-v0`         |
 
 `oif-user-open-v0` (user-pays-gas) is controlled by `submissionModes` independently.
-
-:::warning `oif-escrow-v0` Permit2 approval not auto-handled
-
-`oif-escrow-v0` quotes rely on Permit2 and require a one-time `approve(PERMIT2, ...)` per token before the solver can pull funds. The OIF wire format does not surface this in `order.checks.allowances`, so the [approval service](./advanced-usage.md#automatic-erc-20-approvals) cannot prepend the step automatically for these quotes.
-
-Workaround until the OIF adapter is updated: either handle the Permit2 approval yourself, or restrict the provider to `submissionModes: ["user-transaction"]` (which uses `oif-user-open-v0`, where approvals are declared correctly). `oif-3009-v0` and `oif-resource-lock-v0` do not need ERC-20 approvals and are unaffected.
-
-:::
 
 ## Creating the Provider
 
@@ -148,15 +140,29 @@ await walletClient.sendTransaction({
 
 ## Approvals
 
-Access approval information from the order checks:
+`oif-user-open-v0` and `oif-escrow-v0` need an ERC-20 `approve` before the transfer (the latter approves the canonical Permit2 address). `oif-3009-v0` and `oif-resource-lock-v0` do not.
+
+The SDK surfaces what is needed under `quote.order.checks.allowances`. Read it yourself, or pass an `ApprovalService` to the aggregator and the `approve` step is prepended to `order.steps` when the on-chain allowance is short.
+
+For `oif-escrow-v0`, use `InfiniteAmountStrategy`: Permit2 consumes the allowance on every pull, so an exact-amount approval would re-trigger before every order.
 
 ```typescript
-// Allowance requirements from order checks
-const allowances = quote.order.checks?.allowances ?? [];
-for (const { spender, tokenAddress, required } of allowances) {
-    // Approve token spend if needed
-}
+import {
+    createAggregator,
+    createApprovalService,
+    InfiniteAmountStrategy,
+} from "@wonderland/interop-cross-chain";
+
+const aggregator = createAggregator({
+    providers: [oifProvider],
+    approvalService: createApprovalService({
+        rpcUrls: { 8453: "https://base-mainnet.g.alchemy.com/v2/YOUR_API_KEY" },
+        amountStrategy: new InfiniteAmountStrategy(),
+    }),
+});
 ```
+
+See [Automatic ERC-20 Approvals](./advanced-usage.md#automatic-erc-20-approvals) for the full reference.
 
 ## Next Step
 

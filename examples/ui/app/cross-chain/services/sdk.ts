@@ -2,11 +2,11 @@ import {
   PROTOCOLS,
   createCrossChainProvider,
   createAggregator,
+  createApprovalService,
   OrderTrackerFactory,
   LIFI_INTENTS_ORDER_SERVER_URL,
   LIFI_INTENTS_ORDER_SERVER_DEV_URL,
-  // TODO: enable after release
-  // BungeeApiTier,
+  BungeeApiTier,
   type Aggregator,
   type CrossChainProvider,
 } from '@wonderland/interop-cross-chain';
@@ -32,9 +32,7 @@ const PROVIDER_CONFIGS: ProviderConfig[] = [
   {
     providerId: 'oif',
     displayName: 'OIF Sample Solver',
-    // TODO: re-enable once OZ confirms on-chain discovery is active on the production solver.
-    // SDK-side implementation is done (StandardOrder encoding, settler addresses, event-based tracking).
-    supportsBuildQuote: false,
+    supportsBuildQuote: true,
   },
   {
     providerId: 'relay',
@@ -46,12 +44,11 @@ const PROVIDER_CONFIGS: ProviderConfig[] = [
     displayName: 'LI.FI',
     supportsBuildQuote: false,
   },
-  // TODO: enable after release
-  // {
-  //   providerId: 'bungee',
-  //   displayName: 'Bungee',
-  //   supportsBuildQuote: false,
-  // },
+  {
+    providerId: 'bungee',
+    displayName: 'Bungee',
+    supportsBuildQuote: false,
+  },
 ];
 
 export function buildExecutor(isTestnet: boolean): Aggregator {
@@ -79,19 +76,19 @@ export function buildExecutor(isTestnet: boolean): Aggregator {
     }),
   ];
 
-  // TODO: enable after release
-  // if (!isTestnet) {
-  //   providers.push(
-  //     createCrossChainProvider(PROTOCOLS.BUNGEE, {
-  //       tier: BungeeApiTier.Sandbox,
-  //       providerId: 'bungee',
-  //     }),
-  //   );
-  // }
+  if (!isTestnet) {
+    providers.push(
+      createCrossChainProvider(PROTOCOLS.BUNGEE, {
+        tier: BungeeApiTier.Sandbox,
+        providerId: 'bungee',
+      }),
+    );
+  }
 
   return createAggregator({
     providers,
     trackerFactory: new OrderTrackerFactory({ rpcUrls }),
+    approvalService: createApprovalService({ rpcUrls }),
   });
 }
 

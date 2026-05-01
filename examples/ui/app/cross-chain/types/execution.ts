@@ -91,12 +91,3 @@ export interface ExecuteResult {
   success: boolean;
   userRejected?: boolean;
 }
-
-/**
- * Identifier used to track an order after submission.
- * Across uses txHash, OIF uses orderId, Relay uses both.
- */
-export interface TrackingIdentifier {
-  txHash?: Hex;
-  orderId?: Hex;
-}

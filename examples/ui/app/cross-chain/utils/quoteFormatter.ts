@@ -48,6 +48,8 @@ function parseFees(quote: ExecutableQuote, inputTokenInfo?: { decimals?: number;
 export interface FormattedQuoteData {
   inputAmount: string;
   outputAmount: string;
+  inputAmountUsd?: string;
+  outputAmountUsd?: string;
   inputSymbol: string;
   outputSymbol: string;
   eta: string;
@@ -91,6 +93,9 @@ export function formatQuoteData(
     ? formatAmount(outputPreview.amount, outputTokenInfo?.decimals)
     : NOT_AVAILABLE;
 
+  const inputAmountUsd = inputPreview?.amountUsd ? formatUsdAmount(inputPreview.amountUsd) : undefined;
+  const outputAmountUsd = outputPreview?.amountUsd ? formatUsdAmount(outputPreview.amountUsd) : undefined;
+
   const eta = quote.eta ? formatETA(quote.eta) : NOT_AVAILABLE;
   const effectiveProviderId = quote._providerId || quote.provider || 'unknown';
   const providerDisplayName = getProviderDisplayName(effectiveProviderId);
@@ -114,6 +119,8 @@ export function formatQuoteData(
   return {
     inputAmount,
     outputAmount,
+    inputAmountUsd,
+    outputAmountUsd,
     inputSymbol: inputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL,
     outputSymbol: outputTokenInfo?.symbol || UNKNOWN_TOKEN_SYMBOL,
     eta,

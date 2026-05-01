@@ -252,7 +252,18 @@ class Aggregator {
         validateAssetSupport(params, providerId, isSupported);
 
         const quote = await provider.buildQuote(params);
-        return { ...quote, _providerId: providerId };
+        let executable: ExecutableQuote = { ...quote, _providerId: providerId };
+
+        if (this.approvalService) {
+            try {
+                const [enriched] = await this.approvalService.enrichQuotes([executable]);
+                if (enriched) executable = enriched;
+            } catch (error) {
+                console.warn("[Aggregator] Approval enrichment failed:", error);
+            }
+        }
+
+        return executable;
     }
 
     /**

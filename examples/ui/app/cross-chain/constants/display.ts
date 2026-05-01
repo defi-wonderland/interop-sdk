@@ -16,7 +16,6 @@ export enum DemoToken {
   USDC = 'USDC',
   USDT = 'USDT',
   DAI = 'DAI',
-  WBTC = 'WBTC',
   cbBTC = 'cbBTC',
   mockUSDC = 'mockUSDC',
 }
@@ -32,6 +31,5 @@ export const DEMO_MAX_AMOUNT: Record<DemoToken, number> = {
   [DemoToken.mockUSDC]: 100,
   [DemoToken.ETH]: 0.03,
   [DemoToken.WETH]: 0.03,
-  [DemoToken.WBTC]: 0.001,
   [DemoToken.cbBTC]: 0.001,
 };

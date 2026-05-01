@@ -6,6 +6,7 @@ import { addressString, amountSchema, chainIdSchema } from "./common.js";
 
 export const TransactionStepSchema = z.object({
     kind: z.literal("transaction"),
+    category: z.literal("approval").optional(),
     chainId: chainIdSchema,
     description: z.string().optional(),
     transaction: z.object({
@@ -55,6 +56,7 @@ export const OrderChecksSchema = z.object({
                 owner: addressString,
                 spender: addressString,
                 required: amountSchema,
+                preferInfinite: z.boolean().optional(),
             }),
         )
         .optional(),

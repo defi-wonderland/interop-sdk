@@ -31,13 +31,32 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
     static readonly GRACE_PERIOD_SECONDS = 60;
     static readonly DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 
+    /** Watcher for API-based tracking (orderId path). */
+    private readonly apiFillWatcher: FillWatcher;
+    /** Watcher for on-chain tracking (txHash path). */
+    private readonly txFillWatcher: FillWatcher;
+
     constructor(
         private readonly openedIntentParser: OpenedIntentParser,
-        private readonly fillWatcher: FillWatcher,
+        fillWatcher: FillWatcher,
         private readonly clientManager?: PublicClientManager,
         private readonly preTracker?: PreTracker,
+        onChainFillWatcher?: FillWatcher,
     ) {
         super();
+        this.apiFillWatcher = fillWatcher;
+        this.txFillWatcher = onChainFillWatcher ?? fillWatcher;
+    }
+
+    /**
+     * Determine tracking path from params.
+     * Explicit `tracking` field wins. Otherwise: txHash-only → on-chain, anything with orderId → api.
+     */
+    private shouldTrackOnChain(params: WatchOrderParams): boolean {
+        if (params.tracking === "on-chain") return true;
+        if (params.tracking === "api") return false;
+
+        return !!params.txHash && !params.orderId;
     }
 
     async getOrderStatus(txHash: Hex, originChainId: number): Promise<OrderTrackingInfo> {
@@ -67,7 +86,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
             fillEvent,
             status,
             failureReason: watcherFailureReason,
-        } = await this.fillWatcher.getFill({
+        } = await this.txFillWatcher.getFill({
             orderId: openedIntent.orderId,
             openTxHash: txHash,
             originChainId,
@@ -140,8 +159,10 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
 
         await this.invokePreTracker(params);
 
-        if ("txHash" in params && params.txHash) {
-            yield* this.watchOrderByTxHash({ ...params, timeout });
+        if (this.shouldTrackOnChain(params)) {
+            yield* this.watchOrderByTxHash({ ...params, timeout } as WatchOrderByTxHash & {
+                timeout: number;
+            });
         } else {
             yield* this.watchOrderByOrderId({ ...(params as WatchOrderByOrderId), timeout });
         }
@@ -248,6 +269,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
         }
 
         const fillResult = await this.waitForFillWithTimeout(
+            this.txFillWatcher,
             {
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
@@ -311,7 +333,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
 
         while (Date.now() - startTime < timeout) {
             const { fillEvent, status, failureReason, fillTxHash } =
-                await this.fillWatcher.getFill(fillParams);
+                await this.apiFillWatcher.getFill(fillParams);
 
             if (fillEvent) {
                 const hasWarnings = fillEvent.warnings && fillEvent.warnings.length > 0;
@@ -570,6 +592,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
     }
 
     private async waitForFillWithTimeout(
+        watcher: FillWatcher,
         fillParams: {
             orderId: Hex;
             openTxHash?: Hex;
@@ -591,7 +614,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
         | { status: typeof FillResultStatus.Timeout }
     > {
         try {
-            const fillEvent = await this.fillWatcher.waitForFill(fillParams, timeout);
+            const fillEvent = await watcher.waitForFill(fillParams, timeout);
             return {
                 status: FillResultStatus.Finalized,
                 fillTxHash: fillEvent.fillTxHash,

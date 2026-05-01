@@ -13,17 +13,17 @@ Tracking supports **two ways of observing the same lifecycle**, depending on the
 
 The `OrderTracker` streams updates using the full OIF `OrderStatus` set (from `@openintentsframework/oif-specs`). Not every provider emits every status — the table below shows which statuses each provider actually produces:
 
-| Status | Description | Across | Relay | OIF | Bungee | LiFi Intents |
-|--------|-------------|--------|-------|-----|--------|--------------|
-| `Created` | Order created on-chain | — | — | ✓ | — | — |
-| `Pending` | Awaiting execution | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `Executing` | Filler is processing the order | — | ✓ | ✓ | ✓ | — |
-| `Executed` | Fill transaction submitted | — | — | ✓ | — | — |
-| `Settling` | Settlement in progress | — | ✓ | — | — | ✓ |
-| `Settled` | Settlement complete (reserved) | — | — | — | — | — |
-| `Finalized` | Order fully complete | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `Failed` | Order failed | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `Refunded` | Funds returned to sender | ✓ | ✓ | ✓ | ✓ | — |
+| Status      | Description                    | Across | Relay | OIF | Bungee | LiFi Intents |
+| ----------- | ------------------------------ | ------ | ----- | --- | ------ | ------------ |
+| `Created`   | Order created on-chain         | —      | —     | ✓   | —      | —            |
+| `Pending`   | Awaiting execution             | ✓      | ✓     | ✓   | ✓      | ✓            |
+| `Executing` | Filler is processing the order | —      | ✓     | ✓   | ✓      | —            |
+| `Executed`  | Fill transaction submitted     | —      | —     | ✓   | —      | —            |
+| `Settling`  | Settlement in progress         | —      | ✓     | —   | —      | ✓            |
+| `Settled`   | Settlement complete (reserved) | —      | —     | —   | —      | —            |
+| `Finalized` | Order fully complete           | ✓      | ✓     | ✓   | ✓      | ✓            |
+| `Failed`    | Order failed                   | ✓      | ✓     | ✓   | ✓      | ✓            |
+| `Refunded`  | Funds returned to sender       | ✓      | ✓     | ✓   | ✓      | —            |
 
 You can subscribe to **any** `OrderStatus` via `tracker.on(OrderStatus.<status>, ...)` — the examples below show the most common ones.
 
@@ -36,14 +36,19 @@ In addition, the tracker can emit:
 
 The SDK exposes three ways to track an order. Choose based on your use case:
 
-| API | How to call | Input | Use when |
-|-----|-------------|-------|----------|
-| `aggregator.track()` | Event-emitter | `txHash` + `providerId` + `originChainId` + `destinationChainId` | You have a tx hash and want real-time events |
-| `tracker.watchOrder()` | Async generator | (`txHash` + `originChainId`) or (`orderId` + `originChainId` + `destinationChainId`) | You need `orderId`-based tracking (required for signature-based/gasless orders), or prefer async iteration |
-| `aggregator.getOrderStatus()` | One-shot promise | `txHash` + `providerId` + `originChainId` | You only need the current status without streaming |
+| API                           | How to call      | Input                                                                                                                    | Use when                                                                                                                                              |
+| ----------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aggregator.track()`          | Event-emitter    | `txHash` + `providerId` + `originChainId` + `destinationChainId`                                                         | You have a tx hash and want real-time events                                                                                                          |
+| `tracker.watchOrder()`        | Async generator  | (`txHash` + `originChainId`) or (`orderId` + `originChainId` + `destinationChainId`) or (both, with optional `tracking`) | You need `orderId`-based tracking (required for signature-based/gasless orders), want to choose tracking method explicitly, or prefer async iteration |
+| `aggregator.getOrderStatus()` | One-shot promise | `txHash` + `providerId` + `originChainId`                                                                                | You only need the current status without streaming                                                                                                    |
 
 :::warning
-`watchOrder` is currently the only path that supports tracking by `orderId`. Signature-based (gasless) orders may not have a `txHash` at open time — for those, `orderId` tracking is required. Pass a `WatchOrderByOrderId` param (with `orderId`, `originChainId`, and `destinationChainId`) instead of `WatchOrderByTxHash`.
+`watchOrder` supports three param shapes:
+
+-   `WatchOrderByTxHash` — pass `txHash` only. Uses on-chain event tracking.
+-   `WatchOrderByOrderId` — pass `orderId` only. Uses API-based tracking. Required for signature-based/gasless orders that don't have a `txHash` at open time.
+-   `WatchOrderExplicit` — pass both `txHash` and `orderId`, plus an optional `tracking: 'on-chain' | 'api'` field. Defaults to `'api'` when not specified.
+
 :::
 
 :::info Mixed-step orders
