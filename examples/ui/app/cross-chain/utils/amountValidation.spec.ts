@@ -76,7 +76,6 @@ describe('exceedsDemoLimit', () => {
   });
 
   it('returns true when amount exceeds max for BTC variants', () => {
-    expect(exceedsDemoLimit('0.002', 'WBTC')).toBe(true);
     expect(exceedsDemoLimit('0.002', 'cbBTC')).toBe(true);
   });
 
@@ -84,7 +83,7 @@ describe('exceedsDemoLimit', () => {
     expect(exceedsDemoLimit('100', 'USDC')).toBe(false);
     expect(exceedsDemoLimit('50', 'USDT')).toBe(false);
     expect(exceedsDemoLimit('0.03', 'ETH')).toBe(false);
-    expect(exceedsDemoLimit('0.001', 'WBTC')).toBe(false);
+    expect(exceedsDemoLimit('0.001', 'cbBTC')).toBe(false);
   });
 
   it('returns false for tokens not in the limit map', () => {
