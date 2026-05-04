@@ -1,9 +1,10 @@
 import { decodeFunctionData, erc20Abi } from "viem";
 
 import type { OrderChecks } from "../../../core/schemas/order.js";
-import type { Quote } from "../../../core/schemas/quote.js";
+import type { Quote, QuotePreviewEntry } from "../../../core/schemas/quote.js";
 import type { QuoteRequest, Step } from "../../../internal.js";
 import type { RelayQuoteResponse, RelayQuoteStep, RelaySignatureStep } from "../schemas.js";
+import { toCanonicalNativeAddress } from "../../../core/utils/token.js";
 import { ProviderGetQuoteFailure } from "../../../internal.js";
 import { adaptFees } from "./quoteFeeAdapter.js";
 
@@ -72,6 +73,7 @@ export function adaptQuote(
     const relayRequestId = nonApproveSteps.find((s) => s.requestId)?.requestId;
     const allowances = extractAllowances(approveSteps, params.user);
     const fees = adaptFees(response);
+    const fallbackToken = extractFallbackToken(params, response);
 
     return {
         order: {
@@ -102,10 +104,36 @@ export function adaptQuote(
         eta: response.details?.timeEstimate,
         partialFill: false,
         failureHandling: "refund-automatic",
+        fallbackToken,
         provider: providerId,
         fees,
         tracking: relayRequestId ? { orderId: relayRequestId } : undefined,
         metadata: { relayResponse: response },
+    };
+}
+
+// Skip when refund equals the input — already conveyed by `failureHandling`.
+// @see https://docs.relay.link/references/api/api_core_concepts/refunds
+function extractFallbackToken(
+    params: QuoteRequest,
+    response: RelayQuoteResponse,
+): QuotePreviewEntry | undefined {
+    const refund = response.details?.refundCurrency;
+    if (!refund?.currency) return undefined;
+
+    if (
+        refund.currency.chainId === params.input.chainId &&
+        toCanonicalNativeAddress(refund.currency.address, "eip155") ===
+            toCanonicalNativeAddress(params.input.assetAddress, "eip155")
+    ) {
+        return undefined;
+    }
+
+    return {
+        chainId: refund.currency.chainId,
+        accountAddress: params.output.recipient ?? params.user,
+        assetAddress: refund.currency.address,
+        amount: refund.amount,
     };
 }
 

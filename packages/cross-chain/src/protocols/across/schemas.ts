@@ -31,8 +31,8 @@ export const AcrossGetQuoteParamsSchema = z.object({
 
 export const TokenSchema = z.object({
     address: HexAddressSchema,
-    chainId: z.number(),
-    decimals: z.number(),
+    chainId: z.number().int(),
+    decimals: z.number().int(),
     symbol: z.string(),
     name: z.string().optional(),
 });
@@ -44,9 +44,112 @@ export const FeeSchema = z.object({
     token: TokenSchema.optional(),
 });
 
+export const AcrossApprovalTxSchema = z.object({
+    chainId: z.number().int(),
+    to: HexAddressSchema,
+    data: z.string().refine((data) => isHex(data), { message: "Invalid hex data" }),
+});
+
+export const AcrossAllowanceCheckSchema = z.object({
+    token: HexAddressSchema,
+    spender: HexAddressSchema,
+    actual: z.string(),
+    expected: z.string(),
+});
+
+export const AcrossBalanceCheckSchema = z.object({
+    token: HexAddressSchema,
+    actual: z.string(),
+    expected: z.string(),
+});
+
+export const AcrossChecksSchema = z.object({
+    allowance: AcrossAllowanceCheckSchema.optional(),
+    balance: AcrossBalanceCheckSchema.optional(),
+});
+
+export const AcrossSwapProviderSchema = z.object({
+    name: z.string(),
+    sources: z.array(z.string()).optional(),
+});
+
+export const AcrossBridgeFeeDetailsSchema = z.object({
+    type: z.string(),
+    relayerCapital: FeeSchema.optional(),
+    destinationGas: FeeSchema.optional(),
+    lp: FeeSchema.optional(),
+});
+
+export const AcrossBridgeFeesSchema = z.object({
+    amount: z.string(),
+    pct: z.string().optional(),
+    token: TokenSchema.optional(),
+    details: AcrossBridgeFeeDetailsSchema.optional(),
+});
+
+export const AcrossOriginSwapStepSchema = z.object({
+    tokenIn: TokenSchema,
+    tokenOut: TokenSchema,
+    inputAmount: z.string(),
+    outputAmount: z.string(),
+    minOutputAmount: z.string().optional(),
+    maxInputAmount: z.string().optional(),
+    swapProvider: AcrossSwapProviderSchema.optional(),
+    slippage: z.number().optional(),
+});
+
+export const AcrossBridgeStepSchema = z.object({
+    inputAmount: z.string(),
+    outputAmount: z.string(),
+    tokenIn: TokenSchema,
+    tokenOut: TokenSchema,
+    fees: AcrossBridgeFeesSchema.optional(),
+    provider: z.string().optional(),
+});
+
+export const AcrossDestinationSwapStepSchema = z.object({
+    tokenIn: TokenSchema,
+    tokenOut: TokenSchema,
+    inputAmount: z.string(),
+    maxInputAmount: z.string().optional(),
+    outputAmount: z.string(),
+    minOutputAmount: z.string().optional(),
+    swapProvider: AcrossSwapProviderSchema.optional(),
+    slippage: z.number().optional(),
+});
+
+export const AcrossStepsSchema = z.object({
+    originSwap: AcrossOriginSwapStepSchema.optional(),
+    bridge: AcrossBridgeStepSchema.optional(),
+    destinationSwap: AcrossDestinationSwapStepSchema.optional(),
+});
+
+export const AcrossTotalFeeDetailsSchema = z.object({
+    type: z.string(),
+    swapImpact: FeeSchema.optional(),
+    maxSwapImpact: FeeSchema.optional(),
+    app: FeeSchema.optional(),
+    bridge: FeeSchema.optional(),
+    bridgeFeeBreakdown: AcrossBridgeFeeDetailsSchema.optional(),
+});
+
+export const AcrossTotalFeeSchema = z.object({
+    amount: z.string().optional(),
+    amountUsd: z.string().optional(),
+    token: TokenSchema.optional(),
+    pct: z.string().optional(),
+    details: AcrossTotalFeeDetailsSchema.optional(),
+});
+
+export const AcrossFeesSchema = z.object({
+    total: AcrossTotalFeeSchema.optional(),
+    totalMax: AcrossTotalFeeSchema.optional(),
+    originGas: FeeSchema.optional(),
+});
+
 export const AcrossSwapTxSchema = z.object({
     simulationSuccess: z.boolean(),
-    chainId: z.number(),
+    chainId: z.number().int(),
     to: HexAddressSchema,
     data: z.string().refine((data) => isHex(data), { message: "Invalid hex data" }),
     value: z.string().optional(),
@@ -55,30 +158,37 @@ export const AcrossSwapTxSchema = z.object({
     maxPriorityFeePerGas: z.string().optional(),
 });
 
+export const AcrossCrossSwapTypeSchema = z.enum([
+    "bridgeableToBridgeable",
+    "anyToBridgeable",
+    "bridgeableToAny",
+    "anyToAny",
+]);
+
+/**
+ * Mirrors the `GET /swap/approval` response. Optional fields stay optional so
+ * the parser does not break when the upstream adds new ones.
+ *
+ * @see https://docs.across.to/api-reference/swap/approval/get
+ */
 export const AcrossGetQuoteResponseSchema = z.object({
     id: z.string(),
+    crossSwapType: AcrossCrossSwapTypeSchema.optional(),
+    amountType: z.string().optional(),
+    approvalTxns: z.array(AcrossApprovalTxSchema).optional(),
+    checks: AcrossChecksSchema.optional(),
+    steps: AcrossStepsSchema.optional(),
     inputToken: TokenSchema,
     outputToken: TokenSchema,
+    refundToken: TokenSchema.optional(),
+    fees: AcrossFeesSchema.optional(),
     inputAmount: z.string(),
+    maxInputAmount: z.string().optional(),
     expectedOutputAmount: z.string(),
     minOutputAmount: z.string(),
-    fees: z
-        .object({
-            total: FeeSchema,
-            maxTotal: FeeSchema.optional(),
-            originGas: FeeSchema.optional(),
-            destinationGas: FeeSchema.optional(),
-            relayerCapital: FeeSchema.optional(),
-            lpFee: FeeSchema.optional(),
-            relayerTotal: FeeSchema.optional(),
-            bridgeFee: FeeSchema.optional(),
-            app: FeeSchema.optional(),
-            swapImpact: FeeSchema.optional(),
-            maxSwapImpact: FeeSchema.optional(),
-        })
-        .optional(),
-    swapTx: AcrossSwapTxSchema,
     expectedFillTime: z.number(),
+    swapTx: AcrossSwapTxSchema,
+    quoteExpiryTimestamp: z.number().optional(),
 });
 
 export const AcrossOIFGetQuoteParamsSchema = z.object({
