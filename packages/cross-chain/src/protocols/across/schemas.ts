@@ -124,13 +124,16 @@ export const AcrossStepsSchema = z.object({
     destinationSwap: AcrossDestinationSwapStepSchema.optional(),
 });
 
+export const AcrossBridgeFeeWithBreakdownSchema = FeeSchema.extend({
+    details: AcrossBridgeFeeDetailsSchema.nullish(),
+});
+
 export const AcrossTotalFeeDetailsSchema = z.object({
     type: z.string(),
     swapImpact: FeeSchema.optional(),
     maxSwapImpact: FeeSchema.optional(),
     app: FeeSchema.optional(),
-    bridge: FeeSchema.optional(),
-    bridgeFeeBreakdown: AcrossBridgeFeeDetailsSchema.optional(),
+    bridge: AcrossBridgeFeeWithBreakdownSchema.optional(),
 });
 
 export const AcrossTotalFeeSchema = z.object({
@@ -160,6 +163,7 @@ export const AcrossSwapTxSchema = z.object({
 
 export const AcrossCrossSwapTypeSchema = z.enum([
     "bridgeableToBridgeable",
+    "bridgeableToBridgeableIndirect",
     "anyToBridgeable",
     "bridgeableToAny",
     "anyToAny",
