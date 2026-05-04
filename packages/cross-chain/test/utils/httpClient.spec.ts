@@ -156,6 +156,19 @@ describe("httpClient", () => {
             expect((err as HttpError).message).toMatch(/ENOTFOUND/);
         });
 
+        it("wraps body read failures as HttpError", async () => {
+            const broken = new Response(null);
+            Object.defineProperty(broken, "text", {
+                value: () => Promise.reject(new Error("body read failed")),
+            });
+            fetchMock.mockResolvedValueOnce(broken);
+
+            const err = await httpRequest("https://api.test/x").catch((e: HttpError) => e);
+            expect(err).toBeInstanceOf(HttpError);
+            expect((err as HttpError).code).toBe("ENETWORK");
+            expect((err as HttpError).message).toMatch(/body read failed/);
+        });
+
         it("aborts and throws ETIMEDOUT after the configured timeout", async () => {
             vi.useFakeTimers();
 

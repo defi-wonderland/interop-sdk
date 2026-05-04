@@ -90,6 +90,7 @@ export class HttpClient {
                 : undefined;
 
         let response: Response;
+        let text: string;
         try {
             response = await fetch(url, {
                 method: options.method ?? "GET",
@@ -101,6 +102,7 @@ export class HttpClient {
                 body: isJsonBody ? JSON.stringify(rawBody) : (rawBody as string | undefined),
                 signal: controller.signal,
             });
+            text = await response.text();
         } catch (err) {
             const cause = err instanceof Error ? err : new Error(String(err));
             throw timedOut
@@ -117,7 +119,6 @@ export class HttpClient {
             clearTimeout(timeoutId);
         }
 
-        const text = await response.text();
         let data: unknown;
         try {
             data = text ? JSON.parse(text) : undefined;
