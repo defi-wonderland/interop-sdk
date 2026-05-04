@@ -242,8 +242,9 @@ export class OifProvider extends CrossChainProvider {
                     };
                 } catch (e) {
                     lastErr = e;
-                    // Only retry on server errors (5xx); break on client errors or non-network failures
-                    if (!(e instanceof HttpError) || (e.status > 0 && e.status < 500)) break;
+                    // Retry only on 5xx. Network/timeout errors (status 0) break out to avoid
+                    // duplicate orders if the request reached the solver but the response did not.
+                    if (!(e instanceof HttpError) || e.status < 500) break;
                 }
             }
             throw lastErr;
