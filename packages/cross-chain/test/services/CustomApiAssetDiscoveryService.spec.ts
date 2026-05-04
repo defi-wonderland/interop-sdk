@@ -1,14 +1,20 @@
-import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ZodError } from "zod";
 
+import { HttpError, httpRequest } from "../../src/core/utils/httpClient.js";
 import {
     AssetDiscoveryFailure,
     CustomApiAssetDiscoveryService,
     NetworkAssets,
 } from "../../src/internal.js";
 
-vi.mock("axios");
+vi.mock("../../src/core/utils/httpClient.js", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../src/core/utils/httpClient.js")>();
+    return {
+        ...actual,
+        httpRequest: vi.fn(),
+    };
+});
 
 describe("CustomApiAssetDiscoveryService", () => {
     const assetsEndpoint = "https://api.custom.test/tokens";
@@ -56,6 +62,14 @@ describe("CustomApiAssetDiscoveryService", () => {
         return Array.from(chainMap.values());
     });
 
+    function mockOk(data: unknown): { status: number; data: unknown; headers: Headers } {
+        return {
+            status: 200,
+            data,
+            headers: new Headers(),
+        };
+    }
+
     beforeEach(() => {
         vi.clearAllMocks();
         mockParseResponse.mockClear();
@@ -68,14 +82,11 @@ describe("CustomApiAssetDiscoveryService", () => {
 
     describe("getSupportedAssets", () => {
         it("should fetch and return DiscoveredAssets", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk(mockApiResponse));
 
             const result = await service.getSupportedAssets();
 
-            expect(axios.get).toHaveBeenCalledWith(assetsEndpoint, expect.anything());
+            expect(httpRequest).toHaveBeenCalledWith(assetsEndpoint, expect.anything());
 
             // Returns DiscoveredAssets format
             expect(Object.keys(result.tokensByChain)).toHaveLength(2);
@@ -88,25 +99,19 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
 
         it("should use cache on subsequent calls", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValue(mockOk(mockApiResponse));
 
             // First call - fetches from API
             await service.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(1);
+            expect(httpRequest).toHaveBeenCalledTimes(1);
 
             // Second call - should use cache
             await service.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(1);
+            expect(httpRequest).toHaveBeenCalledTimes(1);
         });
 
         it("should filter by chain IDs", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk(mockApiResponse));
 
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
@@ -115,10 +120,7 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
 
         it("should handle empty response array", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: [],
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk([]));
             mockParseResponse.mockReturnValueOnce([]);
 
             const result = await service.getSupportedAssets();
@@ -135,14 +137,11 @@ describe("CustomApiAssetDiscoveryService", () => {
                 headers: customHeaders,
             });
 
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk(mockApiResponse));
 
             await serviceWithHeaders.getSupportedAssets();
 
-            expect(axios.get).toHaveBeenCalledWith(
+            expect(httpRequest).toHaveBeenCalledWith(
                 assetsEndpoint,
                 expect.objectContaining({
                     headers: {
@@ -155,10 +154,7 @@ describe("CustomApiAssetDiscoveryService", () => {
 
     describe("getAssetsForChain", () => {
         it("should return assets for supported chain", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValue(mockOk(mockApiResponse));
 
             const result = await service.getAssetsForChain(1);
 
@@ -167,10 +163,7 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
 
         it("should return null for unsupported chain", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValue(mockOk(mockApiResponse));
 
             const result = await service.getAssetsForChain(999);
 
@@ -180,10 +173,7 @@ describe("CustomApiAssetDiscoveryService", () => {
 
     describe("isAssetSupported", () => {
         it("should find asset with case-insensitive address comparison", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValue(mockOk(mockApiResponse));
 
             // Uppercase (as stored)
             const upper = await service.isAssetSupported(
@@ -201,10 +191,7 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
 
         it("should return null for non-existent asset", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValue(mockOk(mockApiResponse));
 
             const result = await service.isAssetSupported(
                 1,
@@ -215,10 +202,7 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
 
         it("should return null for unsupported chain", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValue(mockOk(mockApiResponse));
 
             const result = await service.isAssetSupported(
                 999,
@@ -231,10 +215,7 @@ describe("CustomApiAssetDiscoveryService", () => {
 
     describe("getSupportedChainIds", () => {
         it("should return list of supported chain IDs", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk(mockApiResponse));
 
             const result = await service.getSupportedChainIds();
 
@@ -244,19 +225,10 @@ describe("CustomApiAssetDiscoveryService", () => {
 
     describe("error handling", () => {
         it("should throw AssetDiscoveryFailure on general HTTP error with providerId", async () => {
-            const axiosError = new AxiosError("Request failed");
-            axiosError.code = "ERR_BAD_REQUEST";
-            axiosError.config = { url: assetsEndpoint } as never;
-            axiosError.response = {
-                status: 500,
-                data: { message: "Internal server error" },
-                statusText: "Internal Server Error",
-                headers: {},
-                config: { headers: {} } as AxiosError["response"] extends { config: infer C }
-                    ? C
-                    : never,
-            };
-            vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
+            const httpError = new HttpError("Request failed with status 500", assetsEndpoint, 500, {
+                message: "Internal server error",
+            });
+            vi.mocked(httpRequest).mockRejectedValueOnce(httpError);
 
             try {
                 await service.getSupportedAssets();
@@ -270,10 +242,7 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
 
         it("should throw AssetDiscoveryFailure when parseResponse throws", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: "invalid data",
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk("invalid data"));
 
             mockParseResponse.mockImplementationOnce(() => {
                 throw new ZodError([
@@ -298,10 +267,14 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
 
         it("should throw AssetDiscoveryFailure on timeout with providerId", async () => {
-            const axiosError = new AxiosError("timeout of 30000ms exceeded");
-            axiosError.code = "ECONNABORTED";
-            axiosError.config = { url: assetsEndpoint } as never;
-            vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
+            const httpError = new HttpError(
+                "Request timed out after 30000ms",
+                assetsEndpoint,
+                0,
+                undefined,
+                "ETIMEDOUT",
+            );
+            vi.mocked(httpRequest).mockRejectedValueOnce(httpError);
 
             try {
                 await service.getSupportedAssets();
@@ -315,17 +288,10 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
 
         it("should throw AssetDiscoveryFailure on rate limit (429) with providerId", async () => {
-            const axiosError = new AxiosError("Too Many Requests", "ERR_BAD_REQUEST");
-            axiosError.response = {
-                status: 429,
-                data: { message: "Rate limit exceeded" },
-                statusText: "Too Many Requests",
-                headers: {},
-                config: { headers: {} } as AxiosError["response"] extends { config: infer C }
-                    ? C
-                    : never,
-            };
-            vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
+            const httpError = new HttpError("Request failed with status 429", assetsEndpoint, 429, {
+                message: "Rate limit exceeded",
+            });
+            vi.mocked(httpRequest).mockRejectedValueOnce(httpError);
 
             try {
                 await service.getSupportedAssets();
@@ -334,21 +300,6 @@ describe("CustomApiAssetDiscoveryService", () => {
                 expect(error).toBeInstanceOf(AssetDiscoveryFailure);
                 expect((error as AssetDiscoveryFailure).message).toMatch(/test-provider/);
                 expect((error as AssetDiscoveryFailure).message).toMatch(/rate limit/);
-            }
-        });
-
-        it("should throw AssetDiscoveryFailure on non-200 status code", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 404,
-                data: null,
-            });
-
-            try {
-                await service.getSupportedAssets();
-                expect.fail("Should have thrown");
-            } catch (error) {
-                expect(error).toBeInstanceOf(AssetDiscoveryFailure);
-                expect((error as AssetDiscoveryFailure).details).toMatch(/404/);
             }
         });
     });
@@ -362,14 +313,11 @@ describe("CustomApiAssetDiscoveryService", () => {
                 timeout: 15000,
             });
 
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk(mockApiResponse));
 
             await serviceWithTimeout.getSupportedAssets();
 
-            expect(axios.get).toHaveBeenCalledWith(
+            expect(httpRequest).toHaveBeenCalledWith(
                 assetsEndpoint,
                 expect.objectContaining({
                     timeout: 15000,
@@ -385,11 +333,11 @@ describe("CustomApiAssetDiscoveryService", () => {
                 resolvePromise = resolve;
             });
 
-            vi.mocked(axios.get).mockImplementationOnce(() =>
-                delayedPromise.then(() => ({
-                    status: 200,
-                    data: mockApiResponse,
-                })),
+            vi.mocked(httpRequest).mockImplementationOnce(
+                () =>
+                    delayedPromise.then(() => mockOk(mockApiResponse)) as ReturnType<
+                        typeof httpRequest
+                    >,
             );
 
             // Start two concurrent calls before the first resolves
@@ -403,7 +351,7 @@ describe("CustomApiAssetDiscoveryService", () => {
             const [result1, result2] = await Promise.all([promise1, promise2]);
 
             // Should only make one API call
-            expect(axios.get).toHaveBeenCalledTimes(1);
+            expect(httpRequest).toHaveBeenCalledTimes(1);
 
             // Both results should be equivalent
             expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
@@ -411,23 +359,26 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
 
         it("should clear in-flight state on failure and allow retry", async () => {
-            const axiosError = new AxiosError("Network error", "ERR_NETWORK");
+            const httpError = new HttpError(
+                "Network error",
+                assetsEndpoint,
+                0,
+                undefined,
+                "ENETWORK",
+            );
 
             // First call fails
-            vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
+            vi.mocked(httpRequest).mockRejectedValueOnce(httpError);
 
             await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
 
             // Second call should attempt a new request (not stuck on rejected promise)
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk(mockApiResponse));
 
             const result = await service.getSupportedAssets();
 
             // Should have made two API calls total
-            expect(axios.get).toHaveBeenCalledTimes(2);
+            expect(httpRequest).toHaveBeenCalledTimes(2);
             expect(Object.keys(result.tokensByChain)).toHaveLength(2);
         });
 
@@ -437,11 +388,11 @@ describe("CustomApiAssetDiscoveryService", () => {
                 resolvePromise = resolve;
             });
 
-            vi.mocked(axios.get).mockImplementationOnce(() =>
-                delayedPromise.then(() => ({
-                    status: 200,
-                    data: mockApiResponse,
-                })),
+            vi.mocked(httpRequest).mockImplementationOnce(
+                () =>
+                    delayedPromise.then(() => mockOk(mockApiResponse)) as ReturnType<
+                        typeof httpRequest
+                    >,
             );
 
             // Start two concurrent calls with different chainIds filters
@@ -454,7 +405,7 @@ describe("CustomApiAssetDiscoveryService", () => {
             const [result1, result2] = await Promise.all([promise1, promise2]);
 
             // Should only make one API call
-            expect(axios.get).toHaveBeenCalledTimes(1);
+            expect(httpRequest).toHaveBeenCalledTimes(1);
 
             // Each result should have its own filter applied
             expect(Object.keys(result1.tokensByChain)).toHaveLength(1);

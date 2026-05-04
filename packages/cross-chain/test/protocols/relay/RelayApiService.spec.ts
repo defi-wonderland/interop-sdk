@@ -1,5 +1,3 @@
-import type { AxiosInstance } from "axios";
-import { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -9,6 +7,7 @@ import type {
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { ProviderGetStatusFailure } from "../../../src/core/errors/ProviderGetStatusFailure.exception.js";
+import { HttpClient, HttpError } from "../../../src/core/utils/httpClient.js";
 import { RelayApiService } from "../../../src/protocols/relay/services/RelayApiService.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -27,8 +26,12 @@ const TX_HASH = "0xdeposithash";
 
 // ── Helpers ──────────────────────────────────────────────
 
-function makeAxiosError(message: string, code?: string): AxiosError {
-    return new AxiosError(message, code);
+function makeHttpError(message: string): HttpError {
+    return new HttpError(message, "https://test/url", 0, undefined, "ENETWORK");
+}
+
+function mockOk(data: unknown): { status: number; data: unknown; headers: Headers } {
+    return { status: 200, data, headers: new Headers() };
 }
 
 function makeQuoteRequest(): RelayQuoteRequest {
@@ -108,13 +111,13 @@ describe("RelayApiService", () => {
         vi.clearAllMocks();
         mockPost = vi.fn();
         mockGet = vi.fn();
-        const http = { post: mockPost, get: mockGet } as unknown as AxiosInstance;
+        const http = { post: mockPost, get: mockGet } as unknown as HttpClient;
         service = new RelayApiService(http);
     });
 
     describe("getQuote()", () => {
         it("validates request and returns parsed response", async () => {
-            mockPost.mockResolvedValue({ data: makeQuoteResponse() });
+            mockPost.mockResolvedValue(mockOk(makeQuoteResponse()));
             const result = await service.getQuote(makeQuoteRequest());
             expect(result.steps).toHaveLength(1);
             expect(mockPost).toHaveBeenCalledWith("/quote/v2", makeQuoteRequest());
@@ -126,14 +129,14 @@ describe("RelayApiService", () => {
         });
 
         it("wraps AxiosError in ProviderGetQuoteFailure", async () => {
-            mockPost.mockRejectedValue(makeAxiosError("Network Error", "ERR_NETWORK"));
+            mockPost.mockRejectedValue(makeHttpError("Network Error"));
             await expect(service.getQuote(makeQuoteRequest())).rejects.toThrow(
                 ProviderGetQuoteFailure,
             );
         });
 
         it("wraps ZodError from invalid response in ProviderGetQuoteFailure", async () => {
-            mockPost.mockResolvedValue({ data: { steps: "not-an-array" } });
+            mockPost.mockResolvedValue(mockOk({ steps: "not-an-array" }));
             await expect(service.getQuote(makeQuoteRequest())).rejects.toThrow(
                 ProviderGetQuoteFailure,
             );
@@ -142,7 +145,7 @@ describe("RelayApiService", () => {
 
     describe("indexTransaction()", () => {
         it("validates request and returns parsed response", async () => {
-            mockPost.mockResolvedValue({ data: { message: "Transaction indexed" } });
+            mockPost.mockResolvedValue(mockOk({ message: "Transaction indexed" }));
             const result = await service.indexTransaction({ chainId: "1", txHash: TX_HASH });
             expect(result.message).toBe("Transaction indexed");
             expect(mockPost).toHaveBeenCalledWith("/transactions/index", {
@@ -152,14 +155,14 @@ describe("RelayApiService", () => {
         });
 
         it("wraps AxiosError in ProviderGetStatusFailure", async () => {
-            mockPost.mockRejectedValue(makeAxiosError("Network Error", "ERR_NETWORK"));
+            mockPost.mockRejectedValue(makeHttpError("Network Error"));
             await expect(
                 service.indexTransaction({ chainId: "1", txHash: TX_HASH }),
             ).rejects.toThrow(ProviderGetStatusFailure);
         });
 
         it("wraps ZodError from invalid response in ProviderGetStatusFailure", async () => {
-            mockPost.mockResolvedValue({ data: { notMessage: "bad" } });
+            mockPost.mockResolvedValue(mockOk({ notMessage: "bad" }));
             await expect(
                 service.indexTransaction({ chainId: "1", txHash: TX_HASH }),
             ).rejects.toThrow(ProviderGetStatusFailure);
@@ -168,7 +171,7 @@ describe("RelayApiService", () => {
 
     describe("getStatus()", () => {
         it("validates request and returns parsed response", async () => {
-            mockGet.mockResolvedValue({ data: makeStatusResponse() });
+            mockGet.mockResolvedValue(mockOk(makeStatusResponse()));
             const result = await service.getStatus({ requestId: REQUEST_ID });
             expect(result.status).toBe("success");
             expect(mockGet).toHaveBeenCalledWith("/intents/status/v3", {
@@ -177,14 +180,14 @@ describe("RelayApiService", () => {
         });
 
         it("wraps AxiosError in ProviderGetStatusFailure", async () => {
-            mockGet.mockRejectedValue(makeAxiosError("Network Error"));
+            mockGet.mockRejectedValue(makeHttpError("Network Error"));
             await expect(service.getStatus({ requestId: REQUEST_ID })).rejects.toThrow(
                 ProviderGetStatusFailure,
             );
         });
 
         it("wraps invalid response in ProviderGetStatusFailure", async () => {
-            mockGet.mockResolvedValue({ data: { status: "invalid-status" } });
+            mockGet.mockResolvedValue(mockOk({ status: "invalid-status" }));
             await expect(service.getStatus({ requestId: REQUEST_ID })).rejects.toThrow(
                 ProviderGetStatusFailure,
             );
@@ -196,7 +199,7 @@ describe("RelayApiService", () => {
         const PERMIT_BODY = { kind: "eip712", requestId: REQUEST_ID };
 
         it("posts to /execute/permits with signature as query param and returns parsed response", async () => {
-            mockPost.mockResolvedValue({ data: { message: "Permit submitted" } });
+            mockPost.mockResolvedValue(mockOk({ message: "Permit submitted" }));
             const result = await service.submitPermit(PERMIT_BODY, SIGNATURE);
             expect(result.message).toBe("Permit submitted");
             expect(mockPost).toHaveBeenCalledWith("/execute/permits", PERMIT_BODY, {
@@ -205,14 +208,14 @@ describe("RelayApiService", () => {
         });
 
         it("wraps AxiosError in ProviderExecuteFailure", async () => {
-            mockPost.mockRejectedValue(makeAxiosError("Network Error", "ERR_NETWORK"));
+            mockPost.mockRejectedValue(makeHttpError("Network Error"));
             await expect(service.submitPermit(PERMIT_BODY, SIGNATURE)).rejects.toThrow(
                 ProviderExecuteFailure,
             );
         });
 
         it("wraps ZodError from invalid response in ProviderExecuteFailure", async () => {
-            mockPost.mockResolvedValue({ data: { notMessage: "bad" } });
+            mockPost.mockResolvedValue(mockOk({ notMessage: "bad" }));
             await expect(service.submitPermit(PERMIT_BODY, SIGNATURE)).rejects.toThrow(
                 ProviderExecuteFailure,
             );

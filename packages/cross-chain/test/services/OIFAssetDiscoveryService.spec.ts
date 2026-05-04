@@ -1,9 +1,15 @@
-import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { HttpError, httpRequest } from "../../src/core/utils/httpClient.js";
 import { AssetDiscoveryFailure, OIFAssetDiscoveryService } from "../../src/internal.js";
 
-vi.mock("axios");
+vi.mock("../../src/core/utils/httpClient.js", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../src/core/utils/httpClient.js")>();
+    return {
+        ...actual,
+        httpRequest: vi.fn(),
+    };
+});
 
 describe("OIFAssetDiscoveryService", () => {
     const baseUrl = "https://api.solver.test";
@@ -41,6 +47,10 @@ describe("OIFAssetDiscoveryService", () => {
         },
     };
 
+    function mockOk(data: unknown): { status: number; data: unknown; headers: Headers } {
+        return { status: 200, data, headers: new Headers() };
+    }
+
     beforeEach(() => {
         vi.clearAllMocks();
         service = new OIFAssetDiscoveryService({
@@ -51,14 +61,11 @@ describe("OIFAssetDiscoveryService", () => {
 
     describe("getSupportedAssets", () => {
         it("should fetch, transform, and return DiscoveredAssets", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk(mockApiResponse));
 
             const result = await service.getSupportedAssets();
 
-            expect(axios.get).toHaveBeenCalledWith(`${baseUrl}/api/tokens`, expect.anything());
+            expect(httpRequest).toHaveBeenCalledWith(`${baseUrl}/api/tokens`, expect.anything());
 
             // Returns DiscoveredAssets format
             expect(Object.keys(result.tokensByChain)).toHaveLength(2);
@@ -76,29 +83,23 @@ describe("OIFAssetDiscoveryService", () => {
         });
 
         it("should cache results permanently after first fetch", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValue(mockOk(mockApiResponse));
 
             // First call - fetches from API
             await service.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(1);
+            expect(httpRequest).toHaveBeenCalledTimes(1);
 
             // Second call - should use cache
             await service.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(1);
+            expect(httpRequest).toHaveBeenCalledTimes(1);
 
             // Third call - still cached
             await service.getSupportedAssets();
-            expect(axios.get).toHaveBeenCalledTimes(1);
+            expect(httpRequest).toHaveBeenCalledTimes(1);
         });
 
         it("should filter by chainIds when provided", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk(mockApiResponse));
 
             const result = await service.getSupportedAssets({ chainIds: [1] });
 
@@ -109,10 +110,7 @@ describe("OIFAssetDiscoveryService", () => {
 
     describe("getAssetsForChain", () => {
         it("should return assets for supported chain, null for unsupported", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValue(mockOk(mockApiResponse));
 
             const supported = await service.getAssetsForChain(1);
             expect(supported?.chainId).toBe(1);
@@ -125,10 +123,7 @@ describe("OIFAssetDiscoveryService", () => {
 
     describe("isAssetSupported", () => {
         it("should find asset with case-insensitive address comparison", async () => {
-            vi.mocked(axios.get).mockResolvedValue({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValue(mockOk(mockApiResponse));
 
             // Uppercase (as stored)
             const upper = await service.isAssetSupported(
@@ -155,10 +150,7 @@ describe("OIFAssetDiscoveryService", () => {
 
     describe("getSupportedChainIds", () => {
         it("should return list of supported chain IDs", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk(mockApiResponse));
 
             const result = await service.getSupportedChainIds();
             expect(result).toEqual([1, 137]);
@@ -168,23 +160,20 @@ describe("OIFAssetDiscoveryService", () => {
     describe("malformed API responses (malicious solver protection)", () => {
         it("should reject responses missing required fields", async () => {
             // Missing networks
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: {},
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk({}));
             await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
 
             // Missing chain_id
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: { networks: { "1": { assets: [] } } },
-            });
+            service = new OIFAssetDiscoveryService({ baseUrl, providerId });
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockOk({ networks: { "1": { assets: [] } } }),
+            );
             await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
 
             // Missing asset symbol
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: {
+            service = new OIFAssetDiscoveryService({ baseUrl, providerId });
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockOk({
                     networks: {
                         "1": {
                             chain_id: 1,
@@ -196,23 +185,22 @@ describe("OIFAssetDiscoveryService", () => {
                             ],
                         },
                     },
-                },
-            });
+                }),
+            );
             await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
         });
 
         it("should reject invalid values that could cause issues downstream", async () => {
             // Negative chain_id
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: { networks: { "-1": { chain_id: -1, assets: [] } } },
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockOk({ networks: { "-1": { chain_id: -1, assets: [] } } }),
+            );
             await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
 
             // Invalid decimals (overflow risk)
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: {
+            service = new OIFAssetDiscoveryService({ baseUrl, providerId });
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockOk({
                     networks: {
                         "1": {
                             chain_id: 1,
@@ -225,14 +213,14 @@ describe("OIFAssetDiscoveryService", () => {
                             ],
                         },
                     },
-                },
-            });
+                }),
+            );
             await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
 
             // Invalid address format (injection risk)
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: {
+            service = new OIFAssetDiscoveryService({ baseUrl, providerId });
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockOk({
                     networks: {
                         "1": {
                             chain_id: 1,
@@ -241,18 +229,22 @@ describe("OIFAssetDiscoveryService", () => {
                             ],
                         },
                     },
-                },
-            });
+                }),
+            );
             await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
         });
     });
 
     describe("network and API errors", () => {
         it("should wrap network errors in AssetDiscoveryFailure with providerId", async () => {
-            const axiosError = new AxiosError("timeout of 30000ms exceeded");
-            axiosError.code = "ECONNABORTED";
-            axiosError.config = { url: `${baseUrl}/api/tokens` } as never;
-            vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
+            const httpError = new HttpError(
+                "Request timed out after 30000ms",
+                `${baseUrl}/api/tokens`,
+                0,
+                undefined,
+                "ETIMEDOUT",
+            );
+            vi.mocked(httpRequest).mockRejectedValueOnce(httpError);
 
             try {
                 await service.getSupportedAssets();
@@ -265,17 +257,13 @@ describe("OIFAssetDiscoveryService", () => {
         });
 
         it("should include API error message when server returns error response", async () => {
-            const axiosError = new AxiosError("Request failed", "ERR_BAD_REQUEST");
-            axiosError.response = {
-                status: 401,
-                data: { message: "Invalid API key" },
-                statusText: "Unauthorized",
-                headers: {},
-                config: { headers: {} } as AxiosError["response"] extends { config: infer C }
-                    ? C
-                    : never,
-            };
-            vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
+            const httpError = new HttpError(
+                "Request failed with status 401",
+                `${baseUrl}/api/tokens`,
+                401,
+                { message: "Invalid API key" },
+            );
+            vi.mocked(httpRequest).mockRejectedValueOnce(httpError);
 
             try {
                 await service.getSupportedAssets();
@@ -295,11 +283,11 @@ describe("OIFAssetDiscoveryService", () => {
                 resolvePromise = resolve;
             });
 
-            vi.mocked(axios.get).mockImplementationOnce(() =>
-                delayedPromise.then(() => ({
-                    status: 200,
-                    data: mockApiResponse,
-                })),
+            vi.mocked(httpRequest).mockImplementationOnce(
+                () =>
+                    delayedPromise.then(() => mockOk(mockApiResponse)) as ReturnType<
+                        typeof httpRequest
+                    >,
             );
 
             // Start two concurrent calls before the first resolves
@@ -313,7 +301,7 @@ describe("OIFAssetDiscoveryService", () => {
             const [result1, result2] = await Promise.all([promise1, promise2]);
 
             // Should only make one API call
-            expect(axios.get).toHaveBeenCalledTimes(1);
+            expect(httpRequest).toHaveBeenCalledTimes(1);
 
             // Both results should be equivalent
             expect(Object.keys(result1.tokensByChain)).toHaveLength(2);
@@ -321,23 +309,26 @@ describe("OIFAssetDiscoveryService", () => {
         });
 
         it("should clear in-flight state on failure and allow retry", async () => {
-            const axiosError = new AxiosError("Network error", "ERR_NETWORK");
+            const httpError = new HttpError(
+                "Network error",
+                `${baseUrl}/api/tokens`,
+                0,
+                undefined,
+                "ENETWORK",
+            );
 
             // First call fails
-            vi.mocked(axios.get).mockRejectedValueOnce(axiosError);
+            vi.mocked(httpRequest).mockRejectedValueOnce(httpError);
 
             await expect(service.getSupportedAssets()).rejects.toThrow(AssetDiscoveryFailure);
 
             // Second call should attempt a new request (not stuck on rejected promise)
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: mockApiResponse,
-            });
+            vi.mocked(httpRequest).mockResolvedValueOnce(mockOk(mockApiResponse));
 
             const result = await service.getSupportedAssets();
 
             // Should have made two API calls total
-            expect(axios.get).toHaveBeenCalledTimes(2);
+            expect(httpRequest).toHaveBeenCalledTimes(2);
             expect(Object.keys(result.tokensByChain)).toHaveLength(2);
         });
 
@@ -347,11 +338,11 @@ describe("OIFAssetDiscoveryService", () => {
                 resolvePromise = resolve;
             });
 
-            vi.mocked(axios.get).mockImplementationOnce(() =>
-                delayedPromise.then(() => ({
-                    status: 200,
-                    data: mockApiResponse,
-                })),
+            vi.mocked(httpRequest).mockImplementationOnce(
+                () =>
+                    delayedPromise.then(() => mockOk(mockApiResponse)) as ReturnType<
+                        typeof httpRequest
+                    >,
             );
 
             // Start two concurrent calls with different chainIds filters
@@ -364,7 +355,7 @@ describe("OIFAssetDiscoveryService", () => {
             const [result1, result2] = await Promise.all([promise1, promise2]);
 
             // Should only make one API call
-            expect(axios.get).toHaveBeenCalledTimes(1);
+            expect(httpRequest).toHaveBeenCalledTimes(1);
 
             // Each result should have its own filter applied
             expect(Object.keys(result1.tokensByChain)).toHaveLength(1);

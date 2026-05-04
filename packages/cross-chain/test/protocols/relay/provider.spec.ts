@@ -1,4 +1,3 @@
-import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Quote } from "../../../src/core/schemas/quote.js";
@@ -6,6 +5,7 @@ import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
+import { HttpClient, HttpError } from "../../../src/core/utils/httpClient.js";
 import { RELAY_TESTNET_TOKENS } from "../../../src/protocols/relay/constants.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
 
@@ -33,9 +33,9 @@ const RELAY_BASE_URL = "https://api.relay.link";
 
 // ── Mock & Helpers ───────────────────────────────────────
 
-vi.mock("axios", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("axios")>();
-    return { ...actual, default: { ...actual.default, create: vi.fn() } };
+vi.mock("../../../src/core/utils/httpClient.js", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../../src/core/utils/httpClient.js")>();
+    return { ...actual, HttpClient: vi.fn() };
 });
 
 const mockPost = vi.fn();
@@ -125,10 +125,8 @@ function makeRelayQuoteResponse(overrides?: Partial<RelayQuoteResponse>): RelayQ
     } as RelayQuoteResponse;
 }
 
-function makeAxiosError(data: unknown, status: number, message: string, code: string): AxiosError {
-    const error = new AxiosError(message, code);
-    error.response = { data, status, statusText: "", headers: {}, config: {} as never };
-    return error;
+function makeHttpError(data: unknown, status: number, message: string): HttpError {
+    return new HttpError(message, "https://test/url", status, data);
 }
 
 // ── Tests ────────────────────────────────────────────────
@@ -138,10 +136,10 @@ describe("RelayProvider", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(axios.create).mockReturnValue({
-            post: mockPost,
-            get: mockGet,
-        } as unknown as ReturnType<typeof axios.create>);
+        vi.mocked(HttpClient).mockImplementation(function (this: HttpClient) {
+            (this as unknown as { get: typeof mockGet; post: typeof mockPost }).get = mockGet;
+            (this as unknown as { get: typeof mockGet; post: typeof mockPost }).post = mockPost;
+        } as unknown as typeof HttpClient);
         provider = new RelayProvider();
     });
 
@@ -163,7 +161,7 @@ describe("RelayProvider", () => {
 
         it("sets x-api-key header when apiKey is provided", () => {
             new RelayProvider({ apiKey: API_KEY });
-            expect(axios.create).toHaveBeenCalledWith(
+            expect(HttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     headers: expect.objectContaining({ "x-api-key": API_KEY }) as Record<
                         string,
@@ -175,7 +173,7 @@ describe("RelayProvider", () => {
 
         it("uses testnet URL when isTestnet is true", () => {
             new RelayProvider({ isTestnet: true });
-            expect(axios.create).toHaveBeenCalledWith(
+            expect(HttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     baseURL: "https://api.testnets.relay.link",
                 }),
@@ -185,7 +183,7 @@ describe("RelayProvider", () => {
         it("explicit baseUrl takes precedence over isTestnet", () => {
             const customUrl = "https://custom.relay.link";
             new RelayProvider({ isTestnet: true, baseUrl: customUrl });
-            expect(axios.create).toHaveBeenCalledWith(
+            expect(HttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     baseURL: customUrl,
                 }),
@@ -195,14 +193,22 @@ describe("RelayProvider", () => {
 
     describe("getQuotes()", () => {
         it("returns one quote by default (user-transaction mode)", async () => {
-            mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
+            mockPost.mockResolvedValue({
+                status: 200,
+                data: makeRelayQuoteResponse(),
+                headers: new Headers(),
+            });
             const quotes = await provider.getQuotes(makeQuoteRequest());
             expect(quotes).toHaveLength(1);
             expect(mockPost).toHaveBeenCalledTimes(1);
         });
 
         it("returns quote with standardized fees populated", async () => {
-            mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
+            mockPost.mockResolvedValue({
+                status: 200,
+                data: makeRelayQuoteResponse(),
+                headers: new Headers(),
+            });
             const [quote] = await provider.getQuotes(makeQuoteRequest());
             expect(quote!.fees).toBeDefined();
             expect(quote!.fees!.bridgeFee).toEqual({
@@ -222,7 +228,11 @@ describe("RelayProvider", () => {
         });
 
         it("POSTs to /quote/v2 with mapped parameters", async () => {
-            mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
+            mockPost.mockResolvedValue({
+                status: 200,
+                data: makeRelayQuoteResponse(),
+                headers: new Headers(),
+            });
             await provider.getQuotes(
                 makeQuoteRequest({
                     output: {
@@ -245,7 +255,11 @@ describe("RelayProvider", () => {
         });
 
         it("returns single quote for single-mode config", async () => {
-            mockPost.mockResolvedValue({ data: makeRelayQuoteResponse() });
+            mockPost.mockResolvedValue({
+                status: 200,
+                data: makeRelayQuoteResponse(),
+                headers: new Headers(),
+            });
             const singleModeProvider = new RelayProvider({
                 submissionModes: ["user-transaction"],
             });
@@ -260,14 +274,17 @@ describe("RelayProvider", () => {
             });
             mockPost
                 .mockRejectedValueOnce(
-                    makeAxiosError(
+                    makeHttpError(
                         { message: "Route not found", errorCode: RELAY_ERROR_ROUTE_NOT_FOUND },
                         HTTP_STATUS_BAD_REQUEST,
                         "bad request",
-                        "ERR_BAD_REQUEST",
                     ),
                 )
-                .mockResolvedValueOnce({ data: makeRelayQuoteResponse() });
+                .mockResolvedValueOnce({
+                    status: 200,
+                    data: makeRelayQuoteResponse(),
+                    headers: new Headers(),
+                });
             const quotes = await dualModeProvider.getQuotes(makeQuoteRequest());
             expect(quotes).toHaveLength(1);
         });
@@ -276,11 +293,10 @@ describe("RelayProvider", () => {
     describe("getQuotes() — error handling", () => {
         it("preserves the original error cause", async () => {
             mockPost.mockRejectedValue(
-                makeAxiosError(
+                makeHttpError(
                     { message: RELAY_ERROR_AMOUNT_TOO_LOW, errorCode: RELAY_ERROR_AMOUNT_TOO_LOW },
                     HTTP_STATUS_BAD_REQUEST,
                     "Request failed",
-                    "ERR_BAD_REQUEST",
                 ),
             );
             const rejection = expect(provider.getQuotes(makeQuoteRequest())).rejects;
@@ -291,7 +307,11 @@ describe("RelayProvider", () => {
         });
 
         it("throws ProviderGetQuoteFailure on invalid response", async () => {
-            mockPost.mockResolvedValue({ data: { steps: "not-an-array" } });
+            mockPost.mockResolvedValue({
+                status: 200,
+                data: { steps: "not-an-array" },
+                headers: new Headers(),
+            });
             await expect(provider.getQuotes(makeQuoteRequest())).rejects.toThrow(
                 ProviderGetQuoteFailure,
             );
@@ -397,7 +417,11 @@ describe("RelayProvider", () => {
         }
 
         it("calls submitPermit with correct params and returns orderId", async () => {
-            mockPost.mockResolvedValue({ data: { message: "Permit submitted" } });
+            mockPost.mockResolvedValue({
+                status: 200,
+                data: { message: "Permit submitted" },
+                headers: new Headers(),
+            });
             const quote = makeQuoteWithSignatureStep();
             const result = await provider.submitOrder(quote, SIGNATURE);
             expect(mockPost).toHaveBeenCalledWith("/execute/permits", POST_DATA.body, {
@@ -408,11 +432,10 @@ describe("RelayProvider", () => {
 
         it("propagates API errors as ProviderExecuteFailure", async () => {
             mockPost.mockRejectedValue(
-                makeAxiosError(
+                makeHttpError(
                     { message: "Invalid permit" },
                     HTTP_STATUS_BAD_REQUEST,
                     "Request failed",
-                    "ERR_BAD_REQUEST",
                 ),
             );
             const quote = makeQuoteWithSignatureStep();

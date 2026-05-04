@@ -1,4 +1,3 @@
-import axios from "axios";
 import { ZodError } from "zod";
 
 import { AssetDiscoveryFailure } from "../../../core/errors/AssetDiscoveryFailure.exception.js";
@@ -8,6 +7,7 @@ import {
     BaseAssetDiscoveryServiceConfig,
 } from "../../../core/services/BaseAssetDiscoveryService.js";
 import { NetworkAssets } from "../../../core/types/assetDiscovery.js";
+import { httpRequest } from "../../../core/utils/httpClient.js";
 import {
     buildAggregatorSolverEndpoint,
     parseAggregatorSolverResponse,
@@ -63,17 +63,10 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
         const url = `${this.baseUrl}/api/tokens`;
 
         try {
-            const response = await axios.get(url, {
+            const response = await httpRequest(url, {
                 headers: this.headers,
                 timeout: this.timeout,
             });
-
-            if (response.status !== 200) {
-                throw new AssetDiscoveryFailure(
-                    "Failed to fetch assets from OIF API",
-                    `Unexpected status code: ${response.status}. URL: ${url}`,
-                );
-            }
 
             const validated = getAssetsResponseSchema.parse(response.data);
 
@@ -102,17 +95,10 @@ export class OIFAssetDiscoveryService extends BaseAssetDiscoveryService {
     private async fetchAssetsViaWorkaround(): Promise<NetworkAssets[]> {
         const url = buildAggregatorSolverEndpoint(this.baseUrl, this.solverId!);
 
-        const response = await axios.get(url, {
+        const response = await httpRequest(url, {
             headers: this.headers,
             timeout: this.timeout,
         });
-
-        if (response.status !== 200) {
-            throw new AssetDiscoveryFailure(
-                "Failed to fetch assets from OIF solver",
-                `Unexpected status code: ${response.status}. URL: ${url}`,
-            );
-        }
 
         return parseAggregatorSolverResponse(response.data);
     }

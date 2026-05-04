@@ -1,5 +1,3 @@
-import { AxiosError } from "axios";
-
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import { AssetDiscoveryService } from "../interfaces/assetDiscovery.interface.js";
 import {
@@ -9,6 +7,7 @@ import {
     DiscoveredAssets,
     NetworkAssets,
 } from "../types/assetDiscovery.js";
+import { HttpError } from "../utils/httpClient.js";
 import { toDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
 import { toCanonicalNativeAddress } from "../utils/token.js";
 
@@ -161,8 +160,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
                 return result;
             })
             .catch((error: unknown) => {
-                const url =
-                    error instanceof AxiosError ? (error.config?.url ?? "unknown") : "unknown";
+                const url = error instanceof HttpError ? error.url : "unknown";
                 throw this.wrapError(error, url);
             });
 
@@ -191,7 +189,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
 
     /**
      * Wrap an unknown error into a consistent AssetDiscoveryFailure.
-     * Handles AxiosError (timeout, rate limit, response message extraction)
+     * Handles HttpError (timeout, rate limit, response message extraction)
      * and generic errors uniformly.
      *
      * Called by {@link resolveResult} as the centralized safety net so that
@@ -203,8 +201,8 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
             return error;
         }
 
-        if (error instanceof AxiosError) {
-            if (error.code === "ECONNABORTED") {
+        if (error instanceof HttpError) {
+            if (error.code === "ETIMEDOUT") {
                 return new AssetDiscoveryFailure(
                     `Request to ${this.providerId} timed out`,
                     `Timeout after ${this.timeout}ms. URL: ${url}`,
@@ -212,7 +210,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
                 );
             }
 
-            if (error.response?.status === 429) {
+            if (error.status === 429) {
                 return new AssetDiscoveryFailure(
                     `${this.providerId} rate limit exceeded`,
                     `Rate limited at ${url}`,
@@ -220,7 +218,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
                 );
             }
 
-            const errorData = error.response?.data as { message?: string } | undefined;
+            const errorData = error.data as { message?: string } | undefined;
             const baseMessage =
                 errorData?.message ||
                 (error.cause as Error | undefined)?.message ||

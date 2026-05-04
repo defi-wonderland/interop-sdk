@@ -1,8 +1,8 @@
 import { OrderStatus } from "@openintentsframework/oif-specs";
-import axios from "axios";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
+import { httpRequest } from "../../src/core/utils/httpClient.js";
 import { createCrossChainProvider, LifiIntentsProvider } from "../../src/external.js";
 import {
     getMockedLifiQuoteResponse,
@@ -10,14 +10,16 @@ import {
     LIFI_CHAIN_IDS,
 } from "../mocks/lifi-intents/index.js";
 
-vi.mock("axios");
+vi.mock("../../src/core/utils/httpClient.js", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../src/core/utils/httpClient.js")>();
+    return { ...actual, httpRequest: vi.fn() };
+});
 
 const MOCK_ORDER_SERVER_URL = "https://order.li.fi";
 
 describe("LifiIntentsProvider Integration Tests", () => {
     afterEach(() => {
-        vi.mocked(axios.post).mockClear();
-        vi.mocked(axios.get).mockClear();
+        vi.mocked(httpRequest).mockClear();
     });
     describe("factory creation", () => {
         it("creates LifiIntentsProvider via createCrossChainProvider", () => {
@@ -45,9 +47,10 @@ describe("LifiIntentsProvider Integration Tests", () => {
                 orderServerUrl: MOCK_ORDER_SERVER_URL,
             });
 
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedLifiQuoteResponse(),
+                headers: new Headers(),
             });
 
             const request: QuoteRequest = {
@@ -88,9 +91,10 @@ describe("LifiIntentsProvider Integration Tests", () => {
                 orderServerUrl: MOCK_ORDER_SERVER_URL,
             });
 
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedLifiQuoteResponse(),
+                headers: new Headers(),
             });
 
             await provider.getQuotes({
@@ -106,7 +110,8 @@ describe("LifiIntentsProvider Integration Tests", () => {
                 },
             });
 
-            const postBody = vi.mocked(axios.post).mock.calls[0]![1] as Record<string, unknown>;
+            const callArgs = vi.mocked(httpRequest).mock.calls[0]!;
+            const postBody = (callArgs[1] as { body: Record<string, unknown> }).body;
 
             // Verify CAIP-10 format
             expect(postBody.user).toEqual({

@@ -4,7 +4,6 @@ import {
     PostOrderRequest,
     PostOrderResponse,
 } from "@openintentsframework/oif-specs";
-import axios, { AxiosError } from "axios";
 import { encodeFunctionData, Hex, hexToBytes } from "viem";
 import { ZodError } from "zod";
 
@@ -25,6 +24,8 @@ import {
     GetFillParams,
     getOrderResponseSchema,
     getQuoteResponseSchema,
+    HttpError,
+    httpRequest,
     isNativeAddress,
     OIFAssetDiscoveryConfig,
     OifProviderConfig,
@@ -111,24 +112,15 @@ export class OifProvider extends CrossChainProvider {
                 submissionModes: this.submissionModes,
             });
 
-            const response = await axios.post<GetQuoteResponse>(
-                `${this.url}/v1/quotes`,
-                oifRequest,
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        ...this.headers,
-                    },
-                    timeout: OifProvider.REQUEST_TIMEOUT_MS,
+            const response = await httpRequest<GetQuoteResponse>(`${this.url}/v1/quotes`, {
+                method: "POST",
+                body: oifRequest,
+                headers: {
+                    "Content-Type": "application/json",
+                    ...this.headers,
                 },
-            );
-
-            if (response.status !== 200) {
-                throw new ProviderGetQuoteFailure(
-                    "Failed to get OIF quotes",
-                    `Unexpected status code: ${response.status}. SolverId: ${this.solverId}, URL: ${this.url}/v1/quotes`,
-                );
-            }
+                timeout: OifProvider.REQUEST_TIMEOUT_MS,
+            });
 
             // Validate but use raw data (Zod reorders fields, breaks integrity checksum)
             getQuoteResponseSchema.parse(response.data);
@@ -165,8 +157,8 @@ export class OifProvider extends CrossChainProvider {
                 return sdkQuote;
             });
         } catch (error) {
-            if (error instanceof AxiosError) {
-                const errorData = error.response?.data as { message?: string };
+            if (error instanceof HttpError) {
+                const errorData = error.data as { message?: string } | undefined;
                 const baseMessage =
                     errorData?.message ||
                     (error.cause as Error | undefined)?.message ||
@@ -230,14 +222,12 @@ export class OifProvider extends CrossChainProvider {
             let lastErr: unknown;
             for (let i = 0; i < OifProvider.MAX_SUBMIT_RETRIES; i++) {
                 try {
-                    const response = await axios.post<PostOrderResponse>(
-                        `${this.url}/v1/orders`,
-                        adaptedRequest,
-                        {
-                            headers: { "Content-Type": "application/json", ...this.headers },
-                            timeout: OifProvider.SUBMIT_TIMEOUT_MS,
-                        },
-                    );
+                    const response = await httpRequest<PostOrderResponse>(`${this.url}/v1/orders`, {
+                        method: "POST",
+                        body: adaptedRequest,
+                        headers: { "Content-Type": "application/json", ...this.headers },
+                        timeout: OifProvider.SUBMIT_TIMEOUT_MS,
+                    });
 
                     const oifResponse = response.data;
                     if (!oifResponse.orderId) {
@@ -253,14 +243,13 @@ export class OifProvider extends CrossChainProvider {
                 } catch (e) {
                     lastErr = e;
                     // Only retry on server errors (5xx); break on client errors or non-network failures
-                    if (!(e instanceof AxiosError) || (e.response && e.response.status < 500))
-                        break;
+                    if (!(e instanceof HttpError) || (e.status > 0 && e.status < 500)) break;
                 }
             }
             throw lastErr;
         } catch (error) {
-            if (error instanceof AxiosError) {
-                const errorData = error.response?.data as { message?: string };
+            if (error instanceof HttpError) {
+                const errorData = error.data as { message?: string } | undefined;
                 const baseMessage =
                     errorData?.message ||
                     (error.cause as Error | undefined)?.message ||

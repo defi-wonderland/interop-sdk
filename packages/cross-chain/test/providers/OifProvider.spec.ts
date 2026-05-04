@@ -1,8 +1,8 @@
 import { PostOrderResponse, PostOrderResponseStatus } from "@openintentsframework/oif-specs";
-import axios from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
+import { HttpError, httpRequest } from "../../src/core/utils/httpClient.js";
 import {
     OifProvider,
     ProviderExecuteFailure,
@@ -15,7 +15,13 @@ import {
     getMockedOifUserOpenQuoteResponse,
 } from "../mocks/oif/index.js";
 
-vi.mock("axios");
+vi.mock("../../src/core/utils/httpClient.js", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../src/core/utils/httpClient.js")>();
+    return {
+        ...actual,
+        httpRequest: vi.fn(),
+    };
+});
 
 const MOCK_SOLVER_URL = "https://mock-solver.example.com";
 const MOCK_SOLVER_ID = "mock-solver-1";
@@ -62,34 +68,34 @@ describe("OifProvider", () => {
         };
 
         it("calls solver with correct endpoint", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedOifQuoteResponse(),
+                headers: new Headers(),
             });
 
             await provider.getQuotes(mockQuoteRequest);
 
-            expect(axios.post).toHaveBeenCalledWith(
-                `${MOCK_SOLVER_URL}/v1/quotes`,
-                expect.objectContaining({
+            expect(httpRequest).toHaveBeenCalledWith(`${MOCK_SOLVER_URL}/v1/quotes`, {
+                method: "POST",
+                body: expect.objectContaining({
                     user: expect.any(String),
                     intent: expect.objectContaining({
                         intentType: "oif-swap",
                     }),
                 }),
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    timeout: 30000,
+                headers: {
+                    "Content-Type": "application/json",
                 },
-            );
+                timeout: 30000,
+            });
         });
 
         it("returns Quote array with valid structure", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedOifQuoteResponse(),
+                headers: new Headers(),
             });
 
             const quotes = await provider.getQuotes(mockQuoteRequest);
@@ -103,10 +109,15 @@ describe("OifProvider", () => {
         });
 
         it("throws on HTTP error", async () => {
-            vi.mocked(axios.post).mockRejectedValue({
-                isAxiosError: true,
-                message: "Network error",
-            });
+            vi.mocked(httpRequest).mockRejectedValue(
+                new HttpError(
+                    "Network error",
+                    `${MOCK_SOLVER_URL}/v1/quotes`,
+                    0,
+                    undefined,
+                    "ENETWORK",
+                ),
+            );
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
                 ProviderGetQuoteFailure,
@@ -114,9 +125,10 @@ describe("OifProvider", () => {
         });
 
         it("throws on invalid response schema", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: { invalid: "response" },
+                headers: new Headers(),
             });
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
@@ -125,9 +137,10 @@ describe("OifProvider", () => {
         });
 
         it("returns signature step for oif-escrow-v0 orders", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedOifQuoteResponse(),
+                headers: new Headers(),
             });
 
             const quotes = await provider.getQuotes(mockQuoteRequest);
@@ -139,9 +152,10 @@ describe("OifProvider", () => {
         });
 
         it("returns transaction step for oif-user-open-v0 orders", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedOifUserOpenQuoteResponse(),
+                headers: new Headers(),
             });
 
             const quotes = await provider.getQuotes(mockQuoteRequest);
@@ -154,9 +168,10 @@ describe("OifProvider", () => {
 
         // TODO (EFI-887): re-enable when resource-lock support lands.
         it("rejects oif-resource-lock-v0 quotes returned by the solver", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedOifResourceLockQuoteResponse(),
+                headers: new Headers(),
             });
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
@@ -177,9 +192,10 @@ describe("OifProvider", () => {
 
         it("handles HTTP errors during submission", async () => {
             // First get a real quote to pass to submitOrder
-            vi.mocked(axios.post).mockResolvedValueOnce({
+            vi.mocked(httpRequest).mockResolvedValueOnce({
                 status: 200,
                 data: getMockedOifQuoteResponse(),
+                headers: new Headers(),
             });
             const quotes = await provider.getQuotes({
                 user: OIF_ADDRESSES.USER,
@@ -195,12 +211,14 @@ describe("OifProvider", () => {
             });
             const quote = quotes[0]!;
 
-            const axiosError = Object.assign(new Error("Solver rejected order"), {
-                isAxiosError: true,
-                response: { data: { message: "Solver rejected order" } },
-            });
-
-            vi.mocked(axios.post).mockRejectedValue(axiosError);
+            vi.mocked(httpRequest).mockRejectedValue(
+                new HttpError(
+                    "Request failed with status 400",
+                    `${MOCK_SOLVER_URL}/v1/orders`,
+                    400,
+                    { message: "Solver rejected order" },
+                ),
+            );
 
             await expect(provider.submitOrder(quote, mockSignature)).rejects.toThrow(
                 ProviderExecuteFailure,
@@ -215,9 +233,10 @@ describe("OifProvider", () => {
             });
 
             // First get a real quote
-            vi.mocked(axios.post).mockResolvedValueOnce({
+            vi.mocked(httpRequest).mockResolvedValueOnce({
                 status: 200,
                 data: getMockedOifQuoteResponse(),
+                headers: new Headers(),
             });
             const quotes = await customProvider.getQuotes({
                 user: OIF_ADDRESSES.USER,
@@ -233,21 +252,22 @@ describe("OifProvider", () => {
             });
             const quote = quotes[0]!;
 
-            vi.mocked(axios.post).mockResolvedValueOnce({
+            vi.mocked(httpRequest).mockResolvedValueOnce({
                 status: 200,
                 data: mockPostOrderResponse,
+                headers: new Headers(),
             });
 
             await customProvider.submitOrder(quote, mockSignature);
 
             // The second call is the submit (first was getQuotes)
-            expect(axios.post).toHaveBeenCalledTimes(2);
+            expect(httpRequest).toHaveBeenCalledTimes(2);
 
-            const postCall = vi.mocked(axios.post).mock.calls[1];
+            const postCall = vi.mocked(httpRequest).mock.calls[1];
             expect(postCall).toBeDefined();
-            const [, , config] = postCall as [string, unknown, { headers: Record<string, string> }];
-            expect(config.headers).toBeDefined();
-            expect(config.headers["X-API-Key"]).toBe("test-key");
+            const [, options] = postCall as [string, { headers: Record<string, string> }];
+            expect(options.headers).toBeDefined();
+            expect(options.headers["X-API-Key"]).toBe("test-key");
         });
     });
 });

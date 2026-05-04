@@ -1,5 +1,3 @@
-import type { AxiosInstance } from "axios";
-import { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -13,6 +11,7 @@ import type {
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { ProviderGetStatusFailure } from "../../../src/core/errors/ProviderGetStatusFailure.exception.js";
+import { HttpClient, HttpError } from "../../../src/core/utils/httpClient.js";
 import { BungeeApiService } from "../../../src/protocols/bungee/services/BungeeApiService.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -25,8 +24,12 @@ const OUTPUT_AMOUNT = "999000";
 
 // ── Helpers ──────────────────────────────────────────────
 
-function makeAxiosError(message: string, code?: string): AxiosError {
-    return new AxiosError(message, code);
+function makeHttpError(message: string): HttpError {
+    return new HttpError(message, "https://test/url", 0, undefined, "ENETWORK");
+}
+
+function mockOk(data: unknown): { status: number; data: unknown; headers: Headers } {
+    return { status: 200, data, headers: new Headers() };
 }
 
 function makeQuoteRequest(): BungeeQuoteRequest {
@@ -205,13 +208,13 @@ describe("BungeeApiService", () => {
         vi.clearAllMocks();
         mockPost = vi.fn();
         mockGet = vi.fn();
-        const http = { post: mockPost, get: mockGet } as unknown as AxiosInstance;
+        const http = { post: mockPost, get: mockGet } as unknown as HttpClient;
         service = new BungeeApiService(http);
     });
 
     describe("getQuote()", () => {
         it("calls GET /api/v1/bungee/quote with params", async () => {
-            mockGet.mockResolvedValue({ data: makeQuoteResponse() });
+            mockGet.mockResolvedValue(mockOk(makeQuoteResponse()));
             const result = await service.getQuote(makeQuoteRequest());
             expect(result.success).toBe(true);
             expect(result.result.originChainId).toBe(ORIGIN_CHAIN_ID);
@@ -226,14 +229,14 @@ describe("BungeeApiService", () => {
         });
 
         it("wraps AxiosError in ProviderGetQuoteFailure", async () => {
-            mockGet.mockRejectedValue(makeAxiosError("Network Error", "ERR_NETWORK"));
+            mockGet.mockRejectedValue(makeHttpError("Network Error"));
             await expect(service.getQuote(makeQuoteRequest())).rejects.toThrow(
                 ProviderGetQuoteFailure,
             );
         });
 
         it("wraps ZodError from invalid response in ProviderGetQuoteFailure", async () => {
-            mockGet.mockResolvedValue({ data: { success: "not-a-boolean" } });
+            mockGet.mockResolvedValue(mockOk({ success: "not-a-boolean" }));
             await expect(service.getQuote(makeQuoteRequest())).rejects.toThrow(
                 ProviderGetQuoteFailure,
             );
@@ -242,7 +245,7 @@ describe("BungeeApiService", () => {
 
     describe("submitOrder()", () => {
         it("calls POST /api/v1/bungee/submit with body", async () => {
-            mockPost.mockResolvedValue({ data: makeSubmitResponse() });
+            mockPost.mockResolvedValue(mockOk(makeSubmitResponse()));
             const result = await service.submitOrder(makeSubmitRequest());
             expect(result.success).toBe(true);
             expect(mockPost).toHaveBeenCalledWith("/api/v1/bungee/submit", makeSubmitRequest());
@@ -254,14 +257,14 @@ describe("BungeeApiService", () => {
         });
 
         it("wraps AxiosError in ProviderExecuteFailure", async () => {
-            mockPost.mockRejectedValue(makeAxiosError("Network Error", "ERR_NETWORK"));
+            mockPost.mockRejectedValue(makeHttpError("Network Error"));
             await expect(service.submitOrder(makeSubmitRequest())).rejects.toThrow(
                 ProviderExecuteFailure,
             );
         });
 
         it("wraps ZodError from invalid response in ProviderExecuteFailure", async () => {
-            mockPost.mockResolvedValue({ data: { success: "not-a-boolean" } });
+            mockPost.mockResolvedValue(mockOk({ success: "not-a-boolean" }));
             await expect(service.submitOrder(makeSubmitRequest())).rejects.toThrow(
                 ProviderExecuteFailure,
             );
@@ -270,7 +273,7 @@ describe("BungeeApiService", () => {
 
     describe("getStatus()", () => {
         it("calls GET /api/v1/bungee/status with params", async () => {
-            mockGet.mockResolvedValue({ data: makeStatusResponse() });
+            mockGet.mockResolvedValue(mockOk(makeStatusResponse()));
             const result = await service.getStatus(makeStatusRequest());
             expect(result.success).toBe(true);
             expect(result.result).toHaveLength(1);
@@ -280,14 +283,14 @@ describe("BungeeApiService", () => {
         });
 
         it("wraps AxiosError in ProviderGetStatusFailure", async () => {
-            mockGet.mockRejectedValue(makeAxiosError("Network Error", "ERR_NETWORK"));
+            mockGet.mockRejectedValue(makeHttpError("Network Error"));
             await expect(service.getStatus(makeStatusRequest())).rejects.toThrow(
                 ProviderGetStatusFailure,
             );
         });
 
         it("wraps ZodError from invalid response in ProviderGetStatusFailure", async () => {
-            mockGet.mockResolvedValue({ data: { success: "not-a-boolean" } });
+            mockGet.mockResolvedValue(mockOk({ success: "not-a-boolean" }));
             await expect(service.getStatus(makeStatusRequest())).rejects.toThrow(
                 ProviderGetStatusFailure,
             );

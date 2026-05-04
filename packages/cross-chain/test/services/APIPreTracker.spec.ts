@@ -1,12 +1,18 @@
 import type { Hex } from "viem";
-import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PreTrackerParams } from "../../src/core/interfaces/preTracker.interface.js";
 import type { APIPreTrackerConfig } from "../../src/core/services/APIPreTracker.js";
+import { HttpError, httpRequest } from "../../src/core/utils/httpClient.js";
 import { APIPreTracker, APIRequestFailure } from "../../src/internal.js";
 
-vi.mock("axios");
+vi.mock("../../src/core/utils/httpClient.js", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../src/core/utils/httpClient.js")>();
+    return {
+        ...actual,
+        httpRequest: vi.fn(),
+    };
+});
 
 // ── Constants ────────────────────────────────────────────
 
@@ -19,16 +25,13 @@ const ORDER_ID = "0xorder456" as Hex;
 
 // ── Helpers ──────────────────────────────────────────────
 
-function makeAxiosError(status: number, data: unknown): AxiosError {
-    const error = new AxiosError("Request failed");
-    error.response = {
+function makeHttpError(status: number, data: unknown): HttpError {
+    return new HttpError(
+        `Request failed with status ${status}`,
+        `${BASE_URL}${INDEX_ENDPOINT}`,
         status,
         data,
-        statusText: "",
-        headers: {},
-        config: {} as never,
-    };
-    return error;
+    );
 }
 
 function makeConfig(overrides?: Partial<APIPreTrackerConfig>): APIPreTrackerConfig {
@@ -67,88 +70,111 @@ describe("APIPreTracker", () => {
 
     describe("execute()", () => {
         it("sends POST request to the configured URL with body", async () => {
-            vi.mocked(axios.post).mockResolvedValueOnce({ status: 200, data: {} });
+            vi.mocked(httpRequest).mockResolvedValueOnce({
+                status: 200,
+                data: {},
+                headers: new Headers(),
+            });
 
             await preTracker.execute(makeParams());
 
-            expect(axios.post).toHaveBeenCalledWith(
-                `${BASE_URL}${INDEX_ENDPOINT}`,
-                { chainId: String(ORIGIN_CHAIN_ID), txHash: TX_HASH },
-                { headers: undefined, timeout: 15000 },
-            );
+            expect(httpRequest).toHaveBeenCalledWith(`${BASE_URL}${INDEX_ENDPOINT}`, {
+                method: "POST",
+                body: { chainId: String(ORIGIN_CHAIN_ID), txHash: TX_HASH },
+                headers: undefined,
+                timeout: 15000,
+            });
         });
 
         it("includes orderId as requestId when provided", async () => {
-            vi.mocked(axios.post).mockResolvedValueOnce({ status: 200, data: {} });
+            vi.mocked(httpRequest).mockResolvedValueOnce({
+                status: 200,
+                data: {},
+                headers: new Headers(),
+            });
 
             await preTracker.execute(makeParams({ orderId: ORDER_ID }));
 
-            expect(axios.post).toHaveBeenCalledWith(
-                `${BASE_URL}${INDEX_ENDPOINT}`,
-                { chainId: String(ORIGIN_CHAIN_ID), txHash: TX_HASH, requestId: ORDER_ID },
-                { headers: undefined, timeout: 15000 },
-            );
+            expect(httpRequest).toHaveBeenCalledWith(`${BASE_URL}${INDEX_ENDPOINT}`, {
+                method: "POST",
+                body: {
+                    chainId: String(ORIGIN_CHAIN_ID),
+                    txHash: TX_HASH,
+                    requestId: ORDER_ID,
+                },
+                headers: undefined,
+                timeout: 15000,
+            });
         });
 
         it("passes custom headers when configured", async () => {
             const headers = { "x-api-key": "test-key" };
             preTracker = new APIPreTracker(makeConfig({ headers }));
-            vi.mocked(axios.post).mockResolvedValueOnce({ status: 200, data: {} });
+            vi.mocked(httpRequest).mockResolvedValueOnce({
+                status: 200,
+                data: {},
+                headers: new Headers(),
+            });
 
             await preTracker.execute(makeParams());
 
-            expect(axios.post).toHaveBeenCalledWith(expect.any(String), expect.any(Object), {
-                headers,
-                timeout: 15000,
-            });
+            expect(httpRequest).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({ headers, timeout: 15000 }),
+            );
         });
 
         it("uses custom timeoutMs when configured", async () => {
             preTracker = new APIPreTracker(makeConfig({ timeoutMs: 3000 }));
-            vi.mocked(axios.post).mockResolvedValueOnce({ status: 200, data: {} });
+            vi.mocked(httpRequest).mockResolvedValueOnce({
+                status: 200,
+                data: {},
+                headers: new Headers(),
+            });
 
             await preTracker.execute(makeParams());
 
-            expect(axios.post).toHaveBeenCalledWith(expect.any(String), expect.any(Object), {
-                headers: undefined,
-                timeout: 3000,
+            expect(httpRequest).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({ headers: undefined, timeout: 3000 }),
+            );
+        });
+
+        it("wraps HttpError into APIRequestFailure with status and body", async () => {
+            const httpError = makeHttpError(500, "Internal Server Error");
+            vi.mocked(httpRequest).mockRejectedValueOnce(httpError);
+
+            await expect(preTracker.execute(makeParams())).rejects.toMatchObject({
+                constructor: APIRequestFailure,
+                status: 500,
+                body: "Internal Server Error",
             });
         });
 
-        it("wraps AxiosError into APIRequestFailure with status and body", async () => {
-            const axiosError = makeAxiosError(500, "Internal Server Error");
-            vi.mocked(axios.post).mockRejectedValueOnce(axiosError);
-            vi.mocked(axios.isAxiosError).mockReturnValue(true);
+        it("wraps HttpError with JSON response data into APIRequestFailure", async () => {
+            const httpError = makeHttpError(400, { message: "Invalid txHash" });
+            vi.mocked(httpRequest).mockRejectedValueOnce(httpError);
 
-            const error = await preTracker.execute(makeParams()).catch((e: APIRequestFailure) => e);
-
-            expect(error).toBeInstanceOf(APIRequestFailure);
-            expect(error.status).toBe(500);
-            expect(error.body).toBe("Internal Server Error");
+            await expect(preTracker.execute(makeParams())).rejects.toMatchObject({
+                constructor: APIRequestFailure,
+                status: 400,
+                body: JSON.stringify({ message: "Invalid txHash" }),
+            });
         });
 
-        it("wraps AxiosError with JSON response data into APIRequestFailure", async () => {
-            const axiosError = makeAxiosError(400, { message: "Invalid txHash" });
-            vi.mocked(axios.post).mockRejectedValueOnce(axiosError);
-            vi.mocked(axios.isAxiosError).mockReturnValue(true);
-
-            const error = await preTracker.execute(makeParams()).catch((e: APIRequestFailure) => e);
-
-            expect(error).toBeInstanceOf(APIRequestFailure);
-            expect(error.status).toBe(400);
-            expect(error.body).toBe(JSON.stringify({ message: "Invalid txHash" }));
-        });
-
-        it("re-throws non-Axios errors as-is", async () => {
+        it("re-throws non-HTTP errors as-is", async () => {
             const networkError = new Error("DNS resolution failed");
-            vi.mocked(axios.post).mockRejectedValueOnce(networkError);
-            vi.mocked(axios.isAxiosError).mockReturnValue(false);
+            vi.mocked(httpRequest).mockRejectedValueOnce(networkError);
 
             await expect(preTracker.execute(makeParams())).rejects.toThrow("DNS resolution failed");
         });
 
         it("resolves without error on success", async () => {
-            vi.mocked(axios.post).mockResolvedValueOnce({ status: 200, data: { message: "ok" } });
+            vi.mocked(httpRequest).mockResolvedValueOnce({
+                status: 200,
+                data: { message: "ok" },
+                headers: new Headers(),
+            });
 
             await expect(preTracker.execute(makeParams())).resolves.toBeUndefined();
         });
