@@ -850,7 +850,7 @@ export class AcrossProvider extends CrossChainProvider {
         if (!AcrossProvider.hasDestinationSwap(response)) return undefined;
 
         const bridge = response.steps?.bridge;
-        if (!bridge) return undefined;
+        if (!bridge?.tokenOut || !bridge.outputAmount) return undefined;
 
         return {
             chainId: bridge.tokenOut.chainId,
