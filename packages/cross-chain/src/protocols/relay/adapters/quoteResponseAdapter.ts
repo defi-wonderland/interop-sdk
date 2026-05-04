@@ -132,7 +132,7 @@ function extractFallbackToken(
     return {
         chainId: refund.currency.chainId,
         accountAddress: params.output.recipient ?? params.user,
-        assetAddress: refund.currency.address,
+        assetAddress: toCanonicalNativeAddress(refund.currency.address, "eip155"),
         amount: refund.amount,
     };
 }

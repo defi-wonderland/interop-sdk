@@ -54,6 +54,7 @@ import {
     parseAbiEncodedFields,
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
+    toCanonicalNativeAddress,
     withNativePlaceholder,
 } from "../../internal.js";
 import { decodeAcrossCalldata } from "./utils.js";
@@ -854,7 +855,7 @@ export class AcrossProvider extends CrossChainProvider {
         return {
             chainId: bridge.tokenOut.chainId,
             accountAddress: params.output.recipient ?? params.user,
-            assetAddress: bridge.tokenOut.address,
+            assetAddress: toCanonicalNativeAddress(bridge.tokenOut.address, "eip155"),
             amount: bridge.outputAmount,
         };
     }
