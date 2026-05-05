@@ -84,6 +84,37 @@ describe("toDiscoveredAssets", () => {
             expect(meta.providers).toEqual(["provider-1", "provider-2"]);
         });
 
+        it("fills missing name/logoURI from later providers", () => {
+            const out = toDiscoveredAssets([
+                result("provider-1", { chainId: 1, assets: [usdcEth] }),
+                result("provider-2", {
+                    chainId: 1,
+                    assets: [{ ...usdcEth, name: "USD Coin", logoURI: "https://logo/usdc.png" }],
+                }),
+            ]);
+
+            const meta = out.tokenMetadata[1]![USDC_ETH.toLowerCase()]!;
+            expect(meta.name).toBe("USD Coin");
+            expect(meta.logoURI).toBe("https://logo/usdc.png");
+        });
+
+        it("keeps the first non-empty name/logoURI when later providers also report them", () => {
+            const out = toDiscoveredAssets([
+                result("provider-1", {
+                    chainId: 1,
+                    assets: [{ ...usdcEth, name: "USD Coin", logoURI: "https://logo/first.png" }],
+                }),
+                result("provider-2", {
+                    chainId: 1,
+                    assets: [{ ...usdcEth, name: "Different", logoURI: "https://logo/second.png" }],
+                }),
+            ]);
+
+            const meta = out.tokenMetadata[1]![USDC_ETH.toLowerCase()]!;
+            expect(meta.name).toBe("USD Coin");
+            expect(meta.logoURI).toBe("https://logo/first.png");
+        });
+
         it("not duplicate same provider in providers array", () => {
             const out = toDiscoveredAssets([
                 result(
@@ -249,6 +280,25 @@ describe("mergeDiscoveredAssets", () => {
 
         expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.symbol).toBe("USDC-FIRST");
         expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.decimals).toBe(6);
+    });
+
+    it("fills missing name/logoURI from a later source", () => {
+        const sourceA = toDiscoveredAssets([
+            result("provider-a", { chainId: 1, assets: [usdcEth] }),
+        ]);
+        const sourceB = toDiscoveredAssets([
+            result("provider-b", {
+                chainId: 1,
+                assets: [{ ...usdcEth, name: "USD Coin", logoURI: "https://logo/usdc.png" }],
+            }),
+        ]);
+
+        const merged = mergeDiscoveredAssets([sourceA, sourceB]);
+
+        expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.name).toBe("USD Coin");
+        expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.logoURI).toBe(
+            "https://logo/usdc.png",
+        );
     });
 
     it("not duplicate providers when same provider appears in multiple sources", () => {

@@ -817,6 +817,8 @@ export class AcrossProvider extends CrossChainProvider {
                 address: token.address,
                 symbol: token.symbol,
                 decimals: token.decimals,
+                name: token.name,
+                logoURI: token.logoUrl,
             };
 
             if (!chainMap.has(token.chainId)) {
