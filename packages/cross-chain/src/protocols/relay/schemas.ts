@@ -144,9 +144,9 @@ const RelayTransactionStepItemSchema = RelayStepItemBaseSchema.extend({
 /** Schema for EIP-712 sign data in a signature step. */
 const RelaySignDataEip712Schema = z.object({
     signatureKind: z.literal("eip712"),
-    domain: z.record(z.unknown()),
-    types: z.record(z.array(z.object({ name: z.string(), type: z.string() }))),
-    value: z.record(z.unknown()),
+    domain: z.record(z.string(), z.unknown()),
+    types: z.record(z.string(), z.array(z.object({ name: z.string(), type: z.string() }))),
+    value: z.record(z.string(), z.unknown()),
     primaryType: z.string(),
 });
 
@@ -569,7 +569,7 @@ const RelayChainSchema = z.object({
     brandColor: z.string().nullable().optional(),
     contracts: RelayContractsSchema,
     vmType: z.enum(["bvm", "evm", "svm", "tvm", "tonvm", "suivm", "hypevm", "lvm"]).optional(),
-    explorerQueryParams: z.record(z.unknown()).nullable().optional(),
+    explorerQueryParams: z.record(z.string(), z.unknown()).nullable().optional(),
     baseChainId: z.number().nullable().optional(),
     statusMessage: z.string().nullable().optional(),
     solverAddresses: z.array(z.string()).optional(),

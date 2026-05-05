@@ -92,7 +92,7 @@ export const AcrossOIFGetQuoteParamsSchema = z.object({
         originSubmission: originSubmissionSchema.optional(),
         failureHandling: z.array(failureHandlingModeSchema).optional(),
         partialFill: z.boolean().optional(),
-        metadata: z.record(z.any()).optional(),
+        metadata: z.record(z.string(), z.any()).optional(),
     }),
     supportedTypes: z.array(z.string()),
 });

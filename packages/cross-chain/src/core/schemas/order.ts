@@ -25,12 +25,12 @@ export const SignatureStepSchema = z.object({
     description: z.string().optional(),
     signaturePayload: z.object({
         signatureType: z.literal("eip712"),
-        domain: z.record(z.unknown()),
+        domain: z.record(z.string(), z.unknown()),
         primaryType: z.string(),
-        types: z.record(z.array(z.object({ name: z.string(), type: z.string() }))),
-        message: z.record(z.unknown()),
+        types: z.record(z.string(), z.array(z.object({ name: z.string(), type: z.string() }))),
+        message: z.record(z.string(), z.unknown()),
     }),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const StepSchema = z.discriminatedUnion("kind", [
@@ -68,7 +68,7 @@ export const OrderSchema = z.object({
     steps: z.array(StepSchema).min(1),
     lock: LockMechanismSchema.optional(),
     checks: OrderChecksSchema.optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ── Types ───────────────────────────────────────────────
