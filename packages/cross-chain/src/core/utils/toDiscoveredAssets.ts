@@ -51,8 +51,8 @@ export function toDiscoveredAssets(
                     if (!existing.providers.includes(result.providerId)) {
                         existing.providers.push(result.providerId);
                     }
-                    existing.name ??= asset.name;
-                    existing.logoURI ??= asset.logoURI;
+                    existing.name ||= asset.name;
+                    existing.logoURI ||= asset.logoURI;
                 } else {
                     tokenMetadata[chainId][canonicalAddr] = {
                         address: publicAddr,
@@ -112,8 +112,8 @@ export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAs
                             existing.providers.push(pid);
                         }
                     }
-                    existing.name ??= meta.name;
-                    existing.logoURI ??= meta.logoURI;
+                    existing.name ||= meta.name;
+                    existing.logoURI ||= meta.logoURI;
                 } else {
                     const publicAddr = isNativeAddress(meta.address, "eip155")
                         ? canonical

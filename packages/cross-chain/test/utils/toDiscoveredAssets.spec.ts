@@ -98,6 +98,23 @@ describe("toDiscoveredAssets", () => {
             expect(meta.logoURI).toBe("https://logo/usdc.png");
         });
 
+        it("treats empty strings as missing and lets later providers fill name/logoURI", () => {
+            const out = toDiscoveredAssets([
+                result("provider-1", {
+                    chainId: 1,
+                    assets: [{ ...usdcEth, name: "", logoURI: "" }],
+                }),
+                result("provider-2", {
+                    chainId: 1,
+                    assets: [{ ...usdcEth, name: "USD Coin", logoURI: "https://logo/usdc.png" }],
+                }),
+            ]);
+
+            const meta = out.tokenMetadata[1]![USDC_ETH.toLowerCase()]!;
+            expect(meta.name).toBe("USD Coin");
+            expect(meta.logoURI).toBe("https://logo/usdc.png");
+        });
+
         it("keeps the first non-empty name/logoURI when later providers also report them", () => {
             const out = toDiscoveredAssets([
                 result("provider-1", {
@@ -280,6 +297,25 @@ describe("mergeDiscoveredAssets", () => {
 
         expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.symbol).toBe("USDC-FIRST");
         expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.decimals).toBe(6);
+    });
+
+    it("treats empty strings as missing in cross-source merges", () => {
+        const sourceA = toDiscoveredAssets([
+            result("provider-a", { chainId: 1, assets: [{ ...usdcEth, name: "", logoURI: "" }] }),
+        ]);
+        const sourceB = toDiscoveredAssets([
+            result("provider-b", {
+                chainId: 1,
+                assets: [{ ...usdcEth, name: "USD Coin", logoURI: "https://logo/usdc.png" }],
+            }),
+        ]);
+
+        const merged = mergeDiscoveredAssets([sourceA, sourceB]);
+
+        expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.name).toBe("USD Coin");
+        expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.logoURI).toBe(
+            "https://logo/usdc.png",
+        );
     });
 
     it("fills missing name/logoURI from a later source", () => {
