@@ -1,5 +1,3 @@
-import axios from "axios";
-
 import { DEFAULT_CHAIN_SHORTNAME_MAP } from "../internal.js";
 
 /**
@@ -9,10 +7,11 @@ import { DEFAULT_CHAIN_SHORTNAME_MAP } from "../internal.js";
  */
 const fetchShortnameToChainId = async (): Promise<Record<string, number>> => {
     try {
-        const response = await axios.get<{ shortName: string; chainId: number }[]>(
-            "https://chainid.network/chains_mini.json",
-        );
-        const chains = response.data;
+        const response = await fetch("https://chainid.network/chains_mini.json");
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+        const chains = (await response.json()) as { shortName: string; chainId: number }[];
         const shortNameToChainIdObj = chains.reduce(
             (acc: Record<string, number>, chain: { shortName: string; chainId: number }) => {
                 if (chain.shortName && chain.chainId != null) {

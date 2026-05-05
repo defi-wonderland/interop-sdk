@@ -1,9 +1,11 @@
 import { OrderStatus } from "@openintentsframework/oif-specs";
-import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
+import { HttpError } from "../../src/core/errors/HttpError.exception.js";
+import { HttpNetworkError } from "../../src/core/errors/HttpNetworkError.exception.js";
 import { OrderFailureReason } from "../../src/core/types/orderTracking.js";
+import { httpRequest } from "../../src/core/utils/httpClient.js";
 import {
     LifiIntentsProvider,
     ProviderConfigFailure,
@@ -17,7 +19,13 @@ import {
     LIFI_CHAIN_IDS,
 } from "../mocks/lifi-intents/index.js";
 
-vi.mock("axios");
+vi.mock("../../src/core/utils/httpClient.js", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../src/core/utils/httpClient.js")>();
+    return {
+        ...actual,
+        httpRequest: vi.fn(),
+    };
+});
 
 const MOCK_ORDER_SERVER_URL = "https://order.li.fi";
 const MOCK_PROVIDER_ID = "lifi-intents-test";
@@ -94,21 +102,23 @@ describe("LifiIntentsProvider", () => {
         };
 
         it("calls integrator endpoint with correct URL", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedLifiQuoteResponse(),
+                headers: new Headers(),
             });
 
             await provider.getQuotes(mockQuoteRequest);
 
-            expect(axios.post).toHaveBeenCalledWith(
+            expect(httpRequest).toHaveBeenCalledWith(
                 `${MOCK_ORDER_SERVER_URL}/api/v1/integrator/quote/request`,
                 expect.objectContaining({
-                    user: expect.objectContaining({ chain: `eip155:${LIFI_CHAIN_IDS.BASE}` }),
-                    intent: expect.objectContaining({ intentType: "oif-swap" }),
-                    supportedTypes: ["oif-user-open-v0"],
-                }),
-                expect.objectContaining({
+                    method: "POST",
+                    body: expect.objectContaining({
+                        user: expect.objectContaining({ chain: `eip155:${LIFI_CHAIN_IDS.BASE}` }),
+                        intent: expect.objectContaining({ intentType: "oif-swap" }),
+                        supportedTypes: ["oif-user-open-v0"],
+                    }),
                     headers: { "Content-Type": "application/json" },
                     timeout: 30_000,
                 }),
@@ -122,22 +132,24 @@ describe("LifiIntentsProvider", () => {
                 headers: { "X-Api-Key": "my-key" },
             });
 
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedLifiQuoteResponse(),
+                headers: new Headers(),
             });
 
             await customProvider.getQuotes(mockQuoteRequest);
 
-            const callArgs = vi.mocked(axios.post).mock.calls[0]!;
-            const config = callArgs[2] as { headers: Record<string, string> };
-            expect(config.headers["X-Api-Key"]).toBe("my-key");
+            const callArgs = vi.mocked(httpRequest).mock.calls[0]!;
+            const options = callArgs[1] as { headers: Record<string, string> };
+            expect(options.headers["X-Api-Key"]).toBe("my-key");
         });
 
         it("returns Quote array with valid structure", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedLifiQuoteResponse(),
+                headers: new Headers(),
             });
 
             const quotes = await provider.getQuotes(mockQuoteRequest);
@@ -151,9 +163,10 @@ describe("LifiIntentsProvider", () => {
         });
 
         it("returns transaction step for oif-user-open-v0 orders", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedLifiQuoteResponse(),
+                headers: new Headers(),
             });
 
             const quotes = await provider.getQuotes(mockQuoteRequest);
@@ -161,9 +174,10 @@ describe("LifiIntentsProvider", () => {
         });
 
         it("returns empty array when no quotes", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedLifiEmptyQuoteResponse(),
+                headers: new Headers(),
             });
 
             const quotes = await provider.getQuotes(mockQuoteRequest);
@@ -171,9 +185,10 @@ describe("LifiIntentsProvider", () => {
         });
 
         it("filters out quotes with null order", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedLifiNullOrderResponse(),
+                headers: new Headers(),
             });
 
             const quotes = await provider.getQuotes(mockQuoteRequest);
@@ -181,15 +196,12 @@ describe("LifiIntentsProvider", () => {
         });
 
         it("throws ProviderGetQuoteFailure on 4xx HTTP error", async () => {
-            const error = new AxiosError("Request failed", "ERR_BAD_REQUEST");
-            error.response = {
-                status: 400,
-                data: { message: "No Polymer oracle configured for input chain ID: 10" },
-                statusText: "Bad Request",
-                headers: {},
-                config: { headers: {} },
-            } as AxiosError["response"];
-            vi.mocked(axios.post).mockRejectedValue(error);
+            const url = `${MOCK_ORDER_SERVER_URL}/api/v1/integrator/quote/request`;
+            vi.mocked(httpRequest).mockRejectedValue(
+                new HttpError("Request failed with status 400", url, 400, {
+                    message: "No Polymer oracle configured for input chain ID: 10",
+                }),
+            );
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
                 ProviderGetQuoteFailure,
@@ -197,15 +209,10 @@ describe("LifiIntentsProvider", () => {
         });
 
         it("throws ProviderGetQuoteFailure on 5xx server error", async () => {
-            const error = new AxiosError("Internal Server Error", "ERR_INTERNAL");
-            error.response = {
-                status: 500,
-                data: { message: "Internal error" },
-                statusText: "Internal Server Error",
-                headers: {},
-                config: { headers: {} },
-            } as AxiosError["response"];
-            vi.mocked(axios.post).mockRejectedValue(error);
+            const url = `${MOCK_ORDER_SERVER_URL}/api/v1/integrator/quote/request`;
+            vi.mocked(httpRequest).mockRejectedValue(
+                new HttpError("Internal Server Error", url, 500, { message: "Internal error" }),
+            );
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
                 /LI\.FI Intents quote failed/,
@@ -213,9 +220,10 @@ describe("LifiIntentsProvider", () => {
         });
 
         it("throws ProviderGetQuoteFailure on network error (no response)", async () => {
-            const error = new AxiosError("Connection refused", "ECONNREFUSED");
-            error.message = "Connection refused";
-            vi.mocked(axios.post).mockRejectedValue(error);
+            const url = `${MOCK_ORDER_SERVER_URL}/api/v1/integrator/quote/request`;
+            vi.mocked(httpRequest).mockRejectedValue(
+                new HttpNetworkError("Connection refused", url),
+            );
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
                 /Connection refused/,
@@ -223,7 +231,7 @@ describe("LifiIntentsProvider", () => {
         });
 
         it("throws ProviderGetQuoteFailure with original message on generic error", async () => {
-            vi.mocked(axios.post).mockRejectedValue(new TypeError("Cannot read property"));
+            vi.mocked(httpRequest).mockRejectedValue(new TypeError("Cannot read property"));
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
                 /Cannot read property/,
@@ -231,20 +239,10 @@ describe("LifiIntentsProvider", () => {
         });
 
         it("throws ProviderGetQuoteFailure on invalid response schema", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
+            vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: { invalid: "response" },
-            });
-
-            await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
-                ProviderGetQuoteFailure,
-            );
-        });
-
-        it("throws ProviderGetQuoteFailure on non-200 status", async () => {
-            vi.mocked(axios.post).mockResolvedValue({
-                status: 500,
-                data: {},
+                headers: new Headers(),
             });
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(

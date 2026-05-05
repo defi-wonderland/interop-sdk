@@ -1,4 +1,3 @@
-import axios, { AxiosError } from "axios";
 import {
     AbiEvent,
     Address,
@@ -43,6 +42,8 @@ import {
     FillWatcherConfig,
     getAcrossApiUrl,
     GetFillParams,
+    HttpError,
+    httpRequest,
     InvalidOpenEventError,
     isNativeAddress,
     NATIVE_ZERO_ADDRESS,
@@ -105,24 +106,20 @@ export class AcrossProvider extends CrossChainProvider {
      */
     private async getAcrossQuote(params: AcrossGetQuoteParams): Promise<AcrossGetQuoteResponse> {
         try {
-            const response = await axios.get<AcrossGetQuoteResponse>(
+            const response = await httpRequest<AcrossGetQuoteResponse>(
                 `${this.apiUrl}/swap/approval`,
                 {
-                    params,
+                    params: params as Record<string, unknown>,
                 },
             );
 
-            if (response.status !== 200) {
-                throw new ProviderGetQuoteFailure("Failed to get Across quote");
-            }
-
             return AcrossGetQuoteResponseSchema.parse(response.data);
         } catch (error) {
-            if (error instanceof AxiosError) {
-                const errorData = error.response?.data as { message: string };
+            if (error instanceof HttpError) {
+                const errorData = error.data as { message?: string } | undefined;
 
                 const message =
-                    errorData.message ||
+                    errorData?.message ||
                     (error.cause as Error | undefined)?.message ||
                     error.message ||
                     "Failed to get Across quote";

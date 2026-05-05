@@ -20,3 +20,6 @@ export * from "./InvalidDeadline.exception.js";
 export * from "./DifferentAssetNotAllowed.exception.js";
 export * from "./SameChainIntentNotAllowed.exception.js";
 export * from "./UnsupportedAsset.exception.js";
+export * from "./HttpError.exception.js";
+export * from "./HttpTimeout.exception.js";
+export * from "./HttpNetworkError.exception.js";
