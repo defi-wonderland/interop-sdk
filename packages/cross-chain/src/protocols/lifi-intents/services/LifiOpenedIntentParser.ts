@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { Chain, decodeEventLog, Hex, PublicClient } from "viem";
+import { Chain, decodeEventLog, Hex, PublicClient, toEventSelector } from "viem";
 
 import type {
     FillInstruction,
@@ -12,12 +12,9 @@ import { bytes32ToAddress, getChainById, OpenedIntentNotFoundError } from "../..
 
 /**
  * LI.FI uses a different Open event signature than the standard ERC-7683.
- * The struct layout differs: (address user, uint256 nonce, uint256 originChainId, ...)
- * vs the standard (address user, uint256 originChainId, uint32 openDeadline, ...).
+ * `maxSpent` is encoded as `uint256[2][]` (token packed as uint256, then amount),
+ * not as `tuple(address,uint256)[]`.
  */
-const LIFI_OPEN_EVENT_SIGNATURE =
-    "0x9ff74bd56d00785b881ef9fa3f03d7b598686a39a9bcff89a6008db588b18a7b" as const;
-
 const LIFI_OPEN_EVENT_ABI = [
     {
         type: "event" as const,
@@ -35,14 +32,7 @@ const LIFI_OPEN_EVENT_ABI = [
                     { name: "openDeadline", type: "uint32" as const },
                     { name: "fillDeadline", type: "uint32" as const },
                     { name: "orderDataType", type: "address" as const },
-                    {
-                        name: "maxSpent",
-                        type: "tuple[]" as const,
-                        components: [
-                            { name: "token", type: "address" as const },
-                            { name: "amount", type: "uint256" as const },
-                        ],
-                    },
+                    { name: "maxSpent", type: "uint256[2][]" as const },
                     {
                         name: "fillInstructions",
                         type: "tuple[]" as const,
@@ -63,6 +53,8 @@ const LIFI_OPEN_EVENT_ABI = [
     },
 ] as const;
 
+const LIFI_OPEN_EVENT_SIGNATURE = toEventSelector(LIFI_OPEN_EVENT_ABI[0]);
+
 interface LifiResolvedOrder {
     user: Address;
     nonce: bigint;
@@ -70,7 +62,7 @@ interface LifiResolvedOrder {
     openDeadline: number;
     fillDeadline: number;
     orderDataType: Address;
-    maxSpent: ReadonlyArray<{ token: Address; amount: bigint }>;
+    maxSpent: ReadonlyArray<readonly [bigint, bigint]>;
     fillInstructions: ReadonlyArray<{
         destinationSettler: Hex;
         outputSettler: Hex;
@@ -121,9 +113,9 @@ export class LifiOpenedIntentParser implements OpenedIntentParser {
 
         const originChainId = Number(resolvedOrder.originChainId);
 
-        const maxSpent: TokenTransfer[] = resolvedOrder.maxSpent.map((entry) => ({
-            token: entry.token as Hex,
-            amount: entry.amount,
+        const maxSpent: TokenTransfer[] = resolvedOrder.maxSpent.map(([tokenAsUint, amount]) => ({
+            token: `0x${tokenAsUint.toString(16).padStart(40, "0")}` as Address,
+            amount,
             recipient: openLog.address as Hex,
             chainId: originChainId,
         }));

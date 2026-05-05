@@ -6,6 +6,23 @@ import { Address, Hex } from "viem";
  */
 
 /**
+ * Successful LI.FI Intents open on Base (USDC Base -> USDC Arbitrum).
+ *
+ * Used to verify the Open event ABI matches the layout the LiFi solver
+ * actually emits on-chain. The event signature is keccak256 of the canonical
+ * type string with `maxSpent` as `uint256[2][]`, not `tuple(address,uint256)[]`.
+ *
+ * @see https://basescan.org/tx/0xedf9a8237a49212bfb936ea67ad7eb66a20b13a6231c14e2664b9b346b42a370
+ */
+export const LIFI_INTENTS_OPEN_BASE = {
+    txHash: "0xedf9a8237a49212bfb936ea67ad7eb66a20b13a6231c14e2664b9b346b42a370" as Hex,
+    originChainId: 8453, // Base
+    destinationChainId: 42161, // Arbitrum
+    user: "0xd550780b24C8c25ef1471773498dcb63eF415298" as Address,
+    orderId: "0xe71f283a8137f86dbe3c2378ed2537c58326dd35e4f274f92ca3507b9a3e5a0b" as Hex,
+} as const;
+
+/**
  * Across fill where destination swap failed.
  *
  * 0.4 USDT on Optimism -> cbBTC on Arbitrum. The relay filled USDT to the
