@@ -9,8 +9,8 @@ export interface HttpResponse<T = unknown> {
 export interface HttpRequestOptions {
     method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     headers?: Record<string, string>;
-    /** JSON-serialized into the request body; `Content-Type: application/json` is set automatically. */
-    body?: unknown;
+    /** JSON-serialized into the request body; `Content-Type: application/json` is set automatically. Only objects/arrays — primitives are rejected at compile time. */
+    body?: object;
     /** Appended to the URL via `URLSearchParams`. Values are stringified; `null`/`undefined` are skipped. */
     params?: Record<string, unknown>;
     /** Aborts and throws `HttpTimeout` after this many ms. */
@@ -37,7 +37,7 @@ export interface HttpClient {
 
     post<T = unknown>(
         path: string,
-        body?: unknown,
+        body?: object,
         options?: Omit<HttpRequestOptions, "method" | "body">,
     ): Promise<HttpResponse<T>>;
 

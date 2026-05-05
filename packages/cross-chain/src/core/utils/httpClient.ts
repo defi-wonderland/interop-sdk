@@ -35,7 +35,7 @@ export class FetchHttpClient implements HttpClient {
 
     post<T = unknown>(
         path: string,
-        body?: unknown,
+        body?: object,
         options?: Omit<HttpRequestOptions, "method" | "body">,
     ): Promise<HttpResponse<T>> {
         return this.request<T>(path, { ...options, method: "POST", body });
