@@ -94,6 +94,62 @@ describe("OIFAssetDiscoveryService", () => {
             expect(axios.get).toHaveBeenCalledTimes(1);
         });
 
+        it("surfaces name and logoURI when the solver returns them", async () => {
+            vi.mocked(axios.get).mockResolvedValueOnce({
+                status: 200,
+                data: {
+                    networks: {
+                        "1": {
+                            chain_id: 1,
+                            assets: [
+                                {
+                                    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                    symbol: "USDC",
+                                    decimals: 6,
+                                    name: "USD Coin",
+                                    logoURI: "https://logo/usdc.png",
+                                },
+                            ],
+                        },
+                    },
+                },
+            });
+
+            const result = await service.getSupportedAssets();
+            const usdc = result.tokenMetadata[1]?.["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"];
+
+            expect(usdc?.name).toBe("USD Coin");
+            expect(usdc?.logoURI).toBe("https://logo/usdc.png");
+        });
+
+        it("treats null name/logoURI as undefined", async () => {
+            vi.mocked(axios.get).mockResolvedValueOnce({
+                status: 200,
+                data: {
+                    networks: {
+                        "1": {
+                            chain_id: 1,
+                            assets: [
+                                {
+                                    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                                    symbol: "USDC",
+                                    decimals: 6,
+                                    name: null,
+                                    logoURI: null,
+                                },
+                            ],
+                        },
+                    },
+                },
+            });
+
+            const result = await service.getSupportedAssets();
+            const usdc = result.tokenMetadata[1]?.["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"];
+
+            expect(usdc?.name).toBeUndefined();
+            expect(usdc?.logoURI).toBeUndefined();
+        });
+
         it("should filter by chainIds when provided", async () => {
             vi.mocked(axios.get).mockResolvedValueOnce({
                 status: 200,
