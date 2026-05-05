@@ -7,6 +7,7 @@
  */
 
 import type {
+    HttpClient,
     HttpClientConfig,
     HttpRequestOptions,
     HttpResponse,
@@ -21,8 +22,8 @@ interface TimeoutHandle {
     clear: () => void;
 }
 
-/** HTTP client with a minimal axios-like surface. */
-export class HttpClient {
+/** {@link HttpClient} implementation backed by native `fetch`. */
+export class FetchHttpClient implements HttpClient {
     constructor(private readonly config: HttpClientConfig = {}) {}
 
     get<T = unknown>(
@@ -138,8 +139,8 @@ export class HttpClient {
     }
 }
 
-/** One-shot request without a shared client. */
-const defaultClient = new HttpClient();
+/** Convenience wrapper for a single request without instantiating a client. */
+const defaultClient = new FetchHttpClient();
 export function httpRequest<T = unknown>(
     url: string,
     options?: HttpRequestOptions,

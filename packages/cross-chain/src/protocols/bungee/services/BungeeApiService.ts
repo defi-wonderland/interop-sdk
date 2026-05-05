@@ -1,3 +1,4 @@
+import type { HttpClient } from "../../../internal.js";
 import type {
     BungeeQuoteRequest,
     BungeeQuoteResponse,
@@ -7,7 +8,6 @@ import type {
     BungeeSubmitResponse,
 } from "../schemas.js";
 import {
-    HttpClient,
     HttpError,
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,

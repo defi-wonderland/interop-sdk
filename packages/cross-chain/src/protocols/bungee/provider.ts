@@ -5,6 +5,7 @@ import type { SubmissionMode } from "../../core/schemas/providerConfig.js";
 import type {
     AssetDiscoveryConfig,
     FillWatcherConfig,
+    HttpClient,
     OpenedIntentParserConfig,
     Quote,
     QuoteRequest,
@@ -14,7 +15,7 @@ import type { BungeeQuoteOptions } from "./adapters/quoteRequestAdapter.js";
 import type { BungeeConfigs } from "./types.js";
 import {
     CrossChainProvider,
-    HttpClient,
+    FetchHttpClient,
     ProviderConfigFailure,
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,
@@ -76,7 +77,7 @@ export class BungeeProvider extends CrossChainProvider {
                 refuel: parsed.refuel,
             };
 
-            this.http = new HttpClient({
+            this.http = new FetchHttpClient({
                 baseURL: this.baseUrl,
                 headers: this.apiHeaders,
                 timeout: 15_000,

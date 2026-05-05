@@ -1,5 +1,6 @@
 import type { Hex } from "viem";
 
+import type { HttpClient } from "../../../internal.js";
 import type {
     RelayIndexTransactionRequest,
     RelayIndexTransactionResponse,
@@ -11,7 +12,6 @@ import type {
     RelaySubmitPermitResponse,
 } from "../schemas.js";
 import {
-    HttpClient,
     HttpError,
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,

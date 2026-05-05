@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { HttpClient } from "../../../src/core/interfaces/httpClient.interface.js";
 import type {
     BungeeQuoteRequest,
     BungeeQuoteResponse,
@@ -12,7 +13,6 @@ import { HttpNetworkError } from "../../../src/core/errors/HttpNetworkError.exce
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { ProviderGetStatusFailure } from "../../../src/core/errors/ProviderGetStatusFailure.exception.js";
-import { HttpClient } from "../../../src/core/utils/httpClient.js";
 import { BungeeApiService } from "../../../src/protocols/bungee/services/BungeeApiService.js";
 
 // ── Constants ────────────────────────────────────────────

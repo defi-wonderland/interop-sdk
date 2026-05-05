@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { HttpClient } from "../../../src/core/interfaces/httpClient.interface.js";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type {
     BungeeAutoRoute,
@@ -9,7 +10,7 @@ import { HttpError } from "../../../src/core/errors/HttpError.exception.js";
 import { ProviderConfigFailure } from "../../../src/core/errors/ProviderConfigFailure.exception.js";
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
-import { HttpClient } from "../../../src/core/utils/httpClient.js";
+import { FetchHttpClient } from "../../../src/core/utils/httpClient.js";
 import { BungeeProvider } from "../../../src/protocols/bungee/provider.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -27,7 +28,7 @@ const PROTOCOL_NAME = "bungee";
 
 vi.mock("../../../src/core/utils/httpClient.js", async (importOriginal) => {
     const actual = await importOriginal<typeof import("../../../src/core/utils/httpClient.js")>();
-    return { ...actual, HttpClient: vi.fn() };
+    return { ...actual, FetchHttpClient: vi.fn() };
 });
 
 const mockPost = vi.fn();
@@ -131,10 +132,10 @@ describe("BungeeProvider", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(HttpClient).mockImplementation(function (this: HttpClient) {
+        vi.mocked(FetchHttpClient).mockImplementation(function (this: HttpClient) {
             (this as unknown as { get: typeof mockGet; post: typeof mockPost }).get = mockGet;
             (this as unknown as { get: typeof mockGet; post: typeof mockPost }).post = mockPost;
-        } as unknown as typeof HttpClient);
+        } as unknown as typeof FetchHttpClient);
         provider = new BungeeProvider();
     });
 
@@ -148,7 +149,7 @@ describe("BungeeProvider", () => {
         it("creates with custom baseUrl", () => {
             const customUrl = "https://custom.bungee.exchange";
             new BungeeProvider({ baseUrl: customUrl });
-            expect(HttpClient).toHaveBeenCalledWith(
+            expect(FetchHttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     baseURL: customUrl,
                 }),
@@ -157,7 +158,7 @@ describe("BungeeProvider", () => {
 
         it("sets x-api-key header when apiKey is provided", () => {
             new BungeeProvider({ apiKey: API_KEY });
-            expect(HttpClient).toHaveBeenCalledWith(
+            expect(FetchHttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     headers: expect.objectContaining({ "x-api-key": API_KEY }) as Record<
                         string,
@@ -169,7 +170,7 @@ describe("BungeeProvider", () => {
 
         it("sets affiliate header when affiliateId is provided", () => {
             new BungeeProvider({ affiliateId: "my-affiliate" });
-            expect(HttpClient).toHaveBeenCalledWith(
+            expect(FetchHttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     headers: expect.objectContaining({ affiliate: "my-affiliate" }) as Record<
                         string,

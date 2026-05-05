@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "../../src/core/errors/HttpError.exception.js";
 import { HttpNetworkError } from "../../src/core/errors/HttpNetworkError.exception.js";
 import { HttpTimeout } from "../../src/core/errors/HttpTimeout.exception.js";
-import { HttpClient, httpRequest } from "../../src/core/utils/httpClient.js";
+import { FetchHttpClient, httpRequest } from "../../src/core/utils/httpClient.js";
 
 function jsonResponse(body: unknown, init: ResponseInit = { status: 200 }): Response {
     return new Response(JSON.stringify(body), {
@@ -57,13 +57,15 @@ describe("httpClient", () => {
     describe("URL building", () => {
         it("joins baseURL and path", async () => {
             fetchMock.mockResolvedValueOnce(jsonResponse({}));
-            await new HttpClient({ baseURL: "https://api.test" }).get("/v1/x");
+            await new FetchHttpClient({ baseURL: "https://api.test" }).get("/v1/x");
             expect(fetchMock).toHaveBeenCalledWith("https://api.test/v1/x", expect.anything());
         });
 
         it("treats absolute URLs as-is, ignoring baseURL", async () => {
             fetchMock.mockResolvedValueOnce(jsonResponse({}));
-            await new HttpClient({ baseURL: "https://wrong.test" }).get("https://right.test/path");
+            await new FetchHttpClient({ baseURL: "https://wrong.test" }).get(
+                "https://right.test/path",
+            );
             expect(fetchMock).toHaveBeenCalledWith("https://right.test/path", expect.anything());
         });
 
@@ -97,7 +99,7 @@ describe("httpClient", () => {
 
         it("merges client and per-request headers, request wins", async () => {
             fetchMock.mockResolvedValueOnce(jsonResponse({}));
-            await new HttpClient({
+            await new FetchHttpClient({
                 headers: { "x-shared": "yes", "x-override": "client" },
             }).get("https://api.test/x", { headers: { "x-override": "request" } });
 

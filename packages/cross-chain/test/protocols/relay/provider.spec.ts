@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { HttpClient } from "../../../src/core/interfaces/httpClient.interface.js";
 import type { Quote } from "../../../src/core/schemas/quote.js";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
 import { HttpError } from "../../../src/core/errors/HttpError.exception.js";
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
-import { HttpClient } from "../../../src/core/utils/httpClient.js";
+import { FetchHttpClient } from "../../../src/core/utils/httpClient.js";
 import { RELAY_TESTNET_TOKENS } from "../../../src/protocols/relay/constants.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
 
@@ -36,7 +37,7 @@ const RELAY_BASE_URL = "https://api.relay.link";
 
 vi.mock("../../../src/core/utils/httpClient.js", async (importOriginal) => {
     const actual = await importOriginal<typeof import("../../../src/core/utils/httpClient.js")>();
-    return { ...actual, HttpClient: vi.fn() };
+    return { ...actual, FetchHttpClient: vi.fn() };
 });
 
 const mockPost = vi.fn();
@@ -137,10 +138,10 @@ describe("RelayProvider", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(HttpClient).mockImplementation(function (this: HttpClient) {
+        vi.mocked(FetchHttpClient).mockImplementation(function (this: HttpClient) {
             (this as unknown as { get: typeof mockGet; post: typeof mockPost }).get = mockGet;
             (this as unknown as { get: typeof mockGet; post: typeof mockPost }).post = mockPost;
-        } as unknown as typeof HttpClient);
+        } as unknown as typeof FetchHttpClient);
         provider = new RelayProvider();
     });
 
@@ -162,7 +163,7 @@ describe("RelayProvider", () => {
 
         it("sets x-api-key header when apiKey is provided", () => {
             new RelayProvider({ apiKey: API_KEY });
-            expect(HttpClient).toHaveBeenCalledWith(
+            expect(FetchHttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     headers: expect.objectContaining({ "x-api-key": API_KEY }) as Record<
                         string,
@@ -174,7 +175,7 @@ describe("RelayProvider", () => {
 
         it("uses testnet URL when isTestnet is true", () => {
             new RelayProvider({ isTestnet: true });
-            expect(HttpClient).toHaveBeenCalledWith(
+            expect(FetchHttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     baseURL: "https://api.testnets.relay.link",
                 }),
@@ -184,7 +185,7 @@ describe("RelayProvider", () => {
         it("explicit baseUrl takes precedence over isTestnet", () => {
             const customUrl = "https://custom.relay.link";
             new RelayProvider({ isTestnet: true, baseUrl: customUrl });
-            expect(HttpClient).toHaveBeenCalledWith(
+            expect(FetchHttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     baseURL: customUrl,
                 }),

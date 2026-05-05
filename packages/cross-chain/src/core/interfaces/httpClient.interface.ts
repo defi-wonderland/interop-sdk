@@ -1,15 +1,15 @@
-/** Successful HTTP response returned by `HttpClient` and `httpRequest`. */
+/** Successful HTTP response returned by `HttpClient` implementations. */
 export interface HttpResponse<T = unknown> {
     status: number;
     data: T;
     headers: Headers;
 }
 
-/** Per-request options shared by `httpRequest` and `HttpClient` methods. */
+/** Per-request options shared by all `HttpClient` methods. */
 export interface HttpRequestOptions {
     method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     headers?: Record<string, string>;
-    /** Objects are JSON-serialized and `Content-Type: application/json` is set. Strings are sent as-is. */
+    /** JSON-serialized into the request body; `Content-Type: application/json` is set automatically. */
     body?: unknown;
     /** Appended to the URL via `URLSearchParams`. Values are stringified; `null`/`undefined` are skipped. */
     params?: Record<string, unknown>;
@@ -22,4 +22,24 @@ export interface HttpClientConfig {
     baseURL?: string;
     headers?: Record<string, string>;
     timeout?: number;
+}
+
+/**
+ * Contract for HTTP clients consumed by providers and services.
+ * Depending on this interface lets the underlying transport be swapped or mocked
+ * without touching call sites.
+ */
+export interface HttpClient {
+    get<T = unknown>(
+        path: string,
+        options?: Omit<HttpRequestOptions, "method" | "body">,
+    ): Promise<HttpResponse<T>>;
+
+    post<T = unknown>(
+        path: string,
+        body?: unknown,
+        options?: Omit<HttpRequestOptions, "method" | "body">,
+    ): Promise<HttpResponse<T>>;
+
+    request<T = unknown>(path: string, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
 }
