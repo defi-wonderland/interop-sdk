@@ -15,7 +15,6 @@ export interface HttpRequestOptions {
     params?: Record<string, unknown>;
     /** Aborts and throws `HttpTimeout` after this many ms. */
     timeout?: number;
-    signal?: AbortSignal;
 }
 
 /** Configuration for an `HttpClient` instance. */

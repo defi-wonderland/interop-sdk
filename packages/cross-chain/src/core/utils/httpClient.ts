@@ -15,6 +15,12 @@ import { HttpError } from "../errors/HttpError.exception.js";
 import { HttpNetworkError } from "../errors/HttpNetworkError.exception.js";
 import { HttpTimeout } from "../errors/HttpTimeout.exception.js";
 
+interface TimeoutHandle {
+    signal: AbortSignal;
+    timedOut: boolean;
+    clear: () => void;
+}
+
 /** HTTP client with a minimal axios-like surface. */
 export class HttpClient {
     constructor(private readonly config: HttpClientConfig = {}) {}
@@ -38,53 +44,79 @@ export class HttpClient {
         path: string,
         options: HttpRequestOptions = {},
     ): Promise<HttpResponse<T>> {
-        const { body: rawBody, params, signal, timeout = this.config.timeout } = options;
-        const url = buildUrl(path, this.config.baseURL, params);
-        const isJsonBody = rawBody != null && typeof rawBody !== "string";
-
-        const controller = new AbortController();
-        signal?.addEventListener("abort", () => controller.abort(), { once: true });
-        if (signal?.aborted) controller.abort();
-
-        let timedOut = false;
-        const timeoutId =
-            timeout != null
-                ? setTimeout(() => {
-                      timedOut = true;
-                      controller.abort();
-                  }, timeout)
-                : undefined;
+        const url = this.buildUrl(path, options.params);
+        const timeout = options.timeout ?? this.config.timeout;
+        const timer = this.startTimeout(timeout);
+        const init = { ...this.buildRequestInit(options), signal: timer.signal };
 
         let response: Response;
         let text: string;
         try {
-            response = await fetch(url, {
-                method: options.method ?? "GET",
-                headers: {
-                    ...(isJsonBody && { "Content-Type": "application/json" }),
-                    ...this.config.headers,
-                    ...options.headers,
-                },
-                body: isJsonBody ? JSON.stringify(rawBody) : (rawBody as string | undefined),
-                signal: controller.signal,
-            });
+            response = await fetch(url, init);
             text = await response.text();
         } catch (err) {
-            const cause = err instanceof Error ? err : new Error(String(err));
-            throw timedOut
-                ? new HttpTimeout(url, timeout!, cause)
-                : new HttpNetworkError(cause.message, url, cause);
+            throw this.wrapTransportError(err, url, timer.timedOut, timeout);
         } finally {
-            clearTimeout(timeoutId);
+            timer.clear();
         }
 
-        let data: unknown;
-        try {
-            data = text ? JSON.parse(text) : undefined;
-        } catch {
-            data = text;
-        }
+        return this.buildResponse<T>(response, text, url);
+    }
 
+    private buildUrl(path: string, params?: Record<string, unknown>): string {
+        const url = new URL(path, this.config.baseURL);
+        if (params) {
+            for (const [key, value] of Object.entries(params)) {
+                if (value != null) url.searchParams.set(key, String(value));
+            }
+        }
+        return url.toString();
+    }
+
+    private buildRequestInit(options: HttpRequestOptions): Omit<RequestInit, "signal"> {
+        const hasBody = options.body != null;
+        return {
+            method: options.method ?? "GET",
+            headers: {
+                ...(hasBody && { "Content-Type": "application/json" }),
+                ...this.config.headers,
+                ...options.headers,
+            },
+            body: hasBody ? JSON.stringify(options.body) : undefined,
+        };
+    }
+
+    private startTimeout(timeout: number | undefined): TimeoutHandle {
+        const controller = new AbortController();
+        const handle: TimeoutHandle = {
+            signal: controller.signal,
+            timedOut: false,
+            clear: () => {},
+        };
+        if (timeout != null) {
+            const id = setTimeout(() => {
+                handle.timedOut = true;
+                controller.abort();
+            }, timeout);
+            handle.clear = (): void => clearTimeout(id);
+        }
+        return handle;
+    }
+
+    private wrapTransportError(
+        err: unknown,
+        url: string,
+        timedOut: boolean,
+        timeout: number | undefined,
+    ): HttpError {
+        const cause = err instanceof Error ? err : new Error(String(err));
+        return timedOut
+            ? new HttpTimeout(url, timeout!, cause)
+            : new HttpNetworkError(cause.message, url, cause);
+    }
+
+    private buildResponse<T>(response: Response, text: string, url: string): HttpResponse<T> {
+        const data = this.parseBody(text);
         if (!response.ok) {
             throw new HttpError(
                 `Request failed with status ${response.status}`,
@@ -95,6 +127,15 @@ export class HttpClient {
         }
         return { status: response.status, data: data as T, headers: response.headers };
     }
+
+    private parseBody(text: string): unknown {
+        if (!text) return undefined;
+        try {
+            return JSON.parse(text);
+        } catch {
+            return text;
+        }
+    }
 }
 
 /** One-shot request without a shared client. */
@@ -104,14 +145,4 @@ export function httpRequest<T = unknown>(
     options?: HttpRequestOptions,
 ): Promise<HttpResponse<T>> {
     return defaultClient.request<T>(url, options);
-}
-
-function buildUrl(path: string, baseURL?: string, params?: Record<string, unknown>): string {
-    const url = new URL(path, baseURL);
-    if (params) {
-        for (const [key, value] of Object.entries(params)) {
-            if (value != null) url.searchParams.set(key, String(value));
-        }
-    }
-    return url.toString();
 }
