@@ -5,6 +5,8 @@ import {
     BaseAssetDiscoveryService,
     BaseAssetDiscoveryServiceConfig,
     HttpError,
+    HttpNetworkError,
+    HttpTimeout,
     NetworkAssets,
 } from "../../src/internal.js";
 
@@ -402,14 +404,8 @@ describe("BaseAssetDiscoveryService", () => {
             }
         });
 
-        it("should wrap timeout errors (ETIMEDOUT) with providerId", async () => {
-            const httpError = new HttpError(
-                "timeout",
-                "http://test.url",
-                0,
-                undefined,
-                "ETIMEDOUT",
-            );
+        it("should wrap HttpTimeout with providerId", async () => {
+            const httpError = new HttpTimeout("http://test.url", 10000);
             fetchMock.mockRejectedValueOnce(httpError);
 
             try {
@@ -461,14 +457,8 @@ describe("BaseAssetDiscoveryService", () => {
             }
         });
 
-        it("should wrap generic HttpError without response data", async () => {
-            const httpError = new HttpError(
-                "Network error",
-                "http://test.url",
-                0,
-                undefined,
-                "ENETWORK",
-            );
+        it("should wrap HttpNetworkError with providerId", async () => {
+            const httpError = new HttpNetworkError("Network error", "http://test.url");
             fetchMock.mockRejectedValueOnce(httpError);
 
             try {

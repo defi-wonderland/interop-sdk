@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PreTrackerParams } from "../../src/core/interfaces/preTracker.interface.js";
 import type { APIPreTrackerConfig } from "../../src/core/services/APIPreTracker.js";
-import { HttpError, httpRequest } from "../../src/core/utils/httpClient.js";
+import { HttpError } from "../../src/core/errors/HttpError.exception.js";
+import { httpRequest } from "../../src/core/utils/httpClient.js";
 import { APIPreTracker, APIRequestFailure } from "../../src/internal.js";
 
 vi.mock("../../src/core/utils/httpClient.js", async (importOriginal) => {

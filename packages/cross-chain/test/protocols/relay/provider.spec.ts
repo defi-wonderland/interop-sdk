@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Quote } from "../../../src/core/schemas/quote.js";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
+import { HttpError } from "../../../src/core/errors/HttpError.exception.js";
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
-import { HttpClient, HttpError } from "../../../src/core/utils/httpClient.js";
+import { HttpClient } from "../../../src/core/utils/httpClient.js";
 import { RELAY_TESTNET_TOKENS } from "../../../src/protocols/relay/constants.js";
 import { RelayProvider } from "../../../src/protocols/relay/provider.js";
 

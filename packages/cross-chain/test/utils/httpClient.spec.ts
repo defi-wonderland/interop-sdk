@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { HttpClient, HttpError, httpRequest } from "../../src/core/utils/httpClient.js";
+import { HttpError } from "../../src/core/errors/HttpError.exception.js";
+import { HttpNetworkError } from "../../src/core/errors/HttpNetworkError.exception.js";
+import { HttpTimeout } from "../../src/core/errors/HttpTimeout.exception.js";
+import { HttpClient, httpRequest } from "../../src/core/utils/httpClient.js";
 
 function jsonResponse(body: unknown, init: ResponseInit = { status: 200 }): Response {
     return new Response(JSON.stringify(body), {
@@ -24,14 +27,7 @@ describe("httpClient", () => {
     describe("HttpError", () => {
         it("captures all fields and is catchable as Error", () => {
             const cause = new Error("inner");
-            const err = new HttpError(
-                "boom",
-                "https://api.test/x",
-                503,
-                { msg: "bad" },
-                undefined,
-                cause,
-            );
+            const err = new HttpError("boom", "https://api.test/x", 503, { msg: "bad" }, cause);
 
             expect(err).toBeInstanceOf(Error);
             expect(err).toBeInstanceOf(HttpError);
@@ -41,6 +37,17 @@ describe("httpClient", () => {
             expect(err.status).toBe(503);
             expect(err.data).toEqual({ msg: "bad" });
             expect(err.cause).toBe(cause);
+        });
+
+        it("HttpTimeout and HttpNetworkError are HttpError subclasses with status 0", () => {
+            const t = new HttpTimeout("https://api.test/x", 100);
+            expect(t).toBeInstanceOf(HttpError);
+            expect(t.status).toBe(0);
+            expect(t.message).toMatch(/100ms/);
+
+            const n = new HttpNetworkError("offline", "https://api.test/x");
+            expect(n).toBeInstanceOf(HttpError);
+            expect(n.status).toBe(0);
         });
     });
 
@@ -146,17 +153,16 @@ describe("httpClient", () => {
     });
 
     describe("network and timeout", () => {
-        it("wraps fetch failures as HttpError with code ENETWORK", async () => {
+        it("wraps fetch failures as HttpNetworkError", async () => {
             fetchMock.mockRejectedValueOnce(new Error("getaddrinfo ENOTFOUND"));
 
             const err = await httpRequest("https://api.test/x").catch((e: HttpError) => e);
-            expect(err).toBeInstanceOf(HttpError);
+            expect(err).toBeInstanceOf(HttpNetworkError);
             expect((err as HttpError).status).toBe(0);
-            expect((err as HttpError).code).toBe("ENETWORK");
             expect((err as HttpError).message).toMatch(/ENOTFOUND/);
         });
 
-        it("wraps body read failures as HttpError", async () => {
+        it("wraps body read failures as HttpNetworkError", async () => {
             const broken = new Response(null);
             Object.defineProperty(broken, "text", {
                 value: () => Promise.reject(new Error("body read failed")),
@@ -164,12 +170,11 @@ describe("httpClient", () => {
             fetchMock.mockResolvedValueOnce(broken);
 
             const err = await httpRequest("https://api.test/x").catch((e: HttpError) => e);
-            expect(err).toBeInstanceOf(HttpError);
-            expect((err as HttpError).code).toBe("ENETWORK");
+            expect(err).toBeInstanceOf(HttpNetworkError);
             expect((err as HttpError).message).toMatch(/body read failed/);
         });
 
-        it("aborts and throws ETIMEDOUT after the configured timeout", async () => {
+        it("aborts and throws HttpTimeout after the configured timeout", async () => {
             vi.useFakeTimers();
 
             fetchMock.mockImplementationOnce(
@@ -184,8 +189,7 @@ describe("httpClient", () => {
             vi.advanceTimersByTime(150);
 
             const err = await promise.catch((e: HttpError) => e);
-            expect(err).toBeInstanceOf(HttpError);
-            expect((err as HttpError).code).toBe("ETIMEDOUT");
+            expect(err).toBeInstanceOf(HttpTimeout);
             expect((err as HttpError).message).toMatch(/100ms/);
 
             vi.useRealTimers();
@@ -207,8 +211,7 @@ describe("httpClient", () => {
             externalController.abort();
 
             const err = await promise.catch((e: HttpError) => e);
-            expect(err).toBeInstanceOf(HttpError);
-            expect((err as HttpError).code).toBe("ENETWORK");
+            expect(err).toBeInstanceOf(HttpNetworkError);
         });
     });
 

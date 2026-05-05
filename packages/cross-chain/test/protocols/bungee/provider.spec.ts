@@ -5,10 +5,11 @@ import type {
     BungeeAutoRoute,
     BungeeQuoteResponse,
 } from "../../../src/protocols/bungee/schemas.js";
+import { HttpError } from "../../../src/core/errors/HttpError.exception.js";
 import { ProviderConfigFailure } from "../../../src/core/errors/ProviderConfigFailure.exception.js";
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
-import { HttpClient, HttpError } from "../../../src/core/utils/httpClient.js";
+import { HttpClient } from "../../../src/core/utils/httpClient.js";
 import { BungeeProvider } from "../../../src/protocols/bungee/provider.js";
 
 // ── Constants ────────────────────────────────────────────

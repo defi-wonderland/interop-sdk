@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { HttpError, httpRequest } from "../../src/core/utils/httpClient.js";
+import { HttpError } from "../../src/core/errors/HttpError.exception.js";
+import { HttpNetworkError } from "../../src/core/errors/HttpNetworkError.exception.js";
+import { HttpTimeout } from "../../src/core/errors/HttpTimeout.exception.js";
+import { httpRequest } from "../../src/core/utils/httpClient.js";
 import { AssetDiscoveryFailure, OIFAssetDiscoveryService } from "../../src/internal.js";
 
 vi.mock("../../src/core/utils/httpClient.js", async (importOriginal) => {
@@ -237,13 +240,7 @@ describe("OIFAssetDiscoveryService", () => {
 
     describe("network and API errors", () => {
         it("should wrap network errors in AssetDiscoveryFailure with providerId", async () => {
-            const httpError = new HttpError(
-                "Request timed out after 30000ms",
-                `${baseUrl}/api/tokens`,
-                0,
-                undefined,
-                "ETIMEDOUT",
-            );
+            const httpError = new HttpTimeout(`${baseUrl}/api/tokens`, 30000);
             vi.mocked(httpRequest).mockRejectedValueOnce(httpError);
 
             try {
@@ -309,13 +306,7 @@ describe("OIFAssetDiscoveryService", () => {
         });
 
         it("should clear in-flight state on failure and allow retry", async () => {
-            const httpError = new HttpError(
-                "Network error",
-                `${baseUrl}/api/tokens`,
-                0,
-                undefined,
-                "ENETWORK",
-            );
+            const httpError = new HttpNetworkError("Network error", `${baseUrl}/api/tokens`);
 
             // First call fails
             vi.mocked(httpRequest).mockRejectedValueOnce(httpError);

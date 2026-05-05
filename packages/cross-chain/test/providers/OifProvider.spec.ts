@@ -2,7 +2,9 @@ import { PostOrderResponse, PostOrderResponseStatus } from "@openintentsframewor
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
-import { HttpError, httpRequest } from "../../src/core/utils/httpClient.js";
+import { HttpError } from "../../src/core/errors/HttpError.exception.js";
+import { HttpNetworkError } from "../../src/core/errors/HttpNetworkError.exception.js";
+import { httpRequest } from "../../src/core/utils/httpClient.js";
 import {
     OifProvider,
     ProviderExecuteFailure,
@@ -110,13 +112,7 @@ describe("OifProvider", () => {
 
         it("throws on HTTP error", async () => {
             vi.mocked(httpRequest).mockRejectedValue(
-                new HttpError(
-                    "Network error",
-                    `${MOCK_SOLVER_URL}/v1/quotes`,
-                    0,
-                    undefined,
-                    "ENETWORK",
-                ),
+                new HttpNetworkError("Network error", `${MOCK_SOLVER_URL}/v1/quotes`),
             );
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(

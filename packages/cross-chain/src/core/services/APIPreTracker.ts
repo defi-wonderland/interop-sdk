@@ -1,6 +1,7 @@
 import type { PreTracker, PreTrackerParams } from "../interfaces/preTracker.interface.js";
 import { APIRequestFailure } from "../errors/APIRequestFailure.exception.js";
-import { HttpError, httpRequest } from "../utils/httpClient.js";
+import { HttpError } from "../errors/HttpError.exception.js";
+import { httpRequest } from "../utils/httpClient.js";
 
 /**
  * Configuration for an API-based pre-tracker.

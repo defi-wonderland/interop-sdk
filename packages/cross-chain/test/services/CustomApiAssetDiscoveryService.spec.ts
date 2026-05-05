@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ZodError } from "zod";
 
-import { HttpError, httpRequest } from "../../src/core/utils/httpClient.js";
+import { HttpError } from "../../src/core/errors/HttpError.exception.js";
+import { HttpNetworkError } from "../../src/core/errors/HttpNetworkError.exception.js";
+import { HttpTimeout } from "../../src/core/errors/HttpTimeout.exception.js";
+import { httpRequest } from "../../src/core/utils/httpClient.js";
 import {
     AssetDiscoveryFailure,
     CustomApiAssetDiscoveryService,
@@ -267,13 +270,7 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
 
         it("should throw AssetDiscoveryFailure on timeout with providerId", async () => {
-            const httpError = new HttpError(
-                "Request timed out after 30000ms",
-                assetsEndpoint,
-                0,
-                undefined,
-                "ETIMEDOUT",
-            );
+            const httpError = new HttpTimeout(assetsEndpoint, 30000);
             vi.mocked(httpRequest).mockRejectedValueOnce(httpError);
 
             try {
@@ -359,13 +356,7 @@ describe("CustomApiAssetDiscoveryService", () => {
         });
 
         it("should clear in-flight state on failure and allow retry", async () => {
-            const httpError = new HttpError(
-                "Network error",
-                assetsEndpoint,
-                0,
-                undefined,
-                "ENETWORK",
-            );
+            const httpError = new HttpNetworkError("Network error", assetsEndpoint);
 
             // First call fails
             vi.mocked(httpRequest).mockRejectedValueOnce(httpError);

@@ -2,8 +2,10 @@ import { OrderStatus } from "@openintentsframework/oif-specs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
+import { HttpError } from "../../src/core/errors/HttpError.exception.js";
+import { HttpNetworkError } from "../../src/core/errors/HttpNetworkError.exception.js";
 import { OrderFailureReason } from "../../src/core/types/orderTracking.js";
-import { HttpError, httpRequest } from "../../src/core/utils/httpClient.js";
+import { httpRequest } from "../../src/core/utils/httpClient.js";
 import {
     LifiIntentsProvider,
     ProviderConfigFailure,
@@ -220,7 +222,7 @@ describe("LifiIntentsProvider", () => {
         it("throws ProviderGetQuoteFailure on network error (no response)", async () => {
             const url = `${MOCK_ORDER_SERVER_URL}/api/v1/integrator/quote/request`;
             vi.mocked(httpRequest).mockRejectedValue(
-                new HttpError("Connection refused", url, 0, undefined, "ENETWORK"),
+                new HttpNetworkError("Connection refused", url),
             );
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(

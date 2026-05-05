@@ -8,10 +8,11 @@ import type {
     BungeeSubmitRequest,
     BungeeSubmitResponse,
 } from "../../../src/protocols/bungee/schemas.js";
+import { HttpNetworkError } from "../../../src/core/errors/HttpNetworkError.exception.js";
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { ProviderGetStatusFailure } from "../../../src/core/errors/ProviderGetStatusFailure.exception.js";
-import { HttpClient, HttpError } from "../../../src/core/utils/httpClient.js";
+import { HttpClient } from "../../../src/core/utils/httpClient.js";
 import { BungeeApiService } from "../../../src/protocols/bungee/services/BungeeApiService.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -24,8 +25,8 @@ const OUTPUT_AMOUNT = "999000";
 
 // ── Helpers ──────────────────────────────────────────────
 
-function makeHttpError(message: string): HttpError {
-    return new HttpError(message, "https://test/url", 0, undefined, "ENETWORK");
+function makeHttpError(message: string): HttpNetworkError {
+    return new HttpNetworkError(message, "https://test/url");
 }
 
 function mockOk(data: unknown): { status: number; data: unknown; headers: Headers } {

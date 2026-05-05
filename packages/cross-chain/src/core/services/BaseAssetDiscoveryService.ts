@@ -1,4 +1,6 @@
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
+import { HttpError } from "../errors/HttpError.exception.js";
+import { HttpTimeout } from "../errors/HttpTimeout.exception.js";
 import { AssetDiscoveryService } from "../interfaces/assetDiscovery.interface.js";
 import {
     AssetDiscoveryOptions,
@@ -7,7 +9,6 @@ import {
     DiscoveredAssets,
     NetworkAssets,
 } from "../types/assetDiscovery.js";
-import { HttpError } from "../utils/httpClient.js";
 import { toDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
 import { toCanonicalNativeAddress } from "../utils/token.js";
 
@@ -202,7 +203,7 @@ export abstract class BaseAssetDiscoveryService implements AssetDiscoveryService
         }
 
         if (error instanceof HttpError) {
-            if (error.code === "ETIMEDOUT") {
+            if (error instanceof HttpTimeout) {
                 return new AssetDiscoveryFailure(
                     `Request to ${this.providerId} timed out`,
                     `Timeout after ${this.timeout}ms. URL: ${url}`,

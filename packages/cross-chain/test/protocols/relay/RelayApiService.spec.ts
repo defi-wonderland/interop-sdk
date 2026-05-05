@@ -4,10 +4,11 @@ import type {
     RelayQuoteRequest,
     RelayQuoteResponse,
 } from "../../../src/protocols/relay/schemas.js";
+import { HttpNetworkError } from "../../../src/core/errors/HttpNetworkError.exception.js";
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { ProviderGetStatusFailure } from "../../../src/core/errors/ProviderGetStatusFailure.exception.js";
-import { HttpClient, HttpError } from "../../../src/core/utils/httpClient.js";
+import { HttpClient } from "../../../src/core/utils/httpClient.js";
 import { RelayApiService } from "../../../src/protocols/relay/services/RelayApiService.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -26,8 +27,8 @@ const TX_HASH = "0xdeposithash";
 
 // ── Helpers ──────────────────────────────────────────────
 
-function makeHttpError(message: string): HttpError {
-    return new HttpError(message, "https://test/url", 0, undefined, "ENETWORK");
+function makeHttpError(message: string): HttpNetworkError {
+    return new HttpNetworkError(message, "https://test/url");
 }
 
 function mockOk(data: unknown): { status: number; data: unknown; headers: Headers } {

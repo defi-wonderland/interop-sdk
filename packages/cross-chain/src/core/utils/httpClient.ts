@@ -6,24 +6,9 @@
  * @see https://www.npmjs.com/package/ses
  */
 
-/** Thrown on any non-2xx response, network failure, or timeout. */
-export class HttpError extends Error {
-    override readonly name = "HttpError";
-
-    constructor(
-        message: string,
-        readonly url: string,
-        /** HTTP status. `0` means no response (network error or timeout). */
-        readonly status: number,
-        /** Parsed body: JSON value, raw text, or `undefined` when empty. */
-        readonly data: unknown,
-        /** `ETIMEDOUT` for AbortController timeouts, `ENETWORK` for fetch failures. */
-        readonly code?: "ETIMEDOUT" | "ENETWORK",
-        override readonly cause?: unknown,
-    ) {
-        super(message);
-    }
-}
+import { HttpError } from "../errors/HttpError.exception.js";
+import { HttpNetworkError } from "../errors/HttpNetworkError.exception.js";
+import { HttpTimeout } from "../errors/HttpTimeout.exception.js";
 
 export interface HttpResponse<T = unknown> {
     status: number;
@@ -38,7 +23,7 @@ export interface HttpRequestOptions {
     body?: unknown;
     /** Appended to the URL via `URLSearchParams`. Values are stringified; `null`/`undefined` are skipped. */
     params?: Record<string, unknown>;
-    /** Aborts and throws `HttpError` with `code: "ETIMEDOUT"` after this many ms. */
+    /** Aborts and throws `HttpTimeout` after this many ms. */
     timeout?: number;
     signal?: AbortSignal;
 }
@@ -106,15 +91,8 @@ export class HttpClient {
         } catch (err) {
             const cause = err instanceof Error ? err : new Error(String(err));
             throw timedOut
-                ? new HttpError(
-                      `Request timed out after ${timeout}ms`,
-                      url,
-                      0,
-                      undefined,
-                      "ETIMEDOUT",
-                      cause,
-                  )
-                : new HttpError(cause.message, url, 0, undefined, "ENETWORK", cause);
+                ? new HttpTimeout(url, timeout!, cause)
+                : new HttpNetworkError(cause.message, url, cause);
         } finally {
             clearTimeout(timeoutId);
         }
