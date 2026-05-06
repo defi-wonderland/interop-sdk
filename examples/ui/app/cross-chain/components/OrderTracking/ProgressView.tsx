@@ -32,8 +32,6 @@ export function ProgressView({ state, skipApproval }: ProgressViewProps) {
   const message = getProgressMessage(state);
   const explorers = state.step === STEP.TRACKING ? state.update.explorers : undefined;
   const trackerUrl = explorers?.tracker;
-  // Fallback: during STEP.WALLET the tracker hasn't started yet, so explorers is empty.
-  // Use the wallet's origin tx hash to render a chain explorer link.
   const originTxUrl = explorers?.origin ?? chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
   const fillTxUrl = explorers?.destination;
 

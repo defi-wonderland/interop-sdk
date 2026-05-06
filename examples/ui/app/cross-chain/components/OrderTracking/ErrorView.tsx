@@ -35,7 +35,8 @@ export function ErrorView({ state, onReset }: ErrorViewProps) {
   const originChain = chainConfig.getChain(originChainId);
   const lastUpdate = state.step === STEP.TIMEOUT ? state.update : state.lastUpdate;
   const originTxHash = lastUpdate?.openTxHash ?? state.txHash;
-  const { tracker: trackerUrl, origin: originTxUrl } = lastUpdate?.explorers ?? {};
+  const trackerUrl = lastUpdate?.explorers?.tracker;
+  const originTxUrl = lastUpdate?.explorers?.origin ?? chainConfig.getExplorerTxUrl(originChainId, originTxHash);
   const isTimeout = state.step === STEP.TIMEOUT;
   const timeoutNotice = getTimeoutNotice(state, originChain?.name);
   const borderColor = isTimeout ? 'border-warning/30' : 'border-error/30';
