@@ -70,7 +70,7 @@ export function SuccessView({ state, providerId, onReset }: SuccessViewProps) {
                 <div className='w-2 h-2 rounded-full bg-accent' />
                 <span className='text-sm font-medium text-text-primary'>Bridge tracker</span>
               </div>
-              <span className='text-xs text-text-tertiary'>{providerId ?? 'Provider'}</span>
+              <span className='text-xs text-text-tertiary'>{providerId || 'Provider'}</span>
             </div>
             <div className='flex items-center justify-between text-text-tertiary group-hover:text-accent'>
               <span className='text-sm'>View on provider explorer</span>
