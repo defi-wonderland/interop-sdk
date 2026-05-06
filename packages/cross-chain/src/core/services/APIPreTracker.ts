@@ -1,7 +1,7 @@
-import axios from "axios";
-
 import type { PreTracker, PreTrackerParams } from "../interfaces/preTracker.interface.js";
 import { APIRequestFailure } from "../errors/APIRequestFailure.exception.js";
+import { HttpError } from "../errors/HttpError.exception.js";
+import { httpRequest } from "../utils/httpClient.js";
 
 /**
  * Configuration for an API-based pre-tracker.
@@ -33,18 +33,19 @@ export class APIPreTracker implements PreTracker {
         const body = this.config.buildBody(params);
 
         try {
-            await axios.post(url, body, {
+            await httpRequest(url, {
+                method: "POST",
+                body,
                 headers: this.config.headers,
                 timeout: this.config.timeoutMs ?? 15000,
             });
         } catch (error) {
-            if (axios.isAxiosError(error)) {
-                const status = error.response?.status ?? 0;
+            if (error instanceof HttpError) {
                 const text =
-                    typeof error.response?.data === "string"
-                        ? error.response.data
-                        : JSON.stringify(error.response?.data ?? error.message);
-                throw new APIRequestFailure(this.config.protocolName, status, text);
+                    typeof error.data === "string"
+                        ? error.data
+                        : JSON.stringify(error.data ?? error.message);
+                throw new APIRequestFailure(this.config.protocolName, error.status, text);
             }
             throw error;
         }

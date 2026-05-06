@@ -1,12 +1,11 @@
-import type { AxiosInstance } from "axios";
 import type { Hex } from "viem";
-import axios from "axios";
 import { ZodError } from "zod";
 
 import type { SubmissionMode } from "../../core/schemas/providerConfig.js";
 import type {
     AssetDiscoveryConfig,
     FillWatcherConfig,
+    HttpClient,
     OpenedIntentParserConfig,
     Quote,
     QuoteRequest,
@@ -16,6 +15,7 @@ import type { BungeeQuoteOptions } from "./adapters/quoteRequestAdapter.js";
 import type { BungeeConfigs } from "./types.js";
 import {
     CrossChainProvider,
+    FetchHttpClient,
     ProviderConfigFailure,
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,
@@ -45,7 +45,7 @@ export class BungeeProvider extends CrossChainProvider {
 
     readonly protocolName = BungeeProvider.PROTOCOL_NAME;
     readonly providerId: string;
-    private readonly http: AxiosInstance;
+    private readonly http: HttpClient;
     private readonly baseUrl: string;
     private readonly apiService: BungeeApiService;
     private readonly apiHeaders: Record<string, string>;
@@ -77,7 +77,7 @@ export class BungeeProvider extends CrossChainProvider {
                 refuel: parsed.refuel,
             };
 
-            this.http = axios.create({
+            this.http = new FetchHttpClient({
                 baseURL: this.baseUrl,
                 headers: this.apiHeaders,
                 timeout: 15_000,

@@ -1,16 +1,23 @@
 import type viem from "viem";
-import axios from "axios";
 import { createPublicClient, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
+import { httpRequest } from "../../src/core/utils/httpClient.js";
 import { AcrossProvider } from "../../src/external.js";
 import { getMockedAcrossApiResponse } from "../mocks/acrossApi.js";
 import { CHAIN_IDS, TEST_ADDRESSES, TEST_AMOUNTS, TESTNET_TOKENS } from "../mocks/fixtures.js";
 
 const MOCK_API_URL = "https://mocked.accross.url/api";
 
-vi.mock("axios");
+vi.mock("../../src/core/utils/httpClient.js", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../src/core/utils/httpClient.js")>();
+    return {
+        ...actual,
+        httpRequest: vi.fn(),
+    };
+});
+
 vi.mock("viem", async () => {
     return {
         ...(await vi.importActual<typeof viem>("viem")),
@@ -30,9 +37,10 @@ describe("AcrossProvider", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.mocked(createPublicClient).mockReturnValue(mockPublicClient);
-        vi.mocked(axios.get).mockResolvedValue({
+        vi.mocked(httpRequest).mockResolvedValue({
             status: 200,
             data: mockAcrossApiResponse,
+            headers: new Headers(),
         });
     });
 
@@ -55,7 +63,7 @@ describe("AcrossProvider", () => {
 
             await provider.getQuotes(quoteRequest);
 
-            expect(axios.get).toHaveBeenCalledWith(`${MOCK_API_URL}/swap/approval`, {
+            expect(httpRequest).toHaveBeenCalledWith(`${MOCK_API_URL}/swap/approval`, {
                 params: {
                     tradeType: "exactInput",
                     inputToken: TESTNET_TOKENS.WETH_SEPOLIA,
@@ -87,7 +95,7 @@ describe("AcrossProvider", () => {
 
             await provider.getQuotes(quoteRequest);
 
-            expect(axios.get).toHaveBeenCalledWith(`${MOCK_API_URL}/swap/approval`, {
+            expect(httpRequest).toHaveBeenCalledWith(`${MOCK_API_URL}/swap/approval`, {
                 params: {
                     tradeType: "exactOutput",
                     inputToken: TESTNET_TOKENS.WETH_SEPOLIA,

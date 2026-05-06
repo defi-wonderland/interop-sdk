@@ -1,11 +1,10 @@
-import type { AxiosInstance } from "axios";
 import type { Hex } from "viem";
-import axios from "axios";
 import { ZodError } from "zod";
 
 import type {
     AssetDiscoveryConfig,
     FillWatcherConfig,
+    HttpClient,
     OpenedIntentParserConfig,
     PreTrackerConfig,
     PreTrackerParams,
@@ -16,6 +15,7 @@ import type {
 import type { RelayConfigs } from "./types.js";
 import {
     CrossChainProvider,
+    FetchHttpClient,
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
 } from "../../internal.js";
@@ -42,7 +42,7 @@ export class RelayProvider extends CrossChainProvider {
 
     readonly protocolName = RelayProvider.PROTOCOL_NAME;
     readonly providerId: string;
-    private readonly http: AxiosInstance;
+    private readonly http: HttpClient;
     private readonly baseUrl: string;
     private readonly isTestnet: boolean;
     private readonly submissionModes: ("user-transaction" | "gasless")[];
@@ -63,7 +63,7 @@ export class RelayProvider extends CrossChainProvider {
             if (parsed.apiKey) {
                 this.apiHeaders["x-api-key"] = parsed.apiKey;
             }
-            this.http = axios.create({ baseURL: this.baseUrl, headers: this.apiHeaders });
+            this.http = new FetchHttpClient({ baseURL: this.baseUrl, headers: this.apiHeaders });
             this.apiService = new RelayApiService(this.http);
         } catch (error) {
             if (error instanceof ZodError) {

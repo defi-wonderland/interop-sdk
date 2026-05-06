@@ -1,12 +1,9 @@
-import type { NetworkAssets } from "../../../core/types/assetDiscovery.js";
+import type { AssetInfo, NetworkAssets } from "../../../core/types/assetDiscovery.js";
 import { LifiIntentsRoutesResponseSchema } from "../schemas.js";
 
 export function parseRoutesIntoAssets(data: unknown): NetworkAssets[] {
     const { routes } = LifiIntentsRoutesResponseSchema.parse(data);
-    const chainAssetMap = new Map<
-        number,
-        Map<string, { address: string; symbol: string; decimals: number }>
-    >();
+    const chainAssetMap = new Map<number, Map<string, AssetInfo>>();
 
     for (const route of routes) {
         const fromChainId = Number(route.fromChain.chainId);
@@ -22,7 +19,7 @@ export function parseRoutesIntoAssets(data: unknown): NetworkAssets[] {
 }
 
 function addToMap(
-    map: Map<number, Map<string, { address: string; symbol: string; decimals: number }>>,
+    map: Map<number, Map<string, AssetInfo>>,
     chainId: number,
     token: { address: string; symbol: string | null; name: string | null; decimals: number },
 ): void {
@@ -35,6 +32,7 @@ function addToMap(
             address: token.address,
             symbol: token.symbol ?? "",
             decimals: token.decimals,
+            name: token.name ?? undefined,
         });
     }
 }
