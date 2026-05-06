@@ -157,6 +157,43 @@ describe("AcrossProvider", () => {
                 amount: "999000000000000000",
             });
         });
+
+        it("returns the intermediate bridge token for bridgeableToBridgeableIndirect routes", async () => {
+            const intermediateToken = "0x036cbd53842c5426634e7929541ec2318f3dcf7e"; // USDC on Base Sepolia (lowercase, canonical)
+
+            vi.mocked(axios.get).mockResolvedValueOnce({
+                status: 200,
+                data: getMockedAcrossApiResponse({
+                    crossSwapType: "bridgeableToBridgeableIndirect",
+                    steps: {
+                        bridge: {
+                            inputAmount: "1000000000000000000",
+                            outputAmount: "999000000",
+                            tokenIn: {
+                                address: TESTNET_TOKENS.WETH_SEPOLIA,
+                                chainId: CHAIN_IDS.SEPOLIA,
+                                decimals: 18,
+                                symbol: "WETH",
+                            },
+                            tokenOut: {
+                                address: intermediateToken,
+                                chainId: CHAIN_IDS.BASE_SEPOLIA,
+                                decimals: 6,
+                                symbol: "USDC",
+                            },
+                        },
+                    },
+                }),
+            });
+
+            const [quote] = await provider.getQuotes(quoteRequest);
+            expect(quote!.fallbackToken).toEqual({
+                chainId: CHAIN_IDS.BASE_SEPOLIA,
+                accountAddress: TEST_ADDRESSES.RECEIVER,
+                assetAddress: intermediateToken,
+                amount: "999000000",
+            });
+        });
     });
 
     describe("getTrackingConfig", () => {

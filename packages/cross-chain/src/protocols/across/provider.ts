@@ -863,6 +863,7 @@ export class AcrossProvider extends CrossChainProvider {
     private static hasDestinationSwap(response: AcrossGetQuoteResponse): boolean {
         if (response.crossSwapType === "bridgeableToAny") return true;
         if (response.crossSwapType === "anyToAny") return true;
+        if (response.crossSwapType === "bridgeableToBridgeableIndirect") return true;
         return response.steps?.destinationSwap !== undefined;
     }
 }
