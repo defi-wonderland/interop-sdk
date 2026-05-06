@@ -102,9 +102,8 @@ describe("OIFAssetDiscoveryService", () => {
         });
 
         it("surfaces name and logoURI when the solver returns them", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: {
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockOk({
                     networks: {
                         "1": {
                             chain_id: 1,
@@ -119,8 +118,8 @@ describe("OIFAssetDiscoveryService", () => {
                             ],
                         },
                     },
-                },
-            });
+                }),
+            );
 
             const result = await service.getSupportedAssets();
             const usdc = result.tokenMetadata[1]?.["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"];
@@ -130,9 +129,8 @@ describe("OIFAssetDiscoveryService", () => {
         });
 
         it("treats null name/logoURI as undefined", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
-                status: 200,
-                data: {
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockOk({
                     networks: {
                         "1": {
                             chain_id: 1,
@@ -147,8 +145,8 @@ describe("OIFAssetDiscoveryService", () => {
                             ],
                         },
                     },
-                },
-            });
+                }),
+            );
 
             const result = await service.getSupportedAssets();
             const usdc = result.tokenMetadata[1]?.["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"];
