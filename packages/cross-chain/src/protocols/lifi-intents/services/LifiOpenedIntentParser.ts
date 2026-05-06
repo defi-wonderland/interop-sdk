@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { Chain, decodeEventLog, Hex, PublicClient, toEventSelector } from "viem";
+import { Chain, decodeEventLog, Hex, PublicClient, toEventSelector, toHex } from "viem";
 
 import type {
     FillInstruction,
@@ -114,7 +114,8 @@ export class LifiOpenedIntentParser implements OpenedIntentParser {
         const originChainId = Number(resolvedOrder.originChainId);
 
         const maxSpent: TokenTransfer[] = resolvedOrder.maxSpent.map(([tokenAsUint, amount]) => ({
-            token: `0x${tokenAsUint.toString(16).padStart(40, "0")}` as Address,
+            // toHex throws if tokenAsUint exceeds 20 bytes — surface unexpected encoding loudly.
+            token: toHex(tokenAsUint, { size: 20 }) as Address,
             amount,
             recipient: openLog.address as Hex,
             chainId: originChainId,
