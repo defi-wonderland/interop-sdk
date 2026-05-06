@@ -622,14 +622,29 @@ interface OrderTrackingInfo {
 interface OrderTrackingUpdate {
     status: OrderStatus;
     orderId?: Hex;
+    originChainId: number;
+    destinationChainId?: number; // known after the order is parsed (txHash path)
     openTxHash?: Hex;
     fillTxHash?: Hex;
     timestamp: number;
     message: string;
     failureReason?: OrderFailureReason;
     warnings?: string[]; // e.g. destination swap failed
+    explorers?: OrderExplorers; // ready-to-use links per provider
 }
 ```
+
+#### OrderExplorers
+
+```typescript
+interface OrderExplorers {
+    tracker?: string; // bridge-level scanner covering both legs (Across, Bungee)
+    origin?: string; // origin chain explorer URL for the open tx
+    destination?: string; // destination chain explorer URL for the fill tx
+}
+```
+
+Each `OrderTrackingUpdate` carries an `explorers` object computed by the provider via `getOrderExplorers`. Consumers should prefer `tracker` when present, otherwise show `origin` and `destination`. Across and Bungee return all three; LiFi Intents, OIF and Relay return `origin` / `destination` only.
 
 #### FillEvent
 
