@@ -73,7 +73,7 @@ export function SuccessView({ state, providerId, onReset }: SuccessViewProps) {
               <span className='text-xs text-text-tertiary'>{providerId || 'Provider'}</span>
             </div>
             <div className='flex items-center justify-between text-text-tertiary group-hover:text-accent'>
-              <span className='text-sm'>View on provider explorer</span>
+              <span className='text-sm'>View on protocol explorer</span>
               <ExternalLinkIcon />
             </div>
           </a>

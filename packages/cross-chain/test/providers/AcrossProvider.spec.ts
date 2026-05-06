@@ -118,7 +118,7 @@ describe("AcrossProvider", () => {
                 destinationChainId: 42161,
                 destinationTxHash: "0xfeedface",
             });
-            expect(explorers.tracker).toBe("https://app.across.to/transactions/0xdeadbeef");
+            expect(explorers.tracker).toBe("https://app.across.to/transaction/0xdeadbeef");
             expect(explorers.origin).toBe("https://basescan.org/tx/0xdeadbeef");
             expect(explorers.destination).toBe("https://arbiscan.io/tx/0xfeedface");
         });

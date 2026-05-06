@@ -7,7 +7,7 @@ export const ACROSS_ORDER_DATA_TYPE =
     "0x9df4b782e7bbc178b3b93bfe8aafb909e84e39484d7f3c59f400f1b4691f85e2";
 
 /** Bridge tracker base URL. Append `/${originTxHash}` for a per-order link. */
-export const ACROSS_EXPLORER_BASE_URL = "https://app.across.to/transactions";
+export const ACROSS_EXPLORER_BASE_URL = "https://app.across.to/transaction";
 
 /**
  * Across Origin Settler contract addresses (ERC-7683 IOriginSettler implementation)
