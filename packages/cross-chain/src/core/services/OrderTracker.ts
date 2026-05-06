@@ -166,7 +166,15 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                 timeout: number;
             });
         } else {
-            yield* this.watchOrderByOrderId({ ...(params as WatchOrderByOrderId), timeout });
+            // For WatchOrderExplicit, the caller's txHash is the openTxHash on the API path.
+            const openTxHash =
+                ("openTxHash" in params ? params.openTxHash : undefined) ??
+                ("txHash" in params ? params.txHash : undefined);
+            yield* this.watchOrderByOrderId({
+                ...(params as WatchOrderByOrderId),
+                openTxHash,
+                timeout,
+            });
         }
     }
 
@@ -307,7 +315,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
     private async *watchOrderByOrderId(
         params: WatchOrderByOrderId & { timeout: number },
     ): AsyncGenerator<OrderTrackerYield> {
-        const { orderId, originChainId, destinationChainId, timeout } = params;
+        const { orderId, originChainId, destinationChainId, openTxHash, timeout } = params;
         const startTime = Date.now();
 
         let lastUpdate: OrderTrackingUpdate = this.createUpdate({
@@ -315,6 +323,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
             orderId,
             originChainId,
             destinationChainId,
+            openTxHash,
             message: "Tracking escrow order...",
         });
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
@@ -324,12 +333,13 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
             orderId,
             originChainId,
             destinationChainId,
+            openTxHash,
             message: "Waiting for solver to fill order...",
         });
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
 
         yield* this.pollForFillWithYields(
-            { orderId, originChainId, destinationChainId },
+            { orderId, originChainId, destinationChainId, openTxHash },
             timeout - (Date.now() - startTime),
         );
     }
@@ -340,13 +350,18 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
      * The txHash (Across) path uses waitForFillWithTimeout instead.
      */
     private async *pollForFillWithYields(
-        fillParams: { orderId: Hex; originChainId: number; destinationChainId: number },
+        fillParams: {
+            orderId: Hex;
+            originChainId: number;
+            destinationChainId: number;
+            openTxHash?: Hex;
+        },
         timeout: number,
     ): AsyncGenerator<OrderTrackerYield> {
         const terminalFailures = new Set([OrderStatus.Failed, OrderStatus.Refunded]);
         const pollingInterval = 5000;
         const startTime = Date.now();
-        const { originChainId, destinationChainId } = fillParams;
+        const { originChainId, destinationChainId, openTxHash } = fillParams;
         let lastUpdate: OrderTrackingUpdate | undefined;
 
         while (Date.now() - startTime < timeout) {
@@ -362,6 +377,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                         orderId: fillParams.orderId,
                         originChainId,
                         destinationChainId,
+                        openTxHash,
                         fillTxHash: fillEvent.fillTxHash,
                         message: hasWarnings ? "Order filled with warnings" : "Order completed",
                         warnings: fillEvent.warnings,
@@ -378,6 +394,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                         orderId: fillParams.orderId,
                         originChainId,
                         destinationChainId,
+                        openTxHash,
                         message: "Order failed",
                         failureReason: failureReason ?? OrderFailureReason.Unknown,
                     }),
@@ -394,6 +411,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                         orderId: fillParams.orderId,
                         originChainId,
                         destinationChainId,
+                        openTxHash,
                         message: "Order finalized but fill transaction hash unavailable",
                         failureReason: OrderFailureReason.Unknown,
                     }),
@@ -408,6 +426,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                     orderId: fillParams.orderId,
                     originChainId,
                     destinationChainId,
+                    openTxHash,
                     fillTxHash: fillTxHash as Hex,
                     message: `Order ${status}, fill tx detected`,
                 });
@@ -424,6 +443,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                     orderId: fillParams.orderId,
                     originChainId,
                     destinationChainId,
+                    openTxHash,
                     message: "Waiting for solver to fill order...",
                 }),
             0,
