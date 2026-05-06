@@ -8,3 +8,4 @@ export * from "./token.js";
 export * from "./typedEventEmitter.js";
 export * from "./interopAccountId.js";
 export * from "./stepHelpers.js";
+export * from "./httpClient.js";

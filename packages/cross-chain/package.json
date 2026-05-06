@@ -34,11 +34,11 @@
     "dependencies": {
         "@openintentsframework/oif-specs": "1.0.0",
         "@wonderland/interop-addresses": "workspace:*",
-        "axios": "1.16.0",
         "uuid": "14.0.0",
         "zod": "4.4.3"
     },
     "devDependencies": {
+        "@types/node": "22.13.14",
         "ts-to-zod": "5.1.0",
         "typescript": "5.9.3",
         "viem": "2.48.8"

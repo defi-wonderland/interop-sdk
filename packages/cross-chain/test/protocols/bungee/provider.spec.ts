@@ -1,14 +1,16 @@
-import axios, { AxiosError } from "axios";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { HttpClient } from "../../../src/core/interfaces/httpClient.interface.js";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type {
     BungeeAutoRoute,
     BungeeQuoteResponse,
 } from "../../../src/protocols/bungee/schemas.js";
+import { HttpError } from "../../../src/core/errors/HttpError.exception.js";
 import { ProviderConfigFailure } from "../../../src/core/errors/ProviderConfigFailure.exception.js";
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
+import { FetchHttpClient } from "../../../src/core/utils/httpClient.js";
 import { BungeeProvider } from "../../../src/protocols/bungee/provider.js";
 
 // ── Constants ────────────────────────────────────────────
@@ -24,9 +26,9 @@ const PROTOCOL_NAME = "bungee";
 
 // ── Mock & Helpers ───────────────────────────────────────
 
-vi.mock("axios", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("axios")>();
-    return { ...actual, default: { ...actual.default, create: vi.fn() } };
+vi.mock("../../../src/core/utils/httpClient.js", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../../src/core/utils/httpClient.js")>();
+    return { ...actual, FetchHttpClient: vi.fn() };
 });
 
 const mockPost = vi.fn();
@@ -119,10 +121,8 @@ function makeBungeeQuoteResponse(overrides?: Partial<BungeeQuoteResponse>): Bung
     };
 }
 
-function makeAxiosError(data: unknown, status: number, message: string, code: string): AxiosError {
-    const error = new AxiosError(message, code);
-    error.response = { data, status, statusText: "", headers: {}, config: {} as never };
-    return error;
+function makeHttpError(data: unknown, status: number, message: string): HttpError {
+    return new HttpError(message, "https://test/url", status, data);
 }
 
 // ── Tests ────────────────────────────────────────────────
@@ -132,10 +132,10 @@ describe("BungeeProvider", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(axios.create).mockReturnValue({
-            post: mockPost,
-            get: mockGet,
-        } as unknown as ReturnType<typeof axios.create>);
+        vi.mocked(FetchHttpClient).mockImplementation(function (this: HttpClient) {
+            (this as unknown as { get: typeof mockGet; post: typeof mockPost }).get = mockGet;
+            (this as unknown as { get: typeof mockGet; post: typeof mockPost }).post = mockPost;
+        } as unknown as typeof FetchHttpClient);
         provider = new BungeeProvider();
     });
 
@@ -149,7 +149,7 @@ describe("BungeeProvider", () => {
         it("creates with custom baseUrl", () => {
             const customUrl = "https://custom.bungee.exchange";
             new BungeeProvider({ baseUrl: customUrl });
-            expect(axios.create).toHaveBeenCalledWith(
+            expect(FetchHttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     baseURL: customUrl,
                 }),
@@ -158,7 +158,7 @@ describe("BungeeProvider", () => {
 
         it("sets x-api-key header when apiKey is provided", () => {
             new BungeeProvider({ apiKey: API_KEY });
-            expect(axios.create).toHaveBeenCalledWith(
+            expect(FetchHttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     headers: expect.objectContaining({ "x-api-key": API_KEY }) as Record<
                         string,
@@ -170,7 +170,7 @@ describe("BungeeProvider", () => {
 
         it("sets affiliate header when affiliateId is provided", () => {
             new BungeeProvider({ affiliateId: "my-affiliate" });
-            expect(axios.create).toHaveBeenCalledWith(
+            expect(FetchHttpClient).toHaveBeenCalledWith(
                 expect.objectContaining({
                     headers: expect.objectContaining({ affiliate: "my-affiliate" }) as Record<
                         string,
@@ -189,7 +189,11 @@ describe("BungeeProvider", () => {
 
     describe("getQuotes()", () => {
         it("adapts request and returns quotes with correct structure", async () => {
-            mockGet.mockResolvedValue({ data: makeBungeeQuoteResponse() });
+            mockGet.mockResolvedValue({
+                status: 200,
+                data: makeBungeeQuoteResponse(),
+                headers: new Headers(),
+            });
             const quotes = await provider.getQuotes(makeQuoteRequest());
             expect(quotes).toHaveLength(1);
             expect(quotes[0]!.provider).toBe(PROTOCOL_NAME);
@@ -201,12 +205,7 @@ describe("BungeeProvider", () => {
 
         it("wraps errors in ProviderGetQuoteFailure", async () => {
             mockGet.mockRejectedValue(
-                makeAxiosError(
-                    { message: "Bad request" },
-                    400,
-                    "Request failed",
-                    "ERR_BAD_REQUEST",
-                ),
+                makeHttpError({ message: "Bad request" }, 400, "Request failed"),
             );
             await expect(provider.getQuotes(makeQuoteRequest())).rejects.toThrow(
                 ProviderGetQuoteFailure,
@@ -218,7 +217,11 @@ describe("BungeeProvider", () => {
                 submissionModes: ["gasless", "user-transaction"],
             });
 
-            mockGet.mockResolvedValue({ data: makeBungeeQuoteResponse() });
+            mockGet.mockResolvedValue({
+                status: 200,
+                data: makeBungeeQuoteResponse(),
+                headers: new Headers(),
+            });
             const quotes = await multiModeProvider.getQuotes(makeQuoteRequest());
 
             expect(mockGet).toHaveBeenCalledTimes(2);
@@ -231,7 +234,11 @@ describe("BungeeProvider", () => {
             });
 
             mockGet
-                .mockResolvedValueOnce({ data: makeBungeeQuoteResponse() })
+                .mockResolvedValueOnce({
+                    status: 200,
+                    data: makeBungeeQuoteResponse(),
+                    headers: new Headers(),
+                })
                 .mockRejectedValueOnce(new Error("user-transaction failed"));
 
             const quotes = await multiModeProvider.getQuotes(makeQuoteRequest());
@@ -279,7 +286,11 @@ describe("BungeeProvider", () => {
             });
 
             mockGet
-                .mockResolvedValueOnce({ data: emptyResponse })
+                .mockResolvedValueOnce({
+                    status: 200,
+                    data: emptyResponse,
+                    headers: new Headers(),
+                })
                 .mockRejectedValueOnce(new Error("user-transaction failed"));
 
             await expect(multiModeProvider.getQuotes(makeQuoteRequest())).rejects.toThrow(
@@ -312,7 +323,11 @@ describe("BungeeProvider", () => {
                 },
             });
 
-            mockGet.mockResolvedValue({ data: emptyResponse });
+            mockGet.mockResolvedValue({
+                status: 200,
+                data: emptyResponse,
+                headers: new Headers(),
+            });
 
             const quotes = await provider.getQuotes(makeQuoteRequest());
             expect(quotes).toEqual([]);
@@ -322,12 +337,18 @@ describe("BungeeProvider", () => {
     describe("submitOrder()", () => {
         it("extracts witness from bungeeAutoRoute metadata and submits order", async () => {
             const quoteResponse = makeBungeeQuoteResponse();
-            mockGet.mockResolvedValue({ data: quoteResponse });
+            mockGet.mockResolvedValue({
+                status: 200,
+                data: quoteResponse,
+                headers: new Headers(),
+            });
 
             const quotes = await provider.getQuotes(makeQuoteRequest());
 
             mockPost.mockResolvedValue({
+                status: 200,
                 data: { success: true, statusCode: 200, result: { hash: "0xsubmithash" } },
+                headers: new Headers(),
             });
 
             const result = await provider.submitOrder(quotes[0]!, "0xsignature");
@@ -362,7 +383,11 @@ describe("BungeeProvider", () => {
                 }),
             ];
 
-            mockGet.mockResolvedValue({ data: quoteResponse });
+            mockGet.mockResolvedValue({
+                status: 200,
+                data: quoteResponse,
+                headers: new Headers(),
+            });
             const quotes = await provider.getQuotes(makeQuoteRequest());
 
             // Bungee order preserved: autoRoute (quote-123) first, then autoRoutes
@@ -370,7 +395,9 @@ describe("BungeeProvider", () => {
             expect(quotes[1]!.quoteId).toBe("route-better");
 
             mockPost.mockResolvedValue({
+                status: 200,
                 data: { success: true, statusCode: 200, result: { hash: "0xsubmithash" } },
+                headers: new Headers(),
             });
 
             // Submit with route-better (second quote, from autoRoutes)

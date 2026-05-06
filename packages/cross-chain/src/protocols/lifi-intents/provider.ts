@@ -1,4 +1,3 @@
-import axios, { AxiosError } from "axios";
 import { Hex } from "viem";
 import { ZodError } from "zod";
 
@@ -13,6 +12,8 @@ import {
     CrossChainProvider,
     CustomApiAssetDiscoveryConfig,
     FillWatcherConfig,
+    HttpError,
+    httpRequest,
     isNativeAddress,
     OpenedIntentParserConfig,
     OrderFailureReason,
@@ -72,10 +73,11 @@ export class LifiIntentsProvider extends CrossChainProvider {
         try {
             const lifiRequest = adaptQuoteRequest(params);
 
-            const response = await axios.post<LifiIntentsQuoteResponse>(
+            const response = await httpRequest<LifiIntentsQuoteResponse>(
                 `${this.orderServerUrl}${LifiIntentsProvider.QUOTE_PATH}`,
-                lifiRequest,
                 {
+                    method: "POST",
+                    body: lifiRequest,
                     headers: { "Content-Type": "application/json", ...this.headers },
                     timeout: LifiIntentsProvider.REQUEST_TIMEOUT_MS,
                 },
@@ -88,7 +90,7 @@ export class LifiIntentsProvider extends CrossChainProvider {
                 .map((q) => adaptQuoteResponse(q, this.providerId));
         } catch (error) {
             if (error instanceof ProviderGetQuoteFailure) throw error;
-            if (error instanceof AxiosError) {
+            if (error instanceof HttpError) {
                 throw new ProviderGetQuoteFailure(
                     `LI.FI Intents quote failed: ${error.message}`,
                     `URL: ${this.orderServerUrl}${LifiIntentsProvider.QUOTE_PATH}`,

@@ -98,6 +98,18 @@ describe("parseRoutesIntoAssets", () => {
         const ethAssets = result.find((n) => n.chainId === 1)!.assets;
         const token = ethAssets.find((a) => a.address.toLowerCase() === addr)!;
         expect(token.symbol).toBe("");
+        expect(token.name).toBeUndefined();
+    });
+
+    it("surfaces token name and leaves logoURI undefined", () => {
+        const result = parseRoutesIntoAssets(mockRoutesResponse);
+
+        const baseAssets = result.find((n) => n.chainId === 8453)!.assets;
+        const usdc = baseAssets.find(
+            (a) => a.address === "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        )!;
+        expect(usdc.name).toBe("USD Coin");
+        expect(usdc.logoURI).toBeUndefined();
     });
 
     it("throws on invalid response schema", () => {

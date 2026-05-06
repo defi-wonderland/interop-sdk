@@ -23,6 +23,18 @@ export const assetInfoSchema = z.object({
         .min(0)
         .max(255)
         .describe("Asset decimal precision (e.g., 6 for USDC, 18 for WETH)"),
+    name: z
+        .string()
+        .nullable()
+        .optional()
+        .transform((v) => v ?? undefined)
+        .describe('Full asset name when reported by the solver (e.g., "USD Coin")'),
+    logoURI: z
+        .string()
+        .nullable()
+        .optional()
+        .transform((v) => v ?? undefined)
+        .describe("Asset logo URL when reported by the solver"),
 });
 
 /**

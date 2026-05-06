@@ -196,6 +196,27 @@ describe("AcrossProvider.discovery", () => {
 
             expect(result).toHaveLength(1);
             expect(result[0]?.assets[0]?.symbol).toBe("USDC");
+            expect(result[0]?.assets[0]?.name).toBeUndefined();
+            expect(result[0]?.assets[0]?.logoURI).toBeUndefined();
+        });
+
+        it("surfaces name and maps logoUrl to logoURI", () => {
+            const mockTokens = [
+                {
+                    chainId: 1,
+                    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                    symbol: "USDC",
+                    decimals: 6,
+                    name: "USD Coin",
+                    logoUrl: "https://example.com/usdc.png",
+                },
+            ];
+
+            const result: NetworkAssets[] = parseResponse(mockTokens);
+            const asset = result[0]?.assets[0];
+
+            expect(asset?.name).toBe("USD Coin");
+            expect(asset?.logoURI).toBe("https://example.com/usdc.png");
         });
 
         it("should throw on invalid schema (missing required fields)", () => {
