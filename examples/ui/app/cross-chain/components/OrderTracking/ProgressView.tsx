@@ -30,10 +30,12 @@ function StepIndicator({ isCurrent, isPassed }: { isCurrent: boolean; isPassed: 
 export function ProgressView({ state, skipApproval }: ProgressViewProps) {
   const chainConfig = useChainConfig();
   const message = getProgressMessage(state);
-  const explorers = state.step === STEP.TRACKING ? state.update.explorers : undefined;
-  const trackerUrl = explorers?.tracker;
-  const originTxUrl = explorers?.origin ?? chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
-  const fillTxUrl = explorers?.destination;
+  const update = state.step === STEP.TRACKING ? state.update : undefined;
+  const fillTxHash = update?.fillTxHash;
+  const trackerUrl = update?.explorers?.tracker;
+  const originTxUrl = update?.explorers?.origin ?? chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
+  const fillTxUrl =
+    update?.explorers?.destination ?? chainConfig.getExplorerTxUrl(state.destinationChainId, fillTxHash);
 
   const allSteps = [
     ...(!skipApproval ? [{ id: 'approval', label: 'Approval' }] : []),
