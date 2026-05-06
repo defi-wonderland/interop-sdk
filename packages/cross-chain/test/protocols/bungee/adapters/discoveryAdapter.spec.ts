@@ -37,7 +37,7 @@ describe("parseBungeeTokenListResponse", () => {
         expect(result[0]!.assets[0]!.decimals).toBe(6);
     });
 
-    it("extracts only address, symbol, decimals from tokens", () => {
+    it("surfaces address, symbol, decimals, name and logoURI from tokens", () => {
         const response = buildTokenListResponse({
             "1": [buildTokenEntry({ logoURI: "https://example.com/logo.png", isVerified: true })],
         });
@@ -49,7 +49,19 @@ describe("parseBungeeTokenListResponse", () => {
             address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
             symbol: "USDC",
             decimals: 6,
+            name: "USD Coin",
+            logoURI: "https://example.com/logo.png",
         });
+    });
+
+    it("leaves logoURI undefined when the response omits it", () => {
+        const response = buildTokenListResponse({ "1": [buildTokenEntry()] });
+
+        const result = parseBungeeTokenListResponse(response);
+        const asset = result[0]!.assets[0]!;
+
+        expect(asset.logoURI).toBeUndefined();
+        expect(asset.name).toBe("USD Coin");
     });
 
     it("filters out chains with empty token arrays", () => {

@@ -30,5 +30,7 @@ function toAssetInfo(token: BungeeTokenExt): AssetInfo {
         address: token.address,
         symbol: token.symbol,
         decimals: token.decimals,
+        name: token.name,
+        logoURI: token.logoURI ?? undefined,
     };
 }

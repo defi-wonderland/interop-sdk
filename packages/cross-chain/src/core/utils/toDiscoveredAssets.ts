@@ -51,11 +51,15 @@ export function toDiscoveredAssets(
                     if (!existing.providers.includes(result.providerId)) {
                         existing.providers.push(result.providerId);
                     }
+                    existing.name ||= asset.name;
+                    existing.logoURI ||= asset.logoURI;
                 } else {
                     tokenMetadata[chainId][canonicalAddr] = {
                         address: publicAddr,
                         symbol: asset.symbol,
                         decimals: asset.decimals,
+                        name: asset.name,
+                        logoURI: asset.logoURI,
                         providers: [result.providerId],
                     };
                 }
@@ -75,7 +79,7 @@ export function toDiscoveredAssets(
  * Used by Aggregator to combine results from multiple providers.
  * Deduplicates tokens by canonical address (native placeholders collapse
  * to the canonical EIP-7528 form); merges `providers` arrays (first-write-wins
- * for symbol/decimals, union for providers).
+ * for symbol/decimals, first non-empty wins for name/logoURI, union for providers).
  *
  * @internal Used by Aggregator - not exported publicly
  * @param sources - Array of DiscoveredAssets to merge
@@ -108,6 +112,8 @@ export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAs
                             existing.providers.push(pid);
                         }
                     }
+                    existing.name ||= meta.name;
+                    existing.logoURI ||= meta.logoURI;
                 } else {
                     const publicAddr = isNativeAddress(meta.address, "eip155")
                         ? canonical

@@ -1,7 +1,6 @@
-import type { AxiosInstance } from "axios";
 import type { Hex } from "viem";
-import { AxiosError } from "axios";
 
+import type { HttpClient } from "../../../internal.js";
 import type {
     RelayIndexTransactionRequest,
     RelayIndexTransactionResponse,
@@ -13,6 +12,7 @@ import type {
     RelaySubmitPermitResponse,
 } from "../schemas.js";
 import {
+    HttpError,
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,
     ProviderGetStatusFailure,
@@ -33,7 +33,7 @@ import {
  * Encapsulates all HTTP calls and response parsing.
  */
 export class RelayApiService {
-    constructor(private readonly http: AxiosInstance) {}
+    constructor(private readonly http: HttpClient) {}
 
     /** POST /quote/v2 — fetch a bridge quote from Relay. */
     async getQuote(params: RelayQuoteRequest): Promise<RelayQuoteResponse> {
@@ -64,7 +64,7 @@ export class RelayApiService {
         try {
             const parsed = RelayIntentStatusRequestSchema.parse(params);
             const response = await this.http.get("/intents/status/v3", {
-                params: parsed,
+                params: parsed as Record<string, unknown>,
             });
             return RelayIntentStatusResponseSchema.parse(response.data);
         } catch (error) {
@@ -95,7 +95,7 @@ export class RelayApiService {
         operation: string,
     ): never {
         const cause =
-            error instanceof AxiosError
+            error instanceof HttpError
                 ? (this.extractApiMessage(error) ?? error.message)
                 : error instanceof Error
                   ? error.message
@@ -109,8 +109,8 @@ export class RelayApiService {
     }
 
     /** Try to read the `message` field from a Relay API error response body. */
-    private extractApiMessage(error: AxiosError): string | undefined {
-        const message = (error.response?.data as { message?: unknown })?.message;
+    private extractApiMessage(error: HttpError): string | undefined {
+        const message = (error.data as { message?: unknown } | undefined)?.message;
         return typeof message === "string" ? message : undefined;
     }
 }

@@ -1,14 +1,18 @@
 import { PostOrderResponse, PostOrderResponseStatus } from "@openintentsframework/oif-specs";
-import axios from "axios";
 import { createWalletClient, http, isHex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { mainnet } from "viem/chains";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { Quote } from "../../src/core/schemas/quote.js";
+import { httpRequest } from "../../src/core/utils/httpClient.js";
 import { OifProvider } from "../../src/external.js";
 import { getMockedOifQuoteResponse } from "../mocks/oif/index.js";
 
-vi.mock("axios");
+vi.mock("../../src/core/utils/httpClient.js", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../../src/core/utils/httpClient.js")>();
+    return { ...actual, httpRequest: vi.fn() };
+});
 
 const MOCK_SOLVER_URL = "https://mock-solver.example.com";
 const MOCK_SOLVER_ID = "mock-solver-1";
@@ -56,25 +60,26 @@ describe("OifProvider Integration Tests", () => {
                 message: "Order received",
             };
 
-            vi.mocked(axios.post).mockResolvedValueOnce({
+            vi.mocked(httpRequest).mockResolvedValueOnce({
                 status: 200,
                 data: mockPostOrderResponse,
+                headers: new Headers(),
             });
 
-            const result = await provider.submitSignedOrder(quote, signature);
+            const result = await provider.submitOrder(quote as unknown as Quote, signature);
 
             expect(result).toEqual(mockPostOrderResponse);
 
-            const postCall = vi.mocked(axios.post).mock.calls[0];
+            const postCall = vi.mocked(httpRequest).mock.calls[0];
             expect(postCall).toBeDefined();
-            const [url, body] = postCall as [
+            const [url, options] = postCall as [
                 string,
-                { order: unknown; signature: Uint8Array; quoteId?: string },
+                { body: { order: unknown; signature: Uint8Array; quoteId?: string } },
             ];
             expect(url).toBe(`${MOCK_SOLVER_URL}/v1/orders`);
-            expect(body.signature).toBeInstanceOf(Uint8Array);
-            expect(body.signature).toHaveLength(65);
-            expect(body.quoteId).toBe("test-quote-escrow");
+            expect(options.body.signature).toBeInstanceOf(Uint8Array);
+            expect(options.body.signature).toHaveLength(65);
+            expect(options.body.quoteId).toBe("test-quote-escrow");
         });
     });
 });
