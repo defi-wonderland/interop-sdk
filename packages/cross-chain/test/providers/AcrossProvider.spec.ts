@@ -132,7 +132,7 @@ describe("AcrossProvider", () => {
         });
 
         it("returns the bridge output token when the route ends in a destination swap", async () => {
-            vi.mocked(axios.get).mockResolvedValueOnce({
+            vi.mocked(httpRequest).mockResolvedValueOnce({
                 status: 200,
                 data: getMockedAcrossApiResponse({
                     crossSwapType: "bridgeableToAny",
@@ -155,6 +155,7 @@ describe("AcrossProvider", () => {
                         },
                     },
                 }),
+                headers: new Headers(),
             });
 
             const [quote] = await provider.getQuotes(quoteRequest);
@@ -169,7 +170,7 @@ describe("AcrossProvider", () => {
         it("returns the intermediate bridge token for bridgeableToBridgeableIndirect routes", async () => {
             const intermediateToken = "0x036cbd53842c5426634e7929541ec2318f3dcf7e"; // USDC on Base Sepolia (lowercase, canonical)
 
-            vi.mocked(axios.get).mockResolvedValueOnce({
+            vi.mocked(httpRequest).mockResolvedValueOnce({
                 status: 200,
                 data: getMockedAcrossApiResponse({
                     crossSwapType: "bridgeableToBridgeableIndirect",
@@ -192,6 +193,7 @@ describe("AcrossProvider", () => {
                         },
                     },
                 }),
+                headers: new Headers(),
             });
 
             const [quote] = await provider.getQuotes(quoteRequest);
