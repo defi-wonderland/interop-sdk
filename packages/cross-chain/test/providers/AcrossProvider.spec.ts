@@ -206,6 +206,25 @@ describe("AcrossProvider", () => {
         });
     });
 
+    describe("getOrderExplorers", () => {
+        it("returns the Across tracker URL alongside the chain explorer URLs", () => {
+            const explorers = provider.getOrderExplorers({
+                originChainId: 8453,
+                originTxHash: "0xdeadbeef",
+                destinationChainId: 42161,
+                destinationTxHash: "0xfeedface",
+            });
+            expect(explorers.tracker).toBe("https://app.across.to/transaction/0xdeadbeef");
+            expect(explorers.origin).toBe("https://basescan.org/tx/0xdeadbeef");
+            expect(explorers.destination).toBe("https://arbiscan.io/tx/0xfeedface");
+        });
+
+        it("returns an empty object when no tx hash is available", () => {
+            const explorers = provider.getOrderExplorers({ originChainId: 1 });
+            expect(explorers).toEqual({});
+        });
+    });
+
     describe("getTrackingConfig", () => {
         it("should return valid tracking configuration for all components", () => {
             const config = provider.getTrackingConfig();

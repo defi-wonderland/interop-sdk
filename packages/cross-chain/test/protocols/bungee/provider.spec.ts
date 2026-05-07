@@ -498,4 +498,23 @@ describe("BungeeProvider", () => {
             );
         });
     });
+
+    describe("getOrderExplorers()", () => {
+        it("returns the socketscan tracker URL alongside the chain explorer URLs", () => {
+            const explorers = provider.getOrderExplorers({
+                originChainId: 8453,
+                originTxHash: "0x9bdfe864",
+                destinationChainId: 42161,
+                destinationTxHash: "0xfeedface",
+            });
+            expect(explorers.tracker).toBe("https://www.socketscan.io/tx/0x9bdfe864");
+            expect(explorers.origin).toBe("https://basescan.org/tx/0x9bdfe864");
+            expect(explorers.destination).toBe("https://arbiscan.io/tx/0xfeedface");
+        });
+
+        it("returns an empty object when no tx hash is available", () => {
+            const explorers = provider.getOrderExplorers({ originChainId: 8453 });
+            expect(explorers).toEqual({});
+        });
+    });
 });

@@ -2,11 +2,13 @@ import type { Hex } from "viem";
 
 import type { Quote, SubmitOrderResponse } from "../schemas/quote.js";
 import type { BuildQuoteRequest, QuoteRequest } from "../schemas/quoteRequest.js";
+import type { GetOrderExplorersParams, OrderExplorers } from "../types/orderExplorers.js";
 import type { AssetDiscoveryConfig } from "./assetDiscovery.interface.js";
 import type { FillWatcherConfig } from "./fillWatcher.interface.js";
 import type { OpenedIntentParserConfig } from "./openedIntentParser.interface.js";
 import type { PreTrackerConfig } from "./preTracker.interface.js";
 import { ProviderExecuteNotImplemented } from "../errors/ProviderExecuteNotImplemented.exception.js";
+import { getChainExplorerTxUrl } from "../utils/blockExplorers.js";
 
 export abstract class CrossChainProvider {
     /**
@@ -130,5 +132,27 @@ export abstract class CrossChainProvider {
      */
     getDiscoveryConfig(): AssetDiscoveryConfig | null {
         return null;
+    }
+
+    /**
+     * Build explorer URLs for an order. Default falls back to chain block
+     * explorers; providers with a bridge scanner should override and return
+     * `{ tracker }`.
+     */
+    getOrderExplorers(params: GetOrderExplorersParams): OrderExplorers {
+        const { originChainId, originTxHash, destinationChainId, destinationTxHash } = params;
+        const result: OrderExplorers = {};
+
+        if (originTxHash) {
+            const origin = getChainExplorerTxUrl(originChainId, originTxHash);
+            if (origin) result.origin = origin;
+        }
+
+        if (destinationChainId !== undefined && destinationTxHash) {
+            const destination = getChainExplorerTxUrl(destinationChainId, destinationTxHash);
+            if (destination) result.destination = destination;
+        }
+
+        return result;
     }
 }

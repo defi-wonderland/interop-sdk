@@ -2,6 +2,7 @@ import { STEP, type BridgeState } from '../../types/execution';
 
 export interface OrderTrackingProps {
   state: BridgeState;
+  providerId?: string;
   onReset?: () => void;
   skipApproval?: boolean;
 }
@@ -9,6 +10,8 @@ export interface OrderTrackingProps {
 /** Props for SuccessView - only accepts 'done' step */
 export interface SuccessViewProps {
   state: Extract<BridgeState, { step: typeof STEP.DONE }>;
+  /** Display label for the bridge tracker badge. */
+  providerId?: string;
   onReset?: () => void;
 }
 
