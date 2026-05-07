@@ -22,14 +22,18 @@ export const OIF_ORDER_TYPES = Object.keys(OIF_ORDER_TYPE_SET) as OifOrderType[]
 // OIF deployed contract addresses (current solver deployment)
 // =============================================================================
 
-/** InputSettlerEscrow addresses per chain. */
+/**
+ * InputSettlerEscrow / OutputSettler deployments per chain.
+ *
+ * TODO(change): OIF will rotate the InputSettler / OutputSettler addresses.
+ * Update both maps below when the new deployments are announced.
+ */
 export const OIF_INPUT_SETTLER_ESCROW_BY_CHAIN: Record<number, Address> = {
     42161: "0x79750615FD0c3DBE3bBCD7e8E7BDdCbB554b10a8", // Arbitrum
     8453: "0x2778258002a69a0cB1DfD29b360a0bB1654C8652", // Base
     10: "0x2778258002a69a0cB1DfD29b360a0bB1654C8652", // Optimism
 };
 
-/** OutputSettler addresses per chain. */
 export const OIF_OUTPUT_SETTLER_BY_CHAIN: Record<number, Address> = {
     42161: "0x28E8D349d76bf9d553452bF6f02279196E7c5929", // Arbitrum
     8453: "0x2404F8e3c37c002c89bA78086a119e68E3fF8824", // Base
@@ -153,6 +157,7 @@ export const PERMIT2_TYPES: EIP712Types = {
         { name: "witness", type: "Permit2Witness" },
     ],
     Permit2Witness: [
+        { name: "user", type: "address" },
         { name: "expires", type: "uint32" },
         { name: "inputOracle", type: "address" },
         { name: "outputs", type: "MandateOutput[]" },
