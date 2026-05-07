@@ -210,6 +210,8 @@ for await (const item of tracker.watchOrder({
 
     if (item.update.status === OrderStatus.Finalized) {
         console.log(`Filled in tx: ${item.update.fillTxHash}`);
+        const url = item.update.explorers?.tracker ?? item.update.explorers?.origin;
+        if (url) console.log(`Track at: ${url}`);
         break;
     } else if (item.update.status === OrderStatus.Failed) {
         console.log("Order failed");

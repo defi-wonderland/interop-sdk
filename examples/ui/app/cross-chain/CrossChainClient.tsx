@@ -226,6 +226,7 @@ export default function CrossChainClient() {
                     </div>
                     <OrderTracking
                       state={executionState}
+                      providerId={selectedQuote.provider}
                       onReset={handleReset}
                       skipApproval={isNativeAddress(selectedInputToken, 'eip155')}
                     />

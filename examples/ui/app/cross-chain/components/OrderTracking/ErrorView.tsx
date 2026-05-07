@@ -33,7 +33,10 @@ export function ErrorView({ state, onReset }: ErrorViewProps) {
   const chainConfig = useChainConfig();
   const originChainId = 'originChainId' in state ? state.originChainId : undefined;
   const originChain = chainConfig.getChain(originChainId);
-  const originTxUrl = chainConfig.getExplorerTxUrl(originChainId, state.txHash);
+  const lastUpdate = state.step === STEP.TIMEOUT ? state.update : state.lastUpdate;
+  const originTxHash = lastUpdate?.openTxHash ?? state.txHash;
+  const trackerUrl = lastUpdate?.explorers?.tracker;
+  const originTxUrl = lastUpdate?.explorers?.origin ?? chainConfig.getExplorerTxUrl(originChainId, originTxHash);
   const isTimeout = state.step === STEP.TIMEOUT;
   const timeoutNotice = getTimeoutNotice(state, originChain?.name);
   const borderColor = isTimeout ? 'border-warning/30' : 'border-error/30';
@@ -68,20 +71,22 @@ export function ErrorView({ state, onReset }: ErrorViewProps) {
       )}
 
       {/* Transaction link if available */}
-      {state.txHash && originTxUrl && (
+      {originTxHash && (trackerUrl || originTxUrl) && (
         <a
-          href={originTxUrl}
+          href={trackerUrl ?? originTxUrl}
           target='_blank'
           rel='noopener noreferrer'
           className={`flex items-center justify-between p-3 rounded-lg ${linkBg} transition-colors group mb-4`}
         >
           <div className='flex items-center gap-2'>
             <div className={`w-2 h-2 rounded-full ${iconBg}`} />
-            <span className={`text-sm ${linkText}`}>Origin Transaction ({originChain?.name ?? 'Unknown'})</span>
+            <span className={`text-sm ${linkText}`}>
+              {trackerUrl ? 'Bridge Tracker' : `Origin Transaction (${originChain?.name ?? 'Unknown'})`}
+            </span>
           </div>
           <div className={`flex items-center gap-2 ${linkHoverText}`}>
             <span className='text-xs font-mono'>
-              {state.txHash.slice(0, 10)}...{state.txHash.slice(-8)}
+              {originTxHash.slice(0, 10)}...{originTxHash.slice(-8)}
             </span>
             <ExternalLinkIcon />
           </div>
