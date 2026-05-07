@@ -4,7 +4,7 @@ import type { FillWatcher } from "../interfaces/fillWatcher.interface.js";
 import type { OpenedIntentParser } from "../interfaces/openedIntentParser.interface.js";
 import type { OrderTrackerEvents } from "../interfaces/orderTracker.interface.js";
 import type { PreTracker } from "../interfaces/preTracker.interface.js";
-import type { GetOrderExplorersParams, OrderExplorers } from "../types/orderExplorers.js";
+import type { OrderExplorersResolver } from "../types/orderExplorers.js";
 import type {
     OpenedIntent,
     OrderTrackerYield,
@@ -43,7 +43,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
         private readonly clientManager?: PublicClientManager,
         private readonly preTracker?: PreTracker,
         onChainFillWatcher?: FillWatcher,
-        private readonly getOrderExplorers?: (params: GetOrderExplorersParams) => OrderExplorers,
+        private readonly getOrderExplorers?: OrderExplorersResolver,
     ) {
         super();
         this.apiFillWatcher = fillWatcher;

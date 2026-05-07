@@ -20,3 +20,8 @@ export interface GetOrderExplorersParams {
     /** Becomes available once the fill event is observed. */
     destinationTxHash?: Hex;
 }
+
+/** Resolves explorer URLs for an order. Implemented by `CrossChainProvider.getOrderExplorers`. */
+export interface OrderExplorersResolver {
+    (params: GetOrderExplorersParams): OrderExplorers;
+}
