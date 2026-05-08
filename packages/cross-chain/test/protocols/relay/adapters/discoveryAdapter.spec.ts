@@ -152,7 +152,7 @@ describe("parseRelayChainsResponse", () => {
         expect(result[0]!.chainId).toBe(ETHEREUM_CHAIN_ID);
     });
 
-    it("maps only address, symbol, and decimals to AssetInfo", () => {
+    it("maps address, symbol, decimals and name to AssetInfo", () => {
         const result = parseRelayChainsResponse({
             chains: [makeChain(ETHEREUM_CHAIN_ID, "evm", [makeSolverCurrency()])],
         });
@@ -162,6 +162,7 @@ describe("parseRelayChainsResponse", () => {
             address: USDC_ADDRESS,
             symbol: "USDC",
             decimals: 6,
+            name: "USD Coin",
         });
     });
 

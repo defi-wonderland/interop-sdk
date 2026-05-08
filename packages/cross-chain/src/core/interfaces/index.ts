@@ -9,3 +9,4 @@ export * from "./sortingStrategy.interface.js";
 export * from "./intentValidator.interface.js";
 export * from "./assetDiscovery.interface.js";
 export * from "./preTracker.interface.js";
+export * from "./httpClient.interface.js";

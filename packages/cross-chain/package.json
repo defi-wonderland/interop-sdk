@@ -1,6 +1,6 @@
 {
     "name": "@wonderland/interop-cross-chain",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "description": "Cross-chain interoperability library with standardized provider interface",
     "repository": {
         "type": "git",
@@ -34,11 +34,11 @@
     "dependencies": {
         "@openintentsframework/oif-specs": "1.0.0",
         "@wonderland/interop-addresses": "workspace:*",
-        "axios": "1.13.2",
         "uuid": "13.0.0",
         "zod": "3.24.3"
     },
     "devDependencies": {
+        "@types/node": "22.13.14",
         "ts-to-zod": "3.1.0",
         "typescript": "5.5.4",
         "viem": "2.28.0"

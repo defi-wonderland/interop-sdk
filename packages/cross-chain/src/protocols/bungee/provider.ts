@@ -1,13 +1,14 @@
-import type { AxiosInstance } from "axios";
 import type { Hex } from "viem";
-import axios from "axios";
 import { ZodError } from "zod";
 
 import type { SubmissionMode } from "../../core/schemas/providerConfig.js";
 import type {
     AssetDiscoveryConfig,
     FillWatcherConfig,
+    GetOrderExplorersParams,
+    HttpClient,
     OpenedIntentParserConfig,
+    OrderExplorers,
     Quote,
     QuoteRequest,
     SubmitOrderResponse,
@@ -16,6 +17,7 @@ import type { BungeeQuoteOptions } from "./adapters/quoteRequestAdapter.js";
 import type { BungeeConfigs } from "./types.js";
 import {
     CrossChainProvider,
+    FetchHttpClient,
     ProviderConfigFailure,
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,
@@ -29,7 +31,7 @@ import {
     extractOpenedIntent,
     parseBungeeTokenListResponse,
 } from "./adapters/index.js";
-import { BUNGEE_API_URLS } from "./constants.js";
+import { BUNGEE_API_URLS, BUNGEE_EXPLORER_BASE_URL } from "./constants.js";
 import { BungeeApiService } from "./services/index.js";
 import { BungeeApiTier, BungeeConfigSchema } from "./types.js";
 
@@ -45,7 +47,7 @@ export class BungeeProvider extends CrossChainProvider {
 
     readonly protocolName = BungeeProvider.PROTOCOL_NAME;
     readonly providerId: string;
-    private readonly http: AxiosInstance;
+    private readonly http: HttpClient;
     private readonly baseUrl: string;
     private readonly apiService: BungeeApiService;
     private readonly apiHeaders: Record<string, string>;
@@ -77,7 +79,7 @@ export class BungeeProvider extends CrossChainProvider {
                 refuel: parsed.refuel,
             };
 
-            this.http = axios.create({
+            this.http = new FetchHttpClient({
                 baseURL: this.baseUrl,
                 headers: this.apiHeaders,
                 timeout: 15_000,
@@ -171,6 +173,15 @@ export class BungeeProvider extends CrossChainProvider {
                 extractFillEvent,
             } as FillWatcherConfig,
         };
+    }
+
+    /** @inheritdoc Bungee orders are tracked through Socket scanner. */
+    override getOrderExplorers(params: GetOrderExplorersParams): OrderExplorers {
+        const explorers = super.getOrderExplorers(params);
+        if (params.originTxHash) {
+            explorers.tracker = `${BUNGEE_EXPLORER_BASE_URL}/${params.originTxHash}`;
+        }
+        return explorers;
     }
 
     /**

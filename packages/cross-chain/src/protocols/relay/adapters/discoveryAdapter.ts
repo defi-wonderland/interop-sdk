@@ -37,5 +37,6 @@ function toAssetInfo(currency: RelaySolverCurrency): AssetInfo {
         address: currency.address,
         symbol: currency.symbol,
         decimals: currency.decimals,
+        name: currency.name,
     };
 }

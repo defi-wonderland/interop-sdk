@@ -30,9 +30,12 @@ function StepIndicator({ isCurrent, isPassed }: { isCurrent: boolean; isPassed: 
 export function ProgressView({ state, skipApproval }: ProgressViewProps) {
   const chainConfig = useChainConfig();
   const message = getProgressMessage(state);
-  const originTxUrl = chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
-  const fillTxHash = state.step === STEP.TRACKING ? state.update.fillTxHash : undefined;
-  const fillTxUrl = chainConfig.getExplorerTxUrl(state.destinationChainId, fillTxHash);
+  const update = state.step === STEP.TRACKING ? state.update : undefined;
+  const fillTxHash = update?.fillTxHash;
+  const trackerUrl = update?.explorers?.tracker;
+  const originTxUrl = update?.explorers?.origin ?? chainConfig.getExplorerTxUrl(state.originChainId, state.txHash);
+  const fillTxUrl =
+    update?.explorers?.destination ?? chainConfig.getExplorerTxUrl(state.destinationChainId, fillTxHash);
 
   const allSteps = [
     ...(!skipApproval ? [{ id: 'approval', label: 'Approval' }] : []),
@@ -88,8 +91,19 @@ export function ProgressView({ state, skipApproval }: ProgressViewProps) {
       </div>
 
       {/* Transaction links during progress */}
-      {(originTxUrl || fillTxUrl) && (
+      {(trackerUrl || originTxUrl || fillTxUrl) && (
         <div className='mt-4 pt-3 border-t border-border space-y-1.5'>
+          {trackerUrl && (
+            <a
+              href={trackerUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-xs text-accent hover:underline flex items-center gap-1'
+            >
+              <span>View on bridge tracker</span>
+              <ExternalLinkIcon />
+            </a>
+          )}
           {originTxUrl && (
             <a
               href={originTxUrl}

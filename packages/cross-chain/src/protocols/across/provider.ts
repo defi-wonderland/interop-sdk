@@ -1,4 +1,3 @@
-import axios, { AxiosError } from "axios";
 import {
     AbiEvent,
     Address,
@@ -15,6 +14,7 @@ import type { Quote, QuoteFeeEntry } from "../../core/schemas/quote.js";
 import type { BuildQuoteRequest, QuoteRequest } from "../../core/schemas/quoteRequest.js";
 import { addressToBytes32 } from "../../core/utils/addressHelpers.js";
 import {
+    ACROSS_EXPLORER_BASE_URL,
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
     ACROSS_SPOKE_POOL_DEPOSIT_ABI,
@@ -43,12 +43,16 @@ import {
     FillWatcherConfig,
     getAcrossApiUrl,
     GetFillParams,
+    GetOrderExplorersParams,
+    HttpError,
+    httpRequest,
     InvalidOpenEventError,
     isNativeAddress,
     NATIVE_ZERO_ADDRESS,
     NetworkAssets,
     OpenedIntent,
     OpenedIntentParserConfig,
+    OrderExplorers,
     OrderFailureReason,
     OrderStatus,
     parseAbiEncodedFields,
@@ -105,24 +109,20 @@ export class AcrossProvider extends CrossChainProvider {
      */
     private async getAcrossQuote(params: AcrossGetQuoteParams): Promise<AcrossGetQuoteResponse> {
         try {
-            const response = await axios.get<AcrossGetQuoteResponse>(
+            const response = await httpRequest<AcrossGetQuoteResponse>(
                 `${this.apiUrl}/swap/approval`,
                 {
-                    params,
+                    params: params as Record<string, unknown>,
                 },
             );
 
-            if (response.status !== 200) {
-                throw new ProviderGetQuoteFailure("Failed to get Across quote");
-            }
-
             return AcrossGetQuoteResponseSchema.parse(response.data);
         } catch (error) {
-            if (error instanceof AxiosError) {
-                const errorData = error.response?.data as { message: string };
+            if (error instanceof HttpError) {
+                const errorData = error.data as { message?: string } | undefined;
 
                 const message =
-                    errorData.message ||
+                    errorData?.message ||
                     (error.cause as Error | undefined)?.message ||
                     error.message ||
                     "Failed to get Across quote";
@@ -783,6 +783,14 @@ export class AcrossProvider extends CrossChainProvider {
         };
     }
 
+    override getOrderExplorers(params: GetOrderExplorersParams): OrderExplorers {
+        const explorers = super.getOrderExplorers(params);
+        if (params.originTxHash) {
+            explorers.tracker = `${ACROSS_EXPLORER_BASE_URL}/${params.originTxHash}`;
+        }
+        return explorers;
+    }
+
     override getDiscoveryConfig(): AssetDiscoveryConfig {
         if (this.isTestnet) {
             return {
@@ -817,6 +825,8 @@ export class AcrossProvider extends CrossChainProvider {
                 address: token.address,
                 symbol: token.symbol,
                 decimals: token.decimals,
+                name: token.name,
+                logoURI: token.logoUrl,
             };
 
             if (!chainMap.has(token.chainId)) {

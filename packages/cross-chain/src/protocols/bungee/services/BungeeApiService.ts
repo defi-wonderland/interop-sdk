@@ -1,6 +1,4 @@
-import type { AxiosInstance } from "axios";
-import { AxiosError } from "axios";
-
+import type { HttpClient } from "../../../internal.js";
 import type {
     BungeeQuoteRequest,
     BungeeQuoteResponse,
@@ -10,6 +8,7 @@ import type {
     BungeeSubmitResponse,
 } from "../schemas.js";
 import {
+    HttpError,
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,
     ProviderGetStatusFailure,
@@ -28,13 +27,15 @@ import {
  * Encapsulates all HTTP calls and response parsing.
  */
 export class BungeeApiService {
-    constructor(private readonly http: AxiosInstance) {}
+    constructor(private readonly http: HttpClient) {}
 
     /** GET /api/v1/bungee/quote — fetch a bridge quote from Bungee. */
     async getQuote(params: BungeeQuoteRequest): Promise<BungeeQuoteResponse> {
         try {
             const parsed = BungeeQuoteRequestSchema.parse(params);
-            const response = await this.http.get("/api/v1/bungee/quote", { params: parsed });
+            const response = await this.http.get("/api/v1/bungee/quote", {
+                params: parsed as Record<string, unknown>,
+            });
             return BungeeQuoteResponseSchema.parse(response.data);
         } catch (error) {
             this.throwProviderError(error, ProviderGetQuoteFailure, "Bungee quote");
@@ -56,7 +57,9 @@ export class BungeeApiService {
     async getStatus(params: BungeeStatusRequest): Promise<BungeeStatusResponse> {
         try {
             const parsed = BungeeStatusRequestSchema.parse(params);
-            const response = await this.http.get("/api/v1/bungee/status", { params: parsed });
+            const response = await this.http.get("/api/v1/bungee/status", {
+                params: parsed as Record<string, unknown>,
+            });
             return BungeeStatusResponseSchema.parse(response.data);
         } catch (error) {
             this.throwProviderError(error, ProviderGetStatusFailure, "Bungee status");
@@ -69,7 +72,7 @@ export class BungeeApiService {
         ErrorClass: new (message: string, cause?: string, stack?: string) => Error,
         operation: string,
     ): never {
-        if (error instanceof AxiosError && error.response?.status === 429) {
+        if (error instanceof HttpError && error.status === 429) {
             throw new ErrorClass(
                 `Bungee rate limit exceeded`,
                 `Too many requests (429) for ${operation}`,
@@ -78,7 +81,7 @@ export class BungeeApiService {
         }
 
         const cause =
-            error instanceof AxiosError
+            error instanceof HttpError
                 ? (this.extractApiMessage(error) ?? error.message)
                 : error instanceof Error
                   ? error.message
@@ -98,8 +101,8 @@ export class BungeeApiService {
      * - `{ "message": "error string" }`
      * - `{ "message": { "error": "...", "details": { "error": { "message": "...", "code": "..." } } } }`
      */
-    private extractApiMessage(error: AxiosError): string | undefined {
-        const data = error.response?.data as { message?: unknown } | undefined;
+    private extractApiMessage(error: HttpError): string | undefined {
+        const data = error.data as { message?: unknown } | undefined;
         const message = data?.message;
 
         if (typeof message === "string") return message;

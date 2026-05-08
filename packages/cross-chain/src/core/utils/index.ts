@@ -1,6 +1,7 @@
 export * from "./addressHelpers.js";
 export * from "./toDiscoveredAssets.js";
 export * from "./chainHelpers.js";
+export * from "./blockExplorers.js";
 export * from "./eventDataParser.js";
 export * from "./orderTypeHelpers.js";
 export * from "./publicClientManager.js";
@@ -8,3 +9,4 @@ export * from "./token.js";
 export * from "./typedEventEmitter.js";
 export * from "./interopAccountId.js";
 export * from "./stepHelpers.js";
+export * from "./httpClient.js";

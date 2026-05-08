@@ -1,7 +1,5 @@
-import axios from "axios";
-
-import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
 import { NetworkAssets } from "../types/assetDiscovery.js";
+import { httpRequest } from "../utils/httpClient.js";
 import {
     BaseAssetDiscoveryService,
     BaseAssetDiscoveryServiceConfig,
@@ -43,17 +41,10 @@ export class CustomApiAssetDiscoveryService extends BaseAssetDiscoveryService {
      * Fetch assets from the custom API
      */
     protected async fetchAssets(): Promise<NetworkAssets[]> {
-        const response = await axios.get(this.assetsEndpoint, {
+        const response = await httpRequest(this.assetsEndpoint, {
             headers: this.headers,
             timeout: this.timeout,
         });
-
-        if (response.status !== 200) {
-            throw new AssetDiscoveryFailure(
-                "Failed to fetch assets from custom API",
-                `Unexpected status code: ${response.status}. URL: ${this.assetsEndpoint}`,
-            );
-        }
 
         return this.parseResponse(response.data);
     }

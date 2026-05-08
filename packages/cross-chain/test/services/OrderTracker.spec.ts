@@ -936,4 +936,51 @@ describe("OrderTracker", () => {
             expect(mockOnChainWatcher.getFill).not.toHaveBeenCalled();
         });
     });
+
+    describe("explorers enrichment", () => {
+        it("invokes getOrderExplorers with both legs' chain context once the fill is observed", async () => {
+            const getOrderExplorers = vi.fn();
+            const fillEvent = createMockFillEvent();
+
+            vi.mocked(mockOpenedIntentParser.getOpenedIntent).mockResolvedValue(
+                createMockOpenedIntent({
+                    fillInstructions: [
+                        {
+                            destinationChainId: mockDestinationChainId,
+                            destinationSettler: "0x00" as Hex,
+                            originData: "0x" as Hex,
+                        },
+                    ],
+                }),
+            );
+            vi.mocked(mockFillWatcher.waitForFill).mockResolvedValue(fillEvent);
+
+            const trackerWithExplorers = new OrderTracker(
+                mockOpenedIntentParser,
+                mockFillWatcher,
+                undefined,
+                undefined,
+                undefined,
+                getOrderExplorers,
+            );
+
+            const items: OrderTrackerYield[] = [];
+            for await (const item of trackerWithExplorers.watchOrder({
+                txHash: mockTxHash,
+                originChainId: mockOriginChainId,
+                destinationChainId: mockDestinationChainId,
+                timeout: 10000,
+            })) {
+                items.push(item);
+            }
+            expect(items.length).toBeGreaterThan(0);
+
+            expect(getOrderExplorers).toHaveBeenLastCalledWith({
+                originChainId: mockOriginChainId,
+                originTxHash: mockTxHash,
+                destinationChainId: mockDestinationChainId,
+                destinationTxHash: fillEvent.fillTxHash,
+            });
+        });
+    });
 });

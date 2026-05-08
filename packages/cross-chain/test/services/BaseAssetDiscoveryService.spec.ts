@@ -1,10 +1,12 @@
-import { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     AssetDiscoveryFailure,
     BaseAssetDiscoveryService,
     BaseAssetDiscoveryServiceConfig,
+    HttpError,
+    HttpNetworkError,
+    HttpTimeout,
     NetworkAssets,
 } from "../../src/internal.js";
 
@@ -402,11 +404,9 @@ describe("BaseAssetDiscoveryService", () => {
             }
         });
 
-        it("should wrap timeout errors (ECONNABORTED) with providerId", async () => {
-            const axiosError = new AxiosError("timeout");
-            axiosError.code = "ECONNABORTED";
-            axiosError.config = { url: "http://test.url" } as never;
-            fetchMock.mockRejectedValueOnce(axiosError);
+        it("should wrap HttpTimeout with providerId", async () => {
+            const httpError = new HttpTimeout("http://test.url", 10000);
+            fetchMock.mockRejectedValueOnce(httpError);
 
             try {
                 await service.getSupportedAssets();
@@ -421,17 +421,13 @@ describe("BaseAssetDiscoveryService", () => {
         });
 
         it("should wrap rate limit errors (429) with providerId", async () => {
-            const axiosError = new AxiosError("rate limited", "ERR_BAD_REQUEST");
-            axiosError.response = {
-                status: 429,
-                data: {},
-                statusText: "Too Many Requests",
-                headers: {},
-                config: { headers: {} } as AxiosError["response"] extends { config: infer C }
-                    ? C
-                    : never,
-            };
-            fetchMock.mockRejectedValueOnce(axiosError);
+            const httpError = new HttpError(
+                "Request failed with status 429",
+                "http://test.url",
+                429,
+                {},
+            );
+            fetchMock.mockRejectedValueOnce(httpError);
 
             try {
                 await service.getSupportedAssets();
@@ -443,18 +439,14 @@ describe("BaseAssetDiscoveryService", () => {
             }
         });
 
-        it("should extract error message from AxiosError response data", async () => {
-            const axiosError = new AxiosError("Request failed", "ERR_BAD_REQUEST");
-            axiosError.response = {
-                status: 401,
-                data: { message: "Invalid API key" },
-                statusText: "Unauthorized",
-                headers: {},
-                config: { headers: {} } as AxiosError["response"] extends { config: infer C }
-                    ? C
-                    : never,
-            };
-            fetchMock.mockRejectedValueOnce(axiosError);
+        it("should extract error message from HttpError response data", async () => {
+            const httpError = new HttpError(
+                "Request failed with status 401",
+                "http://test.url",
+                401,
+                { message: "Invalid API key" },
+            );
+            fetchMock.mockRejectedValueOnce(httpError);
 
             try {
                 await service.getSupportedAssets();
@@ -465,9 +457,9 @@ describe("BaseAssetDiscoveryService", () => {
             }
         });
 
-        it("should wrap generic AxiosError without response", async () => {
-            const axiosError = new AxiosError("Network error", "ERR_NETWORK");
-            fetchMock.mockRejectedValueOnce(axiosError);
+        it("should wrap HttpNetworkError with providerId", async () => {
+            const httpError = new HttpNetworkError("Network error", "http://test.url");
+            fetchMock.mockRejectedValueOnce(httpError);
 
             try {
                 await service.getSupportedAssets();
@@ -479,7 +471,7 @@ describe("BaseAssetDiscoveryService", () => {
             }
         });
 
-        it("should wrap non-Axios errors with providerId", async () => {
+        it("should wrap non-HttpError errors with providerId", async () => {
             fetchMock.mockRejectedValueOnce(new Error("Something went wrong"));
 
             try {
@@ -504,9 +496,8 @@ describe("BaseAssetDiscoveryService", () => {
             }
         });
 
-        it("should fall back to 'unknown' URL when AxiosError has no config", async () => {
-            const axiosError = new AxiosError("timeout", "ECONNABORTED");
-            fetchMock.mockRejectedValueOnce(axiosError);
+        it("should fall back to 'unknown' URL when error is not an HttpError", async () => {
+            fetchMock.mockRejectedValueOnce(new Error("plain error"));
 
             try {
                 await service.getSupportedAssets();
