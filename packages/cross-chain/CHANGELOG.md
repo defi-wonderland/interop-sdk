@@ -1,5 +1,41 @@
 # @wonderland/interop-cross-chain
 
+## 0.10.0
+
+### Minor Changes
+
+-   755dc8c: Surface token `name` and `logoURI` on `DiscoveredAssetInfo`
+
+    -   `AssetInfo` (and therefore `DiscoveredAssetInfo`) gains optional `name` and `logoURI` fields.
+    -   Bungee, Across, LiFi Intents and Relay adapters now propagate every metadata field their endpoints actually return; `logoURI` is `undefined` for providers whose discovery endpoints don't include a logo (LiFi `/routes`, Relay `/chains`).
+    -   `toDiscoveredAssets` and `mergeDiscoveredAssets` keep the first non-empty `name` / `logoURI` when the same token shows up under multiple providers, matching how `providers[]` is already merged.
+
+-   c67fd48: Add explorer URLs to `OrderTrackingUpdate`
+
+    -   `OrderTrackingUpdate` now has `explorers?: { tracker?, origin?, destination? }`, plus `originChainId` (required) and `destinationChainId`.
+    -   `CrossChainProvider.getOrderExplorers(params)` returns chain block explorer URLs by default. Across and Bungee override it to also return their bridge tracker URL. LiFi Intents, OIF and Relay use the default until they have a public scanner.
+    -   The `OrderTracker` calls the provider's resolver on every yielded update, so consumers read `update.explorers.tracker ?? update.explorers.origin` instead of building URLs themselves.
+
+-   2a9154e: Replace axios with native fetch for SES (LavaMoat) compatibility. axios cannot run under SES because `lockdown()` tamper-proofs the JavaScript intrinsics it patches at startup, which blocked any consumer running under SES (Ambire and MetaMask Snaps).
+
+    The SDK now uses a small `HttpClient` / `httpRequest` / `HttpError` wrapper around native `fetch`, with the same observable behavior: 4xx/5xx throw, timeouts via AbortController, JSON serialization, header merging.
+
+    Sources:
+
+    -   [MetaMask Snaps — axios + SES](https://docs.metamask.io/snaps/how-to/debug-a-snap/common-issues/)
+    -   [SES — Endo readme](https://www.npmjs.com/package/ses)
+
+### Patch Changes
+
+-   8c38188: Fix LiFi Intents `Open` event ABI mismatch in `LifiOpenedIntentParser`
+
+    -   `maxSpent` is now decoded as `uint256[2][]` (token packed as uint256, then amount), matching the layout the LiFi solver actually emits on-chain. Previously typed as `tuple(address,uint256)[]`, which made `decodeEventLog` throw `AbiEventSignatureNotFoundError` and broke `getOrderStatus` / `watchOrder` for any user-open LiFi route.
+    -   `LIFI_OPEN_EVENT_SIGNATURE` is now derived from the ABI via `toEventSelector` instead of being hardcoded, so the topic check stays in sync with the ABI.
+    -   Added an anvil-fork integration test that runs the parser against a real Base tx and asserts orderId, user, origin chain, and fill instructions decode correctly.
+
+-   Updated dependencies [2a9154e]
+    -   @wonderland/interop-addresses@0.7.0
+
 ## 0.9.0
 
 ### Minor Changes
