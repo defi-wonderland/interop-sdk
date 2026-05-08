@@ -105,9 +105,6 @@ export function useOrderExecution(): UseOrderExecutionReturn {
           quote,
           walletClient,
           publicClient,
-          ownerAddress: address,
-          inputTokenAddress,
-          inputAmount,
           chainContext,
           onStateChange: setState,
         });
