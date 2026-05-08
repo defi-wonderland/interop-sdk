@@ -21,7 +21,7 @@ interface FlowParams {
   onStateChange: (state: BridgeState) => void;
 }
 
-export const submitOifSignableOrder = async ({
+export const submitSignableOrder = async ({
   quote,
   walletClient,
   publicClient,

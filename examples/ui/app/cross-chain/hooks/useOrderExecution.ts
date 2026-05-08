@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isSignatureOnlyOrder, type ExecutableQuote } from '@wonderland/interop-cross-chain';
+import { getSignatureSteps, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { useAccount, useConfig, useSwitchChain } from 'wagmi';
 import {
   ensureCorrectChain,
   executeDirectTransaction,
-  submitOifSignableOrder,
+  submitSignableOrder,
   trackOrder,
 } from '../services/orderExecution';
 import { useBalanceStore } from '../stores/balanceStore';
@@ -97,9 +97,9 @@ export function useOrderExecution(): UseOrderExecutionReturn {
         );
         expectedWalletChainIdRef.current = null;
 
-        // Branch: signature-based (OIF escrow/3009) vs direct transaction
-        const isSignable = isSignatureOnlyOrder(quote.order);
-        const executeFlow = isSignable ? submitOifSignableOrder : executeDirectTransaction;
+        // Branch: signable orders (approvals + sign+submit) vs direct transaction orders.
+        const needsSignature = getSignatureSteps(quote.order).length > 0;
+        const executeFlow = needsSignature ? submitSignableOrder : executeDirectTransaction;
 
         const trackingId = await executeFlow({
           quote,
