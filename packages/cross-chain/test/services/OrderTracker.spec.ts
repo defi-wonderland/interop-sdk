@@ -2,6 +2,7 @@ import { Hex } from "viem";
 import { baseSepolia, sepolia } from "viem/chains";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { MissingDestinationChainId } from "../../src/core/errors/MissingDestinationChainId.exception.js";
 import { FillTimeoutError } from "../../src/core/services/EventBasedFillWatcher.js";
 import {
     FillWatcher,
@@ -933,6 +934,19 @@ describe("OrderTracker", () => {
                 destinationChainId: mockDestinationChainId,
             });
             expect(mockFillWatcher.getFill).toHaveBeenCalled();
+            expect(mockOnChainWatcher.getFill).not.toHaveBeenCalled();
+        });
+
+        it("explicit + tracking: 'api' without destinationChainId → throws MissingDestinationChainId", async () => {
+            const generator = tracker.watchOrder({
+                txHash: mockTxHash,
+                orderId,
+                tracking: "api",
+                originChainId: mockOriginChainId,
+            } as unknown as WatchOrderParams);
+
+            await expect(generator.next()).rejects.toBeInstanceOf(MissingDestinationChainId);
+            expect(mockFillWatcher.getFill).not.toHaveBeenCalled();
             expect(mockOnChainWatcher.getFill).not.toHaveBeenCalled();
         });
     });
