@@ -5,7 +5,8 @@ import { useChainConfig, useTokenConfig } from '../hooks/useNetworkConfig';
 import { STEP, WALLET_ACTION, type BridgeState } from '../types/execution';
 import { formatQuoteData } from '../utils/quoteFormatter';
 import { Tooltip } from './Tooltip';
-import { SpinnerIcon, CheckIcon, CloseIcon, BoltIcon, ClockIcon, QuestionIcon } from './icons';
+import { SpinnerIcon, CheckIcon, CloseIcon, BoltIcon, ClockIcon, QuestionIcon, WarningIcon } from './icons';
+import type { FormattedFallbackToken } from '../utils/quoteFormatter';
 import type { ExecutableQuote } from '@wonderland/interop-cross-chain';
 
 interface QuoteCardProps {
@@ -34,6 +35,21 @@ function ChainPill({ name }: { name: string }) {
     <span className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-secondary/80 text-[10px] font-medium text-text-tertiary leading-none'>
       {name}
     </span>
+  );
+}
+
+function FallbackWarning({ fallback, chainName }: { fallback: FormattedFallbackToken; chainName: string }) {
+  const tooltip = `If the destination call reverts, you'll receive ${fallback.amount} ${fallback.symbol} on ${chainName} instead of the requested output.`;
+  return (
+    <Tooltip content={tooltip} side='top' align='start'>
+      <div className='mt-2 flex items-center gap-1.5 text-[11px] text-warning cursor-help'>
+        <WarningIcon className='w-3 h-3 shrink-0' />
+        <span className='font-medium'>Non-atomic route</span>
+        <span className='text-text-tertiary'>
+          · fallback {fallback.amount} {fallback.symbol} on {chainName}
+        </span>
+      </div>
+    </Tooltip>
   );
 }
 
@@ -102,6 +118,10 @@ export function QuoteCard({
     e.stopPropagation(); // Prevent triggering onSelect
     onExecute?.(quote);
   };
+
+  const fallbackChainName = formatted.fallback
+    ? (getChain(formatted.fallback.chainId)?.name ?? `Chain ${formatted.fallback.chainId}`)
+    : '';
 
   const hasFee = !!formatted.feeTotal && formatted.feeTotal !== '0.0000';
   const hasFeeUsd = !!formatted.feeTotalUsd;
@@ -231,6 +251,8 @@ export function QuoteCard({
             variant='output'
           />
         </div>
+
+        {formatted.fallback && <FallbackWarning fallback={formatted.fallback} chainName={fallbackChainName} />}
 
         {/* Footer: Provider | ETA + Fees | (spacer for execute button) */}
         <div
