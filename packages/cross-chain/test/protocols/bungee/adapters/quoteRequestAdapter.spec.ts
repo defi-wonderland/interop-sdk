@@ -99,6 +99,20 @@ describe("adaptQuoteRequest", () => {
         expect(result.refuel).toBe("true");
     });
 
+    it("sets enableManual when enableOtherProviders is true", () => {
+        const request = buildQuoteRequest();
+        const result = adaptQuoteRequest(request, { enableOtherProviders: true });
+
+        expect(result.enableManual).toBe("true");
+    });
+
+    it("does not set enableManual when enableOtherProviders is false", () => {
+        const request = buildQuoteRequest();
+        const result = adaptQuoteRequest(request, { enableOtherProviders: false });
+
+        expect(result.enableManual).toBeUndefined();
+    });
+
     it("omits optional fields when options are not provided", () => {
         const request = buildQuoteRequest();
         const result = adaptQuoteRequest(request);
@@ -108,6 +122,7 @@ describe("adaptQuoteRequest", () => {
         expect(result.useInbox).toBeUndefined();
         expect(result.slippage).toBeUndefined();
         expect(result.refuel).toBeUndefined();
+        expect(result.enableManual).toBeUndefined();
     });
 
     describe("native token placeholder translation", () => {

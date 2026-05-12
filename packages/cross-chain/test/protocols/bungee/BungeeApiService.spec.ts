@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { HttpClient } from "../../../src/core/interfaces/httpClient.interface.js";
 import type {
+    BungeeBuildTxRequest,
+    BungeeBuildTxResponse,
     BungeeQuoteRequest,
     BungeeQuoteResponse,
     BungeeStatusRequest,
@@ -113,6 +115,26 @@ function makeQuoteResponse(): BungeeQuoteResponse {
                 routeTags: ["MAX_OUTPUT"],
             },
             manualRoutes: [],
+        },
+    };
+}
+
+function makeBuildTxRequest(): BungeeBuildTxRequest {
+    return { quoteId: "manual-quote-1" };
+}
+
+function makeBuildTxResponse(): BungeeBuildTxResponse {
+    return {
+        success: true,
+        statusCode: 200,
+        result: {
+            userOp: "tx",
+            txData: {
+                to: VALID_ADDRESS,
+                data: "0xdeadbeef",
+                value: "0",
+                chainId: ORIGIN_CHAIN_ID,
+            },
         },
     };
 }
@@ -239,6 +261,37 @@ describe("BungeeApiService", () => {
         it("wraps ZodError from invalid response in ProviderGetQuoteFailure", async () => {
             mockGet.mockResolvedValue(mockOk({ success: "not-a-boolean" }));
             await expect(service.getQuote(makeQuoteRequest())).rejects.toThrow(
+                ProviderGetQuoteFailure,
+            );
+        });
+    });
+
+    describe("buildTx()", () => {
+        it("calls GET /api/v1/bungee/build-tx with quoteId", async () => {
+            mockGet.mockResolvedValue(mockOk(makeBuildTxResponse()));
+            const result = await service.buildTx(makeBuildTxRequest());
+            expect(result.success).toBe(true);
+            expect(result.result.userOp).toBe("tx");
+            expect(mockGet).toHaveBeenCalledWith("/api/v1/bungee/build-tx", {
+                params: makeBuildTxRequest(),
+            });
+        });
+
+        it("rejects invalid request params with ProviderGetQuoteFailure", async () => {
+            const invalid = { quoteId: 123 as unknown as string };
+            await expect(service.buildTx(invalid)).rejects.toThrow(ProviderGetQuoteFailure);
+        });
+
+        it("wraps HttpError in ProviderGetQuoteFailure", async () => {
+            mockGet.mockRejectedValue(makeHttpError("Network Error"));
+            await expect(service.buildTx(makeBuildTxRequest())).rejects.toThrow(
+                ProviderGetQuoteFailure,
+            );
+        });
+
+        it("wraps ZodError from invalid response in ProviderGetQuoteFailure", async () => {
+            mockGet.mockResolvedValue(mockOk({ success: "not-a-boolean" }));
+            await expect(service.buildTx(makeBuildTxRequest())).rejects.toThrow(
                 ProviderGetQuoteFailure,
             );
         });
