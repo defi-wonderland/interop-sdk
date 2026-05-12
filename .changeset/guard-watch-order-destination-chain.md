@@ -2,4 +2,4 @@
 "@wonderland/interop-cross-chain": patch
 ---
 
-`OrderTracker.watchOrder` now throws a typed `MissingDestinationChainId` from the entrypoint when `destinationChainId` is missing on the API tracking path, instead of letting the call surface as a confusing failure inside the fill watcher. The same error class also replaces the generic throw used by the on-chain path when a parsed intent has no destination chain in `fillInstructions`.
+`OrderTracker.watchOrder` now fails fast with a typed `MissingDestinationChainId` when the destination chain id cannot be determined, instead of bubbling up from internals or throwing a plain `Error`. Both the API and on-chain paths use the same error so callers can handle the case once.

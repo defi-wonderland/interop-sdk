@@ -1,9 +1,4 @@
-/**
- * Thrown when `OrderTracker.watchOrder` is called on the API tracking path
- * without a `destinationChainId`. The fill watcher requires it to query the
- * destination leg, so we fail fast at the entrypoint with a clear message
- * instead of surfacing a confusing error from deep inside the watcher.
- */
+/** Thrown when the destination chain id is required but cannot be resolved. */
 export class MissingDestinationChainId extends Error {
     constructor(reason: "api-tracking" | "order-fill-instructions") {
         const detail =

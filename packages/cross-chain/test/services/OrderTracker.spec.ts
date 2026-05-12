@@ -937,7 +937,7 @@ describe("OrderTracker", () => {
             expect(mockOnChainWatcher.getFill).not.toHaveBeenCalled();
         });
 
-        it("explicit + tracking: 'api' without destinationChainId → throws MissingDestinationChainId", async () => {
+        it("throws MissingDestinationChainId when tracking by order id without destinationChainId", async () => {
             const generator = tracker.watchOrder({
                 txHash: mockTxHash,
                 orderId,
