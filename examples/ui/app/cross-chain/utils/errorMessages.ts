@@ -133,6 +133,13 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; result: ParsedError }> = [
     },
   },
   {
+    pattern: /MissingDestinationChainId|destinationChainId.*for API tracking|no destination chain in fillInstructions/i,
+    result: {
+      title: 'Missing Destination Chain',
+      message: 'Destination chain is required to track this order. Please retry from the quote step.',
+    },
+  },
+  {
     pattern: /execution reverted/i,
     result: {
       title: 'Transaction Failed',
