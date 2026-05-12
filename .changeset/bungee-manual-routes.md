@@ -9,4 +9,4 @@ Add Bungee manual routes via `enableOtherProviders`
 -   Tracking is now split per flow so each polls Bungee with the right identifier:
     -   Auto routes set `tracking.orderId = requestHash` and the SDK polls `/status?requestHash=…` via `fillWatcherConfig`.
     -   Manual routes have no Bungee-issued requestHash, so the SDK polls `/status?txHash=${openTxHash}` via the new `onChainFillWatcherConfig` — no longer assuming the auto-route identifier shape works for manual flows.
--   Endpoint URL building is centralized in `BungeeApiService.buildStatusPath(query)` with a discriminated `{ kind: "txHash" | "requestHash" }` input, so the query parameter cannot be mismatched at the call site.
+-   `openedIntentParserConfig.buildUrl` now queries `/status?txHash=…` (previously `?requestHash=…`) so the parameter matches the on-chain origin tx hash it receives.

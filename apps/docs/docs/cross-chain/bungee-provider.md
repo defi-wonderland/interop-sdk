@@ -22,18 +22,19 @@ See [Bungee's API access docs](https://docs.bungee.exchange/integrate/get-api-ac
 
 ## Configuration
 
-| Field             | Type            | Required | Description                                                                                                                   |
-| ----------------- | --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `tier`            | `BungeeApiTier` | No       | API tier: `"sandbox"`, `"dedicated"`, or `"frontend"` (default: `"sandbox"`)                                                  |
-| `baseUrl`         | string          | No       | Custom API base URL. Overrides the URL derived from `tier`                                                                    |
-| `providerId`      | string          | No       | Custom provider identifier (default: `"bungee"`)                                                                              |
-| `apiKey`          | string          | No       | API key for dedicated backend (sent via `x-api-key` header)                                                                   |
-| `affiliateId`     | string          | No       | Affiliate ID for tracking (sent via `affiliate` header)                                                                       |
-| `feeBps`          | string          | No       | Convenience fee in basis points (e.g. `"50"` for 0.5%)                                                                        |
-| `feeTakerAddress` | string          | No       | Address to receive the convenience fee. Required when `feeBps` is set                                                         |
-| `submissionModes` | string[]        | No       | Transaction submission modes: `"user-transaction"` (onchain) and/or `"gasless"` (permit2). Defaults to `["user-transaction"]` |
-| `slippage`        | string          | No       | Default slippage tolerance (e.g. `"0.5"` for 0.5%)                                                                            |
-| `refuel`          | boolean         | No       | Enable native gas refueling on the destination chain                                                                          |
+| Field                  | Type            | Required | Description                                                                                                                   |
+| ---------------------- | --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `tier`                 | `BungeeApiTier` | No       | API tier: `"sandbox"`, `"dedicated"`, or `"frontend"` (default: `"sandbox"`)                                                  |
+| `baseUrl`              | string          | No       | Custom API base URL. Overrides the URL derived from `tier`                                                                    |
+| `providerId`           | string          | No       | Custom provider identifier (default: `"bungee"`)                                                                              |
+| `apiKey`               | string          | No       | API key for dedicated backend (sent via `x-api-key` header)                                                                   |
+| `affiliateId`          | string          | No       | Affiliate ID for tracking (sent via `affiliate` header)                                                                       |
+| `feeBps`               | string          | No       | Convenience fee in basis points (e.g. `"50"` for 0.5%)                                                                        |
+| `feeTakerAddress`      | string          | No       | Address to receive the convenience fee. Required when `feeBps` is set                                                         |
+| `submissionModes`      | string[]        | No       | Transaction submission modes: `"user-transaction"` (onchain) and/or `"gasless"` (permit2). Defaults to `["user-transaction"]` |
+| `slippage`             | string          | No       | Default slippage tolerance (e.g. `"0.5"` for 0.5%)                                                                            |
+| `refuel`               | boolean         | No       | Enable native gas refueling on the destination chain                                                                          |
+| `enableOtherProviders` | boolean         | No       | Include manual routes served by other bridges (Across, Stargate, Mayan, Synapse, …) alongside Bungee's own auto routes        |
 
 :::info Gasless is opt-in — the default is `["user-transaction"]` only
 
@@ -55,6 +56,7 @@ Notes:
 -   `feeBps` and `feeTakerAddress` must be set together. The fee is deducted from the output amount.
 -   `slippage` sets the default tolerance for all quotes. If not set, Bungee uses its own default.
 -   `refuel` tops up native gas on the destination chain so the user can transact immediately after bridging.
+-   `enableOtherProviders` opts into Bungee's manual routes. Each manual route is built eagerly via `GET /api/v1/bungee/build-tx` and shipped as a separate `Quote` with an executable `TransactionStep`. Per-route build failures are isolated — the auto route and the remaining manuals are still returned.
 
 ## Creating the Provider
 
@@ -183,6 +185,29 @@ const bungeeProvider = createCrossChainProvider("bungee", {
 });
 ```
 
+### With Manual Routes (Other Bridges)
+
+Return Bungee's auto route plus one `Quote` per manual route — i.e. routes served by Across, Stargate, Mayan, Synapse and other bridges accessible through Bungee:
+
+```typescript
+const bungeeProvider = createCrossChainProvider("bungee", {
+    enableOtherProviders: true,
+});
+
+const quotes = await bungeeProvider.getQuotes({
+    user: "0xYourAddress",
+    input: { chainId: 1, assetAddress: "0x...", amount: "1000000" },
+    output: { chainId: 10, assetAddress: "0x..." },
+});
+
+// quotes[0]               → Bungee auto route
+// quotes[1..N]            → manual routes (one per bridge that has liquidity)
+// quote.metadata.bungeeManualRoute → the manual route entry from Bungee
+// quote.metadata.bungeeBuildTx     → the build-tx result used to construct the TransactionStep
+```
+
+Each manual route is built eagerly via `GET /api/v1/bungee/build-tx` so the quote ships with an executable `TransactionStep`. If one bridge's `build-tx` fails, the auto route and the remaining manual routes are still returned.
+
 ### With Custom Base URL
 
 Override the tier URL with a custom endpoint:
@@ -246,11 +271,14 @@ for (const { spender, tokenAddress, required } of allowances) {
 
 ## Tracking
 
-Bungee uses API-based tracking. The SDK polls the status endpoint at a 5-second interval:
+Bungee uses API-based tracking. The SDK polls the status endpoint at a 5-second interval. The query parameter depends on which route a quote came from:
 
-```
-GET /api/v1/bungee/status?requestHash=<orderId>
-```
+| Route         | Query parameter          | When the SDK uses it                                                                  |
+| ------------- | ------------------------ | ------------------------------------------------------------------------------------- |
+| Auto routes   | `?requestHash=<orderId>` | `quote.tracking.orderId = requestHash` is set, so tracking polls by it.               |
+| Manual routes | `?txHash=<openTxHash>`   | No Bungee-issued `requestHash` exists — the SDK polls by the on-chain origin tx hash. |
+
+Both paths hit `/api/v1/bungee/status`. The opened-intent parser also queries by `txHash` so it can resolve an order from just the on-chain transaction hash.
 
 No extra RPC URLs are needed — tracking is handled entirely through the Bungee API.
 

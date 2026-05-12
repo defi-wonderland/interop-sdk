@@ -278,14 +278,25 @@ export class BungeeProvider extends CrossChainProvider {
         return builds
             .filter(
                 (
-                    r,
-                ): r is PromiseFulfilledResult<{
+                    result,
+                ): result is PromiseFulfilledResult<{
                     route: BungeeManualRoute;
                     buildTx: BungeeBuildTxResult;
-                }> => r.status === "fulfilled",
+                }> => {
+                    if (result.status === "rejected") {
+                        console.warn("Bungee build-tx failed for manual route:", result.reason);
+                        return false;
+                    }
+                    return true;
+                },
             )
-            .map((r) =>
-                adaptManualRouteQuote(response, r.value.route, r.value.buildTx, this.providerId),
+            .map((result) =>
+                adaptManualRouteQuote(
+                    response,
+                    result.value.route,
+                    result.value.buildTx,
+                    this.providerId,
+                ),
             )
             .filter((quote): quote is Quote => quote !== null);
     }
