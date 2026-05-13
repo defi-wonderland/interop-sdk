@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 
 type MermaidApi = typeof import("mermaid").default;
 type MermaidTheme = "default" | "dark";
@@ -25,24 +25,27 @@ function readTheme(): MermaidTheme {
     return document.documentElement.classList.contains("dark") ? "dark" : "default";
 }
 
+function subscribeTheme(cb: () => void): () => void {
+    const observer = new MutationObserver(cb);
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+}
+
+function useTheme(): MermaidTheme {
+    return useSyncExternalStore(subscribeTheme, readTheme, () => "default" as const);
+}
+
 type MermaidProps = {
     chart: string;
 };
 
 export function Mermaid({ chart }: MermaidProps) {
     const id = useId();
+    const theme = useTheme();
     const [svg, setSvg] = useState<string | null>(null);
-    const [theme, setTheme] = useState<MermaidTheme>("default");
-
-    useEffect(() => {
-        setTheme(readTheme());
-        const observer = new MutationObserver(() => setTheme(readTheme()));
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
-        return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -52,8 +55,11 @@ export function Mermaid({ chart }: MermaidProps) {
             const themed = `%%{init: { 'theme': '${theme}' } }%%\n${chart}`;
             const { svg } = await mermaid.render(renderId, themed);
             if (!cancelled) setSvg(svg);
-        })().catch(() => {
-            if (!cancelled) setSvg(null);
+        })().catch((err) => {
+            if (!cancelled) {
+                console.error("Mermaid render failed:", err);
+                setSvg(null);
+            }
         });
         return () => {
             cancelled = true;
