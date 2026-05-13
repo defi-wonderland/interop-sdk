@@ -1,6 +1,9 @@
 ---
 title: Order Tracking
+description: Track cross-chain orders from initiation to completion via OIF OrderStatus events, with both onchain and offchain observation strategies.
 ---
+
+# Order Tracking
 
 The SDK includes **order tracking** to monitor cross-chain transfers from initiation to completion.
 
@@ -51,7 +54,7 @@ The SDK exposes three ways to track an order. Choose based on your use case:
 
 :::
 
-:::info Mixed-step orders
+:::info[Mixed-step orders]
 Mixed-step orders (containing both transaction steps and signature steps) are not currently emitted by any supported provider. Consumers can safely handle either `isSignatureOnlyOrder()` or `isTransactionOnlyOrder()` without defensive mixed-order handling.
 :::
 
@@ -276,10 +279,10 @@ try {
 
 ## Next Step
 
-Explore more complex scenarios: [Advanced Usage](./advanced-usage.md)
+Explore more complex scenarios: [Advanced Usage](./advanced-usage)
 
 ## References
 
 -   [EIP-7683: Open Intent Framework](https://www.erc7683.org/)
--   [Order Tracking Types](./api.md#order-tracker)
--   [Concepts](./concepts.md) — how intent-based transfers and tracking work
+-   [Order Tracking Types](./api#order-tracker)
+-   [Concepts](./concepts) — how intent-based transfers and tracking work

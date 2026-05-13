@@ -1,6 +1,9 @@
 ---
 title: OIF Provider
+description: Direct integration with any OIF-compliant solver — submission modes, resource locks, and configuration for Open Intents Framework backends.
 ---
+
+# OIF Provider
 
 The [OIF (Open Intents Framework)](https://github.com/BootNodeDev/intents-framework) provider enables direct integration with any OIF-compliant solver. If you have access to a solver's API endpoint, you can integrate cross-chain functionality directly into your application using this provider.
 
@@ -16,7 +19,7 @@ The [OIF (Open Intents Framework)](https://github.com/BootNodeDev/intents-framew
 | `supportedLocks`  | string[] | No       | Lock mechanisms to request (e.g. `["oif-escrow"]`, `["compact-resource-lock"]`). Default: `["oif-escrow"]` |
 | `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both. Default: all modes                        |
 
-:::info OIF defaults to all submission modes
+:::info[OIF defaults to all submission modes]
 
 Unlike Relay and Bungee, the OIF provider enables **both submission modes** when `submissionModes` is not set — `"user-transaction"` (user pays gas) and `"gasless"` (solver executes on behalf of the user). The exact order types available also depend on `supportedLocks` (default: `["oif-escrow"]`).
 
@@ -162,15 +165,15 @@ const aggregator = createAggregator({
 });
 ```
 
-See [Automatic ERC-20 Approvals](./advanced-usage.md#automatic-erc-20-approvals) for the full reference.
+See [Automatic ERC-20 Approvals](./advanced-usage#automatic-erc-20-approvals) for the full reference.
 
 ## Next Step
 
-See a complete working example: [Execute Intent](./example.md)
+See a complete working example: [Execute Intent](./example)
 
 ## References
 
 -   [Open Intents Framework](https://github.com/openintentsframework)
 -   [EIP-7683: Cross Chain Intents](https://www.erc7683.org/)
--   [API Reference](./api.md) — full type definitions for quotes, fees, and orders
--   [Concepts](./concepts.md) — how intent-based transfers work
+-   [API Reference](./api) — full type definitions for quotes, fees, and orders
+-   [Concepts](./concepts) — how intent-based transfers work

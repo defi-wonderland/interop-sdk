@@ -1,8 +1,11 @@
 ---
 title: Addresses
+description: Parse, encode, and resolve interoperable addresses that combine an address, chain, and optional ENS name into one unambiguous string.
 ---
 
-:::danger Experimental release — not for production use
+# Addresses
+
+:::danger[Experimental release — not for production use]
 
 This SDK is an early, preview release and has not been audited. It handles transaction and signature data for cross-chain value transfers, so a defect in the SDK could result in permanent, irrecoverable loss of user funds.
 
@@ -57,10 +60,10 @@ const chainId = await getChainId("vitalik.eth@eip155:1");
 
 ## Where to start
 
-| I want to...                 | Go to                                                   |
-| ---------------------------- | ------------------------------------------------------- |
-| Try it out                   | [Getting Started](./addresses/getting-started.md)       |
-| Understand the standards     | [Concepts](./addresses/concepts.md)                     |
-| See a real-world walkthrough | [Parsing an Interoperable Name](./addresses/example.md) |
-| Learn advanced patterns      | [Advanced Usage](./addresses/advanced-usage.md)         |
-| Look up a function signature | [API Reference](./addresses/api.md)                     |
+| I want to...                 | Go to                                      |
+| ---------------------------- | ------------------------------------------ |
+| Try it out                   | [Getting Started](./getting-started)       |
+| Understand the standards     | [Concepts](./concepts)                     |
+| See a real-world walkthrough | [Parsing an Interoperable Name](./example) |
+| Learn advanced patterns      | [Advanced Usage](./advanced-usage)         |
+| Look up a function signature | [API Reference](./api)                     |

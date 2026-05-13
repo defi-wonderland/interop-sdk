@@ -1,6 +1,9 @@
 ---
 title: Getting Started
+description: Parse an interoperable address and extract its components — go from a human-readable name like vitalik.eth@eip155:1 to address and chain ID.
 ---
+
+# Getting Started
 
 In this tutorial, you'll parse an interoperable address and extract its components. By the end, you'll know how to go from a human-readable name like `vitalik.eth@eip155:1` to its raw address and chain ID.
 
@@ -113,7 +116,7 @@ const binary = await nameToBinary("vitalik.eth@eip155:1", { format: "hex" });
 const name = binaryToName(binary);
 ```
 
-## Chain resolution {#experimental-onchain-chain-registry}
+## Chain resolution
 
 The SDK resolves chain labels (like `eth` or `base`) to their CAIP-2 identifiers automatically:
 
@@ -148,7 +151,7 @@ Fully-qualified identifiers (e.g., `eip155:10`) always work without any registry
 
 ## Next steps
 
--   [Concepts](./concepts.md) — understand the two-layer architecture and the standards behind it
--   [Advanced Usage](./advanced-usage.md) — validation, error handling, round-trip conversions, best practices
--   [Parsing an Interoperable Name](./example.md) — a deeper walkthrough for wallet developers
--   [API Reference](./api.md) — complete function signatures and types
+-   [Concepts](./concepts) — understand the two-layer architecture and the standards behind it
+-   [Advanced Usage](./advanced-usage) — validation, error handling, round-trip conversions, best practices
+-   [Parsing an Interoperable Name](./example) — a deeper walkthrough for wallet developers
+-   [API Reference](./api) — complete function signatures and types

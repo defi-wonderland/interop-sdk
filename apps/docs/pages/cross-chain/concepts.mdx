@@ -1,6 +1,9 @@
 ---
 title: Concepts
+description: The intent-based architecture behind the cross-chain package, the EIP-7683 standard, and how the SDK unifies multi-provider transfers.
 ---
+
+# Concepts
 
 This page explains the ideas behind the `cross-chain` package — the architecture, the standards, and the design decisions that shape how cross-chain transfers work.
 
@@ -81,13 +84,13 @@ A provider is an adapter that translates the SDK's standardized `QuoteRequest` i
 
 ### Available providers
 
-| Provider                       | Status | Execution Modes                         | Tracking                        |
-| ------------------------------ | ------ | --------------------------------------- | ------------------------------- |
-| [Across](./across-provider.md)                | Active | User (transaction)                      | API (mainnet), Events (testnet) |
-| [Relay](./relay-provider.md)                  | Active | User (transaction)                      | API-based                       |
-| [OIF](./oif-provider.md)                      | Active | Protocol + User                         | Event-based                     |
-| [Bungee](./bungee-provider.md)                | Active | User (transaction) + Protocol (permit2) | API-based                       |
-| [LiFi Intents](./lifi-intents-provider.md)    | Active | User (transaction)                      | Custom event + API              |
+| Provider                                | Status | Execution Modes                         | Tracking                        |
+| --------------------------------------- | ------ | --------------------------------------- | ------------------------------- |
+| [Across](./across-provider)             | Active | User (transaction)                      | API (mainnet), Events (testnet) |
+| [Relay](./relay-provider)               | Active | User (transaction)                      | API-based                       |
+| [OIF](./oif-provider)                   | Active | Protocol + User                         | Event-based                     |
+| [Bungee](./bungee-provider)             | Active | User (transaction) + Protocol (permit2) | API-based                       |
+| [LiFi Intents](./lifi-intents-provider) | Active | User (transaction)                      | Custom event + API              |
 
 ### Choosing a provider
 
@@ -103,7 +106,7 @@ The `Aggregator` fetches quotes from multiple providers in parallel and returns 
 
 The aggregator also collects errors from individual providers, so you can show partial results even when some providers fail.
 
-Optionally, the aggregator can enrich sorted quotes with ERC-20 approval steps: configure an `approvalService` and every quote returned will already have any required `approve` `TransactionStep` prepended to `order.steps`. See [Automatic ERC-20 Approvals](./advanced-usage.md#automatic-erc-20-approvals).
+Optionally, the aggregator can enrich sorted quotes with ERC-20 approval steps: configure an `approvalService` and every quote returned will already have any required `approve` `TransactionStep` prepended to `order.steps`. See [Automatic ERC-20 Approvals](./advanced-usage#automatic-erc-20-approvals).
 
 ## Order tracking
 
@@ -118,7 +121,7 @@ Tracking works through two mechanisms:
 -   **Event-based**: Parse the ERC-7683 open event on the origin chain, then watch for the fill event on the destination chain. Requires RPC URLs for both chains.
 -   **API-based**: Poll a provider's status endpoint. Simpler setup, no destination-chain RPC needed.
 
-The tracking mechanism is determined by the provider. See [Order Tracking](./intent-tracking.md) for usage details.
+The tracking mechanism is determined by the provider. See [Order Tracking](./intent-tracking) for usage details.
 
 ## References
 

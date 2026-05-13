@@ -1,9 +1,12 @@
 ---
 title: Getting Started
+description: Execute a cross-chain token transfer end-to-end — create a provider, fetch a quote, send the transaction, and track the order to completion.
 ---
 
-:::tip Building a frontend?
-This guide uses `privateKeyToAccount` and a plain Node.js script to keep the flow focused on the SDK. If you're wiring the SDK into a React / Next.js app with an injected wallet, jump to [Frontend Integration](./frontend-integration.md) for the wagmi-based pattern.
+# Getting Started
+
+:::tip[Building a frontend?]
+This guide uses `privateKeyToAccount` and a plain Node.js script to keep the flow focused on the SDK. If you're wiring the SDK into a React / Next.js app with an injected wallet, jump to [Frontend Integration](./frontend-integration) for the wagmi-based pattern.
 :::
 
 In this tutorial, you'll execute a cross-chain token transfer using the Interop SDK. By the end, you'll know how to create a provider, fetch a quote, send a transaction, and [discover which chains and tokens are supported](#which-chains-and-tokens-are-supported).
@@ -38,7 +41,7 @@ const provider = createCrossChainProvider(PROTOCOLS.RELAY, { isTestnet: true });
 
 Examples throughout the docs use the `PROTOCOLS` constant (`PROTOCOLS.RELAY`, `PROTOCOLS.ACROSS`, `PROTOCOLS.OIF`, `PROTOCOLS.BUNGEE`, `PROTOCOLS.LIFI_INTENTS`) rather than the literal strings it maps to — it keeps the protocol name typo-safe and discoverable in your IDE.
 
-Other available providers: [Across](./across-provider.md), [OIF](./oif-provider.md). See [Supported Providers](./providers.md) for the full list.
+Other available providers: [Across](./across-provider), [OIF](./oif-provider). See [Supported Providers](./providers) for the full list.
 
 ## Set up your wallet
 
@@ -119,7 +122,7 @@ Both `0x0000000000000000000000000000000000000000` (zero address) and `0xeeeeeeee
 
 ERC-20 inputs need an `approve` before the transfer step. The SDK can do this for you: wire an `approvalService` into the aggregator and every returned quote already has the necessary `approve` `TransactionStep`s prepended to `order.steps`. Iterate the steps in order and each `approve` fires before the step that needs it.
 
-See [Automatic ERC-20 Approvals](./advanced-usage.md#automatic-erc-20-approvals) for the setup, or the [Execute Intent guide](./example.md) for a full runnable example.
+See [Automatic ERC-20 Approvals](./advanced-usage#automatic-erc-20-approvals) for the setup, or the [Execute Intent guide](./example) for a full runnable example.
 
 ## Execute the transaction
 
@@ -177,7 +180,7 @@ const usdc = discovered.tokenMetadata[1]?.["0xa0b86991c6218b36c1d19d4a2e9eb0ce36
 console.log(usdc?.symbol, usdc?.decimals); // "USDC", 6
 ```
 
-Omit `chainIds` to discover across every chain each provider supports. For a single-provider variant and the full `DiscoveredAssets` shape, see the [API Reference](./api.md#aggregator).
+Omit `chainIds` to discover across every chain each provider supports. For a single-provider variant and the full `DiscoveredAssets` shape, see the [API Reference](./api#aggregator).
 
 ## Compare quotes from multiple providers
 
@@ -232,8 +235,8 @@ response.errors.forEach((err) => console.warn(`Provider error: ${err.errorMsg}`)
 
 ## Next steps
 
--   [Order Tracking](./intent-tracking.md) — monitor your transfer from initiation to completion
--   [Supported Providers](./providers.md) — all providers and their configuration options
--   [Concepts](./concepts.md) — understand intent-based architecture and EIP-7683
--   [Advanced Usage](./advanced-usage.md) — sorting strategies, timeouts, error handling
--   [API Reference](./api.md) — complete function signatures and types
+-   [Order Tracking](./intent-tracking) — monitor your transfer from initiation to completion
+-   [Supported Providers](./providers) — all providers and their configuration options
+-   [Concepts](./concepts) — understand intent-based architecture and EIP-7683
+-   [Advanced Usage](./advanced-usage) — sorting strategies, timeouts, error handling
+-   [API Reference](./api) — complete function signatures and types

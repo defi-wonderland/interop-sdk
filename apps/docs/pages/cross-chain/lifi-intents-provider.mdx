@@ -1,6 +1,9 @@
 ---
 title: LiFi Intents Provider
+description: Cross-chain transfers through the LI.FI intent solver marketplace, where competing solvers fulfill deposits at the best available rate.
 ---
+
+# LiFi Intents Provider
 
 The [LiFi Intents](https://docs.li.fi/lifi-intents/introduction) provider enables cross-chain token transfers through the LI.FI intent solver marketplace, where solvers compete to fulfill users' transfer requests at the best rates.
 
@@ -19,10 +22,10 @@ All quotes return **transaction steps** (user-pays-gas). The provider does not s
 
 ## Configuration
 
-| Field            | Type   | Required | Description                                                   |
-| ---------------- | ------ | -------- | ------------------------------------------------------------- |
-| `orderServerUrl` | string | Yes      | LI.FI order server URL                                        |
-| `providerId`     | string | No       | Custom provider identifier (default: `"lifi-intents"`)        |
+| Field            | Type                         | Required | Description                                                    |
+| ---------------- | ---------------------------- | -------- | -------------------------------------------------------------- |
+| `orderServerUrl` | string                       | Yes      | LI.FI order server URL                                         |
+| `providerId`     | string                       | No       | Custom provider identifier (default: `"lifi-intents"`)         |
 | `headers`        | Record&lt;string, string&gt; | No       | Custom HTTP headers sent with all requests to the order server |
 
 ## Creating the Provider
@@ -130,13 +133,13 @@ The origin chain requires an RPC URL for parsing the Open event. Fill tracking i
 
 The LI.FI order server reports the following statuses, mapped to SDK statuses:
 
-| LI.FI Status | SDK Status   | Description                               |
-| ------------ | ------------ | ----------------------------------------- |
-| `Signed`     | Pending      | Order registered, awaiting solver pickup   |
-| `Delivered`  | Settling     | Solver delivered assets, awaiting settlement |
-| `Settled`    | Finalized    | Settlement complete, funds released         |
-| `Expired`    | Failed       | Order deadline exceeded                    |
-| `Failed`     | Failed       | Order failed for another reason            |
+| LI.FI Status | SDK Status | Description                                  |
+| ------------ | ---------- | -------------------------------------------- |
+| `Signed`     | Pending    | Order registered, awaiting solver pickup     |
+| `Delivered`  | Settling   | Solver delivered assets, awaiting settlement |
+| `Settled`    | Finalized  | Settlement complete, funds released          |
+| `Expired`    | Failed     | Order deadline exceeded                      |
+| `Failed`     | Failed     | Order failed for another reason              |
 
 ## Asset Discovery
 
@@ -144,10 +147,10 @@ The provider supports asset discovery via the LI.FI `/routes` endpoint, which re
 
 ## Next Step
 
-See a complete working example: [Execute Intent](./example.md)
+See a complete working example: [Execute Intent](./example)
 
 ## References
 
 -   [LI.FI Intents Documentation](https://docs.li.fi/lifi-intents/introduction)
--   [API Reference](./api.md) — full type definitions for quotes, fees, and orders
--   [Concepts](./concepts.md) — how intent-based transfers work
+-   [API Reference](./api) — full type definitions for quotes, fees, and orders
+-   [Concepts](./concepts) — how intent-based transfers work

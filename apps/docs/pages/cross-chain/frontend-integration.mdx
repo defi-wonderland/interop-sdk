@@ -1,10 +1,11 @@
 ---
 title: Frontend Integration
+description: Wire the cross-chain SDK into a React/Next.js app with wagmi v2 — a useCrossChainSwap hook covering quotes, approvals, and submission.
 ---
 
 # Frontend Integration
 
-The [getting-started guide](./getting-started.md) uses `privateKeyToAccount` and a plain Node.js script to keep things simple. In a real application you wire through an injected wallet — the user's browser extension or mobile app — using **wagmi v2** and a connector library such as **RainbowKit**.
+The [getting-started guide](./getting-started) uses `privateKeyToAccount` and a plain Node.js script to keep things simple. In a real application you wire through an injected wallet — the user's browser extension or mobile app — using **wagmi v2** and a connector library such as **RainbowKit**.
 
 This page shows the full pattern: how to obtain viem clients from wagmi hooks and how to structure a `useCrossChainSwap` hook that fetches quotes, handles ERC-20 approvals, and submits the order.
 
@@ -131,9 +132,9 @@ const aggregator = createAggregator({
 });
 ```
 
-The service reads on-chain allowances through a single `multicall` per chain and only prepends an `approve` step when the user's current allowance is below `required`. See [Automatic ERC-20 Approvals](./advanced-usage.md#automatic-erc-20-approvals) for the full configuration surface, including the `InfiniteAmountStrategy` variant.
+The service reads on-chain allowances through a single `multicall` per chain and only prepends an `approve` step when the user's current allowance is below `required`. See [Automatic ERC-20 Approvals](./advanced-usage#automatic-erc-20-approvals) for the full configuration surface, including the `InfiniteAmountStrategy` variant.
 
-`rpcUrls` is the right fit here because this demo bridges across multiple origin chains and the service reads allowances on each quote's input chain. Two other options exist for simpler setups: omit the config entirely to fall back to viem's default public RPC per chain (fine for quick experiments, rate-limited in production), or pass `publicClient` when every quote originates on the same chain (e.g. a checkout that only ever accepts USDC on mainnet). Note that reusing the wagmi `usePublicClient()` value here would not work — it is bound to one chain, and `publicClient` is used for every chain the service is asked about. See [Picking a client source](./advanced-usage.md#picking-a-client-source).
+`rpcUrls` is the right fit here because this demo bridges across multiple origin chains and the service reads allowances on each quote's input chain. Two other options exist for simpler setups: omit the config entirely to fall back to viem's default public RPC per chain (fine for quick experiments, rate-limited in production), or pass `publicClient` when every quote originates on the same chain (e.g. a checkout that only ever accepts USDC on mainnet). Note that reusing the wagmi `usePublicClient()` value here would not work — it is bound to one chain, and `publicClient` is used for every chain the service is asked about. See [Picking a client source](./advanced-usage#picking-a-client-source).
 
 If you need the manual `readContract` / `writeContract` flow (no aggregator, or a provider that doesn't populate `order.checks.allowances`), see [Appendix: manual approval fallback](#appendix-manual-approval-fallback) below.
 
@@ -313,10 +314,10 @@ export function useCrossChainSwap() {
 
 ## Next steps
 
--   [Order Tracking](./intent-tracking.md) — detailed event reference and provider-specific notes
--   [Execute Intent](./example.md) — the equivalent Node.js script using `privateKeyToAccount`
--   [Advanced Usage](./advanced-usage.md) — sorting strategies, timeouts, error handling
--   [API Reference](./api.md) — complete function signatures and types
+-   [Order Tracking](./intent-tracking) — detailed event reference and provider-specific notes
+-   [Execute Intent](./example) — the equivalent Node.js script using `privateKeyToAccount`
+-   [Advanced Usage](./advanced-usage) — sorting strategies, timeouts, error handling
+-   [API Reference](./api) — complete function signatures and types
 
 ---
 
