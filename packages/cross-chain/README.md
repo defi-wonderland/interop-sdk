@@ -36,7 +36,7 @@ yarn add @wonderland/interop-cross-chain viem
 pnpm add @wonderland/interop-cross-chain viem
 ```
 
-Supported `viem` range: `^2.28.0`.
+Supported `viem` range: `^2.35.0`.
 
 ## Available Scripts
 
