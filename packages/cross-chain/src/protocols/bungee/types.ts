@@ -36,13 +36,7 @@ export const BungeeConfigSchema = z
         slippage: z.string().optional(),
         /** Enable native gas refueling on the destination chain. */
         refuel: z.boolean().optional(),
-        /**
-         * Ask the provider to return multiple route alternatives per quote request — for example one
-         * optimised for the highest output, another for the fastest fill — instead of only the
-         * recommended route. Defaults to `false`, which returns just the recommended route.
-         *
-         * The flag is named generically so other providers with a similar concept can adopt it.
-         */
+        /** Return multiple route alternatives per quote (e.g. max-output, fastest) instead of just the recommended one. Defaults to `false`. */
         enableMultipleRoutes: z.boolean().optional(),
     })
     .merge(FeeConfigSchema)
