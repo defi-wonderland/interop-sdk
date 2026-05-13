@@ -50,13 +50,13 @@ const resolveENSName = async (ensName: string, chainReference: string): Promise<
 
         const resolvedAddress = await client.getEnsAddress({
             name: normalize(ensName),
-            coinType: chainSpecificCoinType,
+            coinType: BigInt(chainSpecificCoinType),
         });
 
         if (!resolvedAddress && !isMainnet && knownViemChain) {
             const fallbackAddress = await client.getEnsAddress({
                 name: normalize(ensName),
-                coinType: ETHEREUM_COIN_TYPE,
+                coinType: BigInt(ETHEREUM_COIN_TYPE),
             });
             if (!fallbackAddress) {
                 throw new ENSNotFound(ensName);

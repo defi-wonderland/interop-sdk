@@ -61,7 +61,7 @@ export const QuoteSchema = z.object({
     fallbackToken: QuotePreviewEntrySchema.optional(),
     fees: QuoteFeesSchema.optional(),
     tracking: QuoteTrackingSchema.optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ── Types ───────────────────────────────────────────────

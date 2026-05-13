@@ -98,20 +98,27 @@ export const interoperableAddressTextSchema = z
     .refine((data) => data.chainReference !== undefined || data.address !== undefined, {
         message: "At least one of chainReference or address must be provided",
     })
-    .refine(
-        (data) => isValidChainReferenceForType(data.chainType, data.chainReference),
-        (data) => ({
-            message: `Invalid chain identifier: ${data.chainReference}`,
-            path: ["chainReference"],
-        }),
-    )
-    .refine(
-        (data) => isValidAddressForType(data.chainType, data.address),
-        (data) => ({
-            message: `Invalid ${CHAIN_TYPE_LABEL[data.chainType]} address: ${data.address}`,
-            path: ["address"],
-        }),
-    );
+    .refine((data) => isValidChainReferenceForType(data.chainType, data.chainReference), {
+        path: ["chainReference"],
+        error: (issue) => {
+            const data = issue.input as InteroperableAddressTextInput;
+            return `Invalid chain identifier: ${data.chainReference}`;
+        },
+    })
+    .refine((data) => isValidAddressForType(data.chainType, data.address), {
+        path: ["address"],
+        error: (issue) => {
+            const data = issue.input as InteroperableAddressTextInput;
+            return `Invalid ${CHAIN_TYPE_LABEL[data.chainType]} address: ${data.address}`;
+        },
+    });
+
+type InteroperableAddressTextInput = {
+    version: number;
+    chainType: keyof typeof CHAIN_TYPE_LABEL;
+    chainReference?: string;
+    address?: string;
+};
 
 /**
  * Schema for validating binary representation of InteroperableAddress.
