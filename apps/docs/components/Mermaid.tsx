@@ -7,10 +7,15 @@ let mermaidPromise: Promise<MermaidApi> | null = null;
 
 function getMermaid(): Promise<MermaidApi> {
     if (!mermaidPromise) {
-        mermaidPromise = import("mermaid").then((m) => {
-            m.default.initialize({ startOnLoad: false });
-            return m.default;
-        });
+        mermaidPromise = import("mermaid")
+            .then((m) => {
+                m.default.initialize({ startOnLoad: false });
+                return m.default;
+            })
+            .catch((err) => {
+                mermaidPromise = null;
+                throw err;
+            });
     }
     return mermaidPromise;
 }
