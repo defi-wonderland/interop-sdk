@@ -42,13 +42,13 @@ createCrossChainProvider("bungee", {
 });
 ```
 
-| Provider       | Required Config   | Optional Config                                                                                       |
-| -------------- | ----------------- | ----------------------------------------------------------------------------------------------------- |
-| `across`       | (none)            | `isTestnet`                                                                                           |
-| `relay`        | (none)            | `apiKey`, `isTestnet`                                                                                 |
-| `oif`          | `solverId`, `url` | —                                                                                                     |
-| `lifi-intents` | `orderServerUrl`  | `providerId`, `headers`                                                                               |
-| `bungee`       | (none)            | `tier`, `apiKey`, `affiliateId`, `feeBps`, `feeTakerAddress`, `submissionModes`, `slippage`, `refuel` |
+| Provider       | Required Config   | Optional Config                                                                                                               |
+| -------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `across`       | (none)            | `isTestnet`                                                                                                                   |
+| `relay`        | (none)            | `apiKey`, `isTestnet`                                                                                                         |
+| `oif`          | `solverId`, `url` | —                                                                                                                             |
+| `lifi-intents` | `orderServerUrl`  | `providerId`, `headers`                                                                                                       |
+| `bungee`       | (none)            | `tier`, `apiKey`, `affiliateId`, `feeBps`, `feeTakerAddress`, `submissionModes`, `slippage`, `refuel`, `enableMultipleRoutes` |
 
 ## `isTestnet` semantics
 
