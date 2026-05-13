@@ -3,4 +3,5 @@ packages:
     - "apps/sdk"
     - "apps/docs"
     - "apps/addresses-landing-page"
+    - "apps/benchmark"
     - "examples/*"
