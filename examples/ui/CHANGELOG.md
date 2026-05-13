@@ -1,5 +1,16 @@
 # @examples/ui
 
+## 0.1.14
+
+### Patch Changes
+
+- Updated dependencies [755dc8c]
+- Updated dependencies [8c38188]
+- Updated dependencies [c67fd48]
+- Updated dependencies [2a9154e]
+  - @wonderland/interop-cross-chain@0.10.0
+  - @wonderland/interop-addresses@0.7.0
+
 ## 0.1.13
 
 ### Patch Changes

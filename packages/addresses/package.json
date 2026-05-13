@@ -1,6 +1,6 @@
 {
     "name": "@wonderland/interop-addresses",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "description": "Interoperable address utilities for cross-chain operations",
     "repository": {
         "type": "git",

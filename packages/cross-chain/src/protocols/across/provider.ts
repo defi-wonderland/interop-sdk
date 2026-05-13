@@ -10,10 +10,11 @@ import {
 } from "viem";
 import { ZodError } from "zod";
 
-import type { Quote, QuoteFeeEntry } from "../../core/schemas/quote.js";
+import type { Quote, QuoteFeeEntry, QuotePreviewEntry } from "../../core/schemas/quote.js";
 import type { BuildQuoteRequest, QuoteRequest } from "../../core/schemas/quoteRequest.js";
 import { addressToBytes32 } from "../../core/utils/addressHelpers.js";
 import {
+    ACROSS_EXPLORER_BASE_URL,
     ACROSS_FILLED_RELAY_EVENT_ABI,
     ACROSS_SPOKE_POOL_ADDRESSES,
     ACROSS_SPOKE_POOL_DEPOSIT_ABI,
@@ -42,6 +43,7 @@ import {
     FillWatcherConfig,
     getAcrossApiUrl,
     GetFillParams,
+    GetOrderExplorersParams,
     HttpError,
     httpRequest,
     InvalidOpenEventError,
@@ -50,11 +52,13 @@ import {
     NetworkAssets,
     OpenedIntent,
     OpenedIntentParserConfig,
+    OrderExplorers,
     OrderFailureReason,
     OrderStatus,
     parseAbiEncodedFields,
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
+    toCanonicalNativeAddress,
     withNativePlaceholder,
 } from "../../internal.js";
 import { decodeAcrossCalldata } from "./utils.js";
@@ -206,6 +210,8 @@ export class AcrossProvider extends CrossChainProvider {
      * Build an SDK Quote directly from Across API response.
      */
     private toSdkQuote(params: QuoteRequest, response: AcrossGetQuoteResponse): Quote {
+        const fallbackToken = AcrossProvider.extractFallbackToken(params, response);
+
         return {
             order: {
                 steps: [
@@ -268,6 +274,7 @@ export class AcrossProvider extends CrossChainProvider {
             provider: this.providerId,
             partialFill: false,
             failureHandling: "refund-automatic",
+            fallbackToken,
             fees: AcrossProvider.adaptFees(response),
             metadata: {
                 acrossResponse: response,
@@ -735,7 +742,6 @@ export class AcrossProvider extends CrossChainProvider {
 
                 // Note: Across API doesn't provide all fill details
                 // Some fields will have placeholder values
-
                 const event: FillEvent = {
                     fillTxHash: response.fillTxnRef as Hex,
                     blockNumber: 0n, // API doesn't provide block number
@@ -778,6 +784,14 @@ export class AcrossProvider extends CrossChainProvider {
             },
             fillWatcherConfig,
         };
+    }
+
+    override getOrderExplorers(params: GetOrderExplorersParams): OrderExplorers {
+        const explorers = super.getOrderExplorers(params);
+        if (params.originTxHash) {
+            explorers.tracker = `${ACROSS_EXPLORER_BASE_URL}/${params.originTxHash}`;
+        }
+        return explorers;
     }
 
     override getDiscoveryConfig(): AssetDiscoveryConfig {
@@ -833,5 +847,33 @@ export class AcrossProvider extends CrossChainProvider {
             chainId,
             assets: Array.from(assetsMap.values()),
         }));
+    }
+
+    /**
+     * Returns the bridged token for non-atomic routes, undefined otherwise.
+     * @see https://docs.across.to/api-reference/swap/approval/get
+     */
+    private static extractFallbackToken(
+        params: QuoteRequest,
+        response: AcrossGetQuoteResponse,
+    ): QuotePreviewEntry | undefined {
+        if (!AcrossProvider.hasDestinationSwap(response)) return undefined;
+
+        const bridge = response.steps?.bridge;
+        if (!bridge?.tokenOut || !bridge.outputAmount) return undefined;
+
+        return {
+            chainId: bridge.tokenOut.chainId,
+            accountAddress: params.output.recipient ?? params.user,
+            assetAddress: toCanonicalNativeAddress(bridge.tokenOut.address, "eip155"),
+            amount: bridge.outputAmount,
+        };
+    }
+
+    private static hasDestinationSwap(response: AcrossGetQuoteResponse): boolean {
+        if (response.crossSwapType === "bridgeableToAny") return true;
+        if (response.crossSwapType === "anyToAny") return true;
+        if (response.crossSwapType === "bridgeableToBridgeableIndirect") return true;
+        return response.steps?.destinationSwap !== undefined;
     }
 }

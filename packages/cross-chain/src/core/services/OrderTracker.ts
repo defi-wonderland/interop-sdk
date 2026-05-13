@@ -4,6 +4,7 @@ import type { FillWatcher } from "../interfaces/fillWatcher.interface.js";
 import type { OpenedIntentParser } from "../interfaces/openedIntentParser.interface.js";
 import type { OrderTrackerEvents } from "../interfaces/orderTracker.interface.js";
 import type { PreTracker } from "../interfaces/preTracker.interface.js";
+import type { OrderExplorersResolver } from "../types/orderExplorers.js";
 import type {
     OpenedIntent,
     OrderTrackerYield,
@@ -13,6 +14,7 @@ import type {
     WatchOrderByTxHash,
     WatchOrderParams,
 } from "../types/orderTracking.js";
+import { MissingDestinationChainId } from "../errors/MissingDestinationChainId.exception.js";
 import { OpenedIntentNotFoundError } from "../errors/OpenedIntentNotFound.exception.js";
 import { OrderTrackerEvent } from "../interfaces/orderTracker.interface.js";
 import { OrderFailureReason, OrderStatus, OrderTrackerYieldType } from "../types/orderTracking.js";
@@ -42,6 +44,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
         private readonly clientManager?: PublicClientManager,
         private readonly preTracker?: PreTracker,
         onChainFillWatcher?: FillWatcher,
+        private readonly getOrderExplorers?: OrderExplorersResolver,
     ) {
         super();
         this.apiFillWatcher = fillWatcher;
@@ -164,7 +167,20 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                 timeout: number;
             });
         } else {
-            yield* this.watchOrderByOrderId({ ...(params as WatchOrderByOrderId), timeout });
+            // For WatchOrderExplicit, the caller's txHash is the openTxHash on the API path.
+            const openTxHash =
+                ("openTxHash" in params ? params.openTxHash : undefined) ??
+                ("txHash" in params ? params.txHash : undefined);
+
+            if (!params.destinationChainId) {
+                throw new MissingDestinationChainId("api-tracking");
+            }
+
+            yield* this.watchOrderByOrderId({
+                ...(params as WatchOrderByOrderId),
+                openTxHash,
+                timeout,
+            });
         }
     }
 
@@ -177,6 +193,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
 
         let lastUpdate: OrderTrackingUpdate = this.createUpdate({
             status: OrderStatus.Pending,
+            originChainId,
             openTxHash: txHash,
             message: "Parsing order from transaction...",
         });
@@ -188,6 +205,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                 type: OrderTrackerYieldType.Update,
                 update: this.createUpdate({
                     status: OrderStatus.Failed,
+                    originChainId,
                     openTxHash: txHash,
                     message: "Origin transaction reverted",
                     failureReason: OrderFailureReason.OriginTxReverted,
@@ -207,6 +225,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                     type: OrderTrackerYieldType.Update,
                     update: this.createUpdate({
                         status: OrderStatus.Finalized,
+                        originChainId,
                         openTxHash: txHash,
                         message:
                             "Bridge transaction confirmed. Funds may take a few minutes to arrive.",
@@ -217,9 +236,16 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
             throw error;
         }
 
+        const destinationChainId = openedIntent.fillInstructions[0]?.destinationChainId;
+        if (!destinationChainId) {
+            throw new MissingDestinationChainId("order-fill-instructions");
+        }
+
         lastUpdate = this.createUpdate({
             status: OrderStatus.Pending,
             orderId: openedIntent.orderId,
+            originChainId,
+            destinationChainId,
             openTxHash: txHash,
             message: `Order parsed with orderId ${openedIntent.orderId.slice(0, 10)}...`,
         });
@@ -235,6 +261,8 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                 update: this.createUpdate({
                     status: OrderStatus.Failed,
                     orderId: openedIntent.orderId,
+                    originChainId,
+                    destinationChainId,
                     openTxHash: txHash,
                     message: "Deadline exceeded before watching started",
                     failureReason: OrderFailureReason.DeadlineExceeded,
@@ -258,15 +286,12 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
         lastUpdate = this.createUpdate({
             status: OrderStatus.Pending,
             orderId: openedIntent.orderId,
+            originChainId,
+            destinationChainId,
             openTxHash: txHash,
             message: "Waiting for solver to fill order...",
         });
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
-
-        const destChainId = openedIntent.fillInstructions[0]?.destinationChainId;
-        if (!destChainId) {
-            throw new Error("Order has no destination chain in fillInstructions");
-        }
 
         const fillResult = await this.waitForFillWithTimeout(
             this.txFillWatcher,
@@ -274,7 +299,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                 orderId: openedIntent.orderId,
                 openTxHash: txHash,
                 originChainId,
-                destinationChainId: destChainId,
+                destinationChainId,
                 user: openedIntent.user,
                 fillDeadline: openedIntent.fillDeadline,
             },
@@ -287,6 +312,8 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
             txHash,
             lastUpdate,
             fillDeadline,
+            originChainId,
+            destinationChainId,
         );
     }
 
@@ -294,12 +321,15 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
     private async *watchOrderByOrderId(
         params: WatchOrderByOrderId & { timeout: number },
     ): AsyncGenerator<OrderTrackerYield> {
-        const { orderId, originChainId, destinationChainId, timeout } = params;
+        const { orderId, originChainId, destinationChainId, openTxHash, timeout } = params;
         const startTime = Date.now();
 
         let lastUpdate: OrderTrackingUpdate = this.createUpdate({
             status: OrderStatus.Pending,
             orderId,
+            originChainId,
+            destinationChainId,
+            openTxHash,
             message: "Tracking escrow order...",
         });
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
@@ -307,12 +337,15 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
         lastUpdate = this.createUpdate({
             status: OrderStatus.Pending,
             orderId,
+            originChainId,
+            destinationChainId,
+            openTxHash,
             message: "Waiting for solver to fill order...",
         });
         yield { type: OrderTrackerYieldType.Update, update: lastUpdate };
 
         yield* this.pollForFillWithYields(
-            { orderId, originChainId, destinationChainId },
+            { orderId, originChainId, destinationChainId, openTxHash },
             timeout - (Date.now() - startTime),
         );
     }
@@ -323,12 +356,18 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
      * The txHash (Across) path uses waitForFillWithTimeout instead.
      */
     private async *pollForFillWithYields(
-        fillParams: { orderId: Hex; originChainId: number; destinationChainId: number },
+        fillParams: {
+            orderId: Hex;
+            originChainId: number;
+            destinationChainId: number;
+            openTxHash?: Hex;
+        },
         timeout: number,
     ): AsyncGenerator<OrderTrackerYield> {
         const terminalFailures = new Set([OrderStatus.Failed, OrderStatus.Refunded]);
         const pollingInterval = 5000;
         const startTime = Date.now();
+        const { originChainId, destinationChainId, openTxHash } = fillParams;
         let lastUpdate: OrderTrackingUpdate | undefined;
 
         while (Date.now() - startTime < timeout) {
@@ -342,6 +381,9 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                     update: this.createUpdate({
                         status: OrderStatus.Finalized,
                         orderId: fillParams.orderId,
+                        originChainId,
+                        destinationChainId,
+                        openTxHash,
                         fillTxHash: fillEvent.fillTxHash,
                         message: hasWarnings ? "Order filled with warnings" : "Order completed",
                         warnings: fillEvent.warnings,
@@ -356,6 +398,9 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                     update: this.createUpdate({
                         status: OrderStatus.Failed,
                         orderId: fillParams.orderId,
+                        originChainId,
+                        destinationChainId,
+                        openTxHash,
                         message: "Order failed",
                         failureReason: failureReason ?? OrderFailureReason.Unknown,
                     }),
@@ -370,6 +415,9 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                     update: this.createUpdate({
                         status: OrderStatus.Failed,
                         orderId: fillParams.orderId,
+                        originChainId,
+                        destinationChainId,
+                        openTxHash,
                         message: "Order finalized but fill transaction hash unavailable",
                         failureReason: OrderFailureReason.Unknown,
                     }),
@@ -382,6 +430,9 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                 lastUpdate = this.createUpdate({
                     status,
                     orderId: fillParams.orderId,
+                    originChainId,
+                    destinationChainId,
+                    openTxHash,
                     fillTxHash: fillTxHash as Hex,
                     message: `Order ${status}, fill tx detected`,
                 });
@@ -396,6 +447,9 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                 this.createUpdate({
                     status: OrderStatus.Pending,
                     orderId: fillParams.orderId,
+                    originChainId,
+                    destinationChainId,
+                    openTxHash,
                     message: "Waiting for solver to fill order...",
                 }),
             0,
@@ -409,6 +463,8 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
         openTxHash: Hex | undefined,
         lastUpdate: OrderTrackingUpdate,
         fillDeadline: number,
+        originChainId: number,
+        destinationChainId: number,
     ): OrderTrackerYield {
         if (fillResult.status === FillResultStatus.Finalized) {
             const hasWarnings = fillResult.warnings && fillResult.warnings.length > 0;
@@ -417,6 +473,8 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                 update: this.createUpdate({
                     status: OrderStatus.Finalized,
                     orderId,
+                    originChainId,
+                    destinationChainId,
                     openTxHash,
                     fillTxHash: fillResult.fillTxHash,
                     message: hasWarnings
@@ -435,6 +493,8 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                 update: this.createUpdate({
                     status: OrderStatus.Failed,
                     orderId,
+                    originChainId,
+                    destinationChainId,
                     openTxHash,
                     message: "Order failed",
                     failureReason: fillResult.failureReason,
@@ -448,6 +508,8 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
                 update: this.createUpdate({
                     status: OrderStatus.Failed,
                     orderId,
+                    originChainId,
+                    destinationChainId,
                     openTxHash,
                     message: "Deadline exceeded before fill",
                     failureReason: OrderFailureReason.DeadlineExceeded,
@@ -551,10 +613,20 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
         }
     }
 
-    private createUpdate(params: Omit<OrderTrackingUpdate, "timestamp">): OrderTrackingUpdate {
+    private createUpdate(
+        params: Omit<OrderTrackingUpdate, "timestamp" | "explorers">,
+    ): OrderTrackingUpdate {
+        const explorers = this.getOrderExplorers?.({
+            originChainId: params.originChainId,
+            originTxHash: params.openTxHash,
+            destinationChainId: params.destinationChainId,
+            destinationTxHash: params.fillTxHash,
+        });
+
         return {
             ...params,
             timestamp: Math.floor(Date.now() / 1000),
+            explorers,
         };
     }
 

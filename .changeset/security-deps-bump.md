@@ -1,6 +1,7 @@
 ---
 "@wonderland/interop-addresses": minor
 "@wonderland/interop-cross-chain": minor
+"@wonderland/interop": minor
 ---
 
 Update direct dependencies to remove security vulnerabilities and migrate to the latest stable releases.

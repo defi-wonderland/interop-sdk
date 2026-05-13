@@ -69,6 +69,7 @@ export class OrderTrackerFactory {
             this.clientManager,
             preTracker,
             onChainFillWatcher,
+            (params) => provider.getOrderExplorers(params),
         );
     }
 

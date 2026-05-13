@@ -491,4 +491,28 @@ describe("LifiIntentsProvider", () => {
             expect(result.status).toBe(OrderStatus.Pending);
         });
     });
+
+    describe("getOrderExplorers", () => {
+        it("returns origin and destination chain explorer URLs (no bridge tracker)", () => {
+            const explorers = provider.getOrderExplorers({
+                originChainId: 8453,
+                originTxHash: "0xaaaa",
+                destinationChainId: 42161,
+                destinationTxHash: "0xbbbb",
+            });
+            expect(explorers.tracker).toBeUndefined();
+            expect(explorers.origin).toBe("https://basescan.org/tx/0xaaaa");
+            expect(explorers.destination).toBe("https://arbiscan.io/tx/0xbbbb");
+        });
+
+        it("omits destination until the fill tx hash is observed", () => {
+            const explorers = provider.getOrderExplorers({
+                originChainId: 8453,
+                originTxHash: "0xaaaa",
+                destinationChainId: 42161,
+            });
+            expect(explorers.origin).toBe("https://basescan.org/tx/0xaaaa");
+            expect(explorers.destination).toBeUndefined();
+        });
+    });
 });

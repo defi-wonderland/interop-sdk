@@ -298,6 +298,37 @@ describe("BungeeProvider", () => {
             );
         });
 
+        it("does not request multiple routes by default", async () => {
+            mockGet.mockResolvedValue({
+                status: 200,
+                data: makeBungeeQuoteResponse(),
+                headers: new Headers(),
+            });
+            await provider.getQuotes(makeQuoteRequest());
+
+            const [, options] = mockGet.mock.calls[0] as [
+                string,
+                { params: Record<string, string> },
+            ];
+            expect(options.params.enableMultipleAutoRoutes).toBeUndefined();
+        });
+
+        it("requests multiple routes when enableMultipleRoutes is true", async () => {
+            const multiRouteProvider = new BungeeProvider({ enableMultipleRoutes: true });
+            mockGet.mockResolvedValue({
+                status: 200,
+                data: makeBungeeQuoteResponse(),
+                headers: new Headers(),
+            });
+            await multiRouteProvider.getQuotes(makeQuoteRequest());
+
+            const [, options] = mockGet.mock.calls[0] as [
+                string,
+                { params: Record<string, string> },
+            ];
+            expect(options.params.enableMultipleAutoRoutes).toBe("true");
+        });
+
         it("returns an empty array when every mode responds with no routes", async () => {
             const emptyResponse = makeBungeeQuoteResponse({
                 result: {
@@ -496,6 +527,25 @@ describe("BungeeProvider", () => {
             expect((config!.config as { assetsEndpoint: string }).assetsEndpoint).toBe(
                 `${BUNGEE_BASE_URL}/api/v1/tokens/list?list=trending`,
             );
+        });
+    });
+
+    describe("getOrderExplorers()", () => {
+        it("returns the socketscan tracker URL alongside the chain explorer URLs", () => {
+            const explorers = provider.getOrderExplorers({
+                originChainId: 8453,
+                originTxHash: "0x9bdfe864",
+                destinationChainId: 42161,
+                destinationTxHash: "0xfeedface",
+            });
+            expect(explorers.tracker).toBe("https://www.socketscan.io/tx/0x9bdfe864");
+            expect(explorers.origin).toBe("https://basescan.org/tx/0x9bdfe864");
+            expect(explorers.destination).toBe("https://arbiscan.io/tx/0xfeedface");
+        });
+
+        it("returns an empty object when no tx hash is available", () => {
+            const explorers = provider.getOrderExplorers({ originChainId: 8453 });
+            expect(explorers).toEqual({});
         });
     });
 });

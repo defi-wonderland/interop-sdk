@@ -16,7 +16,7 @@ In this tutorial, you'll execute a cross-chain token transfer using the Interop 
 
 ## Install the package
 
-`viem` is a peer dependency (`^2.28.0`) — install it alongside the package:
+`viem` is a peer dependency (`^2.35.0`) — install it alongside the package:
 
 ```bash
 npm install @wonderland/interop-cross-chain viem

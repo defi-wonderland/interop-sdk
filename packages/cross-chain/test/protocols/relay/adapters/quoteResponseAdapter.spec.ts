@@ -289,6 +289,73 @@ describe("adaptQuote", () => {
         const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
         expect(quote.order.checks).toBeUndefined();
     });
+
+    it("leaves fallbackToken undefined when refundCurrency is absent", () => {
+        const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
+        expect(quote.fallbackToken).toBeUndefined();
+    });
+
+    it("populates fallbackToken from details.refundCurrency", () => {
+        const refundToken = "0x3333333333333333333333333333333333333333";
+        const refundAmount = "987000";
+        const base = makeRelayQuoteResponse();
+        const response = makeRelayQuoteResponse({
+            details: {
+                ...base.details!,
+                refundCurrency: {
+                    currency: {
+                        chainId: DESTINATION_CHAIN_ID,
+                        address: refundToken,
+                        symbol: "USDC",
+                        name: "USD Coin",
+                        decimals: 6,
+                    },
+                    amount: refundAmount,
+                },
+            },
+        });
+
+        const quote = adaptQuote(
+            makeQuoteRequest({
+                output: {
+                    chainId: DESTINATION_CHAIN_ID,
+                    assetAddress: VALID_ADDRESS,
+                    recipient: RECIPIENT_ADDRESS,
+                },
+            }),
+            response,
+            PROVIDER_ID,
+        );
+
+        expect(quote.fallbackToken).toEqual({
+            chainId: DESTINATION_CHAIN_ID,
+            accountAddress: RECIPIENT_ADDRESS,
+            assetAddress: refundToken,
+            amount: refundAmount,
+        });
+    });
+
+    it("drops fallbackToken when refundCurrency matches the input token and chain", () => {
+        const base = makeRelayQuoteResponse();
+        const response = makeRelayQuoteResponse({
+            details: {
+                ...base.details!,
+                refundCurrency: {
+                    currency: {
+                        chainId: ORIGIN_CHAIN_ID,
+                        address: VALID_ADDRESS.toUpperCase(),
+                        symbol: "USDC",
+                        name: "USD Coin",
+                        decimals: 6,
+                    },
+                    amount: INPUT_AMOUNT,
+                },
+            },
+        });
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+        expect(quote.fallbackToken).toBeUndefined();
+    });
 });
 
 describe("adaptRelaySteps", () => {
