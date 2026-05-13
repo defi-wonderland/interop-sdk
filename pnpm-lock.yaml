@@ -254,6 +254,9 @@ importers:
 
     apps/docs:
         dependencies:
+            mermaid:
+                specifier: ^11.4.1
+                version: 11.12.1
             react:
                 specifier: ^19.0.0
                 version: 19.1.0
@@ -270,9 +273,6 @@ importers:
             "@types/react-dom":
                 specifier: ^19.0.0
                 version: 19.2.3(@types/react@19.2.7)
-            playwright:
-                specifier: 1.57.0
-                version: 1.57.0
             typescript:
                 specifier: ~5.6.2
                 version: 5.6.2

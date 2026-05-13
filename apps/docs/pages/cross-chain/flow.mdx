@@ -3,12 +3,14 @@ title: Flow
 description: Sequence diagram of the cross-chain transfer lifecycle — how the SDK fetches quotes, executes transactions, and tracks orders to completion.
 ---
 
+import { Mermaid } from "../../components/Mermaid";
+
 # Flow
 
 This document provides an overview of the cross-chain transaction flow using the Interop SDK. It illustrates how a developer can interact with different cross-chain protocols to obtain quotes, execute transactions, and track them on-chain.
 
-```mermaid
-sequenceDiagram
+<Mermaid
+    chart={`sequenceDiagram
     participant dev as Dev
     participant sdk as Interop SDK
     participant provider as Provider
@@ -32,8 +34,9 @@ sequenceDiagram
         tracker->>tracker: Check Fill (destination RPC or provider API)
         tracker-->>dev: Status Update
     end
-    tracker-->>-dev: Final Status (OrderStatus)
-```
+    tracker-->>-dev: Final Status (OrderStatus)`}
+
+/>
 
 ## Flow Stages
 

@@ -3,6 +3,8 @@ title: Getting Started
 description: Parse an interoperable address and extract its components — go from a human-readable name like vitalik.eth@eip155:1 to address and chain ID.
 ---
 
+import { Mermaid } from "../../components/Mermaid";
+
 # Getting Started
 
 In this tutorial, you'll parse an interoperable address and extract its components. By the end, you'll know how to go from a human-readable name like `vitalik.eth@eip155:1` to its raw address and chain ID.
@@ -92,8 +94,8 @@ if (isTextAddress(addr)) {
 
 The SDK supports three formats. Here's how they relate:
 
-```mermaid
-graph TD
+<Mermaid
+    chart={`graph TD
     A[InteroperableName]
     C[InteroperableAddress]
     D[Binary Address]
@@ -103,8 +105,9 @@ graph TD
     C -->|encodeAddress sync| D
     C -->|formatName sync| A
     D -->|decodeAddress sync| C
-    D -->|binaryToName sync| A
-```
+    D -->|binaryToName sync| A`}
+
+/>
 
 ```typescript
 import { binaryToName, nameToBinary } from "@wonderland/interop-addresses";

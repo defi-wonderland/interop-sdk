@@ -3,6 +3,8 @@ title: Concepts
 description: The intent-based architecture behind the cross-chain package, the EIP-7683 standard, and how the SDK unifies multi-provider transfers.
 ---
 
+import { Mermaid } from "../../components/Mermaid";
+
 # Concepts
 
 This page explains the ideas behind the `cross-chain` package — the architecture, the standards, and the design decisions that shape how cross-chain transfers work.
@@ -31,8 +33,8 @@ This standardization is what makes multi-provider aggregation possible — quote
 
 ## The transfer flow
 
-```mermaid
-sequenceDiagram
+<Mermaid
+    chart={`sequenceDiagram
     participant dev as Your App
     participant sdk as Interop SDK
     participant provider as Provider
@@ -55,8 +57,9 @@ sequenceDiagram
         tracker->>tracker: Check status
         tracker-->>dev: Status Update
     end
-    tracker-->>-dev: Final Status
-```
+    tracker-->>-dev: Final Status`}
+
+/>
 
 ## Execution modes
 
