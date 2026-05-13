@@ -254,6 +254,7 @@ const provider = createCrossChainProvider("bungee", {
     slippage: "0.5", // 0.5% slippage tolerance
     refuel: true, // native gas on destination chain
     affiliateId: "your-affiliate-id",
+    enableMultipleRoutes: true, // return several route alternatives per quote (default: false)
 });
 ```
 
