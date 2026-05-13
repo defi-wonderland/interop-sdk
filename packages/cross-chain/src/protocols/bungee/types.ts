@@ -36,6 +36,8 @@ export const BungeeConfigSchema = z
         slippage: z.string().optional(),
         /** Enable native gas refueling on the destination chain. */
         refuel: z.boolean().optional(),
+        /** Return multiple route alternatives per quote (e.g. max-output, fastest) instead of just the recommended one. Defaults to `false`. */
+        enableMultipleRoutes: z.boolean().optional(),
     })
     .merge(FeeConfigSchema)
     .refine(feeConfigRefinement, FEE_CONFIG_REFINEMENT_ERROR);

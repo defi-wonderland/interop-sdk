@@ -22,18 +22,19 @@ See [Bungee's API access docs](https://docs.bungee.exchange/integrate/get-api-ac
 
 ## Configuration
 
-| Field             | Type            | Required | Description                                                                                                                   |
-| ----------------- | --------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `tier`            | `BungeeApiTier` | No       | API tier: `"sandbox"`, `"dedicated"`, or `"frontend"` (default: `"sandbox"`)                                                  |
-| `baseUrl`         | string          | No       | Custom API base URL. Overrides the URL derived from `tier`                                                                    |
-| `providerId`      | string          | No       | Custom provider identifier (default: `"bungee"`)                                                                              |
-| `apiKey`          | string          | No       | API key for dedicated backend (sent via `x-api-key` header)                                                                   |
-| `affiliateId`     | string          | No       | Affiliate ID for tracking (sent via `affiliate` header)                                                                       |
-| `feeBps`          | string          | No       | Convenience fee in basis points (e.g. `"50"` for 0.5%)                                                                        |
-| `feeTakerAddress` | string          | No       | Address to receive the convenience fee. Required when `feeBps` is set                                                         |
-| `submissionModes` | string[]        | No       | Transaction submission modes: `"user-transaction"` (onchain) and/or `"gasless"` (permit2). Defaults to `["user-transaction"]` |
-| `slippage`        | string          | No       | Default slippage tolerance (e.g. `"0.5"` for 0.5%)                                                                            |
-| `refuel`          | boolean         | No       | Enable native gas refueling on the destination chain                                                                          |
+| Field                  | Type            | Required | Description                                                                                                                                                                          |
+| ---------------------- | --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tier`                 | `BungeeApiTier` | No       | API tier: `"sandbox"`, `"dedicated"`, or `"frontend"` (default: `"sandbox"`)                                                                                                         |
+| `baseUrl`              | string          | No       | Custom API base URL. Overrides the URL derived from `tier`                                                                                                                           |
+| `providerId`           | string          | No       | Custom provider identifier (default: `"bungee"`)                                                                                                                                     |
+| `apiKey`               | string          | No       | API key for dedicated backend (sent via `x-api-key` header)                                                                                                                          |
+| `affiliateId`          | string          | No       | Affiliate ID for tracking (sent via `affiliate` header)                                                                                                                              |
+| `feeBps`               | string          | No       | Convenience fee in basis points (e.g. `"50"` for 0.5%)                                                                                                                               |
+| `feeTakerAddress`      | string          | No       | Address to receive the convenience fee. Required when `feeBps` is set                                                                                                                |
+| `submissionModes`      | string[]        | No       | Transaction submission modes: `"user-transaction"` (onchain) and/or `"gasless"` (permit2). Defaults to `["user-transaction"]`                                                        |
+| `slippage`             | string          | No       | Default slippage tolerance (e.g. `"0.5"` for 0.5%)                                                                                                                                   |
+| `refuel`               | boolean         | No       | Enable native gas refueling on the destination chain                                                                                                                                 |
+| `enableMultipleRoutes` | boolean         | No       | Ask the provider for several route alternatives per quote (e.g. one optimised for max output, another for the fastest fill) instead of only the recommended one. Defaults to `false` |
 
 :::info Gasless is opt-in — the default is `["user-transaction"]` only
 
@@ -182,6 +183,18 @@ const bungeeProvider = createCrossChainProvider("bungee", {
     refuel: true,
 });
 ```
+
+### Multiple route alternatives
+
+By default the SDK only asks for the recommended route, so each quote request returns a single `Quote`. If you want the aggregator to compare more options — for example one optimised for the highest output and another for the fastest fill — opt in:
+
+```typescript
+const bungeeProvider = createCrossChainProvider("bungee", {
+    enableMultipleRoutes: true,
+});
+```
+
+The flag is named generically on purpose: if another provider adds the same idea of returning more than one route per request, it can reuse the same option.
 
 ### With Custom Base URL
 
