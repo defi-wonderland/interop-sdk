@@ -58,3 +58,15 @@ pnpm add @wonderland/interop-addresses @wonderland/interop-cross-chain
 ```
 
 > Package names will be updated after EF release. Currently using `@wonderland` organization.
+
+## Use these docs in your AI assistant
+
+Every page on this site is also published as raw markdown — append `.md` to any URL (for example, [`https://docs.interop.wonderland.xyz/cross-chain/getting-started.md`](https://docs.interop.wonderland.xyz/cross-chain/getting-started.md)) to fetch the source. The full corpus is available at [`/llms-full.txt`](https://docs.interop.wonderland.xyz/llms-full.txt), and a page index lives at [`/llms.txt`](https://docs.interop.wonderland.xyz/llms.txt).
+
+You can register the site as a source in any tool that understands the `llms.txt` convention. For Claude Code, add it via MCP:
+
+```bash
+claude mcp add --transport http interop-sdk-docs https://docs.interop.wonderland.xyz/llms-full.txt
+```
+
+Cursor, Continue, and other assistants accept the same `llms.txt` URL through their respective context-source settings.

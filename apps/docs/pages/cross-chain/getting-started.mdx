@@ -33,7 +33,7 @@ pnpm add @wonderland/interop-cross-chain viem
 
 The SDK uses a factory pattern. Let's start with Relay on testnet:
 
-```typescript
+```ts twoslash
 import { createCrossChainProvider, PROTOCOLS } from "@wonderland/interop-cross-chain";
 
 const provider = createCrossChainProvider(PROTOCOLS.RELAY, { isTestnet: true });
