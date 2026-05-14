@@ -37,7 +37,7 @@ See [Bungee's API access docs](https://docs.bungee.exchange/integrate/get-api-ac
 | `submissionModes`      | string[]        | No       | Transaction submission modes: `"user-transaction"` (onchain) and/or `"gasless"` (permit2). Defaults to `["user-transaction"]`                                                        |
 | `slippage`             | string          | No       | Default slippage tolerance (e.g. `"0.5"` for 0.5%)                                                                                                                                   |
 | `refuel`               | boolean         | No       | Enable native gas refueling on the destination chain                                                                                                                                 |
-| `enableOtherProviders` | boolean         | No       | Include manual routes served by other bridges (Across, Stargate, Mayan, Synapse, …) alongside Bungee's own auto routes                                                               |
+| `enableOtherProviders` | boolean         | No       | Include manual routes served by other bridges alongside Bungee's own auto routes                                                                                                     |
 | `enableMultipleRoutes` | boolean         | No       | Ask the provider for several route alternatives per quote (e.g. one optimised for max output, another for the fastest fill) instead of only the recommended one. Defaults to `false` |
 
 :::info[Gasless is opt-in — the default is `["user-transaction"]` only]
@@ -191,7 +191,7 @@ const bungeeProvider = createCrossChainProvider("bungee", {
 
 ### With Manual Routes (Other Bridges)
 
-Return Bungee's auto route plus one `Quote` per manual route — i.e. routes served by Across, Stargate, Mayan, Synapse and other bridges accessible through Bungee:
+Return Bungee's auto route plus one `Quote` per manual route — i.e. routes served by other bridges accessible through Bungee:
 
 ```typescript
 const bungeeProvider = createCrossChainProvider("bungee", {

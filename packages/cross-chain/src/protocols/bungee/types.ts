@@ -36,7 +36,7 @@ export const BungeeConfigSchema = z
         slippage: z.string().optional(),
         /** Enable native gas refueling on the destination chain. */
         refuel: z.boolean().optional(),
-        /** Enable routes served by other bridge providers (Across, Stargate, Mayan, …).*/
+        /** Enable routes served by other bridge providers. */
         enableOtherProviders: z.boolean().optional(),
         /** Return multiple route alternatives per quote (e.g. max-output, fastest) instead of just the recommended one. Defaults to `false`. */
         enableMultipleRoutes: z.boolean().optional(),

@@ -33,7 +33,7 @@ export function adaptQuotes(response: BungeeQuoteResponse, providerId: string): 
 /**
  * Adapt a Bungee manual route plus its built transaction into an SDK Quote.
  *
- * Manual routes (Across, Stargate, Mayan, …) come without an executable txData —
+ * Manual routes come without an executable txData —
  * the caller has to fetch `/api/v1/bungee/build-tx?quoteId=…` and combine that
  * with the route preview/fees. Tracking is intentionally left undefined: manual
  * routes have no `requestHash`, so the SDK tracks them by the on-chain `txHash`
