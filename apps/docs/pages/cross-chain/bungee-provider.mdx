@@ -1,6 +1,9 @@
 ---
 title: Bungee Provider
+description: Cross-chain token transfers via Bungee — onchain transactions, gasless permit2 flow, and tier-based API access for sandbox or production.
 ---
+
+# Bungee Provider
 
 The Bungee Protocol provider enables cross-chain token transfers using the Bungee bridge infrastructure, supporting both onchain transactions (native ETH or via BungeeInbox, default) and gasless permit2 flows (ERC20).
 
@@ -37,7 +40,7 @@ See [Bungee's API access docs](https://docs.bungee.exchange/integrate/get-api-ac
 | `enableOtherProviders` | boolean         | No       | Include manual routes served by other bridges (Across, Stargate, Mayan, Synapse, …) alongside Bungee's own auto routes                                                               |
 | `enableMultipleRoutes` | boolean         | No       | Ask the provider for several route alternatives per quote (e.g. one optimised for max output, another for the fastest fill) instead of only the recommended one. Defaults to `false` |
 
-:::info Gasless is opt-in — the default is `["user-transaction"]` only
+:::info[Gasless is opt-in — the default is `["user-transaction"]` only]
 
 `submissionModes` defaults to `["user-transaction"]`. To enable the gasless permit2 flow, explicitly opt in:
 
@@ -242,7 +245,7 @@ const quote = quotes[0];
 console.log(quote.fees?.originGas); // origin chain gas estimate
 ```
 
-See the [API reference](./api.md#quotefees) for the full `QuoteFees` type.
+See the [API reference](./api#quotefees) for the full `QuoteFees` type.
 
 ## Executing Transactions
 
@@ -297,11 +300,11 @@ No extra RPC URLs are needed — tracking is handled entirely through the Bungee
 
 ## Next Step
 
-See a complete working example: [Execute Intent](./example.md)
+See a complete working example: [Execute Intent](./example)
 
 ## References
 
 -   [Bungee Protocol Documentation](https://docs.bungee.exchange)
 -   [Bungee API Access](https://docs.bungee.exchange/integrate/get-api-access) — request production API keys
--   [API Reference](./api.md) — full type definitions for quotes, fees, and orders
--   [Concepts](./concepts.md) — how intent-based transfers work
+-   [API Reference](./api) — full type definitions for quotes, fees, and orders
+-   [Concepts](./concepts) — how intent-based transfers work

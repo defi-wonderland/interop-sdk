@@ -1,5 +1,6 @@
 ---
 title: Execute Intent
+description: End-to-end example of executing a cross-chain intent — setup, quote, approval handling, transaction submission, and order tracking.
 ---
 
 # Execute Intent
@@ -183,7 +184,7 @@ for (const step of quote.order.steps) {
 }
 ```
 
-:::info Native token inputs
+:::info[Native token inputs]
 Native token inputs (ETH, MATIC, etc.) never require approval, so no `approve` step is prepended. The approval service only enriches quotes whose `order.checks.allowances` lists an ERC-20 allowance that is below `required` on-chain.
 :::
 
@@ -201,6 +202,6 @@ main().catch(console.error);
 
 ## Next steps
 
--   [Order Tracking](./intent-tracking.md) — monitor your transaction from initiation to completion
--   [Concepts](./concepts.md) — understand intent-based architecture and EIP-7683
--   [API Reference](./api.md) — complete function signatures and types
+-   [Order Tracking](./intent-tracking) — monitor your transaction from initiation to completion
+-   [Concepts](./concepts) — understand intent-based architecture and EIP-7683
+-   [API Reference](./api) — complete function signatures and types

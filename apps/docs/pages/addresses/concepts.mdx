@@ -1,6 +1,11 @@
 ---
 title: Concepts
+description: How EIP-7930, ERC-7828, and CAIP-350 combine address and chain into a single, unambiguous, validated identifier for multichain apps.
 ---
+
+import { Mermaid } from "../../components/Mermaid";
+
+# Concepts
 
 This page explains the standards behind interoperable addresses and how the package implements them.
 
@@ -62,8 +67,8 @@ The package API reflects the two formats:
 -   **Functions that work with names** (`parseName`, `nameToBinary`, `getAddress`, `getChainId`) are **async** — they may need to resolve ENS names or chain shortnames over the network.
 -   **Functions that work with binary/structured addresses** (`encodeAddress`, `decodeAddress`, `formatName`, `binaryToName`) are **sync** — everything is already resolved.
 
-```mermaid
-graph TD
+<Mermaid
+    chart={`graph TD
     A[InteroperableName]
     B[InteroperableAddress]
     C[Binary Address]
@@ -73,8 +78,9 @@ graph TD
     B -->|"encodeAddress (sync)"| C
     B -->|"formatName (sync)"| A
     C -->|"decodeAddress (sync)"| B
-    C -->|"binaryToName (sync)"| A
-```
+    C -->|"binaryToName (sync)"| A`}
+
+/>
 
 The structured `InteroperableAddress` in the middle is a discriminated union — it can hold either text strings or raw bytes:
 

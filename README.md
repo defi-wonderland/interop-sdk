@@ -34,7 +34,7 @@ interop-sdk/
 
 ## Prerequisites
 
--   Node.js 20.x
+-   Node.js 22.x
 -   pnpm 9.7.1 or later
 
 ## Getting Started

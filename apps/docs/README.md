@@ -1,13 +1,12 @@
-# Website
+# Interop SDK Docs
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+This site is built with [Vocs](https://vocs.dev/).
 
 ## Installation
 
-This Docusaurus app is part of the pnpm workspace. Install dependencies from the **monorepo root**:
+This app is part of the pnpm workspace. Install dependencies from the **monorepo root**:
 
 ```bash
-# From the repository root
 pnpm install
 ```
 
@@ -17,26 +16,38 @@ pnpm install
 # From the repository root
 pnpm --filter docs start
 
-# Or navigate to the docs directory
+# Or from this directory
 cd apps/docs
 pnpm start
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
-
 ## Build
 
 ```bash
-# From the repository root
 pnpm --filter docs build
-
-# Or from the docs directory
-cd apps/docs
-pnpm build
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+Output lands in `apps/docs/build/`.
+
+## Project Structure
+
+-   `pages/` — MDX content (URL path mirrors file path; e.g. `pages/addresses/concepts.mdx` → `/addresses/concepts`)
+-   `public/` — static assets served at the site root
+-   `vocs.config.ts` — site config (title, sidebar, social links, edit link)
+
+## Adding a Page
+
+1. Create `pages/<path>/<slug>.mdx` (mirror the desired URL).
+2. Add frontmatter:
+    ```yaml
+    ---
+    title: Page Title
+    description: A 150-character description for search and social cards.
+    ---
+    ```
+3. Add an entry under the appropriate section in `vocs.config.ts`'s `sidebar` array.
+4. `pnpm start` to preview.
 
 ## Deployment
 
-Deployment is handled automatically via GitHub Actions (`.github/workflows/deploy.yml`) when pushing to main or dev branches. The workflow deploys directly to Vercel.
+Deployed to Vercel on every push to `dev` (preview) and `main` (production) via the standard Vercel GitHub integration. The build script writes to `apps/docs/build/`, which is what the Vercel project's output-directory setting points at.
