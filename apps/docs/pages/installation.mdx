@@ -61,10 +61,9 @@ pnpm add @wonderland/interop-addresses @wonderland/interop-cross-chain
 
 ## Use these docs in your AI assistant
 
-Every page on this site is also published as its MDX source — append `.md` to any URL (for example, [`https://docs.interop.wonderland.xyz/cross-chain/getting-started.md`](https://docs.interop.wonderland.xyz/cross-chain/getting-started.md)) to fetch it. Imports and JSX components (e.g. `<Mermaid />`) are preserved verbatim. The full corpus is available at [`/llms-full.txt`](https://docs.interop.wonderland.xyz/llms-full.txt), and a page index lives at [`/llms.txt`](https://docs.interop.wonderland.xyz/llms.txt).
+Every page on this site is available as Markdown — append `.md` to any URL (for example, [`https://docs.interop.wonderland.xyz/cross-chain/getting-started.md`](https://docs.interop.wonderland.xyz/cross-chain/getting-started.md)). MDX imports and JSX components (e.g. `<Mermaid />`) are preserved verbatim.
 
-How to plug those URLs into your assistant depends on the tool:
+For LLM consumption, two [`llms.txt`](https://llmstxt.org/) files are served at the root:
 
--   **Claude Code**: ask Claude to read the URL — it'll fetch the content via its built-in `WebFetch` tool. Example prompt: _"Read https://docs.interop.wonderland.xyz/llms-full.txt and use it as the source for the rest of this conversation."_ (There's no first-class command to register a static `llms.txt` as a persistent MCP source — `claude mcp add --transport http` expects a JSON-RPC server, not a `.txt` file.)
--   **Cursor**: Settings → Features → Docs → add a new doc pointing at `https://docs.interop.wonderland.xyz/llms-full.txt`. Cursor will index the page and surface it via `@docs`.
--   **Continue**: add an `@docs` context provider in `~/.continue/config.json` pointing at the same URL.
+-   [`/llms.txt`](https://docs.interop.wonderland.xyz/llms.txt) — concise index of all pages with titles and descriptions
+-   [`/llms-full.txt`](https://docs.interop.wonderland.xyz/llms-full.txt) — complete documentation in a single file
