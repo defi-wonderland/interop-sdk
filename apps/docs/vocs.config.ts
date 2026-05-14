@@ -17,6 +17,15 @@ export default defineConfig({
         pattern: "https://github.com/defi-wonderland/interop-sdk/edit/main/apps/docs/pages/:path",
         text: "Edit on GitHub",
     },
+    theme: {
+        accentColor: "#3441c0",
+    },
+    ogImageUrl: {
+        "/": "https://vocs.dev/api/og?title=%title&description=%description",
+    },
+    llms: {
+        generateMarkdown: true,
+    },
     markdown: {
         code: {
             themes: {
