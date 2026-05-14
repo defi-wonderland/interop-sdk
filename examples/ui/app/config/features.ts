@@ -16,7 +16,7 @@ export const APPS = [
     id: 'cross-chain',
     href: '/cross-chain',
     label: 'Cross-Chain',
-    badge: 'EIP-7683 & Intents',
+    badge: 'ERC-7683 & Intents',
     title: 'Cross-Chain Intent Swap',
     description: 'Experience seamless cross-chain transfers with intent-based routing',
   },
