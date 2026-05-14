@@ -93,7 +93,6 @@ export interface SubmitOrderResponse {
 export interface GetQuotesError {
     error: Error;
     errorMsg: string;
-    /** Time elapsed in milliseconds until the provider call failed or timed out. */
     latencyMs?: number;
 }
 
