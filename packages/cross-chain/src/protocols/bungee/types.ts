@@ -23,7 +23,7 @@ export const BungeeConfigSchema = z
         /** API integration tier. Determines the base URL when `baseUrl` is not set. Defaults to `"sandbox"`. */
         tier: z.nativeEnum(BungeeApiTier).optional(),
         /** Custom API base URL. Overrides the URL derived from `tier`. */
-        baseUrl: z.string().url().optional(),
+        baseUrl: z.url().optional(),
         /** Unique provider identifier. Defaults to `"bungee"`. */
         providerId: z.string().optional(),
         /** Bungee API key for dedicated backend authentication (sent via `x-api-key`). */

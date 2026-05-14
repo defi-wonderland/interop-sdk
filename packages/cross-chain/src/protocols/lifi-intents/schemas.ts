@@ -17,9 +17,9 @@ export type Caip10Address = z.infer<typeof Caip10AddressSchema>;
 // ── Provider Config ─────────────────────────────────────
 
 export const LifiIntentsProviderConfigSchema = z.object({
-    orderServerUrl: z.string().url(),
+    orderServerUrl: z.url(),
     providerId: z.string().optional(),
-    headers: z.record(z.string()).optional(),
+    headers: z.record(z.string(), z.string()).optional(),
 });
 
 // ── Quote Request (SDK → LI.FI) ────────────────────────
@@ -138,7 +138,7 @@ const LifiIntentsOrderStatusMetaSchema = z.object({
 
 /** Single-order response from /orders/status?onChainOrderId=... */
 export const LifiIntentsOrderStatusResponseSchema = z.object({
-    order: z.record(z.unknown()).optional(),
+    order: z.record(z.string(), z.unknown()).optional(),
     meta: LifiIntentsOrderStatusMetaSchema,
 });
 

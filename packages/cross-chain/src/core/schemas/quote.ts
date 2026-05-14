@@ -62,7 +62,7 @@ export const QuoteSchema = z.object({
     fees: QuoteFeesSchema.optional(),
     tracking: QuoteTrackingSchema.optional(),
     latencyMs: z.number().int().nonnegative().optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ── Types ───────────────────────────────────────────────

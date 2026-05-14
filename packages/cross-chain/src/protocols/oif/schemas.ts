@@ -20,9 +20,9 @@ export { AddressSchema };
  */
 export const OifProviderConfigSchema = z.object({
     solverId: z.string().min(1, "Solver ID is required"),
-    url: z.string().url("URL must be a valid URL"),
-    headers: z.record(z.string()).optional(),
-    adapterMetadata: z.record(z.unknown()).optional(),
+    url: z.url("URL must be a valid URL"),
+    headers: z.record(z.string(), z.string()).optional(),
+    adapterMetadata: z.record(z.string(), z.unknown()).optional(),
     providerId: z.string().optional(),
     supportedLocks: z.array(z.string()).optional(),
     submissionModes: z.array(z.enum(["user-transaction", "gasless"])).optional(),
@@ -50,6 +50,7 @@ export const assetLockReferenceSchema = z.object({
         ),
     params: z
         .record(
+            z.string(),
             z
                 .unknown()
                 .describe("Additional configuration parameters specific to the chosen lock type"),
@@ -149,7 +150,7 @@ export const getQuoteRequestSchema = z.object({
         originSubmission: originSubmissionSchema.optional(),
         failureHandling: z.array(failureHandlingModeSchema).optional(),
         partialFill: z.boolean().optional(),
-        metadata: z.record(z.any()).optional(),
+        metadata: z.record(z.string(), z.any()).optional(),
     }),
     supportedTypes: z.array(z.string()),
 });
@@ -161,6 +162,7 @@ export const eIP712TypePropertySchema = z.object({
 
 export const eIP712TypesSchema = z
     .record(
+        z.string(),
         z
             .array(eIP712TypePropertySchema)
             .describe("Map from type name to its field definitions, per EIP-712"),
@@ -171,9 +173,9 @@ export const oifResourceLockOrderSchema = z.object({
     type: z.literal("oif-resource-lock-v0"),
     payload: z.object({
         signatureType: z.literal("eip712"),
-        domain: z.record(z.any()),
+        domain: z.record(z.string(), z.any()),
         primaryType: z.string(),
-        message: z.record(z.any()),
+        message: z.record(z.string(), z.any()),
         types: eIP712TypesSchema,
     }),
 });
@@ -182,12 +184,12 @@ export const oif3009OrderSchema = z.object({
     type: z.literal("oif-3009-v0"),
     payload: z.object({
         signatureType: z.literal("eip712"),
-        domain: z.record(z.any()),
+        domain: z.record(z.string(), z.any()),
         primaryType: z.string(),
-        message: z.record(z.any()),
+        message: z.record(z.string(), z.any()),
         types: eIP712TypesSchema,
     }),
-    metadata: z.record(z.any()),
+    metadata: z.record(z.string(), z.any()),
 });
 
 export const postOrderResponseStatusSchema = z.nativeEnum(PostOrderResponseStatus);
@@ -196,7 +198,7 @@ export const postOrderResponseSchema = z.object({
     orderId: z.string().optional(),
     status: postOrderResponseStatusSchema,
     message: z.string().optional(),
-    order: z.record(z.unknown()).optional(),
+    order: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const orderStatusSchema = z.nativeEnum(OrderStatus);
@@ -211,7 +213,10 @@ export const settlementTypeSchema = z.nativeEnum(SettlementType);
 export const settlementSchema = z.object({
     type: settlementTypeSchema.describe("The type of settlement mechanism used for this order"),
     data: z
-        .record(z.unknown().describe("Additional parameters specific to the settlement type"))
+        .record(
+            z.string(),
+            z.unknown().describe("Additional parameters specific to the settlement type"),
+        )
         .describe("Additional parameters specific to the settlement type"),
 });
 
@@ -225,7 +230,7 @@ export const getOrderRequestSchema = z.object({
 // #111: status accepts object format from OIF solver
 export const getOrderResponseSchema = z.object({
     orderId: z.string(),
-    status: z.union([orderStatusSchema, z.record(z.unknown())]),
+    status: z.union([orderStatusSchema, z.record(z.string(), z.unknown())]),
     // WORKAROUND: Solver sends ISO strings, spec says unix seconds. Accepts both.
     createdAt: z
         .preprocess(
@@ -247,9 +252,9 @@ export const oifEscrowOrderSchema = z.object({
     type: z.literal("oif-escrow-v0"),
     payload: z.object({
         signatureType: z.literal("eip712"),
-        domain: z.record(z.any()),
+        domain: z.record(z.string(), z.any()),
         primaryType: z.string(),
-        message: z.record(z.any()),
+        message: z.record(z.string(), z.any()),
         types: eIP712TypesSchema,
     }),
 });
@@ -290,7 +295,7 @@ export const quoteSchema = z
         preview: quotePreviewSchema,
         failureHandling: failureHandlingModeSchema,
         partialFill: z.boolean(),
-        metadata: z.record(z.any()).optional(),
+        metadata: z.record(z.string(), z.any()).optional(),
     })
     // Allow extra fields from solver implementations (e.g., OpenZeppelin's solverId, integrityChecksum)
     .passthrough();
