@@ -127,7 +127,7 @@ Or: **Failed** / **Refunded**
 
 Tracking works through two mechanisms:
 
--   **Event-based**: Parse an open event on the origin chain — a provider-specific event in every case (SpokePool `V3FundsDeposited` for Across, the OIF settler `Open` event for OIF, a custom event for LiFi Intents) — which the SDK maps into an ERC-7683/OIF-shaped `OpenedIntent`, then watch for the fill on the destination chain. Requires RPC URLs for both chains.
+-   **Event-based**: Parse an open event on the origin chain — a provider-specific event in every case (SpokePool `V3FundsDeposited` for Across, the OIF settler `Open` event for OIF, a custom event for LiFi Intents) — which the SDK maps into an ERC-7683/OIF-shaped `OpenedIntent`. Fill detection may be on-chain or API-based depending on the provider, so an origin-chain RPC URL is always required, but a destination-chain RPC URL is only needed when the provider uses an on-chain fill watcher (e.g. Across testnet).
 -   **API-based**: Poll a provider's status endpoint. Simpler setup, no destination-chain RPC needed.
 
 The tracking mechanism is determined by the provider. See [Order Tracking](./intent-tracking) for usage details.

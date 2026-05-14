@@ -7,9 +7,12 @@ import type { PublicClientManager } from "../utils/publicClientManager.js";
  * Interface for parsing opened intent information from a transaction.
  * Implementations can parse from different sources (OIF events, custom events, APIs).
  *
- * All parsers return the full {@link OpenedIntent} type with complete data including
- * destination chain and amounts, mapped into an ERC-7683/OIF-shaped intent from the
- * provider's native open event (or API response).
+ * All parsers return an {@link OpenedIntent} in the same shape (ERC-7683/OIF-aligned),
+ * but completeness varies by source. Parsers that read an on-chain open event (OIF,
+ * Across, LiFi Intents) populate every field, including `maxSpent` / `minReceived` and
+ * the user/origin addresses. API-based parsers (e.g. Relay, Bungee) return enough to
+ * drive fill tracking — origin/destination chain, `orderId`, `txHash` — and leave the
+ * amount arrays empty and other addresses as placeholders.
  */
 export interface OpenedIntentParser {
     /**
