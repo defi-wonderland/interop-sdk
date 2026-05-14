@@ -8,7 +8,8 @@ import type { PublicClientManager } from "../utils/publicClientManager.js";
  * Implementations can parse from different sources (OIF events, custom events, APIs).
  *
  * All parsers return the full {@link OpenedIntent} type with complete data including
- * destination chain and amounts, as this data is available from the EIP-7683 Open event.
+ * destination chain and amounts, mapped into an ERC-7683/OIF-shaped intent from the
+ * provider's native open event (or API response).
  */
 export interface OpenedIntentParser {
     /**

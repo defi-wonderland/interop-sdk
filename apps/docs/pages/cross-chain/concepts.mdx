@@ -25,17 +25,17 @@ This separation of intent from execution means the same code works across differ
 
 [ERC-7683](https://www.erc7683.org/) ("Cross-Chain Intents") defines a common order format, an "open" event on the origin chain, and a "fill" event on the destination chain. The [Open Intents Framework](https://github.com/openintentsframework) (OIF) builds on top of it with a concrete order-status vocabulary.
 
-The SDK borrows that vocabulary — `OrderStatus` values like `Created`, `Pending`, `Executing`, `Settling`, `Finalized` come from `@openintentsframework/oif-specs` — but **not every supported provider speaks ERC-7683 natively**:
+The SDK borrows that vocabulary — `OrderStatus` values like `Created`, `Pending`, `Executing`, `Settling`, `Finalized` come from `@openintentsframework/oif-specs` — but **not every supported provider speaks ERC-7683 natively**, and even the ones that do emit provider-specific open events rather than the standard ERC-7683 Open event:
 
-| Provider     | Native protocol                              | How the SDK gets status                         |
-| ------------ | -------------------------------------------- | ----------------------------------------------- |
-| Across       | ERC-7683 open/fill events                    | Parses ERC-7683 open event + API/event watching |
-| OIF          | ERC-7683 (OIF is an ERC-7683 implementation) | Parses ERC-7683 open event + API/event watching |
-| Relay        | Relay's own intent API                       | Polls `/intents/status/v3`                      |
-| Bungee       | Bungee's own bridge / permit2 flow           | Polls Bungee's status API                       |
-| LiFi Intents | LI.FI's own resource-lock escrow             | Parses a custom LI.FI event + API watching      |
+| Provider     | Native protocol                                       | How the SDK gets status                                  |
+| ------------ | ----------------------------------------------------- | -------------------------------------------------------- |
+| Across       | UMA Across (ERC-7683-aligned order shape)             | Parses SpokePool `V3FundsDeposited` + API/event watching |
+| OIF          | Open Intents Framework (ERC-7683-aligned order shape) | Parses OIF settler `Open` event + API/event watching     |
+| Relay        | Relay's own intent API                                | Polls `/intents/status/v3`                               |
+| Bungee       | Bungee's own bridge / permit2 flow                    | Polls Bungee's status API                                |
+| LiFi Intents | LI.FI's own resource-lock escrow                      | Parses a custom LI.FI event + API watching               |
 
-What makes multi-provider aggregation possible is the SDK's adapter layer: each provider's native quote/order shape is normalized into the SDK's own `Quote` / `Order` / `OrderStatus` types — which are themselves ERC-7683/OIF-shaped where it makes sense. ERC-7683 is the vocabulary, not a precondition every provider has to meet.
+For Across and OIF the underlying events differ from the ERC-7683 standard Open event signature — the SDK maps each one into an ERC-7683/OIF-shaped `OpenedIntent`. What makes multi-provider aggregation possible is that adapter layer: each provider's native quote/order shape is normalized into the SDK's own `Quote` / `Order` / `OrderStatus` types. ERC-7683 is the vocabulary, not a precondition every provider has to meet.
 
 ## The transfer flow
 
@@ -127,7 +127,7 @@ Or: **Failed** / **Refunded**
 
 Tracking works through two mechanisms:
 
--   **Event-based**: Parse an open event on the origin chain (the ERC-7683 open event for Across and OIF; a custom event for LiFi Intents), then watch for the fill on the destination chain. Requires RPC URLs for both chains.
+-   **Event-based**: Parse an open event on the origin chain — a provider-specific event in every case (SpokePool `V3FundsDeposited` for Across, the OIF settler `Open` event for OIF, a custom event for LiFi Intents) — which the SDK maps into an ERC-7683/OIF-shaped `OpenedIntent`, then watch for the fill on the destination chain. Requires RPC URLs for both chains.
 -   **API-based**: Poll a provider's status endpoint. Simpler setup, no destination-chain RPC needed.
 
 The tracking mechanism is determined by the provider. See [Order Tracking](./intent-tracking) for usage details.

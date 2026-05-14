@@ -175,7 +175,7 @@ export default function CrossChainClient() {
 
             <header className='flex flex-col items-center gap-4 text-center'>
               <div className='inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-light text-accent text-xs font-medium'>
-                EIP-7683 & Intents
+                ERC-7683 & Intents
               </div>
               <h1 className='text-4xl sm:text-5xl md:text-6xl font-bold text-text-primary'>Cross-Chain Intent Swap</h1>
               <p className='text-lg sm:text-xl text-text-secondary'>

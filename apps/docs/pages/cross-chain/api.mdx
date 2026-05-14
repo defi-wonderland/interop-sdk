@@ -369,7 +369,7 @@ A factory for creating quote sorting strategies.
 
 ## Order Tracker
 
-A utility for tracking cross-chain orders from initiation to completion. Tracking uses ERC-7683 open-event parsing for providers that emit it (Across, OIF), a custom event for LiFi Intents, and provider status APIs for Relay and Bungee.
+A utility for tracking cross-chain orders from initiation to completion. Tracking uses provider-specific open-event parsing for Across (SpokePool `V3FundsDeposited`) and OIF (settler `Open` event) — each normalized into an ERC-7683/OIF-shaped `OpenedIntent` — a custom event for LiFi Intents, and provider status APIs for Relay and Bungee.
 
 ### Methods
 
