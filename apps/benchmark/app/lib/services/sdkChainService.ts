@@ -10,33 +10,43 @@ export class SDKChainService implements ChainService {
   ) {}
 
   async getChains(): Promise<NetworkAssets[]> {
-    const chainIds = this.chains.map((chain) => chain.id);
-    const assets = await this.aggregator.discoverAssets({ chainIds });
-    return this.toNetworkAssets(assets);
+    const discovered = await this.discoverAssets();
+    return this.buildNetworks(discovered);
   }
 
-  private toNetworkAssets(assets: DiscoveredAssets): NetworkAssets[] {
+  private discoverAssets(): Promise<DiscoveredAssets> {
+    const chainIds = this.chains.map((chain) => chain.id);
+    return this.aggregator.discoverAssets({ chainIds });
+  }
+
+  private buildNetworks(discovered: DiscoveredAssets): NetworkAssets[] {
     return this.chains
-      .map((chain) => ({ chainId: chain.id, assets: this.extractAssets(assets.tokenMetadata[chain.id]) }))
+      .map((chain) => ({
+        chainId: chain.id,
+        assets: this.extractAssets(discovered.tokensByChain[chain.id] ?? [], discovered.tokenMetadata[chain.id] ?? {}),
+      }))
       .filter((network) => network.assets.length > 0);
   }
 
-  private extractAssets(metadata: DiscoveredAssets['tokenMetadata'][number] | undefined): AssetInfo[] {
-    if (!metadata) return [];
+  private extractAssets(
+    addresses: readonly string[],
+    metadata: DiscoveredAssets['tokenMetadata'][number],
+  ): AssetInfo[] {
     const allowed = new Set(this.symbols);
-    const result: AssetInfo[] = [];
-    for (const raw of Object.values(metadata)) {
-      if (!allowed.has(raw.symbol)) continue;
-      result.push({ ...raw, address: this.toChecksumAddress(raw.address) });
+    const bySymbol = new Map<string, AssetInfo>();
+    for (const addr of addresses) {
+      const meta = metadata[addr.toLowerCase()];
+      if (!meta || !allowed.has(meta.symbol) || bySymbol.has(meta.symbol)) continue;
+      bySymbol.set(meta.symbol, { ...meta, address: toChecksum(addr) });
     }
-    return result.sort((a, b) => a.symbol.localeCompare(b.symbol));
+    return [...bySymbol.values()].sort((a, b) => a.symbol.localeCompare(b.symbol));
   }
+}
 
-  private toChecksumAddress(address: string): string {
-    try {
-      return getAddress(address);
-    } catch {
-      return address;
-    }
+function toChecksum(address: string): string {
+  try {
+    return getAddress(address);
+  } catch {
+    return address;
   }
 }
