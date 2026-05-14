@@ -180,6 +180,32 @@ describe("adaptQuotes", () => {
         expect(quote!.preview.outputs[0]!.chainId).toBe(10);
     });
 
+    it("exposes minAmountOut as the slippage floor on preview output", () => {
+        const response = buildBungeeQuoteResponse();
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        if (!quote) throw new Error("expected a quote");
+
+        expect(quote.preview.outputs[0]?.minAmount).toBe("998000");
+    });
+
+    it("prefers effectiveAmount over amount when provider exposes it", () => {
+        const response = buildBungeeQuoteResponse();
+        response.result.autoRoute = buildAutoRoute({
+            output: {
+                ...buildAutoRoute().output,
+                effectiveAmount: "997500",
+                effectiveValueInUsd: 997.5,
+            },
+        });
+
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        if (!quote) throw new Error("expected a quote");
+
+        expect(quote.preview.outputs[0]?.amount).toBe("997500");
+        expect(quote.preview.outputs[0]?.amountUsd).toBe("997.5");
+        expect(quote.preview.outputs[0]?.minAmount).toBe("998000");
+    });
+
     it("maps valueInUsd to preview.amountUsd as decimal string", () => {
         const response = buildBungeeQuoteResponse();
         const [quote] = adaptQuotes(response as never, PROVIDER_ID);

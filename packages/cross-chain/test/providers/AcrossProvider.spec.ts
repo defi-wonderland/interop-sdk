@@ -77,6 +77,30 @@ describe("AcrossProvider", () => {
             });
         });
 
+        it("exposes minOutputAmount as the slippage floor on preview output", async () => {
+            const quoteRequest: QuoteRequest = {
+                user: TEST_ADDRESSES.USER,
+                input: {
+                    chainId: CHAIN_IDS.SEPOLIA,
+                    assetAddress: TESTNET_TOKENS.WETH_SEPOLIA,
+                    amount: TEST_AMOUNTS.ONE_ETHER.toString(),
+                },
+                output: {
+                    chainId: CHAIN_IDS.BASE_SEPOLIA,
+                    assetAddress: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                    recipient: TEST_ADDRESSES.RECEIVER,
+                },
+                swapType: "exact-input",
+            };
+
+            const [quote] = await provider.getQuotes(quoteRequest);
+            if (!quote) throw new Error("expected a quote");
+
+            // From the mock fixture: expectedOutputAmount=990000…, minOutputAmount=980000…
+            expect(quote.preview.outputs[0]?.amount).toBe("990000000000000000");
+            expect(quote.preview.outputs[0]?.minAmount).toBe("980000000000000000");
+        });
+
         it("should handle exact-output swap type", async () => {
             const quoteRequest: QuoteRequest = {
                 user: TEST_ADDRESSES.USER,

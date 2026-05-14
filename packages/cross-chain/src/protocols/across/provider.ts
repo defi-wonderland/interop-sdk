@@ -266,6 +266,7 @@ export class AcrossProvider extends CrossChainProvider {
                         accountAddress: params.output.recipient ?? params.user,
                         assetAddress: response.outputToken.address,
                         amount: response.expectedOutputAmount,
+                        minAmount: response.minOutputAmount,
                     },
                 ],
             },
