@@ -24,8 +24,15 @@
         },
         "build": {
             "dependsOn": ["^build"],
-            "outputs": ["dist/**", "out/**", ".next/**", "!.next/cache/**", "build/**"],
-            "inputs": ["$TURBO_DEFAULT$", "src/**/*.ts", "src/**/*.json"]
+            "outputs": [
+                "dist/**",
+                "out/**",
+                ".next/**",
+                "!.next/cache/**",
+                "build/**",
+                ".vercel/output/**"
+            ],
+            "inputs": ["$TURBO_DEFAULT$"]
         },
         "dev": {
             "cache": false
