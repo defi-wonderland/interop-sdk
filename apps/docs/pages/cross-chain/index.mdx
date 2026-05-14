@@ -1,0 +1,37 @@
+---
+title: Cross-Chain
+description: Fetch quotes, execute transfers, and track orders across chains through a unified provider interface — Across, Relay, OIF, Bungee, LiFi.
+---
+
+# Cross-Chain
+
+:::danger[Experimental release — not for production use]
+
+This SDK is an early, preview release and has not been audited. It handles transaction and signature data for cross-chain value transfers, so a defect in the SDK could result in permanent, irrecoverable loss of user funds.
+
+Do not use this SDK in production or with real user value.
+:::
+
+The `cross-chain` package provides a standardized interface for cross-chain token transfers. It lets you fetch quotes from multiple bridge providers, execute transfers, and track orders through a unified API.
+
+It follows [EIP-7683](https://www.erc7683.org/) for cross-chain intent structures.
+
+## What it does
+
+-   Fetch and compare quotes from multiple providers (Across, Relay, OIF, LiFi)
+-   Execute cross-chain transfers via signature (gasless) or transaction
+-   Track orders from initiation to completion
+-   Aggregate quotes with configurable sorting strategies
+
+## Where to start
+
+| I want to...                 | Go to                                                                                                                                               |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Try it out                   | [Getting Started](./getting-started)                                                                                                                |
+| Build a frontend             | [Frontend Integration](./frontend-integration)                                                                                                      |
+| Understand the design        | [Concepts](./concepts)                                                                                                                              |
+| See the transfer flow        | [Flow](./flow)                                                                                                                                      |
+| Set up a specific provider   | [Across](./across-provider), [Relay](./relay-provider), [OIF](./oif-provider), [Bungee](./bungee-provider), [LiFi Intents](./lifi-intents-provider) |
+| Monitor a transfer           | [Order Tracking](./intent-tracking)                                                                                                                 |
+| Learn advanced patterns      | [Advanced Usage](./advanced-usage)                                                                                                                  |
+| Look up a function signature | [API Reference](./api)                                                                                                                              |

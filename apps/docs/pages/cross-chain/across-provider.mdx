@@ -1,6 +1,9 @@
 ---
 title: Across Provider
+description: Configure and use the Across Protocol provider for cross-chain token transfers via the Across bridge infrastructure.
 ---
+
+# Across Provider
 
 The Across Protocol provider enables cross-chain token transfers using the Across bridge infrastructure.
 
@@ -63,7 +66,7 @@ console.log(quote.fees?.bridgeFeePct); // percentage (wei-encoded, 1e18 = 100%)
 console.log(quote.fees?.originGas); // origin chain gas estimate
 ```
 
-See the [API reference](./api.md#quotefees) for the full `QuoteFees` type.
+See the [API reference](./api#quotefees) for the full `QuoteFees` type.
 
 ## Executing Transactions
 
@@ -100,10 +103,10 @@ In both cases, the SDK parses the ERC-7683 open event on the **origin chain**, s
 
 ## Next Step
 
-See a complete working example: [Execute Intent](./example.md)
+See a complete working example: [Execute Intent](./example)
 
 ## References
 
 -   [Across Protocol Documentation](https://docs.across.to/)
--   [API Reference](./api.md) — full type definitions for quotes, fees, and orders
--   [Concepts](./concepts.md) — how intent-based transfers work
+-   [API Reference](./api) — full type definitions for quotes, fees, and orders
+-   [Concepts](./concepts) — how intent-based transfers work

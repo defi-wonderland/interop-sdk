@@ -1,6 +1,9 @@
 ---
 title: Relay Provider
+description: Configure and use the Relay Protocol provider for cross-chain transfers, including opt-in gasless execution via EIP-3009 signatures.
 ---
+
+# Relay Provider
 
 The Relay Protocol provider enables cross-chain token transfers using the Relay bridge infrastructure.
 
@@ -16,12 +19,12 @@ The Relay Protocol provider enables cross-chain token transfers using the Relay 
 | `apiKey`          | string   | No       | Relay API key for authentication                                                                                                                                    |
 | `submissionModes` | string[] | No       | Execution modes: `["user-transaction"]`, `["gasless"]`, or both (default: `["user-transaction"]`). Controls whether quotes request permit-based (gasless) execution |
 
-:::info Gasless is opt-in — the default is `["user-transaction"]` only
+:::info[Gasless is opt-in — the default is `["user-transaction"]` only]
 
 `submissionModes` defaults to `["user-transaction"]`. To enable gasless execution, explicitly opt in:
 
 ```typescript
-submissionModes: ["user-transaction", "gasless"]
+submissionModes: ["user-transaction", "gasless"];
 ```
 
 When both modes are configured, quotes are fetched in parallel and the aggregator handles either order type seamlessly, so opting in has no extra cost. For Relay, tokens that support EIP-3009 (e.g. USDC) are **fully gasless** — the quote returns only a signature step. Other ERC-20 tokens may still require a one-time approval transaction alongside the signature step.
@@ -84,7 +87,7 @@ console.log(quote.fees?.bridgeFeePct); // percentage (wei-encoded, 1e18 = 100%)
 console.log(quote.fees?.originGas); // origin chain gas estimate
 ```
 
-See the [API reference](./api.md#quotefees) for the full `QuoteFees` type.
+See the [API reference](./api#quotefees) for the full `QuoteFees` type.
 
 ## Executing Transactions
 
@@ -163,10 +166,10 @@ Transaction notification is automatic — when tracking starts, the pre-tracker 
 
 ## Next Step
 
-See a complete working example: [Execute Intent](./example.md)
+See a complete working example: [Execute Intent](./example)
 
 ## References
 
 -   [Relay Protocol Documentation](https://docs.relay.link/)
--   [API Reference](./api.md) — full type definitions for quotes, fees, and orders
--   [Concepts](./concepts.md) — how intent-based transfers work
+-   [API Reference](./api) — full type definitions for quotes, fees, and orders
+-   [Concepts](./concepts) — how intent-based transfers work
