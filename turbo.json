@@ -32,7 +32,7 @@
                 "build/**",
                 ".vercel/output/**"
             ],
-            "inputs": ["$TURBO_DEFAULT$", "src/**/*.ts", "src/**/*.json"]
+            "inputs": ["$TURBO_DEFAULT$"]
         },
         "dev": {
             "cache": false
