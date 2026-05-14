@@ -157,14 +157,14 @@ class Aggregator {
     async getQuotes(params: QuoteRequest): Promise<GetQuotesResponse> {
         const resultQuotes = await Promise.all(
             Object.values(this.providers).map(async (provider) => {
+                const isSupported = await this.supportsRequestedAssets(provider, params);
+                if (!isSupported) {
+                    return [];
+                }
+
                 const startedAt = performance.now();
 
                 try {
-                    const isSupported = await this.supportsRequestedAssets(provider, params);
-                    if (!isSupported) {
-                        return [];
-                    }
-
                     const quotesPromise = provider.getQuotes(params);
 
                     let timeout: NodeJS.Timeout;
