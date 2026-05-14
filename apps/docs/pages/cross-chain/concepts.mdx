@@ -1,6 +1,6 @@
 ---
 title: Concepts
-description: The intent-based architecture behind the cross-chain package, the EIP-7683 standard, and how the SDK unifies multi-provider transfers.
+description: The intent-based architecture behind the cross-chain package and how the SDK unifies heterogeneous bridge providers behind a common interface.
 ---
 
 import { Mermaid } from "../../components/Mermaid";
@@ -21,15 +21,21 @@ The Interop SDK takes an **intent-based** approach instead. The user declares _w
 
 This separation of intent from execution means the same code works across different bridge protocols without provider-specific logic.
 
-## EIP-7683: Cross-Chain Intents
+## ERC-7683 and the OIF vocabulary
 
-The SDK follows [EIP-7683](https://www.erc7683.org/), which standardizes cross-chain intent structures. EIP-7683 defines:
+[ERC-7683](https://www.erc7683.org/) ("Cross-Chain Intents") defines a common order format, an "open" event on the origin chain, and a "fill" event on the destination chain. The [Open Intents Framework](https://github.com/openintentsframework) (OIF) builds on top of it with a concrete order-status vocabulary.
 
--   A common order format that any solver or bridge can fill
--   An "open" event on the origin chain that signals the intent is ready to be filled
--   A "fill" event on the destination chain that confirms execution
+The SDK borrows that vocabulary — `OrderStatus` values like `Created`, `Pending`, `Executing`, `Settling`, `Finalized` come from `@openintentsframework/oif-specs` — but **not every supported provider speaks ERC-7683 natively**:
 
-This standardization is what makes multi-provider aggregation possible — quotes from different providers share a common structure.
+| Provider     | Native protocol                              | How the SDK gets status                         |
+| ------------ | -------------------------------------------- | ----------------------------------------------- |
+| Across       | ERC-7683 open/fill events                    | Parses ERC-7683 open event + API/event watching |
+| OIF          | ERC-7683 (OIF is an ERC-7683 implementation) | Parses ERC-7683 open event + API/event watching |
+| Relay        | Relay's own intent API                       | Polls `/intents/status/v3`                      |
+| Bungee       | Bungee's own bridge / permit2 flow           | Polls Bungee's status API                       |
+| LiFi Intents | LI.FI's own resource-lock escrow             | Parses a custom LI.FI event + API watching      |
+
+What makes multi-provider aggregation possible is the SDK's adapter layer: each provider's native quote/order shape is normalized into the SDK's own `Quote` / `Order` / `OrderStatus` types — which are themselves ERC-7683/OIF-shaped where it makes sense. ERC-7683 is the vocabulary, not a precondition every provider has to meet.
 
 ## The transfer flow
 
@@ -121,12 +127,12 @@ Or: **Failed** / **Refunded**
 
 Tracking works through two mechanisms:
 
--   **Event-based**: Parse the ERC-7683 open event on the origin chain, then watch for the fill event on the destination chain. Requires RPC URLs for both chains.
+-   **Event-based**: Parse an open event on the origin chain (the ERC-7683 open event for Across and OIF; a custom event for LiFi Intents), then watch for the fill on the destination chain. Requires RPC URLs for both chains.
 -   **API-based**: Poll a provider's status endpoint. Simpler setup, no destination-chain RPC needed.
 
 The tracking mechanism is determined by the provider. See [Order Tracking](./intent-tracking) for usage details.
 
 ## References
 
--   [EIP-7683: Cross-Chain Intents](https://www.erc7683.org/)
+-   [ERC-7683: Cross-Chain Intents](https://www.erc7683.org/)
 -   [Open Intents Framework](https://github.com/openintentsframework)

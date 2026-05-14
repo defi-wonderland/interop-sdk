@@ -14,11 +14,11 @@ Do not use this SDK in production or with real user value.
 
 The `cross-chain` package provides a standardized interface for cross-chain token transfers. It lets you fetch quotes from multiple bridge providers, execute transfers, and track orders through a unified API.
 
-It follows [EIP-7683](https://www.erc7683.org/) for cross-chain intent structures.
+Order shapes and the `OrderStatus` vocabulary are borrowed from [ERC-7683](https://www.erc7683.org/) and the [Open Intents Framework](https://github.com/openintentsframework). Some providers (Across, OIF) speak ERC-7683 natively; others (Relay, Bungee, LiFi Intents) have their own protocols and are normalized by the SDK into the same shape.
 
 ## What it does
 
--   Fetch and compare quotes from multiple providers (Across, Relay, OIF, LiFi)
+-   Fetch and compare quotes from multiple providers (Across, Relay, OIF, Bungee, LiFi Intents)
 -   Execute cross-chain transfers via signature (gasless) or transaction
 -   Track orders from initiation to completion
 -   Aggregate quotes with configurable sorting strategies

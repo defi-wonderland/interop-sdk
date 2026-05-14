@@ -369,7 +369,7 @@ A factory for creating quote sorting strategies.
 
 ## Order Tracker
 
-A utility for tracking cross-chain orders from initiation to completion (ERC-7683 open event parsing + fill watching).
+A utility for tracking cross-chain orders from initiation to completion. Tracking uses ERC-7683 open-event parsing for providers that emit it (Across, OIF), a custom event for LiFi Intents, and provider status APIs for Relay and Bungee.
 
 ### Methods
 
@@ -743,5 +743,5 @@ Constraints:
 ## References
 
 -   [Cross-chain Protocol Standards](https://github.com/ethereum/ercs/blob/master/ERCS/erc-5164.md)
--   [EIP-7683: Cross Chain Intents](https://www.erc7683.org/)
+-   [ERC-7683: Cross Chain Intents](https://www.erc7683.org/)
 -   [Open Intents Framework](https://github.com/openintentsframework)
