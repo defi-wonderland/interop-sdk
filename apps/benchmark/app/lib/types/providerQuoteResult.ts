@@ -8,6 +8,8 @@ export interface ProviderQuoteResult {
   outputAssetAddress?: string;
   outputChainId?: number;
   bridgeFeeUsd?: string;
+  originGasUsd?: string;
+  totalFeeUsd?: string;
 }
 
 export interface ProviderQuoteError {

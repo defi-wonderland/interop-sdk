@@ -15,6 +15,8 @@ export class SDKQuoteService implements QuotesService {
 
   private toProviderQuoteResult(quote: ExecutableQuote): ProviderQuoteResult {
     const [output] = quote.preview.outputs;
+    const bridgeFeeUsd = quote.fees?.bridgeFee?.amountUsd;
+    const originGasUsd = quote.fees?.originGas?.amountUsd;
     return {
       providerId: quote._providerId,
       protocolName: quote.provider,
@@ -24,7 +26,9 @@ export class SDKQuoteService implements QuotesService {
       outputAmountUsd: output?.amountUsd,
       outputAssetAddress: output?.assetAddress,
       outputChainId: output?.chainId,
-      bridgeFeeUsd: quote.fees?.bridgeFee?.amountUsd,
+      bridgeFeeUsd,
+      originGasUsd,
+      totalFeeUsd: sumUsd([bridgeFeeUsd, originGasUsd]),
     };
   }
 
@@ -34,4 +38,12 @@ export class SDKQuoteService implements QuotesService {
       latencyMs: error.latencyMs,
     };
   }
+}
+
+function sumUsd(values: (string | undefined)[]): string | undefined {
+  const numbers = values
+    .map((value) => (value ? Number.parseFloat(value) : Number.NaN))
+    .filter((value) => Number.isFinite(value));
+  if (numbers.length === 0) return undefined;
+  return numbers.reduce((acc, value) => acc + value, 0).toString();
 }
