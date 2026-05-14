@@ -245,6 +245,21 @@ describe("Aggregator", () => {
             expect(mockProviderA.getQuotes).toHaveBeenCalledWith(mockGetQuoteRequest);
             expect(mockProviderB.getQuotes).toHaveBeenCalledWith(mockGetQuoteRequest);
         });
+
+        it("attaches latencyMs to quotes and errors", async () => {
+            vi.mocked(mockProviderA.getQuotes).mockResolvedValue([mockExecutableQuoteA]);
+            vi.mocked(mockProviderB.getQuotes).mockRejectedValue(
+                new ProviderGetQuoteFailure("Mocked Error B"),
+            );
+
+            const aggregator = createAggregator({
+                providers: [mockProviderA, mockProviderB],
+            });
+            const { quotes, errors } = await aggregator.getQuotes(mockGetQuoteRequest);
+
+            expect(quotes[0]?.latencyMs).toBeGreaterThanOrEqual(0);
+            expect(errors[0]?.latencyMs).toBeGreaterThanOrEqual(0);
+        });
     });
 
     describe("tracking", () => {

@@ -494,6 +494,7 @@ interface Quote {
     fees?: QuoteFees;
     tracking?: QuoteTracking;
     metadata?: Record<string, unknown>;
+    latencyMs?: number; // Provider response time in ms, measured by the aggregator
 }
 ```
 
@@ -567,7 +568,7 @@ interface ExecutableQuote extends Quote {
 ```typescript
 interface GetQuotesResponse {
     quotes: ExecutableQuote[];
-    errors: { errorMsg: string; error: Error }[];
+    errors: { errorMsg: string; error: Error; latencyMs?: number }[];
 }
 ```
 

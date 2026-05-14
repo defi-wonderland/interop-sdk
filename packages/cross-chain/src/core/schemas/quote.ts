@@ -62,6 +62,8 @@ export const QuoteSchema = z.object({
     fees: QuoteFeesSchema.optional(),
     tracking: QuoteTrackingSchema.optional(),
     metadata: z.record(z.unknown()).optional(),
+    /** Provider response time in milliseconds, measured by the aggregator. */
+    latencyMs: z.number().int().nonnegative().optional(),
 });
 
 // ── Types ───────────────────────────────────────────────
@@ -92,6 +94,8 @@ export interface SubmitOrderResponse {
 export interface GetQuotesError {
     error: Error;
     errorMsg: string;
+    /** Time elapsed in milliseconds until the provider call failed or timed out. */
+    latencyMs?: number;
 }
 
 export interface GetQuotesResponse {
