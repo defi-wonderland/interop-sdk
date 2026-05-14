@@ -110,6 +110,102 @@ describe("AcrossProvider", () => {
         });
     });
 
+    describe("fallbackToken", () => {
+        const quoteRequest: QuoteRequest = {
+            user: TEST_ADDRESSES.USER,
+            input: {
+                chainId: CHAIN_IDS.SEPOLIA,
+                assetAddress: TESTNET_TOKENS.WETH_SEPOLIA,
+                amount: TEST_AMOUNTS.ONE_ETHER.toString(),
+            },
+            output: {
+                chainId: CHAIN_IDS.BASE_SEPOLIA,
+                assetAddress: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                recipient: TEST_ADDRESSES.RECEIVER,
+            },
+            swapType: "exact-input",
+        };
+
+        it("is undefined for atomic routes", async () => {
+            const [quote] = await provider.getQuotes(quoteRequest);
+            expect(quote!.fallbackToken).toBeUndefined();
+        });
+
+        it("returns the bridge output token when the route ends in a destination swap", async () => {
+            vi.mocked(httpRequest).mockResolvedValueOnce({
+                status: 200,
+                data: getMockedAcrossApiResponse({
+                    crossSwapType: "bridgeableToAny",
+                    steps: {
+                        bridge: {
+                            inputAmount: "1000000000000000000",
+                            outputAmount: "999000000000000000",
+                            tokenIn: {
+                                address: TESTNET_TOKENS.WETH_SEPOLIA,
+                                chainId: CHAIN_IDS.SEPOLIA,
+                                decimals: 18,
+                                symbol: "WETH",
+                            },
+                            tokenOut: {
+                                address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                                chainId: CHAIN_IDS.BASE_SEPOLIA,
+                                decimals: 18,
+                                symbol: "WETH",
+                            },
+                        },
+                    },
+                }),
+                headers: new Headers(),
+            });
+
+            const [quote] = await provider.getQuotes(quoteRequest);
+            expect(quote!.fallbackToken).toEqual({
+                chainId: CHAIN_IDS.BASE_SEPOLIA,
+                accountAddress: TEST_ADDRESSES.RECEIVER,
+                assetAddress: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                amount: "999000000000000000",
+            });
+        });
+
+        it("returns the intermediate bridge token for bridgeableToBridgeableIndirect routes", async () => {
+            const intermediateToken = "0x036cbd53842c5426634e7929541ec2318f3dcf7e"; // USDC on Base Sepolia (lowercase, canonical)
+
+            vi.mocked(httpRequest).mockResolvedValueOnce({
+                status: 200,
+                data: getMockedAcrossApiResponse({
+                    crossSwapType: "bridgeableToBridgeableIndirect",
+                    steps: {
+                        bridge: {
+                            inputAmount: "1000000000000000000",
+                            outputAmount: "999000000",
+                            tokenIn: {
+                                address: TESTNET_TOKENS.WETH_SEPOLIA,
+                                chainId: CHAIN_IDS.SEPOLIA,
+                                decimals: 18,
+                                symbol: "WETH",
+                            },
+                            tokenOut: {
+                                address: intermediateToken,
+                                chainId: CHAIN_IDS.BASE_SEPOLIA,
+                                decimals: 6,
+                                symbol: "USDC",
+                            },
+                        },
+                    },
+                }),
+                headers: new Headers(),
+            });
+
+            const [quote] = await provider.getQuotes(quoteRequest);
+            expect(quote!.fallbackToken).toEqual({
+                chainId: CHAIN_IDS.BASE_SEPOLIA,
+                accountAddress: TEST_ADDRESSES.RECEIVER,
+                assetAddress: intermediateToken,
+                amount: "999000000",
+            });
+        });
+    });
+
     describe("getOrderExplorers", () => {
         it("returns the Across tracker URL alongside the chain explorer URLs", () => {
             const explorers = provider.getOrderExplorers({

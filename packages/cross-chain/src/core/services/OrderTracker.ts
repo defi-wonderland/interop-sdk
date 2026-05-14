@@ -14,6 +14,7 @@ import type {
     WatchOrderByTxHash,
     WatchOrderParams,
 } from "../types/orderTracking.js";
+import { MissingDestinationChainId } from "../errors/MissingDestinationChainId.exception.js";
 import { OpenedIntentNotFoundError } from "../errors/OpenedIntentNotFound.exception.js";
 import { OrderTrackerEvent } from "../interfaces/orderTracker.interface.js";
 import { OrderFailureReason, OrderStatus, OrderTrackerYieldType } from "../types/orderTracking.js";
@@ -170,6 +171,11 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
             const openTxHash =
                 ("openTxHash" in params ? params.openTxHash : undefined) ??
                 ("txHash" in params ? params.txHash : undefined);
+
+            if (!params.destinationChainId) {
+                throw new MissingDestinationChainId("api-tracking");
+            }
+
             yield* this.watchOrderByOrderId({
                 ...(params as WatchOrderByOrderId),
                 openTxHash,
@@ -232,7 +238,7 @@ export class OrderTracker extends TypedEventEmitter<OrderTrackerEvents> {
 
         const destinationChainId = openedIntent.fillInstructions[0]?.destinationChainId;
         if (!destinationChainId) {
-            throw new Error("Order has no destination chain in fillInstructions");
+            throw new MissingDestinationChainId("order-fill-instructions");
         }
 
         lastUpdate = this.createUpdate({

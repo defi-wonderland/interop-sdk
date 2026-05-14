@@ -66,6 +66,7 @@ export const getAssetsResponseSchema = z
     .object({
         networks: z
             .record(
+                z.string(),
                 networkAssetsRawSchema.describe(
                     'Map where keys are chain IDs as strings (e.g., "1", "137", "42161") and\nvalues are network asset configurations',
                 ),

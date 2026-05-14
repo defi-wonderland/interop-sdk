@@ -40,7 +40,7 @@ yarn add @wonderland/interop viem
 pnpm add @wonderland/interop viem
 ```
 
-Supported `viem` range: `^2.28.0`.
+Supported `viem` range: `^2.35.0`.
 
 ## Available Scripts
 

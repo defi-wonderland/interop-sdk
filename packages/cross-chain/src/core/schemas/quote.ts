@@ -58,9 +58,10 @@ export const QuoteSchema = z.object({
     quoteId: z.string().optional(),
     failureHandling: z.string().optional(),
     partialFill: z.boolean().optional(),
+    fallbackToken: QuotePreviewEntrySchema.optional(),
     fees: QuoteFeesSchema.optional(),
     tracking: QuoteTrackingSchema.optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ── Types ───────────────────────────────────────────────

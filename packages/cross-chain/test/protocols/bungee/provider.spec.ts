@@ -492,6 +492,37 @@ describe("BungeeProvider", () => {
             expect(manual!.tracking).toBeUndefined();
         });
 
+        it("does not request multiple routes by default", async () => {
+            mockGet.mockResolvedValue({
+                status: 200,
+                data: makeBungeeQuoteResponse(),
+                headers: new Headers(),
+            });
+            await provider.getQuotes(makeQuoteRequest());
+
+            const [, options] = mockGet.mock.calls[0] as [
+                string,
+                { params: Record<string, string> },
+            ];
+            expect(options.params.enableMultipleAutoRoutes).toBeUndefined();
+        });
+
+        it("requests multiple routes when enableMultipleRoutes is true", async () => {
+            const multiRouteProvider = new BungeeProvider({ enableMultipleRoutes: true });
+            mockGet.mockResolvedValue({
+                status: 200,
+                data: makeBungeeQuoteResponse(),
+                headers: new Headers(),
+            });
+            await multiRouteProvider.getQuotes(makeQuoteRequest());
+
+            const [, options] = mockGet.mock.calls[0] as [
+                string,
+                { params: Record<string, string> },
+            ];
+            expect(options.params.enableMultipleAutoRoutes).toBe("true");
+        });
+
         it("returns an empty array when every mode responds with no routes", async () => {
             const emptyResponse = makeBungeeQuoteResponse({
                 result: {

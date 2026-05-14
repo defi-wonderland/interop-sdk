@@ -15,6 +15,7 @@ export interface BungeeQuoteOptions extends FeeConfig {
     refuel?: boolean;
     /** When `true`, ask Bungee to also return manual routes served by other bridge providers. */
     enableOtherProviders?: boolean;
+    enableMultipleRoutes?: boolean;
 }
 
 /**
@@ -51,7 +52,6 @@ export function adaptQuoteRequest(
             "eip155",
             NATIVE_ASSET_ADDRESS,
         ),
-        enableMultipleAutoRoutes: "true",
     };
 
     if (options.feeBps) request.feeBps = options.feeBps;
@@ -60,6 +60,7 @@ export function adaptQuoteRequest(
     if (options.slippage) request.slippage = options.slippage;
     if (options.refuel) request.refuel = "true";
     if (options.enableOtherProviders) request.enableManual = "true";
+    if (options.enableMultipleRoutes) request.enableMultipleAutoRoutes = "true";
 
     return BungeeQuoteRequestSchema.parse(request);
 }

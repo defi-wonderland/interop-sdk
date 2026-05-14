@@ -36,7 +36,7 @@ yarn add @wonderland/interop-cross-chain viem
 pnpm add @wonderland/interop-cross-chain viem
 ```
 
-Supported `viem` range: `^2.28.0`.
+Supported `viem` range: `^2.35.0`.
 
 ## Available Scripts
 
@@ -255,6 +255,7 @@ const provider = createCrossChainProvider("bungee", {
     refuel: true, // native gas on destination chain
     affiliateId: "your-affiliate-id",
     enableOtherProviders: true, // also return manual routes (Across, Stargate, Mayan, …)
+    enableMultipleRoutes: true, // return several route alternatives per quote (default: false)
 });
 ```
 
