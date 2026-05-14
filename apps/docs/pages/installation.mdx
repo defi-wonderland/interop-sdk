@@ -63,10 +63,8 @@ pnpm add @wonderland/interop-addresses @wonderland/interop-cross-chain
 
 Every page on this site is also published as its MDX source — append `.md` to any URL (for example, [`https://docs.interop.wonderland.xyz/cross-chain/getting-started.md`](https://docs.interop.wonderland.xyz/cross-chain/getting-started.md)) to fetch it. Imports and JSX components (e.g. `<Mermaid />`) are preserved verbatim. The full corpus is available at [`/llms-full.txt`](https://docs.interop.wonderland.xyz/llms-full.txt), and a page index lives at [`/llms.txt`](https://docs.interop.wonderland.xyz/llms.txt).
 
-You can register the site as a source in any tool that understands the `llms.txt` convention. For Claude Code, add it via MCP:
+How to plug those URLs into your assistant depends on the tool:
 
-```bash
-claude mcp add --transport http interop-sdk-docs https://docs.interop.wonderland.xyz/llms-full.txt
-```
-
-Cursor, Continue, and other assistants accept the same `llms.txt` URL through their respective context-source settings.
+-   **Claude Code**: ask Claude to read the URL — it'll fetch the content via its built-in `WebFetch` tool. Example prompt: _"Read https://docs.interop.wonderland.xyz/llms-full.txt and use it as the source for the rest of this conversation."_ (There's no first-class command to register a static `llms.txt` as a persistent MCP source — `claude mcp add --transport http` expects a JSON-RPC server, not a `.txt` file.)
+-   **Cursor**: Settings → Features → Docs → add a new doc pointing at `https://docs.interop.wonderland.xyz/llms-full.txt`. Cursor will index the page and surface it via `@docs`.
+-   **Continue**: add an `@docs` context provider in `~/.continue/config.json` pointing at the same URL.
