@@ -217,7 +217,7 @@ if (service) {
 
 -   `QuoteRequest` -- SDK-friendly quote request with `user`, `input`, `output`, and `swapType`.
 -   `BuildQuoteRequest` -- Request for local quote building with required amounts, `escrowContractAddress`, and `fillDeadline`.
--   `Quote` -- Quote with step-based `order`, `preview`, `provider`, and `metadata`.
+-   `Quote` -- Quote with step-based `order`, `preview`, `provider`, `latencyMs`, and `metadata`.
 -   `ExecutableQuote` -- Quote with provider context for submission.
 -   `Order` -- Step-based order model with `steps: (SignatureStep | TransactionStep)[]`.
 -   `InteropAccountId` -- Chain-aware account identifier: `{ chainId: number, address: string }`.

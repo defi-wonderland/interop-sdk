@@ -61,6 +61,7 @@ export const QuoteSchema = z.object({
     fallbackToken: QuotePreviewEntrySchema.optional(),
     fees: QuoteFeesSchema.optional(),
     tracking: QuoteTrackingSchema.optional(),
+    latencyMs: z.number().int().nonnegative().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -92,6 +93,7 @@ export interface SubmitOrderResponse {
 export interface GetQuotesError {
     error: Error;
     errorMsg: string;
+    latencyMs?: number;
 }
 
 export interface GetQuotesResponse {
