@@ -2,47 +2,25 @@
     "name": "docs",
     "version": "0.0.0",
     "private": true,
+    "type": "module",
     "scripts": {
-        "build": "docusaurus build",
-        "clear": "docusaurus clear",
-        "deploy": "docusaurus deploy",
-        "docusaurus": "docusaurus",
-        "serve": "docusaurus serve",
-        "start": "docusaurus start",
-        "swizzle": "docusaurus swizzle",
-        "typecheck": "tsc",
-        "write-heading-ids": "docusaurus write-heading-ids",
-        "write-translations": "docusaurus write-translations"
-    },
-    "browserslist": {
-        "production": [
-            ">0.5%",
-            "not dead",
-            "not op_mini all"
-        ],
-        "development": [
-            "last 3 chrome version",
-            "last 3 firefox version",
-            "last 5 safari version"
-        ]
+        "build": "rm -rf build dist && vocs build && (test ! -d dist || mv dist build)",
+        "serve": "vocs preview",
+        "start": "vocs dev",
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "@docusaurus/core": "3.9.2",
-        "@docusaurus/preset-classic": "3.9.2",
-        "@docusaurus/theme-mermaid": "3.9.2",
-        "@mdx-js/react": "^3.0.0",
-        "clsx": "^2.0.0",
-        "prism-react-renderer": "^2.3.0",
+        "mermaid": "^11.4.1",
         "react": "^19.0.0",
-        "react-dom": "^19.0.0"
+        "react-dom": "^19.0.0",
+        "vocs": "^1.4.1"
     },
     "devDependencies": {
-        "@docusaurus/module-type-aliases": "3.9.2",
-        "@docusaurus/tsconfig": "3.9.2",
-        "@docusaurus/types": "3.9.2",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
         "typescript": "~5.6.2"
     },
     "engines": {
-        "node": ">=18.0"
+        "node": ">=22.0"
     }
 }

@@ -1,12 +1,15 @@
 ---
 title: API
+description: Function signatures and types for the interop-cross-chain package — providers, aggregator, approval service, and order tracking.
 ---
 
-### Cross-chain Providers
+# API
+
+## Cross-chain Providers
 
 A set of classes and utilities for handling cross-chain operations through various protocols.
 
-#### Methods
+### Methods
 
 -   **createCrossChainProvider**(protocolName: string, config?: ProviderConfig): CrossChainProvider
 
@@ -44,7 +47,7 @@ A set of classes and utilities for handling cross-chain operations through vario
     });
     ```
 
-#### CrossChainProvider Class
+### CrossChainProvider Class
 
 An abstract class that defines the interface for cross-chain protocol providers.
 
@@ -119,11 +122,11 @@ An abstract class that defines the interface for cross-chain protocol providers.
     // config.preTrackerConfig — optional pre-tracking step (e.g., notify provider API)
     ```
 
-### Aggregator
+## Aggregator
 
 A utility for managing multiple cross-chain providers and executing operations across them.
 
-#### Methods
+### Methods
 
 -   **createAggregator**(config: AggregatorConfig): Aggregator
 
@@ -150,7 +153,7 @@ A utility for managing multiple cross-chain providers and executing operations a
 
     When `approvalService` is set, the aggregator reads on-chain ERC-20 allowances for every `order.checks.allowances` entry and prepends an `approve` `TransactionStep` to `order.steps` when the current allowance is below `required`. Without it, quotes pass through unchanged. See [Approval Service](#approval-service).
 
-#### AggregatorConfig
+### AggregatorConfig
 
 | Field              | Type                   | Required | Default                       | Description                                                                                                                                                                                                                                                                                                |
 | ------------------ | ---------------------- | -------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -161,7 +164,7 @@ A utility for managing multiple cross-chain providers and executing operations a
 | `discoveryFactory` | `{ createService }`    | No       | `new AssetDiscoveryFactory()` | Factory used by `aggregator.discoverAssets(...)` and `aggregator.getProvidersForRoute(...)` to build per-provider `AssetDiscoveryService` instances. Providers with no discovery support are skipped. Supply a custom factory only when you want to override discovery wiring for every provider.          |
 | `approvalService`  | `ApprovalService`      | No       | —                             | Enriches sorted quotes with ERC-20 `approve` steps. See [Approval Service](#approval-service).                                                                                                                                                                                                             |
 
-#### Aggregator Class
+### Aggregator Class
 
 A class that manages multiple cross-chain providers and coordinates their operations.
 
@@ -278,13 +281,13 @@ A class that manages multiple cross-chain providers and coordinates their operat
     });
     ```
 
-### Approval Service
+## Approval Service
 
 An opt-in service that enriches aggregator quotes with ERC-20 approval steps. Pass one to `createAggregator({ approvalService })` and the aggregator will read on-chain allowances for every `order.checks.allowances` entry on the sorted quotes, then prepend a `TransactionStep` with `category: "approval"` to `order.steps` when the current allowance is below `required`. Use `isApprovalStep(step)` or `getApprovalSteps(order)` to identify these steps programmatically.
 
 Best-effort: on any read failure the affected quotes pass through unmodified. Quotes with sufficient existing allowance are not touched. Reads run through `MulticallAllowanceReader`, which batches one `multicall` per chain so a failure on one chain does not affect reads on another.
 
-#### Methods
+### Methods
 
 -   **createApprovalService**(config?: CreateApprovalServiceConfig): ApprovalService
 
@@ -306,7 +309,7 @@ Best-effort: on any read failure the affected quotes pass through unmodified. Qu
     });
     ```
 
-#### CreateApprovalServiceConfig
+### CreateApprovalServiceConfig
 
 | Field              | Type                          | Required | Description                                                                                                            |
 | ------------------ | ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -316,7 +319,7 @@ Best-effort: on any read failure the affected quotes pass through unmodified. Qu
 | `approvalGasLimit` | `bigint`                      | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas. |
 | `failureHandler`   | `AllowanceReadFailureHandler` | No       | Handler for full-batch allowance read failures. Defaults to `console.warn`; pass `{ handle: () => {} }` to silence.    |
 
-#### Amount Strategies
+### Amount Strategies
 
 `ApprovalAmountStrategy` controls the amount encoded in each generated `approve` call.
 
@@ -342,9 +345,9 @@ interface ApprovalAmountStrategy {
 }
 ```
 
-### Sorting Strategies
+## Sorting Strategies
 
-#### SortingStrategyFactory
+### SortingStrategyFactory
 
 A factory for creating quote sorting strategies.
 
@@ -364,11 +367,11 @@ A factory for creating quote sorting strategies.
 
     Additional sorting strategies may be added in future releases.
 
-### Order Tracker
+## Order Tracker
 
 A utility for tracking cross-chain orders from initiation to completion (ERC-7683 open event parsing + fill watching).
 
-#### Methods
+### Methods
 
 -   **createOrderTracker**(provider: CrossChainProvider, config: OrderTrackerConfig): OrderTracker
 
@@ -385,7 +388,7 @@ A utility for tracking cross-chain orders from initiation to completion (ERC-768
     });
     ```
 
-#### OrderTracker Class
+### OrderTracker Class
 
 A class that tracks cross-chain orders through their lifecycle.
 
@@ -417,9 +420,9 @@ A class that tracks cross-chain orders through their lifecycle.
     console.log(status.status); // OrderStatus
     ```
 
-### Types
+## Types
 
-#### QuoteRequest
+### QuoteRequest
 
 ```typescript
 interface QuoteRequest {
@@ -440,7 +443,7 @@ interface QuoteRequest {
 }
 ```
 
-#### BuildQuoteRequest
+### BuildQuoteRequest
 
 ```typescript
 interface BuildQuoteRequest {
@@ -464,7 +467,7 @@ interface BuildQuoteRequest {
 }
 ```
 
-#### Quote
+### Quote
 
 ```typescript
 interface Quote {
@@ -498,7 +501,7 @@ interface Quote {
 }
 ```
 
-#### QuoteFeeEntry
+### QuoteFeeEntry
 
 ```typescript
 interface QuoteFeeEntry {
@@ -512,7 +515,7 @@ interface QuoteFeeEntry {
 }
 ```
 
-#### QuoteTracking
+### QuoteTracking
 
 ```typescript
 interface QuoteTracking {
@@ -520,7 +523,7 @@ interface QuoteTracking {
 }
 ```
 
-#### QuoteFees
+### QuoteFees
 
 ```typescript
 interface QuoteFees {
@@ -530,7 +533,7 @@ interface QuoteFees {
 }
 ```
 
-#### Order
+### Order
 
 ```typescript
 interface Order {
@@ -541,7 +544,7 @@ interface Order {
 }
 ```
 
-#### OrderChecks
+### OrderChecks
 
 ```typescript
 interface OrderChecks {
@@ -555,7 +558,7 @@ interface OrderChecks {
 }
 ```
 
-#### ExecutableQuote
+### ExecutableQuote
 
 ```typescript
 interface ExecutableQuote extends Quote {
@@ -563,7 +566,7 @@ interface ExecutableQuote extends Quote {
 }
 ```
 
-#### GetQuotesResponse
+### GetQuotesResponse
 
 ```typescript
 interface GetQuotesResponse {
@@ -572,7 +575,7 @@ interface GetQuotesResponse {
 }
 ```
 
-#### TokenTransfer
+### TokenTransfer
 
 ERC-7683 token transfer structure used in `OrderTrackingInfo`.
 
@@ -585,7 +588,7 @@ interface TokenTransfer {
 }
 ```
 
-#### FillInstruction
+### FillInstruction
 
 ERC-7683 fill instruction for destination chain.
 
@@ -597,7 +600,7 @@ interface FillInstruction {
 }
 ```
 
-#### OrderTrackingInfo
+### OrderTrackingInfo
 
 ```typescript
 interface OrderTrackingInfo {
@@ -617,7 +620,7 @@ interface OrderTrackingInfo {
 }
 ```
 
-#### OrderTrackingUpdate
+### OrderTrackingUpdate
 
 ```typescript
 interface OrderTrackingUpdate {
@@ -635,7 +638,7 @@ interface OrderTrackingUpdate {
 }
 ```
 
-#### OrderExplorers
+### OrderExplorers
 
 ```typescript
 interface OrderExplorers {
@@ -647,7 +650,7 @@ interface OrderExplorers {
 
 Each `OrderTrackingUpdate` carries an `explorers` object computed by the provider via `getOrderExplorers`. Consumers should prefer `tracker` when present, otherwise show `origin` and `destination`. Across and Bungee return all three; LiFi Intents, OIF and Relay return `origin` / `destination` only.
 
-#### FillEvent
+### FillEvent
 
 ```typescript
 interface FillEvent {
@@ -663,9 +666,9 @@ interface FillEvent {
 }
 ```
 
-### Provider Configuration
+## Provider Configuration
 
-#### Across
+### Across
 
 | Field        | Type    | Required | Description                                   |
 | ------------ | ------- | -------- | --------------------------------------------- |
@@ -680,7 +683,7 @@ Payload validation:
 | Simple bridge (same token)          | Full validation (depositor, recipient, tokens, amount, chain) |
 | Cross-chain swap (different tokens) | Coming soon                                                   |
 
-#### Relay
+### Relay
 
 | Field        | Type    | Required | Description                                   |
 | ------------ | ------- | -------- | --------------------------------------------- |
@@ -689,7 +692,7 @@ Payload validation:
 | `providerId` | string  | No       | Custom provider identifier (default: "relay") |
 | `apiKey`     | string  | No       | Relay API key for authentication              |
 
-#### OIF
+### OIF
 
 | Field             | Type     | Required | Description                                                                                                |
 | ----------------- | -------- | -------- | ---------------------------------------------------------------------------------------------------------- |
@@ -724,7 +727,7 @@ Payload validation:
 | `oif-3009-v0`          | from, value, token address, expiration    |
 | `oif-user-open-v0`     | allowances (token, user, spender, amount) |
 
-#### LiFi Intents
+### LiFi Intents
 
 | Field            | Type                         | Required | Description                                                    |
 | ---------------- | ---------------------------- | -------- | -------------------------------------------------------------- |

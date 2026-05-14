@@ -1,6 +1,9 @@
 ---
 title: Parsing an Interoperable Name
+description: Walkthrough for wallet developers — extract the raw address and chain ID from an interop address so legacy contracts keep working.
 ---
+
+import { Mermaid } from "../../components/Mermaid";
 
 # Parsing an Interoperable Name
 
@@ -18,8 +21,8 @@ Since you're building a wallet and want your product to be as fast and lightweig
 
 ### Example Workflow
 
-```mermaid
-sequenceDiagram
+<Mermaid
+    chart={`sequenceDiagram
     participant User
     participant Wallet
     participant SDK
@@ -29,8 +32,9 @@ sequenceDiagram
     Wallet->>SDK: parseName(interopAddress)
     SDK-->>Wallet: result with address, chainType, chainReference, checksum
     Wallet->>Wallet: Validate checksum
-    Wallet->>SmartContract: callFunction(address, chainReference)
-```
+    Wallet->>SmartContract: callFunction(address, chainReference)`}
+
+/>
 
 ## Parsing with Full Metadata
 
