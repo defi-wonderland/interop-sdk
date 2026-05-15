@@ -1,6 +1,6 @@
 {
   "name": "benchmark",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "Cross-chain quotes benchmark site using @wonderland/interop-cross-chain",
   "license": "MIT",
