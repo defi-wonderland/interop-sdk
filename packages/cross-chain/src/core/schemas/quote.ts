@@ -8,9 +8,8 @@ export const QuotePreviewEntrySchema = z.object({
     chainId: chainIdSchema,
     accountAddress: addressString,
     assetAddress: addressString,
-    /** Expected amount post-fees. For slippage-based providers, actual delivered may be lower; see `minAmount`. */
     amount: amountSchema,
-    /** Slippage floor — guaranteed minimum after slippage tolerance. Only set when the provider exposes one. */
+    /** Outputs only: slippage floor when the provider exposes one. */
     minAmount: amountSchema.optional(),
     amountUsd: amountUsdSchema,
 });
