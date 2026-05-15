@@ -9,7 +9,6 @@ export interface ProviderQuoteResult {
   outputChainId?: number;
   bridgeFeeUsd?: string;
   originGasUsd?: string;
-  totalFeeUsd?: string;
 }
 
 export interface ProviderQuoteError {
