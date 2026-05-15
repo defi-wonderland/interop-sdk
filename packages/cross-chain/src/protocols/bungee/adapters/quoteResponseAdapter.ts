@@ -83,8 +83,13 @@ function adaptAutoRouteQuote(
                     chainId: autoRoute.output.token.chainId,
                     accountAddress: result.receiverAddress,
                     assetAddress: autoRoute.output.token.address,
-                    amount: autoRoute.output.amount,
-                    amountUsd: String(autoRoute.output.valueInUsd),
+                    // Use effectiveAmount (post-fee expected) over amount (pre-fee optimistic) so
+                    // the headline doesn't oversell. minAmountOut is the slippage floor.
+                    amount: autoRoute.output.effectiveAmount ?? autoRoute.output.amount,
+                    minAmount: autoRoute.output.minAmountOut,
+                    amountUsd: String(
+                        autoRoute.output.effectiveValueInUsd ?? autoRoute.output.valueInUsd,
+                    ),
                 },
             ],
         },

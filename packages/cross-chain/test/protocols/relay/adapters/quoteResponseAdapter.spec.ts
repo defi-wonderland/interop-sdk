@@ -170,6 +170,29 @@ describe("adaptQuote", () => {
         expect(quote.preview.outputs[0]!.amountUsd).toBeUndefined();
     });
 
+    it("exposes currencyOut.minimumAmount as the slippage floor", () => {
+        const baseResponse = makeRelayQuoteResponse();
+        const { details } = baseResponse;
+        if (!details?.currencyOut) throw new Error("fixture is missing currencyOut");
+        const response: RelayQuoteResponse = {
+            ...baseResponse,
+            details: {
+                ...details,
+                currencyOut: { ...details.currencyOut, minimumAmount: "990000" },
+            },
+        };
+
+        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
+
+        expect(quote.preview.outputs[0]?.minAmount).toBe("990000");
+    });
+
+    it("leaves minAmount undefined when the provider omits minimumAmount", () => {
+        const quote = adaptQuote(makeQuoteRequest(), makeRelayQuoteResponse(), PROVIDER_ID);
+
+        expect(quote.preview.outputs[0]?.minAmount).toBeUndefined();
+    });
+
     it("handles missing protocol.v2 gracefully", () => {
         const quote = adaptQuote(
             makeQuoteRequest(),

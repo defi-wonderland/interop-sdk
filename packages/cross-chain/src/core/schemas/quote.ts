@@ -9,6 +9,8 @@ export const QuotePreviewEntrySchema = z.object({
     accountAddress: addressString,
     assetAddress: addressString,
     amount: amountSchema,
+    /** Outputs only: slippage floor when the provider exposes one. */
+    minAmount: amountSchema.optional(),
     amountUsd: amountUsdSchema,
 });
 
