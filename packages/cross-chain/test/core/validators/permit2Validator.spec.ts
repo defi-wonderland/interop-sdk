@@ -162,6 +162,40 @@ describe("Permit2SignatureValidator", () => {
             ).not.toThrow();
         });
 
+        it("rejects when permitted is an empty array on a batch Permit2 type", () => {
+            const step = makePermit2Step({
+                primaryType: "PermitBatchWitnessTransferFrom",
+                permitted: [],
+            });
+
+            try {
+                permit2SignatureValidator.validate(step, {
+                    providerId: PROVIDER_ID,
+                    request: makeRequest(),
+                });
+                expect.fail("expected throw");
+            } catch (err) {
+                expect((err as Permit2ValidationFailure).reason).toBe("permitted-empty");
+            }
+        });
+
+        it("rejects when permitted is malformed (string instead of array/object)", () => {
+            const step = makePermit2Step({
+                primaryType: "PermitBatchWitnessTransferFrom",
+                permitted: "not-an-array",
+            });
+
+            try {
+                permit2SignatureValidator.validate(step, {
+                    providerId: PROVIDER_ID,
+                    request: makeRequest(),
+                });
+                expect.fail("expected throw");
+            } catch (err) {
+                expect((err as Permit2ValidationFailure).reason).toBe("permitted-empty");
+            }
+        });
+
         it("rejects a batch permit when one token does not match the request input", () => {
             const step = makePermit2Step({
                 primaryType: "PermitBatchWitnessTransferFrom",

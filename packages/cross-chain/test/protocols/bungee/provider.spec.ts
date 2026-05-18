@@ -385,18 +385,21 @@ describe("BungeeProvider", () => {
     });
 
     describe("Permit2 validation (audit V12 #6)", () => {
-        function respondWithAutoRoute(autoRouteOverrides: Record<string, unknown>): void {
+        function respondWithAutoRoute(
+            autoRouteOverrides: Record<string, unknown>,
+            originChainOverride: number = ORIGIN_CHAIN_ID,
+        ): void {
             mockGet.mockResolvedValue({
                 status: 200,
                 data: makeBungeeQuoteResponse({
                     result: {
-                        originChainId: ORIGIN_CHAIN_ID,
+                        originChainId: originChainOverride,
                         destinationChainId: DESTINATION_CHAIN_ID,
                         userAddress: VALID_ADDRESS,
                         receiverAddress: VALID_ADDRESS,
                         input: {
                             token: {
-                                chainId: ORIGIN_CHAIN_ID,
+                                chainId: originChainOverride,
                                 address: VALID_ADDRESS,
                                 name: "USDC",
                                 symbol: "USDC",
@@ -430,7 +433,7 @@ describe("BungeeProvider", () => {
             expect(quotes).toEqual([]);
         });
 
-        it("rejects an autoRoute whose witness.basicReq.bungeeGateway does not match message.spender", async () => {
+        it("rejects an autoRoute whose message.spender does not match the canonical Bungee gateway for the chain", async () => {
             const base = makeAutoRoute().signTypedData!;
             respondWithAutoRoute({
                 signTypedData: {
@@ -440,6 +443,44 @@ describe("BungeeProvider", () => {
                         ...base.values,
                         spender: "0x000000000000000000000000000000000000bEEF",
                     },
+                },
+            });
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toEqual([]);
+        });
+
+        it("rejects a quote on a chain with no registered canonical Bungee gateway", async () => {
+            const unsupportedChain = 137; // Polygon — not in BUNGEE_GATEWAY_BY_CHAIN today
+            const base = makeAutoRoute().signTypedData!;
+            respondWithAutoRoute(
+                {
+                    signTypedData: {
+                        domain: { ...base.domain, chainId: unsupportedChain },
+                        types: base.types,
+                        values: base.values,
+                    },
+                },
+                unsupportedChain,
+            );
+            const quotes = await provider.getQuotes(
+                makeQuoteRequest({
+                    input: {
+                        chainId: unsupportedChain,
+                        assetAddress: VALID_ADDRESS,
+                        amount: INPUT_AMOUNT,
+                    },
+                }),
+            );
+            expect(quotes).toEqual([]);
+        });
+
+        it("rejects an autoRoute whose permitted entries are empty (Permit2 type with no token list)", async () => {
+            const base = makeAutoRoute().signTypedData!;
+            respondWithAutoRoute({
+                signTypedData: {
+                    domain: base.domain,
+                    types: base.types,
+                    values: { ...base.values, permitted: [] },
                 },
             });
             const quotes = await provider.getQuotes(makeQuoteRequest());

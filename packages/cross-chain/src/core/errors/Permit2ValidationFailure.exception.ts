@@ -4,6 +4,7 @@ import { BaseError } from "./BaseError.exception.js";
 export type Permit2ValidationReason =
     | "verifying-contract"
     | "non-permit2-canonical"
+    | "permitted-empty"
     | "permitted-token"
     | "permitted-amount"
     | "spender";

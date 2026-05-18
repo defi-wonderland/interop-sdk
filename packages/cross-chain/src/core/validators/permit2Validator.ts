@@ -34,7 +34,7 @@ export class Permit2SignatureValidator {
         if (!isPermit2Type) return;
 
         const permitted = readPermittedEntries(primaryType, message["permitted"]);
-        this.assertPermittedMatchesRequest(permitted, context);
+        this.assertPermittedMatchesRequest(permitted, primaryType, context);
         this.assertSpenderInExpectedList(message["spender"], context);
     }
 
@@ -68,8 +68,17 @@ export class Permit2SignatureValidator {
 
     private assertPermittedMatchesRequest(
         permitted: readonly Permit2TokenPermission[],
+        primaryType: string,
         context: Permit2ValidationContext,
     ): void {
+        if (permitted.length === 0) {
+            throw new Permit2ValidationFailure(
+                "permitted-empty",
+                context.providerId,
+                `permit message.permitted is empty or malformed for Permit2 primaryType "${primaryType}"`,
+            );
+        }
+
         const requestedToken = getAddress(context.request.input.assetAddress);
         const requestedAmount = BigInt(context.request.input.amount ?? "0");
 

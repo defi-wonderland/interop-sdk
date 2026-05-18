@@ -33,7 +33,7 @@ import {
     extractOpenedIntent,
     parseBungeeTokenListResponse,
 } from "./adapters/index.js";
-import { BUNGEE_API_URLS, BUNGEE_EXPLORER_BASE_URL } from "./constants.js";
+import { BUNGEE_API_URLS, BUNGEE_EXPLORER_BASE_URL, BUNGEE_GATEWAY_BY_CHAIN } from "./constants.js";
 import { BungeeApiService } from "./services/index.js";
 import { BungeeApiTier, BungeeConfigSchema } from "./types.js";
 
@@ -242,12 +242,18 @@ export class BungeeProvider extends CrossChainProvider {
     private isQuoteSignaturePayloadSafe(quote: Quote, request: QuoteRequest): boolean {
         for (const step of quote.order.steps) {
             if (step.kind !== "signature") continue;
-            const expected = readBungeeGateway(step.signaturePayload.message);
+            const canonicalGateway = BUNGEE_GATEWAY_BY_CHAIN[step.chainId];
+            if (!canonicalGateway) {
+                console.warn(
+                    `${PERMIT2_LOG_PREFIX} No canonical Bungee gateway registered for chain ${step.chainId}; rejecting quote`,
+                );
+                return false;
+            }
             try {
                 permit2SignatureValidator.validate(step, {
                     providerId: this.providerId,
                     request,
-                    expectedSpenders: expected ? [expected] : undefined,
+                    expectedSpenders: [canonicalGateway],
                 });
             } catch (err) {
                 if (err instanceof Permit2ValidationFailure) {
@@ -261,15 +267,4 @@ export class BungeeProvider extends CrossChainProvider {
         }
         return true;
     }
-}
-
-/** Extracts the gateway address bound inside the Bungee witness, when present. */
-function readBungeeGateway(message: Record<string, unknown>): `0x${string}` | null {
-    const witness = message["witness"];
-    if (!witness || typeof witness !== "object") return null;
-    const basicReq = (witness as Record<string, unknown>)["basicReq"];
-    if (!basicReq || typeof basicReq !== "object") return null;
-    const gateway = (basicReq as Record<string, unknown>)["bungeeGateway"];
-    if (typeof gateway !== "string" || !gateway.startsWith("0x")) return null;
-    return gateway as `0x${string}`;
 }
