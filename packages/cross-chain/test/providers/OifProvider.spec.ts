@@ -1,4 +1,8 @@
-import { PostOrderResponse, PostOrderResponseStatus } from "@openintentsframework/oif-specs";
+import {
+    GetQuoteResponse,
+    PostOrderResponse,
+    PostOrderResponseStatus,
+} from "@openintentsframework/oif-specs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
@@ -173,6 +177,63 @@ describe("OifProvider", () => {
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
                 ProviderGetQuoteFailure,
             );
+        });
+
+        describe("Permit2 validation (audit V12 #6)", () => {
+            function withMutatedEscrow(
+                mutate: (payload: Record<string, unknown>) => void,
+            ): GetQuoteResponse {
+                const response = getMockedOifQuoteResponse();
+                const payload = response.quotes[0]!.order.payload as Record<string, unknown>;
+                mutate(payload);
+                return response;
+            }
+
+            it("rejects an escrow quote whose verifyingContract is tampered", async () => {
+                vi.mocked(httpRequest).mockResolvedValue({
+                    status: 200,
+                    data: withMutatedEscrow((p) => {
+                        (p.domain as Record<string, unknown>).verifyingContract =
+                            "0x000000000000000000000000000000000000bEEF";
+                    }),
+                    headers: new Headers(),
+                });
+                const quotes = await provider.getQuotes(mockQuoteRequest);
+                expect(quotes).toEqual([]);
+            });
+
+            it("rejects an escrow quote that smuggles a token outside the requested input", async () => {
+                vi.mocked(httpRequest).mockResolvedValue({
+                    status: 200,
+                    data: getMockedOifQuoteResponse({
+                        token: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+                    }),
+                    headers: new Headers(),
+                });
+                const quotes = await provider.getQuotes(mockQuoteRequest);
+                expect(quotes).toEqual([]);
+            });
+
+            it("rejects an escrow quote whose permitted amount exceeds the requested input", async () => {
+                vi.mocked(httpRequest).mockResolvedValue({
+                    status: 200,
+                    data: getMockedOifQuoteResponse({ amount: "99999999999999999999" }),
+                    headers: new Headers(),
+                });
+                const quotes = await provider.getQuotes(mockQuoteRequest);
+                expect(quotes).toEqual([]);
+            });
+
+            it("accepts a canonical OIF escrow Permit2 quote", async () => {
+                vi.mocked(httpRequest).mockResolvedValue({
+                    status: 200,
+                    data: getMockedOifQuoteResponse(),
+                    headers: new Headers(),
+                });
+                const quotes = await provider.getQuotes(mockQuoteRequest);
+                expect(quotes).toHaveLength(1);
+                expect(quotes[0]!.order.steps[0]!.kind).toBe("signature");
+            });
         });
     });
 

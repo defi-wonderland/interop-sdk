@@ -12,9 +12,7 @@ import type { Address } from "viem";
 import { getAddress } from "viem";
 
 import type { AllowanceCheck } from "../../../core/interfaces/approval.interface.js";
-
-/** Permit2 is deployed at the same address on every EVM chain. */
-const PERMIT2_ADDRESS = getAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3");
+import { CANONICAL_PERMIT2_ADDRESS } from "../../../core/constants/permit2.js";
 
 const LOG_PREFIX = "[permit2AllowanceExtractor]";
 
@@ -51,7 +49,7 @@ export function extractPermit2Allowances(
         chainId,
         tokenAddress,
         owner,
-        spender: PERMIT2_ADDRESS,
+        spender: CANONICAL_PERMIT2_ADDRESS,
         required: required.toString(),
         preferInfinite: true,
     }));

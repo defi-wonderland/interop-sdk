@@ -18,6 +18,8 @@ import type { BungeeConfigs } from "./types.js";
 import {
     CrossChainProvider,
     FetchHttpClient,
+    permit2SignatureValidator,
+    Permit2ValidationFailure,
     ProviderConfigFailure,
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,
@@ -36,6 +38,8 @@ import { BungeeApiService } from "./services/index.js";
 import { BungeeApiTier, BungeeConfigSchema } from "./types.js";
 
 const DEFAULT_SUBMISSION_MODES: SubmissionMode[] = ["user-transaction"];
+
+const PERMIT2_LOG_PREFIX = "[BungeeProvider]";
 
 /**
  * A {@link CrossChainProvider} implementation for the Bungee protocol.
@@ -220,7 +224,8 @@ export class BungeeProvider extends CrossChainProvider {
             const options: BungeeQuoteOptions = { ...this.quoteOptions, submissionMode: mode };
             const bungeeParams = adaptQuoteRequest(params, options);
             const response = await this.apiService.getQuote(bungeeParams);
-            return adaptQuotes(response, this.providerId);
+            const quotes = adaptQuotes(response, this.providerId);
+            return quotes.filter((quote) => this.isQuoteSignaturePayloadSafe(quote, params));
         } catch (error) {
             if (error instanceof ProviderGetQuoteFailure) {
                 throw error;
@@ -232,4 +237,39 @@ export class BungeeProvider extends CrossChainProvider {
             );
         }
     }
+
+    /** True if every signature step in the quote is safe per Permit2 rules (V12 #6). */
+    private isQuoteSignaturePayloadSafe(quote: Quote, request: QuoteRequest): boolean {
+        for (const step of quote.order.steps) {
+            if (step.kind !== "signature") continue;
+            const expected = readBungeeGateway(step.signaturePayload.message);
+            try {
+                permit2SignatureValidator.validate(step, {
+                    providerId: this.providerId,
+                    request,
+                    expectedSpenders: expected ? [expected] : undefined,
+                });
+            } catch (err) {
+                if (err instanceof Permit2ValidationFailure) {
+                    console.warn(
+                        `${PERMIT2_LOG_PREFIX} Rejecting quote (${err.reason}): ${err.message}`,
+                    );
+                    return false;
+                }
+                throw err;
+            }
+        }
+        return true;
+    }
+}
+
+/** Extracts the gateway address bound inside the Bungee witness, when present. */
+function readBungeeGateway(message: Record<string, unknown>): `0x${string}` | null {
+    const witness = message["witness"];
+    if (!witness || typeof witness !== "object") return null;
+    const basicReq = (witness as Record<string, unknown>)["basicReq"];
+    if (!basicReq || typeof basicReq !== "object") return null;
+    const gateway = (basicReq as Record<string, unknown>)["bungeeGateway"];
+    if (typeof gateway !== "string" || !gateway.startsWith("0x")) return null;
+    return gateway as `0x${string}`;
 }
