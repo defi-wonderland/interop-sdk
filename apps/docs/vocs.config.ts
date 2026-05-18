@@ -1,10 +1,16 @@
 import { defineConfig } from "vocs";
 
+const docsUrl = "https://docs.interop.wonderland.xyz";
+const wonderlandLogoUrl = `${docsUrl}/wonderland.svg`;
+const ogImageUrl = `https://vocs.dev/api/og?logo=${encodeURIComponent(wonderlandLogoUrl)}&title=%title&description=%description`;
+
 export default defineConfig({
     title: "Interop SDK",
-    description: "Build cross-chain applications with standardized addressing",
+    description:
+        "Build multichain applications with interoperable addresses and cross-chain transfer tooling.",
     titleTemplate: "%s · Interop SDK",
     rootDir: ".",
+    baseUrl: docsUrl,
     iconUrl: "/eth-diamond-rainbow.svg",
     logoUrl: "/eth-diamond-rainbow.svg",
     socials: [
@@ -19,9 +25,17 @@ export default defineConfig({
     },
     theme: {
         accentColor: "#3441c0",
+        variables: {
+            color: {
+                backgroundAccent: { light: "#3441c0", dark: "#7f8cff" },
+                backgroundAccentHover: { light: "#2d35a2", dark: "#a8b1ff" },
+                backgroundAccentText: { light: "#ffffff", dark: "#080a20" },
+                borderAccent: { light: "#3441c0", dark: "#7f8cff" },
+            },
+        },
     },
     ogImageUrl: {
-        "/": "https://vocs.dev/api/og?title=%title&description=%description",
+        "/": ogImageUrl,
     },
     llms: {
         generateMarkdown: true,
