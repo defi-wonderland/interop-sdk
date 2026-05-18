@@ -1,4 +1,4 @@
-import { getAddress, Hex } from "viem";
+import { Address, getAddress, Hex } from "viem";
 import { arbitrum, arbitrumSepolia, base, baseSepolia, optimism, sepolia } from "viem/chains";
 
 import type { NetworkAssets } from "../../core/types/assetDiscovery.js";
@@ -54,7 +54,7 @@ export { getAcrossApiUrl };
  * Supports both mainnet and testnet addresses
  * @see https://docs.across.to/reference/contract-addresses/
  */
-export const ACROSS_SPOKE_POOL_ADDRESSES: Record<number, Hex> = {
+export const ACROSS_SPOKE_POOL_ADDRESSES: Record<number, Address> = {
     // Mainnet addresses
     [optimism.id]: getAddress("0x6f26Bf09B1C792e3228e5467807a900A503c0281"),
     [base.id]: getAddress("0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64"),

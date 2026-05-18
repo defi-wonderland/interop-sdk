@@ -286,7 +286,7 @@ export class AcrossProvider extends CrossChainProvider {
 
     /** Whether `target` is the canonical Across SpokePool registered for the given chain. */
     private isTrustedSpokePool(chainId: number, target: Address): boolean {
-        const trusted = ACROSS_SPOKE_POOL_ADDRESSES[chainId] as Address | undefined;
+        const trusted = ACROSS_SPOKE_POOL_ADDRESSES[chainId];
         if (!trusted) return false;
         return isAddressEqual(target, trusted);
     }
