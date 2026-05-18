@@ -77,6 +77,7 @@ export class BungeeProvider extends CrossChainProvider {
                 feeTakerAddress: parsed.feeTakerAddress,
                 slippage: parsed.slippage,
                 refuel: parsed.refuel,
+                enableMultipleRoutes: parsed.enableMultipleRoutes,
             };
 
             this.http = new FetchHttpClient({

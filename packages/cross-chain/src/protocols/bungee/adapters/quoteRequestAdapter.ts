@@ -13,6 +13,7 @@ export interface BungeeQuoteOptions extends FeeConfig {
     submissionMode?: SubmissionMode;
     slippage?: string;
     refuel?: boolean;
+    enableMultipleRoutes?: boolean;
 }
 
 /**
@@ -49,7 +50,6 @@ export function adaptQuoteRequest(
             "eip155",
             NATIVE_ASSET_ADDRESS,
         ),
-        enableMultipleAutoRoutes: "true",
     };
 
     if (options.feeBps) request.feeBps = options.feeBps;
@@ -57,6 +57,7 @@ export function adaptQuoteRequest(
     if (options.submissionMode === "user-transaction") request.useInbox = "true";
     if (options.slippage) request.slippage = options.slippage;
     if (options.refuel) request.refuel = "true";
+    if (options.enableMultipleRoutes) request.enableMultipleAutoRoutes = "true";
 
     return BungeeQuoteRequestSchema.parse(request);
 }

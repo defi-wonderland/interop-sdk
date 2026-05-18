@@ -69,6 +69,28 @@ describe("httpClient", () => {
             expect(fetchMock).toHaveBeenCalledWith("https://right.test/path", expect.anything());
         });
 
+        it("preserves baseURL path prefix when joining with leading-slash paths", async () => {
+            fetchMock.mockResolvedValueOnce(jsonResponse({}));
+            await new FetchHttpClient({ baseURL: "https://proxy.example.com/relay-api/" }).get(
+                "/quote/v2",
+            );
+            expect(fetchMock).toHaveBeenCalledWith(
+                "https://proxy.example.com/relay-api/quote/v2",
+                expect.anything(),
+            );
+        });
+
+        it("normalizes baseURL without trailing slash", async () => {
+            fetchMock.mockResolvedValueOnce(jsonResponse({}));
+            await new FetchHttpClient({ baseURL: "https://proxy.example.com/relay-api" }).get(
+                "/quote/v2",
+            );
+            expect(fetchMock).toHaveBeenCalledWith(
+                "https://proxy.example.com/relay-api/quote/v2",
+                expect.anything(),
+            );
+        });
+
         it("appends params and skips null/undefined", async () => {
             fetchMock.mockResolvedValueOnce(jsonResponse({}));
             await httpRequest("https://api.test/q", {

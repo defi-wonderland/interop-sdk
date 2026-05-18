@@ -388,4 +388,17 @@ describe("QuoteSchema", () => {
         });
         expect(result.success).toBe(false);
     });
+
+    it("accepts a valid fallbackToken", () => {
+        const result = QuoteSchema.safeParse({
+            ...validQuote,
+            fallbackToken: {
+                chainId: 8453,
+                accountAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                assetAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                amount: "999000",
+            },
+        });
+        expect(result.success).toBe(true);
+    });
 });

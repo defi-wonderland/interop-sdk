@@ -15,7 +15,7 @@ This package provides methods to convert between interoperable names (ERC-7828),
 
 ## Installation
 
-`viem` is a peer dependency (`^2.28.0`) — install it alongside the package:
+`viem` is a peer dependency (`^2.35.0`) — install it alongside the package:
 
 ```
 pnpm add @wonderland/interop-addresses viem

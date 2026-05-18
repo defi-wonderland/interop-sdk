@@ -36,7 +36,7 @@ yarn add @wonderland/interop-cross-chain viem
 pnpm add @wonderland/interop-cross-chain viem
 ```
 
-Supported `viem` range: `^2.28.0`.
+Supported `viem` range: `^2.35.0`.
 
 ## Available Scripts
 
@@ -217,7 +217,7 @@ if (service) {
 
 -   `QuoteRequest` -- SDK-friendly quote request with `user`, `input`, `output`, and `swapType`.
 -   `BuildQuoteRequest` -- Request for local quote building with required amounts, `escrowContractAddress`, and `fillDeadline`.
--   `Quote` -- Quote with step-based `order`, `preview`, `provider`, and `metadata`.
+-   `Quote` -- Quote with step-based `order`, `preview`, `provider`, `latencyMs`, and `metadata`.
 -   `ExecutableQuote` -- Quote with provider context for submission.
 -   `Order` -- Step-based order model with `steps: (SignatureStep | TransactionStep)[]`.
 -   `InteropAccountId` -- Chain-aware account identifier: `{ chainId: number, address: string }`.
@@ -254,6 +254,7 @@ const provider = createCrossChainProvider("bungee", {
     slippage: "0.5", // 0.5% slippage tolerance
     refuel: true, // native gas on destination chain
     affiliateId: "your-affiliate-id",
+    enableMultipleRoutes: true, // return several route alternatives per quote (default: false)
 });
 ```
 

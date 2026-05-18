@@ -1,0 +1,69 @@
+---
+title: Installation
+description: Install the Interop SDK packages — interop-addresses for interoperable address handling and interop-cross-chain for cross-chain transfers.
+---
+
+# Installation
+
+:::danger[Experimental release — not for production use]
+
+This SDK is an early, preview release and has not been audited. It handles transaction and signature data for cross-chain value transfers, so a defect in the SDK could result in permanent, irrecoverable loss of user funds.
+
+Do not use this SDK in production or with real user value.
+:::
+
+## Prerequisites
+
+-   **Node.js** v20.x or higher
+-   A package manager: npm, yarn, or pnpm
+
+## Installation
+
+The Interop SDK consists of two separate packages. Install the ones you need:
+
+### Addresses Package
+
+For interoperable address handling:
+
+```bash
+npm install @wonderland/interop-addresses
+# or
+yarn add @wonderland/interop-addresses
+# or
+pnpm add @wonderland/interop-addresses
+```
+
+### Cross-Chain Package
+
+For cross-chain operations:
+
+```bash
+npm install @wonderland/interop-cross-chain
+# or
+yarn add @wonderland/interop-cross-chain
+# or
+pnpm add @wonderland/interop-cross-chain
+```
+
+### Install Both
+
+If you need both packages:
+
+```bash
+npm install @wonderland/interop-addresses @wonderland/interop-cross-chain
+# or
+yarn add @wonderland/interop-addresses @wonderland/interop-cross-chain
+# or
+pnpm add @wonderland/interop-addresses @wonderland/interop-cross-chain
+```
+
+> Package names will be updated after EF release. Currently using `@wonderland` organization.
+
+## Use these docs in your AI assistant
+
+Every page on this site is available as Markdown — append `.md` to any URL (for example, [`https://docs.interop.wonderland.xyz/cross-chain/getting-started.md`](https://docs.interop.wonderland.xyz/cross-chain/getting-started.md)). MDX imports and JSX components (e.g. `<Mermaid />`) are preserved verbatim.
+
+For LLM consumption, two [`llms.txt`](https://llmstxt.org/) files are served at the root:
+
+-   [`/llms.txt`](https://docs.interop.wonderland.xyz/llms.txt) — concise index of all pages with titles and descriptions
+-   [`/llms-full.txt`](https://docs.interop.wonderland.xyz/llms-full.txt) — complete documentation in a single file

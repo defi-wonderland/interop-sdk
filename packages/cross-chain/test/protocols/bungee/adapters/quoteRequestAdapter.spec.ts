@@ -99,6 +99,27 @@ describe("adaptQuoteRequest", () => {
         expect(result.refuel).toBe("true");
     });
 
+    it("does not request multiple routes by default", () => {
+        const request = buildQuoteRequest();
+        const result = adaptQuoteRequest(request);
+
+        expect(result.enableMultipleAutoRoutes).toBeUndefined();
+    });
+
+    it("requests multiple routes when enableMultipleRoutes is true", () => {
+        const request = buildQuoteRequest();
+        const result = adaptQuoteRequest(request, { enableMultipleRoutes: true });
+
+        expect(result.enableMultipleAutoRoutes).toBe("true");
+    });
+
+    it("omits enableMultipleAutoRoutes when enableMultipleRoutes is false", () => {
+        const request = buildQuoteRequest();
+        const result = adaptQuoteRequest(request, { enableMultipleRoutes: false });
+
+        expect(result.enableMultipleAutoRoutes).toBeUndefined();
+    });
+
     it("omits optional fields when options are not provided", () => {
         const request = buildQuoteRequest();
         const result = adaptQuoteRequest(request);
