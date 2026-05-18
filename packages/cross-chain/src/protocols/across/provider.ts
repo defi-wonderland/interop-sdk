@@ -284,6 +284,12 @@ export class AcrossProvider extends CrossChainProvider {
         };
     }
 
+    /** Whether `target` is the canonical Across SpokePool registered for the given chain. */
+    private isTrustedSpokePool(chainId: number, target: Address): boolean {
+        const trusted = ACROSS_SPOKE_POOL_ADDRESSES[chainId];
+        return !!trusted && isAddressEqual(target, trusted as Address);
+    }
+
     /**
      * Validate that Across calldata matches the user's QuoteRequest.
      * Reuses the existing calldata decoder but compares against SDK types directly.
@@ -332,16 +338,21 @@ export class AcrossProvider extends CrossChainProvider {
         try {
             const acrossParams = this.toAcrossParams(params);
             const acrossResponse = await this.getAcrossQuote(acrossParams);
-            const quote = this.toSdkQuote(params, acrossResponse);
+            const { swapTx } = acrossResponse;
 
-            if (!this.validateCalldata(params, acrossResponse.swapTx.data as Hex)) {
+            const isSafeQuote =
+                swapTx.chainId === params.input.chainId &&
+                this.isTrustedSpokePool(params.input.chainId, swapTx.to as Address) &&
+                this.validateCalldata(params, swapTx.data as Hex);
+
+            if (!isSafeQuote) {
                 throw new ProviderGetQuoteFailure(
-                    "Across calldata validation failed",
-                    "Decoded deposit calldata does not match the requested intent",
+                    "Across quote validation failed",
+                    "Quote must target the trusted Across SpokePool and match the requested intent",
                 );
             }
 
-            return [quote];
+            return [this.toSdkQuote(params, acrossResponse)];
         } catch (error) {
             if (
                 error instanceof ProviderGetQuoteFailure ||

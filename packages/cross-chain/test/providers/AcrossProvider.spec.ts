@@ -1,10 +1,10 @@
 import type viem from "viem";
-import { createPublicClient, PublicClient } from "viem";
+import { Address, createPublicClient, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
 import { httpRequest } from "../../src/core/utils/httpClient.js";
-import { AcrossProvider } from "../../src/external.js";
+import { AcrossProvider, ProviderGetQuoteFailure } from "../../src/external.js";
 import { getMockedAcrossApiResponse } from "../mocks/acrossApi.js";
 import { CHAIN_IDS, TEST_ADDRESSES, TEST_AMOUNTS, TESTNET_TOKENS } from "../mocks/fixtures.js";
 
@@ -227,6 +227,77 @@ describe("AcrossProvider", () => {
                 assetAddress: intermediateToken,
                 amount: "999000000",
             });
+        });
+    });
+
+    describe("trusted SpokePool registry guard", () => {
+        const baseQuoteRequest: QuoteRequest = {
+            user: TEST_ADDRESSES.USER,
+            input: {
+                chainId: CHAIN_IDS.SEPOLIA,
+                assetAddress: TESTNET_TOKENS.WETH_SEPOLIA,
+                amount: TEST_AMOUNTS.ONE_ETHER.toString(),
+            },
+            output: {
+                chainId: CHAIN_IDS.BASE_SEPOLIA,
+                assetAddress: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                recipient: TEST_ADDRESSES.RECEIVER,
+            },
+            swapType: "exact-input",
+        };
+
+        type MockedHttpResponse = {
+            status: number;
+            data: ReturnType<typeof getMockedAcrossApiResponse>;
+            headers: Headers;
+        };
+
+        const mockResponseWith = (
+            override: Parameters<typeof getMockedAcrossApiResponse>[0],
+        ): MockedHttpResponse => ({
+            status: 200,
+            data: getMockedAcrossApiResponse(override),
+            headers: new Headers(),
+        });
+
+        const expectRejection = async (request: QuoteRequest): Promise<void> => {
+            await expect(provider.getQuotes(request)).rejects.toBeInstanceOf(
+                ProviderGetQuoteFailure,
+            );
+        };
+
+        it("rejects quote when swapTx.to is not the canonical SpokePool", async () => {
+            const ATTACKER = "0x1111111111111111111111111111111111111111" as Address;
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockResponseWith({ swapTx: { ...mockAcrossApiResponse.swapTx, to: ATTACKER } }),
+            );
+
+            await expectRejection(baseQuoteRequest);
+        });
+
+        it("rejects quote for chain not in registry (fail-closed)", async () => {
+            const unknownChainId = 999_999;
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockResponseWith({
+                    swapTx: { ...mockAcrossApiResponse.swapTx, chainId: unknownChainId },
+                    inputToken: { ...mockAcrossApiResponse.inputToken, chainId: unknownChainId },
+                }),
+            );
+
+            await expectRejection({
+                ...baseQuoteRequest,
+                input: { ...baseQuoteRequest.input, chainId: unknownChainId },
+            });
+        });
+
+        it("rejects quote when swapTx.chainId differs from input.chainId", async () => {
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockResponseWith({
+                    swapTx: { ...mockAcrossApiResponse.swapTx, chainId: CHAIN_IDS.BASE_SEPOLIA },
+                }),
+            );
+
+            await expectRejection(baseQuoteRequest);
         });
     });
 
