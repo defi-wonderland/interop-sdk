@@ -291,6 +291,13 @@ export class AcrossProvider extends CrossChainProvider {
         return isAddressEqual(target, trusted);
     }
 
+    /** Whether the Across swapTx targets the trusted SpokePool on the requested input chain and the calldata matches the user's intent. */
+    private isSafeQuote(params: QuoteRequest, swapTx: AcrossGetQuoteResponse["swapTx"]): boolean {
+        if (swapTx.chainId !== params.input.chainId) return false;
+        if (!this.isTrustedSpokePool(params.input.chainId, swapTx.to as Address)) return false;
+        return this.validateCalldata(params, swapTx.data as Hex);
+    }
+
     /** Validate decoded Across deposit calldata matches the QuoteRequest; reject deposits with a non-empty message (destination handler not auditable). */
     private validateCalldata(params: QuoteRequest, data: Hex): boolean {
         const result = decodeAcrossCalldata(data);
@@ -331,14 +338,8 @@ export class AcrossProvider extends CrossChainProvider {
         try {
             const acrossParams = this.toAcrossParams(params);
             const acrossResponse = await this.getAcrossQuote(acrossParams);
-            const { swapTx } = acrossResponse;
 
-            const isSafeQuote =
-                swapTx.chainId === params.input.chainId &&
-                this.isTrustedSpokePool(params.input.chainId, swapTx.to as Address) &&
-                this.validateCalldata(params, swapTx.data as Hex);
-
-            if (!isSafeQuote) {
+            if (!this.isSafeQuote(params, acrossResponse.swapTx)) {
                 throw new ProviderGetQuoteFailure(
                     "Across quote validation failed",
                     "Quote must target the trusted Across SpokePool and match the requested intent",
