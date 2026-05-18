@@ -145,6 +145,46 @@ describe("Permit2SignatureValidator", () => {
             }
         });
 
+        it("rejects a Permit2 payload when request.input.amount is missing (exact-output flow)", () => {
+            const step = makePermit2Step({
+                permitted: { token: TOKEN_USDC, amount: "99999999999" },
+            });
+            const request = makeRequest({
+                input: { chainId: 1, assetAddress: TOKEN_USDC },
+                output: { chainId: 8453, assetAddress: TOKEN_USDC, amount: "5000000" },
+                swapType: "exact-output",
+            });
+
+            try {
+                permit2SignatureValidator.validate(step, {
+                    providerId: PROVIDER_ID,
+                    request,
+                });
+                expect.fail("expected throw");
+            } catch (err) {
+                expect((err as Permit2ValidationFailure).reason).toBe("requested-amount");
+            }
+        });
+
+        it("rejects a Permit2 payload when request.input.amount is zero", () => {
+            const step = makePermit2Step({
+                permitted: { token: TOKEN_USDC, amount: "99999999999" },
+            });
+            const request = makeRequest({
+                input: { chainId: 1, assetAddress: TOKEN_USDC, amount: "0" },
+            });
+
+            try {
+                permit2SignatureValidator.validate(step, {
+                    providerId: PROVIDER_ID,
+                    request,
+                });
+                expect.fail("expected throw");
+            } catch (err) {
+                expect((err as Permit2ValidationFailure).reason).toBe("requested-amount");
+            }
+        });
+
         it("accepts a batch permit summing matching tokens within the requested amount", () => {
             const step = makePermit2Step({
                 primaryType: "PermitBatchWitnessTransferFrom",

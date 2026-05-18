@@ -80,7 +80,16 @@ export class Permit2SignatureValidator {
         }
 
         const requestedToken = getAddress(context.request.input.assetAddress);
-        const requestedAmount = BigInt(context.request.input.amount ?? "0");
+        const rawAmount = context.request.input.amount;
+        if (rawAmount === undefined || BigInt(rawAmount) <= 0n) {
+            throw new Permit2ValidationFailure(
+                "requested-amount",
+                context.providerId,
+                `Permit2 primaryType "${primaryType}" requires a positive request.input.amount as the permitted cap`,
+                `got=${String(rawAmount)}`,
+            );
+        }
+        const requestedAmount = BigInt(rawAmount);
 
         let total = 0n;
         for (const entry of permitted) {
@@ -95,7 +104,7 @@ export class Permit2SignatureValidator {
             total += BigInt(entry.amount);
         }
 
-        if (requestedAmount > 0n && total > requestedAmount) {
+        if (total > requestedAmount) {
             throw new Permit2ValidationFailure(
                 "permitted-amount",
                 context.providerId,

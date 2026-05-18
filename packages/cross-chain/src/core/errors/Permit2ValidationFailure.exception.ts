@@ -7,6 +7,8 @@ export type Permit2ValidationReason =
     | "permitted-empty"
     | "permitted-token"
     | "permitted-amount"
+    | "requested-amount"
+    | "chain-id"
     | "spender";
 
 export class Permit2ValidationFailure extends BaseError {

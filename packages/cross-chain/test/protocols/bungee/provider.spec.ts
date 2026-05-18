@@ -528,6 +528,21 @@ describe("BungeeProvider", () => {
             expect(quotes).toHaveLength(1);
             expect(quotes[0]!.order.steps).toHaveLength(1);
         });
+
+        it("rejects an autoRoute whose response originChainId differs from request.input.chainId, even if the response chain is supported", async () => {
+            const tamperedOriginChain = 10; // Optimism — supported by BUNGEE_GATEWAY_BY_CHAIN
+            respondWithAutoRoute({}, tamperedOriginChain);
+            const quotes = await provider.getQuotes(
+                makeQuoteRequest({
+                    input: {
+                        chainId: ORIGIN_CHAIN_ID,
+                        assetAddress: VALID_ADDRESS,
+                        amount: INPUT_AMOUNT,
+                    },
+                }),
+            );
+            expect(quotes).toEqual([]);
+        });
     });
 
     describe("submitOrder()", () => {

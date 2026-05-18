@@ -240,12 +240,19 @@ export class BungeeProvider extends CrossChainProvider {
 
     /** True if every signature step in the quote is safe per Permit2 rules (V12 #6). */
     private isQuoteSignaturePayloadSafe(quote: Quote, request: QuoteRequest): boolean {
+        const requestedChainId = request.input.chainId;
+        const canonicalGateway = BUNGEE_GATEWAY_BY_CHAIN[requestedChainId];
+        if (!canonicalGateway) {
+            console.warn(
+                `${PERMIT2_LOG_PREFIX} No canonical Bungee gateway registered for chain ${requestedChainId}; rejecting quote`,
+            );
+            return false;
+        }
         for (const step of quote.order.steps) {
             if (step.kind !== "signature") continue;
-            const canonicalGateway = BUNGEE_GATEWAY_BY_CHAIN[step.chainId];
-            if (!canonicalGateway) {
+            if (step.chainId !== requestedChainId) {
                 console.warn(
-                    `${PERMIT2_LOG_PREFIX} No canonical Bungee gateway registered for chain ${step.chainId}; rejecting quote`,
+                    `${PERMIT2_LOG_PREFIX} step.chainId ${step.chainId} does not match request.input.chainId ${requestedChainId}; rejecting quote`,
                 );
                 return false;
             }
