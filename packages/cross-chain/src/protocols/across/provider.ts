@@ -291,16 +291,15 @@ export class AcrossProvider extends CrossChainProvider {
     }
 
     /**
-     * Validate that Across calldata matches the user's QuoteRequest.
-     * Reuses the existing calldata decoder but compares against SDK types directly.
+     * Validate that the decoded Across deposit calldata matches the user's
+     * QuoteRequest. Returns false when the decoder rejects the calldata or
+     * when the deposit carries a message (complex destination action we
+     * can't audit without an allowlist of trusted handlers).
      */
     private validateCalldata(params: QuoteRequest, data: Hex): boolean {
         const result = decodeAcrossCalldata(data);
-        if (!result.success) {
-            // "unsupported" selector (e.g. complex swap) — can't validate, allow through
-            // "invalid" calldata — reject
-            return result.reason === "unsupported";
-        }
+        if (!result.success) return false;
+        if (result.hasMessage) return false;
 
         const decoded = result.params;
         const { input, output } = params;

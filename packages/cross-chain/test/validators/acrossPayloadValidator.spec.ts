@@ -1,8 +1,10 @@
 import { GetQuoteRequest } from "@openintentsframework/oif-specs";
 import { encodeAddress } from "@wonderland/interop-addresses";
-import { Address, Hex } from "viem";
+import { Address, encodeFunctionData, Hex, pad } from "viem";
 import { describe, expect, it } from "vitest";
 
+import { addressToBytes32 } from "../../src/core/utils/addressHelpers.js";
+import { ACROSS_SPOKE_POOL_DEPOSIT_ABI } from "../../src/protocols/across/constants.js";
 import { validateAcrossPayload } from "../../src/protocols/across/validator.js";
 import { ACROSS_DEPOSIT_FIXTURE, CHAIN_IDS, MAINNET_TOKENS } from "../mocks/fixtures.js";
 
@@ -111,7 +113,7 @@ describe("validateAcrossPayload", () => {
             expect(await validateAcrossPayload(intent, "" as Hex)).toBe(false);
         });
 
-        it("returns true for unsupported selectors (cannot validate, allow through)", async () => {
+        it("rejects calldata whose selector is not deposit", async () => {
             const intent: GetQuoteRequest = {
                 user: "test",
                 intent: {
@@ -122,7 +124,53 @@ describe("validateAcrossPayload", () => {
                 supportedTypes: ["across"],
             };
             // 0x12345678 is not a known Across selector
-            expect(await validateAcrossPayload(intent, "0x12345678")).toBe(true);
+            expect(await validateAcrossPayload(intent, "0x12345678")).toBe(false);
+        });
+
+        it("rejects deposit calldata that carries a non-empty message", async () => {
+            const FIXTURE = ACROSS_DEPOSIT_FIXTURE;
+            const user = interopAddress(CHAIN_IDS.ETHEREUM, FIXTURE.depositor);
+            const intent: GetQuoteRequest = {
+                user,
+                intent: {
+                    intentType: "oif-swap",
+                    inputs: [
+                        {
+                            user,
+                            asset: interopAddress(CHAIN_IDS.ETHEREUM, FIXTURE.inputToken),
+                            amount: FIXTURE.inputAmount,
+                        },
+                    ],
+                    outputs: [
+                        {
+                            receiver: user,
+                            asset: interopAddress(FIXTURE.destinationChainId, FIXTURE.outputToken),
+                        },
+                    ],
+                },
+                supportedTypes: ["across"],
+            };
+
+            const calldataWithMessage = encodeFunctionData({
+                abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
+                functionName: "deposit",
+                args: [
+                    addressToBytes32(FIXTURE.depositor),
+                    addressToBytes32(FIXTURE.depositor),
+                    addressToBytes32(FIXTURE.inputToken),
+                    addressToBytes32(FIXTURE.outputToken),
+                    BigInt(FIXTURE.inputAmount),
+                    BigInt(FIXTURE.inputAmount),
+                    BigInt(FIXTURE.destinationChainId),
+                    pad("0x00" as Hex, { size: 32 }),
+                    0,
+                    0,
+                    0,
+                    "0xdeadbeef",
+                ],
+            });
+
+            expect(await validateAcrossPayload(intent, calldataWithMessage)).toBe(false);
         });
 
         it("returns false when intent has no outputs", async () => {

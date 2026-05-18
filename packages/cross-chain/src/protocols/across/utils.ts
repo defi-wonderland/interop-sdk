@@ -1,9 +1,8 @@
 /**
- * Decodes Across deposit calldata to validate user intent.
- *
- * Only supports simple same-token bridges (deposit without message).
- * Complex operations (destination swaps, DeFi actions) have a message
- * that we can't validate - we don't know which DEX/protocol will be used.
+ * Decode an Across SpokePool `deposit` calldata so callers can match it
+ * against the user's QuoteRequest. Non-deposit selectors are rejected; a
+ * deposit with a non-empty message decodes normally and surfaces
+ * `hasMessage: true` so the caller can decide whether to accept the route.
  */
 import { decodeFunctionData, Hex, slice, toFunctionSelector } from "viem";
 
@@ -13,36 +12,33 @@ import { ACROSS_SPOKE_POOL_DEPOSIT_ABI } from "./constants.js";
 const DEPOSIT_SELECTOR = toFunctionSelector(ACROSS_SPOKE_POOL_DEPOSIT_ABI[0]);
 
 export interface DecodedAcrossParams {
+    depositor: string;
+    recipient: string;
     inputToken: string;
     outputToken: string;
     inputAmount: bigint;
     outputAmount: bigint;
-    recipient: string;
     destinationChainId: bigint;
-    depositor: string;
 }
 
 export type DecodeResult =
-    | { success: true; params: DecodedAcrossParams }
-    | { success: false; reason: "unsupported" | "invalid"; error: string };
+    | { success: true; params: DecodedAcrossParams; hasMessage: boolean }
+    | { success: false; reason: "invalid"; error: string };
+
+const invalid = (error: string): DecodeResult => ({ success: false, reason: "invalid", error });
 
 export function decodeAcrossCalldata(data: Hex): DecodeResult {
-    const selector = slice(data, 0, 4);
+    if (!data || data.length < 10) {
+        return invalid("Calldata is empty or shorter than a function selector.");
+    }
 
+    const selector = slice(data, 0, 4);
     if (selector !== DEPOSIT_SELECTOR) {
-        return {
-            success: false,
-            reason: "unsupported",
-            error: `Unsupported selector: ${selector}. Only deposit (${DEPOSIT_SELECTOR}) is supported.`,
-        };
+        return invalid(`Unexpected selector ${selector}; expected deposit ${DEPOSIT_SELECTOR}.`);
     }
 
     try {
-        const decoded = decodeFunctionData({
-            abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
-            data,
-        });
-
+        const { args } = decodeFunctionData({ abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI, data });
         const [
             depositor,
             recipient,
@@ -51,37 +47,23 @@ export function decodeAcrossCalldata(data: Hex): DecodeResult {
             inputAmount,
             outputAmount,
             destinationChainId,
-        ] = decoded.args;
-        const message = decoded.args[11] as Hex;
-
-        // Only support simple bridges (no message)
-        // Complex operations have a message with DEX/protocol calls we can't validate
-        const hasMessage = message && message.length > 2;
-        if (hasMessage) {
-            return {
-                success: false,
-                reason: "unsupported",
-                error: "Deposit with message not supported. Cannot validate complex operations.",
-            };
-        }
+        ] = args;
+        const message = args[11] as Hex;
 
         return {
             success: true,
+            hasMessage: message.length > 2,
             params: {
+                depositor: bytes32ToAddress(depositor).toLowerCase(),
+                recipient: bytes32ToAddress(recipient).toLowerCase(),
                 inputToken: bytes32ToAddress(inputToken).toLowerCase(),
                 outputToken: bytes32ToAddress(outputToken).toLowerCase(),
                 inputAmount,
                 outputAmount,
-                recipient: bytes32ToAddress(recipient).toLowerCase(),
                 destinationChainId,
-                depositor: bytes32ToAddress(depositor).toLowerCase(),
             },
         };
     } catch (e) {
-        return {
-            success: false,
-            reason: "invalid",
-            error: `Failed to decode deposit: ${e instanceof Error ? e.message : String(e)}`,
-        };
+        return invalid(`Failed to decode deposit: ${e instanceof Error ? e.message : String(e)}`);
     }
 }

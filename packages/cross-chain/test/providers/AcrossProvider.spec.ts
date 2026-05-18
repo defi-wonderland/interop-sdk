@@ -1,10 +1,12 @@
 import type viem from "viem";
-import { Address, createPublicClient, PublicClient } from "viem";
+import { Address, createPublicClient, encodeFunctionData, Hex, pad, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
+import { addressToBytes32 } from "../../src/core/utils/addressHelpers.js";
 import { httpRequest } from "../../src/core/utils/httpClient.js";
 import { AcrossProvider, ProviderGetQuoteFailure } from "../../src/external.js";
+import { ACROSS_SPOKE_POOL_DEPOSIT_ABI } from "../../src/protocols/across/constants.js";
 import { getMockedAcrossApiResponse } from "../mocks/acrossApi.js";
 import { CHAIN_IDS, TEST_ADDRESSES, TEST_AMOUNTS, TESTNET_TOKENS } from "../mocks/fixtures.js";
 
@@ -294,6 +296,49 @@ describe("AcrossProvider", () => {
             vi.mocked(httpRequest).mockResolvedValueOnce(
                 mockResponseWith({
                     swapTx: { ...mockAcrossApiResponse.swapTx, chainId: CHAIN_IDS.BASE_SEPOLIA },
+                }),
+            );
+
+            await expectRejection(baseQuoteRequest);
+        });
+
+        it("rejects quote when swapTx.data does not target the deposit selector", async () => {
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockResponseWith({
+                    swapTx: {
+                        ...mockAcrossApiResponse.swapTx,
+                        data: "0xdeadbeef00000000" as Hex,
+                    },
+                }),
+            );
+
+            await expectRejection(baseQuoteRequest);
+        });
+
+        it("rejects quote when deposit calldata carries a non-empty message", async () => {
+            const ZERO_BYTES32 = pad("0x00" as Hex, { size: 32 });
+            const calldataWithMessage: Hex = encodeFunctionData({
+                abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
+                functionName: "deposit",
+                args: [
+                    addressToBytes32(TEST_ADDRESSES.USER),
+                    addressToBytes32(TEST_ADDRESSES.RECEIVER),
+                    addressToBytes32(TESTNET_TOKENS.WETH_SEPOLIA),
+                    addressToBytes32(TESTNET_TOKENS.WETH_BASE_SEPOLIA),
+                    TEST_AMOUNTS.ONE_ETHER,
+                    990_000_000_000_000_000n,
+                    BigInt(CHAIN_IDS.BASE_SEPOLIA),
+                    ZERO_BYTES32,
+                    0,
+                    0,
+                    0,
+                    "0xcafebabe",
+                ],
+            });
+
+            vi.mocked(httpRequest).mockResolvedValueOnce(
+                mockResponseWith({
+                    swapTx: { ...mockAcrossApiResponse.swapTx, data: calldataWithMessage },
                 }),
             );
 

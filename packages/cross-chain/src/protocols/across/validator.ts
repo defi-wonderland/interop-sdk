@@ -6,10 +6,10 @@ import { isAddressEqual } from "viem";
 import { decodeAcrossCalldata, DecodedAcrossParams } from "./utils.js";
 
 /**
- * Validates Across calldata matches user intent.
- *
- * Only validates simple same-token bridges (deposit without message).
- * Complex operations (swaps, DeFi actions) return true - we can't validate them.
+ * Validates Across calldata matches user intent. Rejects anything we can't
+ * fully audit: malformed calldata, non-deposit selectors, and deposits with
+ * a non-empty message (complex routes whose destination handler we can't
+ * verify against the user's intent).
  */
 export async function validateAcrossPayload(
     userIntent: GetQuoteRequest,
@@ -18,12 +18,8 @@ export async function validateAcrossPayload(
     if (!data) return false;
 
     const decodeResult = decodeAcrossCalldata(data);
-
-    if (!decodeResult.success) {
-        // "unsupported" = can't validate, allow through
-        // "invalid" = malformed data, reject
-        return decodeResult.reason === "unsupported";
-    }
+    if (!decodeResult.success) return false;
+    if (decodeResult.hasMessage) return false;
 
     return validateDecodedParams(userIntent, decodeResult.params);
 }
