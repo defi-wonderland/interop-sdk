@@ -30,7 +30,7 @@ export interface EventBasedFillWatcherConfig {
     /** Discriminator for FillWatcher config union */
     type: "event-based";
     /** Contract addresses per chain ID where fill events are emitted */
-    contractAddresses: Partial<Record<number, Address>>;
+    contractAddresses: Record<number, Address>;
     /** Event ABI for the fill event */
     eventAbi: Abi;
     /** Function to build getLogs parameters from fill params */
