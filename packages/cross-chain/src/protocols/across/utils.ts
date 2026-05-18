@@ -4,7 +4,7 @@
  * deposit with a non-empty message decodes normally and surfaces
  * `hasMessage: true` so the caller can decide whether to accept the route.
  */
-import { decodeFunctionData, Hex, slice, toFunctionSelector } from "viem";
+import { Address, decodeFunctionData, Hex, slice, toFunctionSelector } from "viem";
 
 import { bytes32ToAddress } from "../../core/utils/addressHelpers.js";
 import { ACROSS_SPOKE_POOL_DEPOSIT_ABI } from "./constants.js";
@@ -12,10 +12,10 @@ import { ACROSS_SPOKE_POOL_DEPOSIT_ABI } from "./constants.js";
 const DEPOSIT_SELECTOR = toFunctionSelector(ACROSS_SPOKE_POOL_DEPOSIT_ABI[0]);
 
 export interface DecodedAcrossParams {
-    depositor: string;
-    recipient: string;
-    inputToken: string;
-    outputToken: string;
+    depositor: Address;
+    recipient: Address;
+    inputToken: Address;
+    outputToken: Address;
     inputAmount: bigint;
     outputAmount: bigint;
     destinationChainId: bigint;
@@ -54,10 +54,10 @@ export function decodeAcrossCalldata(data: Hex): DecodeResult {
             success: true,
             hasMessage: message.length > 2,
             params: {
-                depositor: bytes32ToAddress(depositor).toLowerCase(),
-                recipient: bytes32ToAddress(recipient).toLowerCase(),
-                inputToken: bytes32ToAddress(inputToken).toLowerCase(),
-                outputToken: bytes32ToAddress(outputToken).toLowerCase(),
+                depositor: bytes32ToAddress(depositor).toLowerCase() as Address,
+                recipient: bytes32ToAddress(recipient).toLowerCase() as Address,
+                inputToken: bytes32ToAddress(inputToken).toLowerCase() as Address,
+                outputToken: bytes32ToAddress(outputToken).toLowerCase() as Address,
                 inputAmount,
                 outputAmount,
                 destinationChainId,

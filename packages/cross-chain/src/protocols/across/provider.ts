@@ -286,16 +286,12 @@ export class AcrossProvider extends CrossChainProvider {
 
     /** Whether `target` is the canonical Across SpokePool registered for the given chain. */
     private isTrustedSpokePool(chainId: number, target: Address): boolean {
-        const trusted = ACROSS_SPOKE_POOL_ADDRESSES[chainId];
-        return !!trusted && isAddressEqual(target, trusted as Address);
+        const trusted = ACROSS_SPOKE_POOL_ADDRESSES[chainId] as Address | undefined;
+        if (!trusted) return false;
+        return isAddressEqual(target, trusted);
     }
 
-    /**
-     * Validate that the decoded Across deposit calldata matches the user's
-     * QuoteRequest. Returns false when the decoder rejects the calldata or
-     * when the deposit carries a message (complex destination action we
-     * can't audit without an allowlist of trusted handlers).
-     */
+    /** Validate decoded Across deposit calldata matches the QuoteRequest; reject deposits with a non-empty message (destination handler not auditable). */
     private validateCalldata(params: QuoteRequest, data: Hex): boolean {
         const result = decodeAcrossCalldata(data);
         if (!result.success) return false;
@@ -313,12 +309,10 @@ export class AcrossProvider extends CrossChainProvider {
             ? (ACROSS_WRAPPED_NATIVE_ADDRESSES[output.chainId] ?? output.assetAddress)
             : output.assetAddress;
 
-        if (!isAddressEqual(decoded.depositor as Address, params.user as Address)) return false;
-        if (!isAddressEqual(decoded.inputToken as Address, inputTokenForCalldata as Address))
-            return false;
-        if (!isAddressEqual(decoded.outputToken as Address, outputTokenForCalldata as Address))
-            return false;
-        if (!isAddressEqual(decoded.recipient as Address, recipient as Address)) return false;
+        if (!isAddressEqual(decoded.depositor, params.user as Address)) return false;
+        if (!isAddressEqual(decoded.inputToken, inputTokenForCalldata as Address)) return false;
+        if (!isAddressEqual(decoded.outputToken, outputTokenForCalldata as Address)) return false;
+        if (!isAddressEqual(decoded.recipient, recipient as Address)) return false;
         if (decoded.destinationChainId !== BigInt(output.chainId)) return false;
 
         if (input.amount !== undefined) {

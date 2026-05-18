@@ -5,12 +5,7 @@ import { isAddressEqual } from "viem";
 
 import { decodeAcrossCalldata, DecodedAcrossParams } from "./utils.js";
 
-/**
- * Validates Across calldata matches user intent. Rejects anything we can't
- * fully audit: malformed calldata, non-deposit selectors, and deposits with
- * a non-empty message (complex routes whose destination handler we can't
- * verify against the user's intent).
- */
+/** Validate Across calldata matches user intent; reject malformed calldata, non-deposit selectors, and deposits with a non-empty message. */
 export async function validateAcrossPayload(
     userIntent: GetQuoteRequest,
     data: Hex,
@@ -43,11 +38,11 @@ async function validateDecodedParams(
     };
 
     // Validate all fields for simple bridges
-    if (!isAddressEqual(calldata.recipient as Address, trusted.recipient)) return false;
-    if (!isAddressEqual(calldata.outputToken as Address, trusted.outputToken)) return false;
+    if (!isAddressEqual(calldata.recipient, trusted.recipient)) return false;
+    if (!isAddressEqual(calldata.outputToken, trusted.outputToken)) return false;
     if (calldata.destinationChainId !== trusted.destinationChain) return false;
-    if (!isAddressEqual(calldata.depositor as Address, trusted.depositor)) return false;
-    if (!isAddressEqual(calldata.inputToken as Address, trusted.inputToken)) return false;
+    if (!isAddressEqual(calldata.depositor, trusted.depositor)) return false;
+    if (!isAddressEqual(calldata.inputToken, trusted.inputToken)) return false;
 
     if (trusted.inputAmount !== undefined) {
         if (calldata.inputAmount !== trusted.inputAmount) return false;
