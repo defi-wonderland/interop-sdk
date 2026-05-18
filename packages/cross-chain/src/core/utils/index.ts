@@ -10,3 +10,4 @@ export * from "./typedEventEmitter.js";
 export * from "./interopAccountId.js";
 export * from "./stepHelpers.js";
 export * from "./httpClient.js";
+export * from "./permit2.js";
