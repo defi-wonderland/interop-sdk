@@ -111,6 +111,23 @@ export function getMockedOifQuoteResponse(overrides?: EscrowOverrides): GetQuote
                                 { name: "spender", type: "address" },
                                 { name: "nonce", type: "uint256" },
                                 { name: "deadline", type: "uint256" },
+                                { name: "witness", type: "Permit2Witness" },
+                            ],
+                            Permit2Witness: [
+                                { name: "user", type: "address" },
+                                { name: "expires", type: "uint32" },
+                                { name: "inputOracle", type: "address" },
+                                { name: "outputs", type: "MandateOutput[]" },
+                            ],
+                            MandateOutput: [
+                                { name: "oracle", type: "bytes32" },
+                                { name: "settler", type: "bytes32" },
+                                { name: "chainId", type: "uint256" },
+                                { name: "token", type: "bytes32" },
+                                { name: "amount", type: "uint256" },
+                                { name: "recipient", type: "bytes32" },
+                                { name: "callbackData", type: "bytes" },
+                                { name: "context", type: "bytes" },
                             ],
                             TokenPermissions: [
                                 { name: "token", type: "address" },
