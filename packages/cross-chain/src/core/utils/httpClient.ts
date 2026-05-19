@@ -65,13 +65,20 @@ export class FetchHttpClient implements HttpClient {
     }
 
     private buildUrl(path: string, params?: Record<string, unknown>): string {
-        const url = new URL(path, this.config.baseURL);
+        const url = this.resolveUrl(path);
         if (params) {
             for (const [key, value] of Object.entries(params)) {
                 if (value != null) url.searchParams.set(key, String(value));
             }
         }
         return url.toString();
+    }
+
+    private resolveUrl(path: string): URL {
+        const { baseURL } = this.config;
+        const base = baseURL && !baseURL.endsWith("/") ? `${baseURL}/` : baseURL;
+        const resolvedPath = base ? path.replace(/^\//, "") : path;
+        return new URL(resolvedPath, base);
     }
 
     private buildRequestInit(options: HttpRequestOptions): Omit<RequestInit, "signal"> {

@@ -1,5 +1,5 @@
 /**
- * TypeScript types for decoded EIP-7683 Open event data
+ * TypeScript types for decoded OIF settler Open event data (ERC-7683-aligned order shape)
  */
 // =============================================================================
 // Canonical EIP-712 type definitions for OIF order signing

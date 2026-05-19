@@ -83,7 +83,7 @@ export const BungeeRouteDetailsSchema = z.object({
 /** Schema for transaction data in Bungee API responses. */
 export const BungeeTxDataSchema = z.object({
     to: z.string().optional(),
-    data: z.union([z.string(), z.record(z.unknown())]),
+    data: z.union([z.string(), z.record(z.string(), z.unknown())]),
     value: z.string(),
     chainId: z.number(),
     type: z.string().optional(),
@@ -91,9 +91,9 @@ export const BungeeTxDataSchema = z.object({
 
 /** Schema for EIP-712 sign typed data in Bungee API responses. */
 export const BungeeSignTypedDataSchema = z.object({
-    domain: z.record(z.unknown()),
-    types: z.record(z.unknown()),
-    values: z.record(z.unknown()),
+    domain: z.record(z.string(), z.unknown()),
+    types: z.record(z.string(), z.unknown()),
+    values: z.record(z.string(), z.unknown()),
 });
 
 /** Schema for refuel input in Bungee API responses. */
@@ -267,7 +267,7 @@ export const BungeeQuoteResponseSchema = z.object({
 
 /** Schema for the Bungee POST `/api/v1/bungee/submit` request body. */
 export const BungeeSubmitRequestSchema = z.object({
-    request: z.record(z.unknown()),
+    request: z.record(z.string(), z.unknown()),
     userSignature: z.string(),
     requestType: z.enum(["SINGLE_OUTPUT_REQUEST", "SWAP_REQUEST"]),
     quoteId: z.string(),

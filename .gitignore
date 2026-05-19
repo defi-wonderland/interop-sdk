@@ -39,6 +39,9 @@ coverage
 # Turbo
 .turbo
 
+# Vercel
+.vercel
+
 # Foundry
 contracts/out
 contracts/cache

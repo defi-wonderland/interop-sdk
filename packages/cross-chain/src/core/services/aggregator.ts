@@ -157,20 +157,15 @@ class Aggregator {
     async getQuotes(params: QuoteRequest): Promise<GetQuotesResponse> {
         const resultQuotes = await Promise.all(
             Object.values(this.providers).map(async (provider) => {
-                try {
-                    const isSupported = await this.supportsRequestedAssets(provider, params);
-                    if (!isSupported) {
-                        return [];
-                    }
+                const isSupported = await this.supportsRequestedAssets(provider, params);
+                if (!isSupported) {
+                    return [];
+                }
 
-                    const quotesPromise = provider.getQuotes(params).then((quotes) =>
-                        quotes.map(
-                            (quote): ExecutableQuote => ({
-                                ...quote,
-                                _providerId: provider.getProviderId(),
-                            }),
-                        ),
-                    );
+                const startedAt = performance.now();
+
+                try {
+                    const quotesPromise = provider.getQuotes(params);
 
                     let timeout: NodeJS.Timeout;
 
@@ -180,16 +175,27 @@ class Aggregator {
                         }, this.timeoutMs);
                     });
 
-                    return await Promise.race([quotesPromise, timeoutPromise]).finally(() => {
-                        clearTimeout(timeout);
-                    });
+                    const quotes = await Promise.race([quotesPromise, timeoutPromise]).finally(() =>
+                        clearTimeout(timeout),
+                    );
+
+                    const latencyMs = Math.round(performance.now() - startedAt);
+                    return quotes.map(
+                        (quote): ExecutableQuote => ({
+                            ...quote,
+                            latencyMs,
+                            _providerId: provider.getProviderId(),
+                        }),
+                    );
                 } catch (error) {
+                    const latencyMs = Math.round(performance.now() - startedAt);
                     if (error instanceof ProviderTimeout) {
-                        return { error: error, errorMsg: error.message };
+                        return { error, errorMsg: error.message, latencyMs };
                     }
                     return {
                         error: new Error(String(error)),
                         errorMsg: (error as Error)?.message ?? "Unknown error",
+                        latencyMs,
                     };
                 }
             }),

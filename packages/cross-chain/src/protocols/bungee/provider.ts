@@ -5,8 +5,10 @@ import type { SubmissionMode } from "../../core/schemas/providerConfig.js";
 import type {
     AssetDiscoveryConfig,
     FillWatcherConfig,
+    GetOrderExplorersParams,
     HttpClient,
     OpenedIntentParserConfig,
+    OrderExplorers,
     Quote,
     QuoteRequest,
     SubmitOrderResponse,
@@ -29,7 +31,7 @@ import {
     extractOpenedIntent,
     parseBungeeTokenListResponse,
 } from "./adapters/index.js";
-import { BUNGEE_API_URLS } from "./constants.js";
+import { BUNGEE_API_URLS, BUNGEE_EXPLORER_BASE_URL } from "./constants.js";
 import { BungeeApiService } from "./services/index.js";
 import { BungeeApiTier, BungeeConfigSchema } from "./types.js";
 
@@ -75,6 +77,7 @@ export class BungeeProvider extends CrossChainProvider {
                 feeTakerAddress: parsed.feeTakerAddress,
                 slippage: parsed.slippage,
                 refuel: parsed.refuel,
+                enableMultipleRoutes: parsed.enableMultipleRoutes,
             };
 
             this.http = new FetchHttpClient({
@@ -171,6 +174,15 @@ export class BungeeProvider extends CrossChainProvider {
                 extractFillEvent,
             } as FillWatcherConfig,
         };
+    }
+
+    /** @inheritdoc Bungee orders are tracked through Socket scanner. */
+    override getOrderExplorers(params: GetOrderExplorersParams): OrderExplorers {
+        const explorers = super.getOrderExplorers(params);
+        if (params.originTxHash) {
+            explorers.tracker = `${BUNGEE_EXPLORER_BASE_URL}/${params.originTxHash}`;
+        }
+        return explorers;
     }
 
     /**

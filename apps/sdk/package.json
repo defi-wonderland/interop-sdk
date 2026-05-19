@@ -1,6 +1,6 @@
 {
     "name": "@wonderland/interop",
-    "version": "0.4.2",
+    "version": "0.5.0",
     "description": "Complete SDK for blockchain interoperability with cross-chain operations and address utilities",
     "repository": {
         "type": "git",
@@ -36,9 +36,9 @@
         "@wonderland/interop-cross-chain": "workspace:*"
     },
     "devDependencies": {
-        "viem": "2.28.0"
+        "viem": "2.48.8"
     },
     "peerDependencies": {
-        "viem": "^2.28.0"
+        "viem": "^2.35.0"
     }
 }

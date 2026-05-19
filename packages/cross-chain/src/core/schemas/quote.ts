@@ -9,6 +9,8 @@ export const QuotePreviewEntrySchema = z.object({
     accountAddress: addressString,
     assetAddress: addressString,
     amount: amountSchema,
+    /** Outputs only: slippage floor when the provider exposes one. */
+    minAmount: amountSchema.optional(),
     amountUsd: amountUsdSchema,
 });
 
@@ -58,9 +60,11 @@ export const QuoteSchema = z.object({
     quoteId: z.string().optional(),
     failureHandling: z.string().optional(),
     partialFill: z.boolean().optional(),
+    fallbackToken: QuotePreviewEntrySchema.optional(),
     fees: QuoteFeesSchema.optional(),
     tracking: QuoteTrackingSchema.optional(),
-    metadata: z.record(z.unknown()).optional(),
+    latencyMs: z.number().int().nonnegative().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ── Types ───────────────────────────────────────────────
@@ -91,6 +95,7 @@ export interface SubmitOrderResponse {
 export interface GetQuotesError {
     error: Error;
     errorMsg: string;
+    latencyMs?: number;
 }
 
 export interface GetQuotesResponse {

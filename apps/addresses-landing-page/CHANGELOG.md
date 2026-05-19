@@ -1,5 +1,19 @@
 # addresses-landing-page
 
+## 0.1.6
+
+### Patch Changes
+
+-   Updated dependencies [891b0a7]
+    -   @wonderland/interop-addresses@0.8.0
+
+## 0.1.5
+
+### Patch Changes
+
+-   Updated dependencies [2a9154e]
+    -   @wonderland/interop-addresses@0.7.0
+
 ## 0.1.4
 
 ### Patch Changes

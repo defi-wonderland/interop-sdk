@@ -1,0 +1,52 @@
+{
+  "name": "benchmark",
+  "version": "0.0.2",
+  "private": true,
+  "description": "Cross-chain quotes benchmark site using @wonderland/interop-cross-chain",
+  "license": "MIT",
+  "author": "Wonderland",
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev --turbopack",
+    "format": "prettier app --write",
+    "format:check": "prettier app --check",
+    "lint": "eslint app",
+    "lint:fix": "eslint app --fix",
+    "start": "next start"
+  },
+  "lint-staged": {
+    "app/**/*.{js,jsx,ts,tsx}": "eslint --cache --fix",
+    "app/**/*.{js,jsx,ts,tsx,css,scss,md,html}": "prettier --write --ignore-unknown"
+  },
+  "dependencies": {
+    "@wonderland/interop-addresses": "workspace:*",
+    "@wonderland/interop-cross-chain": "workspace:*",
+    "next": "16.1.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "viem": "2.37.0"
+  },
+  "devDependencies": {
+    "@eslint/compat": "2.0.0",
+    "@eslint/eslintrc": "3.3.3",
+    "@eslint/js": "9.39.2",
+    "@next/eslint-plugin-next": "15.3.3",
+    "@tailwindcss/postcss": "4.1.15",
+    "@types/node": "22.7.4",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@typescript-eslint/eslint-plugin": "8.50.0",
+    "@typescript-eslint/parser": "8.50.0",
+    "eslint": "9.39.2",
+    "eslint-config-prettier": "9.1.0",
+    "eslint-plugin-import": "2.31.0",
+    "eslint-plugin-jsx-a11y": "6.10.0",
+    "eslint-plugin-prettier": "5.2.1",
+    "eslint-plugin-react": "7.37.0",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "prettier": "3.3.3",
+    "tailwindcss": "4.1.15",
+    "typescript": "5.6.2"
+  }
+}

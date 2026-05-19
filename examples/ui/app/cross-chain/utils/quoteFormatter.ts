@@ -45,6 +45,12 @@ function parseFees(quote: ExecutableQuote, inputTokenInfo?: { decimals?: number;
   return result;
 }
 
+export interface FormattedFallbackToken {
+  amount: string;
+  symbol: string;
+  chainId: number;
+}
+
 export interface FormattedQuoteData {
   inputAmount: string;
   outputAmount: string;
@@ -65,6 +71,8 @@ export interface FormattedQuoteData {
   hasOriginGas?: boolean; // True if originGas is present and non-zero (even if formatted value rounds to 0)
   gasSimulationFailed?: boolean;
   costCompact?: string; // Compact total cost for mobile (e.g. "<$0.01")
+  /** Present when the route is non-atomic (a destination call may revert). */
+  fallback?: FormattedFallbackToken;
 }
 
 /**
@@ -116,6 +124,8 @@ export function formatQuoteData(
   const totalCost = feeNum + gasNum;
   const costCompact = gasSimulationFailed && totalCost === 0 ? 'gas TBD' : formatUsdAmountCompact(totalCost);
 
+  const fallback = formatFallback(quote, tokenMetadata);
+
   return {
     inputAmount,
     outputAmount,
@@ -136,5 +146,21 @@ export function formatQuoteData(
     hasOriginGas,
     gasSimulationFailed,
     costCompact,
+    fallback,
+  };
+}
+
+function formatFallback(
+  quote: ExecutableQuote,
+  tokenMetadata: Record<number, Record<string, TokenInfo>>,
+): FormattedFallbackToken | undefined {
+  const token = quote.fallbackToken;
+  if (!token) return undefined;
+
+  const info = tokenMetadata[token.chainId]?.[token.assetAddress];
+  return {
+    chainId: token.chainId,
+    amount: formatAmount(token.amount, info?.decimals),
+    symbol: info?.symbol || UNKNOWN_TOKEN_SYMBOL,
   };
 }

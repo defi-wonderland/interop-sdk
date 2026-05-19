@@ -1,6 +1,8 @@
 import { OrderStatus } from "@openintentsframework/oif-specs";
 import { Address, Hex } from "viem";
 
+import type { OrderExplorers } from "./orderExplorers.js";
+
 export { OrderStatus };
 
 export const OrderFailureReason = {
@@ -156,6 +158,10 @@ export interface OrderTrackingUpdate {
     status: OrderStatus;
     /** Order ID (available after order is parsed, or immediately for escrow orders) */
     orderId?: Hex;
+    /** Origin chain ID */
+    originChainId: number;
+    /** Destination chain ID (known after the order is parsed for the txHash path) */
+    destinationChainId?: number;
     /** Transaction hash where order was opened (undefined for escrow orders) */
     openTxHash?: Hex;
     /** Fill transaction hash (available when completed) */
@@ -168,6 +174,8 @@ export interface OrderTrackingUpdate {
     failureReason?: OrderFailureReason;
     /** Warnings about the fill (e.g. destination swap failed) */
     warnings?: string[];
+    /** Explorer URLs for the order, recomputed per update as new tx hashes appear. */
+    explorers?: OrderExplorers;
 }
 
 /**

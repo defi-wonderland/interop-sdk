@@ -2,14 +2,13 @@ import { useChainConfig } from '../../hooks/useNetworkConfig';
 import { CheckIcon, ExternalLinkIcon, WarningIcon } from '../icons';
 import type { SuccessViewProps } from './types';
 
-export function SuccessView({ state, onReset }: SuccessViewProps) {
+export function SuccessView({ state, providerId, onReset }: SuccessViewProps) {
   const chainConfig = useChainConfig();
   const originChain = chainConfig.getChain(state.originChainId);
   const destinationChain = chainConfig.getChain(state.destinationChainId);
   const openTxHash = state.update.openTxHash ?? state.txHash;
-  const originTxUrl = chainConfig.getExplorerTxUrl(state.originChainId, openTxHash);
   const fillTxHash = state.update.fillTxHash;
-  const fillTxUrl = chainConfig.getExplorerTxUrl(state.destinationChainId, fillTxHash);
+  const { tracker: trackerUrl, origin: originTxUrl, destination: fillTxUrl } = state.update.explorers ?? {};
   const warnings = state.update.warnings;
   const hasWarnings = warnings && warnings.length > 0;
 
@@ -57,7 +56,31 @@ export function SuccessView({ state, onReset }: SuccessViewProps) {
         </div>
       )}
 
-      {/* Transaction links */}
+      {/* Bridge tracker (covers both legs) */}
+      {trackerUrl && (
+        <div className='space-y-2 mb-4'>
+          <a
+            href={trackerUrl}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='block p-3 rounded-lg bg-surface border border-border hover:border-accent/50 transition-colors group'
+          >
+            <div className='flex items-center justify-between mb-1'>
+              <div className='flex items-center gap-2'>
+                <div className='w-2 h-2 rounded-full bg-accent' />
+                <span className='text-sm font-medium text-text-primary'>Bridge tracker</span>
+              </div>
+              <span className='text-xs text-text-tertiary'>{providerId || 'Provider'}</span>
+            </div>
+            <div className='flex items-center justify-between text-text-tertiary group-hover:text-accent'>
+              <span className='text-sm'>View on protocol explorer</span>
+              <ExternalLinkIcon />
+            </div>
+          </a>
+        </div>
+      )}
+
+      {/* Per-leg chain explorer links */}
       <div className='space-y-2 mb-4'>
         {openTxHash && originTxUrl && (
           <a
