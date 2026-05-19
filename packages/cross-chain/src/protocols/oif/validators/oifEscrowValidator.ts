@@ -6,6 +6,7 @@ interface EscrowMessage {
     permitted?: Array<{ token?: string; amount?: string }>;
     spender?: string;
     deadline?: number;
+    witness?: { user?: string };
 }
 
 export async function validateEscrowOrder(
@@ -29,15 +30,20 @@ export async function validateEscrowOrder(
     if (!permitted.amount) return false;
     if (!message.spender) return false;
     if (message.deadline === undefined) return false;
+    if (!message.witness?.user) return false;
 
     try {
         const trusted = {
             token: viemGetAddress(await getAddress(input.asset)),
+            user: viemGetAddress(await getAddress(input.user)),
             amount: input.amount !== undefined ? BigInt(input.amount) : undefined,
         };
 
         const orderToken = viemGetAddress(permitted.token);
         if (!isAddressEqual(orderToken, trusted.token)) return false;
+
+        const witnessUser = viemGetAddress(message.witness.user);
+        if (!isAddressEqual(witnessUser, trusted.user)) return false;
 
         viemGetAddress(message.spender);
 

@@ -69,6 +69,8 @@ export interface EscrowOverrides {
     token?: string;
     /** Override amount in message.permitted */
     amount?: string;
+    /** Override user in message.witness (20-byte address) */
+    user?: string;
 }
 
 export function getMockedOifQuoteResponse(overrides?: EscrowOverrides): GetQuoteResponse {
@@ -96,6 +98,12 @@ export function getMockedOifQuoteResponse(overrides?: EscrowOverrides): GetQuote
                             spender: OIF_ADDRESSES.SPENDER,
                             nonce: "123",
                             deadline: getTimestamps().DEADLINE,
+                            witness: {
+                                user: overrides?.user ?? OIF_ADDRESSES.USER,
+                                expires: getTimestamps().DEADLINE,
+                                inputOracle: OIF_ADDRESSES.SPENDER,
+                                outputs: [],
+                            },
                         },
                         types: {
                             PermitBatchWitnessTransferFrom: [
