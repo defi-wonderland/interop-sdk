@@ -73,13 +73,21 @@ function toSample(request: RelayRequest): HistorySample | null {
   if (feeUsd === null) return null;
   const inTs = request.data.inTxs?.[0]?.timestamp;
   const outTs = request.data.outTxs?.[0]?.timestamp;
+  const timestamp = resolveTimestamp(inTs, request.createdAt);
+  if (timestamp === null) return null;
   return {
     providerId: RELAY_PROVIDER_ID,
-    timestamp: typeof inTs === 'number' ? inTs * 1000 : Date.now(),
+    timestamp,
     amountUsd,
     feeUsd,
     fillTimeSeconds: typeof inTs === 'number' && typeof outTs === 'number' ? Math.max(outTs - inTs, 0) : null,
   };
+}
+
+function resolveTimestamp(inTs: number | undefined, createdAt: string): number | null {
+  if (typeof inTs === 'number') return inTs * 1000;
+  const parsed = Date.parse(createdAt);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function sumFees(fees: RelayFeesUsd | undefined): number | null {

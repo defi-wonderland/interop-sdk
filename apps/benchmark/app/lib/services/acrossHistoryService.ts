@@ -1,9 +1,9 @@
+import { formatUnits, type Address } from 'viem';
 import { FetchHttpClient } from '../http';
 import { AcrossDepositsResponseSchema, type AcrossDeposit, type AcrossDepositsResponse } from '../schemas/across';
 import type { HistoryService } from '../interfaces/historyService.interface';
 import type { HistoryQuery, HistoryResult, HistorySample } from '../types/historyMetrics';
 import type { HttpClient } from '@wonderland/interop-cross-chain';
-import type { Address } from 'viem';
 
 const ACROSS_BASE_URL = 'https://app.across.to/api';
 const ACROSS_DEPOSITS_PATH = 'deposits';
@@ -50,16 +50,18 @@ function toSample(deposit: AcrossDeposit, tokenDecimals: Record<string, number>)
   if (deposit.status !== 'filled') return null;
   const decimals = lookupDecimals(tokenDecimals, deposit.originChainId, deposit.inputToken);
   if (decimals === undefined) return null;
+  const timestamp = Date.parse(deposit.depositBlockTimestamp);
+  if (!Number.isFinite(timestamp)) return null;
   const amountUsd = computeAmountUsd(deposit, decimals);
   if (amountUsd === null) return null;
   const feeUsd = sumFees(deposit);
   if (feeUsd === null) return null;
   return {
     providerId: ACROSS_PROVIDER_ID,
-    timestamp: Date.parse(deposit.depositBlockTimestamp),
+    timestamp,
     amountUsd,
     feeUsd,
-    fillTimeSeconds: computeFillTimeSeconds(deposit),
+    fillTimeSeconds: computeFillTimeSeconds(deposit, timestamp),
   };
 }
 
@@ -77,10 +79,20 @@ function tokenKey(chainId: number, tokenAddress: Address): string {
 
 function computeAmountUsd(deposit: AcrossDeposit, decimals: number): number | null {
   if (deposit.inputPriceUsd === null) return null;
-  const amount = Number(deposit.inputAmount) / 10 ** decimals;
   const price = Number(deposit.inputPriceUsd);
-  if (!Number.isFinite(amount) || !Number.isFinite(price)) return null;
+  if (!Number.isFinite(price)) return null;
+  const amount = parseBaseUnits(deposit.inputAmount, decimals);
+  if (amount === null) return null;
   return amount * price;
+}
+
+function parseBaseUnits(raw: string, decimals: number): number | null {
+  try {
+    const amount = Number(formatUnits(BigInt(raw), decimals));
+    return Number.isFinite(amount) ? amount : null;
+  } catch {
+    return null;
+  }
 }
 
 function sumFees(deposit: AcrossDeposit): number | null {
@@ -89,11 +101,10 @@ function sumFees(deposit: AcrossDeposit): number | null {
   return Number.isFinite(total) ? total : null;
 }
 
-function computeFillTimeSeconds(deposit: AcrossDeposit): number | null {
+function computeFillTimeSeconds(deposit: AcrossDeposit, depositTs: number): number | null {
   if (deposit.fillBlockTimestamp === null) return null;
-  const depositTs = Date.parse(deposit.depositBlockTimestamp);
   const fillTs = Date.parse(deposit.fillBlockTimestamp);
-  if (!Number.isFinite(depositTs) || !Number.isFinite(fillTs)) return null;
+  if (!Number.isFinite(fillTs)) return null;
   const diff = (fillTs - depositTs) / 1000;
   return diff >= 0 ? diff : null;
 }

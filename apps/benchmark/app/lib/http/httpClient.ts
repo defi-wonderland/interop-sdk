@@ -38,7 +38,9 @@ export class FetchHttpClient implements HttpClient {
   }
 
   request<T = unknown>(path: string, options: HttpRequestOptions = {}): Promise<HttpResponse<T>> {
-    return this.withRetries(() => this.send<T>(path, options));
+    const method = options.method ?? 'GET';
+    const send = (): Promise<HttpResponse<T>> => this.send<T>(path, options);
+    return isIdempotent(method) ? this.withRetries(send) : send();
   }
 
   private async send<T>(path: string, options: HttpRequestOptions): Promise<HttpResponse<T>> {
@@ -142,6 +144,10 @@ function isRetryable(error: unknown): boolean {
   if (error instanceof HttpTimeout || error instanceof HttpNetworkError) return true;
   if (error instanceof HttpError) return error.status === 429 || error.status >= 500;
   return false;
+}
+
+function isIdempotent(method: string): boolean {
+  return method === 'GET' || method === 'HEAD';
 }
 
 function sleep(ms: number): Promise<void> {
