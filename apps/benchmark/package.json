@@ -8,6 +8,7 @@
   "type": "module",
   "scripts": {
     "build": "next build",
+    "check-types": "tsc --noEmit -p ./tsconfig.json",
     "dev": "next dev --turbopack",
     "format": "prettier app --write",
     "format:check": "prettier app --check",
@@ -23,11 +24,13 @@
     "@wonderland/interop-addresses": "workspace:*",
     "@wonderland/interop-cross-chain": "workspace:*",
     "clsx": "2.1.1",
+    "framer-motion": "12.39.0",
     "next": "16.1.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "tailwind-merge": "3.3.1",
-    "viem": "2.37.0"
+    "viem": "2.37.0",
+    "zustand": "5.0.3"
   },
   "devDependencies": {
     "@eslint/compat": "2.0.0",
