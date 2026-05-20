@@ -4,6 +4,7 @@ import type { HttpClient } from "../../../src/core/interfaces/httpClient.interfa
 import type { Quote } from "../../../src/core/schemas/quote.js";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
 import type { RelayQuoteResponse } from "../../../src/protocols/relay/schemas.js";
+import { CANONICAL_PERMIT2_ADDRESS } from "../../../src/core/constants/permit2.js";
 import { HttpError } from "../../../src/core/errors/HttpError.exception.js";
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
@@ -129,6 +130,49 @@ function makeRelayQuoteResponse(overrides?: Partial<RelayQuoteResponse>): RelayQ
 
 function makeHttpError(data: unknown, status: number, message: string): HttpError {
     return new HttpError(message, "https://test/url", status, data);
+}
+
+function makeSignatureStepResponse(args: {
+    primaryType: string;
+    verifyingContract: string;
+    permitted?: Array<{ token: string; amount: string }>;
+}): Record<string, unknown> {
+    const message: Record<string, unknown> = {
+        spender: VALID_ADDRESS,
+        nonce: "1",
+        deadline: "1779129331",
+    };
+    if (args.permitted) message["permitted"] = args.permitted;
+    return {
+        id: "authorize",
+        action: "Sign permit",
+        description: STEP_DESCRIPTION,
+        kind: "signature",
+        requestId: REQUEST_ID,
+        items: [
+            {
+                status: "incomplete",
+                data: {
+                    sign: {
+                        signatureKind: "eip712",
+                        primaryType: args.primaryType,
+                        domain: {
+                            name: "Permit2",
+                            chainId: ORIGIN_CHAIN_ID,
+                            verifyingContract: args.verifyingContract,
+                        },
+                        types: { [args.primaryType]: [{ name: "spender", type: "address" }] },
+                        value: message,
+                    },
+                    post: {
+                        endpoint: "/execute/permits",
+                        method: "POST",
+                        body: { kind: "permit", requestId: REQUEST_ID },
+                    },
+                },
+            },
+        ],
+    };
 }
 
 // ── Tests ────────────────────────────────────────────────
@@ -268,6 +312,81 @@ describe("RelayProvider", () => {
             const quotes = await singleModeProvider.getQuotes(makeQuoteRequest());
             expect(quotes).toHaveLength(1);
             expect(mockPost).toHaveBeenCalledTimes(1);
+        });
+
+        it("returns a quote when the response signature step is a canonical Permit2 payload", async () => {
+            mockPost.mockResolvedValue({
+                status: 200,
+                data: makeRelayQuoteResponse({
+                    steps: [
+                        makeSignatureStepResponse({
+                            primaryType: "PermitBatchWitnessTransferFrom",
+                            verifyingContract: CANONICAL_PERMIT2_ADDRESS,
+                            permitted: [{ token: VALID_ADDRESS, amount: INPUT_AMOUNT }],
+                        }),
+                    ],
+                }),
+                headers: new Headers(),
+            });
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toHaveLength(1);
+            expect(quotes[0]!.order.steps[0]!.kind).toBe("signature");
+        });
+
+        it("rejects a Permit2 signature step whose verifyingContract is tampered", async () => {
+            mockPost.mockResolvedValue({
+                status: 200,
+                data: makeRelayQuoteResponse({
+                    steps: [
+                        makeSignatureStepResponse({
+                            primaryType: "PermitBatchWitnessTransferFrom",
+                            verifyingContract: "0x000000000000000000000000000000000000bEEF",
+                            permitted: [{ token: VALID_ADDRESS, amount: INPUT_AMOUNT }],
+                        }),
+                    ],
+                }),
+                headers: new Headers(),
+            });
+            await expect(provider.getQuotes(makeQuoteRequest())).rejects.toThrow(
+                ProviderGetQuoteFailure,
+            );
+        });
+
+        it("rejects an EIP-712 step that targets the canonical Permit2 with a non-Permit2 primaryType", async () => {
+            mockPost.mockResolvedValue({
+                status: 200,
+                data: makeRelayQuoteResponse({
+                    steps: [
+                        makeSignatureStepResponse({
+                            primaryType: "ReceiveWithAuthorization",
+                            verifyingContract: CANONICAL_PERMIT2_ADDRESS,
+                            permitted: [{ token: VALID_ADDRESS, amount: INPUT_AMOUNT }],
+                        }),
+                    ],
+                }),
+                headers: new Headers(),
+            });
+            await expect(provider.getQuotes(makeQuoteRequest())).rejects.toThrow(
+                ProviderGetQuoteFailure,
+            );
+        });
+
+        it("accepts an EIP-3009 ReceiveWithAuthorization signed against the token contract", async () => {
+            mockPost.mockResolvedValue({
+                status: 200,
+                data: makeRelayQuoteResponse({
+                    steps: [
+                        makeSignatureStepResponse({
+                            primaryType: "ReceiveWithAuthorization",
+                            verifyingContract: VALID_ADDRESS,
+                            permitted: undefined,
+                        }),
+                    ],
+                }),
+                headers: new Headers(),
+            });
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toHaveLength(1);
         });
 
         it("returns successful quotes when one mode fails", async () => {

@@ -6,6 +6,7 @@ import type {
     BungeeAutoRoute,
     BungeeQuoteResponse,
 } from "../../../src/protocols/bungee/schemas.js";
+import { CANONICAL_PERMIT2_ADDRESS } from "../../../src/core/constants/permit2.js";
 import { HttpError } from "../../../src/core/errors/HttpError.exception.js";
 import { ProviderConfigFailure } from "../../../src/core/errors/ProviderConfigFailure.exception.js";
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
@@ -16,6 +17,7 @@ import { BungeeProvider } from "../../../src/protocols/bungee/provider.js";
 // ── Constants ────────────────────────────────────────────
 
 const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
+const BUNGEE_GATEWAY = "0xe772551f88e2c14aecc880df6b7cbd574561bf82";
 const ORIGIN_CHAIN_ID = 1;
 const DESTINATION_CHAIN_ID = 10;
 const INPUT_AMOUNT = "1000000";
@@ -63,9 +65,26 @@ function makeAutoRoute(overrides: Record<string, unknown> = {}): BungeeAutoRoute
         },
         requestType: "SINGLE_OUTPUT_REQUEST",
         signTypedData: {
-            domain: { name: "Permit2" },
-            types: {},
-            values: { witness: { field: "value" } },
+            domain: {
+                name: "Permit2",
+                chainId: ORIGIN_CHAIN_ID,
+                verifyingContract: CANONICAL_PERMIT2_ADDRESS,
+            },
+            types: {
+                PermitWitnessTransferFrom: [
+                    { name: "permitted", type: "TokenPermissions" },
+                    { name: "spender", type: "address" },
+                    { name: "nonce", type: "uint256" },
+                    { name: "deadline", type: "uint256" },
+                ],
+            },
+            values: {
+                permitted: { token: VALID_ADDRESS, amount: INPUT_AMOUNT },
+                spender: BUNGEE_GATEWAY,
+                nonce: "1",
+                deadline: "1779129331",
+                witness: { basicReq: { bungeeGateway: BUNGEE_GATEWAY } },
+            },
         },
         gasFee: {
             gasToken: {
@@ -365,6 +384,167 @@ describe("BungeeProvider", () => {
         });
     });
 
+    describe("Permit2 validation (audit V12 #6)", () => {
+        function respondWithAutoRoute(
+            autoRouteOverrides: Record<string, unknown>,
+            originChainOverride: number = ORIGIN_CHAIN_ID,
+        ): void {
+            mockGet.mockResolvedValue({
+                status: 200,
+                data: makeBungeeQuoteResponse({
+                    result: {
+                        originChainId: originChainOverride,
+                        destinationChainId: DESTINATION_CHAIN_ID,
+                        userAddress: VALID_ADDRESS,
+                        receiverAddress: VALID_ADDRESS,
+                        input: {
+                            token: {
+                                chainId: originChainOverride,
+                                address: VALID_ADDRESS,
+                                name: "USDC",
+                                symbol: "USDC",
+                                decimals: 6,
+                            },
+                            amount: INPUT_AMOUNT,
+                            priceInUsd: 1,
+                            valueInUsd: 1,
+                        },
+                        autoRoute: makeAutoRoute(autoRouteOverrides),
+                        manualRoutes: [],
+                    },
+                }),
+                headers: new Headers(),
+            });
+        }
+
+        it("rejects an autoRoute whose signTypedData.domain.verifyingContract is tampered", async () => {
+            respondWithAutoRoute({
+                signTypedData: {
+                    domain: {
+                        name: "Permit2",
+                        chainId: ORIGIN_CHAIN_ID,
+                        verifyingContract: "0x000000000000000000000000000000000000bEEF",
+                    },
+                    types: makeAutoRoute().signTypedData!.types,
+                    values: makeAutoRoute().signTypedData!.values,
+                },
+            });
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toEqual([]);
+        });
+
+        it("rejects an autoRoute whose message.spender does not match the canonical Bungee gateway for the chain", async () => {
+            const base = makeAutoRoute().signTypedData!;
+            respondWithAutoRoute({
+                signTypedData: {
+                    domain: base.domain,
+                    types: base.types,
+                    values: {
+                        ...base.values,
+                        spender: "0x000000000000000000000000000000000000bEEF",
+                    },
+                },
+            });
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toEqual([]);
+        });
+
+        it("rejects a quote on a chain with no registered canonical Bungee gateway", async () => {
+            const unsupportedChain = 137; // Polygon — not in BUNGEE_GATEWAY_BY_CHAIN today
+            const base = makeAutoRoute().signTypedData!;
+            respondWithAutoRoute(
+                {
+                    signTypedData: {
+                        domain: { ...base.domain, chainId: unsupportedChain },
+                        types: base.types,
+                        values: base.values,
+                    },
+                },
+                unsupportedChain,
+            );
+            const quotes = await provider.getQuotes(
+                makeQuoteRequest({
+                    input: {
+                        chainId: unsupportedChain,
+                        assetAddress: VALID_ADDRESS,
+                        amount: INPUT_AMOUNT,
+                    },
+                }),
+            );
+            expect(quotes).toEqual([]);
+        });
+
+        it("rejects an autoRoute whose permitted entries are empty (Permit2 type with no token list)", async () => {
+            const base = makeAutoRoute().signTypedData!;
+            respondWithAutoRoute({
+                signTypedData: {
+                    domain: base.domain,
+                    types: base.types,
+                    values: { ...base.values, permitted: [] },
+                },
+            });
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toEqual([]);
+        });
+
+        it("rejects an autoRoute that smuggles a permitted token outside the requested input", async () => {
+            const base = makeAutoRoute().signTypedData!;
+            respondWithAutoRoute({
+                signTypedData: {
+                    domain: base.domain,
+                    types: base.types,
+                    values: {
+                        ...base.values,
+                        permitted: {
+                            token: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+                            amount: INPUT_AMOUNT,
+                        },
+                    },
+                },
+            });
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toEqual([]);
+        });
+
+        it("rejects an autoRoute whose permitted amount exceeds the requested input", async () => {
+            const base = makeAutoRoute().signTypedData!;
+            respondWithAutoRoute({
+                signTypedData: {
+                    domain: base.domain,
+                    types: base.types,
+                    values: {
+                        ...base.values,
+                        permitted: { token: VALID_ADDRESS, amount: "99999999999" },
+                    },
+                },
+            });
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toEqual([]);
+        });
+
+        it("accepts a canonical Bungee permit2 autoRoute", async () => {
+            respondWithAutoRoute({});
+            const quotes = await provider.getQuotes(makeQuoteRequest());
+            expect(quotes).toHaveLength(1);
+            expect(quotes[0]!.order.steps).toHaveLength(1);
+        });
+
+        it("rejects an autoRoute whose response originChainId differs from request.input.chainId, even if the response chain is supported", async () => {
+            const tamperedOriginChain = 10; // Optimism — supported by BUNGEE_GATEWAY_BY_CHAIN
+            respondWithAutoRoute({}, tamperedOriginChain);
+            const quotes = await provider.getQuotes(
+                makeQuoteRequest({
+                    input: {
+                        chainId: ORIGIN_CHAIN_ID,
+                        assetAddress: VALID_ADDRESS,
+                        amount: INPUT_AMOUNT,
+                    },
+                }),
+            );
+            expect(quotes).toEqual([]);
+        });
+    });
+
     describe("submitOrder()", () => {
         it("extracts witness from bungeeAutoRoute metadata and submits order", async () => {
             const quoteResponse = makeBungeeQuoteResponse();
@@ -388,7 +568,7 @@ describe("BungeeProvider", () => {
             expect(mockPost).toHaveBeenCalledWith(
                 "/api/v1/bungee/submit",
                 expect.objectContaining({
-                    request: { field: "value" },
+                    request: { basicReq: { bungeeGateway: BUNGEE_GATEWAY } },
                     userSignature: "0xsignature",
                     requestType: "SINGLE_OUTPUT_REQUEST",
                     quoteId: "quote-123",
@@ -407,9 +587,29 @@ describe("BungeeProvider", () => {
                         amount: "1500000",
                     },
                     signTypedData: {
-                        domain: { name: "Permit2" },
-                        types: {},
-                        values: { witness: { betterField: "betterValue" } },
+                        domain: {
+                            name: "Permit2",
+                            chainId: ORIGIN_CHAIN_ID,
+                            verifyingContract: CANONICAL_PERMIT2_ADDRESS,
+                        },
+                        types: {
+                            PermitWitnessTransferFrom: [
+                                { name: "permitted", type: "TokenPermissions" },
+                                { name: "spender", type: "address" },
+                                { name: "nonce", type: "uint256" },
+                                { name: "deadline", type: "uint256" },
+                            ],
+                        },
+                        values: {
+                            permitted: { token: VALID_ADDRESS, amount: INPUT_AMOUNT },
+                            spender: BUNGEE_GATEWAY,
+                            nonce: "2",
+                            deadline: "1779129331",
+                            witness: {
+                                basicReq: { bungeeGateway: BUNGEE_GATEWAY },
+                                betterField: "betterValue",
+                            },
+                        },
                     },
                 }),
             ];
@@ -438,7 +638,10 @@ describe("BungeeProvider", () => {
             expect(mockPost).toHaveBeenCalledWith(
                 "/api/v1/bungee/submit",
                 expect.objectContaining({
-                    request: { betterField: "betterValue" },
+                    request: {
+                        basicReq: { bungeeGateway: BUNGEE_GATEWAY },
+                        betterField: "betterValue",
+                    },
                     quoteId: "route-better",
                 }),
             );

@@ -12,67 +12,47 @@ import type { Address } from "viem";
 import { getAddress } from "viem";
 
 import type { AllowanceCheck } from "../../../core/interfaces/approval.interface.js";
-
-/** Permit2 is deployed at the same address on every EVM chain. */
-const PERMIT2_ADDRESS = getAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3");
+import type { Permit2TokenPermission } from "../../../core/utils/permit2.js";
+import {
+    CANONICAL_PERMIT2_ADDRESS,
+    PERMIT2_PRIMARY_TYPES,
+} from "../../../core/constants/permit2.js";
+import { readPermittedEntries } from "../../../core/utils/permit2.js";
 
 const LOG_PREFIX = "[permit2AllowanceExtractor]";
 
-const SINGLE_PERMIT_TYPES: ReadonlySet<string> = new Set([
-    "PermitTransferFrom",
-    "PermitWitnessTransferFrom",
-]);
-
-const BATCH_PERMIT_TYPES: ReadonlySet<string> = new Set([
-    "PermitBatchTransferFrom",
-    "PermitBatchWitnessTransferFrom",
-]);
-
 type EscrowPayload = OifEscrowOrder["payload"];
-
-interface TokenPermission {
-    token: string;
-    amount: string;
-}
 
 /** Extracts the ERC-20 allowances from a validated Permit2 escrow payload. */
 export function extractPermit2Allowances(
     payload: EscrowPayload,
     signer: Address,
 ): AllowanceCheck[] {
-    const permitted = readPermittedEntries(payload);
+    if (!PERMIT2_PRIMARY_TYPES.has(payload.primaryType)) {
+        console.warn(`${LOG_PREFIX} Unknown primaryType: ${payload.primaryType}`);
+        return [];
+    }
+
+    const permitted = readPermittedEntries(
+        payload.primaryType,
+        (payload.message as { permitted: unknown }).permitted,
+    );
     if (permitted.length === 0) return [];
 
     const chainId = Number((payload.domain as { chainId: number | string }).chainId);
     const owner = getAddress(signer);
-    const totalsByToken = sumAmountsByToken(permitted);
 
-    return Array.from(totalsByToken, ([tokenAddress, required]) => ({
+    return Array.from(sumAmountsByToken(permitted), ([tokenAddress, required]) => ({
         chainId,
         tokenAddress,
         owner,
-        spender: PERMIT2_ADDRESS,
+        spender: CANONICAL_PERMIT2_ADDRESS,
         required: required.toString(),
         preferInfinite: true,
     }));
 }
 
-// ── helpers ─────────────────────────────────────────────
-
-function readPermittedEntries(payload: EscrowPayload): TokenPermission[] {
-    const { primaryType } = payload;
-    const { permitted } = payload.message as {
-        permitted: TokenPermission | TokenPermission[];
-    };
-
-    if (SINGLE_PERMIT_TYPES.has(primaryType)) return [permitted as TokenPermission];
-    if (BATCH_PERMIT_TYPES.has(primaryType)) return permitted as TokenPermission[];
-
-    console.warn(`${LOG_PREFIX} Unknown primaryType: ${primaryType}`);
-    return [];
-}
-
-function sumAmountsByToken(permitted: TokenPermission[]): Map<Address, bigint> {
+function sumAmountsByToken(permitted: readonly Permit2TokenPermission[]): Map<Address, bigint> {
     const totals = new Map<Address, bigint>();
     for (const { token, amount } of permitted) {
         const checksummed = getAddress(token);

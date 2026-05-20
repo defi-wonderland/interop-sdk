@@ -18,6 +18,8 @@ import type { BungeeConfigs } from "./types.js";
 import {
     CrossChainProvider,
     FetchHttpClient,
+    permit2SignatureValidator,
+    Permit2ValidationFailure,
     ProviderConfigFailure,
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,
@@ -31,11 +33,13 @@ import {
     extractOpenedIntent,
     parseBungeeTokenListResponse,
 } from "./adapters/index.js";
-import { BUNGEE_API_URLS, BUNGEE_EXPLORER_BASE_URL } from "./constants.js";
+import { BUNGEE_API_URLS, BUNGEE_EXPLORER_BASE_URL, BUNGEE_GATEWAY_BY_CHAIN } from "./constants.js";
 import { BungeeApiService } from "./services/index.js";
 import { BungeeApiTier, BungeeConfigSchema } from "./types.js";
 
 const DEFAULT_SUBMISSION_MODES: SubmissionMode[] = ["user-transaction"];
+
+const PERMIT2_LOG_PREFIX = "[BungeeProvider]";
 
 /**
  * A {@link CrossChainProvider} implementation for the Bungee protocol.
@@ -220,7 +224,8 @@ export class BungeeProvider extends CrossChainProvider {
             const options: BungeeQuoteOptions = { ...this.quoteOptions, submissionMode: mode };
             const bungeeParams = adaptQuoteRequest(params, options);
             const response = await this.apiService.getQuote(bungeeParams);
-            return adaptQuotes(response, this.providerId);
+            const quotes = adaptQuotes(response, this.providerId);
+            return quotes.filter((quote) => this.isQuoteSignaturePayloadSafe(quote, params));
         } catch (error) {
             if (error instanceof ProviderGetQuoteFailure) {
                 throw error;
@@ -231,5 +236,42 @@ export class BungeeProvider extends CrossChainProvider {
                 error instanceof Error ? error.stack : undefined,
             );
         }
+    }
+
+    /** True if every signature step in the quote is safe per Permit2 rules (V12 #6). */
+    private isQuoteSignaturePayloadSafe(quote: Quote, request: QuoteRequest): boolean {
+        const requestedChainId = request.input.chainId;
+        const canonicalGateway = BUNGEE_GATEWAY_BY_CHAIN[requestedChainId];
+        if (!canonicalGateway) {
+            console.warn(
+                `${PERMIT2_LOG_PREFIX} No canonical Bungee gateway registered for chain ${requestedChainId}; rejecting quote`,
+            );
+            return false;
+        }
+        for (const step of quote.order.steps) {
+            if (step.kind !== "signature") continue;
+            if (step.chainId !== requestedChainId) {
+                console.warn(
+                    `${PERMIT2_LOG_PREFIX} step.chainId ${step.chainId} does not match request.input.chainId ${requestedChainId}; rejecting quote`,
+                );
+                return false;
+            }
+            try {
+                permit2SignatureValidator.validate(step, {
+                    providerId: this.providerId,
+                    request,
+                    expectedSpenders: [canonicalGateway],
+                });
+            } catch (err) {
+                if (err instanceof Permit2ValidationFailure) {
+                    console.warn(
+                        `${PERMIT2_LOG_PREFIX} Rejecting quote (${err.reason}): ${err.message}`,
+                    );
+                    return false;
+                }
+                throw err;
+            }
+        }
+        return true;
     }
 }

@@ -16,6 +16,8 @@ import type { RelayConfigs } from "./types.js";
 import {
     CrossChainProvider,
     FetchHttpClient,
+    permit2SignatureValidator,
+    Permit2ValidationFailure,
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
 } from "../../internal.js";
@@ -31,6 +33,8 @@ import {
 import { getRelayApiUrl, RELAY_TESTNET_TOKENS } from "./constants.js";
 import { RelayApiService } from "./services/index.js";
 import { RelayConfigSchema } from "./types.js";
+
+const PERMIT2_LOG_PREFIX = "[RelayProvider]";
 
 /**
  * A {@link CrossChainProvider} implementation for the Relay protocol.
@@ -186,7 +190,13 @@ export class RelayProvider extends CrossChainProvider {
     ): Promise<Quote> {
         const relayParams = adaptQuoteRequest(params, { submissionMode: mode });
         const response = await this.apiService.getQuote(relayParams);
-        return adaptQuote(params, response, this.providerId);
+        const quote = adaptQuote(params, response, this.providerId);
+        if (!this.isQuoteSignaturePayloadSafe(quote, params)) {
+            throw new ProviderGetQuoteFailure(
+                `Rejected Relay ${mode} quote: failed Permit2 validation`,
+            );
+        }
+        return quote;
     }
 
     /** Collect successful quotes. Re-throws the first error if all modes failed. */
@@ -207,5 +217,27 @@ export class RelayProvider extends CrossChainProvider {
             undefined,
             reason instanceof Error ? reason.stack : undefined,
         );
+    }
+
+    /** True if every signature step in the quote is safe per Permit2 rules (V12 #6). */
+    private isQuoteSignaturePayloadSafe(quote: Quote, request: QuoteRequest): boolean {
+        for (const step of quote.order.steps) {
+            if (step.kind !== "signature") continue;
+            try {
+                permit2SignatureValidator.validate(step, {
+                    providerId: this.providerId,
+                    request,
+                });
+            } catch (err) {
+                if (err instanceof Permit2ValidationFailure) {
+                    console.warn(
+                        `${PERMIT2_LOG_PREFIX} Rejecting quote (${err.reason}): ${err.message}`,
+                    );
+                    return false;
+                }
+                throw err;
+            }
+        }
+        return true;
     }
 }

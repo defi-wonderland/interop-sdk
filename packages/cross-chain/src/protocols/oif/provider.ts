@@ -33,6 +33,8 @@ import {
     OpenedIntentParserConfig,
     OrderFailureReason,
     OrderStatus,
+    permit2SignatureValidator,
+    Permit2ValidationFailure,
     ProviderConfigFailure,
     ProviderExecuteFailure,
     ProviderExecuteNotImplemented,
@@ -52,6 +54,8 @@ import {
     OUTPUT_FILLED_EVENT_ABI,
     STANDARD_ORDER_OPEN_ABI,
 } from "./constants.js";
+
+const PERMIT2_LOG_PREFIX = "[OifProvider]";
 
 /**
  * OIF Provider implementation
@@ -147,15 +151,19 @@ export class OifProvider extends CrossChainProvider {
                 };
             });
 
-            // 3. Convert to SDK quotes, stashing originals in metadata
-            return providerQuotes.map((pq) => {
+            // 3. Convert to SDK quotes, stashing originals in metadata, dropping any that fail Permit2 validation
+            const sdkQuotes: Quote[] = [];
+            for (const pq of providerQuotes) {
                 const sdkQuote = adaptQuote(pq);
                 sdkQuote.metadata = {
                     ...sdkQuote.metadata,
                     _oifProviderQuote: pq,
                 };
-                return sdkQuote;
-            });
+                if (this.isQuoteSignaturePayloadSafe(sdkQuote, params)) {
+                    sdkQuotes.push(sdkQuote);
+                }
+            }
+            return sdkQuotes;
         } catch (error) {
             if (error instanceof HttpError) {
                 const errorData = error.data as { message?: string } | undefined;
@@ -480,5 +488,29 @@ export class OifProvider extends CrossChainProvider {
                 headers: this.headers,
             },
         };
+    }
+
+    /** True if every signature step in the quote is safe per Permit2 rules (V12 #6). */
+    private isQuoteSignaturePayloadSafe(quote: Quote, request: QuoteRequest): boolean {
+        for (const step of quote.order.steps) {
+            if (step.kind !== "signature") continue;
+            const expected = OIF_INPUT_SETTLER_ESCROW_BY_CHAIN[step.chainId];
+            try {
+                permit2SignatureValidator.validate(step, {
+                    providerId: this.providerId,
+                    request,
+                    expectedSpenders: expected ? [expected] : undefined,
+                });
+            } catch (err) {
+                if (err instanceof Permit2ValidationFailure) {
+                    console.warn(
+                        `${PERMIT2_LOG_PREFIX} Rejecting quote (${err.reason}): ${err.message}`,
+                    );
+                    return false;
+                }
+                throw err;
+            }
+        }
+        return true;
     }
 }
