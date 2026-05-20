@@ -1,5 +1,6 @@
 import { Footer } from './components/Footer';
 import { Label } from './components/Label';
+import { RaceTable } from './components/RaceTable';
 import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
@@ -34,7 +35,7 @@ export default function Home() {
               </Label>
             }
           />
-          <SectionPlaceholder label='race table arrives in pr 2' />
+          <RaceTable />
         </SectionFrame>
 
         <SectionFrame variant='tinted'>

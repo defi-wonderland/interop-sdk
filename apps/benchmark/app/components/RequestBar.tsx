@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Arrow } from './Arrow';
 import { Divider } from './Divider';
 import { Dropdown, type DropdownOption } from './Dropdown';
@@ -8,18 +8,13 @@ import { Label } from './Label';
 import { ASSET_SYMBOLS, ASSETS, AssetSymbol } from '~/lib/assets';
 import { CHAIN_IDS, CHAINS, ChainId } from '~/lib/chains';
 import { cn } from '~/lib/cn';
-
-const INITIAL_FROM = ChainId.Base;
-const INITIAL_TO = ChainId.Arbitrum;
-const INITIAL_ASSET = AssetSymbol.USDC;
-const INITIAL_AMOUNT = '1,000.00';
+import { useRequestBarStore } from '~/lib/requestBarStore';
 
 const PRESETS = [
   { label: '$100', amount: '100.00' },
   { label: '$1k', amount: '1,000.00' },
   { label: '$10k', amount: '10,000.00' },
 ];
-const INITIAL_PRESET = '$1k';
 
 function toChainOptions(exclude?: ChainId): DropdownOption<ChainId>[] {
   return CHAIN_IDS.filter((id) => id !== exclude).map((id) => ({
@@ -38,16 +33,22 @@ function toAssetOptions(): DropdownOption<AssetSymbol>[] {
 }
 
 export function RequestBar() {
-  const [fromChainId, setFromChainId] = useState<ChainId>(INITIAL_FROM);
-  const [toChainId, setToChainId] = useState<ChainId>(INITIAL_TO);
-  const [assetSymbol, setAssetSymbol] = useState<AssetSymbol>(INITIAL_ASSET);
-  const [amount, setAmount] = useState(INITIAL_AMOUNT);
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(INITIAL_PRESET);
+  const fromChainId = useRequestBarStore((state) => state.fromChainId);
+  const toChainId = useRequestBarStore((state) => state.toChainId);
+  const assetSymbol = useRequestBarStore((state) => state.assetSymbol);
+  const amount = useRequestBarStore((state) => state.amount);
+  const selectedPreset = useRequestBarStore((state) => state.selectedPreset);
+  const setFromChainId = useRequestBarStore((state) => state.setFromChainId);
+  const setToChainId = useRequestBarStore((state) => state.setToChainId);
+  const setAssetSymbol = useRequestBarStore((state) => state.setAssetSymbol);
+  const setAmount = useRequestBarStore((state) => state.setAmount);
+  const swapChains = useRequestBarStore((state) => state.swapChains);
+  const bumpRunId = useRequestBarStore((state) => state.bumpRunId);
   const [arrowSpins, setArrowSpins] = useState(0);
+  const amountInitialized = useRef(false);
 
   const handleSwap = () => {
-    setFromChainId(toChainId);
-    setToChainId(fromChainId);
+    swapChains();
     setArrowSpins((count) => count + 1);
   };
 
@@ -56,18 +57,25 @@ export function RequestBar() {
   const assetOptions = useMemo(() => toAssetOptions(), []);
 
   const handleAmountChange = (value: string) => {
-    setAmount(value);
-    setSelectedPreset(null);
+    setAmount(value, null);
   };
 
-  const handlePresetClick = (preset: { label: string; amount: string }) => {
-    setAmount(preset.amount);
-    setSelectedPreset(preset.label);
-  };
+  useEffect(() => {
+    if (!amountInitialized.current) {
+      amountInitialized.current = true;
+      return;
+    }
 
-  // TODO(pr-2): wire to quotesService.runRace.
+    const timer = window.setTimeout(() => {
+      bumpRunId();
+    }, 200);
+
+    return () => window.clearTimeout(timer);
+  }, [amount, bumpRunId]);
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    bumpRunId();
   };
 
   return (
@@ -98,7 +106,7 @@ export function RequestBar() {
                   key={preset.label}
                   label={preset.label}
                   selected={preset.label === selectedPreset}
-                  onClick={() => handlePresetClick(preset)}
+                  onClick={() => setAmount(preset.amount, preset.label)}
                   fillContainer
                 />
               ))}
