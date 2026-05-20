@@ -13,6 +13,8 @@ export interface BungeeQuoteOptions extends FeeConfig {
     submissionMode?: SubmissionMode;
     slippage?: string;
     refuel?: boolean;
+    /** When `true`, ask Bungee to also return manual routes served by other bridge providers. */
+    enableOtherProviders?: boolean;
     enableMultipleRoutes?: boolean;
 }
 
@@ -57,6 +59,7 @@ export function adaptQuoteRequest(
     if (options.submissionMode === "user-transaction") request.useInbox = "true";
     if (options.slippage) request.slippage = options.slippage;
     if (options.refuel) request.refuel = "true";
+    if (options.enableOtherProviders) request.enableManual = "true";
     if (options.enableMultipleRoutes) request.enableMultipleAutoRoutes = "true";
 
     return BungeeQuoteRequestSchema.parse(request);

@@ -3,6 +3,8 @@ import type { Quote, Step } from "../../../internal.js";
 import type {
     BungeeApprovalData,
     BungeeAutoRoute,
+    BungeeBuildTxResult,
+    BungeeManualRoute,
     BungeeQuoteResponse,
     BungeeQuoteResult,
     BungeeTxData,
@@ -26,6 +28,79 @@ export function adaptQuotes(response: BungeeQuoteResponse, providerId: string): 
     return autoRoutes
         .map((autoRoute) => adaptAutoRouteQuote(response, autoRoute, providerId))
         .filter((quote) => quote.order.steps.length > 0);
+}
+
+/**
+ * Adapt a Bungee manual route plus its built transaction into an SDK Quote.
+ *
+ * Manual routes come without an executable txData —
+ * the caller has to fetch `/api/v1/bungee/build-tx?quoteId=…` and combine that
+ * with the route preview/fees. Tracking is intentionally left undefined: manual
+ * routes have no `requestHash`, so the SDK tracks them by the on-chain `txHash`
+ * once the transaction is sent, reusing Bungee's `/status` endpoint.
+ *
+ * @param response - The original Bungee quote response (for input/preview data).
+ * @param manualRoute - The manual route entry from `result.manualRoutes`.
+ * @param buildTx - The build-tx result for this route's `quoteId`.
+ * @param providerId - The provider identifier to stamp on the quote.
+ * @returns An SDK Quote with a TransactionStep, or `null` if the txData is invalid.
+ */
+export function adaptManualRouteQuote(
+    response: BungeeQuoteResponse,
+    manualRoute: BungeeManualRoute,
+    buildTx: BungeeBuildTxResult,
+    providerId: string,
+): Quote | null {
+    const result = response.result;
+    const bridgeName = manualRoute.routeDetails?.name ?? "bridge";
+    const step = buildTransactionStep(buildTx.txData, `Submit transaction via ${bridgeName}`);
+    if (!step) return null;
+
+    const allowances: NonNullable<OrderChecks["allowances"]> = extractAllowances(
+        buildTx.approvalData ?? manualRoute.approvalData,
+        result.originChainId,
+        result.input.amount,
+    );
+
+    const fees = adaptFees(manualRoute);
+
+    return {
+        order: {
+            steps: [step],
+            ...(allowances.length > 0 && { checks: { allowances } }),
+        },
+        preview: {
+            inputs: [
+                {
+                    chainId: result.input.token.chainId,
+                    accountAddress: result.userAddress,
+                    assetAddress: result.input.token.address,
+                    amount: result.input.amount,
+                    amountUsd: String(result.input.valueInUsd),
+                },
+            ],
+            outputs: [
+                {
+                    chainId: manualRoute.output.token.chainId,
+                    accountAddress: result.receiverAddress,
+                    assetAddress: manualRoute.output.token.address,
+                    amount: manualRoute.output.amount,
+                    amountUsd: String(manualRoute.output.valueInUsd),
+                },
+            ],
+        },
+        quoteId: manualRoute.quoteId,
+        eta: manualRoute.estimatedTime,
+        partialFill: false,
+        failureHandling: "refund-automatic",
+        provider: providerId,
+        fees,
+        metadata: {
+            bungeeResponse: response,
+            bungeeManualRoute: manualRoute,
+            bungeeBuildTx: buildTx,
+        },
+    };
 }
 
 /** Collect all auto routes from the response, deduplicating singular + array forms. */
@@ -113,7 +188,7 @@ function buildAutoRouteSteps(autoRoute: BungeeAutoRoute, originChainId: number):
     }
 
     if (autoRoute.userOp === "tx" && autoRoute.txData) {
-        const step = buildTransactionStep(autoRoute.txData);
+        const step = buildTransactionStep(autoRoute.txData, "Submit transaction to Bungee");
         return step ? [step] : [];
     }
 
@@ -138,8 +213,8 @@ function buildSignatureStep(autoRoute: BungeeAutoRoute, originChainId: number): 
     };
 }
 
-/** Build a TransactionStep from Bungee onchain flow. Returns `null` if txData is not valid. */
-function buildTransactionStep(txData: BungeeTxData): Step | null {
+/** Build a TransactionStep from Bungee tx data. Returns `null` if txData is not valid. */
+function buildTransactionStep(txData: BungeeTxData, description: string): Step | null {
     const parsed = BungeeTxDataSchema.safeParse(txData);
     if (!parsed.success) return null;
 
@@ -149,7 +224,7 @@ function buildTransactionStep(txData: BungeeTxData): Step | null {
     return {
         kind: "transaction" as const,
         chainId,
-        description: "Submit transaction to Bungee",
+        description,
         transaction: {
             to,
             data,

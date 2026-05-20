@@ -1,5 +1,7 @@
 import type { HttpClient } from "../../../internal.js";
 import type {
+    BungeeBuildTxRequest,
+    BungeeBuildTxResponse,
     BungeeQuoteRequest,
     BungeeQuoteResponse,
     BungeeStatusRequest,
@@ -14,6 +16,8 @@ import {
     ProviderGetStatusFailure,
 } from "../../../internal.js";
 import {
+    BungeeBuildTxRequestSchema,
+    BungeeBuildTxResponseSchema,
     BungeeQuoteRequestSchema,
     BungeeQuoteResponseSchema,
     BungeeStatusRequestSchema,
@@ -39,6 +43,19 @@ export class BungeeApiService {
             return BungeeQuoteResponseSchema.parse(response.data);
         } catch (error) {
             this.throwProviderError(error, ProviderGetQuoteFailure, "Bungee quote");
+        }
+    }
+
+    /** GET /api/v1/bungee/build-tx — build the executable tx for a manual route. */
+    async buildTx(params: BungeeBuildTxRequest): Promise<BungeeBuildTxResponse> {
+        try {
+            const parsed = BungeeBuildTxRequestSchema.parse(params);
+            const response = await this.http.get("/api/v1/bungee/build-tx", {
+                params: parsed as Record<string, unknown>,
+            });
+            return BungeeBuildTxResponseSchema.parse(response.data);
+        } catch (error) {
+            this.throwProviderError(error, ProviderGetQuoteFailure, "Bungee build-tx");
         }
     }
 

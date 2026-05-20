@@ -1,4 +1,4 @@
-export { adaptQuotes } from "./quoteResponseAdapter.js";
+export { adaptQuotes, adaptManualRouteQuote } from "./quoteResponseAdapter.js";
 export { adaptFees } from "./quoteFeeAdapter.js";
 export { adaptQuoteRequest } from "./quoteRequestAdapter.js";
 export { buildSubmitRequest } from "./submitRequestAdapter.js";

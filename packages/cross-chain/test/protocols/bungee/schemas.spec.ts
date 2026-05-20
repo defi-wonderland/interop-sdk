@@ -4,6 +4,9 @@ import { ZodError } from "zod";
 import {
     BungeeApprovalDataSchema,
     BungeeAutoRouteSchema,
+    BungeeBuildTxRequestSchema,
+    BungeeBuildTxResponseSchema,
+    BungeeBuildTxResultSchema,
     BungeeDestinationDataSchema,
     BungeeGasFeeSchema,
     BungeeInputSchema,
@@ -463,6 +466,73 @@ describe("BungeeQuoteResponseSchema", () => {
     it("accepts quote response with optional message", () => {
         const result = BungeeQuoteResponseSchema.parse(buildQuoteResponse({ message: "ok" }));
         expect(result.message).toBe("ok");
+    });
+});
+
+// ── Build-tx schema tests ──────────────────────────────
+
+function buildBuildTxResult(overrides = {}): Record<string, unknown> {
+    return {
+        userOp: "tx",
+        txData: { ...buildTxData(), to: VALID_ADDRESS },
+        ...overrides,
+    };
+}
+
+function buildBuildTxResponse(overrides = {}): Record<string, unknown> {
+    return {
+        success: true,
+        statusCode: 200,
+        result: buildBuildTxResult(),
+        ...overrides,
+    };
+}
+
+describe("BungeeBuildTxRequestSchema", () => {
+    it("accepts a valid build-tx request", () => {
+        const result = BungeeBuildTxRequestSchema.parse({ quoteId: "m1" });
+        expect(result.quoteId).toBe("m1");
+    });
+
+    it("rejects when quoteId is missing", () => {
+        expect(() => BungeeBuildTxRequestSchema.parse({})).toThrow(ZodError);
+    });
+});
+
+describe("BungeeBuildTxResultSchema", () => {
+    it("accepts a valid result without approvalData", () => {
+        const result = BungeeBuildTxResultSchema.parse(buildBuildTxResult());
+        expect(result.userOp).toBe("tx");
+        expect(result.approvalData).toBeUndefined();
+    });
+
+    it("accepts a valid result with approvalData", () => {
+        const result = BungeeBuildTxResultSchema.parse(
+            buildBuildTxResult({ approvalData: buildApprovalData() }),
+        );
+        expect(result.approvalData).toBeDefined();
+    });
+
+    it("accepts a valid result with null approvalData", () => {
+        const result = BungeeBuildTxResultSchema.parse(buildBuildTxResult({ approvalData: null }));
+        expect(result.approvalData).toBeNull();
+    });
+
+    it("rejects when txData is missing", () => {
+        const { txData, ...rest } = buildBuildTxResult();
+        expect(() => BungeeBuildTxResultSchema.parse(rest)).toThrow(ZodError);
+    });
+});
+
+describe("BungeeBuildTxResponseSchema", () => {
+    it("accepts a valid response", () => {
+        const result = BungeeBuildTxResponseSchema.parse(buildBuildTxResponse());
+        expect(result.success).toBe(true);
+    });
+
+    it("rejects when success is missing", () => {
+        const { success, ...rest } = buildBuildTxResponse();
+        expect(() => BungeeBuildTxResponseSchema.parse(rest)).toThrow(ZodError);
     });
 });
 

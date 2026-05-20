@@ -14,6 +14,7 @@ import type {
     SubmitOrderResponse,
 } from "../../internal.js";
 import type { BungeeQuoteOptions } from "./adapters/quoteRequestAdapter.js";
+import type { BungeeBuildTxResult, BungeeManualRoute, BungeeQuoteResponse } from "./schemas.js";
 import type { BungeeConfigs } from "./types.js";
 import {
     CrossChainProvider,
@@ -23,6 +24,7 @@ import {
     ProviderGetQuoteFailure,
 } from "../../internal.js";
 import {
+    adaptManualRouteQuote,
     adaptQuoteRequest,
     adaptQuotes,
     adaptSubmitResponse,
@@ -77,6 +79,7 @@ export class BungeeProvider extends CrossChainProvider {
                 feeTakerAddress: parsed.feeTakerAddress,
                 slippage: parsed.slippage,
                 refuel: parsed.refuel,
+                enableOtherProviders: parsed.enableOtherProviders,
                 enableMultipleRoutes: parsed.enableMultipleRoutes,
             };
 
@@ -141,37 +144,51 @@ export class BungeeProvider extends CrossChainProvider {
 
     /**
      * @inheritdoc
-     * Returns API-based tracking config using Bungee `/api/v1/bungee/status`.
+     *
+     * Two API-based fill watchers so each flow polls Bungee with the right identifier:
+     * - `fillWatcherConfig` (auto routes) → `?requestHash=` using `tracking.orderId`.
+     * - `onChainFillWatcherConfig` (manual routes) → `?txHash=` using the on-chain `openTxHash`.
      */
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
         fillWatcherConfig: FillWatcherConfig;
+        onChainFillWatcherConfig: FillWatcherConfig;
     } {
+        const headers = Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined;
+        const fillWatcherBase = {
+            type: "api-based" as const,
+            baseUrl: this.baseUrl,
+            headers,
+            pollingInterval: 5000,
+            retry: {
+                maxAttempts: 3,
+                initialDelay: 2000,
+                maxDelay: 15000,
+                backoffMultiplier: 2,
+            },
+            extractFillEvent,
+        };
+
         return {
             openedIntentParserConfig: {
                 type: "api",
                 config: {
                     protocolName: BungeeProvider.PROTOCOL_NAME,
-                    headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
+                    headers,
                     buildUrl: (txHash: Hex, _chainId: number): string =>
-                        `${this.baseUrl}/api/v1/bungee/status?requestHash=${txHash}`,
+                        `${this.baseUrl}/api/v1/bungee/status?txHash=${txHash}`,
                     extractOpenedIntent,
                 },
             },
             fillWatcherConfig: {
-                type: "api-based",
-                baseUrl: this.baseUrl,
-                headers: Object.keys(this.apiHeaders).length > 0 ? this.apiHeaders : undefined,
-                pollingInterval: 5000,
-                retry: {
-                    maxAttempts: 3,
-                    initialDelay: 2000,
-                    maxDelay: 15000,
-                    backoffMultiplier: 2,
-                },
+                ...fillWatcherBase,
                 buildEndpoint: (params): string =>
                     `/api/v1/bungee/status?requestHash=${params.orderId}`,
-                extractFillEvent,
+            } as FillWatcherConfig,
+            onChainFillWatcherConfig: {
+                ...fillWatcherBase,
+                buildEndpoint: (params): string =>
+                    `/api/v1/bungee/status?txHash=${params.openTxHash}`,
             } as FillWatcherConfig,
         };
     }
@@ -220,7 +237,14 @@ export class BungeeProvider extends CrossChainProvider {
             const options: BungeeQuoteOptions = { ...this.quoteOptions, submissionMode: mode };
             const bungeeParams = adaptQuoteRequest(params, options);
             const response = await this.apiService.getQuote(bungeeParams);
-            return adaptQuotes(response, this.providerId);
+            const autoQuotes = adaptQuotes(response, this.providerId);
+
+            if (!this.quoteOptions.enableOtherProviders) {
+                return autoQuotes;
+            }
+
+            const manualQuotes = await this.buildManualRouteQuotes(response);
+            return [...autoQuotes, ...manualQuotes];
         } catch (error) {
             if (error instanceof ProviderGetQuoteFailure) {
                 throw error;
@@ -231,5 +255,50 @@ export class BungeeProvider extends CrossChainProvider {
                 error instanceof Error ? error.stack : undefined,
             );
         }
+    }
+
+    /**
+     * Build executable quotes for every manual route in a quote response.
+     *
+     * Each manual route requires an extra `/build-tx` call. They are issued in parallel
+     * and individual failures (one bridge failing to build) do not abort the others —
+     * the caller still gets the auto routes and any manual routes that succeeded.
+     */
+    private async buildManualRouteQuotes(response: BungeeQuoteResponse): Promise<Quote[]> {
+        const manualRoutes = response.result.manualRoutes ?? [];
+        if (manualRoutes.length === 0) return [];
+
+        const builds = await Promise.allSettled(
+            manualRoutes.map((route) =>
+                this.apiService
+                    .buildTx({ quoteId: route.quoteId })
+                    .then((res) => ({ route, buildTx: res.result })),
+            ),
+        );
+
+        return builds
+            .filter(
+                (
+                    result,
+                ): result is PromiseFulfilledResult<{
+                    route: BungeeManualRoute;
+                    buildTx: BungeeBuildTxResult;
+                }> => {
+                    if (result.status === "rejected") {
+                        console.warn("Bungee build-tx failed for manual route:", result.reason);
+                        return false;
+                    }
+                    return true;
+                },
+            )
+            .map((result) =>
+                adaptManualRouteQuote(
+                    response,
+                    result.value.route,
+                    result.value.buildTx,
+                    this.providerId,
+                ),
+            )
+            .filter((quote): quote is Quote => quote !== null);
     }
 }

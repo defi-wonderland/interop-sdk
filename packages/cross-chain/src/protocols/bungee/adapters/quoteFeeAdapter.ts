@@ -1,10 +1,13 @@
 import type { QuoteFees } from "../../../core/schemas/quote.js";
-import type { BungeeAutoRoute } from "../schemas.js";
+import type { BungeeAutoRoute, BungeeManualRoute } from "../schemas.js";
 
-/** Map Bungee auto route fee fields to the SDK-standard QuoteFees shape. */
-export function adaptFees(autoRoute: BungeeAutoRoute): QuoteFees | undefined {
-    const gasFee = autoRoute.gasFee;
-    const routeFee = autoRoute.routeDetails?.routeFee;
+/**
+ * Map Bungee fee fields to the SDK-standard QuoteFees shape.
+ * Works for both auto routes and manual routes — they share the relevant fee fields.
+ */
+export function adaptFees(route: BungeeAutoRoute | BungeeManualRoute): QuoteFees | undefined {
+    const gasFee = route.gasFee;
+    const routeFee = route.routeDetails?.routeFee;
 
     if (!gasFee && !routeFee) return undefined;
 
