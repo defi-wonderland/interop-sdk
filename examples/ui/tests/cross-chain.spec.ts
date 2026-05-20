@@ -1,14 +1,7 @@
 import { test, expect } from '@playwright/test';
-
-/**
- * Mock token data for asset discovery
- * Returns USDC tokens for testnet chains (Sepolia, Base Sepolia, Arbitrum Sepolia)
- */
-const MOCK_TOKENS = [
-  { chainId: 11155111, address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', symbol: 'USDC', decimals: 6 },
-  { chainId: 84532, address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 },
-  { chainId: 421614, address: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d', symbol: 'USDC', decimals: 6 },
-];
+import mockTokens from './test-data/mock-tokens.json' with { type: 'json' };
+import mockCalldata from './test-data/mock-quote-calldata.json' with { type: 'json' };
+import mockQuoteResponse from './test-data/mock-quote-response.json' with { type: 'json' };
 
 /**
  * Builds a mock Across API quote response with calldata that matches the requested amount.
@@ -20,58 +13,17 @@ function buildMockQuoteResponse(inputAmount: string) {
   const inputHex = input.toString(16).padStart(64, '0');
   const outputHex = output.toString(16).padStart(64, '0');
 
-  const data =
-    '0xad5425c6' + // deposit selector
-    '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266' + // depositor
-    '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266' + // recipient
-    '0000000000000000000000001c7d4b196cb0c7b01d743fbc6116a902379c7238' + // inputToken
-    '000000000000000000000000036cbd53842c5426634e7929541ec2318f3dcf7e' + // outputToken
-    inputHex + // inputAmount
-    outputHex + // outputAmount
-    '0000000000000000000000000000000000000000000000000000000000014a34' + // destinationChainId (84532)
-    '0000000000000000000000000000000000000000000000000000000000000000' + // exclusiveRelayer
-    '0000000000000000000000000000000000000000000000000000000000000000' + // quoteTimestamp
-    '0000000000000000000000000000000000000000000000000000000000000000' + // fillDeadline
-    '0000000000000000000000000000000000000000000000000000000000000000' + // exclusivityParameter
-    '0000000000000000000000000000000000000000000000000000000000000180' + // message offset
-    '0000000000000000000000000000000000000000000000000000000000000000'; // message length (empty)
+  const data = mockCalldata.prefix + inputHex + outputHex + mockCalldata.suffix;
 
   return {
-    id: 'e2e-test-quote-id',
-    inputToken: {
-      address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-      chainId: 11155111,
-      decimals: 6,
-      symbol: 'USDC',
-      name: 'USD Coin',
-    },
-    outputToken: {
-      address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-      chainId: 84532,
-      decimals: 6,
-      symbol: 'USDC',
-      name: 'USD Coin',
-    },
+    ...mockQuoteResponse,
     inputAmount,
     expectedOutputAmount: output.toString(),
     minOutputAmount: (output - 1000n).toString(),
-    fees: {
-      total: {
-        amount: '1000',
-        amountUsd: '0.001',
-        pct: '500000000000000',
-      },
-    },
     swapTx: {
-      simulationSuccess: true,
-      chainId: 11155111,
-      to: '0x5ef6C01E11889d86803e0B23e3cB3F9E9d97B662',
+      ...mockQuoteResponse.swapTx,
       data,
-      gas: '250000',
-      maxFeePerGas: '1000000000',
-      maxPriorityFeePerGas: '1000000000',
     },
-    expectedFillTime: 60,
   };
 }
 
@@ -81,7 +33,7 @@ test.beforeEach(async ({ page, context }) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(MOCK_TOKENS),
+      body: JSON.stringify(mockTokens),
     });
   });
 
@@ -140,7 +92,7 @@ test.describe('Asset Discovery', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(MOCK_TOKENS),
+        body: JSON.stringify(mockTokens),
       });
     });
     await retryButton.click();
@@ -151,8 +103,9 @@ test.describe('Asset Discovery', () => {
 
 test.describe('Recipient address input', () => {
   test('auto-fills with connected address on load', async ({ page }) => {
+    const connectedAddress = process.env.NEXT_PUBLIC_E2E_WALLET_ADDRESS as string;
     const recipientInput = page.getByRole('textbox', { name: 'Recipient Address' });
-    await expect(recipientInput).toHaveValue('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+    await expect(recipientInput).toHaveValue(connectedAddress);
   });
 
   test('allows user to clear input', async ({ page }) => {
@@ -202,32 +155,51 @@ test.describe('Amount input validation', () => {
 
 test.describe('Cross-chain intents', () => {
   test('get quotes', async ({ page }) => {
-    // Select input token via custom dropdown
     await page.getByTestId('input-token-select').click();
     await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
-
-    // Select output token via custom dropdown
     await page.getByTestId('output-token-select').click();
     await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
-
     await page.getByRole('textbox', { name: 'Amount' }).fill('0.2');
     await page.locator('button[type="submit"]').click();
+
+    await expect(page
+      .locator('button')
+      .filter({ hasText: /Relay/ }))
+      .toBeVisible();
+    await expect(page
+      .locator('button')
+      .filter({ hasText: /LI.FI/ }))
+      .toBeVisible();
+  });
+
+  test('executes a cross-chain intent (no mocks)', async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.locator('#input-chain-select').selectOption({ label: 'Sepolia' });
+    await page.locator('#output-chain-select').selectOption({ label: 'Base Sepolia' });
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+    await page.getByRole('textbox', { name: 'Amount' }).fill('0.03');
+    await page.getByRole('button', { name: 'Get Quotes' }).last().click();
     await page
       .locator('button')
-      .filter({ hasText: /Across Protocol/ })
+      .filter({ hasText: /Relay/ })
       .click();
+    await page.getByRole('button', { name: 'Execute' }).click();
 
-    await expect(page.getByRole('button', { name: 'Execute' })).toBeVisible();
+    await expect(page.getByText('Order Filled Successfully!')).toBeVisible({ timeout: 180_000 });
   });
 });
 
 test.describe('Address menu', () => {
   test('copy address', async ({ page }) => {
+    const connectedAddress = process.env.NEXT_PUBLIC_E2E_WALLET_ADDRESS;
     await page.getByTestId('rk-account-button').click();
     await page.getByRole('button', { name: /Copy Address/i }).click();
     const clipboardText = await page.evaluate('navigator.clipboard.readText()');
 
-    expect(clipboardText).toBe('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+    expect(clipboardText).toBe(connectedAddress);
   });
 
   test('disconnect from dapp', async ({ page }) => {
@@ -271,7 +243,6 @@ test.describe('Build quote fee display', () => {
 
   test('shows default hint before output is filled', async ({ page }) => {
     await page.getByRole('button', { name: 'Build Quote' }).click();
-
     await page.getByLabel('You send').fill('1');
 
     await expect(page.getByTestId('fee-hint')).toBeVisible();
@@ -325,11 +296,8 @@ test.describe('Negative test', () => {
   });
 
   test('rejects transaction', async ({ page }) => {
-    // Select input token via custom dropdown
     await page.getByTestId('input-token-select').click();
     await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
-
-    // Select output token via custom dropdown
     await page.getByTestId('output-token-select').click();
     await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
 
@@ -338,7 +306,7 @@ test.describe('Negative test', () => {
     await page.locator('button[type="submit"]').click();
     await page
       .locator('button')
-      .filter({ hasText: /Across Protocol/ })
+      .filter({ hasText: /Relay/ })
       .click();
     await page.getByRole('button', { name: 'Execute' }).click();
 

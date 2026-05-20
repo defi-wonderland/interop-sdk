@@ -13,7 +13,7 @@ test.describe('Mint mockUSDC', () => {
 
     await page.getByTestId('input-token-select').click();
     const listbox = page.getByTestId('input-token-select-listbox');
-    await listbox.getByText('USDC').last().click();
+    await listbox.getByText('mockUSDC', { exact: true }).click();
 
     const maxButton = page.getByTestId('max-balance-button');
     await expect(maxButton).toBeVisible({ timeout: 10_000 });
