@@ -1,5 +1,63 @@
 # @wonderland/interop-cross-chain
 
+## 0.11.0
+
+### Minor Changes
+
+-   65900e0: Add `enableMultipleRoutes` to the Bungee provider config.
+
+    When set to `true`, Bungee returns several route alternatives per quote
+    request (for example one optimised for the highest output, another for the
+    fastest fill) and the SDK emits one `Quote` per alternative. Defaults to
+    `false`, which keeps a single recommended route per request.
+
+    This replaces the previous behaviour, which always asked Bungee for multiple
+    routes — opt back in by setting `enableMultipleRoutes: true`. The option is
+    named generically so other providers with a similar concept can adopt it.
+
+-   867c918: Surface post-fee expected output and slippage floor on `Quote.preview.outputs` across providers.
+
+    `QuotePreviewEntry` gains an optional `minAmount` field — the slippage floor guaranteed to the user after the provider's slippage tolerance is applied.
+
+    Per-provider behavior:
+
+    -   **Bungee** previously mapped `amount` (pre-fee optimistic) as the headline output. Wallets quoted that number and users saw less than promised once fees were deducted on fill. The adapter now uses `effectiveAmount ?? amount` for the headline (post-fee expected) with matching `effectiveValueInUsd ?? valueInUsd` for the USD value, and exposes `minAmountOut` as `minAmount`. Verified against a live Bungee quote (10 USDC Arbitrum → Base): pre-fee `amount` was 9.988676, `effectiveAmount` was 9.955638, `minAmountOut` was 9.954642. The headline now matches what the user actually receives.
+    -   **Across** already mapped `expectedOutputAmount` (post-fee) for the headline. It now also exposes `minOutputAmount` as `minAmount`.
+    -   **Relay** already mapped `currencyOut.amount` for the headline. It now also exposes `currencyOut.minimumAmount` as `minAmount`.
+
+    Atomic intent providers (LiFi Intents, OIF) leave `minAmount` undefined and continue to set `amount` to the exact filled amount — there is no slippage in an atomic intent.
+
+-   f04c1dc: Add `Quote.fallbackToken` so callers can tell whether a route is atomic.
+
+    When the field is absent, the quote is atomic: the user receives exactly
+    `preview.outputs` or nothing. When present, a step after the bridge fill may
+    revert and the user is left holding the token described by the field
+    (`chainId`, `accountAddress`, `assetAddress`, `amount`).
+
+    Wired up for the Across and Relay providers.
+
+    The Across response schema also gains optional fields (`crossSwapType`,
+    `steps`, `approvalTxns`, `checks`, `refundToken`, `quoteExpiryTimestamp`
+    and a richer `fees` shape) so it mirrors the OpenAPI spec at
+    https://docs.across.to/api-reference/swap/approval/get and is easier to
+    keep in sync going forward.
+
+-   92851f3: Add `latencyMs` to `Quote` and `GetQuotesError` so callers can see how long each provider took to respond.
+-   891b0a7: Update direct dependencies to remove security vulnerabilities and migrate to the latest stable releases.
+
+    -   `uuid` 13.0.0 → 14.0.0 in `@wonderland/interop-cross-chain` (patches the buffer-bounds advisory; only `v4` is used).
+    -   `zod` 3.24.3 → 4.4.3. The public API surface keeps the same shape; internal schema sites were migrated to the v4 form: `z.string().url(...)` → `z.url(...)`, `z.record(value)` → `z.record(z.string(), value)`, and `.refine(check, dataFn)` → `.refine(check, { error: (issue) => ... })` for dynamic messages.
+    -   `viem` (devDep) and `typescript` (devDep) bumped to 2.48.8 and 5.9.3. `peerDependencies.viem` moves to `^2.35.0`: `getEnsAddress.coinType` became `bigint` in 2.35, so the old `^2.28.0` range would have produced a type error for consumers on 2.28.x–2.34.x.
+    -   `ts-to-zod` (cross-chain devDep) bumped to 5.1.0 to align with zod 4.
+
+### Patch Changes
+
+-   f813669: Fix `FetchHttpClient` dropping the path prefix of `baseURL` when the request path starts with `/`. The `URL` constructor treats leading-slash paths as absolute and discards the base path, so callers that point at a proxy or gateway (e.g. `https://proxy.example.com/relay-api/`) saw their requests hit the wrong endpoint and returned 404. `buildUrl` now normalizes `baseURL` to end with `/` and strips the leading `/` from the path before resolving.
+-   80e6613: `OrderTracker.watchOrder` now fails fast with a typed `MissingDestinationChainId` when the destination chain id cannot be determined, instead of bubbling up from internals or throwing a plain `Error`. Both the API and on-chain paths use the same error so callers can handle the case once.
+-   47f423d: Clarify the `OpenedIntentParser` interface JSDoc and the OIF constants header comment: on-chain event parsers (OIF, Across, LiFi Intents) return fully populated `OpenedIntent` fields, while API-based parsers (Relay, Bungee) return enough data to drive fill tracking and leave `maxSpent` / `minReceived` and some addresses as placeholders. No runtime behavior change.
+-   Updated dependencies [891b0a7]
+    -   @wonderland/interop-addresses@0.8.0
+
 ## 0.10.0
 
 ### Minor Changes

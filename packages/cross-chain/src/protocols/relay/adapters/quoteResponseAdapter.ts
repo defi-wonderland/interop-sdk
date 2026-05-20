@@ -96,6 +96,7 @@ export function adaptQuote(
                     accountAddress: params.output.recipient ?? params.user,
                     assetAddress: currencyOut?.currency.address ?? params.output.assetAddress,
                     amount: currencyOut?.amount ?? params.output.amount ?? "0",
+                    minAmount: currencyOut?.minimumAmount,
                     amountUsd: currencyOut?.amountUsd,
                 },
             ],

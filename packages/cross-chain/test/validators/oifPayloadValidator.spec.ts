@@ -74,6 +74,16 @@ describe("validateOifPayload", () => {
 
             await expect(validateOifPayload(intent, corruptedOrder)).resolves.toBe(false);
         });
+
+        it("rejects when attacker swaps user in witness", async () => {
+            const validResponse = getMockedOifQuoteResponse();
+            const intent = createIntentFromQuote(validResponse, "oif-escrow-v0");
+
+            const attackResponse = getMockedOifQuoteResponse({ user: ATTACKER_ADDRESSES.USER });
+            const corruptedOrder = getOrder(attackResponse);
+
+            await expect(validateOifPayload(intent, corruptedOrder)).resolves.toBe(false);
+        });
     });
 
     // TODO (EFI-887): re-enable when resource-lock support lands.
