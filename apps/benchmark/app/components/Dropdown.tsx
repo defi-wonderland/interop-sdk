@@ -124,7 +124,7 @@ export function Dropdown<T extends string | number>({
           {options.map((option, index) => (
             <DropdownItem
               key={String(option.value)}
-              ref={(node) => {
+              buttonRef={(node) => {
                 optionRefs.current[index] = node;
               }}
               option={option}
@@ -142,14 +142,14 @@ interface DropdownItemProps<T> {
   option: DropdownOption<T>;
   selected: boolean;
   onSelect: () => void;
-  ref: (node: HTMLButtonElement | null) => void;
+  buttonRef: (node: HTMLButtonElement | null) => void;
 }
 
-function DropdownItem<T>({ option, selected, onSelect, ref }: DropdownItemProps<T>) {
+function DropdownItem<T>({ option, selected, onSelect, buttonRef }: DropdownItemProps<T>) {
   return (
     <li>
       <button
-        ref={ref}
+        ref={buttonRef}
         type='button'
         role='option'
         aria-selected={selected}
