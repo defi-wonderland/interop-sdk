@@ -18,7 +18,7 @@ export interface ProviderMeta {
 export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
   [ProviderId.Across]: {
     id: ProviderId.Across,
-    displayName: 'across',
+    displayName: 'Across',
     monogram: 'AX',
     colorClass: 'bg-provider-across',
     iconUrl: '/icons/providers/across.svg',
@@ -26,7 +26,7 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
   },
   [ProviderId.Relay]: {
     id: ProviderId.Relay,
-    displayName: 'relay',
+    displayName: 'Relay',
     monogram: 'RL',
     colorClass: 'bg-provider-relay',
     iconUrl: '/icons/providers/relay.svg',
@@ -34,7 +34,7 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
   },
   [ProviderId.Lifi]: {
     id: ProviderId.Lifi,
-    displayName: 'lifi',
+    displayName: 'LI.FI',
     monogram: 'LI',
     colorClass: 'bg-provider-lifi',
     iconUrl: '/icons/providers/lifi.svg',
@@ -42,7 +42,7 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
   },
   [ProviderId.Bungee]: {
     id: ProviderId.Bungee,
-    displayName: 'bungee',
+    displayName: 'Bungee',
     monogram: 'BG',
     colorClass: 'bg-provider-bungee',
     iconUrl: '/icons/providers/bungee.webp',

@@ -5,11 +5,17 @@ import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
+import { chainService } from './lib/services';
+import type { NetworkAssets } from '@wonderland/interop-cross-chain';
+
+export const dynamic = 'force-dynamic';
 
 const META_LABEL_CLASS = 'font-mono text-label text-text-muted';
 const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-chain';
 
-export default function Home() {
+export default async function Home() {
+  const initialChains = await loadInitialChains();
+
   return (
     <div className='min-h-screen cursor-default bg-background'>
       <TopNav />
@@ -35,7 +41,7 @@ export default function Home() {
               </Label>
             }
           />
-          <RaceTable />
+          <RaceTable initialChains={initialChains} />
         </SectionFrame>
 
         <SectionFrame variant='tinted'>
@@ -60,6 +66,14 @@ export default function Home() {
       <Footer />
     </div>
   );
+}
+
+async function loadInitialChains(): Promise<NetworkAssets[]> {
+  try {
+    return await chainService.getChains();
+  } catch {
+    return [];
+  }
 }
 
 function SectionPlaceholder({ label }: { label: string }) {
