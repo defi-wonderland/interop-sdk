@@ -1,0 +1,54 @@
+export enum ProviderId {
+  Across = 'across',
+  Relay = 'relay',
+  Lifi = 'lifi',
+  Bungee = 'bungee',
+}
+
+export interface ProviderMeta {
+  id: ProviderId;
+  displayName: string;
+  monogram: string;
+  colorClass: string;
+  iconUrl: string;
+  hasGlobalFeed: boolean;
+  noFeedReason?: string;
+}
+
+export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
+  [ProviderId.Across]: {
+    id: ProviderId.Across,
+    displayName: 'across',
+    monogram: 'AX',
+    colorClass: 'bg-provider-across',
+    iconUrl: '/icons/providers/across.svg',
+    hasGlobalFeed: true,
+  },
+  [ProviderId.Relay]: {
+    id: ProviderId.Relay,
+    displayName: 'relay',
+    monogram: 'RL',
+    colorClass: 'bg-provider-relay',
+    iconUrl: '/icons/providers/relay.svg',
+    hasGlobalFeed: true,
+  },
+  [ProviderId.Lifi]: {
+    id: ProviderId.Lifi,
+    displayName: 'lifi',
+    monogram: 'LI',
+    colorClass: 'bg-provider-lifi',
+    iconUrl: '/icons/providers/lifi.svg',
+    hasGlobalFeed: true,
+  },
+  [ProviderId.Bungee]: {
+    id: ProviderId.Bungee,
+    displayName: 'bungee',
+    monogram: 'BG',
+    colorClass: 'bg-provider-bungee',
+    iconUrl: '/icons/providers/bungee.webp',
+    hasGlobalFeed: false,
+    noFeedReason: 'no global feed',
+  },
+};
+
+export const PROVIDER_IDS: readonly ProviderId[] = Object.values(ProviderId);
