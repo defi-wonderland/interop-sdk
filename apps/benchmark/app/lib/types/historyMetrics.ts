@@ -1,10 +1,13 @@
 import type { Address } from 'viem';
 
+export type HistorySampleStatus = 'success' | 'failed' | 'pending';
+
 export interface HistorySample {
   providerId: string;
   timestamp: number;
-  amountUsd: number;
-  feeUsd: number;
+  status: HistorySampleStatus;
+  amountUsd: number | null;
+  feeUsd: number | null;
   fillTimeSeconds: number | null;
 }
 

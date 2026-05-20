@@ -1,7 +1,14 @@
 import { z } from 'zod';
 import { AddressSchema, HashSchema, HexSchema } from './primitives';
 
-export const AcrossDepositStatusSchema = z.enum(['unfilled', 'filled', 'expired', 'refunded', 'slowFilled', 'pending']);
+export const AcrossDepositStatusSchema = z.enum([
+  'unfilled',
+  'filled',
+  'slowFillRequested',
+  'slowFilled',
+  'expired',
+  'refunded',
+]);
 
 export const AcrossDepositSchema = z.object({
   id: z.number().int(),

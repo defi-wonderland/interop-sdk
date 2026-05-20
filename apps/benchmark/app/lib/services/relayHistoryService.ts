@@ -1,7 +1,13 @@
 import { FetchHttpClient } from '../http';
-import { RelayResponseSchema, type RelayFeesUsd, type RelayRequest, type RelayResponse } from '../schemas/relay';
+import {
+  RelayResponseSchema,
+  type RelayFeesUsd,
+  type RelayRequest,
+  type RelayRequestStatus,
+  type RelayResponse,
+} from '../schemas/relay';
 import type { HistoryService } from '../interfaces/historyService.interface';
-import type { HistoryQuery, HistoryResult, HistorySample } from '../types/historyMetrics';
+import type { HistoryQuery, HistoryResult, HistorySample, HistorySampleStatus } from '../types/historyMetrics';
 import type { HttpClient } from '@wonderland/interop-cross-chain';
 import type { Address } from 'viem';
 
@@ -65,12 +71,7 @@ function collectSamples(requests: RelayRequest[]): HistorySample[] {
 }
 
 function toSample(request: RelayRequest): HistorySample | null {
-  if (request.status !== 'success') return null;
   if (request.data.subsidizedRequest) return null;
-  const amountUsd = Number(request.data.metadata?.currencyIn?.amountUsd ?? 0);
-  if (!Number.isFinite(amountUsd) || amountUsd <= 0) return null;
-  const feeUsd = sumFees(request.data.feesUsd);
-  if (feeUsd === null) return null;
   const inTs = request.data.inTxs?.[0]?.timestamp;
   const outTs = request.data.outTxs?.[0]?.timestamp;
   const timestamp = resolveTimestamp(inTs, request.createdAt);
@@ -78,10 +79,31 @@ function toSample(request: RelayRequest): HistorySample | null {
   return {
     providerId: RELAY_PROVIDER_ID,
     timestamp,
-    amountUsd,
-    feeUsd,
+    status: normalizeStatus(request.status),
+    amountUsd: parseAmountUsd(request.data.metadata?.currencyIn?.amountUsd),
+    feeUsd: sumFees(request.data.feesUsd),
     fillTimeSeconds: typeof inTs === 'number' && typeof outTs === 'number' ? Math.max(outTs - inTs, 0) : null,
   };
+}
+
+function normalizeStatus(status: RelayRequestStatus): HistorySampleStatus {
+  switch (status) {
+    case 'success':
+      return 'success';
+    case 'failure':
+    case 'refund':
+      return 'failed';
+    case 'pending':
+    case 'depositing':
+    case 'waiting':
+      return 'pending';
+  }
+}
+
+function parseAmountUsd(raw: string | undefined): number | null {
+  if (raw === undefined) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : null;
 }
 
 function resolveTimestamp(inTs: number | undefined, createdAt: string): number | null {

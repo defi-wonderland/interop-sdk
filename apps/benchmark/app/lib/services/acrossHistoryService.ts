@@ -1,8 +1,13 @@
 import { formatUnits, type Address } from 'viem';
 import { FetchHttpClient } from '../http';
-import { AcrossDepositsResponseSchema, type AcrossDeposit, type AcrossDepositsResponse } from '../schemas/across';
+import {
+  AcrossDepositsResponseSchema,
+  type AcrossDeposit,
+  type AcrossDepositStatus,
+  type AcrossDepositsResponse,
+} from '../schemas/across';
 import type { HistoryService } from '../interfaces/historyService.interface';
-import type { HistoryQuery, HistoryResult, HistorySample } from '../types/historyMetrics';
+import type { HistoryQuery, HistoryResult, HistorySample, HistorySampleStatus } from '../types/historyMetrics';
 import type { HttpClient } from '@wonderland/interop-cross-chain';
 
 const ACROSS_BASE_URL = 'https://app.across.to/api';
@@ -26,7 +31,6 @@ export class AcrossHistoryService implements HistoryService {
       params: {
         originChainId: query.originChainId,
         destinationChainId: query.destinationChainId,
-        status: 'filled',
         limit: Math.min(query.limit ?? ACROSS_DEPOSITS_DEFAULT_LIMIT, ACROSS_DEPOSITS_MAX_LIMIT),
       },
     });
@@ -47,22 +51,31 @@ function collectSamples(deposits: AcrossDepositsResponse, tokenDecimals: Record<
 }
 
 function toSample(deposit: AcrossDeposit, tokenDecimals: Record<string, number>): HistorySample | null {
-  if (deposit.status !== 'filled') return null;
-  const decimals = lookupDecimals(tokenDecimals, deposit.originChainId, deposit.inputToken);
-  if (decimals === undefined) return null;
   const timestamp = Date.parse(deposit.depositBlockTimestamp);
   if (!Number.isFinite(timestamp)) return null;
-  const amountUsd = computeAmountUsd(deposit, decimals);
-  if (amountUsd === null) return null;
-  const feeUsd = sumFees(deposit);
-  if (feeUsd === null) return null;
+  const decimals = lookupDecimals(tokenDecimals, deposit.originChainId, deposit.inputToken);
   return {
     providerId: ACROSS_PROVIDER_ID,
     timestamp,
-    amountUsd,
-    feeUsd,
+    status: normalizeStatus(deposit.status),
+    amountUsd: decimals !== undefined ? computeAmountUsd(deposit, decimals) : null,
+    feeUsd: sumFees(deposit),
     fillTimeSeconds: computeFillTimeSeconds(deposit, timestamp),
   };
+}
+
+function normalizeStatus(status: AcrossDepositStatus): HistorySampleStatus {
+  switch (status) {
+    case 'filled':
+    case 'slowFilled':
+      return 'success';
+    case 'expired':
+    case 'refunded':
+      return 'failed';
+    case 'unfilled':
+    case 'slowFillRequested':
+      return 'pending';
+  }
 }
 
 function lookupDecimals(
@@ -96,6 +109,7 @@ function parseBaseUnits(raw: string, decimals: number): number | null {
 }
 
 function sumFees(deposit: AcrossDeposit): number | null {
+  if (deposit.bridgeFeeUsd === null && deposit.fillGasFeeUsd === null && deposit.swapFeeUsd === null) return null;
   const total =
     Number(deposit.bridgeFeeUsd ?? 0) + Number(deposit.fillGasFeeUsd ?? 0) + Number(deposit.swapFeeUsd ?? 0);
   return Number.isFinite(total) ? total : null;
