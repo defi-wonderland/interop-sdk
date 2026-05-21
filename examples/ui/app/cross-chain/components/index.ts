@@ -7,6 +7,7 @@ export { OrderTracking } from './OrderTracking';
 export { QuoteCard } from './QuoteCard';
 export { QuoteDetails } from './QuoteDetails';
 export { QuoteList } from './QuoteList';
+export { SegmentedToggle } from './SegmentedToggle';
 export { SubmissionModeSwitch } from './SubmissionModeSwitch';
 export { SwapForm } from './SwapForm';
 export { Toast } from './Toast';
