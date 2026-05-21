@@ -9,6 +9,7 @@ import {
   BungeeApiTier,
   type Aggregator,
   type CrossChainProvider,
+  type SubmissionMode,
 } from '@wonderland/interop-cross-chain';
 import { MAINNET_RPC_URLS, TESTNET_RPC_URLS } from '../constants/chains';
 
@@ -51,10 +52,11 @@ const PROVIDER_CONFIGS: ProviderConfig[] = [
   },
 ];
 
-export function buildExecutor(isTestnet: boolean): Aggregator {
+export function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode = 'user-transaction'): Aggregator {
   const rpcUrls = isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
   const oifSolverId = isTestnet ? 'testnet-solver' : 'mainnet-solver';
   const lifiUrl = isTestnet ? LIFI_INTENTS_ORDER_SERVER_DEV_URL : LIFI_INTENTS_ORDER_SERVER_URL;
+  const submissionModes = [submissionMode];
 
   const providers: CrossChainProvider[] = [
     createCrossChainProvider(PROTOCOLS.ACROSS, {
@@ -65,10 +67,12 @@ export function buildExecutor(isTestnet: boolean): Aggregator {
       solverId: oifSolverId,
       url: OIF_API_URL,
       providerId: 'oif',
+      submissionModes,
     }),
     createCrossChainProvider(PROTOCOLS.RELAY, {
       isTestnet,
       providerId: 'relay',
+      submissionModes,
     }),
     createCrossChainProvider(PROTOCOLS.LIFI_INTENTS, {
       orderServerUrl: lifiUrl,
@@ -81,6 +85,7 @@ export function buildExecutor(isTestnet: boolean): Aggregator {
       createCrossChainProvider(PROTOCOLS.BUNGEE, {
         tier: BungeeApiTier.Sandbox,
         providerId: 'bungee',
+        submissionModes,
       }),
     );
   }

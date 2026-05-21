@@ -13,6 +13,7 @@ import {
   QuoteCard,
   QuoteDetails,
   QuoteList,
+  SubmissionModeSwitch,
   SwapForm,
   Toast,
   TooltipProvider,
@@ -169,7 +170,8 @@ export default function CrossChainClient() {
 
         <div className='flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 py-12 sm:px-6 sm:py-16'>
           <div className='flex-1 flex flex-col gap-12'>
-            <div className='flex justify-end'>
+            <div className='flex justify-end gap-3'>
+              <SubmissionModeSwitch disabled={isExecutionStarted} />
               <NetworkSwitch disabled={isExecutionStarted} />
             </div>
 
