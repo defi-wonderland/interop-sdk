@@ -50,18 +50,32 @@ export function parseBigint(value: unknown): bigint | undefined {
     return undefined;
 }
 
-/** Parse a chainId encoded as number, bigint, decimal string or 0x-hex string. */
+/**
+ * Parse a chainId encoded as number, bigint, decimal string or 0x-hex string.
+ *
+ * Strings are matched against strict regexes so notation that `Number()` would
+ * happily coerce (`"1e10"`, `"1.5"`, `" 1 "`, `"0x1ZZZ"`) is rejected, and the
+ * actual conversion goes through `BigInt` so we never silently lose precision.
+ * Only non-negative safe integers are returned.
+ */
+const DECIMAL_CHAIN_ID = /^\d+$/;
+const HEX_CHAIN_ID = /^0x[0-9a-fA-F]+$/;
+const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
+
 export function parseChainId(value: unknown): number | undefined {
-    if (typeof value === "number" && Number.isFinite(value) && Number.isInteger(value)) {
-        return value;
+    if (typeof value === "number") {
+        return Number.isSafeInteger(value) && value >= 0 ? value : undefined;
     }
     if (typeof value === "bigint") {
-        if (value > BigInt(Number.MAX_SAFE_INTEGER)) return undefined;
-        return Number(value);
+        return value >= 0n && value <= MAX_SAFE_BIGINT ? Number(value) : undefined;
     }
-    if (typeof value === "string" && value.length > 0) {
-        const parsed = value.startsWith("0x") ? Number.parseInt(value, 16) : Number(value);
-        if (Number.isFinite(parsed) && Number.isInteger(parsed)) return parsed;
+    if (typeof value !== "string" || value.length === 0) return undefined;
+    if (!DECIMAL_CHAIN_ID.test(value) && !HEX_CHAIN_ID.test(value)) return undefined;
+    let parsed: bigint;
+    try {
+        parsed = BigInt(value);
+    } catch {
+        return undefined;
     }
-    return undefined;
+    return parsed <= MAX_SAFE_BIGINT ? Number(parsed) : undefined;
 }

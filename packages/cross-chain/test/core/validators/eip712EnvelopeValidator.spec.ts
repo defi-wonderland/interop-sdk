@@ -55,6 +55,16 @@ describe("validateEnvelopeDomain", () => {
         ["mismatched chainId", { chainId: 137, verifyingContract: PERMIT2_ADDRESS }],
         ["malformed chainId", { chainId: "abc", verifyingContract: PERMIT2_ADDRESS }],
         ["missing chainId", { verifyingContract: PERMIT2_ADDRESS }],
+        // Strict parseChainId: each of these would have slipped past a permissive Number()/parseInt.
+        ["scientific notation", { chainId: "1e10", verifyingContract: PERMIT2_ADDRESS }],
+        ["hex with non-hex chars", { chainId: "0x1ZZZ", verifyingContract: PERMIT2_ADDRESS }],
+        ["whitespace-padded chainId", { chainId: " 1 ", verifyingContract: PERMIT2_ADDRESS }],
+        ["fractional chainId", { chainId: 1.5, verifyingContract: PERMIT2_ADDRESS }],
+        ["negative chainId", { chainId: -1, verifyingContract: PERMIT2_ADDRESS }],
+        [
+            "chainId above MAX_SAFE_INTEGER",
+            { chainId: BigInt(Number.MAX_SAFE_INTEGER) + 1n, verifyingContract: PERMIT2_ADDRESS },
+        ],
         [
             "non-canonical verifyingContract",
             { chainId: 1, verifyingContract: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef" },
