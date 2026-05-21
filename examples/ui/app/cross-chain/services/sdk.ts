@@ -19,49 +19,35 @@ interface ProviderConfig {
   providerId: string;
   displayName: string;
   supportsBuildQuote: boolean;
+  supportsGasless: boolean;
 }
 
-/**
- * Provider configuration with display names and capability flags
- */
 const PROVIDER_CONFIGS: ProviderConfig[] = [
-  {
-    providerId: 'across',
-    displayName: 'Across Protocol',
-    supportsBuildQuote: true,
-  },
-  {
-    providerId: 'oif',
-    displayName: 'OIF Sample Solver',
-    supportsBuildQuote: true,
-  },
-  {
-    providerId: 'relay',
-    displayName: 'Relay',
-    supportsBuildQuote: false,
-  },
-  {
-    providerId: 'lifi-intents',
-    displayName: 'LI.FI',
-    supportsBuildQuote: false,
-  },
-  {
-    providerId: 'bungee',
-    displayName: 'Bungee',
-    supportsBuildQuote: false,
-  },
+  { providerId: 'across', displayName: 'Across Protocol', supportsBuildQuote: true, supportsGasless: false },
+  { providerId: 'oif', displayName: 'OIF Sample Solver', supportsBuildQuote: true, supportsGasless: true },
+  { providerId: 'relay', displayName: 'Relay', supportsBuildQuote: false, supportsGasless: true },
+  { providerId: 'lifi-intents', displayName: 'LI.FI', supportsBuildQuote: false, supportsGasless: false },
+  { providerId: 'bungee', displayName: 'Bungee', supportsBuildQuote: false, supportsGasless: true },
 ];
+
+function findConfig(providerId: string): ProviderConfig | undefined {
+  return PROVIDER_CONFIGS.find((c) => c.providerId === providerId);
+}
+
+function isEnabledForMode(providerId: string, submissionMode: SubmissionMode): boolean {
+  const config = findConfig(providerId);
+  return config !== undefined && (submissionMode !== 'gasless' || config.supportsGasless);
+}
 
 export function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode = 'user-transaction'): Aggregator {
   const rpcUrls = isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
   const oifSolverId = isTestnet ? 'testnet-solver' : 'mainnet-solver';
   const lifiUrl = isTestnet ? LIFI_INTENTS_ORDER_SERVER_DEV_URL : LIFI_INTENTS_ORDER_SERVER_URL;
   const submissionModes = [submissionMode];
-  const isGasless = submissionMode === 'gasless';
 
   const providers: CrossChainProvider[] = [];
 
-  if (!isGasless) {
+  if (isEnabledForMode('across', submissionMode)) {
     providers.push(
       createCrossChainProvider(PROTOCOLS.ACROSS, {
         isTestnet,
@@ -70,21 +56,28 @@ export function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode
     );
   }
 
-  providers.push(
-    createCrossChainProvider(PROTOCOLS.OIF, {
-      solverId: oifSolverId,
-      url: OIF_API_URL,
-      providerId: 'oif',
-      submissionModes,
-    }),
-    createCrossChainProvider(PROTOCOLS.RELAY, {
-      isTestnet,
-      providerId: 'relay',
-      submissionModes,
-    }),
-  );
+  if (isEnabledForMode('oif', submissionMode)) {
+    providers.push(
+      createCrossChainProvider(PROTOCOLS.OIF, {
+        solverId: oifSolverId,
+        url: OIF_API_URL,
+        providerId: 'oif',
+        submissionModes,
+      }),
+    );
+  }
 
-  if (!isGasless) {
+  if (isEnabledForMode('relay', submissionMode)) {
+    providers.push(
+      createCrossChainProvider(PROTOCOLS.RELAY, {
+        isTestnet,
+        providerId: 'relay',
+        submissionModes,
+      }),
+    );
+  }
+
+  if (isEnabledForMode('lifi-intents', submissionMode)) {
     providers.push(
       createCrossChainProvider(PROTOCOLS.LIFI_INTENTS, {
         orderServerUrl: lifiUrl,
@@ -93,7 +86,7 @@ export function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode
     );
   }
 
-  if (!isTestnet) {
+  if (!isTestnet && isEnabledForMode('bungee', submissionMode)) {
     providers.push(
       createCrossChainProvider(PROTOCOLS.BUNGEE, {
         tier: BungeeApiTier.Sandbox,
@@ -110,15 +103,9 @@ export function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode
   });
 }
 
-/**
- * Gets the display name for a provider by its ID
- * @param providerId - The provider identifier
- * @returns The display name or the provider ID if not found
- */
 export function getProviderDisplayName(providerId: string): string {
-  const config = PROVIDER_CONFIGS.find((c) => c.providerId === providerId);
-  return config?.displayName || providerId;
+  return findConfig(providerId)?.displayName ?? providerId;
 }
 
 /** Providers that support the buildQuote flow. */
-export const BUILD_QUOTE_PROVIDERS = PROVIDER_CONFIGS.filter((c) => c.supportsBuildQuote);
+export const BUILD_QUOTE_PROVIDERS: ProviderConfig[] = PROVIDER_CONFIGS.filter((c) => c.supportsBuildQuote);
