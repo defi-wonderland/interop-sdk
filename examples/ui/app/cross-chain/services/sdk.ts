@@ -57,12 +57,20 @@ export function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode
   const oifSolverId = isTestnet ? 'testnet-solver' : 'mainnet-solver';
   const lifiUrl = isTestnet ? LIFI_INTENTS_ORDER_SERVER_DEV_URL : LIFI_INTENTS_ORDER_SERVER_URL;
   const submissionModes = [submissionMode];
+  const isGasless = submissionMode === 'gasless';
 
-  const providers: CrossChainProvider[] = [
-    createCrossChainProvider(PROTOCOLS.ACROSS, {
-      isTestnet,
-      providerId: 'across',
-    }),
+  const providers: CrossChainProvider[] = [];
+
+  if (!isGasless) {
+    providers.push(
+      createCrossChainProvider(PROTOCOLS.ACROSS, {
+        isTestnet,
+        providerId: 'across',
+      }),
+    );
+  }
+
+  providers.push(
     createCrossChainProvider(PROTOCOLS.OIF, {
       solverId: oifSolverId,
       url: OIF_API_URL,
@@ -74,11 +82,16 @@ export function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode
       providerId: 'relay',
       submissionModes,
     }),
-    createCrossChainProvider(PROTOCOLS.LIFI_INTENTS, {
-      orderServerUrl: lifiUrl,
-      providerId: 'lifi-intents',
-    }),
-  ];
+  );
+
+  if (!isGasless) {
+    providers.push(
+      createCrossChainProvider(PROTOCOLS.LIFI_INTENTS, {
+        orderServerUrl: lifiUrl,
+        providerId: 'lifi-intents',
+      }),
+    );
+  }
 
   if (!isTestnet) {
     providers.push(

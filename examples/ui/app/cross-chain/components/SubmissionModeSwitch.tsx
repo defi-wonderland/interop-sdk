@@ -39,7 +39,7 @@ export function SubmissionModeSwitch({ disabled = false }: SubmissionModeSwitchP
             aria-checked={isActive}
             disabled={disabled}
             onClick={() => setSubmissionMode(value)}
-            className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+            className={`relative z-10 flex-1 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-1 ${
               disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
             } ${isActive ? 'text-white' : 'text-text-secondary hover:text-text-primary'}`}
           >
