@@ -1,50 +1,29 @@
-import { getAddress, isAddressEqual } from "viem";
+import type { Address } from "viem";
 
 import type { Eip712Envelope, ExpectedEip3009Message } from "../types/eip712.js";
 import { DEFAULT_DEADLINE_SKEW_SECONDS } from "../constants/eip712.js";
 import { Eip712EnvelopeMismatch } from "../errors/Eip712EnvelopeMismatch.exception.js";
+import { parseBigint, parseUnixSeconds } from "../utils/eip712Parsers.js";
+import { readAddressField } from "../utils/eip712Readers.js";
 
 /** Validate the EIP-3009 message fields (`from`, `value`, `validBefore`) against the user intent. */
 export function validateEip3009Message(
     envelope: Eip712Envelope,
     expected: ExpectedEip3009Message,
 ): void {
-    assertFromMatchesUser(envelope, expected);
+    assertFromMatchesUser(envelope, expected.user, expected.provider);
     assertValueWithinLimit(envelope, expected);
     assertValidBeforeFresh(envelope, expected);
 }
 
-function assertFromMatchesUser(envelope: Eip712Envelope, expected: ExpectedEip3009Message): void {
-    const rawFrom = envelope.message.from;
-    if (typeof rawFrom !== "string") {
-        throw new Eip712EnvelopeMismatch({
-            field: "user",
-            provider: expected.provider,
-            primaryType: envelope.primaryType,
-            received: String(rawFrom),
-        });
-    }
-    let normalizedFrom: ReturnType<typeof getAddress>;
-    try {
-        normalizedFrom = getAddress(rawFrom);
-    } catch {
-        throw new Eip712EnvelopeMismatch({
-            field: "user",
-            provider: expected.provider,
-            primaryType: envelope.primaryType,
-            expected: expected.user,
-            received: rawFrom,
-        });
-    }
-    if (!isAddressEqual(normalizedFrom, expected.user)) {
-        throw new Eip712EnvelopeMismatch({
-            field: "user",
-            provider: expected.provider,
-            primaryType: envelope.primaryType,
-            expected: expected.user,
-            received: rawFrom,
-        });
-    }
+function assertFromMatchesUser(envelope: Eip712Envelope, user: Address, provider: string): void {
+    readAddressField({
+        envelope,
+        path: ["from"],
+        field: "user",
+        provider,
+        expected: user,
+    });
 }
 
 function assertValueWithinLimit(envelope: Eip712Envelope, expected: ExpectedEip3009Message): void {
@@ -63,8 +42,8 @@ function assertValueWithinLimit(envelope: Eip712Envelope, expected: ExpectedEip3
             field: "amount",
             provider: expected.provider,
             primaryType: envelope.primaryType,
-            expected: expected.maxValue.toString(),
-            received: value.toString(),
+            expected: expected.maxValue,
+            received: value,
         });
     }
 }
@@ -90,39 +69,4 @@ function assertValidBeforeFresh(envelope: Eip712Envelope, expected: ExpectedEip3
             received: validBefore,
         });
     }
-}
-
-function parseBigint(value: unknown): bigint | undefined {
-    if (typeof value === "bigint") return value;
-    if (typeof value === "number") {
-        return Number.isSafeInteger(value) ? BigInt(value) : undefined;
-    }
-    if (typeof value === "string" && value.length > 0) {
-        try {
-            return BigInt(value);
-        } catch {
-            return undefined;
-        }
-    }
-    return undefined;
-}
-
-function parseUnixSeconds(value: unknown): number | undefined {
-    if (
-        typeof value === "number" &&
-        Number.isFinite(value) &&
-        Number.isInteger(value) &&
-        value > 0
-    ) {
-        return value;
-    }
-    if (typeof value === "bigint" && value > 0n) {
-        if (value > BigInt(Number.MAX_SAFE_INTEGER)) return undefined;
-        return Number(value);
-    }
-    if (typeof value === "string" && value.length > 0) {
-        const parsed = Number(value);
-        if (Number.isFinite(parsed) && Number.isInteger(parsed) && parsed > 0) return parsed;
-    }
-    return undefined;
 }

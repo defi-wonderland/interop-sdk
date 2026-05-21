@@ -7,125 +7,65 @@ import { assertDeadlineFresh, readPermittedEntries } from "../../../src/core/uti
 
 const PROVIDER = "test";
 const TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const SPENDER = "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10";
 const FUTURE = Math.floor(Date.now() / 1000) + 3600;
 const PAST = Math.floor(Date.now() / 1000) - 3600;
 
-function singleEnvelope(overrides?: Partial<Eip712Envelope>): Eip712Envelope {
+function envelope(primaryType: string, permitted: unknown): Eip712Envelope {
     return {
         domain: { chainId: 1, verifyingContract: PERMIT2_ADDRESS },
-        primaryType: "PermitTransferFrom",
+        primaryType,
         types: {},
-        message: {
-            permitted: { token: TOKEN, amount: "1000000" },
-            spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-            nonce: "1",
-            deadline: FUTURE,
-        },
-        ...overrides,
-    };
-}
-
-function batchEnvelope(overrides?: Partial<Eip712Envelope>): Eip712Envelope {
-    return {
-        domain: { chainId: 1, verifyingContract: PERMIT2_ADDRESS },
-        primaryType: "PermitBatchTransferFrom",
-        types: {},
-        message: {
-            permitted: [
-                { token: TOKEN, amount: "400000" },
-                { token: TOKEN, amount: "600000" },
-            ],
-            spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-            nonce: "1",
-            deadline: FUTURE,
-        },
-        ...overrides,
+        message: { permitted, spender: SPENDER, nonce: "1", deadline: FUTURE },
     };
 }
 
 describe("readPermittedEntries", () => {
-    it("normalizes the single PermitTransferFrom shape to an array", () => {
-        const entries = readPermittedEntries(singleEnvelope());
-        expect(entries).toHaveLength(1);
-        expect(entries[0]!.token.toLowerCase()).toBe(TOKEN.toLowerCase());
-        expect(entries[0]!.amount).toBe(1_000_000n);
-    });
+    it("normalizes both single and batch shapes", () => {
+        const singleEntries = readPermittedEntries(
+            envelope("PermitTransferFrom", { token: TOKEN, amount: "1000000" }),
+        );
+        expect(singleEntries).toHaveLength(1);
+        expect(singleEntries[0]!.amount).toBe(1_000_000n);
 
-    it("reads the batch PermitBatchTransferFrom shape directly", () => {
-        const entries = readPermittedEntries(batchEnvelope());
-        expect(entries).toHaveLength(2);
-        expect(entries[0]!.amount).toBe(400_000n);
-        expect(entries[1]!.amount).toBe(600_000n);
+        const batchEntries = readPermittedEntries(
+            envelope("PermitBatchTransferFrom", [
+                { token: TOKEN, amount: "400000" },
+                { token: TOKEN, amount: "600000" },
+            ]),
+        );
+        expect(batchEntries.map((e) => e.amount)).toEqual([400_000n, 600_000n]);
     });
 
     it("returns an empty array for unknown primaryTypes", () => {
-        const envelope = singleEnvelope({ primaryType: "Foo" });
-        expect(readPermittedEntries(envelope)).toEqual([]);
+        expect(readPermittedEntries(envelope("Foo", { token: TOKEN, amount: "1" }))).toEqual([]);
     });
 
-    it("throws Eip712EnvelopeMismatch (not InvalidAddressError) for a malformed token", () => {
-        const envelope = singleEnvelope({
-            message: {
-                permitted: { token: "not-an-address", amount: "1" },
-                spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                nonce: "1",
-                deadline: FUTURE,
-            },
-        });
-        expect(() => readPermittedEntries(envelope)).toThrow(Eip712EnvelopeMismatch);
-    });
-
-    it("throws Eip712EnvelopeMismatch (not SyntaxError) for a non-numeric amount", () => {
-        const envelope = singleEnvelope({
-            message: {
-                permitted: { token: TOKEN, amount: "not-a-number" },
-                spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                nonce: "1",
-                deadline: FUTURE,
-            },
-        });
-        expect(() => readPermittedEntries(envelope)).toThrow(Eip712EnvelopeMismatch);
-    });
-
-    it("throws Eip712EnvelopeMismatch when batch permitted is not an array", () => {
-        const envelope = batchEnvelope({
-            message: {
-                permitted: { token: TOKEN, amount: "1" },
-                spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                nonce: "1",
-                deadline: FUTURE,
-            },
-        });
-        expect(() => readPermittedEntries(envelope)).toThrow(Eip712EnvelopeMismatch);
-    });
-
-    it("throws Eip712EnvelopeMismatch when single permitted is not an object", () => {
-        const envelope = singleEnvelope({
-            message: {
-                permitted: [{ token: TOKEN, amount: "1" }],
-                spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                nonce: "1",
-                deadline: FUTURE,
-            },
-        });
-        expect(() => readPermittedEntries(envelope)).toThrow(Eip712EnvelopeMismatch);
-    });
-
-    it("throws Eip712EnvelopeMismatch when batch permitted is a primitive", () => {
-        const envelope = batchEnvelope({
-            message: {
-                permitted: "not-an-array",
-                spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                nonce: "1",
-                deadline: FUTURE,
-            },
-        });
-        expect(() => readPermittedEntries(envelope)).toThrow(Eip712EnvelopeMismatch);
+    it.each([
+        [
+            "batch permitted is not an array",
+            "PermitBatchTransferFrom",
+            { token: TOKEN, amount: "1" },
+        ],
+        [
+            "single permitted is not an object",
+            "PermitTransferFrom",
+            [{ token: TOKEN, amount: "1" }],
+        ],
+        ["malformed token", "PermitTransferFrom", { token: "not-an-address", amount: "1" }],
+        ["non-numeric amount", "PermitTransferFrom", { token: TOKEN, amount: "not-a-number" }],
+        // Defense-in-depth for the maxAmount bypass: a negative entry would let the total
+        // sum under the cap while a sibling entry exfiltrates the difference.
+        ["negative amount", "PermitTransferFrom", { token: TOKEN, amount: "-1" }],
+    ])("throws Eip712EnvelopeMismatch on %s", (_, primaryType, permitted) => {
+        expect(() => readPermittedEntries(envelope(primaryType, permitted))).toThrow(
+            Eip712EnvelopeMismatch,
+        );
     });
 });
 
 describe("assertDeadlineFresh", () => {
-    it("accepts a future deadline", () => {
+    it("accepts a future deadline and rejects missing/expired values", () => {
         expect(() =>
             assertDeadlineFresh({
                 deadline: FUTURE,
@@ -133,25 +73,14 @@ describe("assertDeadlineFresh", () => {
                 primaryType: "PermitTransferFrom",
             }),
         ).not.toThrow();
-    });
-
-    it("rejects a missing deadline", () => {
-        expect(() =>
-            assertDeadlineFresh({
-                deadline: undefined,
-                provider: PROVIDER,
-                primaryType: "PermitTransferFrom",
-            }),
-        ).toThrowError(/deadline/);
-    });
-
-    it("rejects an expired deadline", () => {
-        expect(() =>
-            assertDeadlineFresh({
-                deadline: PAST,
-                provider: PROVIDER,
-                primaryType: "PermitTransferFrom",
-            }),
-        ).toThrowError(/deadline/);
+        for (const bad of [undefined, PAST]) {
+            expect(() =>
+                assertDeadlineFresh({
+                    deadline: bad,
+                    provider: PROVIDER,
+                    primaryType: "PermitTransferFrom",
+                }),
+            ).toThrowError(/deadline/);
+        }
     });
 });

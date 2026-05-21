@@ -10,7 +10,7 @@ import {
 
 const PROVIDER = "test";
 
-function makeEnvelope(overrides?: Partial<Eip712Envelope>): Eip712Envelope {
+function envelope(overrides?: Partial<Eip712Envelope>): Eip712Envelope {
     return {
         domain: { chainId: 1, verifyingContract: PERMIT2_ADDRESS },
         primaryType: "PermitTransferFrom",
@@ -23,22 +23,13 @@ function makeEnvelope(overrides?: Partial<Eip712Envelope>): Eip712Envelope {
 describe("validatePrimaryType", () => {
     const allowed = new Set(["PermitTransferFrom"]);
 
-    it("accepts an allow-listed primaryType", () => {
-        expect(() => validatePrimaryType(makeEnvelope(), allowed, PROVIDER)).not.toThrow();
-    });
-
-    it("rejects a primaryType outside the allow-list", () => {
-        const envelope = makeEnvelope({ primaryType: "Foo" });
-        expect(() => validatePrimaryType(envelope, allowed, PROVIDER)).toThrow(
-            Eip712EnvelopeMismatch,
-        );
-    });
-
-    it("rejects case mismatches (EIP-712 type names are case-sensitive)", () => {
-        const envelope = makeEnvelope({ primaryType: "permitTransferFrom" });
-        expect(() => validatePrimaryType(envelope, allowed, PROVIDER)).toThrow(
-            Eip712EnvelopeMismatch,
-        );
+    it("accepts allow-listed primaryTypes and rejects everything else (case-sensitive)", () => {
+        expect(() => validatePrimaryType(envelope(), allowed, PROVIDER)).not.toThrow();
+        for (const bad of ["Foo", "permitTransferFrom"]) {
+            expect(() =>
+                validatePrimaryType(envelope({ primaryType: bad }), allowed, PROVIDER),
+            ).toThrow(Eip712EnvelopeMismatch);
+        }
     });
 });
 
@@ -50,76 +41,44 @@ describe("validateEnvelopeDomain", () => {
         provider: PROVIDER,
     };
 
-    it("accepts a matching envelope", () => {
-        expect(() => validateEnvelopeDomain(makeEnvelope(), expected)).not.toThrow();
+    it.each([
+        ["number", 1],
+        ["decimal string", "1"],
+        ["hex string", "0x1"],
+        ["bigint", 1n],
+    ])("accepts chainId as %s", (_, chainId) => {
+        const e = envelope({ domain: { chainId, verifyingContract: PERMIT2_ADDRESS } });
+        expect(() => validateEnvelopeDomain(e, expected)).not.toThrow();
     });
 
-    it("accepts a string chainId that parses to the expected number", () => {
-        const envelope = makeEnvelope({
-            domain: { chainId: "1", verifyingContract: PERMIT2_ADDRESS },
-        });
-        expect(() => validateEnvelopeDomain(envelope, expected)).not.toThrow();
+    it.each([
+        ["mismatched chainId", { chainId: 137, verifyingContract: PERMIT2_ADDRESS }],
+        ["malformed chainId", { chainId: "abc", verifyingContract: PERMIT2_ADDRESS }],
+        ["missing chainId", { verifyingContract: PERMIT2_ADDRESS }],
+        [
+            "non-canonical verifyingContract",
+            { chainId: 1, verifyingContract: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef" },
+        ],
+    ])("rejects %s", (_, domain) => {
+        expect(() => validateEnvelopeDomain(envelope({ domain }), expected)).toThrow(
+            Eip712EnvelopeMismatch,
+        );
     });
 
-    it("accepts hex chainId", () => {
-        const envelope = makeEnvelope({
-            domain: { chainId: "0x1", verifyingContract: PERMIT2_ADDRESS },
-        });
-        expect(() => validateEnvelopeDomain(envelope, expected)).not.toThrow();
-    });
-
-    it("accepts bigint chainId", () => {
-        const envelope = makeEnvelope({
-            domain: { chainId: 1n, verifyingContract: PERMIT2_ADDRESS },
-        });
-        expect(() => validateEnvelopeDomain(envelope, expected)).not.toThrow();
-    });
-
-    it("rejects mismatched chainId", () => {
-        const envelope = makeEnvelope({
-            domain: { chainId: 137, verifyingContract: PERMIT2_ADDRESS },
-        });
-        expect(() => validateEnvelopeDomain(envelope, expected)).toThrowError(/chainId/);
-    });
-
-    it("rejects malformed chainId", () => {
-        const envelope = makeEnvelope({
-            domain: { chainId: "abc", verifyingContract: PERMIT2_ADDRESS },
-        });
-        expect(() => validateEnvelopeDomain(envelope, expected)).toThrowError(/chainId/);
-    });
-
-    it("rejects missing chainId", () => {
-        const envelope = makeEnvelope({
-            domain: { verifyingContract: PERMIT2_ADDRESS },
-        });
-        expect(() => validateEnvelopeDomain(envelope, expected)).toThrowError(/chainId/);
-    });
-
-    it("rejects a non-canonical verifyingContract", () => {
-        const envelope = makeEnvelope({
-            domain: { chainId: 1, verifyingContract: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef" },
-        });
-        expect(() => validateEnvelopeDomain(envelope, expected)).toThrowError(/verifyingContract/);
-    });
-
-    it("accepts checksummed and lowercase verifyingContract equally", () => {
-        const lowercase = makeEnvelope({
+    it("accepts a lowercase verifyingContract and rejects an empty allow-list", () => {
+        const lowercase = envelope({
             domain: { chainId: 1, verifyingContract: PERMIT2_ADDRESS.toLowerCase() },
         });
         expect(() => validateEnvelopeDomain(lowercase, expected)).not.toThrow();
-    });
-
-    it("rejects when verifyingContracts allow-list is empty", () => {
         expect(() =>
-            validateEnvelopeDomain(makeEnvelope(), { ...expected, verifyingContracts: [] }),
+            validateEnvelopeDomain(envelope(), { ...expected, verifyingContracts: [] }),
         ).toThrowError(/verifyingContracts allow-list is empty/);
     });
 
-    it("rejects Permit2 envelopes that carry a domain.version", () => {
-        const envelope = makeEnvelope({
+    it("rejects a Permit2 envelope that carries a domain.version", () => {
+        const e = envelope({
             domain: { chainId: 1, verifyingContract: PERMIT2_ADDRESS, version: "1" },
         });
-        expect(() => validateEnvelopeDomain(envelope, expected)).toThrowError(/domainVersion/);
+        expect(() => validateEnvelopeDomain(e, expected)).toThrowError(/domainVersion/);
     });
 });

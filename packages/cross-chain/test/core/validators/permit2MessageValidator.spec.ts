@@ -6,179 +6,99 @@ import { Eip712EnvelopeMismatch } from "../../../src/core/errors/Eip712EnvelopeM
 import { validatePermit2Message } from "../../../src/core/validators/permit2MessageValidator.js";
 
 const PROVIDER = "test";
-const TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as `0x${string}`;
+const OTHER_TOKEN = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as `0x${string}`;
+const SPENDER = "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10";
 const FUTURE = Math.floor(Date.now() / 1000) + 3600;
 const PAST = Math.floor(Date.now() / 1000) - 3600;
 
-function singleEnvelope(overrides?: Partial<Eip712Envelope>): Eip712Envelope {
+function single(messageOverrides?: Record<string, unknown>): Eip712Envelope {
     return {
         domain: { chainId: 1, verifyingContract: PERMIT2_ADDRESS },
         primaryType: "PermitTransferFrom",
         types: {},
         message: {
             permitted: { token: TOKEN, amount: "1000000" },
-            spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
+            spender: SPENDER,
             nonce: "1",
             deadline: FUTURE,
+            ...messageOverrides,
         },
-        ...overrides,
     };
 }
 
-function batchEnvelope(overrides?: Partial<Eip712Envelope>): Eip712Envelope {
+function batch(permitted: ReadonlyArray<{ token: string; amount: string }>): Eip712Envelope {
     return {
         domain: { chainId: 1, verifyingContract: PERMIT2_ADDRESS },
         primaryType: "PermitBatchTransferFrom",
         types: {},
-        message: {
-            permitted: [
-                { token: TOKEN, amount: "400000" },
-                { token: TOKEN, amount: "600000" },
-            ],
-            spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-            nonce: "1",
-            deadline: FUTURE,
-        },
-        ...overrides,
+        message: { permitted, spender: SPENDER, nonce: "1", deadline: FUTURE },
     };
 }
 
+const expected = { provider: PROVIDER, inputToken: TOKEN, maxAmount: 1_000_000n };
+
 describe("validatePermit2Message", () => {
-    it("accepts a matching envelope", () => {
+    it("accepts a matching single envelope and a batch that sums to <= maxAmount", () => {
+        expect(() => validatePermit2Message(single(), expected)).not.toThrow();
         expect(() =>
-            validatePermit2Message(singleEnvelope(), {
-                provider: PROVIDER,
-                inputToken: TOKEN as `0x${string}`,
-                maxAmount: 1_000_000n,
-            }),
+            validatePermit2Message(
+                batch([
+                    { token: TOKEN, amount: "400000" },
+                    { token: TOKEN, amount: "600000" },
+                ]),
+                expected,
+            ),
         ).not.toThrow();
     });
 
-    it("accepts an amount lower than the requested maximum", () => {
-        const envelope = singleEnvelope({
-            message: {
-                permitted: { token: TOKEN, amount: "500000" },
-                spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                nonce: "1",
-                deadline: FUTURE,
-            },
-        });
+    it.each([
+        // Defense-in-depth: a negative entry would let the batch total slip under maxAmount.
+        [
+            "negative batch entry",
+            batch([
+                { token: TOKEN, amount: "1000000000" },
+                { token: TOKEN, amount: "-999999999" },
+            ]),
+            /amount/,
+        ],
+        [
+            "batch total above maxAmount",
+            batch([
+                { token: TOKEN, amount: "400000" },
+                { token: TOKEN, amount: "600000" },
+            ]),
+            /amount/,
+            500_000n,
+        ],
+        [
+            "tampered token",
+            single({ permitted: { token: OTHER_TOKEN, amount: "1000000" } }),
+            /token/,
+        ],
+        [
+            "zero-amount input token with value diverted to a second token",
+            batch([
+                { token: TOKEN, amount: "0" },
+                { token: OTHER_TOKEN, amount: "1000000" },
+            ]),
+            /token/,
+        ],
+        ["expired deadline", single({ deadline: PAST }), /deadline/],
+        ["empty permitted entries", single({ permitted: undefined }), /structure/],
+    ])("rejects %s", (_, envelope, pattern, maxAmount) => {
         expect(() =>
             validatePermit2Message(envelope, {
-                provider: PROVIDER,
-                inputToken: TOKEN as `0x${string}`,
-                maxAmount: 1_000_000n,
+                ...expected,
+                maxAmount: maxAmount ?? expected.maxAmount,
             }),
-        ).not.toThrow();
+        ).toThrowError(pattern as RegExp);
     });
 
-    it("rejects an inflated total amount across batch entries", () => {
-        expect(() =>
-            validatePermit2Message(batchEnvelope(), {
-                provider: PROVIDER,
-                inputToken: TOKEN as `0x${string}`,
-                maxAmount: 500_000n,
-            }),
-        ).toThrowError(/amount/);
-    });
-
-    it("rejects a tampered token", () => {
-        const envelope = singleEnvelope({
-            message: {
-                permitted: {
-                    token: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
-                    amount: "1000000",
-                },
-                spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                nonce: "1",
-                deadline: FUTURE,
-            },
-        });
-        expect(() =>
-            validatePermit2Message(envelope, {
-                provider: PROVIDER,
-                inputToken: TOKEN as `0x${string}`,
-            }),
-        ).toThrowError(/token/);
-    });
-
-    it("rejects an expired deadline", () => {
-        const envelope = singleEnvelope({
-            message: {
-                permitted: { token: TOKEN, amount: "1000000" },
-                spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                nonce: "1",
-                deadline: PAST,
-            },
-        });
-        expect(() => validatePermit2Message(envelope, { provider: PROVIDER })).toThrowError(
-            /deadline/,
-        );
-    });
-
-    it("rejects an envelope with empty permitted entries", () => {
-        const envelope = singleEnvelope({
-            message: {
-                permitted: undefined,
-                deadline: FUTURE,
-            },
-        });
-        expect(() => validatePermit2Message(envelope, { provider: PROVIDER })).toThrow(
+    it("returns Eip712EnvelopeMismatch (not a raw viem error) for malformed input", () => {
+        const e = single({ permitted: { token: "not-an-address", amount: "1" } });
+        expect(() => validatePermit2Message(e, { provider: PROVIDER })).toThrow(
             Eip712EnvelopeMismatch,
         );
-    });
-
-    it("rejects a batch entry whose token differs from inputToken", () => {
-        const OTHER_TOKEN = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-        const envelope = batchEnvelope({
-            message: {
-                permitted: [
-                    { token: TOKEN, amount: "400000" },
-                    { token: OTHER_TOKEN, amount: "600000" },
-                ],
-                spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                nonce: "1",
-                deadline: FUTURE,
-            },
-        });
-        expect(() =>
-            validatePermit2Message(envelope, {
-                provider: PROVIDER,
-                inputToken: TOKEN as `0x${string}`,
-                maxAmount: 1_000_000n,
-            }),
-        ).toThrowError(/token/);
-    });
-
-    it("rejects a batch with the input token at amount zero and another token carrying the value", () => {
-        const OTHER_TOKEN = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-        const envelope = batchEnvelope({
-            message: {
-                permitted: [
-                    { token: TOKEN, amount: "0" },
-                    { token: OTHER_TOKEN, amount: "1000000" },
-                ],
-                spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                nonce: "1",
-                deadline: FUTURE,
-            },
-        });
-        expect(() =>
-            validatePermit2Message(envelope, {
-                provider: PROVIDER,
-                inputToken: TOKEN as `0x${string}`,
-                maxAmount: 1_000_000n,
-            }),
-        ).toThrowError(/token/);
-    });
-
-    it("accepts a batch where all entries use the input token and the total respects maxAmount", () => {
-        expect(() =>
-            validatePermit2Message(batchEnvelope(), {
-                provider: PROVIDER,
-                inputToken: TOKEN as `0x${string}`,
-                maxAmount: 1_000_000n,
-            }),
-        ).not.toThrow();
     });
 });

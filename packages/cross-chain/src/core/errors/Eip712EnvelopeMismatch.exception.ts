@@ -13,12 +13,14 @@ export type Eip712MismatchField =
     | "recipient"
     | "structure";
 
+type Eip712MismatchScalar = string | number | bigint;
+
 interface Eip712EnvelopeMismatchArgs {
     field: Eip712MismatchField;
     provider: string;
     primaryType?: string;
-    expected?: string | number;
-    received?: string | number;
+    expected?: Eip712MismatchScalar;
+    received?: Eip712MismatchScalar;
     cause?: string;
 }
 
@@ -26,8 +28,8 @@ export class Eip712EnvelopeMismatch extends ProviderGetQuoteFailure {
     public readonly field: Eip712MismatchField;
     public readonly provider: string;
     public readonly primaryType?: string;
-    public readonly expected?: string | number;
-    public readonly received?: string | number;
+    public readonly expected?: Eip712MismatchScalar;
+    public readonly received?: Eip712MismatchScalar;
 
     constructor(args: Eip712EnvelopeMismatchArgs) {
         super(buildMessage(args), args.cause);
@@ -42,8 +44,12 @@ export class Eip712EnvelopeMismatch extends ProviderGetQuoteFailure {
 function buildMessage(args: Eip712EnvelopeMismatchArgs): string {
     const parts = [`EIP-712 envelope mismatch from "${args.provider}" on field "${args.field}"`];
     if (args.primaryType !== undefined) parts.push(`primaryType=${args.primaryType}`);
-    if (args.expected !== undefined) parts.push(`expected=${args.expected}`);
-    if (args.received !== undefined) parts.push(`received=${args.received}`);
+    if (args.expected !== undefined) parts.push(`expected=${formatScalar(args.expected)}`);
+    if (args.received !== undefined) parts.push(`received=${formatScalar(args.received)}`);
     if (args.cause !== undefined) parts.push(args.cause);
     return parts.join("; ");
+}
+
+function formatScalar(value: Eip712MismatchScalar): string {
+    return typeof value === "bigint" ? value.toString() : String(value);
 }

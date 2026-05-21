@@ -40,8 +40,8 @@ export function validatePermit2Message(
                 field: "amount",
                 provider: expected.provider,
                 primaryType: envelope.primaryType,
-                expected: expected.maxAmount.toString(),
-                received: total.toString(),
+                expected: expected.maxAmount,
+                received: total,
             });
         }
     }

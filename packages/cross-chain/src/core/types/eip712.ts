@@ -1,9 +1,23 @@
-import type { Address } from "viem";
+import type { Address, TypedDataParameter } from "viem";
+
+/**
+ * Loose shape for an EIP-712 domain coming off the wire. `chainId` and
+ * `verifyingContract` are not narrowed yet — providers serialize them as
+ * numbers, bigints, decimal strings or 0x-prefixed hex. The envelope
+ * validators normalize them.
+ */
+export interface Eip712Domain {
+    name?: string;
+    version?: string;
+    chainId?: number | bigint | string;
+    verifyingContract?: string;
+    salt?: string;
+}
 
 export interface Eip712Envelope {
-    domain: Record<string, unknown>;
+    domain: Eip712Domain;
     primaryType: string;
-    types: Record<string, Array<{ name: string; type: string }>>;
+    types: Record<string, readonly TypedDataParameter[]>;
     message: Record<string, unknown>;
 }
 

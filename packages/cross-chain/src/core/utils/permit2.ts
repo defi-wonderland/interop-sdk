@@ -1,3 +1,4 @@
+import type { Address } from "viem";
 import { getAddress } from "viem";
 
 import type { Eip712Envelope, PermittedEntry } from "../types/eip712.js";
@@ -7,6 +8,7 @@ import {
     PERMIT2_SINGLE_PRIMARY_TYPES,
 } from "../constants/eip712.js";
 import { Eip712EnvelopeMismatch } from "../errors/Eip712EnvelopeMismatch.exception.js";
+import { parseBigint, parseUnixSeconds } from "./eip712Parsers.js";
 
 interface RawTokenPermission {
     token?: unknown;
@@ -81,7 +83,7 @@ function toPermittedEntry(raw: RawTokenPermission): PermittedEntry {
             received: String(raw.token),
         });
     }
-    let token: PermittedEntry["token"];
+    let token: Address;
     try {
         token = getAddress(raw.token);
     } catch {
@@ -91,10 +93,8 @@ function toPermittedEntry(raw: RawTokenPermission): PermittedEntry {
             received: raw.token,
         });
     }
-    let amount: bigint;
-    try {
-        amount = BigInt(String(raw.amount ?? "0"));
-    } catch {
+    const amount = parseBigint(raw.amount ?? "0");
+    if (amount === undefined) {
         throw new Eip712EnvelopeMismatch({
             field: "amount",
             provider: "permit2",
@@ -102,24 +102,4 @@ function toPermittedEntry(raw: RawTokenPermission): PermittedEntry {
         });
     }
     return { token, amount };
-}
-
-function parseUnixSeconds(value: unknown): number | undefined {
-    if (
-        typeof value === "number" &&
-        Number.isFinite(value) &&
-        Number.isInteger(value) &&
-        value > 0
-    ) {
-        return value;
-    }
-    if (typeof value === "bigint" && value > 0n) {
-        if (value > BigInt(Number.MAX_SAFE_INTEGER)) return undefined;
-        return Number(value);
-    }
-    if (typeof value === "string" && value.length > 0) {
-        const parsed = Number(value);
-        if (Number.isFinite(parsed) && Number.isInteger(parsed) && parsed > 0) return parsed;
-    }
-    return undefined;
 }

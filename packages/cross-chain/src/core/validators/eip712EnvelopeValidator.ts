@@ -1,8 +1,10 @@
+import type { Address } from "viem";
 import { getAddress, isAddressEqual } from "viem";
 
 import type { Eip712Envelope, ExpectedEnvelope } from "../types/eip712.js";
 import { PERMIT2_PRIMARY_TYPES } from "../constants/eip712.js";
 import { Eip712EnvelopeMismatch } from "../errors/Eip712EnvelopeMismatch.exception.js";
+import { parseChainId } from "../utils/eip712Parsers.js";
 
 /** Reject envelopes whose `primaryType` is not in the allow-list. */
 export function validatePrimaryType(
@@ -32,7 +34,7 @@ export function validateEnvelopeDomain(envelope: Eip712Envelope, expected: Expec
         });
     }
 
-    const chainId = coerceChainId(envelope.domain.chainId);
+    const chainId = parseChainId(envelope.domain.chainId);
     if (chainId === undefined) {
         throw new Eip712EnvelopeMismatch({
             field: "chainId",
@@ -63,7 +65,7 @@ export function validateEnvelopeDomain(envelope: Eip712Envelope, expected: Expec
         });
     }
 
-    let normalized: ReturnType<typeof getAddress>;
+    let normalized: Address;
     try {
         normalized = getAddress(rawVerifying);
     } catch {
@@ -100,19 +102,4 @@ export function validateEnvelopeDomain(envelope: Eip712Envelope, expected: Expec
             received: String(envelope.domain.version),
         });
     }
-}
-
-function coerceChainId(value: unknown): number | undefined {
-    if (typeof value === "number" && Number.isFinite(value) && Number.isInteger(value)) {
-        return value;
-    }
-    if (typeof value === "bigint") {
-        if (value > BigInt(Number.MAX_SAFE_INTEGER)) return undefined;
-        return Number(value);
-    }
-    if (typeof value === "string" && value.length > 0) {
-        const parsed = value.startsWith("0x") ? Number.parseInt(value, 16) : Number(value);
-        if (Number.isFinite(parsed) && Number.isInteger(parsed)) return parsed;
-    }
-    return undefined;
 }
