@@ -37,13 +37,14 @@ export function readAddressField(args: ReadAddressFieldArgs): Address {
     let normalized: Address;
     try {
         normalized = getAddress(raw);
-    } catch {
+    } catch (error) {
         throw new Eip712EnvelopeMismatch({
             field,
             provider,
             primaryType: envelope.primaryType,
             expected,
             received: raw,
+            cause: error instanceof Error ? error.message : undefined,
         });
     }
 

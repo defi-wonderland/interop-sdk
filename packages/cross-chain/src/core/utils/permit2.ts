@@ -12,59 +12,82 @@ interface RawTokenPermission {
 }
 
 /** Normalize Permit2's `permitted` field (single or batch) into a typed array. */
-export function readPermittedEntries(envelope: Eip712Envelope): PermittedEntry[] {
+export function readPermittedEntries(envelope: Eip712Envelope, provider: string): PermittedEntry[] {
     const raw = envelope.message.permitted;
     if (PERMIT2_SINGLE_PRIMARY_TYPES.has(envelope.primaryType)) {
         if (raw === undefined || raw === null) return [];
         if (typeof raw !== "object" || Array.isArray(raw)) {
             throw new Eip712EnvelopeMismatch({
                 field: "structure",
-                provider: "permit2",
+                provider,
                 primaryType: envelope.primaryType,
                 cause: "permitted must be an object",
             });
         }
-        return [toPermittedEntry(raw as RawTokenPermission)];
+        return [toPermittedEntry(raw, envelope.primaryType, provider)];
     }
     if (PERMIT2_BATCH_PRIMARY_TYPES.has(envelope.primaryType)) {
         if (raw === undefined || raw === null) return [];
         if (!Array.isArray(raw)) {
             throw new Eip712EnvelopeMismatch({
                 field: "structure",
-                provider: "permit2",
+                provider,
                 primaryType: envelope.primaryType,
                 cause: "permitted must be an array",
             });
         }
-        return (raw as RawTokenPermission[]).map(toPermittedEntry);
+        return raw.map((entry) => toPermittedEntry(entry, envelope.primaryType, provider));
     }
     return [];
 }
 
-function toPermittedEntry(raw: RawTokenPermission): PermittedEntry {
-    if (typeof raw.token !== "string") {
+function toPermittedEntry(raw: unknown, primaryType: string, provider: string): PermittedEntry {
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new Eip712EnvelopeMismatch({
+            field: "structure",
+            provider,
+            primaryType,
+            received: String(raw),
+            cause: "permitted entry must be an object",
+        });
+    }
+    const entry = raw as RawTokenPermission;
+    if (typeof entry.token !== "string") {
         throw new Eip712EnvelopeMismatch({
             field: "token",
-            provider: "permit2",
-            received: String(raw.token),
+            provider,
+            primaryType,
+            received: String(entry.token),
         });
     }
     let token: Address;
     try {
-        token = getAddress(raw.token);
-    } catch {
+        token = getAddress(entry.token);
+    } catch (error) {
         throw new Eip712EnvelopeMismatch({
             field: "token",
-            provider: "permit2",
-            received: raw.token,
+            provider,
+            primaryType,
+            received: entry.token,
+            cause: error instanceof Error ? error.message : undefined,
         });
     }
-    const amount = toNonNegativeBigInt(raw.amount ?? "0");
+    if (entry.amount === undefined || entry.amount === null) {
+        throw new Eip712EnvelopeMismatch({
+            field: "amount",
+            provider,
+            primaryType,
+            received: String(entry.amount),
+            cause: "amount field is required",
+        });
+    }
+    const amount = toNonNegativeBigInt(entry.amount);
     if (amount === undefined) {
         throw new Eip712EnvelopeMismatch({
             field: "amount",
-            provider: "permit2",
-            received: String(raw.amount),
+            provider,
+            primaryType,
+            received: String(entry.amount),
         });
     }
     return { token, amount };
