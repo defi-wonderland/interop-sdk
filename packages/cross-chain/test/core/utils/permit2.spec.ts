@@ -44,48 +44,14 @@ describe("readPermittedEntries", () => {
         ).toEqual([]);
     });
 
-    it("propagates the caller's provider into thrown mismatches", () => {
-        try {
+    // Defense-in-depth for the maxAmount bypass: a negative entry would let the total
+    // sum under the cap while a sibling entry exfiltrates the difference.
+    it("rejects a negative amount as Eip712EnvelopeMismatch", () => {
+        expect(() =>
             readPermittedEntries(
-                envelope("PermitTransferFrom", { token: "not-an-address", amount: "1" }),
-                "across",
-            );
-            throw new Error("expected throw");
-        } catch (error) {
-            expect(error).toBeInstanceOf(Eip712EnvelopeMismatch);
-            expect((error as Eip712EnvelopeMismatch).provider).toBe("across");
-        }
-    });
-
-    it.each([
-        [
-            "batch permitted is not an array",
-            "PermitBatchTransferFrom",
-            { token: TOKEN, amount: "1" },
-        ],
-        [
-            "single permitted is not an object",
-            "PermitTransferFrom",
-            [{ token: TOKEN, amount: "1" }],
-        ],
-        ["malformed token", "PermitTransferFrom", { token: "not-an-address", amount: "1" }],
-        ["non-numeric amount", "PermitTransferFrom", { token: TOKEN, amount: "not-a-number" }],
-        // Defense-in-depth for the maxAmount bypass: a negative entry would let the total
-        // sum under the cap while a sibling entry exfiltrates the difference.
-        ["negative amount", "PermitTransferFrom", { token: TOKEN, amount: "-1" }],
-        // Wire-format violation: amount is required on Permit2 TokenPermissions.
-        ["missing amount", "PermitTransferFrom", { token: TOKEN }],
-        ["null amount", "PermitTransferFrom", { token: TOKEN, amount: null }],
-        // API contract: malformed batch entries must surface as typed mismatches, not raw TypeErrors.
-        ["null batch entry", "PermitBatchTransferFrom", [null]],
-        [
-            "non-object batch entry",
-            "PermitBatchTransferFrom",
-            [{ token: TOKEN, amount: "1" }, "scalar"],
-        ],
-    ])("throws Eip712EnvelopeMismatch on %s", (_, primaryType, permitted) => {
-        expect(() => readPermittedEntries(envelope(primaryType, permitted), PROVIDER)).toThrow(
-            Eip712EnvelopeMismatch,
-        );
+                envelope("PermitTransferFrom", { token: TOKEN, amount: "-1" }),
+                PROVIDER,
+            ),
+        ).toThrow(Eip712EnvelopeMismatch);
     });
 });

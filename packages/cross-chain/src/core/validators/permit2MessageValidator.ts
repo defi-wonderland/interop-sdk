@@ -2,7 +2,7 @@ import { isAddressEqual } from "viem";
 
 import type { Eip712Envelope, ExpectedPermit2Message } from "../types/eip712.js";
 import { Eip712EnvelopeMismatch } from "../errors/Eip712EnvelopeMismatch.exception.js";
-import { assertNotNativeAsset, readAddressField } from "../utils/eip712Readers.js";
+import { readAddressField } from "../utils/eip712Readers.js";
 import { assertNotExpired } from "../utils/expiry.js";
 import { readPermittedEntries } from "../utils/permit2.js";
 
@@ -16,15 +16,6 @@ export function validatePermit2Message(
     envelope: Eip712Envelope,
     expected: ExpectedPermit2Message,
 ): void {
-    if (expected.maxAmount !== undefined && expected.inputToken === undefined) {
-        throw new Eip712EnvelopeMismatch({
-            field: "structure",
-            provider: expected.provider,
-            primaryType: envelope.primaryType,
-            cause: "maxAmount requires inputToken — summing heterogeneous tokens is unsafe",
-        });
-    }
-
     const entries = readPermittedEntries(envelope, expected.provider);
     if (entries.length === 0) {
         throw new Eip712EnvelopeMismatch({
@@ -32,15 +23,6 @@ export function validatePermit2Message(
             provider: expected.provider,
             primaryType: envelope.primaryType,
             cause: "permitted entries missing or empty",
-        });
-    }
-
-    for (const entry of entries) {
-        assertNotNativeAsset({
-            assetAddress: entry.token,
-            provider: expected.provider,
-            primaryType: envelope.primaryType,
-            mechanism: "Permit2",
         });
     }
 

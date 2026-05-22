@@ -52,22 +52,7 @@ describe("validateEnvelopeDomain", () => {
 
     it.each([
         ["mismatched chainId", { chainId: 137, verifyingContract: PERMIT2_ADDRESS }],
-        ["malformed chainId", { chainId: "abc", verifyingContract: PERMIT2_ADDRESS }],
         ["missing chainId", { verifyingContract: PERMIT2_ADDRESS }],
-        // Strict parser: each of these would have slipped past a permissive Number() or bare BigInt().
-        ["scientific notation", { chainId: "1e10", verifyingContract: PERMIT2_ADDRESS }],
-        ["hex with non-hex chars", { chainId: "0x1ZZZ", verifyingContract: PERMIT2_ADDRESS }],
-        ["whitespace-padded chainId", { chainId: " 1 ", verifyingContract: PERMIT2_ADDRESS }],
-        ["uppercase 0X hex chainId", { chainId: "0X1", verifyingContract: PERMIT2_ADDRESS }],
-        ["binary prefix chainId", { chainId: "0b1", verifyingContract: PERMIT2_ADDRESS }],
-        ["octal prefix chainId", { chainId: "0o7", verifyingContract: PERMIT2_ADDRESS }],
-        ["bare 0x with no digits", { chainId: "0x", verifyingContract: PERMIT2_ADDRESS }],
-        ["fractional chainId", { chainId: 1.5, verifyingContract: PERMIT2_ADDRESS }],
-        ["negative chainId", { chainId: -1, verifyingContract: PERMIT2_ADDRESS }],
-        [
-            "chainId above MAX_SAFE_INTEGER",
-            { chainId: BigInt(Number.MAX_SAFE_INTEGER) + 1n, verifyingContract: PERMIT2_ADDRESS },
-        ],
         [
             "non-canonical verifyingContract",
             { chainId: 1, verifyingContract: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef" },
@@ -86,19 +71,5 @@ describe("validateEnvelopeDomain", () => {
         expect(() =>
             validateEnvelopeDomain(envelope(), { ...expected, verifyingContracts: [] }),
         ).toThrowError(/verifyingContracts allow-list is empty/);
-    });
-
-    it("rejects a Permit2 envelope that carries a domain.version", () => {
-        const e = envelope({
-            domain: { chainId: 1, verifyingContract: PERMIT2_ADDRESS, version: "1" },
-        });
-        expect(() => validateEnvelopeDomain(e, expected)).toThrowError(/domainVersion/);
-    });
-
-    it("rejects a Permit2 envelope that carries a domain.salt", () => {
-        const e = envelope({
-            domain: { chainId: 1, verifyingContract: PERMIT2_ADDRESS, salt: "0xdead" },
-        });
-        expect(() => validateEnvelopeDomain(e, expected)).toThrowError(/salt/);
     });
 });

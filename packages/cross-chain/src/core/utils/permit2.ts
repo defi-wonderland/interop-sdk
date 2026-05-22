@@ -16,71 +16,18 @@ export function readPermittedEntries(envelope: Eip712Envelope, provider: string)
     const raw = envelope.message.permitted;
     if (PERMIT2_SINGLE_PRIMARY_TYPES.has(envelope.primaryType)) {
         if (raw === undefined || raw === null) return [];
-        if (typeof raw !== "object" || Array.isArray(raw)) {
-            throw new Eip712EnvelopeMismatch({
-                field: "structure",
-                provider,
-                primaryType: envelope.primaryType,
-                cause: "permitted must be an object",
-            });
-        }
-        return [toPermittedEntry(raw, envelope.primaryType, provider)];
+        return [toPermittedEntry(raw as RawTokenPermission, envelope.primaryType, provider)];
     }
     if (PERMIT2_BATCH_PRIMARY_TYPES.has(envelope.primaryType)) {
-        if (raw === undefined || raw === null) return [];
-        if (!Array.isArray(raw)) {
-            throw new Eip712EnvelopeMismatch({
-                field: "structure",
-                provider,
-                primaryType: envelope.primaryType,
-                cause: "permitted must be an array",
-            });
-        }
+        if (!Array.isArray(raw)) return [];
         return raw.map((entry) => toPermittedEntry(entry, envelope.primaryType, provider));
     }
     return [];
 }
 
 function toPermittedEntry(raw: unknown, primaryType: string, provider: string): PermittedEntry {
-    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-        throw new Eip712EnvelopeMismatch({
-            field: "structure",
-            provider,
-            primaryType,
-            received: String(raw),
-            cause: "permitted entry must be an object",
-        });
-    }
-    const entry = raw as RawTokenPermission;
-    if (typeof entry.token !== "string") {
-        throw new Eip712EnvelopeMismatch({
-            field: "token",
-            provider,
-            primaryType,
-            received: String(entry.token),
-        });
-    }
-    let token: Address;
-    try {
-        token = getAddress(entry.token);
-    } catch (error) {
-        throw new Eip712EnvelopeMismatch({
-            field: "token",
-            provider,
-            primaryType,
-            received: entry.token,
-            cause: error instanceof Error ? error.message : undefined,
-        });
-    }
-    if (entry.amount === undefined || entry.amount === null) {
-        throw new Eip712EnvelopeMismatch({
-            field: "amount",
-            provider,
-            primaryType,
-            received: String(entry.amount),
-            cause: "amount field is required",
-        });
-    }
+    const entry = (raw ?? {}) as RawTokenPermission;
+    const token: Address = getAddress(entry.token as string);
     const amount = toNonNegativeBigInt(entry.amount);
     if (amount === undefined) {
         throw new Eip712EnvelopeMismatch({

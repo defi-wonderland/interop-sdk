@@ -1,23 +1,21 @@
 import type { Eip712Envelope, ExpectedEip3009Message } from "../types/eip712.js";
 import { Eip712EnvelopeMismatch } from "../errors/Eip712EnvelopeMismatch.exception.js";
-import { assertEip3009DomainVersion, readAddressField } from "../utils/eip712Readers.js";
+import { readAddressField } from "../utils/eip712Readers.js";
 import { assertNotExpired, assertNotPostDated } from "../utils/expiry.js";
 import { toNonNegativeBigInt } from "../utils/toNonNegativeBigInt.js";
 
 /**
- * Validate `domain.version`, `from`, `to`, `value`, `validAfter`, and
- * `validBefore` against the user intent.
+ * Validate `from`, `to`, `value`, `validAfter`, and `validBefore` against the
+ * user intent.
  *
  * Composability note: callers must also run {@link validatePrimaryType} and
  * {@link validateEnvelopeDomain} — this validator does not cross-check
- * `chainId` or the contract allow-list (including rejecting native-asset
- * placeholders as `verifyingContract`).
+ * `chainId`, the contract allow-list, or `domain.version`.
  */
 export function validateEip3009Message(
     envelope: Eip712Envelope,
     expected: ExpectedEip3009Message,
 ): void {
-    assertEip3009DomainVersion(envelope, expected.provider);
     readAddressField({
         envelope,
         path: ["from"],

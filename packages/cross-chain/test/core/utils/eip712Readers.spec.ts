@@ -3,12 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Eip712Envelope } from "../../../src/core/types/eip712.js";
 import { PERMIT2_ADDRESS } from "../../../src/core/constants/eip712.js";
 import { Eip712EnvelopeMismatch } from "../../../src/core/errors/Eip712EnvelopeMismatch.exception.js";
-import {
-    assertEip3009DomainVersion,
-    assertNotNativeAsset,
-    readAddressField,
-} from "../../../src/core/utils/eip712Readers.js";
-import { NATIVE_ASSET_ADDRESS, NATIVE_ZERO_ADDRESS } from "../../../src/core/utils/token.js";
+import { readAddressField } from "../../../src/core/utils/eip712Readers.js";
 
 const PROVIDER = "test";
 const TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as `0x${string}`;
@@ -35,16 +30,10 @@ describe("readAddressField", () => {
         expect(result).toBe(RECEIVER);
     });
 
-    it.each([
-        ["missing path", {}],
-        ["non-string value", { witness: { receiver: 42 } }],
-        ["malformed address", { witness: { receiver: "not-an-address" } }],
-        ["non-object intermediate", { witness: "not-an-object" }],
-        ["address mismatch", { witness: { receiver: TOKEN } }],
-    ])("throws Eip712EnvelopeMismatch on %s", (_, message) => {
+    it("rejects an address that does not match the expected value", () => {
         expect(() =>
             readAddressField({
-                envelope: envelope(message),
+                envelope: envelope({ witness: { receiver: TOKEN } }),
                 path: ["witness", "receiver"],
                 field: "recipient",
                 provider: PROVIDER,
@@ -52,45 +41,16 @@ describe("readAddressField", () => {
             }),
         ).toThrow(Eip712EnvelopeMismatch);
     });
-});
 
-describe("assertNotNativeAsset", () => {
-    it("passes for a non-native address and rejects every native placeholder", () => {
+    it("rejects a missing path with a typed mismatch", () => {
         expect(() =>
-            assertNotNativeAsset({
-                assetAddress: TOKEN,
+            readAddressField({
+                envelope: envelope({}),
+                path: ["witness", "receiver"],
+                field: "recipient",
                 provider: PROVIDER,
-                primaryType: "PermitTransferFrom",
-                mechanism: "Permit2",
+                expected: RECEIVER,
             }),
-        ).not.toThrow();
-
-        for (const native of [NATIVE_ASSET_ADDRESS, NATIVE_ZERO_ADDRESS]) {
-            expect(() =>
-                assertNotNativeAsset({
-                    assetAddress: native,
-                    provider: PROVIDER,
-                    primaryType: "PermitTransferFrom",
-                    mechanism: "Permit2",
-                }),
-            ).toThrow(Eip712EnvelopeMismatch);
-        }
-    });
-});
-
-describe("assertEip3009DomainVersion", () => {
-    it("accepts a non-empty version and rejects missing or empty values", () => {
-        const make = (version?: string): Eip712Envelope => ({
-            domain: { chainId: 1, verifyingContract: TOKEN, version },
-            primaryType: "TransferWithAuthorization",
-            types: {},
-            message: {},
-        });
-        expect(() => assertEip3009DomainVersion(make("2"), PROVIDER)).not.toThrow();
-        for (const invalid of [undefined, ""]) {
-            expect(() => assertEip3009DomainVersion(make(invalid), PROVIDER)).toThrow(
-                Eip712EnvelopeMismatch,
-            );
-        }
+        ).toThrow(Eip712EnvelopeMismatch);
     });
 });

@@ -10,12 +10,11 @@ interface AssertNotExpiredArgs {
 
 /**
  * Assert that a Permit2 `deadline` or EIP-3009 `validBefore` timestamp has not
- * expired (with a small `skewSeconds` tolerance). Throws
- * {@link Eip712EnvelopeMismatch} for missing, malformed, or expired values.
+ * expired (with a small `skewSeconds` tolerance).
  */
 export function assertNotExpired(args: AssertNotExpiredArgs): void {
     const parsed = toUnixSeconds(args.timestamp);
-    if (parsed === undefined) {
+    if (parsed === undefined || parsed <= 0) {
         throw new Eip712EnvelopeMismatch({
             field: "deadline",
             provider: args.provider,
@@ -44,7 +43,7 @@ export function assertNotExpired(args: AssertNotExpiredArgs): void {
 export function assertNotPostDated(args: AssertNotExpiredArgs): void {
     if (args.timestamp === 0 || args.timestamp === 0n || args.timestamp === "0") return;
     const parsed = toUnixSeconds(args.timestamp);
-    if (parsed === undefined) {
+    if (parsed === undefined || parsed <= 0) {
         throw new Eip712EnvelopeMismatch({
             field: "deadline",
             provider: args.provider,
@@ -67,26 +66,22 @@ export function assertNotPostDated(args: AssertNotExpiredArgs): void {
     }
 }
 
-const DECIMAL_UNIX_SECONDS = /^\d+$/;
-const MAX_SAFE_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
-
 function toUnixSeconds(value: unknown): number | undefined {
     if (typeof value === "number") {
-        return Number.isSafeInteger(value) && value > 0 ? value : undefined;
+        return Number.isSafeInteger(value) ? value : undefined;
     }
-    if (typeof value === "bigint") {
-        if (value <= 0n || value > MAX_SAFE_BIGINT) return undefined;
-        return Number(value);
-    }
-    if (typeof value !== "string" || value.length === 0) return undefined;
-    if (!DECIMAL_UNIX_SECONDS.test(value)) return undefined;
-
     let parsed: bigint;
-    try {
-        parsed = BigInt(value);
-    } catch {
+    if (typeof value === "bigint") {
+        parsed = value;
+    } else if (typeof value === "string" && value.length > 0) {
+        try {
+            parsed = BigInt(value);
+        } catch {
+            return undefined;
+        }
+    } else {
         return undefined;
     }
-    if (parsed <= 0n || parsed > MAX_SAFE_BIGINT) return undefined;
-    return Number(parsed);
+    const asNumber = Number(parsed);
+    return Number.isSafeInteger(asNumber) ? asNumber : undefined;
 }

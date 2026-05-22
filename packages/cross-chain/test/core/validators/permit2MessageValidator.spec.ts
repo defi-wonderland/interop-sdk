@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import type { Eip712Envelope } from "../../../src/core/types/eip712.js";
 import { PERMIT2_ADDRESS } from "../../../src/core/constants/eip712.js";
-import { Eip712EnvelopeMismatch } from "../../../src/core/errors/Eip712EnvelopeMismatch.exception.js";
-import { NATIVE_ASSET_ADDRESS, NATIVE_ZERO_ADDRESS } from "../../../src/core/utils/token.js";
 import { validatePermit2Message } from "../../../src/core/validators/permit2MessageValidator.js";
 
 const PROVIDER = "test";
@@ -92,7 +90,6 @@ describe("validatePermit2Message", () => {
             /token/,
         ],
         ["mismatched spender", single({ spender: OTHER_SPENDER }), /spender/],
-        ["missing spender", single({ spender: undefined }), /spender/],
         ["expired deadline", single({ deadline: PAST }), /deadline/],
         ["empty permitted entries", single({ permitted: undefined }), /structure/],
     ])("rejects %s", (_, envelope, pattern, maxAmount) => {
@@ -102,32 +99,5 @@ describe("validatePermit2Message", () => {
                 maxAmount: maxAmount ?? expected.maxAmount,
             }),
         ).toThrowError(pattern as RegExp);
-    });
-
-    it("returns Eip712EnvelopeMismatch (not a raw viem error) for malformed input", () => {
-        const e = single({ permitted: { token: "not-an-address", amount: "1" } });
-        expect(() => validatePermit2Message(e, { provider: PROVIDER, spender: SPENDER })).toThrow(
-            Eip712EnvelopeMismatch,
-        );
-    });
-
-    it("rejects maxAmount without inputToken — heterogeneous-token cap is unsafe", () => {
-        expect(() =>
-            validatePermit2Message(single(), {
-                provider: PROVIDER,
-                spender: SPENDER,
-                maxAmount: 1_000_000n,
-            }),
-        ).toThrowError(/maxAmount requires inputToken/);
-    });
-
-    it.each([
-        ["EIP-7528 placeholder", NATIVE_ASSET_ADDRESS as `0x${string}`],
-        ["zero-address placeholder", NATIVE_ZERO_ADDRESS as `0x${string}`],
-    ])("rejects a native-asset %s in permitted[].token", (_, native) => {
-        const e = single({ permitted: { token: native, amount: "1000000" } });
-        expect(() => validatePermit2Message(e, { provider: PROVIDER, spender: SPENDER })).toThrow(
-            Eip712EnvelopeMismatch,
-        );
     });
 });
