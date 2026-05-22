@@ -9,7 +9,7 @@ Hardening applied as part of this PR:
 -   `chainId` parser delegates hex decoding to viem's `isHex` + `hexToBigInt` and matches decimals against `/^\d+$/`, so `' 1 '`, `'0X1'`, `'0b1'`, `'0o7'` and `'0x'` no longer coerce to mainnet.
 -   `toNonNegativeBigInt` and `toUnixSeconds` apply the same strict-grammar approach to amount and timestamp wire fields.
 -   `validatePermit2Message` calls `assertNotNativeAsset` on every permitted token and refuses `maxAmount` without `inputToken` (heterogeneous-token sums are unsafe).
--   `validateEip3009Message` calls `assertNotNativeAsset` on `domain.verifyingContract` and rejects post-dated `validAfter` timestamps.
+-   `validateEip3009Message` rejects post-dated `validAfter` timestamps. The contract allow-list (including rejecting native-asset placeholders) is left to the caller via `validateEnvelopeDomain`.
 -   `validateEnvelopeDomain` also forbids `domain.salt` for Permit2 envelopes (same rationale as `domain.version`).
 -   `readPermittedEntries` threads the caller's `provider` through every nested mismatch, so logs attribute correctly.
 -   Batch entries that are `null` or non-objects now surface as typed `Eip712EnvelopeMismatch` instead of a raw `TypeError`.

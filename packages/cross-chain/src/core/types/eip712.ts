@@ -29,7 +29,6 @@ export interface ExpectedEnvelope {
 
 export interface ExpectedPermit2Message {
     provider: string;
-    /** Contract authorized to pull tokens via Permit2 (e.g. settler, periphery). */
     spender: Address;
     inputToken?: Address;
     maxAmount?: bigint;
@@ -39,7 +38,6 @@ export interface ExpectedPermit2Message {
 export interface ExpectedEip3009Message {
     provider: string;
     user: Address;
-    /** Authorized recipient — for `ReceiveWithAuthorization` this must equal `msg.sender`. */
     to: Address;
     maxValue?: bigint;
     skewSeconds?: number;

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import type { Eip712Envelope } from "../../../src/core/types/eip712.js";
 import { Eip712EnvelopeMismatch } from "../../../src/core/errors/Eip712EnvelopeMismatch.exception.js";
-import { NATIVE_ASSET_ADDRESS, NATIVE_ZERO_ADDRESS } from "../../../src/core/utils/token.js";
 import { validateEip3009Message } from "../../../src/core/validators/eip3009MessageValidator.js";
 
 const PROVIDER = "test";
@@ -91,14 +90,5 @@ describe("validateEip3009Message", () => {
         expect(() =>
             validateEip3009Message(envelope({ validAfter: farFuture }), expected),
         ).toThrowError(/validAfter/);
-    });
-
-    it.each([
-        ["EIP-7528 placeholder", NATIVE_ASSET_ADDRESS],
-        ["zero-address placeholder", NATIVE_ZERO_ADDRESS],
-    ])("rejects a native-asset %s as verifyingContract", (_, native) => {
-        const e = envelope();
-        e.domain = { ...e.domain, verifyingContract: native };
-        expect(() => validateEip3009Message(e, expected)).toThrow(Eip712EnvelopeMismatch);
     });
 });
