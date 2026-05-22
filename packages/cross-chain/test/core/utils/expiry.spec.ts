@@ -54,7 +54,7 @@ describe("assertNotExpired", () => {
 
 describe("assertNotPostDated", () => {
     it("accepts validAfter=0 (immediately valid) and a past timestamp", () => {
-        for (const ts of [0, 0n, "0", PAST, BigInt(PAST), String(PAST)]) {
+        for (const ts of [0, 0n, "0", "0x0", "0x00", "00", PAST, BigInt(PAST), String(PAST)]) {
             expect(() =>
                 assertNotPostDated({
                     timestamp: ts,

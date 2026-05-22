@@ -41,9 +41,8 @@ export function assertNotExpired(args: AssertNotExpiredArgs): void {
  * `skewSeconds`. `validAfter: 0` means "immediately valid" and is legitimate.
  */
 export function assertNotPostDated(args: AssertNotExpiredArgs): void {
-    if (args.timestamp === 0 || args.timestamp === 0n || args.timestamp === "0") return;
     const parsed = toUnixSeconds(args.timestamp);
-    if (parsed === undefined || parsed <= 0) {
+    if (parsed === undefined || parsed < 0) {
         throw new Eip712EnvelopeMismatch({
             field: "deadline",
             provider: args.provider,
@@ -52,6 +51,7 @@ export function assertNotPostDated(args: AssertNotExpiredArgs): void {
             cause: "validAfter malformed",
         });
     }
+    if (parsed === 0) return;
     const skew = args.skewSeconds ?? DEFAULT_DEADLINE_SKEW_SECONDS;
     const now = Math.floor(Date.now() / 1000);
     if (parsed > now + skew) {
