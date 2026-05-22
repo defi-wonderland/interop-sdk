@@ -9,6 +9,7 @@ export type Eip712MismatchField =
     | "amount"
     | "deadline"
     | "user"
+    | "spender"
     | "to"
     | "recipient"
     | "structure";

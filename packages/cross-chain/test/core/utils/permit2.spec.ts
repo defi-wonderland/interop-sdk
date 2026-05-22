@@ -3,13 +3,11 @@ import { describe, expect, it } from "vitest";
 import type { Eip712Envelope } from "../../../src/core/types/eip712.js";
 import { PERMIT2_ADDRESS } from "../../../src/core/constants/eip712.js";
 import { Eip712EnvelopeMismatch } from "../../../src/core/errors/Eip712EnvelopeMismatch.exception.js";
-import { assertDeadlineFresh, readPermittedEntries } from "../../../src/core/utils/permit2.js";
+import { readPermittedEntries } from "../../../src/core/utils/permit2.js";
 
-const PROVIDER = "test";
 const TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const SPENDER = "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10";
 const FUTURE = Math.floor(Date.now() / 1000) + 3600;
-const PAST = Math.floor(Date.now() / 1000) - 3600;
 
 function envelope(primaryType: string, permitted: unknown): Eip712Envelope {
     return {
@@ -61,26 +59,5 @@ describe("readPermittedEntries", () => {
         expect(() => readPermittedEntries(envelope(primaryType, permitted))).toThrow(
             Eip712EnvelopeMismatch,
         );
-    });
-});
-
-describe("assertDeadlineFresh", () => {
-    it("accepts a future deadline and rejects missing/expired values", () => {
-        expect(() =>
-            assertDeadlineFresh({
-                deadline: FUTURE,
-                provider: PROVIDER,
-                primaryType: "PermitTransferFrom",
-            }),
-        ).not.toThrow();
-        for (const bad of [undefined, PAST]) {
-            expect(() =>
-                assertDeadlineFresh({
-                    deadline: bad,
-                    provider: PROVIDER,
-                    primaryType: "PermitTransferFrom",
-                }),
-            ).toThrowError(/deadline/);
-        }
     });
 });

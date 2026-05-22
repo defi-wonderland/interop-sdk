@@ -4,11 +4,6 @@ import { getAddress } from "viem";
 /** Permit2 (Uniswap) — same CREATE2-deployed address on every EVM chain. */
 export const PERMIT2_ADDRESS: Address = getAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3");
 
-/** Relay Depository — used with `primaryType: "CallRequest"`. */
-export const RELAY_DEPOSITORY_ADDRESS: Address = getAddress(
-    "0x4cD00E387622C35bDDB9b4c962C136462338BC31",
-);
-
 export const PERMIT2_SINGLE_PRIMARY_TYPES: ReadonlySet<string> = new Set([
     "PermitTransferFrom",
     "PermitWitnessTransferFrom",
@@ -20,8 +15,6 @@ export const PERMIT2_BATCH_PRIMARY_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 export const PERMIT2_PRIMARY_TYPES: ReadonlySet<string> = new Set([
-    "Permit",
-    "PermitBatch",
     ...PERMIT2_SINGLE_PRIMARY_TYPES,
     ...PERMIT2_BATCH_PRIMARY_TYPES,
 ]);

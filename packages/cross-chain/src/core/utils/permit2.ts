@@ -2,13 +2,9 @@ import type { Address } from "viem";
 import { getAddress } from "viem";
 
 import type { Eip712Envelope, PermittedEntry } from "../types/eip712.js";
-import {
-    DEFAULT_DEADLINE_SKEW_SECONDS,
-    PERMIT2_BATCH_PRIMARY_TYPES,
-    PERMIT2_SINGLE_PRIMARY_TYPES,
-} from "../constants/eip712.js";
+import { PERMIT2_BATCH_PRIMARY_TYPES, PERMIT2_SINGLE_PRIMARY_TYPES } from "../constants/eip712.js";
 import { Eip712EnvelopeMismatch } from "../errors/Eip712EnvelopeMismatch.exception.js";
-import { parseBigint, parseUnixSeconds } from "./eip712Parsers.js";
+import { toNonNegativeBigInt } from "./toNonNegativeBigInt.js";
 
 interface RawTokenPermission {
     token?: unknown;
@@ -45,36 +41,6 @@ export function readPermittedEntries(envelope: Eip712Envelope): PermittedEntry[]
     return [];
 }
 
-/** Reject `deadline` values that are missing, malformed, or already expired (with skew tolerance). */
-export function assertDeadlineFresh(args: {
-    deadline: unknown;
-    provider: string;
-    primaryType: string;
-    skewSeconds?: number;
-}): void {
-    const parsed = parseUnixSeconds(args.deadline);
-    if (parsed === undefined) {
-        throw new Eip712EnvelopeMismatch({
-            field: "deadline",
-            provider: args.provider,
-            primaryType: args.primaryType,
-            received: String(args.deadline),
-        });
-    }
-
-    const skew = args.skewSeconds ?? DEFAULT_DEADLINE_SKEW_SECONDS;
-    const now = Math.floor(Date.now() / 1000);
-    if (parsed < now - skew) {
-        throw new Eip712EnvelopeMismatch({
-            field: "deadline",
-            provider: args.provider,
-            primaryType: args.primaryType,
-            expected: `>=${now - skew}`,
-            received: parsed,
-        });
-    }
-}
-
 function toPermittedEntry(raw: RawTokenPermission): PermittedEntry {
     if (typeof raw.token !== "string") {
         throw new Eip712EnvelopeMismatch({
@@ -93,7 +59,7 @@ function toPermittedEntry(raw: RawTokenPermission): PermittedEntry {
             received: raw.token,
         });
     }
-    const amount = parseBigint(raw.amount ?? "0");
+    const amount = toNonNegativeBigInt(raw.amount ?? "0");
     if (amount === undefined) {
         throw new Eip712EnvelopeMismatch({
             field: "amount",

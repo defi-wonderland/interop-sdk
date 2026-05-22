@@ -2,9 +2,11 @@ import { isAddressEqual } from "viem";
 
 import type { Eip712Envelope, ExpectedPermit2Message } from "../types/eip712.js";
 import { Eip712EnvelopeMismatch } from "../errors/Eip712EnvelopeMismatch.exception.js";
-import { assertDeadlineFresh, readPermittedEntries } from "../utils/permit2.js";
+import { readAddressField } from "../utils/eip712Readers.js";
+import { assertNotExpired } from "../utils/expiry.js";
+import { readPermittedEntries } from "../utils/permit2.js";
 
-/** Validate `permitted[]`, `deadline`, and (optionally) token/amount against user intent. */
+/** Validate `permitted[]`, `spender`, optional token/amount caps, and `deadline` freshness. */
 export function validatePermit2Message(
     envelope: Eip712Envelope,
     expected: ExpectedPermit2Message,
@@ -18,6 +20,14 @@ export function validatePermit2Message(
             cause: "permitted entries missing or empty",
         });
     }
+
+    readAddressField({
+        envelope,
+        path: ["spender"],
+        field: "spender",
+        provider: expected.provider,
+        expected: expected.spender,
+    });
 
     if (expected.inputToken !== undefined) {
         const target = expected.inputToken;
@@ -46,8 +56,8 @@ export function validatePermit2Message(
         }
     }
 
-    assertDeadlineFresh({
-        deadline: envelope.message.deadline,
+    assertNotExpired({
+        timestamp: envelope.message.deadline,
         skewSeconds: expected.skewSeconds,
         provider: expected.provider,
         primaryType: envelope.primaryType,

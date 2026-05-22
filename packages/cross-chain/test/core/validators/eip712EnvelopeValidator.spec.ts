@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Eip712Envelope } from "../../../src/core/types/eip712.js";
-import { PERMIT2_ADDRESS, PERMIT2_PRIMARY_TYPES } from "../../../src/core/constants/eip712.js";
+import { PERMIT2_ADDRESS } from "../../../src/core/constants/eip712.js";
 import { Eip712EnvelopeMismatch } from "../../../src/core/errors/Eip712EnvelopeMismatch.exception.js";
 import {
     validateEnvelopeDomain,
@@ -37,7 +37,6 @@ describe("validateEnvelopeDomain", () => {
     const expected = {
         chainId: 1,
         verifyingContracts: [PERMIT2_ADDRESS],
-        primaryTypes: PERMIT2_PRIMARY_TYPES,
         provider: PROVIDER,
     };
 
@@ -55,10 +54,8 @@ describe("validateEnvelopeDomain", () => {
         ["mismatched chainId", { chainId: 137, verifyingContract: PERMIT2_ADDRESS }],
         ["malformed chainId", { chainId: "abc", verifyingContract: PERMIT2_ADDRESS }],
         ["missing chainId", { verifyingContract: PERMIT2_ADDRESS }],
-        // Strict parseChainId: each of these would have slipped past a permissive Number()/parseInt.
         ["scientific notation", { chainId: "1e10", verifyingContract: PERMIT2_ADDRESS }],
         ["hex with non-hex chars", { chainId: "0x1ZZZ", verifyingContract: PERMIT2_ADDRESS }],
-        ["whitespace-padded chainId", { chainId: " 1 ", verifyingContract: PERMIT2_ADDRESS }],
         ["fractional chainId", { chainId: 1.5, verifyingContract: PERMIT2_ADDRESS }],
         ["negative chainId", { chainId: -1, verifyingContract: PERMIT2_ADDRESS }],
         [

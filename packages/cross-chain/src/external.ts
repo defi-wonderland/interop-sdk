@@ -77,5 +77,4 @@ export {
     type TransactionStep,
     type GetQuotesError,
     type GetQuotesResponse,
-    type SubmissionMode,
 } from "./internal.js";

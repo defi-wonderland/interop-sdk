@@ -4,7 +4,6 @@ import { getAddress, isAddressEqual } from "viem";
 import type { Eip712Envelope, ExpectedEnvelope } from "../types/eip712.js";
 import { PERMIT2_PRIMARY_TYPES } from "../constants/eip712.js";
 import { Eip712EnvelopeMismatch } from "../errors/Eip712EnvelopeMismatch.exception.js";
-import { parseChainId } from "../utils/eip712Parsers.js";
 
 /** Reject envelopes whose `primaryType` is not in the allow-list. */
 export function validatePrimaryType(
@@ -34,7 +33,7 @@ export function validateEnvelopeDomain(envelope: Eip712Envelope, expected: Expec
         });
     }
 
-    const chainId = parseChainId(envelope.domain.chainId);
+    const chainId = toChainId(envelope.domain.chainId);
     if (chainId === undefined) {
         throw new Eip712EnvelopeMismatch({
             field: "chainId",
@@ -102,4 +101,21 @@ export function validateEnvelopeDomain(envelope: Eip712Envelope, expected: Expec
             received: String(envelope.domain.version),
         });
     }
+}
+
+function toChainId(value: unknown): number | undefined {
+    if (typeof value === "number") {
+        return Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+    }
+    if (typeof value === "bigint") {
+        return value >= 0n && value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : undefined;
+    }
+    if (typeof value !== "string" || value.length === 0) return undefined;
+    let parsed: bigint;
+    try {
+        parsed = BigInt(value);
+    } catch {
+        return undefined;
+    }
+    return parsed >= 0n && parsed <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(parsed) : undefined;
 }
