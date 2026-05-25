@@ -57,12 +57,12 @@ export function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode
   }
 
   if (isEnabledForMode('oif', submissionMode)) {
+    // OIF mainnet-solver doesn't quote user-open-v0; skip the filter (EFI-958).
     providers.push(
       createCrossChainProvider(PROTOCOLS.OIF, {
         solverId: oifSolverId,
         url: OIF_API_URL,
         providerId: 'oif',
-        submissionModes,
       }),
     );
   }
