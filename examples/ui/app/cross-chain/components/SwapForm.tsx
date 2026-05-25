@@ -18,6 +18,8 @@ import {
   normalizeAmount,
   sanitizeAmountInput,
 } from '../utils/amountValidation';
+import { GaslessApprovalNotice } from './GaslessApprovalNotice';
+import { SubmissionModeSwitch } from './SubmissionModeSwitch';
 import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
 import { SwapIcon } from './icons';
@@ -76,6 +78,8 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   const [inputAmount, setInputAmount] = useState('');
   const mode = useCrossChainStore((s) => s.mode);
   const setMode = useCrossChainStore((s) => s.setMode);
+  const submissionMode = useCrossChainStore((s) => s.submissionMode);
+  const setSubmissionMode = useCrossChainStore((s) => s.setSubmissionMode);
   const buildQuoteProviderId = useCrossChainStore((s) => s.buildQuoteProviderId);
   const setBuildQuoteProviderId = useCrossChainStore((s) => s.setBuildQuoteProviderId);
   const [outputAmount, setOutputAmount] = useState('');
@@ -220,6 +224,9 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
 
   const handleModeChange = (newMode: SwapFormMode) => {
     setMode(newMode);
+    if (newMode === 'buildQuote') {
+      setSubmissionMode('user-transaction');
+    }
     onInputChange?.();
   };
 
@@ -292,6 +299,13 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
             Build Quote
           </button>
         </div>
+
+        {mode === 'getQuotes' && (
+          <div className='flex flex-col gap-2'>
+            <SubmissionModeSwitch disabled={isDisabled} />
+            {submissionMode === 'gasless' && <GaslessApprovalNotice />}
+          </div>
+        )}
 
         {mode === 'buildQuote' && (
           <div>
