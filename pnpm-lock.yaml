@@ -260,6 +260,9 @@ importers:
             "@wonderland/interop-cross-chain":
                 specifier: workspace:*
                 version: link:../../packages/cross-chain
+            clsx:
+                specifier: 2.1.1
+                version: 2.1.1
             next:
                 specifier: 16.1.0
                 version: 16.1.0(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -269,6 +272,9 @@ importers:
             react-dom:
                 specifier: 19.1.0
                 version: 19.1.0(react@19.1.0)
+            tailwind-merge:
+                specifier: 3.3.1
+                version: 3.3.1
             viem:
                 specifier: 2.37.0
                 version: 2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@4.4.3)
@@ -8905,7 +8911,7 @@ packages:
             {
                 integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==,
             }
-        deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+        deprecated: Glob versions prior to v9 are no longer supported
 
     global-directory@4.0.1:
         resolution:

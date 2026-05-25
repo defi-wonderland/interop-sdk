@@ -18,11 +18,19 @@ import {
   normalizeAmount,
   sanitizeAmountInput,
 } from '../utils/amountValidation';
+import { GaslessApprovalNotice } from './GaslessApprovalNotice';
+import { SubmissionModeSwitch } from './SubmissionModeSwitch';
+import { TabSwitch } from './TabSwitch';
 import { TokenSelect } from './TokenSelect';
 import { WalletConnect } from './WalletConnect';
 import { SwapIcon } from './icons';
 
 export type { SwapFormMode } from '../stores/crossChainStore';
+
+const MODE_OPTIONS: { value: SwapFormMode; label: string }[] = [
+  { value: 'getQuotes', label: 'Get Quotes' },
+  { value: 'buildQuote', label: 'Build Quote' },
+];
 
 interface SwapFormSubmitParams {
   sender: string;
@@ -76,6 +84,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   const [inputAmount, setInputAmount] = useState('');
   const mode = useCrossChainStore((s) => s.mode);
   const setMode = useCrossChainStore((s) => s.setMode);
+  const submissionMode = useCrossChainStore((s) => s.submissionMode);
   const buildQuoteProviderId = useCrossChainStore((s) => s.buildQuoteProviderId);
   const setBuildQuoteProviderId = useCrossChainStore((s) => s.setBuildQuoteProviderId);
   const [outputAmount, setOutputAmount] = useState('');
@@ -266,32 +275,31 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
       <div className='relative flex flex-col gap-6'>
         <WalletConnect />
 
-        <div className='flex border border-border/50 rounded-xl'>
-          <button
-            type='button'
-            disabled={isDisabled}
-            onClick={() => handleModeChange('getQuotes')}
-            className={`flex-1 px-4 py-2 rounded-l-xl text-sm font-medium transition-colors ${
-              mode === 'getQuotes'
-                ? 'bg-accent text-white'
-                : 'bg-background/50 text-text-secondary hover:text-text-primary'
-            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          >
-            Get Quotes
-          </button>
-          <button
-            type='button'
-            disabled={isDisabled}
-            onClick={() => handleModeChange('buildQuote')}
-            className={`flex-1 px-4 py-2 rounded-r-xl text-sm font-medium transition-colors ${
-              mode === 'buildQuote'
-                ? 'bg-accent text-white'
-                : 'bg-background/50 text-text-secondary hover:text-text-primary'
-            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          >
-            Build Quote
-          </button>
-        </div>
+        <TabSwitch
+          options={MODE_OPTIONS}
+          value={mode}
+          onChange={handleModeChange}
+          ariaLabel='Quote mode selection'
+          disabled={isDisabled}
+        />
+
+        {mode === 'getQuotes' && (
+          <div className='flex flex-col'>
+            <SubmissionModeSwitch disabled={isDisabled} />
+            <div
+              aria-hidden={submissionMode !== 'gasless'}
+              className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                submissionMode === 'gasless' ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+              }`}
+            >
+              <div className='overflow-hidden'>
+                <div className='pt-2'>
+                  <GaslessApprovalNotice />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {mode === 'buildQuote' && (
           <div>
