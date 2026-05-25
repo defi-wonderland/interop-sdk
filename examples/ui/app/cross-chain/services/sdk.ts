@@ -61,8 +61,7 @@ export function getExecutor(isTestnet: boolean, submissionMode: SubmissionMode):
       'user-transaction': buildExecutor(isTestnet, 'user-transaction'),
       gasless: buildExecutor(isTestnet, 'gasless'),
     };
-    void pair['user-transaction'].discoverAssets();
-    void pair.gasless.discoverAssets();
+    void Promise.allSettled([pair['user-transaction'].discoverAssets(), pair.gasless.discoverAssets()]);
     cachedExecutors = { isTestnet, pair };
   }
   return cachedExecutors.pair[submissionMode];
