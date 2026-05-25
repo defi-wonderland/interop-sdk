@@ -284,7 +284,7 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
         />
 
         {mode === 'getQuotes' && (
-          <div className='flex flex-col gap-2'>
+          <div className='flex flex-col'>
             <SubmissionModeSwitch disabled={isDisabled} />
             <div
               aria-hidden={submissionMode !== 'gasless'}
@@ -293,7 +293,9 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
               }`}
             >
               <div className='overflow-hidden'>
-                <GaslessApprovalNotice />
+                <div className='pt-2'>
+                  <GaslessApprovalNotice />
+                </div>
               </div>
             </div>
           </div>
