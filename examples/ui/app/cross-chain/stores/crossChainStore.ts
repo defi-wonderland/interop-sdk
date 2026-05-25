@@ -1,30 +1,20 @@
 import { create } from 'zustand';
 import { buildExecutor } from '../services/sdk';
+import {
+  readBuildModeFromUrl,
+  readGaslessSubmissionFromUrl,
+  readIsTestnetFromUrl,
+  writeBuildModeParam,
+  writeGaslessSubmissionParam,
+  writeIsTestnetParam,
+} from './crossChainUrlParams';
 import type { Aggregator, SubmissionMode } from '@wonderland/interop-cross-chain';
 
 export type SwapFormMode = 'getQuotes' | 'buildQuote';
 
-const TESTNET_QUERY_PARAM = 'testnet';
-const MODE_QUERY_PARAM = 'mode';
-const MODE_BUILD_VALUE = 'build';
-const SUBMISSION_QUERY_PARAM = 'submission';
-const SUBMISSION_GASLESS_VALUE = 'gasless';
-
-function readIsTestnetFromUrl(): boolean {
-  if (typeof window === 'undefined') return false;
-  return new URLSearchParams(window.location.search).get(TESTNET_QUERY_PARAM) === 'true';
-}
-
-function readModeFromUrl(): SwapFormMode {
-  if (typeof window === 'undefined') return 'getQuotes';
-  const value = new URLSearchParams(window.location.search).get(MODE_QUERY_PARAM);
-  return value === MODE_BUILD_VALUE ? 'buildQuote' : 'getQuotes';
-}
-
-function readSubmissionModeFromUrl(): SubmissionMode {
-  if (typeof window === 'undefined') return 'user-transaction';
-  const value = new URLSearchParams(window.location.search).get(SUBMISSION_QUERY_PARAM);
-  return value === SUBMISSION_GASLESS_VALUE ? 'gasless' : 'user-transaction';
+/** buildQuote always submits as a user transaction; gasless is only valid in getQuotes mode. */
+function resolveSubmissionMode(mode: SwapFormMode, preferred: SubmissionMode): SubmissionMode {
+  return mode === 'buildQuote' ? 'user-transaction' : preferred;
 }
 
 interface CrossChainState {
@@ -40,8 +30,9 @@ interface CrossChainState {
 }
 
 const initialIsTestnet = readIsTestnetFromUrl();
-const initialMode = readModeFromUrl();
-const initialSubmissionMode = initialMode === 'buildQuote' ? 'user-transaction' : readSubmissionModeFromUrl();
+const initialMode: SwapFormMode = readBuildModeFromUrl() ? 'buildQuote' : 'getQuotes';
+const preferredSubmissionMode: SubmissionMode = readGaslessSubmissionFromUrl() ? 'gasless' : 'user-transaction';
+const initialSubmissionMode = resolveSubmissionMode(initialMode, preferredSubmissionMode);
 
 export const useCrossChainStore = create<CrossChainState>((set, get) => ({
   isTestnet: initialIsTestnet,
@@ -50,56 +41,35 @@ export const useCrossChainStore = create<CrossChainState>((set, get) => ({
   buildQuoteProviderId: 'across',
   submissionMode: initialSubmissionMode,
 
-  setIsTestnet: (isTestnet: boolean) => {
+  setIsTestnet: (isTestnet) => {
     if (isTestnet === get().isTestnet) return;
-    const url = new URL(window.location.href);
-    if (isTestnet) {
-      url.searchParams.set(TESTNET_QUERY_PARAM, 'true');
-    } else {
-      url.searchParams.delete(TESTNET_QUERY_PARAM);
-    }
-    window.history.replaceState({}, '', url.toString());
+    writeIsTestnetParam(isTestnet);
     set({ isTestnet, executor: buildExecutor(isTestnet, get().submissionMode) });
   },
 
-  setMode: (mode: SwapFormMode) => {
+  setMode: (mode) => {
     if (mode === get().mode) return;
-    const forceUserTx = mode === 'buildQuote' && get().submissionMode !== 'user-transaction';
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      if (mode === 'buildQuote') {
-        url.searchParams.set(MODE_QUERY_PARAM, MODE_BUILD_VALUE);
-        url.searchParams.delete(SUBMISSION_QUERY_PARAM);
-      } else {
-        url.searchParams.delete(MODE_QUERY_PARAM);
-      }
-      if (url.search !== window.location.search) {
-        window.history.replaceState({}, '', url.toString());
-      }
-    }
-    if (forceUserTx) {
+    const nextSubmissionMode = resolveSubmissionMode(mode, get().submissionMode);
+    const submissionModeChanged = nextSubmissionMode !== get().submissionMode;
+
+    writeBuildModeParam(mode === 'buildQuote');
+    if (submissionModeChanged) {
+      writeGaslessSubmissionParam(false);
       set({
         mode,
-        submissionMode: 'user-transaction',
-        executor: buildExecutor(get().isTestnet, 'user-transaction'),
+        submissionMode: nextSubmissionMode,
+        executor: buildExecutor(get().isTestnet, nextSubmissionMode),
       });
     } else {
       set({ mode });
     }
   },
-  setBuildQuoteProviderId: (providerId: string) => set({ buildQuoteProviderId: providerId }),
 
-  setSubmissionMode: (submissionMode: SubmissionMode) => {
+  setBuildQuoteProviderId: (buildQuoteProviderId) => set({ buildQuoteProviderId }),
+
+  setSubmissionMode: (submissionMode) => {
     if (submissionMode === get().submissionMode) return;
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      if (submissionMode === 'gasless') {
-        url.searchParams.set(SUBMISSION_QUERY_PARAM, SUBMISSION_GASLESS_VALUE);
-      } else {
-        url.searchParams.delete(SUBMISSION_QUERY_PARAM);
-      }
-      window.history.replaceState({}, '', url.toString());
-    }
+    writeGaslessSubmissionParam(submissionMode === 'gasless');
     set({ submissionMode, executor: buildExecutor(get().isTestnet, submissionMode) });
   },
 }));
