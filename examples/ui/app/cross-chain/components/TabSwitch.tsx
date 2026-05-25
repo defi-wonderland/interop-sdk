@@ -21,7 +21,7 @@ export function TabSwitch<T extends string>({
   disabled = false,
 }: TabSwitchProps<T>) {
   return (
-    <div className='flex border border-border/50 rounded-xl' role='tablist' aria-label={ariaLabel}>
+    <div className='flex border border-border/50 rounded-xl' role='group' aria-label={ariaLabel}>
       {options.map((option, index) => {
         const isActive = option.value === value;
         const isFirst = index === 0;
@@ -32,8 +32,7 @@ export function TabSwitch<T extends string>({
           <button
             key={option.value}
             type='button'
-            role='tab'
-            aria-selected={isActive}
+            aria-pressed={isActive}
             disabled={disabled}
             onClick={() => onChange(option.value)}
             className={`flex-1 px-4 py-2 ${radius} text-sm font-medium transition-colors ${
