@@ -40,7 +40,35 @@ function isEnabledForMode(providerId: string, submissionMode: SubmissionMode): b
   return config !== undefined && (submissionMode !== 'gasless' || config.supportsGasless);
 }
 
-export function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode = 'user-transaction'): Aggregator {
+interface ExecutorPair {
+  'user-transaction': Aggregator;
+  gasless: Aggregator;
+}
+
+let cachedExecutors: { isTestnet: boolean; pair: ExecutorPair } | null = null;
+
+/**
+ * Returns the executor for the given submission mode, building and prefetching both on first call
+ * (or whenever `isTestnet` changes). Keeping both instances alive preserves the SDK's internal
+ * asset discovery cache across submission-mode toggles.
+ *
+ * NOTE: a real dApp would typically commit to one submission mode and instantiate a single
+ * executor. We keep both warm because this demo lets the user flip between modes at runtime.
+ */
+export function getExecutor(isTestnet: boolean, submissionMode: SubmissionMode): Aggregator {
+  if (cachedExecutors?.isTestnet !== isTestnet) {
+    const pair: ExecutorPair = {
+      'user-transaction': buildExecutor(isTestnet, 'user-transaction'),
+      gasless: buildExecutor(isTestnet, 'gasless'),
+    };
+    void pair['user-transaction'].discoverAssets();
+    void pair.gasless.discoverAssets();
+    cachedExecutors = { isTestnet, pair };
+  }
+  return cachedExecutors.pair[submissionMode];
+}
+
+function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode = 'user-transaction'): Aggregator {
   const rpcUrls = isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
   const oifSolverId = isTestnet ? 'testnet-solver' : 'mainnet-solver';
   const lifiUrl = isTestnet ? LIFI_INTENTS_ORDER_SERVER_DEV_URL : LIFI_INTENTS_ORDER_SERVER_URL;
