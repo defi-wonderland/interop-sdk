@@ -34,7 +34,7 @@ const initialMode: SwapFormMode = readBuildModeFromUrl() ? 'buildQuote' : 'getQu
 const preferredSubmissionMode: SubmissionMode = readGaslessSubmissionFromUrl() ? 'gasless' : 'user-transaction';
 const initialSubmissionMode = resolveSubmissionMode(initialMode, preferredSubmissionMode);
 
-if (initialSubmissionMode !== preferredSubmissionMode) {
+if (typeof window !== 'undefined' && initialSubmissionMode !== preferredSubmissionMode) {
   writeGaslessSubmissionParam(false);
 }
 
