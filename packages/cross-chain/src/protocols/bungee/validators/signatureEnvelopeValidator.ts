@@ -68,7 +68,7 @@ function readRecipientField(
             provider: PROVIDER_NAME,
             primaryType: envelope.primaryType,
             received: recipient,
-            cause: "recipient must not be the user",
+            cause: `${field} must not be the user`,
         });
     }
     return recipient;
