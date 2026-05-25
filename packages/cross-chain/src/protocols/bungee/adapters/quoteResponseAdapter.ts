@@ -1,4 +1,5 @@
 import type { OrderChecks } from "../../../core/schemas/order.js";
+import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
 import type { Quote, Step } from "../../../internal.js";
 import type {
     BungeeApprovalData,
@@ -10,6 +11,7 @@ import type {
     BungeeTxData,
 } from "../schemas.js";
 import { BungeeTxDataSchema } from "../schemas.js";
+import { validateBungeeSignatureEnvelope } from "../validators/signatureEnvelopeValidator.js";
 import { adaptFees } from "./quoteFeeAdapter.js";
 
 /**
@@ -20,13 +22,18 @@ import { adaptFees } from "./quoteFeeAdapter.js";
  *
  * @param response - The Bungee API quote response.
  * @param providerId - The provider identifier to stamp on the quotes.
+ * @param params - The original SDK quote request, used to validate signature envelopes.
  */
-export function adaptQuotes(response: BungeeQuoteResponse, providerId: string): Quote[] {
+export function adaptQuotes(
+    response: BungeeQuoteResponse,
+    providerId: string,
+    params: QuoteRequest,
+): Quote[] {
     const result = response.result;
 
     const autoRoutes = collectAutoRoutes(result);
     return autoRoutes
-        .map((autoRoute) => adaptAutoRouteQuote(response, autoRoute, providerId))
+        .map((autoRoute) => adaptAutoRouteQuote(response, autoRoute, providerId, params))
         .filter((quote) => quote.order.steps.length > 0);
 }
 
@@ -128,9 +135,10 @@ function adaptAutoRouteQuote(
     response: BungeeQuoteResponse,
     autoRoute: BungeeAutoRoute,
     providerId: string,
+    params: QuoteRequest,
 ): Quote {
     const result = response.result;
-    const steps = buildAutoRouteSteps(autoRoute, result.originChainId);
+    const steps = buildAutoRouteSteps(autoRoute, result.originChainId, params);
     const fees = adaptFees(autoRoute);
     const allowances = extractAllowances(
         autoRoute.approvalData,
@@ -182,9 +190,13 @@ function adaptAutoRouteQuote(
 // ── Step builders ──────────────────────────────────────
 
 /** Build SDK steps from a Bungee auto route. */
-function buildAutoRouteSteps(autoRoute: BungeeAutoRoute, originChainId: number): Step[] {
+function buildAutoRouteSteps(
+    autoRoute: BungeeAutoRoute,
+    originChainId: number,
+    params: QuoteRequest,
+): Step[] {
     if (autoRoute.userOp === "sign" && autoRoute.signTypedData) {
-        return [buildSignatureStep(autoRoute, originChainId)];
+        return [buildSignatureStep(autoRoute, originChainId, params)];
     }
 
     if (autoRoute.userOp === "tx" && autoRoute.txData) {
@@ -196,8 +208,24 @@ function buildAutoRouteSteps(autoRoute: BungeeAutoRoute, originChainId: number):
 }
 
 /** Build a SignatureStep from Bungee permit2 flow. */
-function buildSignatureStep(autoRoute: BungeeAutoRoute, originChainId: number): Step {
+function buildSignatureStep(
+    autoRoute: BungeeAutoRoute,
+    originChainId: number,
+    params: QuoteRequest,
+): Step {
     const signTypedData = autoRoute.signTypedData!;
+    const types = signTypedData.types as Record<string, Array<{ name: string; type: string }>>;
+    const primaryType = "PermitWitnessTransferFrom";
+
+    validateBungeeSignatureEnvelope(
+        {
+            domain: signTypedData.domain,
+            primaryType,
+            types,
+            message: signTypedData.values,
+        },
+        params,
+    );
 
     return {
         kind: "signature" as const,
@@ -206,8 +234,8 @@ function buildSignatureStep(autoRoute: BungeeAutoRoute, originChainId: number): 
         signaturePayload: {
             signatureType: "eip712" as const,
             domain: signTypedData.domain,
-            primaryType: "PermitWitnessTransferFrom",
-            types: signTypedData.types as Record<string, Array<{ name: string; type: string }>>,
+            primaryType,
+            types,
             message: signTypedData.values,
         },
     };

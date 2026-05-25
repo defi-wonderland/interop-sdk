@@ -237,7 +237,7 @@ export class BungeeProvider extends CrossChainProvider {
             const options: BungeeQuoteOptions = { ...this.quoteOptions, submissionMode: mode };
             const bungeeParams = adaptQuoteRequest(params, options);
             const response = await this.apiService.getQuote(bungeeParams);
-            const autoQuotes = adaptQuotes(response, this.providerId);
+            const autoQuotes = adaptQuotes(response, this.providerId, params);
 
             if (!this.quoteOptions.enableOtherProviders) {
                 return autoQuotes;
