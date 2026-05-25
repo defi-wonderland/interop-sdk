@@ -34,6 +34,10 @@ const initialMode: SwapFormMode = readBuildModeFromUrl() ? 'buildQuote' : 'getQu
 const preferredSubmissionMode: SubmissionMode = readGaslessSubmissionFromUrl() ? 'gasless' : 'user-transaction';
 const initialSubmissionMode = resolveSubmissionMode(initialMode, preferredSubmissionMode);
 
+if (initialSubmissionMode !== preferredSubmissionMode) {
+  writeGaslessSubmissionParam(false);
+}
+
 export const useCrossChainStore = create<CrossChainState>((set, get) => ({
   isTestnet: initialIsTestnet,
   executor: buildExecutor(initialIsTestnet, initialSubmissionMode),
