@@ -1,7 +1,6 @@
 import type { Address } from "viem";
 import { getAddress, isAddressEqual } from "viem";
 
-import type { Eip712MismatchField } from "../../../core/errors/Eip712EnvelopeMismatch.exception.js";
 import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
 import type { Eip712Envelope } from "../../../core/types/eip712.js";
 import {
@@ -23,6 +22,7 @@ import { validatePermit2Message } from "../../../core/validators/permit2MessageV
 const PROVIDER_NAME = "relay";
 
 type Mechanism = "Permit2" | "EIP-3009";
+type RecipientField = "spender" | "to";
 
 const RELAY_PERMIT2_PRIMARY_TYPES: ReadonlySet<string> = new Set<string>([
     ...PERMIT2_SINGLE_PRIMARY_TYPES,
@@ -72,7 +72,7 @@ function validatePermit2Envelope(
         verifyingContracts: [PERMIT2_ADDRESS],
         provider: PROVIDER_NAME,
     });
-    const spender = readRecipientField(envelope, ["spender"], "spender", user);
+    const spender = readRecipientField(envelope, "spender", user);
     validatePermit2Message(envelope, {
         provider: PROVIDER_NAME,
         spender,
@@ -94,7 +94,7 @@ function validateEip3009Envelope(
         provider: PROVIDER_NAME,
     });
     guardEip3009DomainVersion(envelope);
-    const to = readRecipientField(envelope, ["to"], "to", user);
+    const to = readRecipientField(envelope, "to", user);
     validateEip3009Message(envelope, {
         provider: PROVIDER_NAME,
         user,
@@ -105,11 +105,15 @@ function validateEip3009Envelope(
 
 function readRecipientField(
     envelope: Eip712Envelope,
-    path: ReadonlyArray<string>,
-    field: Eip712MismatchField,
+    field: RecipientField,
     user: Address,
 ): Address {
-    const recipient = readAddressField({ envelope, path, field, provider: PROVIDER_NAME });
+    const recipient = readAddressField({
+        envelope,
+        path: [field],
+        field,
+        provider: PROVIDER_NAME,
+    });
     if (isAddressEqual(recipient, user)) {
         throw new Eip712EnvelopeMismatch({
             field,

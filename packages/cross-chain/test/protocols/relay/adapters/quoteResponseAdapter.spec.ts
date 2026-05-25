@@ -204,7 +204,7 @@ describe("adaptQuote", () => {
         expect(quote.quoteId).toBeUndefined();
     });
 
-    it("extracts approve steps into order.checks.allowances", () => {
+    it("splits approve steps into order.checks.allowances and keeps the rest in order.steps", () => {
         const approveAmount = 1000000n;
         const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, approveAmount);
 
@@ -249,65 +249,20 @@ describe("adaptQuote", () => {
 
         const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
 
-        expect(quote.order.checks?.allowances).toHaveLength(1);
-        expect(quote.order.checks!.allowances![0]).toEqual({
-            chainId: ORIGIN_CHAIN_ID,
-            tokenAddress: TOKEN_ADDRESS,
-            owner: VALID_ADDRESS,
-            spender: SPENDER_ADDRESS,
-            required: approveAmount.toString(),
-        });
-    });
-
-    it("order.steps only contains non-approve steps", () => {
-        const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, 1000000n);
-
-        const response = makeRelayQuoteResponse({
-            steps: [
-                {
-                    id: "approve",
-                    action: "Approve token",
-                    description: "Approve USDC",
-                    kind: "transaction",
-                    items: [
-                        {
-                            status: "incomplete",
-                            data: {
-                                to: TOKEN_ADDRESS,
-                                data: approveCalldata,
-                                chainId: ORIGIN_CHAIN_ID,
-                            },
-                        },
-                    ],
-                },
-                {
-                    id: "deposit",
-                    action: "Confirm transaction",
-                    description: STEP_DESCRIPTION,
-                    kind: "transaction",
-                    requestId: REQUEST_ID,
-                    items: [
-                        {
-                            status: "incomplete",
-                            data: {
-                                to: VALID_ADDRESS,
-                                data: TX_DATA,
-                                value: INPUT_AMOUNT,
-                                chainId: ORIGIN_CHAIN_ID,
-                            },
-                        },
-                    ],
-                },
-            ],
-        });
-
-        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
-
+        expect(quote.order.checks?.allowances).toEqual([
+            {
+                chainId: ORIGIN_CHAIN_ID,
+                tokenAddress: TOKEN_ADDRESS,
+                owner: VALID_ADDRESS,
+                spender: SPENDER_ADDRESS,
+                required: approveAmount.toString(),
+            },
+        ]);
         expect(quote.order.steps).toHaveLength(1);
-        expect(quote.order.steps[0]!.kind).toBe("transaction");
-        if (quote.order.steps[0]!.kind === "transaction") {
-            expect(quote.order.steps[0]!.transaction.to).toBe(VALID_ADDRESS);
-        }
+        expect(quote.order.steps[0]).toMatchObject({
+            kind: "transaction",
+            transaction: { to: VALID_ADDRESS },
+        });
     });
 
     it("order.checks is undefined when there are no approve steps", () => {
