@@ -124,23 +124,6 @@ describe("validateBungeeSignatureEnvelope", () => {
         );
     });
 
-    it("rejects a Permit2 envelope whose domain carries `version`", () => {
-        const envelope = makeEnvelope(
-            {},
-            {
-                domain: {
-                    name: "Permit2",
-                    chainId: ORIGIN_CHAIN_ID,
-                    verifyingContract: PERMIT2_ADDRESS,
-                    version: "1",
-                },
-            },
-        );
-        expect(() => validateBungeeSignatureEnvelope(envelope, makeParams())).toThrowError(
-            /domainVersion/,
-        );
-    });
-
     it("rejects a tampered domain chainId", () => {
         const envelope = makeEnvelope(
             {},

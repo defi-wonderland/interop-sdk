@@ -34,7 +34,6 @@ export function validateBungeeSignatureEnvelope(
 ): void {
     validatePrimaryType(envelope, BUNGEE_PRIMARY_TYPES, PROVIDER_NAME);
     guardAgainstNativeInputAsset(envelope, params);
-    guardPermit2DomainHasNoVersion(envelope);
     validateEnvelopeDomain(envelope, {
         chainId: params.input.chainId,
         verifyingContracts: [PERMIT2_ADDRESS],
@@ -257,16 +256,5 @@ function guardAgainstNativeInputAsset(envelope: Eip712Envelope, params: QuoteReq
         provider: PROVIDER_NAME,
         primaryType: envelope.primaryType,
         cause: "Permit2 envelope rejected: input asset is the native placeholder",
-    });
-}
-
-function guardPermit2DomainHasNoVersion(envelope: Eip712Envelope): void {
-    if (envelope.domain.version === undefined) return;
-    throw new Eip712EnvelopeMismatch({
-        field: "domainVersion",
-        provider: PROVIDER_NAME,
-        primaryType: envelope.primaryType,
-        expected: "absent",
-        received: String(envelope.domain.version),
     });
 }
