@@ -17,6 +17,8 @@ import {
 const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 const RECIPIENT_ADDRESS = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
 const SPENDER_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const PERMIT2_ADDRESS_FIXTURE = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const RELAY_SOLVER_FIXTURE = "0xCCC88a9d1B4ed6b0eABA998850414b24F1C315bE";
 const TOKEN_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const ORIGIN_CHAIN_ID = 1;
 const DESTINATION_CHAIN_ID = 10;
@@ -383,9 +385,10 @@ describe("adaptQuote", () => {
 
 describe("adaptRelaySteps", () => {
     const baseStep = makeRelayQuoteResponse().steps[0]!;
+    const params = makeQuoteRequest();
 
     it("maps incomplete transaction items to SDK steps", () => {
-        const steps = adaptRelaySteps(baseStep);
+        const steps = adaptRelaySteps(baseStep, params);
         expect(steps).toHaveLength(1);
         expect(steps[0]).toMatchObject({
             kind: "transaction",
@@ -400,7 +403,7 @@ describe("adaptRelaySteps", () => {
             { ...baseStep.items[0]!, status: "complete" as const },
             { ...baseStep.items[0]!, status: "incomplete" as const },
         ];
-        expect(adaptRelaySteps({ ...baseStep, items: withComplete })).toHaveLength(1);
+        expect(adaptRelaySteps({ ...baseStep, items: withComplete }, params)).toHaveLength(1);
     });
 
     it("includes gas params when present and omits when '0'", () => {
@@ -414,7 +417,7 @@ describe("adaptRelaySteps", () => {
                 },
             },
         ];
-        const steps = adaptRelaySteps({ ...baseStep, items: withGas });
+        const steps = adaptRelaySteps({ ...baseStep, items: withGas }, params);
         if (steps[0]!.kind === "transaction") {
             expect(steps[0]!.transaction.gas).toBe("21000");
             expect(steps[0]!.transaction.maxFeePerGas).toBe("30000000000");
@@ -423,7 +426,7 @@ describe("adaptRelaySteps", () => {
         const withZeroGas = [
             { ...baseStep.items[0]!, data: { ...baseStep.items[0]!.data, gas: "0" } },
         ];
-        const zeroSteps = adaptRelaySteps({ ...baseStep, items: withZeroGas });
+        const zeroSteps = adaptRelaySteps({ ...baseStep, items: withZeroGas }, params);
         if (zeroSteps[0]!.kind === "transaction") {
             expect(zeroSteps[0]!.transaction.gas).toBeUndefined();
         }
@@ -432,22 +435,32 @@ describe("adaptRelaySteps", () => {
 
 // ── Signature Step Tests ────────────────────────────────
 
+const FUTURE_DEADLINE = Math.floor(Date.now() / 1000) + 3600;
+
 const EIP712_DOMAIN = {
     name: "Permit2",
     chainId: ORIGIN_CHAIN_ID,
-    verifyingContract: VALID_ADDRESS,
+    verifyingContract: PERMIT2_ADDRESS_FIXTURE,
 };
 
 const EIP712_TYPES = {
-    PermitBatch: [
-        { name: "details", type: "PermitDetails[]" },
+    PermitTransferFrom: [
+        { name: "permitted", type: "TokenPermissions" },
         { name: "spender", type: "address" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" },
+    ],
+    TokenPermissions: [
+        { name: "token", type: "address" },
+        { name: "amount", type: "uint256" },
     ],
 };
 
 const EIP712_VALUE = {
-    spender: VALID_ADDRESS,
-    sigDeadline: "1700000000",
+    permitted: { token: VALID_ADDRESS, amount: INPUT_AMOUNT },
+    spender: RELAY_SOLVER_FIXTURE,
+    nonce: "1",
+    deadline: FUTURE_DEADLINE,
 };
 
 const POST_DATA = {
@@ -472,7 +485,7 @@ function makeSignatureStep(overrides?: Partial<RelayQuoteStep>): RelayQuoteStep 
                         domain: EIP712_DOMAIN,
                         types: EIP712_TYPES,
                         value: EIP712_VALUE,
-                        primaryType: "PermitBatch",
+                        primaryType: "PermitTransferFrom",
                     },
                     post: POST_DATA,
                 },
@@ -483,8 +496,10 @@ function makeSignatureStep(overrides?: Partial<RelayQuoteStep>): RelayQuoteStep 
 }
 
 describe("adaptRelaySteps — signature steps", () => {
+    const params = makeQuoteRequest();
+
     it("maps EIP-712 signature step to SDK SignatureStep", () => {
-        const steps = adaptRelaySteps(makeSignatureStep());
+        const steps = adaptRelaySteps(makeSignatureStep(), params);
         expect(steps).toHaveLength(1);
         expect(steps[0]!.kind).toBe("signature");
 
@@ -493,7 +508,7 @@ describe("adaptRelaySteps — signature steps", () => {
             expect(steps[0]!.description).toBe("Sign permit to authorize");
             expect(steps[0]!.signaturePayload.signatureType).toBe("eip712");
             expect(steps[0]!.signaturePayload.domain).toEqual(EIP712_DOMAIN);
-            expect(steps[0]!.signaturePayload.primaryType).toBe("PermitBatch");
+            expect(steps[0]!.signaturePayload.primaryType).toBe("PermitTransferFrom");
             expect(steps[0]!.signaturePayload.types).toEqual(EIP712_TYPES);
             expect(steps[0]!.signaturePayload.message).toEqual(EIP712_VALUE);
         }
@@ -511,11 +526,11 @@ describe("adaptRelaySteps — signature steps", () => {
                 },
             ],
         } as Partial<RelayQuoteStep>);
-        expect(() => adaptRelaySteps(eip191Step)).toThrow(ProviderGetQuoteFailure);
+        expect(() => adaptRelaySteps(eip191Step, params)).toThrow(ProviderGetQuoteFailure);
     });
 
     it("stores post data and step id in metadata", () => {
-        const steps = adaptRelaySteps(makeSignatureStep());
+        const steps = adaptRelaySteps(makeSignatureStep(), params);
         expect(steps[0]!.metadata).toEqual({
             relayPostData: POST_DATA,
             relayStepId: "authorize1",
@@ -533,14 +548,14 @@ describe("adaptRelaySteps — signature steps", () => {
                             domain: EIP712_DOMAIN,
                             types: EIP712_TYPES,
                             value: EIP712_VALUE,
-                            primaryType: "PermitBatch",
+                            primaryType: "PermitTransferFrom",
                         },
                         post: POST_DATA,
                     },
                 },
             ],
         } as Partial<RelayQuoteStep>);
-        expect(adaptRelaySteps(step)).toHaveLength(0);
+        expect(adaptRelaySteps(step, params)).toHaveLength(0);
     });
 });
 
