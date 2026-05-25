@@ -76,9 +76,15 @@ export function adaptQuote(
     const fees = adaptFees(response);
     const fallbackToken = extractFallbackToken(params, response);
 
+    // Use quoted input so the envelope cap also binds on `exact-output`.
+    const paramsForValidation: QuoteRequest = {
+        ...params,
+        input: { ...params.input, amount: currencyIn?.amount ?? params.input.amount },
+    };
+
     return {
         order: {
-            steps: nonApproveSteps.flatMap((step) => adaptRelaySteps(step, params)),
+            steps: nonApproveSteps.flatMap((step) => adaptRelaySteps(step, paramsForValidation)),
             ...(allowances.length > 0 && { checks: { allowances } }),
         },
         preview: {

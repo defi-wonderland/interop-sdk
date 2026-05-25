@@ -599,6 +599,70 @@ describe("adaptQuote — signature only (permit, EIP-2612 token)", () => {
     });
 });
 
+describe("adaptQuote — exact-output amount cap", () => {
+    const QUOTED_INPUT_AMOUNT = "1500000";
+
+    const exactOutputRequest: QuoteRequest = {
+        user: VALID_ADDRESS,
+        input: { chainId: ORIGIN_CHAIN_ID, assetAddress: VALID_ADDRESS },
+        output: {
+            chainId: DESTINATION_CHAIN_ID,
+            assetAddress: VALID_ADDRESS,
+            amount: OUTPUT_AMOUNT,
+        },
+        swapType: "exact-output",
+    };
+
+    function responseWithEnvelopeAmount(envelopeAmount: string): RelayQuoteResponse {
+        const base = makeRelayQuoteResponse();
+        return {
+            ...base,
+            steps: [
+                makeSignatureStep({
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                sign: {
+                                    signatureKind: "eip712",
+                                    domain: EIP712_DOMAIN,
+                                    types: EIP712_TYPES,
+                                    value: {
+                                        ...EIP712_VALUE,
+                                        permitted: { token: VALID_ADDRESS, amount: envelopeAmount },
+                                    },
+                                    primaryType: "PermitTransferFrom",
+                                },
+                                post: POST_DATA,
+                            },
+                        },
+                    ],
+                } as Partial<RelayQuoteStep>),
+            ],
+            details: {
+                ...base.details!,
+                currencyIn: { ...base.details!.currencyIn!, amount: QUOTED_INPUT_AMOUNT },
+            },
+        };
+    }
+
+    it("rejects a signature envelope that inflates above the quoted input amount", () => {
+        expect(() =>
+            adaptQuote(exactOutputRequest, responseWithEnvelopeAmount("9999999999"), PROVIDER_ID),
+        ).toThrowError(/amount/);
+    });
+
+    it("accepts a signature envelope matching the quoted input amount", () => {
+        expect(() =>
+            adaptQuote(
+                exactOutputRequest,
+                responseWithEnvelopeAmount(QUOTED_INPUT_AMOUNT),
+                PROVIDER_ID,
+            ),
+        ).not.toThrow();
+    });
+});
+
 describe("adaptQuote — approve + signature (permit, non-EIP-2612 token)", () => {
     it("maps signature step and extracts approve as allowance check", () => {
         const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, 1000000n);
