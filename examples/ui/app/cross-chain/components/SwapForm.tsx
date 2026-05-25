@@ -284,9 +284,20 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
         />
 
         {mode === 'getQuotes' && (
-          <div className='flex flex-col gap-2'>
+          <div className='flex flex-col'>
             <SubmissionModeSwitch disabled={isDisabled} />
-            {submissionMode === 'gasless' && <GaslessApprovalNotice />}
+            <div
+              aria-hidden={submissionMode !== 'gasless'}
+              className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                submissionMode === 'gasless' ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+              }`}
+            >
+              <div className='overflow-hidden'>
+                <div className='pt-2'>
+                  <GaslessApprovalNotice />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

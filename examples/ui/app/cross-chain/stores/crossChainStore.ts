@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { buildExecutor } from '../services/sdk';
+import { getExecutor } from '../services/sdk';
 import {
   readBuildModeFromUrl,
   readGaslessSubmissionFromUrl,
@@ -40,7 +40,7 @@ if (typeof window !== 'undefined' && initialSubmissionMode !== preferredSubmissi
 
 export const useCrossChainStore = create<CrossChainState>((set, get) => ({
   isTestnet: initialIsTestnet,
-  executor: buildExecutor(initialIsTestnet, initialSubmissionMode),
+  executor: getExecutor(initialIsTestnet, initialSubmissionMode),
   mode: initialMode,
   buildQuoteProviderId: 'across',
   submissionMode: initialSubmissionMode,
@@ -48,7 +48,7 @@ export const useCrossChainStore = create<CrossChainState>((set, get) => ({
   setIsTestnet: (isTestnet) => {
     if (isTestnet === get().isTestnet) return;
     writeIsTestnetParam(isTestnet);
-    set({ isTestnet, executor: buildExecutor(isTestnet, get().submissionMode) });
+    set({ isTestnet, executor: getExecutor(isTestnet, get().submissionMode) });
   },
 
   setMode: (mode) => {
@@ -62,7 +62,7 @@ export const useCrossChainStore = create<CrossChainState>((set, get) => ({
       set({
         mode,
         submissionMode: nextSubmissionMode,
-        executor: buildExecutor(get().isTestnet, nextSubmissionMode),
+        executor: getExecutor(get().isTestnet, nextSubmissionMode),
       });
     } else {
       set({ mode });
@@ -74,6 +74,6 @@ export const useCrossChainStore = create<CrossChainState>((set, get) => ({
   setSubmissionMode: (submissionMode) => {
     if (submissionMode === get().submissionMode) return;
     writeGaslessSubmissionParam(submissionMode === 'gasless');
-    set({ submissionMode, executor: buildExecutor(get().isTestnet, submissionMode) });
+    set({ submissionMode, executor: getExecutor(get().isTestnet, submissionMode) });
   },
 }));
