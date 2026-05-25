@@ -142,7 +142,7 @@ function adaptAutoRouteQuote(
     const fees = adaptFees(autoRoute);
     const allowances = extractAllowances(
         autoRoute.approvalData,
-        result.originChainId,
+        params.input.chainId,
         result.input.amount,
     );
 
@@ -263,7 +263,7 @@ function buildTransactionStep(txData: BungeeTxData, description: string): Step |
  */
 function extractAllowances(
     approvalData: BungeeApprovalData | null | undefined,
-    originChainId: number,
+    chainId: number,
     inputAmount: string,
 ): NonNullable<OrderChecks["allowances"]> {
     if (!approvalData) return [];
@@ -271,7 +271,7 @@ function extractAllowances(
     const { spenderAddress, tokenAddress, userAddress } = approvalData;
     return [
         {
-            chainId: originChainId,
+            chainId,
             tokenAddress,
             owner: userAddress,
             spender: spenderAddress,
