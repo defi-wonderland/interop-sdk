@@ -10,6 +10,7 @@ export { QuoteList } from './QuoteList';
 export { SegmentedToggle } from './SegmentedToggle';
 export { SubmissionModeSwitch } from './SubmissionModeSwitch';
 export { SwapForm } from './SwapForm';
+export { TabSwitch } from './TabSwitch';
 export { Toast } from './Toast';
 export { Tooltip, TooltipProvider } from './Tooltip';
 export type { ToastType } from './Toast';
