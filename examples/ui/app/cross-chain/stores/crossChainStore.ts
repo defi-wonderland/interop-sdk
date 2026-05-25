@@ -7,7 +7,7 @@ import {
   writeBuildModeParam,
   writeGaslessSubmissionParam,
   writeIsTestnetParam,
-} from './crossChainUrlParams';
+} from '../utils/crossChainUrlHelper';
 import type { Aggregator, SubmissionMode } from '@wonderland/interop-cross-chain';
 
 export type SwapFormMode = 'getQuotes' | 'buildQuote';
