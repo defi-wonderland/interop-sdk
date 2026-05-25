@@ -3,6 +3,7 @@ import {
   createCrossChainProvider,
   createAggregator,
   createApprovalService,
+  InfiniteAmountStrategy,
   OrderTrackerFactory,
   LIFI_INTENTS_ORDER_SERVER_URL,
   LIFI_INTENTS_ORDER_SERVER_DEV_URL,
@@ -96,10 +97,12 @@ export function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode
     );
   }
 
+  const amountStrategy = submissionMode === 'gasless' ? new InfiniteAmountStrategy() : undefined;
+
   return createAggregator({
     providers,
     trackerFactory: new OrderTrackerFactory({ rpcUrls }),
-    approvalService: createApprovalService({ rpcUrls }),
+    approvalService: createApprovalService({ rpcUrls, amountStrategy }),
   });
 }
 
