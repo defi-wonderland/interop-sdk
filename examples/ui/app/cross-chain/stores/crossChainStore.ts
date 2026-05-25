@@ -40,12 +40,13 @@ interface CrossChainState {
 }
 
 const initialIsTestnet = readIsTestnetFromUrl();
-const initialSubmissionMode = readSubmissionModeFromUrl();
+const initialMode = readModeFromUrl();
+const initialSubmissionMode = initialMode === 'buildQuote' ? 'user-transaction' : readSubmissionModeFromUrl();
 
 export const useCrossChainStore = create<CrossChainState>((set, get) => ({
   isTestnet: initialIsTestnet,
   executor: buildExecutor(initialIsTestnet, initialSubmissionMode),
-  mode: readModeFromUrl(),
+  mode: initialMode,
   buildQuoteProviderId: 'across',
   submissionMode: initialSubmissionMode,
 
@@ -63,10 +64,12 @@ export const useCrossChainStore = create<CrossChainState>((set, get) => ({
 
   setMode: (mode: SwapFormMode) => {
     if (mode === get().mode) return;
+    const forceUserTx = mode === 'buildQuote' && get().submissionMode !== 'user-transaction';
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       if (mode === 'buildQuote') {
         url.searchParams.set(MODE_QUERY_PARAM, MODE_BUILD_VALUE);
+        url.searchParams.delete(SUBMISSION_QUERY_PARAM);
       } else {
         url.searchParams.delete(MODE_QUERY_PARAM);
       }
@@ -74,7 +77,15 @@ export const useCrossChainStore = create<CrossChainState>((set, get) => ({
         window.history.replaceState({}, '', url.toString());
       }
     }
-    set({ mode });
+    if (forceUserTx) {
+      set({
+        mode,
+        submissionMode: 'user-transaction',
+        executor: buildExecutor(get().isTestnet, 'user-transaction'),
+      });
+    } else {
+      set({ mode });
+    }
   },
   setBuildQuoteProviderId: (providerId: string) => set({ buildQuoteProviderId: providerId }),
 

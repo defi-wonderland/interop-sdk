@@ -79,7 +79,6 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
   const mode = useCrossChainStore((s) => s.mode);
   const setMode = useCrossChainStore((s) => s.setMode);
   const submissionMode = useCrossChainStore((s) => s.submissionMode);
-  const setSubmissionMode = useCrossChainStore((s) => s.setSubmissionMode);
   const buildQuoteProviderId = useCrossChainStore((s) => s.buildQuoteProviderId);
   const setBuildQuoteProviderId = useCrossChainStore((s) => s.setBuildQuoteProviderId);
   const [outputAmount, setOutputAmount] = useState('');
@@ -224,9 +223,6 @@ export function SwapForm({ onSubmit, onInputChange, isLoading = false, isDisable
 
   const handleModeChange = (newMode: SwapFormMode) => {
     setMode(newMode);
-    if (newMode === 'buildQuote') {
-      setSubmissionMode('user-transaction');
-    }
     onInputChange?.();
   };
 
