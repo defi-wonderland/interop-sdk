@@ -68,6 +68,7 @@ export function getExecutor(isTestnet: boolean, submissionMode: SubmissionMode):
   return cachedExecutors.pair[submissionMode];
 }
 
+/** Internal helper for {@link getExecutor}. Builds a single executor; bypasses the warm-pair cache. */
 function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode = 'user-transaction'): Aggregator {
   const rpcUrls = isTestnet ? TESTNET_RPC_URLS : MAINNET_RPC_URLS;
   const oifSolverId = isTestnet ? 'testnet-solver' : 'mainnet-solver';
