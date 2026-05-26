@@ -23,14 +23,14 @@ export class RelayHistoryService implements HistoryService {
   constructor(private readonly httpClient: HttpClient = new FetchHttpClient({ baseURL: RELAY_BASE_URL })) {}
 
   async getHistory(query: HistoryQuery): Promise<HistoryResult> {
-    const requests = await this.fetchRequests(query);
+    const target = Math.min(query.limit ?? RELAY_DEFAULT_LIMIT, RELAY_MAX_LIMIT);
+    const requests = await this.fetchRequests(query, target);
     const filtered = filterByToken(requests, query.tokenAddress);
-    const samples = collectSamples(filtered);
+    const samples = collectSamples(filtered).slice(0, target);
     return { providerId: RELAY_PROVIDER_ID, samples };
   }
 
-  private async fetchRequests(query: HistoryQuery): Promise<RelayHistoryRequest[]> {
-    const target = Math.min(query.limit ?? RELAY_DEFAULT_LIMIT, RELAY_MAX_LIMIT);
+  private async fetchRequests(query: HistoryQuery, target: number): Promise<RelayHistoryRequest[]> {
     const scanCap = query.tokenAddress ? target * RELAY_FILTER_SCAN_MULTIPLIER : target;
     const collected: RelayHistoryRequest[] = [];
     let filteredCount = 0;

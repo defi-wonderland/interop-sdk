@@ -22,14 +22,14 @@ export class AcrossHistoryService implements HistoryService {
   constructor(private readonly httpClient: HttpClient = new FetchHttpClient({ baseURL: ACROSS_BASE_URL })) {}
 
   async getHistory(query: HistoryQuery): Promise<HistoryResult> {
-    const deposits = await this.fetchDeposits(query);
+    const target = Math.min(query.limit ?? ACROSS_DEPOSITS_DEFAULT_LIMIT, ACROSS_DEPOSITS_MAX_LIMIT);
+    const deposits = await this.fetchDeposits(query, target);
     const filtered = filterByToken(deposits, query.tokenAddress);
-    const samples = collectSamples(filtered, query.tokenDecimals ?? {});
+    const samples = collectSamples(filtered, query.tokenDecimals ?? {}).slice(0, target);
     return { providerId: ACROSS_PROVIDER_ID, samples };
   }
 
-  private async fetchDeposits(query: HistoryQuery): Promise<AcrossHistoryDepositsResponse> {
-    const target = Math.min(query.limit ?? ACROSS_DEPOSITS_DEFAULT_LIMIT, ACROSS_DEPOSITS_MAX_LIMIT);
+  private async fetchDeposits(query: HistoryQuery, target: number): Promise<AcrossHistoryDepositsResponse> {
     const scanCap = query.tokenAddress ? target * ACROSS_FILTER_SCAN_MULTIPLIER : target;
     const collected: AcrossHistoryDeposit[] = [];
     let filteredCount = 0;

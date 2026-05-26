@@ -21,14 +21,14 @@ export class LifiIntentsHistoryService implements HistoryService {
   constructor(private readonly httpClient: HttpClient = new FetchHttpClient({ baseURL: LIFI_INTENTS_BASE_URL })) {}
 
   async getHistory(query: HistoryQuery): Promise<HistoryResult> {
-    const items = await this.fetchOrders(query);
+    const target = Math.min(query.limit ?? LIFI_INTENTS_DEFAULT_LIMIT, LIFI_INTENTS_MAX_LIMIT);
+    const items = await this.fetchOrders(query, target);
     const filtered = filterByToken(items, query.tokenAddress);
-    const samples = collectSamples(filtered);
+    const samples = collectSamples(filtered).slice(0, target);
     return { providerId: LIFI_INTENTS_PROVIDER_ID, samples };
   }
 
-  private async fetchOrders(query: HistoryQuery): Promise<LifiIntentsOrderItem[]> {
-    const target = Math.min(query.limit ?? LIFI_INTENTS_DEFAULT_LIMIT, LIFI_INTENTS_MAX_LIMIT);
+  private async fetchOrders(query: HistoryQuery, target: number): Promise<LifiIntentsOrderItem[]> {
     const collected: LifiIntentsOrderItem[] = [];
     let offset = 0;
     while (collected.length < target) {
