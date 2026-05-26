@@ -81,9 +81,11 @@ function toSample(item: LifiIntentsOrderItem): HistorySample | null {
 function normalizeStatus(status: string): HistorySampleStatus {
   switch (status) {
     case 'Settled':
+    case 'Delivered':
       return 'success';
     case 'Expired':
     case 'Refunded':
+    case 'Failed':
       return 'failed';
     default:
       return 'pending';

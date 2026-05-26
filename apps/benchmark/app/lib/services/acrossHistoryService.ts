@@ -31,6 +31,7 @@ export class AcrossHistoryService implements HistoryService {
       params: {
         originChainId: query.originChainId,
         destinationChainId: query.destinationChainId,
+        inputToken: query.tokenAddress,
         limit: Math.min(query.limit ?? ACROSS_DEPOSITS_DEFAULT_LIMIT, ACROSS_DEPOSITS_MAX_LIMIT),
       },
     });
