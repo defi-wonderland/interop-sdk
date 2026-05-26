@@ -30,22 +30,25 @@ export class LifiIntentsHistoryService implements HistoryService {
 
   private async fetchOrders(query: HistoryQuery, target: number): Promise<LifiIntentsOrderItem[]> {
     const collected: LifiIntentsOrderItem[] = [];
+    let filteredCount = 0;
     let offset = 0;
-    while (collected.length < target) {
-      const page = await this.fetchPage(query, target - collected.length, offset);
+    while (filteredCount < target) {
+      const page = await this.fetchPage(query, offset);
       if (page.data.length === 0) break;
       collected.push(...page.data);
+      filteredCount += filterByToken(page.data, query.tokenAddress).length;
       offset += page.data.length;
+      if (page.data.length < LIFI_INTENTS_PAGE_SIZE) break;
     }
     return collected;
   }
 
-  private async fetchPage(query: HistoryQuery, remaining: number, offset: number): Promise<LifiIntentsOrdersResponse> {
+  private async fetchPage(query: HistoryQuery, offset: number): Promise<LifiIntentsOrdersResponse> {
     const { data } = await this.httpClient.get(LIFI_INTENTS_ORDERS_PATH, {
       params: {
         originChainId: query.originChainId,
         destinationChainId: query.destinationChainId,
-        limit: Math.min(LIFI_INTENTS_PAGE_SIZE, remaining),
+        limit: LIFI_INTENTS_PAGE_SIZE,
         offset,
       },
     });

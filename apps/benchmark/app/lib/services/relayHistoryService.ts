@@ -17,7 +17,6 @@ const RELAY_PROVIDER_ID = 'relay';
 const RELAY_PAGE_SIZE = 50;
 const RELAY_DEFAULT_LIMIT = 100;
 const RELAY_MAX_LIMIT = 100;
-const RELAY_FILTER_SCAN_MULTIPLIER = 5;
 
 export class RelayHistoryService implements HistoryService {
   constructor(private readonly httpClient: HttpClient = new FetchHttpClient({ baseURL: RELAY_BASE_URL })) {}
@@ -31,12 +30,11 @@ export class RelayHistoryService implements HistoryService {
   }
 
   private async fetchRequests(query: HistoryQuery, target: number): Promise<RelayHistoryRequest[]> {
-    const scanCap = query.tokenAddress ? target * RELAY_FILTER_SCAN_MULTIPLIER : target;
     const collected: RelayHistoryRequest[] = [];
     let filteredCount = 0;
     let continuation: string | undefined;
-    while (filteredCount < target && collected.length < scanCap) {
-      const page = await this.fetchPage(query, scanCap - collected.length, continuation);
+    while (filteredCount < target) {
+      const page = await this.fetchPage(query, continuation);
       collected.push(...page.requests);
       filteredCount += filterByToken(page.requests, query.tokenAddress).length;
       if (!page.continuation || page.requests.length === 0) break;
@@ -45,14 +43,10 @@ export class RelayHistoryService implements HistoryService {
     return collected;
   }
 
-  private async fetchPage(
-    query: HistoryQuery,
-    remaining: number,
-    continuation: string | undefined,
-  ): Promise<RelayHistoryResponse> {
+  private async fetchPage(query: HistoryQuery, continuation: string | undefined): Promise<RelayHistoryResponse> {
     const { data } = await this.httpClient.get(RELAY_HISTORY_PATH, {
       params: {
-        limit: Math.min(RELAY_PAGE_SIZE, remaining),
+        limit: RELAY_PAGE_SIZE,
         originChainId: query.originChainId,
         destinationChainId: query.destinationChainId,
         continuation,
