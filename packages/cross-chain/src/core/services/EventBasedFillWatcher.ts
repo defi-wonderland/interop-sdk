@@ -69,7 +69,7 @@ export class EventBasedFillWatcher implements FillWatcher {
      *
      * @param params - Parameters for getting the fill
      * @returns Fill event data (null if not filled), order status, and optional failure reason
-     * @note Only searches the last 40,000 blocks. Older fills will not be detected.
+     * @note Only searches the last 9,000 blocks. Older fills will not be detected.
      */
     async getFill(params: GetFillParams): Promise<{
         fillEvent: FillEvent | null;
@@ -89,7 +89,9 @@ export class EventBasedFillWatcher implements FillWatcher {
         try {
             const currentBlock = await publicClient.getBlockNumber();
 
-            const maxBlockRange = 40000n; // Public RPCs limit to 50,000 blocks max
+            // Arbitrum publicnode caps eth_getLogs at 10,000 blocks; other public RPCs allow more.
+            // 9,000 keeps us safely under every common public RPC limit.
+            const maxBlockRange = 9000n;
             const fromBlock = currentBlock > maxBlockRange ? currentBlock - maxBlockRange : 0n;
 
             const logsArgs = this.config.buildLogsArgs(params, contractAddress);
