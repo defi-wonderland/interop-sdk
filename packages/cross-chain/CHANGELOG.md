@@ -1,5 +1,30 @@
 # @wonderland/interop-cross-chain
 
+## 0.12.0
+
+### Minor Changes
+
+-   acb531e: Add reusable EIP-712 envelope validation utilities under `src/core`: `validatePrimaryType` and `validateEnvelopeDomain` for envelope-level checks, `validatePermit2Message` for Permit2 single and batch payloads, and `validateEip3009Message` for transfer/receive-with-authorization payloads. Mismatches throw a typed `Eip712EnvelopeMismatch`.
+
+    The validators focus on the checks that actually carry security weight — `chainId` equality, `verifyingContract` allow-list, address equality for `from`/`to`/`spender`, amount caps via `toNonNegativeBigInt` (with a non-negative guard so a tampered envelope can't smuggle a negative entry under the cap), and deadline / `validAfter` freshness. Wire-format hardening for whitespace, alternative number bases, missing `domain.version`, native-asset placeholders, and similar shape errors is left to the caller's schema layer (Zod) and the on-chain signature check.
+
+    These utilities are not wired into any protocol yet — Bungee, Relay, and OIF integration will follow in separate changes.
+
+-   64803cb: Align `oif-escrow-v0` with the new OIF deployment.
+
+    -   `PERMIT2_TYPES.Permit2Witness` now starts with `user` (address). Canonical type: `Permit2Witness(address user,uint32 expires,address inputOracle,MandateOutput[] outputs)`. `oifEscrowValidator` rejects quotes whose `payload.message.witness.user` is missing or does not match the requested user.
+    -   `OIF_INPUT_SETTLER_ESCROW_BY_CHAIN` → `0x1CC9260E285C2C8AC8D2E7102F3978056Ec1d0a8` (Arbitrum, Base, Optimism).
+    -   `OIF_OUTPUT_SETTLER_BY_CHAIN` → `0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10` (Arbitrum, Base, Optimism).
+
+    Breaking: consumers caching the previous settler addresses or signing the 3-field witness must update — the new contracts reject the old digest.
+
+### Patch Changes
+
+-   3e100b8: Expose `SubmissionMode` (the `"user-transaction" | "gasless"` union) from the package entry point so consumers can type submission-mode preferences without duplicating the literal locally.
+-   f384292: Lower `EventBasedFillWatcher` block range from 40,000 to 9,000.
+
+    `arbitrum-one-rpc.publicnode.com` caps `eth_getLogs` at 10,000 blocks and rejected every poll with `exceed maximum block range`. The error was swallowed as "not filled yet", so on-chain tracking for orders destined to Arbitrum (e.g. OIF buildQuote) never detected the `OutputFilled` event and timed out as `Awaiting solver` even when the fill had already happened on-chain. 9,000 sits under every public RPC limit we use (publicnode-arbitrum: 10k, publicnode-base/optimism: 50k) and still gives ~37 min of detection window on Arbitrum, which is plenty for fresh fills.
+
 ## 0.11.0
 
 ### Minor Changes
