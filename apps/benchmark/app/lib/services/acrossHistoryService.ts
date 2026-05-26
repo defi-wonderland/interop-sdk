@@ -1,10 +1,10 @@
 import { formatUnits, type Address } from 'viem';
 import { FetchHttpClient } from '../http';
 import {
-  AcrossDepositsResponseSchema,
-  type AcrossDeposit,
+  AcrossHistoryDepositsResponseSchema,
   type AcrossDepositStatus,
-  type AcrossDepositsResponse,
+  type AcrossHistoryDeposit,
+  type AcrossHistoryDepositsResponse,
 } from '../schemas/across';
 import type { HistoryService } from '../interfaces/historyService.interface';
 import type { HistoryQuery, HistoryResult, HistorySample, HistorySampleStatus } from '../types/historyMetrics';
@@ -26,7 +26,7 @@ export class AcrossHistoryService implements HistoryService {
     return { providerId: ACROSS_PROVIDER_ID, samples };
   }
 
-  private async fetchDeposits(query: HistoryQuery): Promise<AcrossDepositsResponse> {
+  private async fetchDeposits(query: HistoryQuery): Promise<AcrossHistoryDepositsResponse> {
     const { data } = await this.httpClient.get(ACROSS_DEPOSITS_PATH, {
       params: {
         originChainId: query.originChainId,
@@ -34,23 +34,29 @@ export class AcrossHistoryService implements HistoryService {
         limit: Math.min(query.limit ?? ACROSS_DEPOSITS_DEFAULT_LIMIT, ACROSS_DEPOSITS_MAX_LIMIT),
       },
     });
-    return AcrossDepositsResponseSchema.parse(data);
+    return AcrossHistoryDepositsResponseSchema.parse(data);
   }
 }
 
-function filterByToken(deposits: AcrossDepositsResponse, tokenAddress: Address | undefined): AcrossDepositsResponse {
+function filterByToken(
+  deposits: AcrossHistoryDepositsResponse,
+  tokenAddress: Address | undefined,
+): AcrossHistoryDepositsResponse {
   if (!tokenAddress) return deposits;
   const target = tokenAddress.toLowerCase();
   return deposits.filter((deposit) => deposit.inputToken.toLowerCase() === target);
 }
 
-function collectSamples(deposits: AcrossDepositsResponse, tokenDecimals: Record<string, number>): HistorySample[] {
+function collectSamples(
+  deposits: AcrossHistoryDepositsResponse,
+  tokenDecimals: Record<string, number>,
+): HistorySample[] {
   return deposits
     .map((deposit) => toSample(deposit, tokenDecimals))
     .filter((sample): sample is HistorySample => sample !== null);
 }
 
-function toSample(deposit: AcrossDeposit, tokenDecimals: Record<string, number>): HistorySample | null {
+function toSample(deposit: AcrossHistoryDeposit, tokenDecimals: Record<string, number>): HistorySample | null {
   const timestamp = Date.parse(deposit.depositBlockTimestamp);
   if (!Number.isFinite(timestamp)) return null;
   const decimals = lookupDecimals(tokenDecimals, deposit.originChainId, deposit.inputToken);
@@ -75,23 +81,25 @@ function normalizeStatus(status: AcrossDepositStatus): HistorySampleStatus {
     case 'unfilled':
     case 'slowFillRequested':
       return 'pending';
+    default:
+      return assertNever(status);
   }
 }
 
 function lookupDecimals(
   tokenDecimals: Record<string, number>,
   chainId: number,
-  tokenAddress: Address,
+  tokenAddress: string,
 ): number | undefined {
   return tokenDecimals[tokenKey(chainId, tokenAddress)];
 }
 
-function tokenKey(chainId: number, tokenAddress: Address): string {
+function tokenKey(chainId: number, tokenAddress: string): string {
   return `${chainId}:${tokenAddress.toLowerCase()}`;
 }
 
-function computeAmountUsd(deposit: AcrossDeposit, decimals: number): number | null {
-  if (deposit.inputPriceUsd === null) return null;
+function computeAmountUsd(deposit: AcrossHistoryDeposit, decimals: number): number | null {
+  if (deposit.inputPriceUsd == null) return null;
   const price = Number(deposit.inputPriceUsd);
   if (!Number.isFinite(price)) return null;
   const amount = parseBaseUnits(deposit.inputAmount, decimals);
@@ -108,17 +116,21 @@ function parseBaseUnits(raw: string, decimals: number): number | null {
   }
 }
 
-function sumFees(deposit: AcrossDeposit): number | null {
-  if (deposit.bridgeFeeUsd === null && deposit.fillGasFeeUsd === null && deposit.swapFeeUsd === null) return null;
-  const total =
-    Number(deposit.bridgeFeeUsd ?? 0) + Number(deposit.fillGasFeeUsd ?? 0) + Number(deposit.swapFeeUsd ?? 0);
+function sumFees(deposit: AcrossHistoryDeposit): number | null {
+  const { bridgeFeeUsd, fillGasFeeUsd, swapFeeUsd } = deposit;
+  if (bridgeFeeUsd == null && fillGasFeeUsd == null && swapFeeUsd == null) return null;
+  const total = Number(bridgeFeeUsd ?? 0) + Number(fillGasFeeUsd ?? 0) + Number(swapFeeUsd ?? 0);
   return Number.isFinite(total) ? total : null;
 }
 
-function computeFillTimeSeconds(deposit: AcrossDeposit, depositTs: number): number | null {
-  if (deposit.fillBlockTimestamp === null) return null;
+function computeFillTimeSeconds(deposit: AcrossHistoryDeposit, depositTs: number): number | null {
+  if (deposit.fillBlockTimestamp == null) return null;
   const fillTs = Date.parse(deposit.fillBlockTimestamp);
   if (!Number.isFinite(fillTs)) return null;
   const diff = (fillTs - depositTs) / 1000;
   return diff >= 0 ? diff : null;
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unexpected Across status: ${String(value)}`);
 }

@@ -60,6 +60,23 @@ export const AcrossDepositSchema = z.object({
 
 export const AcrossDepositsResponseSchema = z.array(AcrossDepositSchema);
 
+export const AcrossHistoryDepositSchema = z
+  .object({
+    status: AcrossDepositStatusSchema,
+    originChainId: z.number().int(),
+    inputToken: z.string(),
+    inputAmount: z.string(),
+    depositBlockTimestamp: z.string(),
+    inputPriceUsd: z.string().nullable().optional(),
+    bridgeFeeUsd: z.string().nullable().optional(),
+    fillGasFeeUsd: z.string().nullable().optional(),
+    swapFeeUsd: z.string().nullable().optional(),
+    fillBlockTimestamp: z.string().nullable().optional(),
+  })
+  .passthrough();
+
+export const AcrossHistoryDepositsResponseSchema = z.array(AcrossHistoryDepositSchema);
+
 export const AcrossDepositsQuerySchema = z.object({
   limit: z.number().int().min(1).max(100).optional(),
   skip: z.number().int().min(0).optional(),
@@ -78,3 +95,5 @@ export type AcrossDeposit = z.infer<typeof AcrossDepositSchema>;
 export type AcrossDepositsResponse = z.infer<typeof AcrossDepositsResponseSchema>;
 export type AcrossDepositsQuery = z.input<typeof AcrossDepositsQuerySchema>;
 export type AcrossDepositStatus = z.infer<typeof AcrossDepositStatusSchema>;
+export type AcrossHistoryDeposit = z.infer<typeof AcrossHistoryDepositSchema>;
+export type AcrossHistoryDepositsResponse = z.infer<typeof AcrossHistoryDepositsResponseSchema>;

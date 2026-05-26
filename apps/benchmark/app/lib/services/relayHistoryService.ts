@@ -1,10 +1,10 @@
 import { FetchHttpClient } from '../http';
 import {
-  RelayResponseSchema,
-  type RelayFeesUsd,
-  type RelayRequest,
+  RelayHistoryResponseSchema,
+  type RelayHistoryFeesUsd,
+  type RelayHistoryRequest,
+  type RelayHistoryResponse,
   type RelayRequestStatus,
-  type RelayResponse,
 } from '../schemas/relay';
 import type { HistoryService } from '../interfaces/historyService.interface';
 import type { HistoryQuery, HistoryResult, HistorySample, HistorySampleStatus } from '../types/historyMetrics';
@@ -16,6 +16,7 @@ const RELAY_HISTORY_PATH = 'requests/v2';
 const RELAY_PROVIDER_ID = 'relay';
 const RELAY_PAGE_SIZE = 50;
 const RELAY_DEFAULT_LIMIT = 100;
+const RELAY_MAX_LIMIT = 100;
 
 export class RelayHistoryService implements HistoryService {
   constructor(private readonly httpClient: HttpClient = new FetchHttpClient({ baseURL: RELAY_BASE_URL })) {}
@@ -27,9 +28,9 @@ export class RelayHistoryService implements HistoryService {
     return { providerId: RELAY_PROVIDER_ID, samples };
   }
 
-  private async fetchRequests(query: HistoryQuery): Promise<RelayRequest[]> {
-    const target = query.limit ?? RELAY_DEFAULT_LIMIT;
-    const collected: RelayRequest[] = [];
+  private async fetchRequests(query: HistoryQuery): Promise<RelayHistoryRequest[]> {
+    const target = Math.min(query.limit ?? RELAY_DEFAULT_LIMIT, RELAY_MAX_LIMIT);
+    const collected: RelayHistoryRequest[] = [];
     let continuation: string | undefined;
     while (collected.length < target) {
       const page = await this.fetchPage(query, target - collected.length, continuation);
@@ -44,7 +45,7 @@ export class RelayHistoryService implements HistoryService {
     query: HistoryQuery,
     remaining: number,
     continuation: string | undefined,
-  ): Promise<RelayResponse> {
+  ): Promise<RelayHistoryResponse> {
     const { data } = await this.httpClient.get(RELAY_HISTORY_PATH, {
       params: {
         limit: Math.min(RELAY_PAGE_SIZE, remaining),
@@ -53,24 +54,24 @@ export class RelayHistoryService implements HistoryService {
         continuation,
       },
     });
-    return RelayResponseSchema.parse(data);
+    return RelayHistoryResponseSchema.parse(data);
   }
 }
 
-function filterByToken(requests: RelayRequest[], tokenAddress: Address | undefined): RelayRequest[] {
+function filterByToken(requests: RelayHistoryRequest[], tokenAddress: Address | undefined): RelayHistoryRequest[] {
   if (!tokenAddress) return requests;
   const target = tokenAddress.toLowerCase();
   return requests.filter((request) => {
-    const address = request.data.metadata?.currencyIn?.currency.address;
+    const address = request.data.metadata?.currencyIn?.currency?.address;
     return typeof address === 'string' && address.toLowerCase() === target;
   });
 }
 
-function collectSamples(requests: RelayRequest[]): HistorySample[] {
+function collectSamples(requests: RelayHistoryRequest[]): HistorySample[] {
   return requests.map((request) => toSample(request)).filter((sample): sample is HistorySample => sample !== null);
 }
 
-function toSample(request: RelayRequest): HistorySample | null {
+function toSample(request: RelayHistoryRequest): HistorySample | null {
   if (request.data.subsidizedRequest) return null;
   const inTs = request.data.inTxs?.[0]?.timestamp;
   const outTs = request.data.outTxs?.[0]?.timestamp;
@@ -97,13 +98,15 @@ function normalizeStatus(status: RelayRequestStatus): HistorySampleStatus {
     case 'depositing':
     case 'waiting':
       return 'pending';
+    default:
+      return assertNever(status);
   }
 }
 
 function parseAmountUsd(raw: string | undefined): number | null {
   if (raw === undefined) return null;
   const value = Number(raw);
-  return Number.isFinite(value) && value > 0 ? value : null;
+  return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 function resolveTimestamp(inTs: number | undefined, createdAt: string): number | null {
@@ -112,8 +115,12 @@ function resolveTimestamp(inTs: number | undefined, createdAt: string): number |
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function sumFees(fees: RelayFeesUsd | undefined): number | null {
+function sumFees(fees: RelayHistoryFeesUsd | undefined): number | null {
   if (!fees) return null;
   const total = Number(fees.gas ?? 0) + Number(fees.fixed ?? 0) + Number(fees.price ?? 0) + Number(fees.gateway ?? 0);
   return Number.isFinite(total) ? total : null;
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unexpected Relay status: ${String(value)}`);
 }

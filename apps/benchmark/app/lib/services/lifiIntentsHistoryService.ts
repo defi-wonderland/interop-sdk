@@ -91,10 +91,14 @@ function normalizeStatus(status: string): HistorySampleStatus {
 }
 
 function computeFillTimeSeconds(meta: LifiIntentsOrderMeta): number | null {
-  const filledAt = meta.deliveredAt ?? meta.settledAt;
-  if (!filledAt) return null;
-  const filledMs = Date.parse(filledAt);
-  if (!Number.isFinite(filledMs)) return null;
+  const filledMs = parseTimestampMs(meta.deliveredAt) ?? parseTimestampMs(meta.settledAt);
+  if (filledMs === null) return null;
   const diff = filledMs / 1000 - meta.submitTime;
   return diff >= 0 ? diff : null;
+}
+
+function parseTimestampMs(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : null;
 }

@@ -250,6 +250,42 @@ export const RelayRequestsQuerySchema = z.object({
   sortDirection: z.enum(['asc', 'desc']).optional(),
 });
 
+const RelayHistoryTxSchema = z.object({ timestamp: z.number().optional() }).passthrough();
+
+const RelayHistoryCurrencyAmountSchema = z
+  .object({
+    amountUsd: z.string().optional(),
+    currency: z.object({ address: z.string() }).passthrough().optional(),
+  })
+  .passthrough();
+
+const RelayHistoryMetadataSchema = z.object({ currencyIn: RelayHistoryCurrencyAmountSchema.optional() }).passthrough();
+
+const RelayHistoryFeesUsdSchema = RelayFeesUsdSchema.passthrough();
+
+export const RelayHistoryRequestDataSchema = z
+  .object({
+    subsidizedRequest: z.boolean().optional(),
+    inTxs: z.array(RelayHistoryTxSchema).optional(),
+    outTxs: z.array(RelayHistoryTxSchema).optional(),
+    metadata: RelayHistoryMetadataSchema.optional(),
+    feesUsd: RelayHistoryFeesUsdSchema.optional(),
+  })
+  .passthrough();
+
+export const RelayHistoryRequestSchema = z
+  .object({
+    status: RelayRequestStatusSchema,
+    createdAt: z.string(),
+    data: RelayHistoryRequestDataSchema,
+  })
+  .passthrough();
+
+export const RelayHistoryResponseSchema = z.object({
+  requests: z.array(RelayHistoryRequestSchema),
+  continuation: z.string().optional(),
+});
+
 export type RelayRequest = z.infer<typeof RelayRequestSchema>;
 export type RelayResponse = z.infer<typeof RelayResponseSchema>;
 export type RelayRequestStatus = z.infer<typeof RelayRequestStatusSchema>;
@@ -261,3 +297,6 @@ export type RelayRequestData = z.infer<typeof RelayRequestDataSchema>;
 export type RelayCurrency = z.infer<typeof RelayCurrencySchema>;
 export type RelayCurrencyAmount = z.infer<typeof RelayCurrencyAmountSchema>;
 export type RelayRequestsQuery = z.input<typeof RelayRequestsQuerySchema>;
+export type RelayHistoryRequest = z.infer<typeof RelayHistoryRequestSchema>;
+export type RelayHistoryResponse = z.infer<typeof RelayHistoryResponseSchema>;
+export type RelayHistoryFeesUsd = z.infer<typeof RelayHistoryFeesUsdSchema>;

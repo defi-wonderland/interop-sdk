@@ -36,7 +36,8 @@ export const LifiIntentsOrdersResponseSchema = z.object({
       limit: z.number(),
       offset: z.number(),
     })
-    .passthrough(),
+    .passthrough()
+    .optional(),
 });
 
 export type LifiIntentsOrderItem = z.infer<typeof LifiIntentsOrderItemSchema>;
