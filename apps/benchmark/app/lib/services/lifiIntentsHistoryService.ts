@@ -15,6 +15,7 @@ const LIFI_INTENTS_ORDERS_PATH = 'orders';
 const LIFI_INTENTS_PROVIDER_ID = 'lifi-intents';
 const LIFI_INTENTS_PAGE_SIZE = 50;
 const LIFI_INTENTS_DEFAULT_LIMIT = 100;
+const LIFI_INTENTS_MAX_LIMIT = 100;
 
 export class LifiIntentsHistoryService implements HistoryService {
   constructor(private readonly httpClient: HttpClient = new FetchHttpClient({ baseURL: LIFI_INTENTS_BASE_URL })) {}
@@ -27,7 +28,7 @@ export class LifiIntentsHistoryService implements HistoryService {
   }
 
   private async fetchOrders(query: HistoryQuery): Promise<LifiIntentsOrderItem[]> {
-    const target = query.limit ?? LIFI_INTENTS_DEFAULT_LIMIT;
+    const target = Math.min(query.limit ?? LIFI_INTENTS_DEFAULT_LIMIT, LIFI_INTENTS_MAX_LIMIT);
     const collected: LifiIntentsOrderItem[] = [];
     let offset = 0;
     while (collected.length < target) {
@@ -90,9 +91,10 @@ function normalizeStatus(status: string): HistorySampleStatus {
 }
 
 function computeFillTimeSeconds(meta: LifiIntentsOrderMeta): number | null {
-  if (!meta.settledAt) return null;
-  const settledMs = Date.parse(meta.settledAt);
-  if (!Number.isFinite(settledMs)) return null;
-  const diff = settledMs / 1000 - meta.submitTime;
+  const filledAt = meta.deliveredAt ?? meta.settledAt;
+  if (!filledAt) return null;
+  const filledMs = Date.parse(filledAt);
+  if (!Number.isFinite(filledMs)) return null;
+  const diff = filledMs / 1000 - meta.submitTime;
   return diff >= 0 ? diff : null;
 }
