@@ -13,8 +13,10 @@ import type { HttpClient } from '@wonderland/interop-cross-chain';
 const ACROSS_BASE_URL = 'https://app.across.to/api';
 const ACROSS_DEPOSITS_PATH = 'deposits';
 const ACROSS_PROVIDER_ID = 'across';
+const ACROSS_DEPOSITS_PAGE_SIZE = 100;
 const ACROSS_DEPOSITS_DEFAULT_LIMIT = 100;
 const ACROSS_DEPOSITS_MAX_LIMIT = 100;
+const ACROSS_FILTER_SCAN_MULTIPLIER = 5;
 
 export class AcrossHistoryService implements HistoryService {
   constructor(private readonly httpClient: HttpClient = new FetchHttpClient({ baseURL: ACROSS_BASE_URL })) {}
@@ -27,12 +29,31 @@ export class AcrossHistoryService implements HistoryService {
   }
 
   private async fetchDeposits(query: HistoryQuery): Promise<AcrossHistoryDepositsResponse> {
+    const target = Math.min(query.limit ?? ACROSS_DEPOSITS_DEFAULT_LIMIT, ACROSS_DEPOSITS_MAX_LIMIT);
+    const scanCap = query.tokenAddress ? target * ACROSS_FILTER_SCAN_MULTIPLIER : target;
+    const collected: AcrossHistoryDeposit[] = [];
+    let filteredCount = 0;
+    while (filteredCount < target && collected.length < scanCap) {
+      const page = await this.fetchPage(query, scanCap - collected.length, collected.length);
+      if (page.length === 0) break;
+      collected.push(...page);
+      filteredCount += filterByToken(page, query.tokenAddress).length;
+      if (page.length < ACROSS_DEPOSITS_PAGE_SIZE) break;
+    }
+    return collected;
+  }
+
+  private async fetchPage(
+    query: HistoryQuery,
+    remaining: number,
+    skip: number,
+  ): Promise<AcrossHistoryDepositsResponse> {
     const { data } = await this.httpClient.get(ACROSS_DEPOSITS_PATH, {
       params: {
         originChainId: query.originChainId,
         destinationChainId: query.destinationChainId,
-        inputToken: query.tokenAddress,
-        limit: Math.min(query.limit ?? ACROSS_DEPOSITS_DEFAULT_LIMIT, ACROSS_DEPOSITS_MAX_LIMIT),
+        limit: Math.min(ACROSS_DEPOSITS_PAGE_SIZE, remaining),
+        skip,
       },
     });
     return AcrossHistoryDepositsResponseSchema.parse(data);
