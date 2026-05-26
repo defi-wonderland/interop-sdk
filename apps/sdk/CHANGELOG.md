@@ -1,5 +1,15 @@
 # @wonderland/interop
 
+## 0.5.1
+
+### Patch Changes
+
+-   Updated dependencies [acb531e]
+-   Updated dependencies [3e100b8]
+-   Updated dependencies [f384292]
+-   Updated dependencies [64803cb]
+    -   @wonderland/interop-cross-chain@0.12.0
+
 ## 0.5.0
 
 ### Minor Changes
