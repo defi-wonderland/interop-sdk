@@ -6,7 +6,7 @@ import { BenchmarkTable } from '../BenchmarkTable';
 import { Label } from '../Label';
 import { RaceTableRow } from './RaceTableRow';
 import { RACE_TABLE_COLUMNS } from './constants';
-import { findAsset, findBestProvider, orderRaceRows } from './raceRows';
+import { findAsset, findBestProvider } from './raceRows';
 import type { RaceRow } from './types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 import { ASSETS } from '~/lib/assets';
@@ -26,8 +26,7 @@ export function RaceTable({ initialRows, initialChains }: RaceTableProps) {
   const rows = storeRows.length > 0 ? storeRows : initialRows;
 
   const winnerProviderId = useMemo(() => findBestProvider(rows, 'output'), [rows]);
-  const fastestProviderId = useMemo(() => findBestProvider(rows, 'latency'), [rows]);
-  const orderedRows = useMemo(() => orderRaceRows(rows), [rows]);
+  const firstProviderId = useMemo(() => findBestProvider(rows, 'latency'), [rows]);
   const maxLatencyMs = useMemo(
     () =>
       rows.reduce((max, row) => {
@@ -50,7 +49,7 @@ export function RaceTable({ initialRows, initialChains }: RaceTableProps) {
 
       <BenchmarkTable
         columns={RACE_TABLE_COLUMNS}
-        rows={orderedRows}
+        rows={rows}
         getRowKey={(row) => row.provider.id}
         renderRow={(row, index) => (
           <RaceTableRow
@@ -58,7 +57,7 @@ export function RaceTable({ initialRows, initialChains }: RaceTableProps) {
             rank={row.status === 'settled' ? index + 1 : null}
             outputDecimals={outputDecimals}
             isWinner={row.provider.id === winnerProviderId}
-            isFastest={row.provider.id === fastestProviderId}
+            isFirst={row.provider.id === firstProviderId}
             maxLatencyMs={maxLatencyMs}
             assetSymbol={request.assetSymbol}
             reduceMotion={Boolean(reduceMotion)}

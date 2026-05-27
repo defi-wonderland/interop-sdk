@@ -5,7 +5,7 @@ import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
-import { buildQuoteRequest, buildRowsFromQuotes, createRows } from './components/race-table/raceRows';
+import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
 import {
   INITIAL_AMOUNT,
   INITIAL_ASSET_SYMBOL,
@@ -86,7 +86,7 @@ async function loadInitialChains(): Promise<NetworkAssets[]> {
 }
 
 async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
-  if (chains.length === 0) return createRows('errored', 'CHAIN DISCOVERY FAILED');
+  if (chains.length === 0) return orderRaceRows(createRows('errored', 'CHAIN DISCOVERY FAILED'));
 
   try {
     const request = buildQuoteRequest({
@@ -97,9 +97,9 @@ async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
       amount: INITIAL_AMOUNT,
     });
     const response = await quotesService.getQuotes(request);
-    return buildRowsFromQuotes(response.quotes);
+    return orderRaceRows(buildRowsFromQuotes(response.quotes));
   } catch {
-    return createRows('errored', 'NO ROUTE');
+    return orderRaceRows(createRows('errored', 'NO ROUTE'));
   }
 }
 

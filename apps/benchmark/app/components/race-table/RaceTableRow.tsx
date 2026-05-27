@@ -14,7 +14,7 @@ interface RaceTableRowProps {
   rank: number | null;
   outputDecimals: number;
   isWinner: boolean;
-  isFastest: boolean;
+  isFirst: boolean;
   maxLatencyMs: number;
   assetSymbol: AssetSymbol;
   reduceMotion: boolean;
@@ -25,7 +25,7 @@ export function RaceTableRow({
   rank,
   outputDecimals,
   isWinner,
-  isFastest,
+  isFirst,
   maxLatencyMs,
   assetSymbol,
   reduceMotion,
@@ -129,7 +129,7 @@ export function RaceTableRow({
           <StatusPill
             status={row.status}
             isWinner={isWinner}
-            isFastest={isFastest}
+            isFirst={isFirst}
             errorMessage={row.errorMessage}
             reduceMotion={reduceMotion}
           />
@@ -159,12 +159,12 @@ function LatencyBar({
 interface StatusPillProps {
   status: RowStatus;
   isWinner: boolean;
-  isFastest: boolean;
+  isFirst: boolean;
   errorMessage?: string;
   reduceMotion: boolean;
 }
 
-function StatusPill({ status, isWinner, isFastest, errorMessage, reduceMotion }: StatusPillProps) {
+function StatusPill({ status, isWinner, isFirst, errorMessage, reduceMotion }: StatusPillProps) {
   if (status === 'errored') {
     return (
       <Pill tone='error' title={errorMessage}>
@@ -186,8 +186,8 @@ function StatusPill({ status, isWinner, isFastest, errorMessage, reduceMotion }:
       </Pill>
     );
   }
-  if (status === 'settled' && isFastest) {
-    return <Pill tone='outline'>fastest</Pill>;
+  if (status === 'settled' && isFirst) {
+    return <Pill tone='outline'>first</Pill>;
   }
   return null;
 }
