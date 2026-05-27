@@ -7,6 +7,8 @@ import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 import { useRequestBarStore } from '~/lib/requestBarStore';
 import { quotesService } from '~/lib/services';
 
+const RACE_TIMEOUT_MS = 15_000;
+
 export function useRunRace(chains: NetworkAssets[]) {
   const setRows = useRequestBarStore((state) => state.setRows);
   const latestRunId = useRef(0);
@@ -24,7 +26,7 @@ export function useRunRace(chains: NetworkAssets[]) {
     try {
       const { request } = useRequestBarStore.getState();
       const quoteRequest = buildQuoteRequest({ chains, ...request });
-      const response = await quotesService.getQuotes(quoteRequest);
+      const response = await Promise.race([quotesService.getQuotes(quoteRequest), rejectAfter(RACE_TIMEOUT_MS)]);
       if (runId !== latestRunId.current) return;
       setRows(orderRaceRows(buildRowsFromQuotes(response.quotes)));
     } catch (error) {
@@ -38,4 +40,8 @@ export function useRunRace(chains: NetworkAssets[]) {
 function toQueryingRows(previous: RaceRow[]): RaceRow[] {
   if (previous.length === 0) return createRows('querying');
   return previous.map((row) => ({ provider: row.provider, status: 'querying' as const }));
+}
+
+function rejectAfter(ms: number): Promise<never> {
+  return new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), ms));
 }

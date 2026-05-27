@@ -5,14 +5,8 @@ import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
-import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
-import {
-  INITIAL_AMOUNT,
-  INITIAL_ASSET_SYMBOL,
-  INITIAL_FROM_CHAIN_ID,
-  INITIAL_TO_CHAIN_ID,
-} from './lib/requestBarStore';
-import { chainService, quotesService } from './lib/services';
+import { createRows, orderRaceRows } from './components/race-table/raceRows';
+import { chainService } from './lib/services';
 import type { RaceRow } from './components/race-table/types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 
@@ -23,7 +17,7 @@ const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-cha
 
 export default async function Home() {
   const initialChains = await loadInitialChains();
-  const initialRows = await loadInitialRace(initialChains);
+  const initialRows = buildInitialRows(initialChains);
 
   return (
     <div className='min-h-screen cursor-default bg-background'>
@@ -85,22 +79,9 @@ async function loadInitialChains(): Promise<NetworkAssets[]> {
   }
 }
 
-async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
+function buildInitialRows(chains: NetworkAssets[]): RaceRow[] {
   if (chains.length === 0) return orderRaceRows(createRows('errored', 'CHAIN DISCOVERY FAILED'));
-
-  try {
-    const request = buildQuoteRequest({
-      chains,
-      fromChainId: INITIAL_FROM_CHAIN_ID,
-      toChainId: INITIAL_TO_CHAIN_ID,
-      assetSymbol: INITIAL_ASSET_SYMBOL,
-      amount: INITIAL_AMOUNT,
-    });
-    const response = await quotesService.getQuotes(request);
-    return orderRaceRows(buildRowsFromQuotes(response.quotes));
-  } catch {
-    return orderRaceRows(createRows('errored', 'NO ROUTE'));
-  }
+  return orderRaceRows(createRows('idle'));
 }
 
 function SectionPlaceholder({ label }: { label: string }) {
