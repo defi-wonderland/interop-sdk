@@ -1,7 +1,7 @@
 import { defineConfig } from "vocs";
 
 const docsUrl = "https://docs.interop.wonderland.xyz";
-const wonderlandLogoUrl = `${docsUrl}/wonderland.svg`;
+const wonderlandLogoUrl = `${docsUrl}/wonderland-white.png`;
 const ogImageUrl = `https://vocs.dev/api/og?logo=${encodeURIComponent(wonderlandLogoUrl)}&title=%title&description=%description`;
 
 export default defineConfig({
