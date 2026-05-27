@@ -267,7 +267,9 @@ describe("validateOifEscrowSignatureEnvelope", () => {
             ["chainId", { chainId: 999 }, /chainId/],
             ["token", { token: bytes32(ATTACKER) }, /token/],
             ["recipient", { recipient: bytes32(ATTACKER) }, /recipient/],
-            ["amount", { amount: "999999999999" }, /amount/],
+            // Solver under-delivers: signs a near-zero output but pulls the
+            // full input via Permit2. Must be rejected.
+            ["under-delivered amount", { amount: "1" }, /amount/],
         ])("rejects a tampered outputs[0].%s", (_label, override, matcher) => {
             expect(() =>
                 validateOifEscrowSignatureEnvelope(

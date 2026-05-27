@@ -87,6 +87,11 @@ function toEnvelope(payload: OifEscrowOrder["payload"] | Oif3009Order["payload"]
     };
 }
 
+/**
+ * Read `spender` (Permit2) or `to` (EIP-3009) from the envelope message. We
+ * only assert it isn't the user — pinning the settler to a specific address
+ * would need a trusted-contract registry the SDK doesn't maintain.
+ */
 function readRecipientField(
     envelope: Eip712Envelope,
     field: RecipientField,
@@ -224,7 +229,7 @@ function validateEscrowWitness(
     }
 
     if (params.output.amount !== undefined) {
-        const maxAmount = BigInt(params.output.amount);
+        const minAmount = BigInt(params.output.amount);
         const witnessAmount = toBigIntOrUndefined(output.amount);
         if (witnessAmount === undefined) {
             throw new Eip712EnvelopeMismatch({
@@ -234,12 +239,15 @@ function validateEscrowWitness(
                 received: String(output.amount),
             });
         }
-        if (witnessAmount > maxAmount) {
+        // `params.output.amount` is the floor the user is willing to receive.
+        // A malicious solver could sign `outputs[0].amount = 0`, pull the input
+        // via Permit2 and fill a near-zero output — reject under-delivery.
+        if (witnessAmount < minAmount) {
             throw new Eip712EnvelopeMismatch({
                 field: "amount",
                 provider: PROVIDER_NAME,
                 primaryType: envelope.primaryType,
-                expected: maxAmount,
+                expected: minAmount,
                 received: witnessAmount,
             });
         }
