@@ -21,6 +21,10 @@ const QUOTE_IDS = {
     USER_OPEN: "test-quote-user-open",
 } as const;
 
+function padAddressToBytes32(address: string): Hex {
+    return `0x${"0".repeat(24)}${address.slice(2).toLowerCase()}` as Hex;
+}
+
 // Future timestamps for tests (relative to current time)
 function getTimestamps(): { VALID_UNTIL: number; DEADLINE: number } {
     const now = Math.floor(Date.now() / 1000);
@@ -102,7 +106,20 @@ export function getMockedOifQuoteResponse(overrides?: EscrowOverrides): GetQuote
                                 user: overrides?.user ?? OIF_ADDRESSES.USER,
                                 expires: getTimestamps().DEADLINE,
                                 inputOracle: OIF_ADDRESSES.SPENDER,
-                                outputs: [],
+                                outputs: [
+                                    {
+                                        oracle: padAddressToBytes32(OIF_ADDRESSES.SPENDER),
+                                        settler: padAddressToBytes32(OIF_ADDRESSES.SPENDER),
+                                        chainId: "1",
+                                        token: padAddressToBytes32(OIF_ADDRESSES.OUTPUT_ASSET),
+                                        amount: OIF_AMOUNTS.OUTPUT,
+                                        recipient: padAddressToBytes32(
+                                            overrides?.user ?? OIF_ADDRESSES.USER,
+                                        ),
+                                        callbackData: "0x",
+                                        context: "0x",
+                                    },
+                                ],
                             },
                         },
                         types: {

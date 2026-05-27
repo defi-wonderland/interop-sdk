@@ -11,6 +11,7 @@ import type { Address } from "viem";
 import type { ProviderQuote } from "../../../core/interfaces/quotes.interface.js";
 import type { Order } from "../../../core/schemas/order.js";
 import type { Quote, QuotePreviewEntry } from "../../../core/schemas/quote.js";
+import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
 import { toInteropAccountId } from "../../../core/utils/interopAccountId.js";
 import { adaptOifOrder } from "./orderAdapter.js";
 import { extractPermit2Allowances } from "./permit2AllowanceExtractor.js";
@@ -26,10 +27,13 @@ const ESCROW_ORDER_TYPE: OifEscrowOrder["type"] = "oif-escrow-v0";
  * - Converts ERC-7930 addresses in preview to {@link InteropAccountId}
  * - Adds Permit2 `checks.allowances` for `oif-escrow-v0` orders
  * - Preserves all other quote fields
+ *
+ * When `params` is supplied, the EIP-712 envelope is cross-checked against the
+ * user-supplied quote request to detect tampering by a compromised solver.
  */
-export function adaptQuote(providerQuote: ProviderQuote): Quote {
+export function adaptQuote(providerQuote: ProviderQuote, params?: QuoteRequest): Quote {
     const order = withPermit2Allowances(
-        adaptOifOrder(providerQuote.order as OifOrder),
+        adaptOifOrder(providerQuote.order as OifOrder, params),
         providerQuote,
     );
 
