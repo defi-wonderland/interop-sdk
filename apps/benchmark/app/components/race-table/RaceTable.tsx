@@ -28,6 +28,14 @@ export function RaceTable({ initialRows, initialChains }: RaceTableProps) {
   const winnerProviderId = useMemo(() => findBestProvider(rows, 'output'), [rows]);
   const fastestProviderId = useMemo(() => findBestProvider(rows, 'latency'), [rows]);
   const orderedRows = useMemo(() => orderRaceRows(rows), [rows]);
+  const maxLatencyMs = useMemo(
+    () =>
+      rows.reduce((max, row) => {
+        const latency = row.quote?.latencyMs;
+        return latency !== undefined && latency > max ? latency : max;
+      }, 0),
+    [rows],
+  );
   const outputDecimals = findAsset(initialChains, request.toChainId, request.assetSymbol)?.decimals ?? 6;
 
   return (
@@ -51,6 +59,7 @@ export function RaceTable({ initialRows, initialChains }: RaceTableProps) {
             outputDecimals={outputDecimals}
             isWinner={row.provider.id === winnerProviderId}
             isFastest={row.provider.id === fastestProviderId}
+            maxLatencyMs={maxLatencyMs}
             assetSymbol={request.assetSymbol}
             reduceMotion={Boolean(reduceMotion)}
           />

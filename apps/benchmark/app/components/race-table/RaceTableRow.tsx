@@ -15,6 +15,7 @@ interface RaceTableRowProps {
   outputDecimals: number;
   isWinner: boolean;
   isFastest: boolean;
+  maxLatencyMs: number;
   assetSymbol: AssetSymbol;
   reduceMotion: boolean;
 }
@@ -25,17 +26,15 @@ export function RaceTableRow({
   outputDecimals,
   isWinner,
   isFastest,
+  maxLatencyMs,
   assetSymbol,
   reduceMotion,
 }: RaceTableRowProps) {
   const isQuerying = row.status === 'querying';
   const isErrored = row.status === 'errored';
+  const isSettled = row.status === 'settled';
   const outputUsd = parseOptionalNumber(row.quote?.outputAmountUsd);
-  const outputToken = row.quote?.outputAmount
-    ? formatTokenAmount(row.quote.outputAmount, outputDecimals)
-    : isQuerying
-      ? ''
-      : '—';
+  const outputToken = row.quote?.outputAmount ? formatTokenAmount(row.quote.outputAmount, outputDecimals) : '—';
 
   return (
     <motion.tr
@@ -50,7 +49,7 @@ export function RaceTableRow({
               ? {
                   opacity: 1,
                   y: 0,
-                  boxShadow: ['0 0 0 rgba(184,72,38,0)', '0 0 28px rgba(184,72,38,0.16)', '0 0 0 rgba(184,72,38,0)'],
+                  boxShadow: ['0 0 0 rgba(26,58,92,0)', '0 0 28px rgba(26,58,92,0.16)', '0 0 0 rgba(26,58,92,0)'],
                 }
               : { opacity: 1, y: 0 }
       }
@@ -61,84 +60,161 @@ export function RaceTableRow({
         isErrored && 'text-text-muted',
       )}
     >
-      <td className='px-4 py-4 font-mono text-label text-text-muted'>{rank ? `#${rank}` : '—'}</td>
+      <td className='w-12 px-4 py-4'>
+        <div className='flex items-center gap-2 font-mono text-label'>
+          <span className={cn('inline-block size-1.5 rounded-full', row.provider.colorClass)} aria-hidden='true' />
+          <span className='tabular-nums'>{rank ?? '—'}</span>
+        </div>
+      </td>
       <td className='px-4 py-4'>
         <div className='flex items-center gap-3'>
           <Icon src={row.provider.iconUrl} alt='' size='lg' />
-          <div className='flex items-center gap-2'>
-            <span className='font-sans text-lg font-medium text-text-primary'>{row.provider.displayName}</span>
-            {isWinner ? <Badge reduceMotion={reduceMotion}>winner</Badge> : null}
-            {isFastest ? <Badge reduceMotion={reduceMotion}>fastest</Badge> : null}
-          </div>
+          <span className='font-sans text-lg font-medium tracking-tight text-text-primary'>
+            {row.provider.displayName}
+          </span>
         </div>
       </td>
-      <td className='px-4 py-4 font-mono text-label text-text-secondary'>
+      <td className='px-4 py-4'>
         {isQuerying ? (
           <Skeleton reduceMotion={reduceMotion} />
+        ) : isSettled && row.quote?.latencyMs !== undefined ? (
+          <div className='flex flex-col gap-1.5'>
+            <span className='font-mono text-mark text-text-primary tabular-nums'>
+              <AnimatedLatency value={row.quote.latencyMs} reduceMotion={reduceMotion} />
+            </span>
+            <LatencyBar
+              latencyMs={row.quote.latencyMs}
+              maxLatencyMs={maxLatencyMs}
+              colorClass={row.provider.colorClass}
+            />
+          </div>
         ) : (
-          <AnimatedLatency value={row.quote?.latencyMs} reduceMotion={reduceMotion} />
+          <span className='font-mono text-label text-text-muted'>—</span>
         )}
       </td>
       <td className='px-4 py-4'>
         {isQuerying ? (
           <Skeleton wide reduceMotion={reduceMotion} />
-        ) : (
-          <div className='flex flex-col gap-1'>
-            <span className='font-mono text-label text-text-primary'>
-              {outputToken} {assetSymbol}
-            </span>
-            <span className='font-mono text-caption text-text-muted'>
-              <AnimatedUsd
-                value={outputUsd}
-                fallback={formatUsd(row.quote?.outputAmountUsd)}
-                reduceMotion={reduceMotion}
-              />
-            </span>
+        ) : isSettled ? (
+          <div className='flex items-baseline justify-end gap-1.5'>
+            <span className='font-mono text-mark font-medium text-text-primary tabular-nums'>{outputToken}</span>
+            <span className='font-mono text-caption text-text-muted'>{assetSymbol}</span>
           </div>
+        ) : (
+          <div className='text-right font-mono text-label text-text-muted'>—</div>
         )}
+        {isSettled ? (
+          <div className='text-right font-mono text-caption text-text-muted tabular-nums'>
+            <AnimatedUsd
+              value={outputUsd}
+              fallback={formatUsd(row.quote?.outputAmountUsd)}
+              reduceMotion={reduceMotion}
+            />
+          </div>
+        ) : null}
       </td>
-      <td className='px-4 py-4 font-mono text-label text-text-secondary'>
+      <td className='px-4 py-4 text-right'>
         {isQuerying ? (
           <Skeleton reduceMotion={reduceMotion} />
+        ) : isSettled ? (
+          <span className='font-mono text-label text-text-secondary tabular-nums'>
+            <AnimatedEta value={row.quote?.eta} reduceMotion={reduceMotion} />
+          </span>
         ) : (
-          <AnimatedEta value={row.quote?.eta} reduceMotion={reduceMotion} />
+          <span className='font-mono text-label text-text-muted'>—</span>
         )}
       </td>
       <td className='px-4 py-4'>
-        <StatusPill status={row.status} message={row.errorMessage} reduceMotion={reduceMotion} />
+        <div className='flex justify-end'>
+          <StatusPill
+            status={row.status}
+            isWinner={isWinner}
+            isFastest={isFastest}
+            errorMessage={row.errorMessage}
+            reduceMotion={reduceMotion}
+          />
+        </div>
       </td>
     </motion.tr>
   );
 }
 
-function Badge({ children, reduceMotion }: { children: string; reduceMotion: boolean }) {
+function LatencyBar({
+  latencyMs,
+  maxLatencyMs,
+  colorClass,
+}: {
+  latencyMs: number;
+  maxLatencyMs: number;
+  colorClass: string;
+}) {
+  const widthPercent = Math.max(8, Math.min(100, (latencyMs / Math.max(maxLatencyMs, 1)) * 100));
   return (
-    <motion.span
-      initial={reduceMotion ? false : { scale: 0.9 }}
-      animate={reduceMotion ? { opacity: 1 } : { scale: [1, 1.08, 1] }}
-      transition={{ duration: 0.2 }}
-      className='rounded-full border border-accent/40 bg-accent-soft px-2 py-0.5 font-mono text-caption uppercase tracking-widest text-accent'
-    >
-      {children}
-    </motion.span>
+    <div className='h-[3px] w-40 max-w-full bg-border-subtle' aria-hidden='true'>
+      <div className={cn('h-full', colorClass)} style={{ width: `${widthPercent}%` }} />
+    </div>
   );
 }
 
-function StatusPill({ status, message, reduceMotion }: { status: RowStatus; message?: string; reduceMotion: boolean }) {
-  const label = status === 'errored' ? 'NO ROUTE' : status;
+interface StatusPillProps {
+  status: RowStatus;
+  isWinner: boolean;
+  isFastest: boolean;
+  errorMessage?: string;
+  reduceMotion: boolean;
+}
+
+function StatusPill({ status, isWinner, isFastest, errorMessage, reduceMotion }: StatusPillProps) {
+  if (status === 'errored') {
+    return (
+      <Pill tone='error' title={errorMessage}>
+        no route
+      </Pill>
+    );
+  }
+  if (status === 'querying') {
+    return (
+      <Pill tone='muted' className={reduceMotion ? undefined : 'animate-pulse'}>
+        querying
+      </Pill>
+    );
+  }
+  if (status === 'settled' && isWinner) {
+    return (
+      <Pill tone='accent' icon='★'>
+        winner
+      </Pill>
+    );
+  }
+  if (status === 'settled' && isFastest) {
+    return <Pill tone='outline'>fastest</Pill>;
+  }
+  return null;
+}
+
+interface PillProps {
+  tone: 'accent' | 'outline' | 'muted' | 'error';
+  title?: string;
+  className?: string;
+  icon?: string;
+  children: React.ReactNode;
+}
+
+const PILL_BASE =
+  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-caption uppercase tracking-widest';
+
+const PILL_TONE: Record<PillProps['tone'], string> = {
+  accent: 'bg-accent text-on-accent',
+  outline: 'border border-accent/40 text-accent',
+  muted: 'border border-border-subtle text-text-muted',
+  error: 'border border-error/40 text-error',
+};
+
+function Pill({ tone, title, className, icon, children }: PillProps) {
   return (
-    <span
-      title={message}
-      className={cn(
-        'inline-flex rounded-full border px-2 py-1 font-mono text-caption uppercase tracking-widest',
-        status === 'settled' && 'border-success/40 bg-success/10 text-success',
-        status === 'querying' && 'border-accent/40 bg-accent-soft text-accent',
-        status === 'querying' && !reduceMotion && 'animate-pulse',
-        status === 'idle' && 'border-border-subtle text-text-muted',
-        status === 'errored' && 'border-error/40 bg-error/10 text-error',
-      )}
-    >
-      {label}
+    <span title={title} className={cn(PILL_BASE, PILL_TONE[tone], className)}>
+      {icon ? <span aria-hidden='true'>{icon}</span> : null}
+      {children}
     </span>
   );
 }
