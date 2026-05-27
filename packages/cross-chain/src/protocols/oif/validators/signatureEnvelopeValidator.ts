@@ -1,12 +1,11 @@
 import type { Oif3009Order, OifEscrowOrder } from "@openintentsframework/oif-specs";
-import type { Address, Hex, TypedDataParameter } from "viem";
-import { getAddress, hexToBigInt, isAddressEqual, isHex } from "viem";
+import type { Address, TypedDataParameter } from "viem";
+import { getAddress, hexToBigInt, isAddressEqual, isHex, size, slice } from "viem";
 
 import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
 import type { Eip712Domain, Eip712Envelope } from "../../../core/types/eip712.js";
 import { EIP3009_PRIMARY_TYPES, PERMIT2_ADDRESS } from "../../../core/constants/eip712.js";
 import { Eip712EnvelopeMismatch } from "../../../core/errors/Eip712EnvelopeMismatch.exception.js";
-import { bytes32ToAddress } from "../../../core/utils/addressHelpers.js";
 import { readAddressField } from "../../../core/utils/eip712Readers.js";
 import { isNativeAddress } from "../../../core/utils/token.js";
 import {
@@ -27,9 +26,8 @@ type RecipientField = "spender" | "to";
 /** Validate an OIF escrow envelope: Permit2 family on the canonical Permit2 contract. */
 export function validateOifEscrowSignatureEnvelope(
     order: OifEscrowOrder,
-    params?: QuoteRequest,
+    params: QuoteRequest,
 ): void {
-    if (params === undefined) return;
     const envelope = toEnvelope(order.payload);
 
     validatePrimaryType(envelope, ESCROW_PRIMARY_TYPES, PROVIDER_NAME);
@@ -58,8 +56,7 @@ export function validateOifEscrowSignatureEnvelope(
  * cross-check the domain against the user's input asset directly — no extra
  * metadata fields required.
  */
-export function validateOif3009SignatureEnvelope(order: Oif3009Order, params?: QuoteRequest): void {
-    if (params === undefined) return;
+export function validateOif3009SignatureEnvelope(order: Oif3009Order, params: QuoteRequest): void {
     const envelope = toEnvelope(order.payload);
 
     validatePrimaryType(envelope, EIP3009_PRIMARY_TYPES, PROVIDER_NAME);
@@ -254,7 +251,7 @@ function decodeBytes32Address(
     primaryType: string,
     field: "token" | "recipient",
 ): Address {
-    if (typeof raw !== "string" || !isHex(raw) || raw.length !== 66) {
+    if (typeof raw !== "string" || !isHex(raw) || size(raw) !== 32) {
         throw new Eip712EnvelopeMismatch({
             field,
             provider: PROVIDER_NAME,
@@ -263,8 +260,7 @@ function decodeBytes32Address(
             cause: `witness.outputs[0].${field} must be a 32-byte hex string`,
         });
     }
-    const lowOrderBytes = `0x${raw.slice(2, 26)}` as Hex;
-    if (BigInt(lowOrderBytes) !== 0n) {
+    if (BigInt(slice(raw, 0, 12)) !== 0n) {
         throw new Eip712EnvelopeMismatch({
             field,
             provider: PROVIDER_NAME,
@@ -273,7 +269,7 @@ function decodeBytes32Address(
             cause: `witness.outputs[0].${field} has non-zero high bytes — not an EVM address`,
         });
     }
-    return bytes32ToAddress(raw as Hex);
+    return getAddress(slice(raw, 12));
 }
 
 function toBigIntOrUndefined(value: unknown): bigint | undefined {

@@ -1,4 +1,6 @@
 import type { Oif3009Order, OifEscrowOrder } from "@openintentsframework/oif-specs";
+import type { Hex } from "viem";
+import { pad } from "viem";
 import { describe, expect, it } from "vitest";
 
 import type { QuoteRequest } from "../../../../src/core/schemas/quoteRequest.js";
@@ -22,7 +24,7 @@ const OUTPUT_AMOUNT = "990000";
 const FUTURE = Math.floor(Date.now() / 1000) + 3600;
 const PAST = Math.floor(Date.now() / 1000) - 3600;
 
-const bytes32 = (addr: string) => `0x${"0".repeat(24)}${addr.slice(2).toLowerCase()}` as const;
+const bytes32 = (addr: string): Hex => pad(addr as Hex, { size: 32 });
 
 const params = (overrides: Partial<QuoteRequest> = {}): QuoteRequest => ({
     user: USER,

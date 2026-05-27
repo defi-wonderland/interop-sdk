@@ -56,7 +56,7 @@ function toSignatureStep(
 
 // ── OIF Order Converters ─────────────────────────────────
 
-function fromOifEscrowOrder(order: OifEscrowOrder, params?: QuoteRequest): Order {
+function fromOifEscrowOrder(order: OifEscrowOrder, params: QuoteRequest): Order {
     validateOifEscrowSignatureEnvelope(order, params);
     return {
         steps: [toSignatureStep(order.payload)],
@@ -64,7 +64,7 @@ function fromOifEscrowOrder(order: OifEscrowOrder, params?: QuoteRequest): Order
     };
 }
 
-function fromOif3009Order(order: Oif3009Order, params?: QuoteRequest): Order {
+function fromOif3009Order(order: Oif3009Order, params: QuoteRequest): Order {
     validateOif3009SignatureEnvelope(order, params);
     return {
         steps: [toSignatureStep(order.payload, order.metadata as Record<string, unknown>)],
@@ -153,20 +153,18 @@ function fromOifUserOpenOrder(order: {
 // ── Public API ───────────────────────────────────────────
 
 /**
- * Convert an OIF wire-format order to an SDK {@link Order}.
- *
- * When `params` is provided, the EIP-712 envelope of `oif-escrow-v0` and
- * `oif-3009-v0` orders is cross-checked against the user-supplied quote
- * request (chainId, input token, user address). Without it, validation falls
- * back to structural checks only — the LI.FI adapter reuses this function for
- * `oif-user-open-v0` orders which never reach the signature validators.
+ * Convert an OIF wire-format order to an SDK {@link Order}. For `oif-escrow-v0`
+ * and `oif-3009-v0` (gasless signature orders), `params` is required so the
+ * EIP-712 envelope can be cross-checked against the user's quote request; the
+ * other order types (`oif-resource-lock-v0`, `oif-user-open-v0`) don't reach
+ * the signature validators and accept calls without it.
  */
 export function adaptOifOrder(order: OifOrder, params?: QuoteRequest): Order {
     switch (order.type) {
         case "oif-escrow-v0":
-            return fromOifEscrowOrder(order, params);
+            return fromOifEscrowOrder(order, requireParams(order.type, params));
         case "oif-3009-v0":
-            return fromOif3009Order(order, params);
+            return fromOif3009Order(order, requireParams(order.type, params));
         case "oif-resource-lock-v0":
             return fromOifResourceLockOrder(order);
         case "oif-user-open-v0":
@@ -174,4 +172,13 @@ export function adaptOifOrder(order: OifOrder, params?: QuoteRequest): Order {
         default:
             throw new Error(`Unknown OIF order type: ${(order as { type: string }).type}`);
     }
+}
+
+function requireParams(orderType: string, params: QuoteRequest | undefined): QuoteRequest {
+    if (params === undefined) {
+        throw new Error(
+            `QuoteRequest required to adapt ${orderType}: EIP-712 envelope cannot be validated without it`,
+        );
+    }
+    return params;
 }
