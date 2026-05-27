@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Icon } from '../Icon';
-import { Label } from '../Label';
 import { parseOptionalNumber } from './raceRows';
 import type { RaceRow, RowStatus } from './types';
 import { AssetSymbol } from '~/lib/assets';
@@ -66,15 +65,10 @@ export function RaceTableRow({
       <td className='px-4 py-4'>
         <div className='flex items-center gap-3'>
           <Icon src={row.provider.iconUrl} alt='' size='lg' />
-          <div>
-            <div className='flex items-center gap-2'>
-              <span className='font-sans text-lg font-medium text-text-primary'>{row.provider.displayName}</span>
-              {isWinner ? <Badge reduceMotion={reduceMotion}>winner</Badge> : null}
-              {isFastest ? <Badge reduceMotion={reduceMotion}>fastest</Badge> : null}
-            </div>
-            <Label className='font-mono text-caption uppercase tracking-widest text-text-muted'>
-              {row.provider.monogram}
-            </Label>
+          <div className='flex items-center gap-2'>
+            <span className='font-sans text-lg font-medium text-text-primary'>{row.provider.displayName}</span>
+            {isWinner ? <Badge reduceMotion={reduceMotion}>winner</Badge> : null}
+            {isFastest ? <Badge reduceMotion={reduceMotion}>fastest</Badge> : null}
           </div>
         </div>
       </td>
