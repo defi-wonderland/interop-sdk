@@ -1,3 +1,5 @@
+import { isAddressEqual, type Address } from 'viem';
+import { bytes32ToAddress } from '../helpers';
 import { FetchHttpClient } from '../http';
 import {
   LifiIntentsOrdersResponseSchema,
@@ -8,7 +10,6 @@ import {
 import type { HistoryService } from '../interfaces/historyService.interface';
 import type { HistoryQuery, HistoryResult, HistorySample, HistorySampleStatus } from '../types/historyMetrics';
 import type { HttpClient } from '@wonderland/interop-cross-chain';
-import type { Address } from 'viem';
 
 const LIFI_INTENTS_BASE_URL = 'https://order.li.fi';
 const LIFI_INTENTS_ORDERS_PATH = 'orders';
@@ -60,8 +61,12 @@ export class LifiIntentsHistoryService implements HistoryService {
 // (not raw EVM addresses), so we match against the destination `outputs[].token` instead.
 function filterByToken(items: LifiIntentsOrderItem[], tokenAddress: Address | undefined): LifiIntentsOrderItem[] {
   if (!tokenAddress) return items;
-  const target = tokenAddress.toLowerCase();
-  return items.filter((item) => item.order.outputs.some((output) => output.token.toLowerCase() === target));
+  return items.filter((item) =>
+    item.order.outputs.some((output) => {
+      const address = bytes32ToAddress(output.token);
+      return address !== null && isAddressEqual(address, tokenAddress);
+    }),
+  );
 }
 
 function collectSamples(items: LifiIntentsOrderItem[]): HistorySample[] {
