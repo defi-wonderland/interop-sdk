@@ -1,4 +1,4 @@
-// Reproduces what useRunRace does on the client: discover chains, build a Base USDC -> Arb USDC 1k request, call getQuotes.
+// Probes which token pair returns quotes from all providers.
 // Run with: node scripts/debug-getquotes.mjs from apps/benchmark (after SDK packages are built).
 
 import {
@@ -27,65 +27,81 @@ const aggregator = createAggregator({
   ],
 });
 
-function logSection(title) {
-  console.log(`\n=== ${title} ===`);
-}
+const CHAIN_IDS = [1, 8453, 42161, 10];
+const SYMBOLS = ['USDC', 'WETH'];
+const CHAIN_NAMES = { 1: 'ethereum', 8453: 'base', 42161: 'arbitrum', 10: 'optimism' };
+const EXPECTED_PROVIDERS = ['across', 'relay', 'lifi-intents', 'bungee'];
 
-logSection('Chain discovery');
-const discoverStart = Date.now();
-let discovered;
-try {
-  discovered = await aggregator.discoverAssets({ chainIds: [1, 8453, 42161, 10] });
-  console.log(`Discovered in ${Date.now() - discoverStart}ms`);
-} catch (error) {
-  console.log(`Chain discovery failed in ${Date.now() - discoverStart}ms:`, error?.message ?? error);
-  process.exit(1);
-}
+const discovered = await aggregator.discoverAssets({ chainIds: CHAIN_IDS });
 
-function findUsdc(chainId) {
+function findAsset(chainId, symbol) {
   const addrs = discovered.tokensByChain?.[chainId] ?? [];
   const meta = discovered.tokenMetadata?.[chainId] ?? {};
   for (const a of addrs) {
     const m = meta[a.toLowerCase()];
-    if (m?.symbol === 'USDC') return { address: a, decimals: m.decimals };
+    if (m?.symbol === symbol) return { address: a, decimals: m.decimals };
   }
   return null;
 }
 
-const baseUsdc = findUsdc(8453);
-const arbUsdc = findUsdc(42161);
-console.log('Base USDC:', baseUsdc, '| Arb USDC:', arbUsdc);
-if (!baseUsdc || !arbUsdc) {
-  console.log('No USDC found; aborting.');
-  process.exit(1);
+function buildAmount(decimals, units) {
+  return (BigInt(units) * 10n ** BigInt(decimals)).toString();
 }
 
-const amount = (BigInt('1000') * 10n ** BigInt(baseUsdc.decimals)).toString();
-
-const request = {
-  user: USER_PLACEHOLDER,
-  input: { chainId: 8453, assetAddress: baseUsdc.address, amount },
-  output: { chainId: 42161, assetAddress: arbUsdc.address, recipient: USER_PLACEHOLDER },
-  swapType: 'exact-input',
-};
-
-for (let run = 1; run <= 3; run += 1) {
-  logSection(`getQuotes — run ${run}`);
-  const start = Date.now();
-  try {
-    const res = await aggregator.getQuotes(request);
-    console.log(`Finished in ${Date.now() - start}ms`);
-    console.log(`Quotes (${res.quotes.length}):`);
-    for (const q of res.quotes) {
-      console.log(
-        `  - ${q._providerId} | ${q.latencyMs}ms | output ${q.preview?.outputs?.[0]?.amount} | eta ${q.eta}`,
-      );
+const TEST_PAIRS = [];
+for (const symbol of SYMBOLS) {
+  for (const from of CHAIN_IDS) {
+    for (const to of CHAIN_IDS) {
+      if (from === to) continue;
+      TEST_PAIRS.push({ symbol, from, to });
     }
-    console.log(`Errors (${res.errors.length}):`);
-    for (const e of res.errors) {
-      console.log(`  - ${e.errorMsg} (${e.latencyMs}ms)`);
-    }
-  } catch (error) {
-    console.log(`Failed in ${Date.now() - start}ms:`, error?.message ?? error);
   }
 }
+
+const matrix = [];
+
+for (const { symbol, from, to } of TEST_PAIRS) {
+  const inAsset = findAsset(from, symbol);
+  const outAsset = findAsset(to, symbol);
+  if (!inAsset || !outAsset) continue;
+
+  const request = {
+    user: USER_PLACEHOLDER,
+    input: { chainId: from, assetAddress: inAsset.address, amount: buildAmount(inAsset.decimals, '1000') },
+    output: { chainId: to, assetAddress: outAsset.address, recipient: USER_PLACEHOLDER },
+    swapType: 'exact-input',
+  };
+
+  try {
+    const res = await aggregator.getQuotes(request);
+    const seen = new Set(res.quotes.map((q) => q._providerId));
+    const errored = new Set(res.errors.map((e) => e.providerId).filter(Boolean));
+    matrix.push({
+      symbol,
+      from,
+      to,
+      providers: Object.fromEntries(EXPECTED_PROVIDERS.map((id) => [id, seen.has(id) ? 'OK' : errored.has(id) ? 'ERR' : 'skip'])),
+    });
+  } catch (error) {
+    matrix.push({ symbol, from, to, providers: { error: error?.message ?? String(error) } });
+  }
+}
+
+console.log('\nProvider coverage matrix (OK = quote, ERR = explicit error, skip = silent drop):\n');
+console.log(`${'symbol'.padEnd(6)} ${'from'.padEnd(10)} ${'to'.padEnd(10)} ${EXPECTED_PROVIDERS.map((p) => p.padEnd(14)).join(' ')}`);
+for (const row of matrix) {
+  console.log(
+    `${row.symbol.padEnd(6)} ${(CHAIN_NAMES[row.from] ?? row.from).padEnd(10)} ${(CHAIN_NAMES[row.to] ?? row.to).padEnd(10)} ${EXPECTED_PROVIDERS.map((p) => (row.providers[p] ?? '?').padEnd(14)).join(' ')}`,
+  );
+}
+
+const fullCoverage = matrix.filter((row) => EXPECTED_PROVIDERS.every((p) => row.providers[p] === 'OK'));
+console.log(`\nPairs covered by ALL 4 providers (${fullCoverage.length}):`);
+fullCoverage.forEach((r) => console.log(`  ${r.symbol} ${CHAIN_NAMES[r.from]} -> ${CHAIN_NAMES[r.to]}`));
+
+const threeCoverage = matrix.filter((row) => EXPECTED_PROVIDERS.filter((p) => row.providers[p] === 'OK').length >= 3);
+console.log(`\nPairs covered by >=3 providers (${threeCoverage.length}):`);
+threeCoverage.forEach((r) => {
+  const covered = EXPECTED_PROVIDERS.filter((p) => r.providers[p] === 'OK').join(', ');
+  console.log(`  ${r.symbol} ${CHAIN_NAMES[r.from]} -> ${CHAIN_NAMES[r.to]}: ${covered}`);
+});
