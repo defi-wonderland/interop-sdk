@@ -18,7 +18,12 @@ import type {
     SignatureStep,
     TransactionStep,
 } from "../../../core/schemas/order.js";
+import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
 import { toInteropAccountId } from "../../../core/utils/interopAccountId.js";
+import {
+    validateOif3009SignatureEnvelope,
+    validateOifEscrowSignatureEnvelope,
+} from "../validators/signatureEnvelopeValidator.js";
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -51,14 +56,16 @@ function toSignatureStep(
 
 // ── OIF Order Converters ─────────────────────────────────
 
-function fromOifEscrowOrder(order: OifEscrowOrder): Order {
+function fromOifEscrowOrder(order: OifEscrowOrder, params?: QuoteRequest): Order {
+    validateOifEscrowSignatureEnvelope(order, params);
     return {
         steps: [toSignatureStep(order.payload)],
         lock: { type: "oif-escrow" },
     };
 }
 
-function fromOif3009Order(order: Oif3009Order): Order {
+function fromOif3009Order(order: Oif3009Order, params?: QuoteRequest): Order {
+    validateOif3009SignatureEnvelope(order, params);
     return {
         steps: [toSignatureStep(order.payload, order.metadata as Record<string, unknown>)],
         lock: { type: "oif-escrow" },
@@ -147,13 +154,19 @@ function fromOifUserOpenOrder(order: {
 
 /**
  * Convert an OIF wire-format order to an SDK {@link Order}.
+ *
+ * When `params` is provided, the EIP-712 envelope of `oif-escrow-v0` and
+ * `oif-3009-v0` orders is cross-checked against the user-supplied quote
+ * request (chainId, input token, user address). Without it, validation falls
+ * back to structural checks only — the LI.FI adapter reuses this function for
+ * `oif-user-open-v0` orders which never reach the signature validators.
  */
-export function adaptOifOrder(order: OifOrder): Order {
+export function adaptOifOrder(order: OifOrder, params?: QuoteRequest): Order {
     switch (order.type) {
         case "oif-escrow-v0":
-            return fromOifEscrowOrder(order);
+            return fromOifEscrowOrder(order, params);
         case "oif-3009-v0":
-            return fromOif3009Order(order);
+            return fromOif3009Order(order, params);
         case "oif-resource-lock-v0":
             return fromOifResourceLockOrder(order);
         case "oif-user-open-v0":

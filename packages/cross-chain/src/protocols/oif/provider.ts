@@ -149,7 +149,7 @@ export class OifProvider extends CrossChainProvider {
 
             // 3. Convert to SDK quotes, stashing originals in metadata
             return providerQuotes.map((pq) => {
-                const sdkQuote = adaptQuote(pq);
+                const sdkQuote = adaptQuote(pq, params);
                 sdkQuote.metadata = {
                     ...sdkQuote.metadata,
                     _oifProviderQuote: pq,

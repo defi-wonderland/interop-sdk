@@ -14,6 +14,8 @@ function toErc7930(chainId: number, address: string): string {
 const USER_ADDRESS = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8";
 const INPUT_TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const OUTPUT_TOKEN = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const FUTURE_DEADLINE = Math.floor(Date.now() / 1000) + 3600;
 
 function createMockProviderQuote(): ProviderQuote {
     return {
@@ -21,12 +23,17 @@ function createMockProviderQuote(): ProviderQuote {
             type: "oif-escrow-v0" as const,
             payload: {
                 signatureType: "eip712" as const,
-                domain: { name: "Permit2", chainId: 1 },
+                domain: { name: "Permit2", chainId: 1, verifyingContract: PERMIT2 },
                 primaryType: "PermitBatchWitnessTransferFrom",
                 types: {
                     PermitBatchWitnessTransferFrom: [{ name: "spender", type: "address" }],
                 },
-                message: { permitted: [], spender: "0xabc" },
+                message: {
+                    permitted: [{ token: INPUT_TOKEN, amount: "1000000" }],
+                    spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
+                    nonce: "1",
+                    deadline: FUTURE_DEADLINE,
+                },
             },
         },
         preview: {
@@ -120,7 +127,6 @@ describe("quoteAdapter", () => {
     });
 
     describe("Permit2 allowances for oif-escrow-v0", () => {
-        const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
         const PERMITTED_TOKEN = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 
         afterEach(() => {
@@ -149,7 +155,7 @@ describe("quoteAdapter", () => {
                         ],
                         spender: "0x1234567890abcdef1234567890abcdef12345678",
                         nonce: "1",
-                        deadline: "1700000000",
+                        deadline: FUTURE_DEADLINE,
                     },
                 },
             };
@@ -180,15 +186,6 @@ describe("quoteAdapter", () => {
 
             expect(result.order.checks).toBeUndefined();
             expect(warn).toHaveBeenCalledWith(expect.stringContaining("missing signer in preview"));
-        });
-
-        it("omits checks when the extractor returns no allowances", () => {
-            const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
-            const result = adaptQuote(withEscrowPermit2({ primaryType: "UnknownType" }));
-
-            expect(result.order.checks).toBeUndefined();
-            expect(warn).toHaveBeenCalled();
         });
 
         it("does not touch order.checks on non-escrow order types", () => {

@@ -10,11 +10,28 @@ function toErc7930(chainId: number, address: string): string {
     ) as string;
 }
 
-const MOCK_EIP712_TYPES = {
+const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const USDC_MAINNET = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const FUTURE_DEADLINE = Math.floor(Date.now() / 1000) + 3600;
+
+const VALID_PERMIT2_TYPES = {
     PermitBatchWitnessTransferFrom: [
         { name: "permitted", type: "TokenPermissions[]" },
         { name: "spender", type: "address" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" },
     ],
+    TokenPermissions: [
+        { name: "token", type: "address" },
+        { name: "amount", type: "uint256" },
+    ],
+};
+
+const VALID_PERMIT2_MESSAGE = {
+    permitted: [{ token: USDC_MAINNET, amount: "1000000" }],
+    spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
+    nonce: "123",
+    deadline: FUTURE_DEADLINE,
 };
 
 describe("orderAdapter", () => {
@@ -24,10 +41,10 @@ describe("orderAdapter", () => {
                 type: "oif-escrow-v0" as const,
                 payload: {
                     signatureType: "eip712" as const,
-                    domain: { name: "Permit2", version: "1", chainId: 1 },
+                    domain: { name: "Permit2", chainId: 1, verifyingContract: PERMIT2 },
                     primaryType: "PermitBatchWitnessTransferFrom",
-                    types: MOCK_EIP712_TYPES,
-                    message: { spender: "0xabc", nonce: "123" },
+                    types: VALID_PERMIT2_TYPES,
+                    message: VALID_PERMIT2_MESSAGE,
                 },
             };
 
@@ -50,10 +67,10 @@ describe("orderAdapter", () => {
                 type: "oif-escrow-v0" as const,
                 payload: {
                     signatureType: "eip712" as const,
-                    domain: { chainId: 42161 },
-                    primaryType: "Test",
-                    types: {},
-                    message: {},
+                    domain: { chainId: 42161, verifyingContract: PERMIT2 },
+                    primaryType: "PermitBatchWitnessTransferFrom",
+                    types: VALID_PERMIT2_TYPES,
+                    message: VALID_PERMIT2_MESSAGE,
                 },
             };
 
@@ -66,10 +83,10 @@ describe("orderAdapter", () => {
                 type: "oif-escrow-v0" as const,
                 payload: {
                     signatureType: "eip712" as const,
-                    domain: { chainId: "137" },
-                    primaryType: "Test",
-                    types: {},
-                    message: {},
+                    domain: { chainId: "137", verifyingContract: PERMIT2 },
+                    primaryType: "PermitBatchWitnessTransferFrom",
+                    types: VALID_PERMIT2_TYPES,
+                    message: VALID_PERMIT2_MESSAGE,
                 },
             };
 
@@ -77,20 +94,19 @@ describe("orderAdapter", () => {
             expect(result.steps[0]!.chainId).toBe(137);
         });
 
-        it("defaults chainId to 0 when not in domain", () => {
+        it("rejects when chainId is missing from domain", () => {
             const oifOrder = {
                 type: "oif-escrow-v0" as const,
                 payload: {
                     signatureType: "eip712" as const,
-                    domain: { name: "NoDomain" },
-                    primaryType: "Test",
-                    types: {},
-                    message: {},
+                    domain: { name: "NoDomain", verifyingContract: PERMIT2 },
+                    primaryType: "PermitBatchWitnessTransferFrom",
+                    types: VALID_PERMIT2_TYPES,
+                    message: VALID_PERMIT2_MESSAGE,
                 },
             };
 
-            const result = adaptOifOrder(oifOrder);
-            expect(result.steps[0]!.chainId).toBe(0);
+            expect(() => adaptOifOrder(oifOrder)).toThrow(/chainId/);
         });
     });
 
@@ -100,7 +116,12 @@ describe("orderAdapter", () => {
                 type: "oif-3009-v0" as const,
                 payload: {
                     signatureType: "eip712" as const,
-                    domain: { name: "USD Coin", version: "2", chainId: 1 },
+                    domain: {
+                        name: "USD Coin",
+                        version: "2",
+                        chainId: 1,
+                        verifyingContract: USDC_MAINNET,
+                    },
                     primaryType: "TransferWithAuthorization",
                     types: {
                         TransferWithAuthorization: [
@@ -111,7 +132,7 @@ describe("orderAdapter", () => {
                     },
                     message: { from: "0xabc", to: "0xdef", value: "1000000" },
                 },
-                metadata: { orderHash: "0x123", chainId: 1, tokenAddress: "0xA0b8" },
+                metadata: { orderHash: "0x123", chainId: 1, tokenAddress: USDC_MAINNET },
             };
 
             const result = adaptOifOrder(oifOrder);
@@ -125,7 +146,7 @@ describe("orderAdapter", () => {
                 expect(step.metadata).toEqual({
                     orderHash: "0x123",
                     chainId: 1,
-                    tokenAddress: "0xA0b8",
+                    tokenAddress: USDC_MAINNET,
                 });
             }
         });
