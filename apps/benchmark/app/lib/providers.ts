@@ -1,7 +1,7 @@
 export enum ProviderId {
   Across = 'across',
   Relay = 'relay',
-  Lifi = 'lifi',
+  Lifi = 'lifi-intents',
   Bungee = 'bungee',
 }
 
