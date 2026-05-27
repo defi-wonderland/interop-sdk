@@ -7,7 +7,7 @@ import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 import { useRequestBarStore } from '~/lib/requestBarStore';
 import { quotesService } from '~/lib/services';
 
-const RACE_TIMEOUT_MS = 15_000;
+const RACE_TIMEOUT_MS = 30_000;
 
 export function useRunRace(chains: NetworkAssets[]) {
   const setRows = useRequestBarStore((state) => state.setRows);

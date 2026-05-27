@@ -63,15 +63,17 @@ export function RaceTableRow({
     >
       <td className='w-10 px-3 py-3 md:w-12 md:px-4 md:py-4'>
         <div className='flex items-center gap-2 font-mono text-label'>
-          <span className={cn('inline-block size-1.5 rounded-full', row.provider.colorClass)} aria-hidden='true' />
-          <span className='tabular-nums'>{rank ?? '—'}</span>
+          {isWinner ? (
+            <span className={cn('inline-block size-1.5 rounded-full', row.provider.colorClass)} aria-hidden='true' />
+          ) : null}
+          <span className={cn('tabular-nums', isWinner ? 'text-accent' : 'text-text-secondary')}>{rank ?? '—'}</span>
         </div>
       </td>
       <td className='px-3 py-3 md:px-4 md:py-4'>
         <div className='flex items-center gap-2.5 md:gap-3'>
           <Icon src={row.provider.iconUrl} alt='' size='md' />
           <div className='flex flex-col gap-0.5'>
-            <span className='font-sans text-mark font-medium tracking-tight text-text-primary md:text-lg'>
+            <span className='font-sans text-mark font-medium tracking-[-0.0125em] text-text-primary md:text-base'>
               {row.provider.displayName}
             </span>
             {mobileSubtitle ? (
@@ -109,13 +111,15 @@ export function RaceTableRow({
               <span className='font-mono text-mark font-medium text-text-primary tabular-nums'>{outputToken}</span>
               <span className='font-mono text-caption text-text-muted'>{assetSymbol}</span>
             </div>
-            <span className='font-mono text-caption text-text-muted tabular-nums'>
-              <AnimatedUsd
-                value={outputUsd}
-                fallback={formatUsd(row.quote?.outputAmountUsd)}
-                reduceMotion={reduceMotion}
-              />
-            </span>
+            {outputUsd > 0 ? (
+              <span className='font-mono text-caption text-text-muted tabular-nums'>
+                <AnimatedUsd
+                  value={outputUsd}
+                  fallback={formatUsd(row.quote?.outputAmountUsd)}
+                  reduceMotion={reduceMotion}
+                />
+              </span>
+            ) : null}
             <div className='md:hidden'>
               <StatusPill
                 status={row.status}
@@ -183,7 +187,7 @@ function LatencyBar({
   maxLatencyMs: number;
   colorClass: string;
 }) {
-  const widthPercent = Math.max(8, Math.min(100, (latencyMs / Math.max(maxLatencyMs, 1)) * 100));
+  const widthPercent = Math.max(4, Math.min(100, (latencyMs / Math.max(maxLatencyMs, 1)) * 100));
   return (
     <div className='h-[3px] w-40 max-w-full bg-border-subtle' aria-hidden='true'>
       <div className={cn('h-full', colorClass)} style={{ width: `${widthPercent}%` }} />
@@ -236,7 +240,7 @@ interface PillProps {
 }
 
 const PILL_BASE =
-  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-caption uppercase tracking-widest';
+  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-caption uppercase tracking-[0.08em]';
 
 const PILL_TONE: Record<PillProps['tone'], string> = {
   accent: 'bg-accent text-on-accent',

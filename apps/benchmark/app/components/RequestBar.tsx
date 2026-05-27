@@ -178,7 +178,7 @@ function ReRunButton() {
         onClick={() => setSpinKey((count) => count + 1)}
         className='group inline-flex cursor-pointer items-center gap-2 border border-border bg-surface-elevated px-3 py-2.5 font-mono text-label text-text-secondary transition hover:border-text-secondary hover:text-text-primary active:scale-95'
       >
-        <span aria-hidden='true' className='inline-block text-mark text-text-primary'>
+        <span aria-hidden='true' className='inline-block font-mono text-mark text-text-primary'>
           <span key={spinKey} className='animate-spin-once inline-block'>
             ↻
           </span>
