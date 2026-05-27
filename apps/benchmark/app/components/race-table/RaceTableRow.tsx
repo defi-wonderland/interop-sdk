@@ -35,6 +35,7 @@ export function RaceTableRow({
   const isSettled = row.status === 'settled';
   const outputUsd = parseOptionalNumber(row.quote?.outputAmountUsd);
   const outputToken = row.quote?.outputAmount ? formatTokenAmount(row.quote.outputAmount, outputDecimals) : '—';
+  const mobileSubtitle = buildMobileSubtitle(row);
 
   return (
     <motion.tr
@@ -60,21 +61,26 @@ export function RaceTableRow({
         isErrored && 'text-text-muted',
       )}
     >
-      <td className='w-12 px-4 py-4'>
+      <td className='w-10 px-3 py-3 md:w-12 md:px-4 md:py-4'>
         <div className='flex items-center gap-2 font-mono text-label'>
           <span className={cn('inline-block size-1.5 rounded-full', row.provider.colorClass)} aria-hidden='true' />
           <span className='tabular-nums'>{rank ?? '—'}</span>
         </div>
       </td>
-      <td className='px-4 py-4'>
-        <div className='flex items-center gap-3'>
-          <Icon src={row.provider.iconUrl} alt='' size='lg' />
-          <span className='font-sans text-lg font-medium tracking-tight text-text-primary'>
-            {row.provider.displayName}
-          </span>
+      <td className='px-3 py-3 md:px-4 md:py-4'>
+        <div className='flex items-center gap-2.5 md:gap-3'>
+          <Icon src={row.provider.iconUrl} alt='' size='md' />
+          <div className='flex flex-col gap-0.5'>
+            <span className='font-sans text-mark font-medium tracking-tight text-text-primary md:text-lg'>
+              {row.provider.displayName}
+            </span>
+            {mobileSubtitle ? (
+              <span className='font-mono text-caption text-text-muted md:hidden'>{mobileSubtitle}</span>
+            ) : null}
+          </div>
         </div>
       </td>
-      <td className='px-4 py-4'>
+      <td className='hidden px-4 py-4 md:table-cell'>
         {isQuerying ? (
           <Skeleton reduceMotion={reduceMotion} />
         ) : isSettled && row.quote?.latencyMs !== undefined ? (
@@ -92,28 +98,50 @@ export function RaceTableRow({
           <span className='font-mono text-label text-text-muted'>—</span>
         )}
       </td>
-      <td className='px-4 py-4'>
+      <td className='px-3 py-3 md:px-4 md:py-4'>
         {isQuerying ? (
-          <Skeleton wide reduceMotion={reduceMotion} />
+          <div className='flex justify-end'>
+            <Skeleton wide reduceMotion={reduceMotion} />
+          </div>
         ) : isSettled ? (
-          <div className='flex items-baseline justify-end gap-1.5'>
-            <span className='font-mono text-mark font-medium text-text-primary tabular-nums'>{outputToken}</span>
-            <span className='font-mono text-caption text-text-muted'>{assetSymbol}</span>
+          <div className='flex flex-col items-end gap-1'>
+            <div className='flex items-baseline gap-1.5'>
+              <span className='font-mono text-mark font-medium text-text-primary tabular-nums'>{outputToken}</span>
+              <span className='font-mono text-caption text-text-muted'>{assetSymbol}</span>
+            </div>
+            <span className='font-mono text-caption text-text-muted tabular-nums'>
+              <AnimatedUsd
+                value={outputUsd}
+                fallback={formatUsd(row.quote?.outputAmountUsd)}
+                reduceMotion={reduceMotion}
+              />
+            </span>
+            <div className='md:hidden'>
+              <StatusPill
+                status={row.status}
+                isWinner={isWinner}
+                isFirst={isFirst}
+                errorMessage={row.errorMessage}
+                reduceMotion={reduceMotion}
+              />
+            </div>
           </div>
         ) : (
-          <div className='text-right font-mono text-label text-text-muted'>—</div>
-        )}
-        {isSettled ? (
-          <div className='text-right font-mono text-caption text-text-muted tabular-nums'>
-            <AnimatedUsd
-              value={outputUsd}
-              fallback={formatUsd(row.quote?.outputAmountUsd)}
-              reduceMotion={reduceMotion}
-            />
+          <div className='flex flex-col items-end gap-1'>
+            <span className='font-mono text-label text-text-muted'>—</span>
+            <div className='md:hidden'>
+              <StatusPill
+                status={row.status}
+                isWinner={isWinner}
+                isFirst={isFirst}
+                errorMessage={row.errorMessage}
+                reduceMotion={reduceMotion}
+              />
+            </div>
           </div>
-        ) : null}
+        )}
       </td>
-      <td className='px-4 py-4 text-right'>
+      <td className='hidden px-4 py-4 text-right md:table-cell'>
         {isQuerying ? (
           <Skeleton reduceMotion={reduceMotion} />
         ) : isSettled ? (
@@ -124,7 +152,7 @@ export function RaceTableRow({
           <span className='font-mono text-label text-text-muted'>—</span>
         )}
       </td>
-      <td className='px-4 py-4'>
+      <td className='hidden px-4 py-4 md:table-cell'>
         <div className='flex justify-end'>
           <StatusPill
             status={row.status}
@@ -137,6 +165,13 @@ export function RaceTableRow({
       </td>
     </motion.tr>
   );
+}
+
+function buildMobileSubtitle(row: RaceRow): string | null {
+  if (row.status !== 'settled' || !row.quote) return null;
+  const latency = row.quote.latencyMs !== undefined ? formatLatency(row.quote.latencyMs) : null;
+  const eta = row.quote.eta !== undefined ? formatEta(Math.round(row.quote.eta)) : null;
+  return [latency, eta].filter(Boolean).join(' · ') || null;
 }
 
 function LatencyBar({
