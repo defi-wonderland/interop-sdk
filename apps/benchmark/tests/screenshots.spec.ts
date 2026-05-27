@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const RUN = process.env.SCREENSHOTS === '1';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const OUT_DIR = process.env.SCREENSHOT_DIR ?? path.resolve(__dirname, '../../../bench-shots');
+const OUT_DIR = process.env.SCREENSHOT_DIR ?? path.resolve(__dirname, '../bench-shots');
 
 const VIEWPORTS = [
   { name: 'desktop', viewport: { width: 1440, height: 900 }, ua: undefined as string | undefined, isMobile: false },
