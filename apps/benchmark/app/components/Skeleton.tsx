@@ -9,7 +9,12 @@ interface SkeletonProps {
 export function Skeleton({ wide = false, reduceMotion = false, className }: SkeletonProps) {
   return (
     <span
-      className={cn('block h-4 bg-border-subtle', !reduceMotion && 'animate-pulse', wide ? 'w-28' : 'w-14', className)}
+      className={cn(
+        'block h-4 bg-border-subtle',
+        !reduceMotion && 'motion-safe:animate-pulse',
+        wide ? 'w-28' : 'w-14',
+        className,
+      )}
     />
   );
 }
