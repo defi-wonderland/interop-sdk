@@ -8,7 +8,7 @@ import { TopNav } from './components/TopNav';
 import { chainService } from './lib/services';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 const META_LABEL_CLASS = 'font-mono text-label text-text-muted';
 const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-chain';
