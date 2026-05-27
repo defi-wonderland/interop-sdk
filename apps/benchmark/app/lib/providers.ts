@@ -17,28 +17,28 @@ export interface ProviderMeta {
 export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
   [ProviderId.Across]: {
     id: ProviderId.Across,
-    displayName: 'Across',
+    displayName: 'across',
     colorClass: 'bg-provider-across',
     iconUrl: '/icons/providers/across.svg',
     hasGlobalFeed: true,
   },
   [ProviderId.Relay]: {
     id: ProviderId.Relay,
-    displayName: 'Relay',
+    displayName: 'relay',
     colorClass: 'bg-provider-relay',
     iconUrl: '/icons/providers/relay.svg',
     hasGlobalFeed: true,
   },
   [ProviderId.Lifi]: {
     id: ProviderId.Lifi,
-    displayName: 'LI.FI',
+    displayName: 'lifi',
     colorClass: 'bg-provider-lifi',
     iconUrl: '/icons/providers/lifi.svg',
     hasGlobalFeed: true,
   },
   [ProviderId.Bungee]: {
     id: ProviderId.Bungee,
-    displayName: 'Bungee',
+    displayName: 'bungee',
     colorClass: 'bg-provider-bungee',
     iconUrl: '/icons/providers/bungee.webp',
     hasGlobalFeed: false,

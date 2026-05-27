@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useCrossChainStore } from '../stores/crossChainStore';
 import { convertAmountToSmallestUnit } from '../utils/amountConverter';
 import { useTokenConfig } from './useNetworkConfig';
@@ -40,8 +40,10 @@ export function useQuotes(): UseQuotesReturn {
   const [quotes, setQuotes] = useState<ExecutableQuote[]>([]);
   const [errors, setErrors] = useState<GetQuotesError[]>([]);
   const [status, setStatus] = useState<QuoteStatus>(QuoteStatus.IDLE);
+  const requestIdRef = useRef(0);
 
   const fetchQuotes = async (params: QuoteParams) => {
+    const currentRequestId = ++requestIdRef.current;
     setStatus(QuoteStatus.LOADING);
     setQuotes([]);
     setErrors([]);
@@ -70,15 +72,17 @@ export function useQuotes(): UseQuotesReturn {
       };
 
       const response = await executor.getQuotes(quoteRequest);
+      if (requestIdRef.current !== currentRequestId) return;
 
       if (response.quotes?.length) {
         setQuotes(response.quotes);
       }
-
       if (response.errors?.length) {
         setErrors(response.errors);
       }
+      setStatus(QuoteStatus.SUCCESS);
     } catch (error) {
+      if (requestIdRef.current !== currentRequestId) return;
       setStatus(QuoteStatus.ERROR);
       setErrors([
         {
@@ -86,13 +90,11 @@ export function useQuotes(): UseQuotesReturn {
           error: error instanceof Error ? error : new Error(String(error)),
         },
       ]);
-      return;
     }
-
-    setStatus(QuoteStatus.SUCCESS);
   };
 
   const clearQuotes = useCallback(() => {
+    requestIdRef.current++;
     setQuotes([]);
     setErrors([]);
     setStatus(QuoteStatus.IDLE);
