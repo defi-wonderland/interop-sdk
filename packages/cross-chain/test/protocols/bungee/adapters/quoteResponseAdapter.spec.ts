@@ -2,12 +2,18 @@ import { describe, expect, it } from "vitest";
 
 import type {
     BungeeAutoRoute,
+    BungeeBuildTxResult,
+    BungeeManualRoute,
     BungeeQuoteResponse,
 } from "../../../../src/protocols/bungee/schemas.js";
-import { adaptQuotes } from "../../../../src/protocols/bungee/adapters/quoteResponseAdapter.js";
+import {
+    adaptManualRouteQuote,
+    adaptQuotes,
+} from "../../../../src/protocols/bungee/adapters/quoteResponseAdapter.js";
 
 const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 const RECIPIENT_ADDRESS = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+const SPENDER_ADDRESS = "0x3a23F943181408EAC424116Af7b7790c94Cb97a5";
 const PROVIDER_ID = "bungee";
 
 function buildAutoRoute(overrides: Record<string, unknown> = {}): BungeeAutoRoute {
@@ -94,6 +100,102 @@ function buildBungeeQuoteResponse(overrides: Record<string, unknown> = {}): Bung
         },
         ...overrides,
     };
+}
+
+function buildManualRoute(overrides: Record<string, unknown> = {}): BungeeManualRoute {
+    return {
+        quoteId: "manual-1",
+        output: {
+            token: {
+                chainId: 10,
+                address: VALID_ADDRESS,
+                name: "USDC",
+                symbol: "USDC",
+                decimals: 6,
+            },
+            amount: "999000",
+            priceInUsd: 1,
+            valueInUsd: 0.999,
+            minAmountOut: "998000",
+            effectiveReceivedInUsd: 0.998,
+        },
+        gasFee: {
+            gasToken: {
+                chainId: 1,
+                address: "0x0000000000000000000000000000000000000000",
+                name: "ETH",
+                symbol: "ETH",
+                decimals: 18,
+            },
+            gasLimit: "21000",
+            gasPrice: "20000000000",
+            estimatedFee: "420000000000000",
+            feeInUsd: 0.5,
+        },
+        slippage: 0.5,
+        estimatedTime: 60,
+        routeDetails: {
+            name: "Across",
+            logoURI: "https://example.com/across.png",
+            routeFee: {
+                token: {
+                    chainId: 1,
+                    address: VALID_ADDRESS,
+                    name: "USDC",
+                    symbol: "USDC",
+                    decimals: 6,
+                },
+                amount: "1000",
+                feeInUsd: 0.001,
+                priceInUsd: 1,
+            },
+        },
+        ...overrides,
+    };
+}
+
+function buildBuildTxResult(overrides: Record<string, unknown> = {}): BungeeBuildTxResult {
+    return {
+        userOp: "tx",
+        txData: {
+            to: SPENDER_ADDRESS,
+            data: "0xdeadbeef",
+            value: "0",
+            chainId: 1,
+        },
+        approvalData: {
+            spenderAddress: SPENDER_ADDRESS,
+            amount: "1000000",
+            tokenAddress: VALID_ADDRESS,
+            userAddress: VALID_ADDRESS,
+        },
+        ...overrides,
+    };
+}
+
+function buildManualResponse(): BungeeQuoteResponse {
+    return buildBungeeQuoteResponse({
+        result: {
+            originChainId: 1,
+            destinationChainId: 10,
+            userAddress: VALID_ADDRESS,
+            receiverAddress: RECIPIENT_ADDRESS,
+            input: {
+                token: {
+                    chainId: 1,
+                    address: VALID_ADDRESS,
+                    name: "USDC",
+                    symbol: "USDC",
+                    decimals: 6,
+                },
+                amount: "1000000",
+                priceInUsd: 1,
+                valueInUsd: 1,
+            },
+            autoRoute: null,
+            manualRoutes: [buildManualRoute()],
+        },
+    });
 }
 
 describe("adaptQuotes", () => {
@@ -297,5 +399,123 @@ describe("adaptQuotes", () => {
         const quotes = adaptQuotes(response as never, PROVIDER_ID);
 
         expect(quotes).toHaveLength(0);
+    });
+});
+
+describe("adaptManualRouteQuote", () => {
+    it("creates a TransactionStep from buildTx.txData", () => {
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            buildManualRoute(),
+            buildBuildTxResult(),
+            PROVIDER_ID,
+        );
+
+        expect(quote).not.toBeNull();
+        expect(quote!.order.steps).toHaveLength(1);
+        expect(quote!.order.steps[0]!.kind).toBe("transaction");
+    });
+
+    it("returns null when txData is invalid", () => {
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            buildManualRoute(),
+            buildBuildTxResult({
+                txData: { data: "0xdeadbeef", value: "0", chainId: 1 }, // missing `to`
+            }),
+            PROVIDER_ID,
+        );
+
+        expect(quote).toBeNull();
+    });
+
+    it("uses the bridge name from routeDetails in the step description", () => {
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            buildManualRoute({ routeDetails: { name: "Stargate", logoURI: "" } }),
+            buildBuildTxResult(),
+            PROVIDER_ID,
+        );
+
+        const step = quote!.order.steps[0]!;
+        expect(step.description).toBe("Submit transaction via Stargate");
+    });
+
+    it("derives allowances from buildTx.approvalData with input.amount as required", () => {
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            buildManualRoute(),
+            buildBuildTxResult(),
+            PROVIDER_ID,
+        );
+
+        const allowances = quote!.order.checks?.allowances;
+        expect(allowances).toHaveLength(1);
+        expect(allowances![0]!.spender).toBe(SPENDER_ADDRESS);
+        expect(allowances![0]!.required).toBe("1000000");
+    });
+
+    it("falls back to manualRoute.approvalData when buildTx.approvalData is absent", () => {
+        const route = buildManualRoute({
+            approvalData: {
+                spenderAddress: SPENDER_ADDRESS,
+                amount: "1000000",
+                tokenAddress: VALID_ADDRESS,
+                userAddress: VALID_ADDRESS,
+            },
+        });
+        const buildTx = buildBuildTxResult({ approvalData: undefined });
+
+        const quote = adaptManualRouteQuote(buildManualResponse(), route, buildTx, PROVIDER_ID);
+
+        expect(quote!.order.checks?.allowances).toHaveLength(1);
+    });
+
+    it("omits allowances when no approval is needed", () => {
+        const route = buildManualRoute({ approvalData: undefined });
+        const buildTx = buildBuildTxResult({ approvalData: undefined });
+
+        const quote = adaptManualRouteQuote(buildManualResponse(), route, buildTx, PROVIDER_ID);
+
+        expect(quote!.order.checks).toBeUndefined();
+    });
+
+    it("does not set tracking — manual routes are tracked by on-chain txHash", () => {
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            buildManualRoute(),
+            buildBuildTxResult(),
+            PROVIDER_ID,
+        );
+
+        expect(quote!.tracking).toBeUndefined();
+    });
+
+    it("propagates quoteId, eta, fees and provider", () => {
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            buildManualRoute(),
+            buildBuildTxResult(),
+            PROVIDER_ID,
+        );
+
+        expect(quote!.quoteId).toBe("manual-1");
+        expect(quote!.eta).toBe(60);
+        expect(quote!.provider).toBe(PROVIDER_ID);
+        expect(quote!.fees?.originGas).toBeDefined();
+        expect(quote!.fees?.bridgeFee).toBeDefined();
+    });
+
+    it("stores the manual route and buildTx in metadata for traceability", () => {
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            buildManualRoute(),
+            buildBuildTxResult(),
+            PROVIDER_ID,
+        );
+
+        expect(quote!.metadata?.bungeeManualRoute).toBeDefined();
+        expect(quote!.metadata?.bungeeBuildTx).toBeDefined();
+        expect(quote!.metadata?.bungeeResponse).toBeDefined();
     });
 });
