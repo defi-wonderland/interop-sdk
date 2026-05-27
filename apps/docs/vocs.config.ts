@@ -1,8 +1,16 @@
 import { defineConfig } from "vocs";
 
+import { ogImages } from "./og.generated";
+
 const docsUrl = "https://docs.interop.wonderland.xyz";
-const wonderlandLogoUrl = `${docsUrl}/wonderland-white.png`;
-const ogImageUrl = `https://vocs.dev/api/og?logo=${encodeURIComponent(wonderlandLogoUrl)}&title=%title&description=%description`;
+
+// Per-page OG cards are pre-rendered at build time (scripts/generate-og.mjs).
+// Vocs resolves the longest matching path key, so keep keys ordered shortest-first.
+const ogImageUrl = Object.fromEntries(
+    Object.entries(ogImages)
+        .sort(([a], [b]) => a.length - b.length)
+        .map(([route, path]): [string, string] => [route, `${docsUrl}${path}`]),
+);
 
 export default defineConfig({
     title: "Interop SDK",
@@ -34,9 +42,7 @@ export default defineConfig({
             },
         },
     },
-    ogImageUrl: {
-        "/": ogImageUrl,
-    },
+    ogImageUrl,
     llms: {
         generateMarkdown: true,
     },
