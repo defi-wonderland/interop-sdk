@@ -9,84 +9,128 @@ import {
     validateOifEscrowSignatureEnvelope,
 } from "../../../../src/protocols/oif/validators/signatureEnvelopeValidator.js";
 
-const USDC_MAINNET = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-const OTHER_TOKEN = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+const OUTPUT_TOKEN = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const USER = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 const RECIPIENT = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8";
-const ORIGIN_CHAIN_ID = 1;
-const DESTINATION_CHAIN_ID = 10;
+const SETTLER = "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10";
+const ATTACKER = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
+const INPUT_CHAIN = 1;
+const OUTPUT_CHAIN = 10;
 const INPUT_AMOUNT = "1000000";
+const OUTPUT_AMOUNT = "990000";
 const FUTURE = Math.floor(Date.now() / 1000) + 3600;
 const PAST = Math.floor(Date.now() / 1000) - 3600;
 
-function makeParams(overrides?: Partial<QuoteRequest>): QuoteRequest {
-    return {
-        user: USER,
-        input: { chainId: ORIGIN_CHAIN_ID, assetAddress: TOKEN, amount: INPUT_AMOUNT },
-        output: { chainId: DESTINATION_CHAIN_ID, assetAddress: TOKEN, recipient: RECIPIENT },
-        ...overrides,
-    };
-}
+const bytes32 = (addr: string) => `0x${"0".repeat(24)}${addr.slice(2).toLowerCase()}` as const;
 
-function makeEscrowOrder(overrides?: {
-    primaryType?: string;
-    domain?: Record<string, unknown>;
-    message?: Record<string, unknown>;
-}): OifEscrowOrder {
-    return {
-        type: "oif-escrow-v0",
-        payload: {
-            signatureType: "eip712",
-            domain: overrides?.domain ?? {
-                name: "Permit2",
-                chainId: 1,
-                verifyingContract: PERMIT2_ADDRESS,
-            },
-            primaryType: overrides?.primaryType ?? "PermitBatchWitnessTransferFrom",
-            types: {},
-            message: overrides?.message ?? {
-                permitted: [{ token: TOKEN, amount: "1000000" }],
-                spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                nonce: "1",
-                deadline: FUTURE,
-            },
-        },
-    };
-}
+const params = (overrides: Partial<QuoteRequest> = {}): QuoteRequest => ({
+    user: USER,
+    input: { chainId: INPUT_CHAIN, assetAddress: TOKEN, amount: INPUT_AMOUNT },
+    output: {
+        chainId: OUTPUT_CHAIN,
+        assetAddress: OUTPUT_TOKEN,
+        amount: OUTPUT_AMOUNT,
+        recipient: RECIPIENT,
+    },
+    ...overrides,
+});
 
-function make3009Order(overrides?: {
-    primaryType?: string;
-    domain?: Record<string, unknown>;
-    metadata?: Record<string, unknown>;
-}): Oif3009Order {
-    return {
-        type: "oif-3009-v0",
-        payload: {
-            signatureType: "eip712",
-            domain: overrides?.domain ?? {
-                name: "USD Coin",
-                version: "2",
-                chainId: 1,
-                verifyingContract: USDC_MAINNET,
-            },
-            primaryType: overrides?.primaryType ?? "TransferWithAuthorization",
-            types: {},
-            message: { from: "0xabc", to: "0xdef", value: "1000000" },
+const witness = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
+    user: USER,
+    expires: FUTURE,
+    inputOracle: SETTLER,
+    outputs: [
+        {
+            oracle: bytes32(SETTLER),
+            settler: bytes32(SETTLER),
+            chainId: OUTPUT_CHAIN,
+            token: bytes32(OUTPUT_TOKEN),
+            amount: OUTPUT_AMOUNT,
+            recipient: bytes32(RECIPIENT),
+            callbackData: "0x",
+            context: "0x",
+            ...overrides,
         },
-        metadata: overrides?.metadata ?? { chainId: 1, tokenAddress: USDC_MAINNET },
-    };
-}
+    ],
+});
+
+const escrowOrder = (
+    overrides: {
+        domain?: Record<string, unknown>;
+        message?: Record<string, unknown>;
+        primaryType?: string;
+    } = {},
+): OifEscrowOrder => ({
+    type: "oif-escrow-v0",
+    payload: {
+        signatureType: "eip712",
+        domain: overrides.domain ?? {
+            name: "Permit2",
+            chainId: INPUT_CHAIN,
+            verifyingContract: PERMIT2_ADDRESS,
+        },
+        primaryType: overrides.primaryType ?? "PermitBatchWitnessTransferFrom",
+        types: {},
+        message: overrides.message ?? {
+            permitted: [{ token: TOKEN, amount: INPUT_AMOUNT }],
+            spender: SETTLER,
+            nonce: "1",
+            deadline: FUTURE,
+            witness: witness(),
+        },
+    },
+});
+
+const escrowMessage = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
+    permitted: [{ token: TOKEN, amount: INPUT_AMOUNT }],
+    spender: SETTLER,
+    nonce: "1",
+    deadline: FUTURE,
+    witness: witness(),
+    ...overrides,
+});
+
+const eip3009Order = (
+    overrides: {
+        domain?: Record<string, unknown>;
+        message?: Record<string, unknown>;
+        primaryType?: string;
+    } = {},
+): Oif3009Order => ({
+    type: "oif-3009-v0",
+    payload: {
+        signatureType: "eip712",
+        domain: overrides.domain ?? {
+            name: "USD Coin",
+            version: "2",
+            chainId: INPUT_CHAIN,
+            verifyingContract: TOKEN,
+        },
+        primaryType: overrides.primaryType ?? "ReceiveWithAuthorization",
+        types: {},
+        message: overrides.message ?? {
+            from: USER,
+            to: SETTLER,
+            value: INPUT_AMOUNT,
+            validAfter: 0,
+            validBefore: FUTURE,
+            nonce: "0xabcd",
+        },
+    },
+    metadata: {},
+});
 
 describe("validateOifEscrowSignatureEnvelope", () => {
-    it("accepts a valid escrow envelope", () => {
-        expect(() => validateOifEscrowSignatureEnvelope(makeEscrowOrder())).not.toThrow();
+    it("accepts a valid envelope", () => {
+        expect(() => validateOifEscrowSignatureEnvelope(escrowOrder(), params())).not.toThrow();
     });
 
-    it("rejects a non-PermitBatchWitnessTransferFrom primaryType", () => {
+    it("rejects a wrong primaryType", () => {
         expect(() =>
             validateOifEscrowSignatureEnvelope(
-                makeEscrowOrder({ primaryType: "PermitTransferFrom" }),
+                escrowOrder({ primaryType: "PermitTransferFrom" }),
+                params(),
             ),
         ).toThrowError(/primaryType/);
     });
@@ -94,257 +138,268 @@ describe("validateOifEscrowSignatureEnvelope", () => {
     it("rejects a non-canonical Permit2 verifyingContract", () => {
         expect(() =>
             validateOifEscrowSignatureEnvelope(
-                makeEscrowOrder({
-                    domain: {
-                        chainId: 1,
-                        verifyingContract: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
-                    },
-                }),
+                escrowOrder({ domain: { chainId: INPUT_CHAIN, verifyingContract: ATTACKER } }),
+                params(),
             ),
         ).toThrowError(/verifyingContract/);
     });
 
-    it("rejects a missing chainId", () => {
+    it("rejects a Permit2 domain that carries a version", () => {
         expect(() =>
             validateOifEscrowSignatureEnvelope(
-                makeEscrowOrder({
-                    domain: { name: "Permit2", verifyingContract: PERMIT2_ADDRESS },
+                escrowOrder({
+                    domain: {
+                        chainId: INPUT_CHAIN,
+                        verifyingContract: PERMIT2_ADDRESS,
+                        version: "1",
+                    },
                 }),
-            ),
-        ).toThrowError(/chainId/);
-    });
-
-    it("rejects when domain carries `version` (Permit2 has none)", () => {
-        expect(() =>
-            validateOifEscrowSignatureEnvelope(
-                makeEscrowOrder({
-                    domain: { chainId: 1, verifyingContract: PERMIT2_ADDRESS, version: "1" },
-                }),
+                params(),
             ),
         ).toThrowError(/domainVersion/);
+    });
+
+    it("rejects a chainId mismatch", () => {
+        expect(() =>
+            validateOifEscrowSignatureEnvelope(
+                escrowOrder({
+                    domain: { chainId: 137, verifyingContract: PERMIT2_ADDRESS },
+                }),
+                params(),
+            ),
+        ).toThrowError(/chainId/);
     });
 
     it("rejects an expired deadline", () => {
         expect(() =>
             validateOifEscrowSignatureEnvelope(
-                makeEscrowOrder({
-                    message: {
-                        permitted: [{ token: TOKEN, amount: "1000000" }],
-                        spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                        nonce: "1",
-                        deadline: PAST,
-                    },
-                }),
+                escrowOrder({ message: escrowMessage({ deadline: PAST }) }),
+                params(),
             ),
         ).toThrowError(/deadline/);
     });
 
-    describe("with QuoteRequest cross-checks", () => {
-        it("accepts an envelope that matches the user-supplied request", () => {
+    it("rejects a permitted token that differs from params.input.assetAddress", () => {
+        expect(() =>
+            validateOifEscrowSignatureEnvelope(
+                escrowOrder({
+                    message: escrowMessage({
+                        permitted: [{ token: OUTPUT_TOKEN, amount: INPUT_AMOUNT }],
+                    }),
+                }),
+                params(),
+            ),
+        ).toThrowError(/token/);
+    });
+
+    it("rejects an amount inflated beyond params.input.amount", () => {
+        expect(() =>
+            validateOifEscrowSignatureEnvelope(
+                escrowOrder({
+                    message: escrowMessage({
+                        permitted: [{ token: TOKEN, amount: "9999999999" }],
+                    }),
+                }),
+                params(),
+            ),
+        ).toThrowError(/amount/);
+    });
+
+    it("rejects a spender that equals the user", () => {
+        expect(() =>
+            validateOifEscrowSignatureEnvelope(
+                escrowOrder({ message: escrowMessage({ spender: USER }) }),
+                params(),
+            ),
+        ).toThrowError(/spender/);
+    });
+
+    it("rejects when the user requested a native input asset", () => {
+        expect(() =>
+            validateOifEscrowSignatureEnvelope(
+                escrowOrder(),
+                params({
+                    input: {
+                        chainId: INPUT_CHAIN,
+                        assetAddress: NATIVE_ASSET_ADDRESS,
+                        amount: INPUT_AMOUNT,
+                    },
+                }),
+            ),
+        ).toThrowError(/native/);
+    });
+
+    describe("witness", () => {
+        it("rejects a missing witness", () => {
+            const message = escrowMessage();
+            delete (message as Record<string, unknown>).witness;
             expect(() =>
-                validateOifEscrowSignatureEnvelope(makeEscrowOrder(), makeParams()),
+                validateOifEscrowSignatureEnvelope(escrowOrder({ message }), params()),
+            ).toThrowError(/missing witness/);
+        });
+
+        it("rejects when witness.user differs from params.user", () => {
+            expect(() =>
+                validateOifEscrowSignatureEnvelope(
+                    escrowOrder({
+                        message: escrowMessage({ witness: { ...witness(), user: ATTACKER } }),
+                    }),
+                    params(),
+                ),
+            ).toThrowError(/user/);
+        });
+
+        it.each([
+            ["empty", []],
+            ["multiple", [witness().outputs[0], witness().outputs[0]]],
+        ])("rejects when witness.outputs is %s", (_label, outputs) => {
+            expect(() =>
+                validateOifEscrowSignatureEnvelope(
+                    escrowOrder({ message: escrowMessage({ witness: { ...witness(), outputs } }) }),
+                    params(),
+                ),
+            ).toThrowError(/exactly one entry/);
+        });
+
+        it.each([
+            ["chainId", { chainId: 999 }, /chainId/],
+            ["token", { token: bytes32(ATTACKER) }, /token/],
+            ["recipient", { recipient: bytes32(ATTACKER) }, /recipient/],
+            ["amount", { amount: "999999999999" }, /amount/],
+        ])("rejects a tampered outputs[0].%s", (_label, override, matcher) => {
+            expect(() =>
+                validateOifEscrowSignatureEnvelope(
+                    escrowOrder({ message: escrowMessage({ witness: witness(override) }) }),
+                    params(),
+                ),
+            ).toThrowError(matcher);
+        });
+
+        it("falls back to params.user as recipient when params.output.recipient is omitted", () => {
+            expect(() =>
+                validateOifEscrowSignatureEnvelope(
+                    escrowOrder({
+                        message: escrowMessage({ witness: witness({ recipient: bytes32(USER) }) }),
+                    }),
+                    params({
+                        output: {
+                            chainId: OUTPUT_CHAIN,
+                            assetAddress: OUTPUT_TOKEN,
+                            amount: OUTPUT_AMOUNT,
+                        },
+                    }),
+                ),
             ).not.toThrow();
-        });
-
-        it("rejects a chainId mismatch against params.input.chainId", () => {
-            const tampered = makeEscrowOrder({
-                domain: { name: "Permit2", chainId: 137, verifyingContract: PERMIT2_ADDRESS },
-            });
-            expect(() => validateOifEscrowSignatureEnvelope(tampered, makeParams())).toThrowError(
-                /chainId/,
-            );
-        });
-
-        it("rejects a permitted token that differs from params.input.assetAddress", () => {
-            const tampered = makeEscrowOrder({
-                message: {
-                    permitted: [{ token: OTHER_TOKEN, amount: "1000000" }],
-                    spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                    nonce: "1",
-                    deadline: FUTURE,
-                },
-            });
-            expect(() => validateOifEscrowSignatureEnvelope(tampered, makeParams())).toThrowError(
-                /token/,
-            );
-        });
-
-        it("rejects an amount inflated beyond params.input.amount", () => {
-            const tampered = makeEscrowOrder({
-                message: {
-                    permitted: [{ token: TOKEN, amount: "9999999999" }],
-                    spender: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                    nonce: "1",
-                    deadline: FUTURE,
-                },
-            });
-            expect(() => validateOifEscrowSignatureEnvelope(tampered, makeParams())).toThrowError(
-                /amount/,
-            );
-        });
-
-        it("rejects when the user requested a native input asset", () => {
-            const params = makeParams({
-                input: {
-                    chainId: ORIGIN_CHAIN_ID,
-                    assetAddress: NATIVE_ASSET_ADDRESS,
-                    amount: INPUT_AMOUNT,
-                },
-            });
-            expect(() =>
-                validateOifEscrowSignatureEnvelope(makeEscrowOrder(), params),
-            ).toThrowError(/native/);
         });
     });
 });
 
 describe("validateOif3009SignatureEnvelope", () => {
-    it("accepts a valid 3009 envelope", () => {
-        expect(() => validateOif3009SignatureEnvelope(make3009Order())).not.toThrow();
+    it("accepts a valid envelope", () => {
+        expect(() => validateOif3009SignatureEnvelope(eip3009Order(), params())).not.toThrow();
     });
 
     it("rejects a primaryType outside the EIP-3009 allow-list", () => {
         expect(() =>
-            validateOif3009SignatureEnvelope(make3009Order({ primaryType: "Permit" })),
+            validateOif3009SignatureEnvelope(eip3009Order({ primaryType: "Permit" }), params()),
         ).toThrowError(/primaryType/);
     });
 
-    it("rejects when verifyingContract differs from metadata.tokenAddress", () => {
+    it("rejects a missing domain.version", () => {
         expect(() =>
             validateOif3009SignatureEnvelope(
-                make3009Order({
-                    domain: {
-                        version: "2",
-                        chainId: 1,
-                        verifyingContract: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
-                    },
-                }),
-            ),
-        ).toThrowError(/verifyingContract/);
-    });
-
-    it("rejects when domain.chainId differs from metadata.chainId", () => {
-        expect(() =>
-            validateOif3009SignatureEnvelope(
-                make3009Order({
-                    domain: {
-                        version: "2",
-                        chainId: 137,
-                        verifyingContract: USDC_MAINNET,
-                    },
-                }),
-            ),
-        ).toThrowError(/chainId/);
-    });
-
-    it("rejects when metadata.tokenAddress is missing", () => {
-        expect(() =>
-            validateOif3009SignatureEnvelope(make3009Order({ metadata: { chainId: 1 } })),
-        ).toThrowError(/tokenAddress/);
-    });
-
-    it("rejects when domain.version is absent", () => {
-        expect(() =>
-            validateOif3009SignatureEnvelope(
-                make3009Order({
-                    domain: { chainId: 1, verifyingContract: USDC_MAINNET },
-                }),
+                eip3009Order({ domain: { chainId: INPUT_CHAIN, verifyingContract: TOKEN } }),
+                params(),
             ),
         ).toThrowError(/domainVersion/);
     });
 
-    describe("with QuoteRequest cross-checks", () => {
-        function make3009OrderWithFrom(from: string, value = INPUT_AMOUNT): Oif3009Order {
-            return {
-                type: "oif-3009-v0",
-                payload: {
-                    signatureType: "eip712",
-                    domain: {
-                        name: "USD Coin",
-                        version: "2",
-                        chainId: ORIGIN_CHAIN_ID,
-                        verifyingContract: USDC_MAINNET,
-                    },
-                    primaryType: "TransferWithAuthorization",
-                    types: {},
+    it("rejects a chainId mismatch", () => {
+        expect(() =>
+            validateOif3009SignatureEnvelope(
+                eip3009Order({ domain: { version: "2", chainId: 137, verifyingContract: TOKEN } }),
+                params(),
+            ),
+        ).toThrowError(/chainId/);
+    });
+
+    it("rejects a verifyingContract that differs from params.input.assetAddress", () => {
+        expect(() =>
+            validateOif3009SignatureEnvelope(
+                eip3009Order({
+                    domain: { version: "2", chainId: INPUT_CHAIN, verifyingContract: ATTACKER },
+                }),
+                params(),
+            ),
+        ).toThrowError(/verifyingContract/);
+    });
+
+    it("rejects a message.from that differs from params.user", () => {
+        expect(() =>
+            validateOif3009SignatureEnvelope(
+                eip3009Order({
                     message: {
-                        from,
-                        to: "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10",
-                        value,
+                        from: ATTACKER,
+                        to: SETTLER,
+                        value: INPUT_AMOUNT,
                         validAfter: 0,
                         validBefore: FUTURE,
                         nonce: "0xabcd",
                     },
-                },
-                metadata: { chainId: ORIGIN_CHAIN_ID, tokenAddress: USDC_MAINNET },
-            };
-        }
+                }),
+                params(),
+            ),
+        ).toThrowError(/user/);
+    });
 
-        const validParams = makeParams({
-            input: {
-                chainId: ORIGIN_CHAIN_ID,
-                assetAddress: USDC_MAINNET,
-                amount: INPUT_AMOUNT,
-            },
-        });
+    it("rejects a `to` field that equals the user", () => {
+        expect(() =>
+            validateOif3009SignatureEnvelope(
+                eip3009Order({
+                    message: {
+                        from: USER,
+                        to: USER,
+                        value: INPUT_AMOUNT,
+                        validAfter: 0,
+                        validBefore: FUTURE,
+                        nonce: "0xabcd",
+                    },
+                }),
+                params(),
+            ),
+        ).toThrowError(/to/);
+    });
 
-        it("accepts an envelope that matches the user-supplied request", () => {
-            expect(() =>
-                validateOif3009SignatureEnvelope(make3009OrderWithFrom(USER), validParams),
-            ).not.toThrow();
-        });
+    it("rejects a message.value that exceeds params.input.amount", () => {
+        expect(() =>
+            validateOif3009SignatureEnvelope(
+                eip3009Order({
+                    message: {
+                        from: USER,
+                        to: SETTLER,
+                        value: "999999999999",
+                        validAfter: 0,
+                        validBefore: FUTURE,
+                        nonce: "0xabcd",
+                    },
+                }),
+                params(),
+            ),
+        ).toThrowError(/amount/);
+    });
 
-        it("rejects when metadata.chainId differs from params.input.chainId", () => {
-            const params = makeParams({
-                input: { chainId: 137, assetAddress: USDC_MAINNET, amount: INPUT_AMOUNT },
-            });
-            expect(() =>
-                validateOif3009SignatureEnvelope(make3009OrderWithFrom(USER), params),
-            ).toThrowError(/chainId/);
-        });
-
-        it("rejects when metadata.tokenAddress differs from params.input.assetAddress", () => {
-            const params = makeParams({
-                input: {
-                    chainId: ORIGIN_CHAIN_ID,
-                    assetAddress: OTHER_TOKEN,
-                    amount: INPUT_AMOUNT,
-                },
-            });
-            expect(() =>
-                validateOif3009SignatureEnvelope(make3009OrderWithFrom(USER), params),
-            ).toThrowError(/token/);
-        });
-
-        it("rejects when message.from differs from params.user", () => {
-            expect(() =>
-                validateOif3009SignatureEnvelope(
-                    make3009OrderWithFrom("0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"),
-                    validParams,
-                ),
-            ).toThrowError(/user/);
-        });
-
-        it("rejects when message.value exceeds params.input.amount", () => {
-            expect(() =>
-                validateOif3009SignatureEnvelope(
-                    make3009OrderWithFrom(USER, "999999999999"),
-                    validParams,
-                ),
-            ).toThrowError(/amount/);
-        });
-
-        it("rejects when the user requested a native input asset", () => {
-            const params = makeParams({
-                input: {
-                    chainId: ORIGIN_CHAIN_ID,
-                    assetAddress: NATIVE_ASSET_ADDRESS,
-                    amount: INPUT_AMOUNT,
-                },
-            });
-            expect(() =>
-                validateOif3009SignatureEnvelope(make3009OrderWithFrom(USER), params),
-            ).toThrowError(/native/);
-        });
+    it("rejects when the user requested a native input asset", () => {
+        expect(() =>
+            validateOif3009SignatureEnvelope(
+                eip3009Order(),
+                params({
+                    input: {
+                        chainId: INPUT_CHAIN,
+                        assetAddress: NATIVE_ASSET_ADDRESS,
+                        amount: INPUT_AMOUNT,
+                    },
+                }),
+            ),
+        ).toThrowError(/native/);
     });
 });

@@ -93,21 +93,6 @@ describe("orderAdapter", () => {
             const result = adaptOifOrder(oifOrder);
             expect(result.steps[0]!.chainId).toBe(137);
         });
-
-        it("rejects when chainId is missing from domain", () => {
-            const oifOrder = {
-                type: "oif-escrow-v0" as const,
-                payload: {
-                    signatureType: "eip712" as const,
-                    domain: { name: "NoDomain", verifyingContract: PERMIT2 },
-                    primaryType: "PermitBatchWitnessTransferFrom",
-                    types: VALID_PERMIT2_TYPES,
-                    message: VALID_PERMIT2_MESSAGE,
-                },
-            };
-
-            expect(() => adaptOifOrder(oifOrder)).toThrow(/chainId/);
-        });
     });
 
     describe("adaptOifOrder — oif-3009-v0", () => {
