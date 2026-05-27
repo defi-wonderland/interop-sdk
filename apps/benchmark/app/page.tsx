@@ -5,7 +5,15 @@ import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
-import { chainService } from './lib/services';
+import { buildQuoteRequest, buildRowsFromQuotes, createRows } from './components/race-table/raceRows';
+import {
+  INITIAL_AMOUNT,
+  INITIAL_ASSET_SYMBOL,
+  INITIAL_FROM_CHAIN_ID,
+  INITIAL_TO_CHAIN_ID,
+} from './lib/requestBarStore';
+import { chainService, quotesService } from './lib/services';
+import type { RaceRow } from './components/race-table/types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 
 export const revalidate = 3600;
@@ -15,12 +23,13 @@ const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-cha
 
 export default async function Home() {
   const initialChains = await loadInitialChains();
+  const initialRows = await loadInitialRace(initialChains);
 
   return (
     <div className='min-h-screen cursor-default bg-background'>
       <TopNav />
       <main>
-        <RequestBar />
+        <RequestBar chains={initialChains} />
 
         <SectionFrame>
           <SectionHeader
@@ -41,7 +50,7 @@ export default async function Home() {
               </Label>
             }
           />
-          <RaceTable initialChains={initialChains} />
+          <RaceTable initialRows={initialRows} initialChains={initialChains} />
         </SectionFrame>
 
         <SectionFrame variant='tinted'>
@@ -73,6 +82,24 @@ async function loadInitialChains(): Promise<NetworkAssets[]> {
     return await chainService.getChains();
   } catch {
     return [];
+  }
+}
+
+async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
+  if (chains.length === 0) return createRows('errored', 'CHAIN DISCOVERY FAILED');
+
+  try {
+    const request = buildQuoteRequest({
+      chains,
+      fromChainId: INITIAL_FROM_CHAIN_ID,
+      toChainId: INITIAL_TO_CHAIN_ID,
+      assetSymbol: INITIAL_ASSET_SYMBOL,
+      amount: INITIAL_AMOUNT,
+    });
+    const response = await quotesService.getQuotes(request);
+    return buildRowsFromQuotes(response.quotes);
+  } catch {
+    return createRows('errored', 'NO ROUTE');
   }
 }
 

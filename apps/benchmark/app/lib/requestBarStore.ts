@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { AssetSymbol } from './assets';
 import { ChainId } from './chains';
+import type { RaceRow } from '~/components/race-table/types';
 
 export const INITIAL_FROM_CHAIN_ID = ChainId.Base;
 export const INITIAL_TO_CHAIN_ID = ChainId.Arbitrum;
@@ -30,17 +31,15 @@ export interface RequestPreset {
 
 interface RequestBarState {
   request: RequestBarRequest;
-  runId: number;
+  rows: RaceRow[];
   setFromChainId: (fromChainId: ChainId) => void;
   setToChainId: (toChainId: ChainId) => void;
   setAssetSymbol: (assetSymbol: AssetSymbol) => void;
   setAmount: (update: AmountUpdate) => void;
   setPreset: (preset: RequestPreset) => void;
   swapChains: () => void;
-  bumpRunId: () => void;
+  setRows: (rows: RaceRow[]) => void;
 }
-
-const bump = (runId: number) => runId + 1;
 
 const INITIAL_REQUEST: RequestBarRequest = {
   fromChainId: INITIAL_FROM_CHAIN_ID,
@@ -52,29 +51,13 @@ const INITIAL_REQUEST: RequestBarRequest = {
 
 export const useRequestBarStore = create<RequestBarState>((set) => ({
   request: INITIAL_REQUEST,
-  runId: 0,
-  setFromChainId: (fromChainId) =>
-    set((state) =>
-      state.request.fromChainId === fromChainId
-        ? state
-        : { request: { ...state.request, fromChainId }, runId: bump(state.runId) },
-    ),
-  setToChainId: (toChainId) =>
-    set((state) =>
-      state.request.toChainId === toChainId
-        ? state
-        : { request: { ...state.request, toChainId }, runId: bump(state.runId) },
-    ),
-  setAssetSymbol: (assetSymbol) =>
-    set((state) =>
-      state.request.assetSymbol === assetSymbol
-        ? state
-        : { request: { ...state.request, assetSymbol }, runId: bump(state.runId) },
-    ),
+  rows: [],
+  setFromChainId: (fromChainId) => set((state) => ({ request: { ...state.request, fromChainId } })),
+  setToChainId: (toChainId) => set((state) => ({ request: { ...state.request, toChainId } })),
+  setAssetSymbol: (assetSymbol) => set((state) => ({ request: { ...state.request, assetSymbol } })),
   setAmount: ({ amount, selectedPreset = null }) =>
     set((state) => ({ request: { ...state.request, amount, selectedPreset } })),
-  setPreset: ({ amount, label }) =>
-    set((state) => ({ request: { ...state.request, amount, selectedPreset: label }, runId: bump(state.runId) })),
+  setPreset: ({ amount, label }) => set((state) => ({ request: { ...state.request, amount, selectedPreset: label } })),
   swapChains: () =>
     set((state) => ({
       request: {
@@ -82,7 +65,6 @@ export const useRequestBarStore = create<RequestBarState>((set) => ({
         fromChainId: state.request.toChainId,
         toChainId: state.request.fromChainId,
       },
-      runId: bump(state.runId),
     })),
-  bumpRunId: () => set((state) => ({ runId: bump(state.runId) })),
+  setRows: (rows) => set({ rows }),
 }));
