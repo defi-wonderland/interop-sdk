@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { isNativeAddress, type ExecutableQuote } from '@wonderland/interop-cross-chain';
 import { Footer, Navigation } from '../components';
 import {
@@ -69,6 +69,7 @@ export default function CrossChainClient() {
   const [lastQuoteParams, setLastQuoteParams] = useState<Parameters<typeof fetchQuotes>[0] | null>(null);
   const currentMode = useCrossChainStore((s) => s.mode);
   const buildQuoteProviderId = useCrossChainStore((s) => s.buildQuoteProviderId);
+  const submissionMode = useCrossChainStore((s) => s.submissionMode);
   const isExecutionStarted = executionState.step !== STEP.IDLE;
 
   const effectiveQuotes: ExecutableQuote[] = currentMode === 'buildQuote' && builtQuote ? [builtQuote] : quotes;
@@ -162,6 +163,13 @@ export default function CrossChainClient() {
     clearBuildQuote();
   }, [resetExecution, clearQuotes, clearBuildQuote]);
 
+  useEffect(() => {
+    setSelectedQuote(null);
+    setLastQuoteParams(null);
+    clearQuotes();
+    clearBuildQuote();
+  }, [submissionMode, clearQuotes, clearBuildQuote]);
+
   return (
     <TooltipProvider>
       <div className='min-h-screen bg-background flex flex-col'>
@@ -169,7 +177,7 @@ export default function CrossChainClient() {
 
         <div className='flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 py-12 sm:px-6 sm:py-16'>
           <div className='flex-1 flex flex-col gap-12'>
-            <div className='flex justify-end'>
+            <div className='flex justify-end items-center gap-4'>
               <NetworkSwitch disabled={isExecutionStarted} />
             </div>
 

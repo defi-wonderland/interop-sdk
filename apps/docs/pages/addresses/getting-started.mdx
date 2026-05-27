@@ -29,7 +29,6 @@ An interoperable name encodes an address, a chain, and a checksum in a single st
 import { isTextAddress, parseName } from "@wonderland/interop-addresses";
 
 const result = await parseName("vitalik.eth@eip155:1");
-//    ^?
 
 if (isTextAddress(result.interoperableAddress)) {
     console.log(result.interoperableAddress.address);
@@ -83,7 +82,6 @@ If you already have a binary (serialized) address, you can decode it synchronous
 import { decodeAddress, isTextAddress } from "@wonderland/interop-addresses";
 
 const addr = decodeAddress("0x00010000010114d8da6bf26964af9d7eed9e03e53415d37aa96045");
-//    ^?
 
 if (isTextAddress(addr)) {
     console.log(addr.chainType); // "eip155"

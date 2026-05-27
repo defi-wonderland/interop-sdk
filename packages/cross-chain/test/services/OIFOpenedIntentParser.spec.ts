@@ -29,7 +29,7 @@ const createMockOpenEventLog = (overrides?: Partial<Log>): Log => {
     const outputOracle =
         "0x0000000000000000000000000b88D54A39F330Dd7e773af4806BDC490c79cAB6" as Hex;
     const outputSettler =
-        "0x0000000000000000000000002404F8e3c37c002c89bA78086a119e68E3fF8824" as Hex;
+        "0x00000000000000000000000052602D7cc3D833F5d28ee6D01C7F82C9b2322e10" as Hex;
     const outputChainId = 8453n;
     const outputToken = "0x000000000000000000000000c0b782920b2de8b55f08fc98004eb5c7d4fbf287" as Hex;
     const outputAmount = 960000n;

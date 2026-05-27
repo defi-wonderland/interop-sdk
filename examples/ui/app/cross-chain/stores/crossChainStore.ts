@@ -1,22 +1,20 @@
 import { create } from 'zustand';
-import { buildExecutor } from '../services/sdk';
-import type { Aggregator } from '@wonderland/interop-cross-chain';
+import { getExecutor } from '../services/sdk';
+import {
+  readBuildModeFromUrl,
+  readGaslessSubmissionFromUrl,
+  readIsTestnetFromUrl,
+  writeBuildModeParam,
+  writeGaslessSubmissionParam,
+  writeIsTestnetParam,
+} from '../utils/crossChainUrlHelper';
+import type { Aggregator, SubmissionMode } from '@wonderland/interop-cross-chain';
 
 export type SwapFormMode = 'getQuotes' | 'buildQuote';
 
-const TESTNET_QUERY_PARAM = 'testnet';
-const MODE_QUERY_PARAM = 'mode';
-const MODE_BUILD_VALUE = 'build';
-
-function readIsTestnetFromUrl(): boolean {
-  if (typeof window === 'undefined') return false;
-  return new URLSearchParams(window.location.search).get(TESTNET_QUERY_PARAM) === 'true';
-}
-
-function readModeFromUrl(): SwapFormMode {
-  if (typeof window === 'undefined') return 'getQuotes';
-  const value = new URLSearchParams(window.location.search).get(MODE_QUERY_PARAM);
-  return value === MODE_BUILD_VALUE ? 'buildQuote' : 'getQuotes';
+/** buildQuote always submits as a user transaction; gasless is only valid in getQuotes mode. */
+function resolveSubmissionMode(mode: SwapFormMode, preferred: SubmissionMode): SubmissionMode {
+  return mode === 'buildQuote' ? 'user-transaction' : preferred;
 }
 
 interface CrossChainState {
@@ -24,45 +22,58 @@ interface CrossChainState {
   executor: Aggregator;
   mode: SwapFormMode;
   buildQuoteProviderId: string;
+  submissionMode: SubmissionMode;
   setIsTestnet: (isTestnet: boolean) => void;
   setMode: (mode: SwapFormMode) => void;
   setBuildQuoteProviderId: (providerId: string) => void;
+  setSubmissionMode: (submissionMode: SubmissionMode) => void;
 }
 
 const initialIsTestnet = readIsTestnetFromUrl();
+const initialMode: SwapFormMode = readBuildModeFromUrl() ? 'buildQuote' : 'getQuotes';
+const preferredSubmissionMode: SubmissionMode = readGaslessSubmissionFromUrl() ? 'gasless' : 'user-transaction';
+const initialSubmissionMode = resolveSubmissionMode(initialMode, preferredSubmissionMode);
+
+if (typeof window !== 'undefined' && initialSubmissionMode !== preferredSubmissionMode) {
+  writeGaslessSubmissionParam(false);
+}
 
 export const useCrossChainStore = create<CrossChainState>((set, get) => ({
   isTestnet: initialIsTestnet,
-  executor: buildExecutor(initialIsTestnet),
-  mode: readModeFromUrl(),
+  executor: getExecutor(initialIsTestnet, initialSubmissionMode),
+  mode: initialMode,
   buildQuoteProviderId: 'across',
+  submissionMode: initialSubmissionMode,
 
-  setIsTestnet: (isTestnet: boolean) => {
+  setIsTestnet: (isTestnet) => {
     if (isTestnet === get().isTestnet) return;
-    const url = new URL(window.location.href);
-    if (isTestnet) {
-      url.searchParams.set(TESTNET_QUERY_PARAM, 'true');
-    } else {
-      url.searchParams.delete(TESTNET_QUERY_PARAM);
-    }
-    window.history.replaceState({}, '', url.toString());
-    set({ isTestnet, executor: buildExecutor(isTestnet) });
+    writeIsTestnetParam(isTestnet);
+    set({ isTestnet, executor: getExecutor(isTestnet, get().submissionMode) });
   },
 
-  setMode: (mode: SwapFormMode) => {
+  setMode: (mode) => {
     if (mode === get().mode) return;
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      if (mode === 'buildQuote') {
-        url.searchParams.set(MODE_QUERY_PARAM, MODE_BUILD_VALUE);
-      } else {
-        url.searchParams.delete(MODE_QUERY_PARAM);
-      }
-      if (url.search !== window.location.search) {
-        window.history.replaceState({}, '', url.toString());
-      }
+    const nextSubmissionMode = resolveSubmissionMode(mode, get().submissionMode);
+    const submissionModeChanged = nextSubmissionMode !== get().submissionMode;
+
+    writeBuildModeParam(mode === 'buildQuote');
+    if (submissionModeChanged) {
+      writeGaslessSubmissionParam(false);
+      set({
+        mode,
+        submissionMode: nextSubmissionMode,
+        executor: getExecutor(get().isTestnet, nextSubmissionMode),
+      });
+    } else {
+      set({ mode });
     }
-    set({ mode });
   },
-  setBuildQuoteProviderId: (providerId: string) => set({ buildQuoteProviderId: providerId }),
+
+  setBuildQuoteProviderId: (buildQuoteProviderId) => set({ buildQuoteProviderId }),
+
+  setSubmissionMode: (submissionMode) => {
+    if (submissionMode === get().submissionMode) return;
+    writeGaslessSubmissionParam(submissionMode === 'gasless');
+    set({ submissionMode, executor: getExecutor(get().isTestnet, submissionMode) });
+  },
 }));
