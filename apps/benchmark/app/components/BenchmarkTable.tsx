@@ -20,15 +20,15 @@ export function BenchmarkTable<T>({
   rows,
   getRowKey,
   renderRow,
-  minWidthClass = 'min-w-[48rem]',
+  minWidthClass = 'md:min-w-[48rem]',
 }: BenchmarkTableProps<T>) {
   return (
-    <div className='overflow-x-auto'>
-      <table className={cn('w-full border-collapse text-left', minWidthClass)}>
+    <div className='md:overflow-x-auto'>
+      <table className={cn('w-full table-fixed border-collapse text-left md:table-auto', minWidthClass)}>
         <thead>
           <tr className='border-b border-border-subtle font-mono text-caption uppercase tracking-widest text-text-muted'>
             {columns.map((column) => (
-              <th key={column.key} className={cn('px-4 py-3 font-medium', column.className)}>
+              <th key={column.key} className={cn('px-3 py-3 font-medium md:px-4', column.className)}>
                 {column.label}
               </th>
             ))}

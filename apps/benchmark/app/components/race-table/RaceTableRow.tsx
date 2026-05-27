@@ -58,7 +58,7 @@ export function RaceTableRow({
       }
       transition={{ duration: 0.2 }}
       className={cn(
-        'border-b border-border-subtle transition-colors last:border-b-0',
+        'h-20 border-b border-border-subtle align-middle transition-colors last:border-b-0 md:h-[72px]',
         isWinner && 'bg-accent-soft',
         isErrored && 'text-text-muted',
       )}

@@ -5,8 +5,14 @@ import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
-import { createRows, orderRaceRows } from './components/race-table/raceRows';
-import { chainService } from './lib/services';
+import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
+import {
+  INITIAL_AMOUNT,
+  INITIAL_ASSET_SYMBOL,
+  INITIAL_FROM_CHAIN_ID,
+  INITIAL_TO_CHAIN_ID,
+} from './lib/requestBarStore';
+import { chainService, quotesService } from './lib/services';
 import type { RaceRow } from './components/race-table/types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 
@@ -14,10 +20,11 @@ export const revalidate = 3600;
 
 const META_LABEL_CLASS = 'font-mono text-label text-text-muted';
 const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-chain';
+const INITIAL_RACE_TIMEOUT_MS = 20_000;
 
 export default async function Home() {
   const initialChains = await loadInitialChains();
-  const initialRows = buildInitialRows(initialChains);
+  const initialRows = await buildInitialRows(initialChains);
 
   return (
     <div className='min-h-screen cursor-default bg-background'>
@@ -79,9 +86,28 @@ async function loadInitialChains(): Promise<NetworkAssets[]> {
   }
 }
 
-function buildInitialRows(chains: NetworkAssets[]): RaceRow[] {
+async function buildInitialRows(chains: NetworkAssets[]): Promise<RaceRow[]> {
   if (chains.length === 0) return orderRaceRows(createRows('errored', 'CHAIN DISCOVERY FAILED'));
-  return orderRaceRows(createRows('idle'));
+
+  try {
+    const request = buildQuoteRequest({
+      chains,
+      fromChainId: INITIAL_FROM_CHAIN_ID,
+      toChainId: INITIAL_TO_CHAIN_ID,
+      assetSymbol: INITIAL_ASSET_SYMBOL,
+      amount: INITIAL_AMOUNT,
+    });
+    const response = await Promise.race([
+      quotesService.getQuotes(request),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('INITIAL_RACE_TIMEOUT')), INITIAL_RACE_TIMEOUT_MS),
+      ),
+    ]);
+    if (response.quotes.length === 0) return orderRaceRows(createRows('idle'));
+    return orderRaceRows(buildRowsFromQuotes(response.quotes));
+  } catch {
+    return orderRaceRows(createRows('idle'));
+  }
 }
 
 function SectionPlaceholder({ label }: { label: string }) {
