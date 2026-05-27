@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Icon } from '../Icon';
+import { Pill } from '../Pill';
+import { Skeleton } from '../Skeleton';
 import { parseOptionalNumber } from './raceRows';
 import type { RaceRow, RowStatus } from './types';
 import { AssetSymbol } from '~/lib/assets';
@@ -229,39 +231,6 @@ function StatusPill({ status, isWinner, isFirst, errorMessage, reduceMotion }: S
     return <Pill tone='outline'>first</Pill>;
   }
   return null;
-}
-
-interface PillProps {
-  tone: 'accent' | 'outline' | 'muted' | 'error';
-  title?: string;
-  className?: string;
-  icon?: string;
-  children: React.ReactNode;
-}
-
-const PILL_BASE =
-  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-caption uppercase tracking-[0.08em]';
-
-const PILL_TONE: Record<PillProps['tone'], string> = {
-  accent: 'bg-accent text-on-accent',
-  outline: 'border border-accent/40 text-accent',
-  muted: 'border border-border-subtle text-text-muted',
-  error: 'border border-error/40 text-error',
-};
-
-function Pill({ tone, title, className, icon, children }: PillProps) {
-  return (
-    <span title={title} className={cn(PILL_BASE, PILL_TONE[tone], className)}>
-      {icon ? <span aria-hidden='true'>{icon}</span> : null}
-      {children}
-    </span>
-  );
-}
-
-function Skeleton({ wide = false, reduceMotion }: { wide?: boolean; reduceMotion: boolean }) {
-  return (
-    <span className={cn('block h-4 bg-border-subtle', !reduceMotion && 'animate-pulse', wide ? 'w-28' : 'w-14')} />
-  );
 }
 
 function AnimatedLatency({ value, reduceMotion }: { value?: number; reduceMotion: boolean }) {
