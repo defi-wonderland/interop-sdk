@@ -104,7 +104,7 @@ async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
       'INITIAL_RACE_TIMEOUT',
     );
     if (response.quotes.length === 0) return orderRaceRows(createRows('idle'));
-    return orderRaceRows(buildRowsFromQuotes(response.quotes));
+    return orderRaceRows(buildRowsFromQuotes(response.quotes, response.errors));
   } catch {
     return orderRaceRows(createRows('idle'));
   }

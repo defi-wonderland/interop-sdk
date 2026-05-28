@@ -2,7 +2,7 @@ import { parseUnits } from 'viem';
 import { RACE_PROVIDER_IDS } from './constants';
 import type { AssetLookup, RaceRow, RowStatus } from './types';
 import type { NetworkAssets, QuoteRequest } from '@wonderland/interop-cross-chain';
-import type { ProviderQuoteResult } from '~/lib/types';
+import type { ProviderQuoteError, ProviderQuoteResult } from '~/lib/types';
 import { AssetSymbol } from '~/lib/assets';
 import { ChainId } from '~/lib/chains';
 import { PROVIDERS, ProviderId } from '~/lib/providers';
@@ -21,14 +21,21 @@ export function createRows(status: RowStatus, errorMessage?: string): RaceRow[] 
   return RACE_PROVIDER_IDS.map((providerId) => ({ provider: PROVIDERS[providerId], status, errorMessage }));
 }
 
-export function buildRowsFromQuotes(quotes: ProviderQuoteResult[]): RaceRow[] {
+export function buildRowsFromQuotes(quotes: ProviderQuoteResult[], errors: ProviderQuoteError[] = []): RaceRow[] {
   const quoteByProvider = new Map(quotes.map((quote) => [normalizeProviderId(quote.providerId), quote]));
+  const errorByProvider = new Map(
+    errors
+      .map((entry) => [normalizeProviderId(entry.providerId ?? ''), entry] as const)
+      .filter(([providerId]) => providerId !== undefined),
+  );
 
   return RACE_PROVIDER_IDS.map<RaceRow>((providerId) => {
     const quote = quoteByProvider.get(providerId);
     if (quote) return { provider: PROVIDERS[providerId], status: 'settled', quote };
 
-    return { provider: PROVIDERS[providerId], status: 'errored', errorMessage: 'NO ROUTE' };
+    const providerError = errorByProvider.get(providerId);
+    const errorMessage = providerError?.errorMessage ?? 'NO ROUTE';
+    return { provider: PROVIDERS[providerId], status: 'errored', errorMessage };
   });
 }
 

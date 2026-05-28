@@ -29,7 +29,7 @@ export function useRunRace(chains: NetworkAssets[]) {
       const quoteRequest = buildQuoteRequest({ chains, ...request });
       const response = await withTimeout(quotesService.getQuotes(quoteRequest), RACE_TIMEOUT_MS);
       if (runId !== latestRunId.current) return;
-      setRows(orderRaceRows(buildRowsFromQuotes(response.quotes)));
+      setRows(orderRaceRows(buildRowsFromQuotes(response.quotes, response.errors)));
     } catch (error) {
       if (runId !== latestRunId.current) return;
       const message = error instanceof Error ? error.message : 'NO ROUTE';
