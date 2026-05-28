@@ -8,6 +8,7 @@ import type {
     BungeeManualRoute,
     BungeeQuoteResponse,
 } from "../../../src/protocols/bungee/schemas.js";
+import { PERMIT2_ADDRESS } from "../../../src/core/constants/eip712.js";
 import { HttpError } from "../../../src/core/errors/HttpError.exception.js";
 import { ProviderConfigFailure } from "../../../src/core/errors/ProviderConfigFailure.exception.js";
 import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
@@ -18,6 +19,7 @@ import { BungeeProvider } from "../../../src/protocols/bungee/provider.js";
 // ── Constants ────────────────────────────────────────────
 
 const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
+const BUNGEE_GATEWAY = "0xCDeA28EE7bd5bf7710b294d9391E1B6A318D809a";
 const ORIGIN_CHAIN_ID = 1;
 const DESTINATION_CHAIN_ID = 10;
 const INPUT_AMOUNT = "1000000";
@@ -25,6 +27,7 @@ const OUTPUT_AMOUNT = "999000";
 const API_KEY = "test-key";
 const BUNGEE_BASE_URL = "https://public-backend.bungee.exchange";
 const PROTOCOL_NAME = "bungee";
+const FUTURE_DEADLINE = Math.floor(Date.now() / 1000) + 3600;
 
 // ── Mock & Helpers ───────────────────────────────────────
 
@@ -65,9 +68,65 @@ function makeAutoRoute(overrides: Record<string, unknown> = {}): BungeeAutoRoute
         },
         requestType: "SINGLE_OUTPUT_REQUEST",
         signTypedData: {
-            domain: { name: "Permit2" },
-            types: {},
-            values: { witness: { field: "value" } },
+            domain: {
+                name: "Permit2",
+                chainId: ORIGIN_CHAIN_ID,
+                verifyingContract: PERMIT2_ADDRESS,
+            },
+            types: {
+                PermitWitnessTransferFrom: [
+                    { name: "permitted", type: "TokenPermissions" },
+                    { name: "spender", type: "address" },
+                    { name: "nonce", type: "uint256" },
+                    { name: "deadline", type: "uint256" },
+                    { name: "witness", type: "Request" },
+                ],
+                TokenPermissions: [
+                    { name: "token", type: "address" },
+                    { name: "amount", type: "uint256" },
+                ],
+                Request: [{ name: "basicReq", type: "BasicRequest" }],
+                BasicRequest: [
+                    { name: "originChainId", type: "uint256" },
+                    { name: "destinationChainId", type: "uint256" },
+                    { name: "deadline", type: "uint256" },
+                    { name: "nonce", type: "uint256" },
+                    { name: "sender", type: "address" },
+                    { name: "receiver", type: "address" },
+                    { name: "delegate", type: "address" },
+                    { name: "bungeeGateway", type: "address" },
+                    { name: "switchboardId", type: "uint32" },
+                    { name: "inputToken", type: "address" },
+                    { name: "inputAmount", type: "uint256" },
+                    { name: "outputToken", type: "address" },
+                    { name: "minOutputAmount", type: "uint256" },
+                    { name: "refuelAmount", type: "uint256" },
+                ],
+            },
+            values: {
+                permitted: { token: VALID_ADDRESS, amount: INPUT_AMOUNT },
+                spender: BUNGEE_GATEWAY,
+                nonce: "1",
+                deadline: FUTURE_DEADLINE,
+                witness: {
+                    basicReq: {
+                        originChainId: ORIGIN_CHAIN_ID,
+                        destinationChainId: DESTINATION_CHAIN_ID,
+                        deadline: FUTURE_DEADLINE,
+                        nonce: "1",
+                        sender: VALID_ADDRESS,
+                        receiver: VALID_ADDRESS,
+                        delegate: VALID_ADDRESS,
+                        bungeeGateway: BUNGEE_GATEWAY,
+                        switchboardId: 1,
+                        inputToken: VALID_ADDRESS,
+                        inputAmount: INPUT_AMOUNT,
+                        outputToken: VALID_ADDRESS,
+                        minOutputAmount: "0",
+                        refuelAmount: "0",
+                    },
+                },
+            },
         },
         gasFee: {
             gasToken: {
@@ -582,7 +641,7 @@ describe("BungeeProvider", () => {
             expect(mockPost).toHaveBeenCalledWith(
                 "/api/v1/bungee/submit",
                 expect.objectContaining({
-                    request: { field: "value" },
+                    request: quoteResponse.result.autoRoute!.signTypedData!.values.witness,
                     userSignature: "0xsignature",
                     requestType: "SINGLE_OUTPUT_REQUEST",
                     quoteId: "quote-123",
@@ -592,21 +651,20 @@ describe("BungeeProvider", () => {
 
         it("uses the specific autoRoute from metadata, not result.autoRoute", async () => {
             const quoteResponse = makeBungeeQuoteResponse();
-            // Add a different route in autoRoutes with higher output
-            (quoteResponse.result as Record<string, unknown>).autoRoutes = [
-                makeAutoRoute({
-                    quoteId: "route-better",
-                    output: {
-                        ...makeAutoRoute().output,
-                        amount: "1500000",
-                    },
-                    signTypedData: {
-                        domain: { name: "Permit2" },
-                        types: {},
-                        values: { witness: { betterField: "betterValue" } },
-                    },
-                }),
-            ];
+            const betterRoute = makeAutoRoute({
+                quoteId: "route-better",
+                output: {
+                    ...makeAutoRoute().output,
+                    amount: "1500000",
+                },
+            });
+            // Make this route's witness distinguishable so we can prove the
+            // submit picked the right one.
+            (
+                (betterRoute.signTypedData!.values.witness as Record<string, unknown>)
+                    .basicReq as Record<string, unknown>
+            ).nonce = "route-better-nonce";
+            (quoteResponse.result as Record<string, unknown>).autoRoutes = [betterRoute];
 
             mockGet.mockResolvedValue({
                 status: 200,
@@ -625,14 +683,12 @@ describe("BungeeProvider", () => {
                 headers: new Headers(),
             });
 
-            // Submit with route-better (second quote, from autoRoutes)
             await provider.submitOrder(quotes[1]!, "0xsignature");
 
-            // Should submit with route-better's witness from bungeeAutoRoute metadata
             expect(mockPost).toHaveBeenCalledWith(
                 "/api/v1/bungee/submit",
                 expect.objectContaining({
-                    request: { betterField: "betterValue" },
+                    request: betterRoute.signTypedData!.values.witness,
                     quoteId: "route-better",
                 }),
             );
