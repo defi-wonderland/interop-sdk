@@ -1,11 +1,9 @@
+import type { CrossChainProvider } from "../internal.js";
 import type {
-    AcrossConfigs,
-    BungeeConfigs,
-    LifiIntentsProviderConfig,
-    OifProviderConfig,
-    RelayConfigs,
-} from "../internal.js";
-import type { SupportedProtocols } from "./providers.js";
+    OptionalConfigProtocols,
+    SupportedProtocols,
+    SupportedProtocolsConfigs,
+} from "./providers.js";
 import {
     AcrossProvider,
     BungeeProvider,
@@ -14,50 +12,34 @@ import {
     RelayProvider,
     UnsupportedProtocol,
 } from "../internal.js";
-import { PROTOCOLS } from "./providers.js";
 
-/** Maps each protocol to its provider factory. Source of truth for the types below. */
-const PROTOCOL_FACTORIES = {
-    [PROTOCOLS.ACROSS]: (config?: AcrossConfigs): AcrossProvider =>
-        new AcrossProvider(config ?? {}),
-    [PROTOCOLS.RELAY]: (config?: RelayConfigs): RelayProvider => new RelayProvider(config ?? {}),
-    [PROTOCOLS.BUNGEE]: (config?: BungeeConfigs): BungeeProvider =>
-        new BungeeProvider(config ?? {}),
-    [PROTOCOLS.OIF]: (config: OifProviderConfig): OifProvider => new OifProvider(config),
-    [PROTOCOLS.LIFI_INTENTS]: (config: LifiIntentsProviderConfig): LifiIntentsProvider =>
-        new LifiIntentsProvider(config),
+/** Constructor args for a protocol: config is optional for optional-config protocols. */
+type ProtocolArgs<P extends SupportedProtocols> = P extends OptionalConfigProtocols
+    ? [config?: SupportedProtocolsConfigs<P>]
+    : [config: SupportedProtocolsConfigs<P>];
+
+/** Maps each protocol to its provider factory. */
+const PROTOCOL_FACTORIES: {
+    [P in SupportedProtocols]: (...args: ProtocolArgs<P>) => CrossChainProvider;
+} = {
+    across: (config) => new AcrossProvider(config ?? {}),
+    relay: (config) => new RelayProvider(config ?? {}),
+    bungee: (config) => new BungeeProvider(config ?? {}),
+    oif: (config) => new OifProvider(config),
+    "lifi-intents": (config) => new LifiIntentsProvider(config),
 };
-
-type ProtocolArgs = {
-    [P in SupportedProtocols]: Parameters<(typeof PROTOCOL_FACTORIES)[P]>;
-};
-type ProtocolProviders = {
-    [P in SupportedProtocols]: ReturnType<(typeof PROTOCOL_FACTORIES)[P]>;
-};
-
-/** Config type accepted by a protocol. */
-export type SupportedProtocolsConfigs<P extends SupportedProtocols> = NonNullable<
-    ProtocolArgs[P][0]
->;
-
-/** Protocols whose config is optional. */
-export type OptionalConfigProtocols = {
-    [P in SupportedProtocols]: undefined extends ProtocolArgs[P][0] ? P : never;
-}[SupportedProtocols];
-
-const factories: { [P in SupportedProtocols]: (...args: ProtocolArgs[P]) => ProtocolProviders[P] } =
-    PROTOCOL_FACTORIES;
 
 /**
- * Creates a provider for the given protocol; config is required or optional per protocol.
+ * Creates a provider for the given protocol; config is required for `oif`/`lifi-intents`
+ * and optional for `across`/`relay`/`bungee`.
  *
  * @throws {UnsupportedProtocol} If the protocol is not registered.
  */
 export function createCrossChainProvider<P extends SupportedProtocols>(
     protocolName: P,
-    ...args: ProtocolArgs[P]
-): ProtocolProviders[P] {
-    const factory = factories[protocolName];
+    ...args: ProtocolArgs<P>
+): CrossChainProvider {
+    const factory = PROTOCOL_FACTORIES[protocolName];
     if (!factory) {
         throw new UnsupportedProtocol(protocolName);
     }
