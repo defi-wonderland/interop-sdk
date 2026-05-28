@@ -16,6 +16,7 @@ import type {
 } from "../types/assetDiscovery.js";
 import type { OrderTrackingInfo, WatchOrderParams } from "../types/orderTracking.js";
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
+import { DuplicateProvider } from "../errors/DuplicateProvider.exception.js";
 import { ProviderNotFound } from "../errors/ProviderNotFound.exception.js";
 import { ProviderTimeout } from "../errors/ProviderTimeout.exception.js";
 import { CrossChainProvider } from "../interfaces/crossChainProvider.interface.js";
@@ -75,7 +76,11 @@ class Aggregator {
         } = config;
         this.providers = providers.reduce(
             (acc, provider) => {
-                acc[provider.getProviderId()] = provider;
+                const id = provider.getProviderId();
+                if (acc[id]) {
+                    throw new DuplicateProvider(id);
+                }
+                acc[id] = provider;
                 return acc;
             },
             {} as Record<string, CrossChainProvider>,

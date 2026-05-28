@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createCrossChainProvider } from "../../src/factories/crossChainProviderFactory.js";
 import {
     AcrossProvider,
+    BungeeProvider,
     CrossChainProvider,
+    LifiIntentsProvider,
+    OifProvider,
     RelayProvider,
     UnsupportedProtocol,
 } from "../../src/internal.js";
@@ -47,6 +50,29 @@ describe("createCrossChainProvider", () => {
 
         expect(provider).toBeInstanceOf(RelayProvider);
         expect(provider.providerId).toBe("relay-custom");
+    });
+
+    it("creates a BungeeProvider with default config", () => {
+        const provider = createCrossChainProvider("bungee");
+
+        expect(provider).toBeInstanceOf(BungeeProvider);
+    });
+
+    it("creates an OifProvider with required config", () => {
+        const provider = createCrossChainProvider("oif", {
+            solverId: "my-solver",
+            url: "https://solver.example.com",
+        });
+
+        expect(provider).toBeInstanceOf(OifProvider);
+    });
+
+    it("creates a LifiIntentsProvider with required config", () => {
+        const provider = createCrossChainProvider("lifi-intents", {
+            orderServerUrl: "https://order-server.example.com",
+        });
+
+        expect(provider).toBeInstanceOf(LifiIntentsProvider);
     });
 
     it("throws an UnsupportedProtocol error for unsupported protocols", () => {

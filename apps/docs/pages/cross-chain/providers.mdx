@@ -53,6 +53,8 @@ createCrossChainProvider("bungee", {
 | `lifi-intents` | `orderServerUrl`  | `providerId`, `headers`                                                                                                                               |
 | `bungee`       | (none)            | `tier`, `apiKey`, `affiliateId`, `feeBps`, `feeTakerAddress`, `submissionModes`, `slippage`, `refuel`, `enableOtherProviders`, `enableMultipleRoutes` |
 
+The optional-config protocols (`across`, `relay`, `bungee`) can also be passed to `createAggregator` by name to get defaults — see [Compare quotes from multiple providers](./getting-started#compare-quotes-from-multiple-providers). Use `createCrossChainProvider` when you need custom config.
+
 ## `isTestnet` semantics
 
 Only `across` and `relay` accept `isTestnet`. What it changes:

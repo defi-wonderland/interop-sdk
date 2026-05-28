@@ -6,9 +6,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
     AcrossProvider,
     Aggregator,
+    BungeeProvider,
     createAggregator,
+    createCrossChainProvider,
+    DuplicateProvider,
     OrderTracker,
     OrderTrackerFactory,
+    RelayProvider,
 } from "../../src/external.js";
 import {
     CrossChainProvider,
@@ -187,6 +191,37 @@ describe("Aggregator", () => {
                 mockProviderA: mockProviderA,
                 mockProviderB: mockProviderB,
             });
+        });
+
+        it("instantiates providers passed as protocol name strings", () => {
+            const aggregator = createAggregator({
+                providers: ["across", "relay", "bungee"],
+            });
+            const { providers } = aggregator as unknown as {
+                providers: Record<string, CrossChainProvider>;
+            };
+            expect(providers.across).toBeInstanceOf(AcrossProvider);
+            expect(providers.relay).toBeInstanceOf(RelayProvider);
+            expect(providers.bungee).toBeInstanceOf(BungeeProvider);
+        });
+
+        it("accepts a mix of protocol name strings and provider instances", () => {
+            const aggregator = createAggregator({
+                providers: ["across", mockProviderA],
+            });
+            const { providers } = aggregator as unknown as {
+                providers: Record<string, CrossChainProvider>;
+            };
+            expect(providers.across).toBeInstanceOf(AcrossProvider);
+            expect(providers.mockProviderA).toBe(mockProviderA);
+        });
+
+        it("throws when a string and an instance resolve to the same providerId", () => {
+            expect(() =>
+                createAggregator({
+                    providers: ["relay", createCrossChainProvider("relay")],
+                }),
+            ).toThrow(DuplicateProvider);
         });
     });
 

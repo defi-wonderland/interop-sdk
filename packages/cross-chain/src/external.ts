@@ -14,6 +14,7 @@ export {
     PROTOCOLS,
     type SupportedProtocols,
     type SupportedProtocolsConfigs,
+    type OptionalConfigProtocols,
     // Providers
     AcrossProvider,
     OifProvider,
@@ -27,6 +28,8 @@ export {
     // Aggregator
     Aggregator,
     createAggregator,
+    type AggregatorProvider,
+    type CreateAggregatorConfig,
     // Approval
     createApprovalService,
     ExactAmountStrategy,
