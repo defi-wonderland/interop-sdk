@@ -62,23 +62,27 @@ export function RequestBar({ chains }: RequestBarProps) {
 
   const handleFromChainChange = (id: ChainId) => {
     if (id === request.fromChainId) return;
+    clearPendingAmountRun();
     setFromChainId(id);
     void runRace();
   };
 
   const handleToChainChange = (id: ChainId) => {
     if (id === request.toChainId) return;
+    clearPendingAmountRun();
     setToChainId(id);
     void runRace();
   };
 
   const handleAssetChange = (symbol: AssetSymbol) => {
     if (symbol === request.assetSymbol) return;
+    clearPendingAmountRun();
     setAssetSymbol(symbol);
     void runRace();
   };
 
   const handleSwap = () => {
+    clearPendingAmountRun();
     swapChains();
     setArrowSpins((count) => count + 1);
     void runRace();
