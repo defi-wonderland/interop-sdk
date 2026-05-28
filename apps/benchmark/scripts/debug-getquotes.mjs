@@ -30,7 +30,7 @@ const aggregator = createAggregator({
 const CHAIN_IDS = [1, 8453, 42161, 10];
 const SYMBOLS = ['USDC', 'WETH'];
 const CHAIN_NAMES = { 1: 'ethereum', 8453: 'base', 42161: 'arbitrum', 10: 'optimism' };
-const EXPECTED_PROVIDERS = ['across', 'relay', 'lifi-intents', 'bungee'];
+const EXPECTED_PROVIDERS = ['across', 'oif', 'relay', 'lifi-intents', 'bungee'];
 
 const discovered = await aggregator.discoverAssets({ chainIds: CHAIN_IDS });
 
@@ -96,7 +96,7 @@ for (const row of matrix) {
 }
 
 const fullCoverage = matrix.filter((row) => EXPECTED_PROVIDERS.every((p) => row.providers[p] === 'OK'));
-console.log(`\nPairs covered by ALL 4 providers (${fullCoverage.length}):`);
+console.log(`\nPairs covered by ALL ${EXPECTED_PROVIDERS.length} providers (${fullCoverage.length}):`);
 fullCoverage.forEach((r) => console.log(`  ${r.symbol} ${CHAIN_NAMES[r.from]} -> ${CHAIN_NAMES[r.to]}`));
 
 const threeCoverage = matrix.filter((row) => EXPECTED_PROVIDERS.filter((p) => row.providers[p] === 'OK').length >= 3);
