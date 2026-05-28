@@ -12,6 +12,7 @@ import {
     RelayProvider,
     UnsupportedProtocol,
 } from "../internal.js";
+import { PROTOCOLS } from "./providers.js";
 
 /** Constructor args for a protocol: config is optional for optional-config protocols. */
 type ProtocolArgs<P extends SupportedProtocols> = P extends OptionalConfigProtocols
@@ -22,11 +23,11 @@ type ProtocolArgs<P extends SupportedProtocols> = P extends OptionalConfigProtoc
 const PROTOCOL_FACTORIES: {
     [P in SupportedProtocols]: (...args: ProtocolArgs<P>) => CrossChainProvider;
 } = {
-    across: (config) => new AcrossProvider(config ?? {}),
-    relay: (config) => new RelayProvider(config ?? {}),
-    bungee: (config) => new BungeeProvider(config ?? {}),
-    oif: (config) => new OifProvider(config),
-    "lifi-intents": (config) => new LifiIntentsProvider(config),
+    [PROTOCOLS.ACROSS]: (config) => new AcrossProvider(config ?? {}),
+    [PROTOCOLS.RELAY]: (config) => new RelayProvider(config ?? {}),
+    [PROTOCOLS.BUNGEE]: (config) => new BungeeProvider(config ?? {}),
+    [PROTOCOLS.OIF]: (config) => new OifProvider(config),
+    [PROTOCOLS.LIFI_INTENTS]: (config) => new LifiIntentsProvider(config),
 };
 
 /**

@@ -18,12 +18,15 @@ export type SupportedProtocols = (typeof PROTOCOLS)[keyof typeof PROTOCOLS];
 
 /** Config type accepted by each protocol. */
 export type SupportedProtocolsConfigs<P extends SupportedProtocols> = {
-    across: AcrossConfigs;
-    relay: RelayConfigs;
-    bungee: BungeeConfigs;
-    oif: OifProviderConfig;
-    "lifi-intents": LifiIntentsProviderConfig;
+    [PROTOCOLS.ACROSS]: AcrossConfigs;
+    [PROTOCOLS.RELAY]: RelayConfigs;
+    [PROTOCOLS.BUNGEE]: BungeeConfigs;
+    [PROTOCOLS.OIF]: OifProviderConfig;
+    [PROTOCOLS.LIFI_INTENTS]: LifiIntentsProviderConfig;
 }[P];
 
 /** Protocols whose config is optional. */
-export type OptionalConfigProtocols = "across" | "relay" | "bungee";
+export type OptionalConfigProtocols =
+    | typeof PROTOCOLS.ACROSS
+    | typeof PROTOCOLS.RELAY
+    | typeof PROTOCOLS.BUNGEE;
