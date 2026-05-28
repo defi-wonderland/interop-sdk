@@ -3,5 +3,6 @@ export class DuplicateProvider extends Error {
         super(
             `Duplicate provider id "${providerId}" — each provider must have a unique providerId`,
         );
+        this.name = "DuplicateProvider";
     }
 }
