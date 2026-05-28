@@ -187,10 +187,10 @@ Omit `chainIds` to discover across every chain each provider supports. For a sin
 Use the `Aggregator` to fetch and sort quotes from multiple providers at once. For protocols whose config is optional (`across`, `relay`, `bungee`) you can pass the protocol name directly and the aggregator creates the provider with defaults:
 
 ```typescript
-import { createAggregator } from "@wonderland/interop-cross-chain";
+import { createAggregator, PROTOCOLS } from "@wonderland/interop-cross-chain";
 
 const aggregator = createAggregator({
-    providers: ["across", "relay", "bungee"],
+    providers: [PROTOCOLS.ACROSS, PROTOCOLS.RELAY, PROTOCOLS.BUNGEE],
 });
 
 const response = await aggregator.getQuotes({
@@ -201,7 +201,7 @@ console.log(`Got ${response.quotes.length} quotes`);
 response.errors.forEach((err) => console.warn(`Provider error: ${err.errorMsg}`));
 ```
 
-Need custom config — or a provider that requires it, like `oif` / `lifi-intents` — pass an instance instead. You can mix both forms:
+Need custom config — or a provider that requires it, like OIF / LiFi Intents — pass an instance instead. You can mix both forms:
 
 ```typescript
 import {
@@ -213,7 +213,7 @@ import {
 const acrossProvider = createCrossChainProvider(PROTOCOLS.ACROSS, { isTestnet: true });
 
 const aggregator = createAggregator({
-    providers: ["relay", acrossProvider],
+    providers: [PROTOCOLS.RELAY, acrossProvider],
 });
 ```
 
