@@ -27,12 +27,12 @@ const PROTOCOL_FACTORIES: {
     [PROTOCOLS.RELAY]: (config) => new RelayProvider(config ?? {}),
     [PROTOCOLS.BUNGEE]: (config) => new BungeeProvider(config ?? {}),
     [PROTOCOLS.OIF]: (config) => new OifProvider(config),
-    [PROTOCOLS.LIFI_INTENTS]: (config) => new LifiIntentsProvider(config),
+    [PROTOCOLS.LIFI_INTENTS]: (config) => new LifiIntentsProvider(config ?? {}),
 };
 
 /**
- * Creates a provider for the given protocol; config is required for `oif`/`lifi-intents`
- * and optional for `across`/`relay`/`bungee`.
+ * Creates a provider for the given protocol; config is required for `oif`
+ * and optional for `across`/`relay`/`bungee`/`lifi-intents`.
  *
  * @throws {UnsupportedProtocol} If the protocol is not registered.
  */

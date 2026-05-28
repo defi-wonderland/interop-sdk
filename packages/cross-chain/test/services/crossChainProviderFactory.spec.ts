@@ -67,7 +67,13 @@ describe("createCrossChainProvider", () => {
         expect(provider).toBeInstanceOf(OifProvider);
     });
 
-    it("creates a LifiIntentsProvider with required config", () => {
+    it("creates a LifiIntentsProvider without config (defaults to the official order server)", () => {
+        const provider = createCrossChainProvider("lifi-intents");
+
+        expect(provider).toBeInstanceOf(LifiIntentsProvider);
+    });
+
+    it("creates a LifiIntentsProvider with config", () => {
         const provider = createCrossChainProvider("lifi-intents", {
             orderServerUrl: "https://order-server.example.com",
         });

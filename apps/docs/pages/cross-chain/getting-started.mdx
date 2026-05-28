@@ -184,13 +184,13 @@ Omit `chainIds` to discover across every chain each provider supports. For a sin
 
 ## Compare quotes from multiple providers
 
-Use the `Aggregator` to fetch and sort quotes from multiple providers at once. For protocols whose config is optional (`across`, `relay`, `bungee`) you can pass the protocol name directly and the aggregator creates the provider with defaults:
+Use the `Aggregator` to fetch and sort quotes from multiple providers at once. For protocols whose config is optional (`across`, `relay`, `bungee`, `lifi-intents`) you can pass the protocol name directly and the aggregator creates the provider with defaults:
 
 ```typescript
 import { createAggregator, PROTOCOLS } from "@wonderland/interop-cross-chain";
 
 const aggregator = createAggregator({
-    providers: [PROTOCOLS.ACROSS, PROTOCOLS.RELAY, PROTOCOLS.BUNGEE],
+    providers: [PROTOCOLS.ACROSS, PROTOCOLS.RELAY, PROTOCOLS.BUNGEE, PROTOCOLS.LIFI_INTENTS],
 });
 
 const response = await aggregator.getQuotes({
@@ -201,7 +201,7 @@ console.log(`Got ${response.quotes.length} quotes`);
 response.errors.forEach((err) => console.warn(`Provider error: ${err.errorMsg}`));
 ```
 
-Need custom config — or a provider that requires it, like OIF / LiFi Intents — pass an instance instead. You can mix both forms:
+Need custom config — or a provider that requires it, like OIF — pass an instance instead. You can mix both forms:
 
 ```typescript
 import {

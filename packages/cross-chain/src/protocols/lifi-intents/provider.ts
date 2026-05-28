@@ -22,6 +22,7 @@ import {
     ProviderGetQuoteFailure,
 } from "../../internal.js";
 import { adaptOrderStatus, adaptQuoteRequest, adaptQuoteResponse } from "./adapters/index.js";
+import { LIFI_INTENTS_ORDER_SERVER_URL } from "./constants.js";
 import {
     LifiIntentsOrderStatusResponseSchema,
     LifiIntentsProviderConfigSchema,
@@ -41,12 +42,12 @@ export class LifiIntentsProvider extends CrossChainProvider {
     private static readonly REQUEST_TIMEOUT_MS = 30_000;
     private static readonly QUOTE_PATH = "/api/v1/integrator/quote/request";
 
-    constructor(config: LifiIntentsProviderConfig) {
+    constructor(config: LifiIntentsProviderConfig = {}) {
         super();
 
         try {
             const parsed = LifiIntentsProviderConfigSchema.parse(config);
-            this.orderServerUrl = parsed.orderServerUrl;
+            this.orderServerUrl = parsed.orderServerUrl ?? LIFI_INTENTS_ORDER_SERVER_URL;
             this.providerId = parsed.providerId ?? "lifi-intents";
             this.headers = parsed.headers;
         } catch (error) {
