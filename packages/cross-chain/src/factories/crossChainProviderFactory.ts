@@ -14,8 +14,8 @@ import {
 } from "../internal.js";
 import { PROTOCOLS } from "./providers.js";
 
-/** Constructor args for a protocol: config is optional for optional-config protocols. */
-type ProtocolArgs<P extends SupportedProtocols> = P extends OptionalConfigProtocols
+/** Constructor args per protocol; `[P]` keeps it non-distributive so a union name still requires config. */
+type ProtocolArgs<P extends SupportedProtocols> = [P] extends [OptionalConfigProtocols]
     ? [config?: SupportedProtocolsConfigs<P>]
     : [config: SupportedProtocolsConfigs<P>];
 
