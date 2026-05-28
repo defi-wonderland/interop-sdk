@@ -6,6 +6,7 @@ import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
 import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
+import { withTimeout } from './lib/helpers';
 import {
   INITIAL_AMOUNT,
   INITIAL_ASSET_SYMBOL,
@@ -97,12 +98,11 @@ async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
       assetSymbol: INITIAL_ASSET_SYMBOL,
       amount: INITIAL_AMOUNT,
     });
-    const response = await Promise.race([
+    const response = await withTimeout(
       quotesService.getQuotes(request),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('INITIAL_RACE_TIMEOUT')), INITIAL_RACE_TIMEOUT_MS),
-      ),
-    ]);
+      INITIAL_RACE_TIMEOUT_MS,
+      'INITIAL_RACE_TIMEOUT',
+    );
     if (response.quotes.length === 0) return orderRaceRows(createRows('idle'));
     return orderRaceRows(buildRowsFromQuotes(response.quotes));
   } catch {

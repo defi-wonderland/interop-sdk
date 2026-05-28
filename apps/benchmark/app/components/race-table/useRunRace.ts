@@ -4,6 +4,7 @@ import { useCallback, useRef } from 'react';
 import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './raceRows';
 import type { RaceRow } from './types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
+import { withTimeout } from '~/lib/helpers';
 import { useRequestBarStore } from '~/lib/requestBarStore';
 import { quotesService } from '~/lib/services';
 
@@ -26,7 +27,7 @@ export function useRunRace(chains: NetworkAssets[]) {
     try {
       const { request } = useRequestBarStore.getState();
       const quoteRequest = buildQuoteRequest({ chains, ...request });
-      const response = await Promise.race([quotesService.getQuotes(quoteRequest), rejectAfter(RACE_TIMEOUT_MS)]);
+      const response = await withTimeout(quotesService.getQuotes(quoteRequest), RACE_TIMEOUT_MS);
       if (runId !== latestRunId.current) return;
       setRows(orderRaceRows(buildRowsFromQuotes(response.quotes)));
     } catch (error) {
@@ -40,8 +41,4 @@ export function useRunRace(chains: NetworkAssets[]) {
 function toQueryingRows(previous: RaceRow[]): RaceRow[] {
   if (previous.length === 0) return createRows('querying');
   return previous.map((row) => ({ provider: row.provider, status: 'querying' as const }));
-}
-
-function rejectAfter(ms: number): Promise<never> {
-  return new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), ms));
 }
