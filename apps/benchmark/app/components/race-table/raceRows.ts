@@ -103,12 +103,31 @@ export function parseOptionalNumber(value: string | number | undefined): number 
 }
 
 function parseAmount(value: string, decimals: number): string {
-  const normalized = value.replace(/,/g, '').trim();
-  if (!normalized || Number.isNaN(Number(normalized))) {
+  const trimmed = value.trim();
+  if (!trimmed) throw new Error('Enter a valid amount');
+
+  if (trimmed.includes(',') && !hasValidThousandSeparators(trimmed)) {
+    throw new Error('Enter a valid amount');
+  }
+
+  const normalized = trimmed.replace(/,/g, '');
+  if (Number.isNaN(Number(normalized))) {
     throw new Error('Enter a valid amount');
   }
 
   return parseUnits(normalized, decimals).toString();
+}
+
+function hasValidThousandSeparators(value: string): boolean {
+  const [integerPart, ...rest] = value.split('.');
+  if (rest.length > 1) return false;
+  if (!integerPart || integerPart.includes(',,')) return false;
+
+  const digitsOnly = integerPart.replace(/,/g, '');
+  if (!/^\d+$/.test(digitsOnly)) return false;
+
+  const reformatted = digitsOnly.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return reformatted === integerPart;
 }
 
 function normalizeProviderId(providerId: string): ProviderId | undefined {
