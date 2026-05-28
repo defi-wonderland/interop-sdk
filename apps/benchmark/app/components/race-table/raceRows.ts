@@ -109,6 +109,8 @@ export function parseOptionalNumber(value: string | number | undefined): number 
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+const DECIMAL_AMOUNT_RE = /^\d+(\.\d+)?$/;
+
 function parseAmount(value: string, decimals: number): string {
   const trimmed = value.trim();
   if (!trimmed) throw new Error('Enter a valid amount');
@@ -118,7 +120,7 @@ function parseAmount(value: string, decimals: number): string {
   }
 
   const normalized = trimmed.replace(/,/g, '');
-  if (Number.isNaN(Number(normalized))) {
+  if (!DECIMAL_AMOUNT_RE.test(normalized)) {
     throw new Error('Enter a valid amount');
   }
 

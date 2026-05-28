@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import type { QuoteRequest } from "../../../../src/core/schemas/quoteRequest.js";
 import type {
     BungeeAutoRoute,
     BungeeBuildTxResult,
     BungeeManualRoute,
     BungeeQuoteResponse,
 } from "../../../../src/protocols/bungee/schemas.js";
+import { PERMIT2_ADDRESS } from "../../../../src/core/constants/eip712.js";
 import {
     adaptManualRouteQuote,
     adaptQuotes,
@@ -14,7 +16,94 @@ import {
 const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 const RECIPIENT_ADDRESS = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
 const SPENDER_ADDRESS = "0x3a23F943181408EAC424116Af7b7790c94Cb97a5";
+const BUNGEE_GATEWAY = "0xCDeA28EE7bd5bf7710b294d9391E1B6A318D809a";
 const PROVIDER_ID = "bungee";
+const ORIGIN_CHAIN_ID = 1;
+const DESTINATION_CHAIN_ID = 10;
+const INPUT_AMOUNT = "1000000";
+const FUTURE_DEADLINE = Math.floor(Date.now() / 1000) + 3600;
+
+function makeQuoteRequest(overrides?: Partial<QuoteRequest>): QuoteRequest {
+    return {
+        user: VALID_ADDRESS,
+        input: {
+            chainId: ORIGIN_CHAIN_ID,
+            assetAddress: VALID_ADDRESS,
+            amount: INPUT_AMOUNT,
+        },
+        output: {
+            chainId: DESTINATION_CHAIN_ID,
+            assetAddress: VALID_ADDRESS,
+            recipient: RECIPIENT_ADDRESS,
+        },
+        ...overrides,
+    };
+}
+
+function buildSignTypedData(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+        domain: {
+            name: "Permit2",
+            chainId: ORIGIN_CHAIN_ID,
+            verifyingContract: PERMIT2_ADDRESS,
+        },
+        types: {
+            PermitWitnessTransferFrom: [
+                { name: "permitted", type: "TokenPermissions" },
+                { name: "spender", type: "address" },
+                { name: "nonce", type: "uint256" },
+                { name: "deadline", type: "uint256" },
+                { name: "witness", type: "Request" },
+            ],
+            TokenPermissions: [
+                { name: "token", type: "address" },
+                { name: "amount", type: "uint256" },
+            ],
+            Request: [{ name: "basicReq", type: "BasicRequest" }],
+            BasicRequest: [
+                { name: "originChainId", type: "uint256" },
+                { name: "destinationChainId", type: "uint256" },
+                { name: "deadline", type: "uint256" },
+                { name: "nonce", type: "uint256" },
+                { name: "sender", type: "address" },
+                { name: "receiver", type: "address" },
+                { name: "delegate", type: "address" },
+                { name: "bungeeGateway", type: "address" },
+                { name: "switchboardId", type: "uint32" },
+                { name: "inputToken", type: "address" },
+                { name: "inputAmount", type: "uint256" },
+                { name: "outputToken", type: "address" },
+                { name: "minOutputAmount", type: "uint256" },
+                { name: "refuelAmount", type: "uint256" },
+            ],
+        },
+        values: {
+            permitted: { token: VALID_ADDRESS, amount: INPUT_AMOUNT },
+            spender: BUNGEE_GATEWAY,
+            nonce: "1",
+            deadline: FUTURE_DEADLINE,
+            witness: {
+                basicReq: {
+                    originChainId: ORIGIN_CHAIN_ID,
+                    destinationChainId: DESTINATION_CHAIN_ID,
+                    deadline: FUTURE_DEADLINE,
+                    nonce: "1",
+                    sender: VALID_ADDRESS,
+                    receiver: RECIPIENT_ADDRESS,
+                    delegate: VALID_ADDRESS,
+                    bungeeGateway: BUNGEE_GATEWAY,
+                    switchboardId: 1,
+                    inputToken: VALID_ADDRESS,
+                    inputAmount: INPUT_AMOUNT,
+                    outputToken: VALID_ADDRESS,
+                    minOutputAmount: "0",
+                    refuelAmount: "0",
+                },
+            },
+        },
+        ...overrides,
+    };
+}
 
 function buildAutoRoute(overrides: Record<string, unknown> = {}): BungeeAutoRoute {
     return {
@@ -22,7 +111,7 @@ function buildAutoRoute(overrides: Record<string, unknown> = {}): BungeeAutoRout
         requestHash: "0xreqhash123",
         output: {
             token: {
-                chainId: 10,
+                chainId: DESTINATION_CHAIN_ID,
                 address: VALID_ADDRESS,
                 name: "USDC",
                 symbol: "USDC",
@@ -41,13 +130,7 @@ function buildAutoRoute(overrides: Record<string, unknown> = {}): BungeeAutoRout
             tokenAddress: VALID_ADDRESS,
             userAddress: VALID_ADDRESS,
         },
-        signTypedData: {
-            domain: { name: "Permit2", chainId: 1 },
-            types: {
-                PermitWitnessTransferFrom: [{ name: "permitted", type: "TokenPermissions" }],
-            },
-            values: { witness: { field: "value" } },
-        },
+        signTypedData: buildSignTypedData(),
         gasFee: {
             gasToken: {
                 chainId: 1,
@@ -201,7 +284,7 @@ function buildManualResponse(): BungeeQuoteResponse {
 describe("adaptQuotes", () => {
     it("creates SignatureStep for sign userOp", () => {
         const response = buildBungeeQuoteResponse();
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quote!.order.steps[0]!.kind).toBe("signature");
 
@@ -226,7 +309,7 @@ describe("adaptQuotes", () => {
             },
         });
 
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quote!.order.steps[0]!.kind).toBe("transaction");
     });
@@ -244,7 +327,7 @@ describe("adaptQuotes", () => {
             },
         });
 
-        const quotes = adaptQuotes(response as never, PROVIDER_ID);
+        const quotes = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quotes).toHaveLength(0);
     });
@@ -260,14 +343,14 @@ describe("adaptQuotes", () => {
             },
         });
 
-        const quotes = adaptQuotes(response as never, PROVIDER_ID);
+        const quotes = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quotes).toHaveLength(0);
     });
 
     it("maps preview inputs from response.result.input", () => {
         const response = buildBungeeQuoteResponse();
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quote!.preview.inputs[0]!.amount).toBe("1000000");
         expect(quote!.preview.inputs[0]!.chainId).toBe(1);
@@ -276,7 +359,7 @@ describe("adaptQuotes", () => {
 
     it("maps preview outputs from autoRoute.output", () => {
         const response = buildBungeeQuoteResponse();
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quote!.preview.outputs[0]!.amount).toBe("999000");
         expect(quote!.preview.outputs[0]!.chainId).toBe(10);
@@ -284,7 +367,7 @@ describe("adaptQuotes", () => {
 
     it("exposes minAmountOut as the slippage floor on preview output", () => {
         const response = buildBungeeQuoteResponse();
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
         if (!quote) throw new Error("expected a quote");
 
         expect(quote.preview.outputs[0]?.minAmount).toBe("998000");
@@ -300,7 +383,7 @@ describe("adaptQuotes", () => {
             },
         });
 
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
         if (!quote) throw new Error("expected a quote");
 
         expect(quote.preview.outputs[0]?.amount).toBe("997500");
@@ -310,7 +393,7 @@ describe("adaptQuotes", () => {
 
     it("maps valueInUsd to preview.amountUsd as decimal string", () => {
         const response = buildBungeeQuoteResponse();
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quote!.preview.inputs[0]!.amountUsd).toBe("1800");
         expect(quote!.preview.outputs[0]!.amountUsd).toBe("999");
@@ -323,7 +406,7 @@ describe("adaptQuotes", () => {
             output: { ...buildAutoRoute().output, valueInUsd: 4.9972825837 },
         });
 
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quote!.preview.inputs[0]!.amountUsd).toBe("1800.42");
         expect(quote!.preview.outputs[0]!.amountUsd).toBe("4.9972825837");
@@ -331,7 +414,7 @@ describe("adaptQuotes", () => {
 
     it("uses input.amount for allowance required (not approvalData.amount)", () => {
         const response = buildBungeeQuoteResponse();
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         const allowances = quote!.order.checks?.allowances;
         expect(allowances).toHaveLength(1);
@@ -341,7 +424,7 @@ describe("adaptQuotes", () => {
 
     it("sets tracking orderId from requestHash", () => {
         const response = buildBungeeQuoteResponse();
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quote!.tracking?.orderId).toBe("0xreqhash123");
     });
@@ -355,7 +438,7 @@ describe("adaptQuotes", () => {
             }),
         ];
 
-        const quotes = adaptQuotes(response as never, PROVIDER_ID);
+        const quotes = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         // Preserves Bungee order: autoRoute first, then autoRoutes[]
         expect(quotes[0]!.quoteId).toBe("quote-abc");
@@ -371,7 +454,7 @@ describe("adaptQuotes", () => {
 
     it("sets partialFill and failureHandling", () => {
         const response = buildBungeeQuoteResponse();
-        const [quote] = adaptQuotes(response as never, PROVIDER_ID);
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quote!.partialFill).toBe(false);
         expect(quote!.failureHandling).toBe("refund-automatic");
@@ -387,7 +470,7 @@ describe("adaptQuotes", () => {
             }),
         ];
 
-        const quotes = adaptQuotes(response as never, PROVIDER_ID);
+        const quotes = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quotes).toHaveLength(2);
     });
@@ -396,7 +479,7 @@ describe("adaptQuotes", () => {
         const response = buildBungeeQuoteResponse();
         response.result.autoRoute = null as never;
 
-        const quotes = adaptQuotes(response as never, PROVIDER_ID);
+        const quotes = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
 
         expect(quotes).toHaveLength(0);
     });
