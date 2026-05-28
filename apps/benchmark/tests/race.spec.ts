@@ -10,11 +10,11 @@ test('renders the race table with all 4 providers', async ({ page }) => {
 });
 
 test('shows the winner pill on the settled top row', async ({ page }) => {
-  await expect(page.getByText('winner').locator('visible=true').first()).toBeVisible();
+  await expect(page.getByText('winner').filter({ visible: true }).first()).toBeVisible();
 });
 
 test('shows a no-route pill for the errored provider', async ({ page }) => {
-  await expect(page.getByText('no route').locator('visible=true').first()).toBeVisible();
+  await expect(page.getByText('no route').filter({ visible: true }).first()).toBeVisible();
 });
 
 test('preset click updates the amount field', async ({ page }) => {
