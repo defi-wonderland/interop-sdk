@@ -1,12 +1,61 @@
 import { Footer } from './components/Footer';
 import { Label } from './components/Label';
+import { RaceTable } from './components/RaceTable';
 import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
+import { PROVIDERS, ProviderId } from './lib/providers';
+import type { RaceRow } from './components/race-table/types';
 
 const META_LABEL_CLASS = 'font-mono text-label text-text-muted';
 const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-chain';
+
+// Static mock fixture for the race table. PR C swaps this for live SDK results.
+// Default route: USDC arbitrum -> base, $100. across wins both output and latency.
+const STATIC_MOCK_ROWS: RaceRow[] = [
+  {
+    provider: PROVIDERS[ProviderId.Across],
+    status: 'settled',
+    quote: {
+      providerId: 'across',
+      protocolName: 'Across',
+      latencyMs: 320,
+      eta: 2,
+      outputAmount: '99850000',
+      outputAmountUsd: '99.85',
+    },
+  },
+  {
+    provider: PROVIDERS[ProviderId.Relay],
+    status: 'settled',
+    quote: {
+      providerId: 'relay',
+      protocolName: 'Relay',
+      latencyMs: 480,
+      eta: 4,
+      outputAmount: '99800000',
+      outputAmountUsd: '99.80',
+    },
+  },
+  {
+    provider: PROVIDERS[ProviderId.Lifi],
+    status: 'settled',
+    quote: {
+      providerId: 'lifi-intents',
+      protocolName: 'LI.FI',
+      latencyMs: 1640,
+      eta: 8,
+      outputAmount: '99700000',
+      outputAmountUsd: '99.70',
+    },
+  },
+  {
+    provider: PROVIDERS[ProviderId.Bungee],
+    status: 'errored',
+    errorMessage: 'NO ROUTE',
+  },
+];
 
 export default function Home() {
   return (
@@ -34,7 +83,7 @@ export default function Home() {
               </Label>
             }
           />
-          <SectionPlaceholder label='race table arrives in pr 2' />
+          <RaceTable initialRows={STATIC_MOCK_ROWS} initialChains={[]} />
         </SectionFrame>
 
         <SectionFrame variant='tinted'>

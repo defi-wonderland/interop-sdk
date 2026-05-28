@@ -1,14 +1,13 @@
 export enum ProviderId {
   Across = 'across',
   Relay = 'relay',
-  Lifi = 'lifi',
+  Lifi = 'lifi-intents',
   Bungee = 'bungee',
 }
 
 export interface ProviderMeta {
   id: ProviderId;
   displayName: string;
-  monogram: string;
   colorClass: string;
   iconUrl: string;
   hasGlobalFeed: boolean;
@@ -19,7 +18,6 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
   [ProviderId.Across]: {
     id: ProviderId.Across,
     displayName: 'across',
-    monogram: 'AX',
     colorClass: 'bg-provider-across',
     iconUrl: '/icons/providers/across.svg',
     hasGlobalFeed: true,
@@ -27,15 +25,13 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
   [ProviderId.Relay]: {
     id: ProviderId.Relay,
     displayName: 'relay',
-    monogram: 'RL',
     colorClass: 'bg-provider-relay',
     iconUrl: '/icons/providers/relay.svg',
     hasGlobalFeed: true,
   },
   [ProviderId.Lifi]: {
     id: ProviderId.Lifi,
-    displayName: 'lifi',
-    monogram: 'LI',
+    displayName: 'lifi-intents',
     colorClass: 'bg-provider-lifi',
     iconUrl: '/icons/providers/lifi.svg',
     hasGlobalFeed: true,
@@ -43,7 +39,6 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
   [ProviderId.Bungee]: {
     id: ProviderId.Bungee,
     displayName: 'bungee',
-    monogram: 'BG',
     colorClass: 'bg-provider-bungee',
     iconUrl: '/icons/providers/bungee.webp',
     hasGlobalFeed: false,
