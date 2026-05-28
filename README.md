@@ -206,7 +206,7 @@ This project is maintained by [Wonderland](https://wonderland.xyz) — a team of
     Select the affected packages, choose the appropriate bump level (patch / minor / major), and write a short description. Commit the generated `.changeset/*.md` file with your PR.
 4. If your change adds or modifies public API surface, update the relevant documentation:
     - Package README (`packages/*/README.md`)
-    - Docs site (`apps/docs/docs/`)
+    - Docs site (`apps/docs/src/pages/`)
     - Inline JSDoc on exported functions and types
 5. Run `/review-interop-sdk` (see below) to catch common issues before requesting human review.
 6. Open your PR against `dev` and fill in the template.

@@ -2,9 +2,12 @@
 /node_modules
 
 # Production
-/build
 /dist
 /.vocs
+/.vercel
+
+# Generated
+src/pages.gen.ts
 
 # Misc
 .DS_Store
