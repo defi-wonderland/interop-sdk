@@ -10,6 +10,11 @@ export interface RaceRow {
   errorMessage?: string;
 }
 
+export interface AssetLookup {
+  address: string;
+  decimals: number;
+}
+
 export interface BestProviders {
   winnerProviderId?: ProviderId;
   fastestProviderId?: ProviderId;
