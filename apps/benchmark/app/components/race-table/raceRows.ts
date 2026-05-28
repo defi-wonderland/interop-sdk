@@ -130,6 +130,7 @@ function parseAmount(value: string, decimals: number): string {
 function hasValidThousandSeparators(value: string): boolean {
   const [integerPart, ...rest] = value.split('.');
   if (rest.length > 1) return false;
+  if (rest[0]?.includes(',')) return false;
   if (!integerPart || integerPart.includes(',,')) return false;
 
   const digitsOnly = integerPart.replace(/,/g, '');
