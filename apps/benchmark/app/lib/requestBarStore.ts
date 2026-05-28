@@ -55,8 +55,14 @@ export const useRequestBarStore = create<RequestBarState>((set) => ({
   setFromChainId: (fromChainId) => set((state) => ({ request: { ...state.request, fromChainId } })),
   setToChainId: (toChainId) => set((state) => ({ request: { ...state.request, toChainId } })),
   setAssetSymbol: (assetSymbol) => set((state) => ({ request: { ...state.request, assetSymbol } })),
-  setAmount: ({ amount, selectedPreset = null }) =>
-    set((state) => ({ request: { ...state.request, amount, selectedPreset } })),
+  setAmount: ({ amount, selectedPreset }) =>
+    set((state) => ({
+      request: {
+        ...state.request,
+        amount,
+        selectedPreset: selectedPreset === undefined ? state.request.selectedPreset : selectedPreset,
+      },
+    })),
   setPreset: ({ amount, label }) => set((state) => ({ request: { ...state.request, amount, selectedPreset: label } })),
   swapChains: () =>
     set((state) => ({
