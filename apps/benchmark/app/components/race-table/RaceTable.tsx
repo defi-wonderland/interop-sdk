@@ -5,7 +5,7 @@ import { useReducedMotion } from 'framer-motion';
 import { BenchmarkTable } from '../BenchmarkTable';
 import { RaceTableRow } from './RaceTableRow';
 import { RACE_TABLE_COLUMNS } from './constants';
-import { findBestProvider } from './raceRows';
+import { findBestProvider, orderRaceRows } from './raceRows';
 import type { RaceRow } from './types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 import { useRequestBarStore } from '~/lib/requestBarStore';
@@ -20,7 +20,8 @@ export function RaceTable({ initialRows, initialChains }: RaceTableProps) {
   const storeRows = useRequestBarStore((state) => state.rows);
   const reduceMotion = useReducedMotion();
 
-  const rows = storeRows.length > 0 ? storeRows : initialRows;
+  const rawRows = storeRows.length > 0 ? storeRows : initialRows;
+  const rows = useMemo(() => orderRaceRows(rawRows), [rawRows]);
 
   const winnerProviderId = useMemo(() => findBestProvider(rows, 'output'), [rows]);
   const firstProviderId = useMemo(() => findBestProvider(rows, 'latency'), [rows]);
