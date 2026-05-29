@@ -2,6 +2,7 @@ import { Hex } from "viem";
 
 import type { ApprovalService } from "../interfaces/approval.interface.js";
 import type { AssetDiscoveryService } from "../interfaces/assetDiscovery.interface.js";
+import type { SpenderValidator } from "../interfaces/spenderValidator.interface.js";
 import type {
     ExecutableQuote,
     GetQuotesError,
@@ -19,6 +20,7 @@ import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception
 import { DuplicateProvider } from "../errors/DuplicateProvider.exception.js";
 import { ProviderNotFound } from "../errors/ProviderNotFound.exception.js";
 import { ProviderTimeout } from "../errors/ProviderTimeout.exception.js";
+import { UntrustedSpender } from "../errors/UntrustedSpender.exception.js";
 import { CrossChainProvider } from "../interfaces/crossChainProvider.interface.js";
 import { SortingStrategy } from "../interfaces/sortingStrategy.interface.js";
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
@@ -41,6 +43,7 @@ interface AggregatorConfig {
         createService(provider: CrossChainProvider): AssetDiscoveryService | null;
     };
     approvalService?: ApprovalService;
+    spenderValidator?: SpenderValidator;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -57,6 +60,7 @@ class Aggregator {
     private readonly timeoutMs: number;
     private readonly trackerFactory: AggregatorConfig["trackerFactory"];
     private readonly approvalService: AggregatorConfig["approvalService"];
+    private readonly spenderValidator?: SpenderValidator;
     private readonly trackerCache: Map<string, OrderTracker> = new Map();
     private readonly discoveryCache: Map<string, AssetDiscoveryService> = new Map();
 
@@ -73,6 +77,7 @@ class Aggregator {
             trackerFactory,
             discoveryFactory,
             approvalService,
+            spenderValidator,
         } = config;
         this.providers = new Map();
         for (const provider of providers) {
@@ -86,6 +91,7 @@ class Aggregator {
         this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
         this.trackerFactory = trackerFactory;
         this.approvalService = approvalService;
+        this.spenderValidator = spenderValidator;
 
         if (discoveryFactory) {
             this.initDiscoveryServices(providers, discoveryFactory);
@@ -208,6 +214,21 @@ class Aggregator {
         const response = this.splitQuotesAndErrors(resultQuotes);
         let sortedQuotes = this.sortingStrategy.sort(response.quotes);
 
+        if (this.spenderValidator) {
+            const validator = this.spenderValidator;
+            const trusted: ExecutableQuote[] = [];
+            for (const quote of sortedQuotes) {
+                const violation = validator.findViolation(quote);
+                if (!violation) {
+                    trusted.push(quote);
+                    continue;
+                }
+                const error = new UntrustedSpender({ provider: quote._providerId, ...violation });
+                response.errors.push({ error, errorMsg: error.message });
+            }
+            sortedQuotes = trusted;
+        }
+
         if (this.approvalService) {
             try {
                 sortedQuotes = await this.approvalService.enrichQuotes(sortedQuotes);
@@ -263,6 +284,13 @@ class Aggregator {
 
         const quote = await provider.buildQuote(params);
         let executable: ExecutableQuote = { ...quote, _providerId: providerId };
+
+        if (this.spenderValidator) {
+            const violation = this.spenderValidator.findViolation(executable);
+            if (violation) {
+                throw new UntrustedSpender({ provider: providerId, ...violation });
+            }
+        }
 
         if (this.approvalService) {
             try {
