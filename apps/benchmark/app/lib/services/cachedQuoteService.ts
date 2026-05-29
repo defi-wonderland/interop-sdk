@@ -5,9 +5,11 @@ import type { QuoteBenchmarkResponse } from '~/lib/types';
 import { buildQuoteRequest } from '~/components/race-table/raceRows';
 import { AssetSymbol } from '~/lib/assets';
 import { ChainId } from '~/lib/chains';
+import { withTimeout } from '~/lib/helpers';
 
 const CACHE_TTL_SECONDS = 30;
 const CACHE_TAG = 'race-quotes';
+const UPSTREAM_TIMEOUT_MS = 25_000;
 
 export interface CachedRaceQuotesInput {
   fromChainId: ChainId;
@@ -26,12 +28,8 @@ export interface CachedRaceQuotesResult extends QuoteBenchmarkResponse {
  */
 const inflight = new Map<string, Promise<CachedRaceQuotesResult>>();
 
-function normalizeAmount(value: string): string {
-  return value.trim().replace(/,/g, '');
-}
-
 export function buildCacheKey(input: CachedRaceQuotesInput): string {
-  return `${input.fromChainId}-${input.toChainId}-${input.assetSymbol}-${normalizeAmount(input.amount)}`;
+  return `${input.fromChainId}-${input.toChainId}-${input.assetSymbol}-${input.amount.trim()}`;
 }
 
 /**
@@ -83,14 +81,16 @@ export async function getCachedRaceQuotes(
     chainsCache = Promise.resolve(chains);
   }
 
-  // Normalize amount up-front so `'1,000.00'` and `'1000.00'` share a cache
-  // entry — buildQuoteRequest performs the same strip later anyway.
-  const normalized = { ...input, amount: normalizeAmount(input.amount) };
-  const key = buildCacheKey(normalized);
+  // Keep raw amount in the cache key so invalid inputs (e.g. `1,23`) fail
+  // downstream in `parseAmount` instead of being silently coerced.
+  const trimmed = { ...input, amount: input.amount.trim() };
+  const key = buildCacheKey(trimmed);
   const existing = inflight.get(key);
   if (existing) return existing;
 
-  const promise = cachedFetch(normalized).finally(() => {
+  // Bound the upstream call so a hung fetch can't keep the inflight entry
+  // alive and starve every concurrent caller behind the same key.
+  const promise = withTimeout(cachedFetch(trimmed), UPSTREAM_TIMEOUT_MS, 'CACHED_QUOTES_TIMEOUT').finally(() => {
     inflight.delete(key);
   });
   inflight.set(key, promise);
