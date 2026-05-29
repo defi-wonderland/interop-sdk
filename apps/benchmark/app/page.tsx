@@ -5,6 +5,8 @@ import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
+import { Leaderboard } from './components/leaderboard/Leaderboard';
+import { MOCK_LEADERBOARD_METRICS } from './lib/mocks/leaderboardMock';
 import { PROVIDERS, ProviderId } from './lib/providers';
 import type { RaceRow } from './components/race-table/types';
 
@@ -91,8 +93,9 @@ export default function Home() {
             index='02'
             label='provider leaderboard · 24h ambient'
             title='how providers performed across all routes'
+            rightSlot={<Label className={META_LABEL_CLASS}>pulled from each provider&rsquo;s public history api</Label>}
           />
-          <SectionPlaceholder label='leaderboard arrives in pr 3' />
+          <Leaderboard metrics={MOCK_LEADERBOARD_METRICS} />
         </SectionFrame>
 
         <SectionFrame divider={false}>
