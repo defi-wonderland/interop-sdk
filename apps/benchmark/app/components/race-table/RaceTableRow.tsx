@@ -159,15 +159,13 @@ export function RaceTableRow({
         )}
       </td>
       <td className='hidden px-4 py-4 md:table-cell'>
-        <div className='flex justify-end'>
-          <StatusPill
-            status={row.status}
-            isWinner={isWinner}
-            isFirst={isFirst}
-            errorMessage={row.errorMessage}
-            reduceMotion={reduceMotion}
-          />
-        </div>
+        <StatusPill
+          status={row.status}
+          isWinner={isWinner}
+          isFirst={isFirst}
+          errorMessage={row.errorMessage}
+          reduceMotion={reduceMotion}
+        />
       </td>
     </motion.tr>
   );
@@ -220,15 +218,18 @@ function StatusPill({ status, isWinner, isFirst, errorMessage, reduceMotion }: S
       </Pill>
     );
   }
-  if (status === 'settled' && isWinner) {
+  if (status === 'settled' && (isWinner || isFirst)) {
+    // Both pills can coexist on the same row when the winner is also the fastest responder.
     return (
-      <Pill tone='accent' icon='★'>
-        winner
-      </Pill>
+      <div className='flex flex-wrap items-center justify-end gap-1.5'>
+        {isWinner ? (
+          <Pill tone='accent' icon='★'>
+            winner
+          </Pill>
+        ) : null}
+        {isFirst ? <Pill tone='outline'>first</Pill> : null}
+      </div>
     );
-  }
-  if (status === 'settled' && isFirst) {
-    return <Pill tone='outline'>first</Pill>;
   }
   return null;
 }
