@@ -1,5 +1,5 @@
 export function formatFillCount(value: number | null): string {
-  if (value === null || value === 0) return '—';
+  if (value === null) return '—';
   return value.toLocaleString('en-US');
 }
 

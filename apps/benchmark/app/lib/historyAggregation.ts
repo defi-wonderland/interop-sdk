@@ -3,8 +3,10 @@ import type { HistorySample, ProviderMetrics } from './types/historyMetrics';
 
 export function percentile(values: readonly number[], p: number): number | null {
   if (values.length === 0) return null;
+  if (!Number.isFinite(p)) return null;
+  const clamped = Math.max(0, Math.min(100, p));
   const sorted = [...values].sort((a, b) => a - b);
-  const rank = (p / 100) * (sorted.length - 1);
+  const rank = (clamped / 100) * (sorted.length - 1);
   const low = Math.floor(rank);
   const high = Math.ceil(rank);
   if (low === high) return sorted[low];

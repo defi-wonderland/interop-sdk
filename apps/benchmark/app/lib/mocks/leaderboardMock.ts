@@ -31,7 +31,7 @@ export const MOCK_LEADERBOARD_METRICS: ProviderMetrics[] = [
   },
   {
     providerId: ProviderId.Bungee,
-    fillCount: 0,
+    fillCount: null,
     successRate: null,
     p50FillSeconds: null,
     p99FillSeconds: null,

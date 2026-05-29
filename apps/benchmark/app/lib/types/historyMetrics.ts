@@ -13,7 +13,7 @@ export interface HistorySample {
 
 export interface ProviderMetrics {
   providerId: ProviderId;
-  fillCount: number;
+  fillCount: number | null;
   successRate: number | null;
   p50FillSeconds: number | null;
   p99FillSeconds: number | null;
