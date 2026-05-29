@@ -11,7 +11,7 @@ interface PillProps {
 }
 
 const PILL_BASE =
-  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-caption uppercase tracking-[0.08em]';
+  'inline-flex items-center gap-1.5 rounded-[2px] px-2.5 py-[5px] font-mono text-caption font-medium uppercase leading-none tracking-[0.08em]';
 
 const PILL_TONE: Record<PillTone, string> = {
   accent: 'bg-accent text-on-accent',
