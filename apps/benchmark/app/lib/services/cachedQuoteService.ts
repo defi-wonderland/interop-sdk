@@ -25,8 +25,12 @@ export interface CachedRaceQuotesResult extends QuoteBenchmarkResponse {
  */
 const inflight = new Map<string, Promise<CachedRaceQuotesResult>>();
 
+function normalizeAmount(value: string): string {
+  return value.trim().replace(/,/g, '');
+}
+
 export function buildCacheKey(input: CachedRaceQuotesInput): string {
-  return `${input.fromChainId}-${input.toChainId}-${input.assetSymbol}-${input.amount}`;
+  return `${input.fromChainId}-${input.toChainId}-${input.assetSymbol}-${normalizeAmount(input.amount)}`;
 }
 
 async function fetchQuotes(input: CachedRaceQuotesInput): Promise<CachedRaceQuotesResult> {
@@ -48,11 +52,14 @@ const cachedFetch = unstable_cache(fetchQuotes, ['race-quotes'], {
  * cache entries.
  */
 export async function getCachedRaceQuotes(input: CachedRaceQuotesInput): Promise<CachedRaceQuotesResult> {
-  const key = buildCacheKey(input);
+  // Normalize amount up-front so `'1,000.00'` and `'1000.00'` share a cache
+  // entry — buildQuoteRequest performs the same strip later anyway.
+  const normalized = { ...input, amount: normalizeAmount(input.amount) };
+  const key = buildCacheKey(normalized);
   const existing = inflight.get(key);
   if (existing) return existing;
 
-  const promise = cachedFetch(input).finally(() => {
+  const promise = cachedFetch(normalized).finally(() => {
     inflight.delete(key);
   });
   inflight.set(key, promise);
