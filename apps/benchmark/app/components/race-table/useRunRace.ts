@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback, useRef } from 'react';
-import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './raceRows';
+import { buildRowsFromQuotes, createRows, orderRaceRows } from './raceRows';
 import type { RaceRow } from './types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
+import type { QuoteBenchmarkResponse } from '~/lib/types';
 import { withTimeout } from '~/lib/helpers';
 import { useRequestBarStore } from '~/lib/requestBarStore';
-import { quotesService } from '~/lib/services';
 
 const RACE_TIMEOUT_MS = 30_000;
 
@@ -26,16 +26,44 @@ export function useRunRace(chains: NetworkAssets[]) {
 
     try {
       const { request } = useRequestBarStore.getState();
-      const quoteRequest = buildQuoteRequest({ chains, ...request });
-      const response = await withTimeout(quotesService.getQuotes(quoteRequest), RACE_TIMEOUT_MS);
+      const query = new URLSearchParams({
+        fromChainId: String(request.fromChainId),
+        toChainId: String(request.toChainId),
+        assetSymbol: request.assetSymbol,
+        amount: request.amount,
+      });
+      const response = await withTimeout(fetch(`/api/race-quotes?${query.toString()}`), RACE_TIMEOUT_MS);
+
       if (runId !== latestRunId.current) return;
-      setRows(orderRaceRows(buildRowsFromQuotes(response.quotes, response.errors)));
+
+      if (response.status === 429) {
+        setRows(orderRaceRows(createRows('errored', 'RATE LIMITED')));
+        return;
+      }
+
+      if (!response.ok) {
+        const message = await readErrorMessage(response);
+        setRows(orderRaceRows(createRows('errored', message)));
+        return;
+      }
+
+      const payload = (await response.json()) as QuoteBenchmarkResponse;
+      setRows(orderRaceRows(buildRowsFromQuotes(payload.quotes, payload.errors)));
     } catch (error) {
       if (runId !== latestRunId.current) return;
       const message = error instanceof Error ? error.message : 'NO ROUTE';
       setRows(orderRaceRows(createRows('errored', message)));
     }
   }, [chains, setRows]);
+}
+
+async function readErrorMessage(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as { error?: string };
+    return body.error ?? 'NO ROUTE';
+  } catch {
+    return 'NO ROUTE';
+  }
 }
 
 function toQueryingRows(previous: RaceRow[]): RaceRow[] {
