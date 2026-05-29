@@ -66,6 +66,11 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'NO_ROUTE';
+    // `buildQuoteRequest` throws on user-supplied bad amounts; those are client
+    // errors, not upstream failures, so report them as 400 instead of 502.
+    if (message === 'Enter a valid amount') {
+      return NextResponse.json({ error: 'INVALID_AMOUNT' }, { status: 400 });
+    }
     return NextResponse.json({ error: message }, { status: 502 });
   }
 }
