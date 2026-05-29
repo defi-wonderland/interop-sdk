@@ -17,7 +17,7 @@ export function LeaderboardRow({ metrics, rank, isWinner }: LeaderboardRowProps)
   return (
     <tr
       className={cn(
-        'border-b border-border-subtle align-middle last:border-b-0',
+        'h-16 border-b border-border-subtle align-middle last:border-b-0 md:h-[72px]',
         isWinner && 'bg-accent-soft',
         isPlaceholder && 'opacity-55',
       )}
@@ -75,16 +75,14 @@ function ProviderCell({ provider }: { provider: ProviderMeta }) {
   return (
     <div className='flex items-center gap-2.5 md:gap-3'>
       <Icon src={provider.iconUrl} alt='' size='md' />
-      <div className='flex flex-col gap-0.5'>
-        <span className='font-sans text-mark font-medium tracking-[-0.0125em] text-text-primary md:text-base'>
-          {provider.displayName}
+      <span className='font-sans text-mark font-medium tracking-[-0.0125em] text-text-primary md:text-base'>
+        {provider.displayName}
+      </span>
+      {provider.noFeedReason ? (
+        <span className='hidden whitespace-nowrap font-mono text-caption uppercase tracking-[0.06em] text-text-muted md:inline'>
+          {provider.noFeedReason}
         </span>
-        {provider.noFeedReason ? (
-          <span className='font-mono text-caption uppercase tracking-[0.06em] text-text-muted'>
-            {provider.noFeedReason}
-          </span>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   );
 }
