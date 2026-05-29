@@ -43,11 +43,15 @@ export function useRunRace(chains: NetworkAssets[]) {
 
       if (!response.ok) {
         const message = await readErrorMessage(response);
+        if (runId !== latestRunId.current) return;
         setRows(orderRaceRows(createRows('errored', message)));
         return;
       }
 
       const payload = (await response.json()) as QuoteBenchmarkResponse;
+      // A newer run can fire while we await the JSON body. Re-check before
+      // we publish rows so stale responses can't overwrite fresh ones.
+      if (runId !== latestRunId.current) return;
       setRows(orderRaceRows(buildRowsFromQuotes(payload.quotes, payload.errors)));
     } catch (error) {
       if (runId !== latestRunId.current) return;
