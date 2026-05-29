@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import { chainService, quotesService } from '.';
+import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 import type { QuoteBenchmarkResponse } from '~/lib/types';
 import { buildQuoteRequest } from '~/components/race-table/raceRows';
 import { AssetSymbol } from '~/lib/assets';
@@ -33,8 +34,26 @@ export function buildCacheKey(input: CachedRaceQuotesInput): string {
   return `${input.fromChainId}-${input.toChainId}-${input.assetSymbol}-${normalizeAmount(input.amount)}`;
 }
 
+/**
+ * Per-process chain cache. The server component that renders the dropdowns
+ * already calls `chainService.getChains()` to build `initialChains`; on a
+ * cache miss inside this module we'd hit it a second time. Either path
+ * populates the same slot, so whichever runs first warms the other.
+ */
+let chainsCache: Promise<NetworkAssets[]> | null = null;
+
+function getChainsOnce(): Promise<NetworkAssets[]> {
+  if (!chainsCache) {
+    chainsCache = chainService.getChains().catch((error) => {
+      chainsCache = null;
+      throw error;
+    });
+  }
+  return chainsCache;
+}
+
 async function fetchQuotes(input: CachedRaceQuotesInput): Promise<CachedRaceQuotesResult> {
-  const chains = await chainService.getChains();
+  const chains = await getChainsOnce();
   const request = buildQuoteRequest({ chains, ...input });
   const response = await quotesService.getQuotes(request);
   return { ...response, cachedAt: Date.now() };
@@ -50,8 +69,20 @@ const cachedFetch = unstable_cache(fetchQuotes, ['race-quotes'], {
  * calls for the same cache key. The wrapped `unstable_cache` is keyed by both
  * its `keyParts` and the serialized arguments, so distinct inputs get distinct
  * cache entries.
+ *
+ * Pass `chains` when the caller already has the chain list (e.g. a server
+ * component that just rendered the dropdowns) to seed the shared chain cache
+ * and skip a second discovery on cache miss. The chains are deliberately not
+ * part of the cache key — quote responses don't depend on object identity.
  */
-export async function getCachedRaceQuotes(input: CachedRaceQuotesInput): Promise<CachedRaceQuotesResult> {
+export async function getCachedRaceQuotes(
+  input: CachedRaceQuotesInput,
+  chains?: NetworkAssets[],
+): Promise<CachedRaceQuotesResult> {
+  if (chains && !chainsCache) {
+    chainsCache = Promise.resolve(chains);
+  }
+
   // Normalize amount up-front so `'1,000.00'` and `'1000.00'` share a cache
   // entry — buildQuoteRequest performs the same strip later anyway.
   const normalized = { ...input, amount: normalizeAmount(input.amount) };

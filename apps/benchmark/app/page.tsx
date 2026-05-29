@@ -93,12 +93,15 @@ async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
 
   try {
     const response = await withTimeout(
-      getCachedRaceQuotes({
-        fromChainId: INITIAL_FROM_CHAIN_ID,
-        toChainId: INITIAL_TO_CHAIN_ID,
-        assetSymbol: INITIAL_ASSET_SYMBOL,
-        amount: INITIAL_AMOUNT,
-      }),
+      getCachedRaceQuotes(
+        {
+          fromChainId: INITIAL_FROM_CHAIN_ID,
+          toChainId: INITIAL_TO_CHAIN_ID,
+          assetSymbol: INITIAL_ASSET_SYMBOL,
+          amount: INITIAL_AMOUNT,
+        },
+        chains,
+      ),
       INITIAL_RACE_TIMEOUT_MS,
       'INITIAL_RACE_TIMEOUT',
     );
