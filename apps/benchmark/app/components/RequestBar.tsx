@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Arrow } from './Arrow';
 import { Divider } from './Divider';
 import { Dropdown, type DropdownOption } from './Dropdown';
@@ -53,12 +53,6 @@ export function RequestBar({ chains }: RequestBarProps) {
   const fromOptions = useMemo(() => toChainOptions(request.toChainId), [request.toChainId]);
   const toOptions = useMemo(() => toChainOptions(request.fromChainId), [request.fromChainId]);
   const assetOptions = useMemo(() => toAssetOptions(), []);
-
-  useEffect(() => {
-    void runRace();
-    // Run once on mount so the table populates even when server preload didn't (e.g. ISR cache miss).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const clearPendingAmountRun = () => {
     if (debounceTimer.current === null) return;
