@@ -1,9 +1,9 @@
 import type { Quote } from "../schemas/quote.js";
 
-/** A solver-returned target (spender or transaction `to`) that failed validation. */
+/** A solver-returned target (spender, transaction `to`, or signature counterparty) that failed validation. */
 export interface SpenderViolation {
     chainId: number;
-    field: "spender" | "transactionTo";
+    field: "spender" | "transactionTo" | "signatureRecipient";
     received: string;
     trusted: string[];
 }

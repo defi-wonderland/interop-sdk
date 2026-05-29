@@ -224,7 +224,11 @@ class Aggregator {
                     continue;
                 }
                 const error = new UntrustedSpender({ provider: quote._providerId, ...violation });
-                response.errors.push({ error, errorMsg: error.message });
+                response.errors.push({
+                    error,
+                    errorMsg: error.message,
+                    latencyMs: quote.latencyMs,
+                });
             }
             sortedQuotes = trusted;
         }

@@ -1,6 +1,6 @@
 import { ProviderGetQuoteFailure } from "./ProviderGetQuoteFailure.exception.js";
 
-export type UntrustedSpenderField = "spender" | "transactionTo";
+export type UntrustedSpenderField = "spender" | "transactionTo" | "signatureRecipient";
 
 interface UntrustedSpenderArgs {
     provider: string;

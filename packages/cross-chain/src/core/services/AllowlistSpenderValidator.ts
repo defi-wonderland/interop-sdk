@@ -1,12 +1,14 @@
-import type { Address } from "viem";
-import { getAddress, isAddressEqual } from "viem";
+import type { Address, Hex } from "viem";
+import { decodeFunctionData, erc20Abi, getAddress, isAddressEqual } from "viem";
 
 import type {
     SpenderValidator,
     SpenderViolation,
 } from "../interfaces/spenderValidator.interface.js";
+import type { SignatureStep, TransactionStep } from "../schemas/order.js";
 import type { Quote } from "../schemas/quote.js";
 import type { SpenderAllowlist } from "../schemas/spenderAllowlist.js";
+import { EIP3009_PRIMARY_TYPES, PERMIT2_PRIMARY_TYPES } from "../constants/eip712.js";
 
 /** Validates quote targets against a static per-chain allowlist held by the consumer. */
 export class AllowlistSpenderValidator implements SpenderValidator {
@@ -52,14 +54,38 @@ function collectTargets(quote: Quote): Target[] {
     }
 
     for (const step of quote.order.steps) {
-        if (step.kind === "transaction" && step.category !== "approval") {
-            targets.push({
-                chainId: step.chainId,
-                field: "transactionTo",
-                received: step.transaction.to,
-            });
-        }
+        targets.push(step.kind === "transaction" ? transactionTarget(step) : signatureTarget(step));
     }
 
     return targets;
+}
+
+/** Counterparty derived from the payload: the decoded `approve` spender, otherwise the call's `to`. */
+function transactionTarget(step: TransactionStep): Target {
+    const spender = decodeApproveSpender(step.transaction.data);
+    return spender
+        ? { chainId: step.chainId, field: "spender", received: spender }
+        : { chainId: step.chainId, field: "transactionTo", received: step.transaction.to };
+}
+
+/** Permit2 `spender` or EIP-3009 `to` from the message; any other signature is fail-closed. */
+function signatureTarget(step: SignatureStep): Target {
+    const { primaryType, message } = step.signaturePayload;
+
+    if (PERMIT2_PRIMARY_TYPES.has(primaryType) && typeof message.spender === "string") {
+        return { chainId: step.chainId, field: "spender", received: message.spender };
+    }
+    if (EIP3009_PRIMARY_TYPES.has(primaryType) && typeof message.to === "string") {
+        return { chainId: step.chainId, field: "signatureRecipient", received: message.to };
+    }
+    return { chainId: step.chainId, field: "signatureRecipient", received: primaryType };
+}
+
+function decodeApproveSpender(data: string): string | null {
+    try {
+        const { functionName, args } = decodeFunctionData({ abi: erc20Abi, data: data as Hex });
+        return functionName === "approve" ? (args[0] as string) : null;
+    } catch {
+        return null;
+    }
 }

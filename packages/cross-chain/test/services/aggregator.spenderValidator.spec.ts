@@ -1,4 +1,5 @@
 import type { Address } from "viem";
+import { encodeFunctionData, erc20Abi, maxUint256 } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Quote } from "../../src/core/schemas/quote.js";
@@ -19,7 +20,14 @@ function spenderQuote(spender: string, quoteId: string): Quote {
                     kind: "transaction",
                     category: "approval",
                     chainId: 1,
-                    transaction: { to: TOKEN, data: "0x" },
+                    transaction: {
+                        to: TOKEN,
+                        data: encodeFunctionData({
+                            abi: erc20Abi,
+                            functionName: "approve",
+                            args: [spender as Address, maxUint256],
+                        }),
+                    },
                 },
             ],
             checks: {
@@ -101,6 +109,7 @@ describe("Aggregator with spenderValidator", () => {
             expect(error).toBeInstanceOf(UntrustedSpender);
             expect((error as UntrustedSpender).field).toBe("spender");
             expect((error as UntrustedSpender).chainId).toBe(1);
+            expect(errors[0]?.latencyMs).toBeGreaterThanOrEqual(0);
         });
 
         it("validates the target of non-approval transaction steps", async () => {
