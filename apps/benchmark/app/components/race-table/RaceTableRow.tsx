@@ -121,7 +121,12 @@ export function RaceTableRow({
                   reduceMotion={reduceMotion}
                 />
               </span>
-            ) : null}
+            ) : (
+              <div className='flex items-baseline gap-1.5 md:hidden'>
+                <span className='font-mono text-mark font-medium text-text-primary tabular-nums'>{outputToken}</span>
+                <span className='font-mono text-caption text-text-muted'>{assetSymbol}</span>
+              </div>
+            )}
             <div className='md:hidden'>
               <StatusPill
                 status={row.status}
