@@ -158,16 +158,14 @@ export function RaceTableRow({
           <span className='font-mono text-label text-text-muted'>—</span>
         )}
       </td>
-      <td className='hidden px-4 py-4 text-right md:table-cell'>
-        <div className='flex flex-wrap items-center justify-end gap-1.5'>
-          <StatusPill
-            status={row.status}
-            isWinner={isWinner}
-            isFirst={isFirst}
-            errorMessage={row.errorMessage}
-            reduceMotion={reduceMotion}
-          />
-        </div>
+      <td className='hidden px-4 py-4 md:table-cell'>
+        <StatusPill
+          status={row.status}
+          isWinner={isWinner}
+          isFirst={isFirst}
+          errorMessage={row.errorMessage}
+          reduceMotion={reduceMotion}
+        />
       </td>
     </motion.tr>
   );
@@ -206,34 +204,35 @@ interface StatusPillProps {
 }
 
 function StatusPill({ status, isWinner, isFirst, errorMessage, reduceMotion }: StatusPillProps) {
+  let pills: React.ReactNode = null;
+
   if (status === 'errored') {
-    return (
+    pills = (
       <Pill tone='error' title={errorMessage}>
         no route
       </Pill>
     );
-  }
-  if (status === 'querying') {
-    return (
+  } else if (status === 'querying') {
+    pills = (
       <Pill tone='muted' className={reduceMotion ? undefined : 'animate-pulse'}>
         querying
       </Pill>
     );
-  }
-  if (status === 'settled' && isWinner) {
-    return (
+  } else if (status === 'settled' && (isWinner || isFirst)) {
+    pills = (
       <>
-        <Pill tone='accent' icon='★'>
-          winner
-        </Pill>
+        {isWinner ? (
+          <Pill tone='accent' icon='★'>
+            winner
+          </Pill>
+        ) : null}
         {isFirst ? <Pill tone='outline'>first</Pill> : null}
       </>
     );
   }
-  if (status === 'settled' && isFirst) {
-    return <Pill tone='outline'>first</Pill>;
-  }
-  return null;
+
+  if (!pills) return null;
+  return <div className='flex flex-wrap items-center justify-end gap-1.5'>{pills}</div>;
 }
 
 function AnimatedLatency({ value, reduceMotion }: { value?: number; reduceMotion: boolean }) {
