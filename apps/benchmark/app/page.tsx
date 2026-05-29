@@ -13,7 +13,7 @@ import {
   INITIAL_ASSET_SYMBOL,
   INITIAL_FROM_CHAIN_ID,
   INITIAL_TO_CHAIN_ID,
-} from './lib/requestBarStore';
+} from './lib/requestBarDefaults';
 import { chainService, quotesService } from './lib/services';
 import type { RaceRow } from './components/race-table/types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
