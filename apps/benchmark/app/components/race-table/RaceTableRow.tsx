@@ -158,14 +158,16 @@ export function RaceTableRow({
           <span className='font-mono text-label text-text-muted'>—</span>
         )}
       </td>
-      <td className='hidden px-4 py-4 md:table-cell'>
-        <StatusPill
-          status={row.status}
-          isWinner={isWinner}
-          isFirst={isFirst}
-          errorMessage={row.errorMessage}
-          reduceMotion={reduceMotion}
-        />
+      <td className='hidden px-4 py-4 text-right md:table-cell'>
+        <div className='flex flex-wrap items-center justify-end gap-1.5'>
+          <StatusPill
+            status={row.status}
+            isWinner={isWinner}
+            isFirst={isFirst}
+            errorMessage={row.errorMessage}
+            reduceMotion={reduceMotion}
+          />
+        </div>
       </td>
     </motion.tr>
   );
@@ -218,18 +220,18 @@ function StatusPill({ status, isWinner, isFirst, errorMessage, reduceMotion }: S
       </Pill>
     );
   }
-  if (status === 'settled' && (isWinner || isFirst)) {
-    // Both pills can coexist on the same row when the winner is also the fastest responder.
+  if (status === 'settled' && isWinner) {
     return (
-      <div className='flex flex-wrap items-center justify-end gap-1.5'>
-        {isWinner ? (
-          <Pill tone='accent' icon='★'>
-            winner
-          </Pill>
-        ) : null}
+      <>
+        <Pill tone='accent' icon='★'>
+          winner
+        </Pill>
         {isFirst ? <Pill tone='outline'>first</Pill> : null}
-      </div>
+      </>
     );
+  }
+  if (status === 'settled' && isFirst) {
+    return <Pill tone='outline'>first</Pill>;
   }
   return null;
 }
