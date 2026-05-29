@@ -25,13 +25,18 @@ function parseAssetSymbol(raw: string | null): AssetSymbol | null {
 }
 
 export async function GET(request: NextRequest) {
+  // Only rate-limit when we can identify the caller. If extractClientIp returns
+  // null we'd otherwise throttle every anonymous request under one bucket, so
+  // letting it through is the safer default for this dev tool.
   const ip = extractClientIp(request.headers);
-  const rate = checkRateLimit(ip);
-  if (!rate.allowed) {
-    return NextResponse.json(
-      { error: 'RATE_LIMITED', retryAfter: rate.retryAfter },
-      { status: 429, headers: rate.retryAfter ? { 'Retry-After': String(rate.retryAfter) } : undefined },
-    );
+  if (ip !== null) {
+    const rate = checkRateLimit(ip);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'RATE_LIMITED', retryAfter: rate.retryAfter },
+        { status: 429, headers: rate.retryAfter ? { 'Retry-After': String(rate.retryAfter) } : undefined },
+      );
+    }
   }
 
   const { searchParams } = request.nextUrl;
