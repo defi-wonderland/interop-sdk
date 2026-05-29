@@ -5,7 +5,7 @@ import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
-import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
+import { buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
 import { withTimeout } from './lib/helpers';
 import {
   INITIAL_AMOUNT,
@@ -13,7 +13,8 @@ import {
   INITIAL_FROM_CHAIN_ID,
   INITIAL_TO_CHAIN_ID,
 } from './lib/requestBarStore';
-import { chainService, quotesService } from './lib/services';
+import { chainService } from './lib/services';
+import { getCachedRaceQuotes } from './lib/services/cachedQuoteService';
 import type { RaceRow } from './components/race-table/types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 
@@ -91,15 +92,13 @@ async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
   if (chains.length === 0) return orderRaceRows(createRows('errored', 'CHAIN DISCOVERY FAILED'));
 
   try {
-    const request = buildQuoteRequest({
-      chains,
-      fromChainId: INITIAL_FROM_CHAIN_ID,
-      toChainId: INITIAL_TO_CHAIN_ID,
-      assetSymbol: INITIAL_ASSET_SYMBOL,
-      amount: INITIAL_AMOUNT,
-    });
     const response = await withTimeout(
-      quotesService.getQuotes(request),
+      getCachedRaceQuotes({
+        fromChainId: INITIAL_FROM_CHAIN_ID,
+        toChainId: INITIAL_TO_CHAIN_ID,
+        assetSymbol: INITIAL_ASSET_SYMBOL,
+        amount: INITIAL_AMOUNT,
+      }),
       INITIAL_RACE_TIMEOUT_MS,
       'INITIAL_RACE_TIMEOUT',
     );
