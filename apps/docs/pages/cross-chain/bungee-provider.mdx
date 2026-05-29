@@ -37,6 +37,7 @@ See [Bungee's API access docs](https://docs.bungee.exchange/integrate/get-api-ac
 | `submissionModes`      | string[]        | No       | Transaction submission modes: `"user-transaction"` (onchain) and/or `"gasless"` (permit2). Defaults to `["user-transaction"]`                                                        |
 | `slippage`             | string          | No       | Default slippage tolerance (e.g. `"0.5"` for 0.5%)                                                                                                                                   |
 | `refuel`               | boolean         | No       | Enable native gas refueling on the destination chain                                                                                                                                 |
+| `enableOtherProviders` | boolean         | No       | Include manual routes served by other bridges alongside Bungee's own auto routes                                                                                                     |
 | `enableMultipleRoutes` | boolean         | No       | Ask the provider for several route alternatives per quote (e.g. one optimised for max output, another for the fastest fill) instead of only the recommended one. Defaults to `false` |
 
 :::info[Gasless is opt-in — the default is `["user-transaction"]` only]
@@ -59,6 +60,7 @@ Notes:
 -   `feeBps` and `feeTakerAddress` must be set together. The fee is deducted from the output amount.
 -   `slippage` sets the default tolerance for all quotes. If not set, Bungee uses its own default.
 -   `refuel` tops up native gas on the destination chain so the user can transact immediately after bridging.
+-   `enableOtherProviders` opts into Bungee's manual routes. Each manual route is built eagerly via `GET /api/v1/bungee/build-tx` and shipped as a separate `Quote` with an executable `TransactionStep`. Per-route build failures are isolated — the auto route and the remaining manuals are still returned.
 
 ## Creating the Provider
 
@@ -187,6 +189,29 @@ const bungeeProvider = createCrossChainProvider("bungee", {
 });
 ```
 
+### With Manual Routes (Other Bridges)
+
+Return Bungee's auto route plus one `Quote` per manual route — i.e. routes served by other bridges accessible through Bungee:
+
+```typescript
+const bungeeProvider = createCrossChainProvider("bungee", {
+    enableOtherProviders: true,
+});
+
+const quotes = await bungeeProvider.getQuotes({
+    user: "0xYourAddress",
+    input: { chainId: 1, assetAddress: "0x...", amount: "1000000" },
+    output: { chainId: 10, assetAddress: "0x..." },
+});
+
+// quotes[0]               → Bungee auto route
+// quotes[1..N]            → manual routes (one per bridge that has liquidity)
+// quote.metadata.bungeeManualRoute → the manual route entry from Bungee
+// quote.metadata.bungeeBuildTx     → the build-tx result used to construct the TransactionStep
+```
+
+Each manual route is built eagerly via `GET /api/v1/bungee/build-tx` so the quote ships with an executable `TransactionStep`. If one bridge's `build-tx` fails, the auto route and the remaining manual routes are still returned.
+
 ### Multiple route alternatives
 
 By default the SDK only asks for the recommended route, so each quote request returns a single `Quote`. If you want the aggregator to compare more options — for example one optimised for the highest output and another for the fastest fill — opt in:
@@ -262,11 +287,14 @@ for (const { spender, tokenAddress, required } of allowances) {
 
 ## Tracking
 
-Bungee uses API-based tracking. The SDK polls the status endpoint at a 5-second interval:
+Bungee uses API-based tracking. The SDK polls the status endpoint at a 5-second interval. The query parameter depends on which route a quote came from:
 
-```
-GET /api/v1/bungee/status?requestHash=<orderId>
-```
+| Route         | Query parameter          | When the SDK uses it                                                                  |
+| ------------- | ------------------------ | ------------------------------------------------------------------------------------- |
+| Auto routes   | `?requestHash=<orderId>` | `quote.tracking.orderId = requestHash` is set, so tracking polls by it.               |
+| Manual routes | `?txHash=<openTxHash>`   | No Bungee-issued `requestHash` exists — the SDK polls by the on-chain origin tx hash. |
+
+Both paths hit `/api/v1/bungee/status`. The opened-intent parser also queries by `txHash` so it can resolve an order from just the on-chain transaction hash.
 
 No extra RPC URLs are needed — tracking is handled entirely through the Bungee API.
 

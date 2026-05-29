@@ -105,7 +105,7 @@ describe("EventBasedFillWatcher", () => {
                     originChainId: mockFillParams.originChainId,
                     orderId: mockFillParams.orderId,
                 },
-                fromBlock: 10000n, // 50000 - 40000
+                fromBlock: 41000n, // 50000 - 9000
                 toBlock: "latest",
             });
         });
@@ -131,7 +131,7 @@ describe("EventBasedFillWatcher", () => {
             expect(result.fillEvent?.orderId).toBe(mockFillParams.orderId);
         });
 
-        it("should query correct block range (current - 40000 blocks)", async () => {
+        it("should query correct block range (current - 9000 blocks)", async () => {
             const currentBlock = 100000n;
             mockGetBlockNumber.mockResolvedValue(currentBlock);
             mockGetLogs.mockResolvedValue([]);
@@ -140,14 +140,14 @@ describe("EventBasedFillWatcher", () => {
 
             expect(mockGetLogs).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    fromBlock: 60000n, // 100000 - 40000
+                    fromBlock: 91000n, // 100000 - 9000
                     toBlock: "latest",
                 }),
             );
         });
 
         it("should use block 0 when current block is less than max range", async () => {
-            const currentBlock = 30000n;
+            const currentBlock = 5000n;
             mockGetBlockNumber.mockResolvedValue(currentBlock);
             mockGetLogs.mockResolvedValue([]);
 
@@ -337,7 +337,7 @@ describe("EventBasedFillWatcher", () => {
         });
 
         it("should use block 0 when current block equals max range", async () => {
-            const currentBlock = 40000n;
+            const currentBlock = 9000n;
             mockGetBlockNumber.mockResolvedValue(currentBlock);
             mockGetLogs.mockResolvedValue([]);
 

@@ -263,6 +263,9 @@ importers:
             clsx:
                 specifier: 2.1.1
                 version: 2.1.1
+            framer-motion:
+                specifier: 12.39.0
+                version: 12.39.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
             next:
                 specifier: 16.1.0
                 version: 16.1.0(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -281,6 +284,9 @@ importers:
             zod:
                 specifier: 4.4.3
                 version: 4.4.3
+            zustand:
+                specifier: 5.0.3
+                version: 5.0.3(@types/react@19.2.7)(react@19.1.0)(use-sync-external-store@1.6.0(react@19.1.0))
         devDependencies:
             "@eslint/compat":
                 specifier: 2.0.0
@@ -294,6 +300,9 @@ importers:
             "@next/eslint-plugin-next":
                 specifier: 15.3.3
                 version: 15.3.3
+            "@playwright/test":
+                specifier: 1.57.0
+                version: 1.57.0
             "@tailwindcss/postcss":
                 specifier: 4.1.15
                 version: 4.1.15
@@ -8711,6 +8720,23 @@ packages:
                 integrity: sha512-1X1NTtiJphryn/uLQz3whtY6jK3fTqoE3ohKs0tT+Ujr1W59oopxmoEh7Lu5p6vBaPbgoM0bzveAW4Qi5RyWDQ==,
             }
 
+    framer-motion@12.39.0:
+        resolution:
+            {
+                integrity: sha512-+vnLfzrv0MzjLzNl+nvNvR7jdg3q4cxxjz/YvzfifHl0TREtL00cs1RoMTxs+1PzLiEqZGV6gYsBY0oEAYZ24w==,
+            }
+        peerDependencies:
+            "@emotion/is-prop-valid": "*"
+            react: ^18.0.0 || ^19.0.0
+            react-dom: ^18.0.0 || ^19.0.0
+        peerDependenciesMeta:
+            "@emotion/is-prop-valid":
+                optional: true
+            react:
+                optional: true
+            react-dom:
+                optional: true
+
     fresh@0.5.2:
         resolution:
             {
@@ -11074,6 +11100,18 @@ packages:
         resolution:
             {
                 integrity: sha512-sEKPVl2rM+MNVkGQt3ChdmD8YsigmXdn5NifZn6jiwn9LRJpWm8F3guhaqrJT/JOat6pwpbXEk6kv+b9DMIjsQ==,
+            }
+
+    motion-dom@12.40.0:
+        resolution:
+            {
+                integrity: sha512-HxU3ZaBwNPVQUBQf1xxgq+7JrPNZvjLVxgbpEZL7RrWJnsxOf0/OM+yrHG9ogLQ31Do/r57Oz2gQWPK+6q62mg==,
+            }
+
+    motion-utils@12.39.0:
+        resolution:
+            {
+                integrity: sha512-8nadJAJjTtqRkmRF36FoJTrywK9nnFmnPwnSMyxaOCU7GDjN9RTMJIxx9De8ErM+vpPhMccr/6fo5WciyQLnMQ==,
             }
 
     motion@10.16.2:
@@ -21056,6 +21094,15 @@ snapshots:
 
     fraction.js@5.3.4: {}
 
+    framer-motion@12.39.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+        dependencies:
+            motion-dom: 12.40.0
+            motion-utils: 12.39.0
+            tslib: 2.8.1
+        optionalDependencies:
+            react: 19.1.0
+            react-dom: 19.1.0(react@19.1.0)
+
     fresh@0.5.2: {}
 
     fs-extra@11.3.3:
@@ -22734,6 +22781,12 @@ snapshots:
             ufo: 1.6.1
 
     modern-ahocorasick@1.1.0: {}
+
+    motion-dom@12.40.0:
+        dependencies:
+            motion-utils: 12.39.0
+
+    motion-utils@12.39.0: {}
 
     motion@10.16.2:
         dependencies:
@@ -25423,5 +25476,11 @@ snapshots:
             "@types/react": 19.2.7
             react: 19.1.0
             use-sync-external-store: 1.4.0(react@19.1.0)
+
+    zustand@5.0.3(@types/react@19.2.7)(react@19.1.0)(use-sync-external-store@1.6.0(react@19.1.0)):
+        optionalDependencies:
+            "@types/react": 19.2.7
+            react: 19.1.0
+            use-sync-external-store: 1.6.0(react@19.1.0)
 
     zwitch@2.0.4: {}

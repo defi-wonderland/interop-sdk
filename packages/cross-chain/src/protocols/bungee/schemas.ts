@@ -263,6 +263,28 @@ export const BungeeQuoteResponseSchema = z.object({
     message: z.string().nullable().optional(),
 });
 
+// ── Build Tx ───────────────────────────────────────────
+
+/** Schema for the Bungee GET `/api/v1/bungee/build-tx` query parameters. */
+export const BungeeBuildTxRequestSchema = z.object({
+    quoteId: z.string(),
+});
+
+/** Schema for the result object in a Bungee build-tx response. */
+export const BungeeBuildTxResultSchema = z.object({
+    userOp: z.string(),
+    txData: BungeeTxDataSchema,
+    approvalData: BungeeApprovalDataSchema.nullable().optional(),
+});
+
+/** Schema for the Bungee build-tx response wrapper. */
+export const BungeeBuildTxResponseSchema = z.object({
+    success: z.boolean(),
+    statusCode: z.number(),
+    result: BungeeBuildTxResultSchema,
+    message: z.string().nullable().optional(),
+});
+
 // ── Submit ─────────────────────────────────────────────
 
 /** Schema for the Bungee POST `/api/v1/bungee/submit` request body. */
@@ -406,6 +428,9 @@ export type BungeeManualRoute = z.infer<typeof BungeeManualRouteSchema>;
 export type BungeeQuoteRequest = z.infer<typeof BungeeQuoteRequestSchema>;
 export type BungeeQuoteResult = z.infer<typeof BungeeQuoteResultSchema>;
 export type BungeeQuoteResponse = z.infer<typeof BungeeQuoteResponseSchema>;
+export type BungeeBuildTxRequest = z.infer<typeof BungeeBuildTxRequestSchema>;
+export type BungeeBuildTxResult = z.infer<typeof BungeeBuildTxResultSchema>;
+export type BungeeBuildTxResponse = z.infer<typeof BungeeBuildTxResponseSchema>;
 export type BungeeSubmitRequest = z.infer<typeof BungeeSubmitRequestSchema>;
 export type BungeeSubmitResult = z.infer<typeof BungeeSubmitResultSchema>;
 export type BungeeSubmitResponse = z.infer<typeof BungeeSubmitResponseSchema>;

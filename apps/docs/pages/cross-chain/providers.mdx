@@ -45,13 +45,15 @@ createCrossChainProvider("bungee", {
 });
 ```
 
-| Provider       | Required Config   | Optional Config                                                                                                               |
-| -------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `across`       | (none)            | `isTestnet`                                                                                                                   |
-| `relay`        | (none)            | `apiKey`, `isTestnet`                                                                                                         |
-| `oif`          | `solverId`, `url` | —                                                                                                                             |
-| `lifi-intents` | `orderServerUrl`  | `providerId`, `headers`                                                                                                       |
-| `bungee`       | (none)            | `tier`, `apiKey`, `affiliateId`, `feeBps`, `feeTakerAddress`, `submissionModes`, `slippage`, `refuel`, `enableMultipleRoutes` |
+| Provider       | Required Config   | Optional Config                                                                                                                                       |
+| -------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `across`       | (none)            | `isTestnet`                                                                                                                                           |
+| `relay`        | (none)            | `apiKey`, `isTestnet`                                                                                                                                 |
+| `oif`          | `solverId`, `url` | —                                                                                                                                                     |
+| `lifi-intents` | `orderServerUrl`  | `providerId`, `headers`                                                                                                                               |
+| `bungee`       | (none)            | `tier`, `apiKey`, `affiliateId`, `feeBps`, `feeTakerAddress`, `submissionModes`, `slippage`, `refuel`, `enableOtherProviders`, `enableMultipleRoutes` |
+
+The optional-config protocols (`across`, `relay`, `bungee`) can also be passed to `createAggregator` by name to get defaults — see [Compare quotes from multiple providers](./getting-started#compare-quotes-from-multiple-providers). Use `createCrossChainProvider` when you need custom config.
 
 ## `isTestnet` semantics
 

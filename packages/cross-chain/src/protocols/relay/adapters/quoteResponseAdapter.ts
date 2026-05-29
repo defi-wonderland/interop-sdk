@@ -6,6 +6,7 @@ import type { QuoteRequest, Step } from "../../../internal.js";
 import type { RelayQuoteResponse, RelayQuoteStep, RelaySignatureStep } from "../schemas.js";
 import { toCanonicalNativeAddress } from "../../../core/utils/token.js";
 import { ProviderGetQuoteFailure } from "../../../internal.js";
+import { validateRelaySignatureEnvelope } from "../validators/signatureEnvelopeValidator.js";
 import { adaptFees } from "./quoteFeeAdapter.js";
 
 /**
@@ -75,9 +76,15 @@ export function adaptQuote(
     const fees = adaptFees(response);
     const fallbackToken = extractFallbackToken(params, response);
 
+    // Use quoted input so the envelope cap also binds on `exact-output`.
+    const paramsForValidation: QuoteRequest = {
+        ...params,
+        input: { ...params.input, amount: currencyIn?.amount ?? params.input.amount },
+    };
+
     return {
         order: {
-            steps: nonApproveSteps.flatMap((step) => adaptRelaySteps(step)),
+            steps: nonApproveSteps.flatMap((step) => adaptRelaySteps(step, paramsForValidation)),
             ...(allowances.length > 0 && { checks: { allowances } }),
         },
         preview: {
@@ -139,9 +146,9 @@ function extractFallbackToken(
 }
 
 /** Map a single Relay step to SDK Step entries (one per incomplete item). */
-export function adaptRelaySteps(step: RelayQuoteStep): Step[] {
+export function adaptRelaySteps(step: RelayQuoteStep, params: QuoteRequest): Step[] {
     if (step.kind === "signature") {
-        return adaptSignatureStep(step);
+        return adaptSignatureStep(step, params);
     }
 
     return step.items
@@ -169,7 +176,7 @@ export function adaptRelaySteps(step: RelayQuoteStep): Step[] {
 }
 
 /** Map a Relay signature step to SDK SignatureStep entries (EIP-712 only). */
-function adaptSignatureStep(step: RelaySignatureStep): Step[] {
+function adaptSignatureStep(step: RelaySignatureStep, params: QuoteRequest): Step[] {
     return step.items.flatMap((item) => {
         if (item.status !== "incomplete") return [];
 
@@ -180,6 +187,16 @@ function adaptSignatureStep(step: RelaySignatureStep): Step[] {
                 `Unsupported signature kind "${sign.signatureKind}". Only EIP-712 signatures are currently supported.`,
             );
         }
+
+        validateRelaySignatureEnvelope(
+            {
+                domain: sign.domain,
+                primaryType: sign.primaryType,
+                types: sign.types,
+                message: sign.value,
+            },
+            params,
+        );
 
         return {
             kind: "signature" as const,
