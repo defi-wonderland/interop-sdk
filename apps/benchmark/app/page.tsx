@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from 'next/cache';
 import { Footer } from './components/Footer';
 import { Label } from './components/Label';
 import { RaceTable } from './components/RaceTable';
@@ -12,7 +13,7 @@ import {
   INITIAL_ASSET_SYMBOL,
   INITIAL_FROM_CHAIN_ID,
   INITIAL_TO_CHAIN_ID,
-} from './lib/requestBarStore';
+} from './lib/requestBarDefaults';
 import { chainService } from './lib/services';
 import { getCachedRaceQuotes } from './lib/services/cachedQuoteService';
 import type { RaceRow } from './components/race-table/types';
@@ -82,8 +83,10 @@ export default async function Home() {
 
 async function loadInitialChains(): Promise<NetworkAssets[]> {
   try {
-    return await chainService.getChains();
+    return await withTimeout(chainService.getChains(), 5_000, 'INITIAL_CHAINS_TIMEOUT');
   } catch {
+    // Don't let ISR cache a degraded render: next request should retry chain discovery.
+    noStore();
     return [];
   }
 }

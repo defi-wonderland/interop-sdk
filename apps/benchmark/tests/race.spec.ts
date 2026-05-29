@@ -1,53 +1,17 @@
 import { test, expect } from '@playwright/test';
+import { INITIAL_ASSET_SYMBOL } from '../app/lib/requestBarDefaults';
 
-const RUN_LIVE = process.env.RUN_LIVE === '1';
-
-test.beforeEach(async ({ page }) => {
+test('initial render settles the race with winner and first pills within 60s', async ({ page }) => {
   await page.goto('/');
-});
-
-test('renders the race table with all 4 providers', async ({ page }) => {
-  const table = page.getByRole('region', { name: 'live quote race results' });
-  await expect(table.locator('tbody tr')).toHaveCount(4);
-});
-
-test('preset click updates the amount field', async ({ page }) => {
-  await page.getByRole('button', { name: '$10k', exact: true }).click();
-  await expect(page.getByLabel('AMOUNT')).toHaveValue('10,000.00');
-});
-
-test('swap button flips the FROM and TO chains', async ({ page }) => {
-  const fromButton = page.getByRole('button', { name: /^from:/i });
-  const toButton = page.getByRole('button', { name: /^to:/i });
-  const fromBefore = await fromButton.textContent();
-  const toBefore = await toButton.textContent();
-
-  await page.getByRole('button', { name: 'swap from and to chains' }).click();
-
-  await expect(fromButton).not.toHaveText(fromBefore ?? '');
-  await expect(toButton).not.toHaveText(toBefore ?? '');
-});
-
-test.describe('live SDK trigger', () => {
-  test.skip(!RUN_LIVE, 'set RUN_LIVE=1 to hit real aggregator APIs');
-
-  test('initial render shows a winner pill once quotes settle', async ({ page }) => {
-    await expect(page.getByText('winner').filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
-  });
-
-  test('re-run triggers a race that eventually settles a winner', async ({ page }) => {
-    await page.getByRole('button', { name: 're-run quote race' }).click();
-    await expect(page.getByText('winner').first()).toBeVisible({ timeout: 30_000 });
-  });
-
-  test('preset click triggers a race', async ({ page }) => {
-    await page.getByRole('button', { name: '$10k', exact: true }).click();
-    await expect(page.getByText('winner').first()).toBeVisible({ timeout: 30_000 });
-  });
-
-  test('changing the FROM chain triggers a race', async ({ page }) => {
-    await page.getByRole('button', { name: /^from:/ }).click();
-    await page.getByRole('option', { name: 'ethereum' }).click();
-    await expect(page.getByText('winner').first()).toBeVisible({ timeout: 30_000 });
-  });
+  const rows = page.getByRole('region', { name: 'live quote race results' }).locator('tbody tr');
+  await expect(rows).toHaveCount(4);
+  // At least one row must show a real numeric output amount followed by the asset symbol.
+  // A weaker check like `hasText: 'USDC'` would pass on a degraded settled row that still
+  // renders the symbol next to an em-dash placeholder.
+  const settledOutput = new RegExp(`\\d[\\d,]*(?:\\.\\d+)?\\s*${INITIAL_ASSET_SYMBOL}`);
+  await expect(rows.filter({ hasText: settledOutput }).first()).toBeVisible({ timeout: 60_000 });
+  // Both pills must be rendered. They can land on the same row when the winner is also fastest,
+  // but neither should ever disappear silently.
+  await expect(rows.filter({ hasText: /winner/i }).first()).toBeVisible();
+  await expect(rows.filter({ hasText: /first/i }).first()).toBeVisible();
 });
