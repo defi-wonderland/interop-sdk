@@ -32,7 +32,7 @@ test.describe('live SDK trigger', () => {
   test.skip(!RUN_LIVE, 'set RUN_LIVE=1 to hit real aggregator APIs');
 
   test('initial render shows a winner pill once quotes settle', async ({ page }) => {
-    await expect(page.getByText('winner').filter({ visible: true }).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('winner').first()).toBeVisible({ timeout: 30_000 });
   });
 
   test('re-run triggers a race that eventually settles a winner', async ({ page }) => {
