@@ -72,19 +72,21 @@ function isPlausibleIp(value: string): boolean {
 }
 
 /**
- * Reads the trailing x-forwarded-for entry (proxies append, so the rightmost
- * value is the one our own infra added and is trustworthy). Returns null when
- * no plausible IP is available — callers should treat that as "skip rate
- * limiting" rather than bucketing every anonymous caller under a shared key.
+ * Resolves the client IP for rate-limiting. Prefers `x-real-ip` (set by Vercel
+ * to the actual caller and not spoofable from outside the platform). Falls
+ * back to the leftmost `x-forwarded-for` entry, which is the real client on
+ * Vercel even when multiple hops are present. Returns null when no plausible
+ * IP is available; callers should treat that as "skip rate limiting" rather
+ * than bucketing every anonymous caller under a shared key.
  */
 export function extractClientIp(headers: Headers): string | null {
-  const forwarded = headers.get('x-forwarded-for');
-  if (forwarded) {
-    const parts = forwarded.split(',');
-    const last = parts[parts.length - 1]?.trim();
-    if (last && isPlausibleIp(last)) return last;
-  }
   const realIp = headers.get('x-real-ip')?.trim();
   if (realIp && isPlausibleIp(realIp)) return realIp;
+
+  const forwarded = headers.get('x-forwarded-for');
+  if (forwarded) {
+    const first = forwarded.split(',')[0]?.trim();
+    if (first && isPlausibleIp(first)) return first;
+  }
   return null;
 }
