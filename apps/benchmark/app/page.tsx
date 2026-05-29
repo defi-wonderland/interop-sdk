@@ -81,7 +81,7 @@ export default async function Home() {
 
 async function loadInitialChains(): Promise<NetworkAssets[]> {
   try {
-    return await chainService.getChains();
+    return await withTimeout(chainService.getChains(), 5_000, 'INITIAL_CHAINS_TIMEOUT');
   } catch {
     return [];
   }
