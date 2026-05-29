@@ -1,14 +1,9 @@
 import type {
     AcrossConfigs,
-    AcrossProvider,
     BungeeConfigs,
-    BungeeProvider,
-    LifiIntentsProvider,
     LifiIntentsProviderConfig,
-    OifProvider,
     OifProviderConfig,
     RelayConfigs,
-    RelayProvider,
 } from "../internal.js";
 
 export const PROTOCOLS = {
@@ -21,18 +16,17 @@ export const PROTOCOLS = {
 
 export type SupportedProtocols = (typeof PROTOCOLS)[keyof typeof PROTOCOLS];
 
-export type SupportedProtocolProviders = {
-    [PROTOCOLS.ACROSS]: AcrossProvider;
-    [PROTOCOLS.OIF]: OifProvider;
-    [PROTOCOLS.LIFI_INTENTS]: LifiIntentsProvider;
-    [PROTOCOLS.RELAY]: RelayProvider;
-    [PROTOCOLS.BUNGEE]: BungeeProvider;
-};
-
-export type SupportedProtocolsConfigs<Protocol extends SupportedProtocols> = {
+/** Config type accepted by each protocol. */
+export type SupportedProtocolsConfigs<P extends SupportedProtocols> = {
     [PROTOCOLS.ACROSS]: AcrossConfigs;
-    [PROTOCOLS.OIF]: OifProviderConfig;
-    [PROTOCOLS.LIFI_INTENTS]: LifiIntentsProviderConfig;
     [PROTOCOLS.RELAY]: RelayConfigs;
     [PROTOCOLS.BUNGEE]: BungeeConfigs;
-}[Protocol];
+    [PROTOCOLS.OIF]: OifProviderConfig;
+    [PROTOCOLS.LIFI_INTENTS]: LifiIntentsProviderConfig;
+}[P];
+
+/** Protocols whose config is optional. */
+export type OptionalConfigProtocols =
+    | typeof PROTOCOLS.ACROSS
+    | typeof PROTOCOLS.RELAY
+    | typeof PROTOCOLS.BUNGEE;

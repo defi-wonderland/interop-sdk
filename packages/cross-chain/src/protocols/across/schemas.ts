@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from "uuid";
 import { isHex } from "viem";
 import { z } from "zod";
 
@@ -218,6 +217,6 @@ export const AcrossConfigSchema = z
     .object({
         isTestnet: z.boolean().optional().default(false),
         apiUrl: z.string().optional(),
-        providerId: z.string().default(`across_${uuidv4()}`),
+        providerId: z.string().default("across"),
     })
     .describe("Configuration for the Across provider");
