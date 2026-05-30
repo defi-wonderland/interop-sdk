@@ -33,7 +33,8 @@ createCrossChainProvider("relay", { apiKey: "...", isTestnet: true });
 // OIF — solverId and url are required
 createCrossChainProvider("oif", { solverId: "my-solver", url: "https://solver.example.com" });
 
-// LiFi Intents — orderServerUrl is required
+// LiFi Intents — no required config (defaults to https://order.li.fi)
+createCrossChainProvider("lifi-intents");
 createCrossChainProvider("lifi-intents", { orderServerUrl: "https://..." });
 
 // Bungee — no required config
@@ -50,10 +51,10 @@ createCrossChainProvider("bungee", {
 | `across`       | (none)            | `isTestnet`                                                                                                                                           |
 | `relay`        | (none)            | `apiKey`, `isTestnet`                                                                                                                                 |
 | `oif`          | `solverId`, `url` | —                                                                                                                                                     |
-| `lifi-intents` | `orderServerUrl`  | `providerId`, `headers`                                                                                                                               |
+| `lifi-intents` | (none)            | `orderServerUrl`, `providerId`, `headers`                                                                                                             |
 | `bungee`       | (none)            | `tier`, `apiKey`, `affiliateId`, `feeBps`, `feeTakerAddress`, `submissionModes`, `slippage`, `refuel`, `enableOtherProviders`, `enableMultipleRoutes` |
 
-The optional-config protocols (`across`, `relay`, `bungee`) can also be passed to `createAggregator` by name to get defaults — see [Compare quotes from multiple providers](./getting-started#compare-quotes-from-multiple-providers). Use `createCrossChainProvider` when you need custom config.
+The optional-config protocols (`across`, `relay`, `bungee`, `lifi-intents`) can also be passed to `createAggregator` by name to get defaults — see [Compare quotes from multiple providers](./getting-started#compare-quotes-from-multiple-providers). Use `createCrossChainProvider` when you need custom config.
 
 ## `isTestnet` semantics
 
