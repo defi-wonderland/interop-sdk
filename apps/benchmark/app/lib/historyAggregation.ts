@@ -2,10 +2,13 @@ import { ProviderId } from './providers';
 import type { HistorySample, ProviderMetrics } from './types/historyMetrics';
 
 export function percentile(values: readonly number[], p: number): number | null {
-  if (values.length === 0) return null;
   if (!Number.isFinite(p)) return null;
+  // Strip non-finite (NaN, ±Infinity) so they cannot poison the sort or
+  // propagate through downstream formatters.
+  const clean = values.filter((v) => Number.isFinite(v));
+  if (clean.length === 0) return null;
   const clamped = Math.max(0, Math.min(100, p));
-  const sorted = [...values].sort((a, b) => a - b);
+  const sorted = [...clean].sort((a, b) => a - b);
   const rank = (clamped / 100) * (sorted.length - 1);
   const low = Math.floor(rank);
   const high = Math.ceil(rank);
@@ -14,29 +17,21 @@ export function percentile(values: readonly number[], p: number): number | null 
 }
 
 export function aggregateProviderSamples(providerId: ProviderId, samples: readonly HistorySample[]): ProviderMetrics {
-  if (samples.length === 0) {
-    return {
-      providerId,
-      fillCount: 0,
-      successRate: null,
-      p50FillSeconds: null,
-      p99FillSeconds: null,
-      avgFeeUsd: null,
-      volumeUsd: null,
-    };
-  }
+  // Defend against callers passing mixed feeds: only count samples that
+  // actually belong to this providerId. Cheap guard, catches a real footgun.
+  const owned = samples.filter((s) => s.providerId === providerId);
 
-  const fillCount = samples.length;
+  const fillCount = owned.length;
   // Exclude pending samples from the success-rate denominator: services normalize
   // in-flight states to 'pending' and counting them as failures would push the
   // rate toward 0 for providers with mostly outstanding fills.
-  const resolved = samples.filter((s) => s.status !== 'pending');
+  const resolved = owned.filter((s) => s.status !== 'pending');
   const filled = resolved.filter((s) => s.status === 'success').length;
   const successRate = resolved.length === 0 ? null : filled / resolved.length;
 
-  const fillTimes = samples.map((s) => s.fillTimeSeconds).filter((v): v is number => v !== null);
-  const fees = samples.map((s) => s.feeUsd).filter((v): v is number => v !== null);
-  const volumes = samples.map((s) => s.amountUsd).filter((v): v is number => v !== null);
+  const fillTimes = owned.map((s) => s.fillTimeSeconds).filter((v): v is number => v !== null);
+  const fees = owned.map((s) => s.feeUsd).filter((v): v is number => v !== null);
+  const volumes = owned.map((s) => s.amountUsd).filter((v): v is number => v !== null);
 
   return {
     providerId,
@@ -50,10 +45,13 @@ export function aggregateProviderSamples(providerId: ProviderId, samples: readon
 }
 
 export function sortLeaderboardBySuccess(metrics: readonly ProviderMetrics[]): ProviderMetrics[] {
+  const score = (m: ProviderMetrics): number => m.successRate ?? -Infinity;
+  const activity = (m: ProviderMetrics): number => m.fillCount ?? -1;
   return [...metrics].sort((a, b) => {
-    if (a.successRate === null && b.successRate === null) return 0;
-    if (a.successRate === null) return 1;
-    if (b.successRate === null) return -1;
-    return b.successRate - a.successRate;
+    const bySuccess = score(b) - score(a);
+    if (bySuccess !== 0) return bySuccess;
+    // Tie on success rate (or both null) → break by activity so the more
+    // exercised provider lands higher; deterministic regardless of input order.
+    return activity(b) - activity(a);
   });
 }
