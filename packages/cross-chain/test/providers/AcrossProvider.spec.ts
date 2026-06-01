@@ -224,7 +224,7 @@ describe("AcrossProvider", () => {
             expect(quotes).toHaveLength(1);
         });
 
-        it("rejects the quote when calldata inputAmount differs from response.inputAmount", async () => {
+        it("rejects the quote when calldata inputAmount exceeds response.inputAmount", async () => {
             mockOnce(encodeAcrossDeposit({ inputAmount: TEST_AMOUNTS.ONE_ETHER * 2n }));
 
             await expect(provider.getQuotes(exactInputRequest)).rejects.toThrow(
@@ -232,7 +232,7 @@ describe("AcrossProvider", () => {
             );
         });
 
-        it("rejects the quote when calldata outputAmount differs from response.minOutputAmount", async () => {
+        it("rejects the quote when calldata outputAmount is below response.minOutputAmount", async () => {
             mockOnce(encodeAcrossDeposit({ outputAmount: MOCK_MIN_OUTPUT_AMOUNT - 1n }));
 
             await expect(provider.getQuotes(exactInputRequest)).rejects.toThrow(
@@ -240,12 +240,28 @@ describe("AcrossProvider", () => {
             );
         });
 
-        it("validates the calldata inputAmount against response.inputAmount in exact-output mode", async () => {
+        it("accepts the quote when calldata outputAmount exceeds response.minOutputAmount", async () => {
+            mockOnce(encodeAcrossDeposit({ outputAmount: MOCK_MIN_OUTPUT_AMOUNT + 1n }));
+
+            const quotes = await provider.getQuotes(exactInputRequest);
+
+            expect(quotes).toHaveLength(1);
+        });
+
+        it("rejects a calldata inputAmount that exceeds response.inputAmount in exact-output mode", async () => {
             mockOnce(encodeAcrossDeposit({ inputAmount: TEST_AMOUNTS.ONE_ETHER * 2n }));
 
             await expect(provider.getQuotes(exactOutputRequest)).rejects.toThrow(
                 "Across calldata validation failed",
             );
+        });
+
+        it("accepts a calldata inputAmount below response.inputAmount in exact-output mode", async () => {
+            mockOnce(encodeAcrossDeposit({ inputAmount: TEST_AMOUNTS.ONE_ETHER / 2n }));
+
+            const quotes = await provider.getQuotes(exactOutputRequest);
+
+            expect(quotes).toHaveLength(1);
         });
 
         it("accepts a matching calldata in exact-output mode", async () => {

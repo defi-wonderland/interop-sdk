@@ -321,8 +321,8 @@ export class AcrossProvider extends CrossChainProvider {
         const responseMinOutputAmount = toNonNegativeBigInt(response.minOutputAmount);
         if (responseInputAmount === undefined || responseMinOutputAmount === undefined)
             return false;
-        if (decoded.inputAmount !== responseInputAmount) return false;
-        if (decoded.outputAmount !== responseMinOutputAmount) return false;
+        if (decoded.inputAmount > responseInputAmount) return false;
+        if (decoded.outputAmount < responseMinOutputAmount) return false;
 
         if (input.amount !== undefined) {
             if (decoded.inputAmount !== BigInt(input.amount)) return false;
