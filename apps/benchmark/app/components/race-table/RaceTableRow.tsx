@@ -109,19 +109,24 @@ export function RaceTableRow({
           </div>
         ) : isSettled ? (
           <div className='flex flex-col items-end gap-1'>
-            <div className='flex items-baseline gap-1.5'>
+            <div className='hidden items-baseline gap-1.5 md:flex'>
               <span className='font-mono text-mark font-medium text-text-primary tabular-nums'>{outputToken}</span>
               <span className='font-mono text-caption text-text-muted'>{assetSymbol}</span>
             </div>
             {outputUsd > 0 ? (
-              <span className='font-mono text-caption text-text-muted tabular-nums'>
+              <span className='font-mono text-mark font-medium text-text-primary tabular-nums md:text-caption md:font-normal md:text-text-muted'>
                 <AnimatedUsd
                   value={outputUsd}
                   fallback={formatUsd(row.quote?.outputAmountUsd)}
                   reduceMotion={reduceMotion}
                 />
               </span>
-            ) : null}
+            ) : (
+              <div className='flex items-baseline gap-1.5 md:hidden'>
+                <span className='font-mono text-mark font-medium text-text-primary tabular-nums'>{outputToken}</span>
+                <span className='font-mono text-caption text-text-muted'>{assetSymbol}</span>
+              </div>
+            )}
             <div className='md:hidden'>
               <StatusPill
                 status={row.status}
