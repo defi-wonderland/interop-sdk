@@ -31,13 +31,18 @@ export class RelayHistoryService implements HistoryService {
 
   private async fetchRequests(query: HistoryQuery, target: number): Promise<RelayHistoryRequest[]> {
     const collected: RelayHistoryRequest[] = [];
-    let filteredCount = 0;
+    let usableCount = 0;
     let continuation: string | undefined;
-    while (filteredCount < target) {
+    while (usableCount < target) {
       const page = await this.fetchPage(query, continuation);
       collected.push(...page.requests);
-      filteredCount += filterByToken(page.requests, query.tokenAddress).length;
-      if (!page.continuation || page.requests.length === 0) break;
+      // Count samples that survive both the token filter and the sample
+      // construction step; otherwise dropped requests (subsidized, missing
+      // timestamps) leave us under-filling the requested limit.
+      usableCount += collectSamples(filterByToken(page.requests, query.tokenAddress)).length;
+      // Short page or missing continuation both indicate end of data — stop
+      // before issuing a redundant request.
+      if (!page.continuation || page.requests.length < RELAY_PAGE_SIZE) break;
       continuation = page.continuation;
     }
     return collected;
@@ -115,7 +120,11 @@ function resolveTimestamp(inTs: number | undefined, createdAt: string): number |
 
 function sumFees(fees: RelayHistoryFeesUsd | undefined): number | null {
   if (!fees) return null;
-  const total = Number(fees.gas ?? 0) + Number(fees.fixed ?? 0) + Number(fees.price ?? 0) + Number(fees.gateway ?? 0);
+  const components = [fees.gas, fees.fixed, fees.price, fees.gateway];
+  // If every fee component is missing, return null instead of summing to $0 —
+  // a `$0` reading would be a false positive in the leaderboard.
+  if (components.every((value) => value === undefined || value === null)) return null;
+  const total = components.reduce<number>((acc, value) => acc + Number(value ?? 0), 0);
   return Number.isFinite(total) ? total : null;
 }
 

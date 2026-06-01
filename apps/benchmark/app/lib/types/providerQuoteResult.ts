@@ -12,6 +12,7 @@ export interface ProviderQuoteResult {
 }
 
 export interface ProviderQuoteError {
+  providerId?: string;
   errorMessage: string;
   latencyMs?: number;
 }

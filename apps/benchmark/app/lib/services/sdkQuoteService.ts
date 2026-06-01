@@ -31,6 +31,7 @@ export class SDKQuoteService implements QuotesService {
 
   private toProviderQuoteError(error: GetQuotesError): ProviderQuoteError {
     return {
+      providerId: error.providerId,
       errorMessage: error.errorMsg,
       latencyMs: error.latencyMs,
     };
