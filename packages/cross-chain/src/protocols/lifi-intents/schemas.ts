@@ -17,7 +17,7 @@ export type Caip10Address = z.infer<typeof Caip10AddressSchema>;
 // ── Provider Config ─────────────────────────────────────
 
 export const LifiIntentsProviderConfigSchema = z.object({
-    orderServerUrl: z.url(),
+    orderServerUrl: z.url().optional(),
     providerId: z.string().optional(),
     headers: z.record(z.string(), z.string()).optional(),
 });
