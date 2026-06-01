@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
 
 type MermaidApi = typeof import("mermaid").default;
@@ -22,16 +24,26 @@ function getMermaid(): Promise<MermaidApi> {
 
 function readTheme(): MermaidTheme {
     if (typeof document === "undefined") return "default";
-    return document.documentElement.classList.contains("dark") ? "dark" : "default";
+    const colorScheme = getComputedStyle(document.documentElement).colorScheme;
+    const hasDark = colorScheme.includes("dark");
+    const hasLight = colorScheme.includes("light");
+    if (hasDark && !hasLight) return "dark";
+    if (hasLight && !hasDark) return "default";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default";
 }
 
 function subscribeTheme(cb: () => void): () => void {
     const observer = new MutationObserver(cb);
     observer.observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ["class"],
+        attributeFilter: ["style", "class"],
     });
-    return () => observer.disconnect();
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    media.addEventListener("change", cb);
+    return () => {
+        observer.disconnect();
+        media.removeEventListener("change", cb);
+    };
 }
 
 function useTheme(): MermaidTheme {

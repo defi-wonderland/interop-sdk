@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from 'next/cache';
 import { Footer } from './components/Footer';
 import { Label } from './components/Label';
 import { RaceTable } from './components/RaceTable';
@@ -6,65 +7,34 @@ import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
 import { Leaderboard } from './components/leaderboard/Leaderboard';
+import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
+import { withTimeout } from './lib/helpers';
 import { MOCK_LEADERBOARD_METRICS } from './lib/mocks/leaderboardMock';
-import { PROVIDERS, ProviderId } from './lib/providers';
+import {
+  INITIAL_AMOUNT,
+  INITIAL_ASSET_SYMBOL,
+  INITIAL_FROM_CHAIN_ID,
+  INITIAL_TO_CHAIN_ID,
+} from './lib/requestBarDefaults';
+import { chainService, quotesService } from './lib/services';
 import type { RaceRow } from './components/race-table/types';
+import type { NetworkAssets } from '@wonderland/interop-cross-chain';
+
+export const revalidate = 3600;
 
 const META_LABEL_CLASS = 'font-mono text-label text-text-muted';
 const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-chain';
+const INITIAL_RACE_TIMEOUT_MS = 20_000;
 
-// Static mock fixture for the race table. PR C swaps this for live SDK results.
-// Default route: USDC arbitrum -> base, $100. across wins both output and latency.
-const STATIC_MOCK_ROWS: RaceRow[] = [
-  {
-    provider: PROVIDERS[ProviderId.Across],
-    status: 'settled',
-    quote: {
-      providerId: 'across',
-      protocolName: 'Across',
-      latencyMs: 320,
-      eta: 2,
-      outputAmount: '99850000',
-      outputAmountUsd: '99.85',
-    },
-  },
-  {
-    provider: PROVIDERS[ProviderId.Relay],
-    status: 'settled',
-    quote: {
-      providerId: 'relay',
-      protocolName: 'Relay',
-      latencyMs: 480,
-      eta: 4,
-      outputAmount: '99800000',
-      outputAmountUsd: '99.80',
-    },
-  },
-  {
-    provider: PROVIDERS[ProviderId.Lifi],
-    status: 'settled',
-    quote: {
-      providerId: 'lifi-intents',
-      protocolName: 'LI.FI',
-      latencyMs: 1640,
-      eta: 8,
-      outputAmount: '99700000',
-      outputAmountUsd: '99.70',
-    },
-  },
-  {
-    provider: PROVIDERS[ProviderId.Bungee],
-    status: 'errored',
-    errorMessage: 'NO ROUTE',
-  },
-];
+export default async function Home() {
+  const initialChains = await loadInitialChains();
+  const initialRows = await loadInitialRace(initialChains);
 
-export default function Home() {
   return (
     <div className='min-h-screen cursor-default bg-background'>
       <TopNav />
       <main>
-        <RequestBar />
+        <RequestBar chains={initialChains} />
 
         <SectionFrame>
           <SectionHeader
@@ -85,7 +55,7 @@ export default function Home() {
               </Label>
             }
           />
-          <RaceTable initialRows={STATIC_MOCK_ROWS} initialChains={[]} />
+          <RaceTable initialRows={initialRows} initialChains={initialChains} />
         </SectionFrame>
 
         <SectionFrame variant='tinted'>
@@ -111,6 +81,39 @@ export default function Home() {
       <Footer />
     </div>
   );
+}
+
+async function loadInitialChains(): Promise<NetworkAssets[]> {
+  try {
+    return await withTimeout(chainService.getChains(), 5_000, 'INITIAL_CHAINS_TIMEOUT');
+  } catch {
+    // Don't let ISR cache a degraded render: next request should retry chain discovery.
+    noStore();
+    return [];
+  }
+}
+
+async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
+  if (chains.length === 0) return orderRaceRows(createRows('errored', 'CHAIN DISCOVERY FAILED'));
+
+  try {
+    const request = buildQuoteRequest({
+      chains,
+      fromChainId: INITIAL_FROM_CHAIN_ID,
+      toChainId: INITIAL_TO_CHAIN_ID,
+      assetSymbol: INITIAL_ASSET_SYMBOL,
+      amount: INITIAL_AMOUNT,
+    });
+    const response = await withTimeout(
+      quotesService.getQuotes(request),
+      INITIAL_RACE_TIMEOUT_MS,
+      'INITIAL_RACE_TIMEOUT',
+    );
+    if (response.quotes.length === 0) return orderRaceRows(createRows('idle'));
+    return orderRaceRows(buildRowsFromQuotes(response.quotes, response.errors));
+  } catch {
+    return orderRaceRows(createRows('idle'));
+  }
 }
 
 function SectionPlaceholder({ label }: { label: string }) {

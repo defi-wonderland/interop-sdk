@@ -191,13 +191,15 @@ class Aggregator {
                     );
                 } catch (error) {
                     const latencyMs = Math.round(performance.now() - startedAt);
+                    const providerId = provider.getProviderId();
                     if (error instanceof ProviderTimeout) {
-                        return { error, errorMsg: error.message, latencyMs };
+                        return { error, errorMsg: error.message, latencyMs, providerId };
                     }
                     return {
                         error: new Error(String(error)),
                         errorMsg: (error as Error)?.message ?? "Unknown error",
                         latencyMs,
+                        providerId,
                     };
                 }
             }),

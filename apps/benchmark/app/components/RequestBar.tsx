@@ -1,10 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Arrow } from './Arrow';
 import { Divider } from './Divider';
 import { Dropdown, type DropdownOption } from './Dropdown';
 import { Label } from './Label';
+import { useRunRace } from './race-table/useRunRace';
+import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 import { ASSET_SYMBOLS, ASSETS, AssetSymbol } from '~/lib/assets';
 import { CHAIN_IDS, CHAINS, ChainId } from '~/lib/chains';
 import { cn } from '~/lib/cn';
@@ -15,6 +17,10 @@ const PRESETS: RequestPreset[] = [
   { label: '$1k', amount: '1,000.00' },
   { label: '$10k', amount: '10,000.00' },
 ];
+
+interface RequestBarProps {
+  chains: NetworkAssets[];
+}
 
 function toChainOptions(exclude?: ChainId): DropdownOption<ChainId>[] {
   return CHAIN_IDS.filter((id) => id !== exclude).map((id) => ({
@@ -32,7 +38,7 @@ function toAssetOptions(): DropdownOption<AssetSymbol>[] {
   }));
 }
 
-export function RequestBar() {
+export function RequestBar({ chains }: RequestBarProps) {
   const request = useRequestBarStore((state) => state.request);
   const setFromChainId = useRequestBarStore((state) => state.setFromChainId);
   const setToChainId = useRequestBarStore((state) => state.setToChainId);
@@ -40,43 +46,67 @@ export function RequestBar() {
   const setAmount = useRequestBarStore((state) => state.setAmount);
   const setPreset = useRequestBarStore((state) => state.setPreset);
   const swapChains = useRequestBarStore((state) => state.swapChains);
+  const runRace = useRunRace(chains);
   const [arrowSpins, setArrowSpins] = useState(0);
+  const debounceTimer = useRef<number | null>(null);
 
   const fromOptions = useMemo(() => toChainOptions(request.toChainId), [request.toChainId]);
   const toOptions = useMemo(() => toChainOptions(request.fromChainId), [request.fromChainId]);
   const assetOptions = useMemo(() => toAssetOptions(), []);
 
+  const clearPendingAmountRun = () => {
+    if (debounceTimer.current === null) return;
+    window.clearTimeout(debounceTimer.current);
+    debounceTimer.current = null;
+  };
+
   const handleFromChainChange = (id: ChainId) => {
     if (id === request.fromChainId) return;
+    clearPendingAmountRun();
     setFromChainId(id);
+    void runRace();
   };
 
   const handleToChainChange = (id: ChainId) => {
     if (id === request.toChainId) return;
+    clearPendingAmountRun();
     setToChainId(id);
+    void runRace();
   };
 
   const handleAssetChange = (symbol: AssetSymbol) => {
     if (symbol === request.assetSymbol) return;
+    clearPendingAmountRun();
     setAssetSymbol(symbol);
+    void runRace();
   };
 
   const handleSwap = () => {
+    clearPendingAmountRun();
     swapChains();
     setArrowSpins((count) => count + 1);
+    void runRace();
   };
 
   const handleAmountChange = (value: string) => {
     setAmount({ amount: value, selectedPreset: null });
+    clearPendingAmountRun();
+    debounceTimer.current = window.setTimeout(() => {
+      debounceTimer.current = null;
+      void runRace();
+    }, 200);
   };
 
   const handlePresetClick = (preset: RequestPreset) => {
+    clearPendingAmountRun();
     setPreset(preset);
+    void runRace();
   };
 
-  // TODO(pr-c): wire submit to the SDK race trigger.
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    clearPendingAmountRun();
+    void runRace();
   };
 
   return (

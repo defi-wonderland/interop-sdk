@@ -96,6 +96,8 @@ export interface GetQuotesError {
     error: Error;
     errorMsg: string;
     latencyMs?: number;
+    /** Provider id that produced this error (when known). */
+    providerId?: string;
 }
 
 export interface GetQuotesResponse {

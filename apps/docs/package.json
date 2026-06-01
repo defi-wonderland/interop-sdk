@@ -4,26 +4,28 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "rm -rf build dist && vocs build && (test ! -d dist || mv dist build)",
+        "build": "vocs build",
         "serve": "vocs preview",
         "start": "vocs dev",
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "mermaid": "^11.4.1",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0",
-        "vocs": "^1.4.1"
+        "mermaid": "11.12.1",
+        "react": "19.2.6",
+        "react-dom": "19.2.6",
+        "vocs": "2.0.4",
+        "waku": "1.0.0-beta.1"
     },
     "devDependencies": {
-        "@types/react": "^19.0.0",
-        "@types/react-dom": "^19.0.0",
+        "@types/react": "19.2.7",
+        "@types/react-dom": "19.2.3",
         "@wonderland/interop-addresses": "workspace:*",
         "@wonderland/interop-cross-chain": "workspace:*",
-        "typescript": "~5.6.2",
-        "viem": "^2.35.0"
+        "typescript": "5.6.2",
+        "viem": "2.48.8",
+        "vite": "8.0.12"
     },
     "engines": {
-        "node": ">=22.0"
+        "node": "^22.13.0 || ^24.0.0 || ^26.0.0"
     }
 }
