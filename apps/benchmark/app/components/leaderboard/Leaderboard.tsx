@@ -10,7 +10,11 @@ interface LeaderboardProps {
 
 export function Leaderboard({ metrics }: LeaderboardProps) {
   const sorted = sortLeaderboardBySuccess(metrics);
-  const winnerId = sorted[0]?.providerId;
+  // Only crown a winner when the top row actually has a success rate. Without
+  // this guard, a leaderboard where every provider returned null (all-pending
+  // or all-failed window) would highlight a row that did not win anything.
+  const top = sorted[0];
+  const winnerId = top?.successRate !== null && top?.successRate !== undefined ? top.providerId : null;
 
   return (
     <div
