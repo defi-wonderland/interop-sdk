@@ -111,7 +111,13 @@ export function parseOptionalNumber(value: string | number | undefined): number 
 
 const DECIMAL_AMOUNT_RE = /^\d+(\.\d+)?$/;
 
-function parseAmount(value: string, decimals: number): string {
+/**
+ * Validates and normalizes a user-entered amount string. Returns the canonical
+ * decimal form (no commas) so equivalent inputs like `1,000.00` and `1000.00`
+ * map to the same value. Throws when the input is empty, has malformed
+ * thousand separators, or contains non-decimal characters.
+ */
+export function canonicalizeAmount(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) throw new Error('Enter a valid amount');
 
@@ -124,7 +130,11 @@ function parseAmount(value: string, decimals: number): string {
     throw new Error('Enter a valid amount');
   }
 
-  return parseUnits(normalized, decimals).toString();
+  return normalized;
+}
+
+function parseAmount(value: string, decimals: number): string {
+  return parseUnits(canonicalizeAmount(value), decimals).toString();
 }
 
 function hasValidThousandSeparators(value: string): boolean {

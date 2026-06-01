@@ -2,7 +2,7 @@ import { unstable_cache } from 'next/cache';
 import { chainService, quotesService } from '.';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 import type { QuoteBenchmarkResponse } from '~/lib/types';
-import { buildQuoteRequest } from '~/components/race-table/raceRows';
+import { buildQuoteRequest, canonicalizeAmount } from '~/components/race-table/raceRows';
 import { AssetSymbol } from '~/lib/assets';
 import { ChainId } from '~/lib/chains';
 import { withTimeout } from '~/lib/helpers';
@@ -23,8 +23,9 @@ export interface CachedRaceQuotesResult extends QuoteBenchmarkResponse {
 }
 
 /**
- * Module-level coalescing map. Two concurrent requests for the same key share
- * a single upstream call. Entries are cleared in `finally` regardless of outcome.
+ * Module-level coalescing map. The map holds the untimed upstream promise so a
+ * timeout on one caller does not let another start a duplicate fetch for the
+ * same key. Entries clear when the upstream call itself resolves or rejects.
  */
 const inflight = new Map<string, Promise<CachedRaceQuotesResult>>();
 
@@ -81,18 +82,20 @@ export async function getCachedRaceQuotes(
     chainsCache = Promise.resolve(chains);
   }
 
-  // Keep raw amount in the cache key so invalid inputs (e.g. `1,23`) fail
-  // downstream in `parseAmount` instead of being silently coerced.
-  const trimmed = { ...input, amount: input.amount.trim() };
-  const key = buildCacheKey(trimmed);
-  const existing = inflight.get(key);
-  if (existing) return existing;
+  // Validate and normalize the amount up-front: invalid inputs throw before
+  // they hit the cache, and `1000.00` / `1,000.00` collapse to the same key.
+  const canonical = { ...input, amount: canonicalizeAmount(input.amount) };
+  const key = buildCacheKey(canonical);
 
-  // Bound the upstream call so a hung fetch can't keep the inflight entry
-  // alive and starve every concurrent caller behind the same key.
-  const promise = withTimeout(cachedFetch(trimmed), UPSTREAM_TIMEOUT_MS, 'CACHED_QUOTES_TIMEOUT').finally(() => {
-    inflight.delete(key);
-  });
-  inflight.set(key, promise);
-  return promise;
+  let upstream = inflight.get(key);
+  if (!upstream) {
+    upstream = cachedFetch(canonical);
+    upstream.finally(() => inflight.delete(key));
+    inflight.set(key, upstream);
+  }
+
+  // Each caller gets a timeout-bounded view of the shared upstream call. A
+  // timeout only fails that caller; the underlying request keeps running and
+  // its inflight slot stays so concurrent callers don't trigger duplicate work.
+  return withTimeout(upstream, UPSTREAM_TIMEOUT_MS, 'CACHED_QUOTES_TIMEOUT');
 }
