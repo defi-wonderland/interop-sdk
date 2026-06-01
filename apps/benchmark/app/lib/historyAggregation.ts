@@ -27,8 +27,12 @@ export function aggregateProviderSamples(providerId: ProviderId, samples: readon
   }
 
   const fillCount = samples.length;
-  const filled = samples.filter((s) => s.status === 'success').length;
-  const successRate = filled / fillCount;
+  // Exclude pending samples from the success-rate denominator: services normalize
+  // in-flight states to 'pending' and counting them as failures would push the
+  // rate toward 0 for providers with mostly outstanding fills.
+  const resolved = samples.filter((s) => s.status !== 'pending');
+  const filled = resolved.filter((s) => s.status === 'success').length;
+  const successRate = resolved.length === 0 ? null : filled / resolved.length;
 
   const fillTimes = samples.map((s) => s.fillTimeSeconds).filter((v): v is number => v !== null);
   const fees = samples.map((s) => s.feeUsd).filter((v): v is number => v !== null);
