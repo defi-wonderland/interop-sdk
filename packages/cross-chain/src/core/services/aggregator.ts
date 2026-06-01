@@ -16,6 +16,7 @@ import type {
 } from "../types/assetDiscovery.js";
 import type { OrderTrackingInfo, WatchOrderParams } from "../types/orderTracking.js";
 import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception.js";
+import { DuplicateProvider } from "../errors/DuplicateProvider.exception.js";
 import { ProviderNotFound } from "../errors/ProviderNotFound.exception.js";
 import { ProviderTimeout } from "../errors/ProviderTimeout.exception.js";
 import { CrossChainProvider } from "../interfaces/crossChainProvider.interface.js";
@@ -51,7 +52,7 @@ const getDefaultSortingStrategy = (): SortingStrategy => new BestOutputStrategy(
  * Uses SDK-native types throughout.
  */
 class Aggregator {
-    private readonly providers: Record<string, CrossChainProvider>;
+    private readonly providers: Map<string, CrossChainProvider>;
     private readonly sortingStrategy: SortingStrategy;
     private readonly timeoutMs: number;
     private readonly trackerFactory: AggregatorConfig["trackerFactory"];
@@ -73,13 +74,14 @@ class Aggregator {
             discoveryFactory,
             approvalService,
         } = config;
-        this.providers = providers.reduce(
-            (acc, provider) => {
-                acc[provider.getProviderId()] = provider;
-                return acc;
-            },
-            {} as Record<string, CrossChainProvider>,
-        );
+        this.providers = new Map();
+        for (const provider of providers) {
+            const id = provider.getProviderId();
+            if (this.providers.has(id)) {
+                throw new DuplicateProvider(id);
+            }
+            this.providers.set(id, provider);
+        }
         this.sortingStrategy = sortingStrategy ?? getDefaultSortingStrategy();
         this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
         this.trackerFactory = trackerFactory;
@@ -156,7 +158,7 @@ class Aggregator {
      */
     async getQuotes(params: QuoteRequest): Promise<GetQuotesResponse> {
         const resultQuotes = await Promise.all(
-            Object.values(this.providers).map(async (provider) => {
+            [...this.providers.values()].map(async (provider) => {
                 const isSupported = await this.supportsRequestedAssets(provider, params);
                 if (!isSupported) {
                     return [];
@@ -228,7 +230,7 @@ class Aggregator {
     async submitOrder(quote: ExecutableQuote, signature: Hex): Promise<SubmitOrderResponse> {
         const providerId = quote._providerId;
 
-        const provider = this.providers[providerId];
+        const provider = this.providers.get(providerId);
         if (!provider) {
             throw new ProviderNotFound(providerId);
         }
@@ -248,7 +250,7 @@ class Aggregator {
      * @returns An executable quote containing a TransactionStep
      */
     async buildQuote(providerId: string, params: BuildQuoteRequest): Promise<ExecutableQuote> {
-        const provider = this.providers[providerId];
+        const provider = this.providers.get(providerId);
         if (!provider) {
             throw new ProviderNotFound(providerId);
         }
@@ -374,7 +376,7 @@ class Aggregator {
             return this.trackerCache.get(providerId)!;
         }
 
-        const provider = this.providers[providerId];
+        const provider = this.providers.get(providerId);
         if (!provider) {
             throw new ProviderNotFound(providerId);
         }

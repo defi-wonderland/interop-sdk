@@ -6,9 +6,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
     AcrossProvider,
     Aggregator,
+    BungeeProvider,
     createAggregator,
+    createCrossChainProvider,
+    DuplicateProvider,
     OrderTracker,
     OrderTrackerFactory,
+    RelayProvider,
 } from "../../src/external.js";
 import {
     CrossChainProvider,
@@ -177,16 +181,50 @@ describe("Aggregator", () => {
             const aggregator = createAggregator({
                 providers: [mockProviderA, mockProviderB],
             });
-            expect(
-                (
-                    aggregator as unknown as {
-                        providers: Record<string, CrossChainProvider>;
-                    }
-                ).providers,
-            ).toEqual({
-                mockProviderA: mockProviderA,
-                mockProviderB: mockProviderB,
+            const { providers } = aggregator as unknown as {
+                providers: Map<string, CrossChainProvider>;
+            };
+            expect(providers.get("mockProviderA")).toBe(mockProviderA);
+            expect(providers.get("mockProviderB")).toBe(mockProviderB);
+        });
+
+        it("instantiates providers passed as protocol name strings", () => {
+            const aggregator = createAggregator({
+                providers: ["across", "relay", "bungee"],
             });
+            const { providers } = aggregator as unknown as {
+                providers: Map<string, CrossChainProvider>;
+            };
+            expect(providers.get("across")).toBeInstanceOf(AcrossProvider);
+            expect(providers.get("relay")).toBeInstanceOf(RelayProvider);
+            expect(providers.get("bungee")).toBeInstanceOf(BungeeProvider);
+        });
+
+        it("accepts a mix of protocol name strings and provider instances", () => {
+            const aggregator = createAggregator({
+                providers: ["across", mockProviderA],
+            });
+            const { providers } = aggregator as unknown as {
+                providers: Map<string, CrossChainProvider>;
+            };
+            expect(providers.get("across")).toBeInstanceOf(AcrossProvider);
+            expect(providers.get("mockProviderA")).toBe(mockProviderA);
+        });
+
+        it("throws when a string and an instance resolve to the same providerId", () => {
+            expect(() =>
+                createAggregator({
+                    providers: ["relay", createCrossChainProvider("relay")],
+                }),
+            ).toThrow(DuplicateProvider);
+        });
+
+        it("treats reserved object keys as ordinary providerIds", () => {
+            const provider = {
+                protocolName: "reserved",
+                getProviderId: vi.fn(() => "toString"),
+            } as unknown as CrossChainProvider;
+            expect(() => createAggregator({ providers: [provider] })).not.toThrow();
         });
     });
 

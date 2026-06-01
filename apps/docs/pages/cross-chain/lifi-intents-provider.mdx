@@ -24,7 +24,7 @@ All quotes return **transaction steps** (user-pays-gas). The provider does not s
 
 | Field            | Type                         | Required | Description                                                    |
 | ---------------- | ---------------------------- | -------- | -------------------------------------------------------------- |
-| `orderServerUrl` | string                       | Yes      | LI.FI order server URL                                         |
+| `orderServerUrl` | string                       | No       | LI.FI order server URL (default: `https://order.li.fi`)        |
 | `providerId`     | string                       | No       | Custom provider identifier (default: `"lifi-intents"`)         |
 | `headers`        | Record&lt;string, string&gt; | No       | Custom HTTP headers sent with all requests to the order server |
 
@@ -33,14 +33,10 @@ All quotes return **transaction steps** (user-pays-gas). The provider does not s
 ### Mainnet
 
 ```ts twoslash
-import {
-    createCrossChainProvider,
-    LIFI_INTENTS_ORDER_SERVER_URL,
-} from "@wonderland/interop-cross-chain";
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
-const lifiProvider = createCrossChainProvider("lifi-intents", {
-    orderServerUrl: LIFI_INTENTS_ORDER_SERVER_URL, // https://order.li.fi
-});
+// orderServerUrl defaults to https://order.li.fi
+const lifiProvider = createCrossChainProvider("lifi-intents");
 ```
 
 ### Dev Environment
@@ -59,13 +55,9 @@ const lifiProvider = createCrossChainProvider("lifi-intents", {
 ### With Custom Headers
 
 ```typescript
-import {
-    createCrossChainProvider,
-    LIFI_INTENTS_ORDER_SERVER_URL,
-} from "@wonderland/interop-cross-chain";
+import { createCrossChainProvider } from "@wonderland/interop-cross-chain";
 
 const lifiProvider = createCrossChainProvider("lifi-intents", {
-    orderServerUrl: LIFI_INTENTS_ORDER_SERVER_URL,
     headers: { "x-api-key": "your-api-key" },
 });
 ```

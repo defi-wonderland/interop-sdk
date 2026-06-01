@@ -1,4 +1,5 @@
 import { useChainConfig } from '../../hooks/useNetworkConfig';
+import { truncateHash } from '../../utils/formatting';
 import { CheckIcon, ExternalLinkIcon, WarningIcon } from '../icons';
 import type { SuccessViewProps } from './types';
 
@@ -97,9 +98,7 @@ export function SuccessView({ state, providerId, onReset }: SuccessViewProps) {
               <span className='text-xs text-text-tertiary'>{originChain?.name ?? 'Unknown'}</span>
             </div>
             <div className='flex items-center justify-between text-text-tertiary group-hover:text-accent'>
-              <span className='text-sm font-mono'>
-                {openTxHash.slice(0, 10)}...{openTxHash.slice(-8)}
-              </span>
+              <span className='text-sm font-mono'>{truncateHash(openTxHash)}</span>
               <ExternalLinkIcon />
             </div>
           </a>
@@ -119,9 +118,7 @@ export function SuccessView({ state, providerId, onReset }: SuccessViewProps) {
               <span className='text-xs text-text-tertiary'>{destinationChain?.name ?? 'Unknown'}</span>
             </div>
             <div className='flex items-center justify-between text-text-tertiary group-hover:text-accent'>
-              <span className='text-sm font-mono'>
-                {fillTxHash.slice(0, 10)}...{fillTxHash.slice(-8)}
-              </span>
+              <span className='text-sm font-mono'>{truncateHash(fillTxHash)}</span>
               <ExternalLinkIcon />
             </div>
           </a>
