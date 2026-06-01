@@ -212,12 +212,12 @@ class Aggregator {
         ).then((results) => results.flat());
 
         const response = this.splitQuotesAndErrors(resultQuotes);
-        let sortedQuotes = this.sortingStrategy.sort(response.quotes);
 
+        let validatedQuotes = response.quotes;
         if (this.spenderValidator) {
             const validator = this.spenderValidator;
             const trusted: ExecutableQuote[] = [];
-            for (const quote of sortedQuotes) {
+            for (const quote of response.quotes) {
                 const violation = validator.findViolation(quote);
                 if (!violation) {
                     trusted.push(quote);
@@ -230,8 +230,10 @@ class Aggregator {
                     latencyMs: quote.latencyMs,
                 });
             }
-            sortedQuotes = trusted;
+            validatedQuotes = trusted;
         }
+
+        let sortedQuotes = this.sortingStrategy.sort(validatedQuotes);
 
         if (this.approvalService) {
             try {

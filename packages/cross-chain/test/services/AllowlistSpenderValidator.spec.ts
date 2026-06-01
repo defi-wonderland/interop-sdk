@@ -40,6 +40,12 @@ const txStep = (chainId: number, to: string): Step => ({
     transaction: { to, data: "0x" },
 });
 
+const approveShapedCall = (chainId: number, to: string, spender: string): Step => ({
+    kind: "transaction",
+    chainId,
+    transaction: { to, data: approveCalldata(spender) },
+});
+
 const permit2Step = (chainId: number, spender: string): Step => ({
     kind: "signature",
     chainId,
@@ -121,6 +127,19 @@ describe("AllowlistSpenderValidator", () => {
         expect(validator.findViolation(quote)?.field).toBe("transactionTo");
     });
 
+    it("validates the `to` of approve-shaped calldata that no approval check corroborates", () => {
+        const quote = makeQuote({ steps: [approveShapedCall(1, UNTRUSTED, TRUSTED)] });
+        expect(validator.findViolation(quote)?.field).toBe("transactionTo");
+    });
+
+    it("accepts an approve corroborated by a matching allowance check without a category tag", () => {
+        const quote = makeQuote({
+            steps: [approveShapedCall(1, TOKEN, TRUSTED)],
+            checks: { allowances: [allowance(1, TRUSTED)] },
+        });
+        expect(validator.findViolation(quote)).toBeNull();
+    });
+
     it("validates the spender from checks.allowances", () => {
         const quote = makeQuote({
             steps: [approvalStep(1, TRUSTED)],
@@ -179,6 +198,10 @@ describe("createSpenderValidator", () => {
         expect(() =>
             createSpenderValidator({ trustedSpenders: { 1: ["not-an-address"] } }),
         ).toThrow();
+    });
+
+    it("rejects an empty allowlist", () => {
+        expect(() => createSpenderValidator({ trustedSpenders: {} })).toThrow();
     });
 
     it("builds a validator that enforces the allowlist", () => {

@@ -124,6 +124,20 @@ describe("Aggregator with spenderValidator", () => {
             expect((errors[0]?.error as UntrustedSpender).field).toBe("transactionTo");
         });
 
+        it("reports untrusted quotes even when the sorting strategy drops them", async () => {
+            const aggregator = createAggregator({
+                providers: [getQuotesProvider("A", [spenderQuote(UNTRUSTED, "a")])],
+                sortingStrategy: { sort: () => [] },
+                spenderValidator: createSpenderValidator({ trustedSpenders: { 1: [TRUSTED] } }),
+            });
+
+            const { quotes, errors } = await aggregator.getQuotes(quoteParams);
+
+            expect(quotes).toHaveLength(0);
+            expect(errors).toHaveLength(1);
+            expect(errors[0]?.error).toBeInstanceOf(UntrustedSpender);
+        });
+
         it("returns every quote when no spenderValidator is set", async () => {
             const aggregator = createAggregator({
                 providers: [

@@ -7,5 +7,9 @@ export interface CreateSpenderValidatorConfig {
 }
 
 export function createSpenderValidator(config: CreateSpenderValidatorConfig): SpenderValidator {
-    return new AllowlistSpenderValidator(SpenderAllowlistSchema.parse(config.trustedSpenders));
+    const allowlist = SpenderAllowlistSchema.parse(config.trustedSpenders);
+    if (Object.keys(allowlist).length === 0) {
+        throw new Error("trustedSpenders must include at least one chain");
+    }
+    return new AllowlistSpenderValidator(allowlist);
 }

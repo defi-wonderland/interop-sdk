@@ -5,7 +5,7 @@ import type {
     SpenderValidator,
     SpenderViolation,
 } from "../interfaces/spenderValidator.interface.js";
-import type { SignatureStep, TransactionStep } from "../schemas/order.js";
+import type { OrderChecks, SignatureStep, TransactionStep } from "../schemas/order.js";
 import type { Quote } from "../schemas/quote.js";
 import type { SpenderAllowlist } from "../schemas/spenderAllowlist.js";
 import { EIP3009_PRIMARY_TYPES, PERMIT2_PRIMARY_TYPES } from "../constants/eip712.js";
@@ -45,27 +45,57 @@ export class AllowlistSpenderValidator implements SpenderValidator {
 }
 
 type Target = Omit<SpenderViolation, "trusted">;
+type Allowance = NonNullable<OrderChecks["allowances"]>[number];
 
 function collectTargets(quote: Quote): Target[] {
     const targets: Target[] = [];
+    const allowances = quote.order.checks?.allowances ?? [];
 
-    for (const allowance of quote.order.checks?.allowances ?? []) {
+    for (const allowance of allowances) {
         targets.push({ chainId: allowance.chainId, field: "spender", received: allowance.spender });
     }
 
     for (const step of quote.order.steps) {
-        targets.push(step.kind === "transaction" ? transactionTarget(step) : signatureTarget(step));
+        targets.push(
+            step.kind === "transaction"
+                ? transactionTarget(step, allowances)
+                : signatureTarget(step),
+        );
     }
 
     return targets;
 }
 
-/** Counterparty derived from the payload: the decoded `approve` spender, otherwise the call's `to`. */
-function transactionTarget(step: TransactionStep): Target {
+/** Counterparty for a transaction: the decoded `approve` spender on a corroborated approval, otherwise the call's `to`. */
+function transactionTarget(step: TransactionStep, allowances: Allowance[]): Target {
     const spender = decodeApproveSpender(step.transaction.data);
-    return spender
-        ? { chainId: step.chainId, field: "spender", received: spender }
-        : { chainId: step.chainId, field: "transactionTo", received: step.transaction.to };
+    if (spender && isCorroboratedApproval(step, spender, allowances)) {
+        return { chainId: step.chainId, field: "spender", received: spender };
+    }
+    return { chainId: step.chainId, field: "transactionTo", received: step.transaction.to };
+}
+
+/** An approve counts as one only when tagged `category: "approval"` or pinned by a matching allowance check; otherwise approve-shaped calldata to an untrusted `to` would skip the target check. */
+function isCorroboratedApproval(
+    step: TransactionStep,
+    spender: string,
+    allowances: Allowance[],
+): boolean {
+    if (step.category === "approval") return true;
+    return allowances.some(
+        (allowance) =>
+            allowance.chainId === step.chainId &&
+            addressesEqual(allowance.tokenAddress, step.transaction.to) &&
+            addressesEqual(allowance.spender, spender),
+    );
+}
+
+function addressesEqual(a: string, b: string): boolean {
+    try {
+        return isAddressEqual(getAddress(a), getAddress(b));
+    } catch {
+        return false;
+    }
 }
 
 /** Permit2 `spender` or EIP-3009 `to` from the message; any other signature is fail-closed. */
