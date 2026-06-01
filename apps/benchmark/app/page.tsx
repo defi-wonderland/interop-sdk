@@ -93,7 +93,7 @@ export default function Home() {
             index='02'
             label='provider leaderboard · 24h ambient'
             title='how providers performed across all routes'
-            rightSlot={<Label className={META_LABEL_CLASS}>pulled from each provider&rsquo;s public history api</Label>}
+            rightSlot={<Label className={META_LABEL_CLASS}>showing fixture data &middot; wire-up arrives next</Label>}
           />
           <Leaderboard metrics={MOCK_LEADERBOARD_METRICS} />
         </SectionFrame>
