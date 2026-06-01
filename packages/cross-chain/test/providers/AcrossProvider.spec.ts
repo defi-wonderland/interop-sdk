@@ -255,6 +255,19 @@ describe("AcrossProvider", () => {
 
             expect(quotes).toHaveLength(1);
         });
+
+        it("rejects cleanly when a response amount is not a valid integer", async () => {
+            const base = responseWithCalldata(encodeAcrossDeposit());
+            vi.mocked(httpRequest).mockResolvedValueOnce({
+                status: 200,
+                data: { ...base, inputAmount: "1.5" },
+                headers: new Headers(),
+            });
+
+            await expect(provider.getQuotes(exactInputRequest)).rejects.toThrow(
+                "Across calldata validation failed",
+            );
+        });
     });
 
     describe("fallbackToken", () => {

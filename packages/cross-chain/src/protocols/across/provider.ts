@@ -59,6 +59,7 @@ import {
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
     toCanonicalNativeAddress,
+    toNonNegativeBigInt,
     withNativePlaceholder,
 } from "../../internal.js";
 import { decodeAcrossCalldata } from "./utils.js";
@@ -316,8 +317,12 @@ export class AcrossProvider extends CrossChainProvider {
         if (!isAddressEqual(decoded.recipient as Address, recipient as Address)) return false;
         if (decoded.destinationChainId !== BigInt(output.chainId)) return false;
 
-        if (decoded.inputAmount !== BigInt(response.inputAmount)) return false;
-        if (decoded.outputAmount !== BigInt(response.minOutputAmount)) return false;
+        const responseInputAmount = toNonNegativeBigInt(response.inputAmount);
+        const responseMinOutputAmount = toNonNegativeBigInt(response.minOutputAmount);
+        if (responseInputAmount === undefined || responseMinOutputAmount === undefined)
+            return false;
+        if (decoded.inputAmount !== responseInputAmount) return false;
+        if (decoded.outputAmount !== responseMinOutputAmount) return false;
 
         if (input.amount !== undefined) {
             if (decoded.inputAmount !== BigInt(input.amount)) return false;
