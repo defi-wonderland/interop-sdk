@@ -355,7 +355,13 @@ Opt-in validation that drops quotes whose spender or transaction target is not o
     import { createSpenderValidator } from "@wonderland/interop-cross-chain";
 
     const spenderValidator = createSpenderValidator({
-        trustedSpenders: { 1: ["0xSettler", "0xPermit2"] },
+        // a trusted settler/router and Permit2 (same address on every chain)
+        trustedSpenders: {
+            1: [
+                "0x1111111111111111111111111111111111111111",
+                "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+            ],
+        },
     });
     ```
 
