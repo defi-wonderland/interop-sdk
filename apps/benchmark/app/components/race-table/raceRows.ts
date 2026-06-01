@@ -130,7 +130,12 @@ export function canonicalizeAmount(value: string): string {
     throw new Error('Enter a valid amount');
   }
 
-  return normalized;
+  // Collapse equivalent representations so `1`, `1.0`, `01.00`, `1.50`, `0.50`
+  // all canonicalize to the same string and share a cache entry downstream.
+  const [intPart, fracPart] = normalized.split('.');
+  const intCanonical = intPart.replace(/^0+/, '') || '0';
+  const fracCanonical = fracPart ? fracPart.replace(/0+$/, '') : '';
+  return fracCanonical ? `${intCanonical}.${fracCanonical}` : intCanonical;
 }
 
 function parseAmount(value: string, decimals: number): string {

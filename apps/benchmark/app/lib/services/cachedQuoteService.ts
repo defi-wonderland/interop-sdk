@@ -89,8 +89,11 @@ export async function getCachedRaceQuotes(
 
   let upstream = inflight.get(key);
   if (!upstream) {
-    upstream = cachedFetch(canonical);
-    upstream.finally(() => inflight.delete(key));
+    // Chain `.finally()` into the stored promise so the deletion runs and the
+    // result (or rejection) propagates through the same promise callers await.
+    // A detached `.finally()` would swallow the cleanup chain and surface
+    // upstream rejections as unhandled.
+    upstream = cachedFetch(canonical).finally(() => inflight.delete(key));
     inflight.set(key, upstream);
   }
 
