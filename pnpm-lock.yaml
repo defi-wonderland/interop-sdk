@@ -268,7 +268,7 @@ importers:
                 version: 12.39.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
             next:
                 specifier: 16.1.0
-                version: 16.1.0(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+                version: 16.1.0(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
             react:
                 specifier: 19.1.0
                 version: 19.1.0
@@ -280,7 +280,10 @@ importers:
                 version: 3.3.1
             viem:
                 specifier: 2.37.0
-                version: 2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76)
+                version: 2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@4.4.3)
+            zod:
+                specifier: 4.4.3
+                version: 4.4.3
             zustand:
                 specifier: 5.0.3
                 version: 5.0.3(@types/react@19.2.7)(react@19.1.0)(use-sync-external-store@1.6.0(react@19.1.0))
@@ -362,7 +365,7 @@ importers:
                 version: 19.1.0(react@19.1.0)
             vocs:
                 specifier: ^1.4.1
-                version: 1.4.1(@types/node@22.13.14)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(esbuild@0.27.2)(jiti@2.6.1)(lightningcss@1.32.0)(next@16.1.0(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react-router-dom@5.3.4(react@19.1.0))(react@19.1.0)(rollup@4.53.5)(terser@5.40.0)(typescript@5.6.2)
+                version: 1.4.1(@types/node@22.13.14)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(esbuild@0.27.2)(jiti@2.6.1)(lightningcss@1.32.0)(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react-router-dom@5.3.4(react@19.1.0))(react@19.1.0)(rollup@4.53.5)(terser@5.40.0)(typescript@5.6.2)
         devDependencies:
             "@types/react":
                 specifier: ^19.0.0
@@ -424,7 +427,7 @@ importers:
                 version: 2.1.1
             next:
                 specifier: 16.1.0
-                version: 16.1.0(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+                version: 16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
             react:
                 specifier: 19.1.0
                 version: 19.1.0
@@ -15410,7 +15413,7 @@ snapshots:
     "@eslint/config-array@0.21.1":
         dependencies:
             "@eslint/object-schema": 2.1.7
-            debug: 4.4.3(supports-color@8.1.1)
+            debug: 4.4.3
             minimatch: 3.1.2
         transitivePeerDependencies:
             - supports-color
@@ -15444,7 +15447,7 @@ snapshots:
     "@eslint/eslintrc@3.3.3":
         dependencies:
             ajv: 6.12.6
-            debug: 4.4.3(supports-color@8.1.1)
+            debug: 4.4.3
             espree: 10.4.0
             globals: 14.0.0
             ignore: 5.3.2
@@ -18655,7 +18658,7 @@ snapshots:
             "@typescript-eslint/types": 8.50.0
             "@typescript-eslint/typescript-estree": 8.50.0(typescript@5.6.2)
             "@typescript-eslint/visitor-keys": 8.50.0
-            debug: 4.4.3(supports-color@8.1.1)
+            debug: 4.4.3
             eslint: 9.39.2(jiti@2.6.1)
             typescript: 5.6.2
         transitivePeerDependencies:
@@ -18665,7 +18668,7 @@ snapshots:
         dependencies:
             "@typescript-eslint/tsconfig-utils": 8.50.0(typescript@5.6.2)
             "@typescript-eslint/types": 8.50.0
-            debug: 4.4.3(supports-color@8.1.1)
+            debug: 4.4.3
             typescript: 5.6.2
         transitivePeerDependencies:
             - supports-color
@@ -18701,7 +18704,7 @@ snapshots:
             "@typescript-eslint/types": 8.50.0
             "@typescript-eslint/typescript-estree": 8.50.0(typescript@5.6.2)
             "@typescript-eslint/utils": 8.50.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.6.2)
-            debug: 4.4.3(supports-color@8.1.1)
+            debug: 4.4.3
             eslint: 9.39.2(jiti@2.6.1)
             ts-api-utils: 2.1.0(typescript@5.6.2)
             typescript: 5.6.2
@@ -18733,7 +18736,7 @@ snapshots:
             "@typescript-eslint/tsconfig-utils": 8.50.0(typescript@5.6.2)
             "@typescript-eslint/types": 8.50.0
             "@typescript-eslint/visitor-keys": 8.50.0
-            debug: 4.4.3(supports-color@8.1.1)
+            debug: 4.4.3
             minimatch: 9.0.5
             semver: 7.7.3
             tinyglobby: 0.2.15
@@ -18913,7 +18916,7 @@ snapshots:
 
     "@vercel/analytics@1.6.1(next@16.1.0(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)":
         optionalDependencies:
-            next: 16.1.0(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+            next: 16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
             react: 19.1.0
 
     "@vitejs/plugin-react@5.2.0(vite@7.3.0(@types/node@22.13.14)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.40.0)(yaml@2.9.0))":
@@ -19405,6 +19408,11 @@ snapshots:
         optionalDependencies:
             typescript: 5.6.2
             zod: 3.25.76
+
+    abitype@1.0.8(typescript@5.6.2)(zod@4.4.3):
+        optionalDependencies:
+            typescript: 5.6.2
+            zod: 4.4.3
 
     abitype@1.2.3(typescript@5.6.2)(zod@3.25.76):
         optionalDependencies:
@@ -20210,6 +20218,10 @@ snapshots:
         dependencies:
             ms: 2.1.3
 
+    debug@4.4.3:
+        dependencies:
+            ms: 2.1.3
+
     debug@4.4.3(supports-color@8.1.1):
         dependencies:
             ms: 2.1.3
@@ -20802,7 +20814,7 @@ snapshots:
             ajv: 6.12.6
             chalk: 4.1.2
             cross-spawn: 7.0.6
-            debug: 4.4.3(supports-color@8.1.1)
+            debug: 4.4.3
             escape-string-regexp: 4.0.0
             eslint-scope: 8.4.0
             eslint-visitor-keys: 4.2.1
@@ -22829,7 +22841,7 @@ snapshots:
             - "@babel/core"
             - babel-plugin-macros
 
-    next@16.1.0(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+    next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
         dependencies:
             "@next/env": 16.1.0
             "@swc/helpers": 0.5.15
@@ -22838,7 +22850,33 @@ snapshots:
             postcss: 8.4.31
             react: 19.1.0
             react-dom: 19.1.0(react@19.1.0)
-            styled-jsx: 5.1.6(@babel/core@7.29.0)(react@19.1.0)
+            styled-jsx: 5.1.6(@babel/core@7.28.5)(react@19.1.0)
+        optionalDependencies:
+            "@next/swc-darwin-arm64": 16.1.0
+            "@next/swc-darwin-x64": 16.1.0
+            "@next/swc-linux-arm64-gnu": 16.1.0
+            "@next/swc-linux-arm64-musl": 16.1.0
+            "@next/swc-linux-x64-gnu": 16.1.0
+            "@next/swc-linux-x64-musl": 16.1.0
+            "@next/swc-win32-arm64-msvc": 16.1.0
+            "@next/swc-win32-x64-msvc": 16.1.0
+            "@opentelemetry/api": 1.9.0
+            "@playwright/test": 1.57.0
+            sharp: 0.34.5
+        transitivePeerDependencies:
+            - "@babel/core"
+            - babel-plugin-macros
+
+    next@16.1.0(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+        dependencies:
+            "@next/env": 16.1.0
+            "@swc/helpers": 0.5.15
+            baseline-browser-mapping: 2.9.10
+            caniuse-lite: 1.0.30001760
+            postcss: 8.4.31
+            react: 19.1.0
+            react-dom: 19.1.0(react@19.1.0)
+            styled-jsx: 5.1.6(react@19.1.0)
         optionalDependencies:
             "@next/swc-darwin-arm64": 16.1.0
             "@next/swc-darwin-x64": 16.1.0
@@ -22885,12 +22923,12 @@ snapshots:
         dependencies:
             boolbase: 1.0.0
 
-    nuqs@2.8.9(next@16.1.0(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-router-dom@5.3.4(react@19.1.0))(react-router@7.15.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0):
+    nuqs@2.8.9(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-router-dom@5.3.4(react@19.1.0))(react-router@7.15.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0):
         dependencies:
             "@standard-schema/spec": 1.0.0
             react: 19.1.0
         optionalDependencies:
-            next: 16.1.0(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+            next: 16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
             react-router: 7.15.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
             react-router-dom: 5.3.4(react@19.1.0)
 
@@ -23071,6 +23109,21 @@ snapshots:
             "@scure/bip32": 1.7.0
             "@scure/bip39": 1.6.0
             abitype: 1.2.3(typescript@5.6.2)(zod@3.25.76)
+            eventemitter3: 5.0.1
+        optionalDependencies:
+            typescript: 5.6.2
+        transitivePeerDependencies:
+            - zod
+
+    ox@0.9.3(typescript@5.6.2)(zod@4.4.3):
+        dependencies:
+            "@adraffy/ens-normalize": 1.11.0
+            "@noble/ciphers": 1.3.0
+            "@noble/curves": 1.9.1
+            "@noble/hashes": 1.8.0
+            "@scure/bip32": 1.7.0
+            "@scure/bip39": 1.6.0
+            abitype: 1.2.3(typescript@5.6.2)(zod@4.4.3)
             eventemitter3: 5.0.1
         optionalDependencies:
             typescript: 5.6.2
@@ -24281,12 +24334,17 @@ snapshots:
         dependencies:
             inline-style-parser: 0.2.7
 
-    styled-jsx@5.1.6(@babel/core@7.29.0)(react@19.1.0):
+    styled-jsx@5.1.6(@babel/core@7.28.5)(react@19.1.0):
         dependencies:
             client-only: 0.0.1
             react: 19.1.0
         optionalDependencies:
-            "@babel/core": 7.29.0
+            "@babel/core": 7.28.5
+
+    styled-jsx@5.1.6(react@19.1.0):
+        dependencies:
+            client-only: 0.0.1
+            react: 19.1.0
 
     styled-jsx@5.1.6(react@19.2.0):
         dependencies:
@@ -24898,6 +24956,23 @@ snapshots:
             - utf-8-validate
             - zod
 
+    viem@2.37.0(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@4.4.3):
+        dependencies:
+            "@noble/curves": 1.9.1
+            "@noble/hashes": 1.8.0
+            "@scure/bip32": 1.7.0
+            "@scure/bip39": 1.6.0
+            abitype: 1.0.8(typescript@5.6.2)(zod@4.4.3)
+            isows: 1.0.7(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))
+            ox: 0.9.3(typescript@5.6.2)(zod@4.4.3)
+            ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+        optionalDependencies:
+            typescript: 5.6.2
+        transitivePeerDependencies:
+            - bufferutil
+            - utf-8-validate
+            - zod
+
     viem@2.48.8(bufferutil@4.0.9)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.25.76):
         dependencies:
             "@noble/curves": 1.9.1
@@ -25040,7 +25115,7 @@ snapshots:
             - tsx
             - yaml
 
-    vocs@1.4.1(@types/node@22.13.14)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(esbuild@0.27.2)(jiti@2.6.1)(lightningcss@1.32.0)(next@16.1.0(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react-router-dom@5.3.4(react@19.1.0))(react@19.1.0)(rollup@4.53.5)(terser@5.40.0)(typescript@5.6.2):
+    vocs@1.4.1(@types/node@22.13.14)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(esbuild@0.27.2)(jiti@2.6.1)(lightningcss@1.32.0)(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react-router-dom@5.3.4(react@19.1.0))(react@19.1.0)(rollup@4.53.5)(terser@5.40.0)(typescript@5.6.2):
         dependencies:
             "@floating-ui/react": 0.27.19(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
             "@hono/node-server": 1.19.14(hono@4.12.18)
@@ -25084,7 +25159,7 @@ snapshots:
             mdast-util-to-hast: 13.2.1
             mdast-util-to-markdown: 2.1.2
             minisearch: 7.2.0
-            nuqs: 2.8.9(next@16.1.0(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-router-dom@5.3.4(react@19.1.0))(react-router@7.15.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
+            nuqs: 2.8.9(next@16.1.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-router-dom@5.3.4(react@19.1.0))(react-router@7.15.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
             ora: 7.0.1
             p-limit: 5.0.0
             picomatch: 4.0.3

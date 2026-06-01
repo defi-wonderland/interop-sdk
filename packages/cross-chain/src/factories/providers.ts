@@ -29,4 +29,5 @@ export type SupportedProtocolsConfigs<P extends SupportedProtocols> = {
 export type OptionalConfigProtocols =
     | typeof PROTOCOLS.ACROSS
     | typeof PROTOCOLS.RELAY
-    | typeof PROTOCOLS.BUNGEE;
+    | typeof PROTOCOLS.BUNGEE
+    | typeof PROTOCOLS.LIFI_INTENTS;

@@ -27,7 +27,7 @@ export function aggregateProviderSamples(providerId: ProviderId, samples: readon
   }
 
   const fillCount = samples.length;
-  const filled = samples.filter((s) => s.status === 'filled').length;
+  const filled = samples.filter((s) => s.status === 'success').length;
   const successRate = filled / fillCount;
 
   const fillTimes = samples.map((s) => s.fillTimeSeconds).filter((v): v is number => v !== null);
