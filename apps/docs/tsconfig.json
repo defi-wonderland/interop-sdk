@@ -13,6 +13,6 @@
         "noEmit": true,
         "baseUrl": "."
     },
-    "include": ["pages", "components", "vocs.config.ts"],
-    "exclude": ["node_modules", "build", "dist", ".vocs"]
+    "include": ["src", "vocs.config.ts"],
+    "exclude": ["node_modules", "build", "dist", ".vocs", ".vercel", "src/pages.gen.ts"]
 }

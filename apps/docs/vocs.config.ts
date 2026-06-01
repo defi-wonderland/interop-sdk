@@ -1,8 +1,13 @@
-import { defineConfig } from "vocs";
+import { defineConfig } from "vocs/config";
 
 const docsUrl = "https://docs.interop.wonderland.xyz";
-const wonderlandLogoUrl = `${docsUrl}/wonderland.svg`;
-const ogImageUrl = `https://vocs.dev/api/og?logo=${encodeURIComponent(wonderlandLogoUrl)}&title=%title&description=%description`;
+
+const baseUrl =
+    process.env.VERCEL_ENV === "production"
+        ? docsUrl
+        : process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : docsUrl;
 
 export default defineConfig({
     title: "Interop SDK",
@@ -10,9 +15,10 @@ export default defineConfig({
         "Build multichain applications with interoperable addresses and cross-chain transfer tooling.",
     titleTemplate: "%s · Interop SDK",
     rootDir: ".",
-    baseUrl: docsUrl,
+    baseUrl,
     iconUrl: "/eth-diamond-rainbow.svg",
     logoUrl: "/eth-diamond-rainbow.svg",
+    accentColor: "light-dark(#3441c0, #7f8cff)",
     socials: [
         {
             icon: "github",
@@ -20,32 +26,13 @@ export default defineConfig({
         },
     ],
     editLink: {
-        pattern: "https://github.com/defi-wonderland/interop-sdk/edit/main/apps/docs/pages/:path",
+        link: "https://github.com/defi-wonderland/interop-sdk/edit/main/apps/docs/src/pages/:path",
         text: "Edit on GitHub",
     },
-    theme: {
-        accentColor: "#3441c0",
-        variables: {
-            color: {
-                backgroundAccent: { light: "#3441c0", dark: "#7f8cff" },
-                backgroundAccentHover: { light: "#2d35a2", dark: "#a8b1ff" },
-                backgroundAccentText: { light: "#ffffff", dark: "#080a20" },
-                borderAccent: { light: "#3441c0", dark: "#7f8cff" },
-            },
-        },
-    },
-    ogImageUrl: {
-        "/": ogImageUrl,
-    },
-    llms: {
-        generateMarkdown: true,
-    },
-    markdown: {
-        code: {
-            themes: {
-                light: "github-light",
-                dark: "github-dark",
-            },
+    codeHighlight: {
+        themes: {
+            light: "github-light",
+            dark: "github-dark",
         },
     },
     sidebar: [
