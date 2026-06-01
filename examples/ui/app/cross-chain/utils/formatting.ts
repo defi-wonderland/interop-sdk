@@ -101,6 +101,16 @@ export function truncateAddress(address: string): string {
 }
 
 /**
+ * Truncates a transaction hash to show first 10 and last 8 characters
+ * @param hash - Full transaction hash
+ * @returns Truncated hash (e.g., "0x12345678…90abcdef")
+ */
+export function truncateHash(hash: string): string {
+  if (hash.length <= 18) return hash;
+  return `${hash.slice(0, 10)}…${hash.slice(-8)}`;
+}
+
+/**
  * Formats a date to a human-readable string
  * @param date - Date object or ISO string
  * @returns Formatted date string (e.g., "Jan 13, 2026 at 8:17 PM")
