@@ -45,13 +45,11 @@ export function aggregateProviderSamples(providerId: ProviderId, samples: readon
 }
 
 export function sortLeaderboardBySuccess(metrics: readonly ProviderMetrics[]): ProviderMetrics[] {
+  // Compare via `<`/`>` instead of subtraction: when two providers both lack a
+  // success rate, `-Infinity - -Infinity` is NaN and a NaN comparator returns
+  // undefined sort behavior in V8.
+  const compare = (a: number, b: number): number => (a > b ? -1 : a < b ? 1 : 0);
   const score = (m: ProviderMetrics): number => m.successRate ?? -Infinity;
   const activity = (m: ProviderMetrics): number => m.fillCount ?? -1;
-  return [...metrics].sort((a, b) => {
-    const bySuccess = score(b) - score(a);
-    if (bySuccess !== 0) return bySuccess;
-    // Tie on success rate (or both null) → break by activity so the more
-    // exercised provider lands higher; deterministic regardless of input order.
-    return activity(b) - activity(a);
-  });
+  return [...metrics].sort((a, b) => compare(score(a), score(b)) || compare(activity(a), activity(b)));
 }
