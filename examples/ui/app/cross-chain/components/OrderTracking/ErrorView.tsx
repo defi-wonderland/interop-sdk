@@ -1,6 +1,6 @@
 import { useChainConfig } from '../../hooks/useNetworkConfig';
 import { STEP } from '../../types/execution';
-import { formatMessageWithDate } from '../../utils/formatting';
+import { formatMessageWithDate, truncateHash } from '../../utils/formatting';
 import { CloseIcon, ExternalLinkIcon } from '../icons';
 import type { ErrorViewProps } from './types';
 
@@ -85,9 +85,7 @@ export function ErrorView({ state, onReset }: ErrorViewProps) {
             </span>
           </div>
           <div className={`flex items-center gap-2 ${linkHoverText}`}>
-            <span className='text-xs font-mono'>
-              {originTxHash.slice(0, 10)}...{originTxHash.slice(-8)}
-            </span>
+            <span className='text-xs font-mono'>{truncateHash(originTxHash)}</span>
             <ExternalLinkIcon />
           </div>
         </a>
