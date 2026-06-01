@@ -19,7 +19,10 @@ import { getCachedRaceQuotes } from './lib/services/cachedQuoteService';
 import type { RaceRow } from './components/race-table/types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 
-export const revalidate = 3600;
+// Aligned with `CACHE_TTL_SECONDS` in `cachedQuoteService` so the SSR HTML and
+// the underlying quote cache rotate in lockstep. A longer ISR window would
+// freeze the rendered latencies for up to an hour after a single sample.
+export const revalidate = 30;
 
 const META_LABEL_CLASS = 'font-mono text-label text-text-muted';
 const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-chain';
