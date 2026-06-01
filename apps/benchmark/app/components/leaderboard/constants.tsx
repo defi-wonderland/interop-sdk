@@ -55,6 +55,7 @@ export const LEADERBOARD_COLUMNS: readonly LeaderboardColumn[] = [
     label: 'P50 FILL',
     className: 'hidden text-right md:table-cell md:w-32',
     tdClass: `${NUM_CELL_HIDDEN} text-text-primary`,
+    tooltip: 'Median fill time. Half of fills finish faster than this, half slower.',
     render: (metrics) => formatFillSeconds(metrics.p50FillSeconds),
   },
   {
@@ -62,6 +63,7 @@ export const LEADERBOARD_COLUMNS: readonly LeaderboardColumn[] = [
     label: 'P99 FILL',
     className: 'hidden text-right md:table-cell md:w-32',
     tdClass: `${NUM_CELL_HIDDEN} text-text-secondary`,
+    tooltip: 'Worst-case fill time. Only 1 in 100 fills is slower than this.',
     render: (metrics) => formatFillSeconds(metrics.p99FillSeconds),
   },
   {
