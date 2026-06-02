@@ -78,7 +78,7 @@ response.errors.forEach((error) => {
 });
 ```
 
-For more details on the Aggregator configuration, see the [API Reference](./api#aggregator).
+For more details on the Aggregator configuration, see the [API Reference](/cross-chain/api#aggregator).
 
 ## Automatic ERC-20 Approvals
 
@@ -174,7 +174,7 @@ The approval service can only enrich a quote whose provider declares its allowan
 -   **OIF `oif-escrow-v0`** (Permit2-based gasless) — populated: the adapter parses the EIP-712 payload and surfaces a Permit2 allowance entry so the first-time `approve(PERMIT2, ...)` is prepended automatically. Pair with `InfiniteAmountStrategy` (see above) to avoid re-approving on every order, since Permit2 consumes the ERC-20 allowance on each pull.
 -   **OIF `oif-3009-v0`, `oif-resource-lock-v0`** — not populated, and correctly so: EIP-3009 and resource-lock flows don't use ERC-20 `approve`.
 
-For the full API reference see [Approval Service](./api#approval-service).
+For the full API reference see [Approval Service](/cross-chain/api#approval-service).
 
 ## Order Tracking
 
@@ -229,7 +229,7 @@ if (status.fillEvent) {
 }
 ```
 
-For more details, see [Order Tracking](./intent-tracking).
+For more details, see [Order Tracking](/cross-chain/intent-tracking).
 
 ## Exact-input vs. exact-output swaps
 
@@ -314,6 +314,6 @@ try {
 
 ## Next steps
 
--   [API Reference](./api) — complete function signatures and types
--   [Concepts](./concepts) — understand the architecture and provider trade-offs
--   [Order Tracking](./intent-tracking) — detailed tracking patterns and provider notes
+-   [API Reference](/cross-chain/api) — complete function signatures and types
+-   [Concepts](/cross-chain/concepts) — understand the architecture and provider trade-offs
+-   [Order Tracking](/cross-chain/intent-tracking) — detailed tracking patterns and provider notes

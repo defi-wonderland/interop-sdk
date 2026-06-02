@@ -11,11 +11,11 @@ This document lists all cross-chain providers supported by the Interop SDK.
 
 | Provider                                | Status | Description                                               |
 | --------------------------------------- | ------ | --------------------------------------------------------- |
-| [Across Protocol](./across-provider)    | Active | Cross-chain token transfers using Across bridge           |
-| [Relay Protocol](./relay-provider)      | Active | Cross-chain token transfers using Relay bridge            |
-| [OIF](./oif-provider)                   | Active | Direct integration with OIF-compliant solvers             |
-| [Bungee Protocol](./bungee-provider)    | Active | Cross-chain transfers via onchain or gasless permit2 flow |
-| [LiFi Intents](./lifi-intents-provider) | Active | Cross-chain via LiFi intent solver marketplace            |
+| [Across Protocol](/cross-chain/across-provider)    | Active | Cross-chain token transfers using Across bridge           |
+| [Relay Protocol](/cross-chain/relay-provider)      | Active | Cross-chain token transfers using Relay bridge            |
+| [OIF](/cross-chain/oif-provider)                   | Active | Direct integration with OIF-compliant solvers             |
+| [Bungee Protocol](/cross-chain/bungee-provider)    | Active | Cross-chain transfers via onchain or gasless permit2 flow |
+| [LiFi Intents](/cross-chain/lifi-intents-provider) | Active | Cross-chain via LiFi intent solver marketplace            |
 
 ## Provider Configuration
 
@@ -54,7 +54,7 @@ createCrossChainProvider("bungee", {
 | `lifi-intents` | (none)            | `orderServerUrl`, `providerId`, `headers`                                                                                                             |
 | `bungee`       | (none)            | `tier`, `apiKey`, `affiliateId`, `feeBps`, `feeTakerAddress`, `submissionModes`, `slippage`, `refuel`, `enableOtherProviders`, `enableMultipleRoutes` |
 
-The optional-config protocols (`across`, `relay`, `bungee`, `lifi-intents`) can also be passed to `createAggregator` by name to get defaults — see [Compare quotes from multiple providers](./getting-started#compare-quotes-from-multiple-providers). Use `createCrossChainProvider` when you need custom config.
+The optional-config protocols (`across`, `relay`, `bungee`, `lifi-intents`) can also be passed to `createAggregator` by name to get defaults — see [Compare quotes from multiple providers](/cross-chain/getting-started#compare-quotes-from-multiple-providers). Use `createCrossChainProvider` when you need custom config.
 
 ## `isTestnet` semantics
 
@@ -127,11 +127,11 @@ class MyCustomProvider extends CrossChainProvider {
 }
 ```
 
-See the [API Reference](./api) for the full `Quote`, `QuoteRequest`, and tracking config types.
+See the [API Reference](/cross-chain/api) for the full `Quote`, `QuoteRequest`, and tracking config types.
 
 ## References
 
--   [API Reference](./api)
--   [Getting Started](./getting-started) — tutorial for your first cross-chain transfer
--   [Concepts](./concepts) — how providers fit into the intent architecture
--   [Advanced Usage](./advanced-usage) — aggregation, sorting, and error handling
+-   [API Reference](/cross-chain/api)
+-   [Getting Started](/cross-chain/getting-started) — tutorial for your first cross-chain transfer
+-   [Concepts](/cross-chain/concepts) — how providers fit into the intent architecture
+-   [Advanced Usage](/cross-chain/advanced-usage) — aggregation, sorting, and error handling

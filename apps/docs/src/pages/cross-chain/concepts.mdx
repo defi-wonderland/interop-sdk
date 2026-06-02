@@ -95,11 +95,11 @@ A provider is an adapter that translates the SDK's standardized `QuoteRequest` i
 
 | Provider                                | Status | Execution Modes                         | Tracking                        |
 | --------------------------------------- | ------ | --------------------------------------- | ------------------------------- |
-| [Across](./across-provider)             | Active | User (transaction)                      | API (mainnet), Events (testnet) |
-| [Relay](./relay-provider)               | Active | User (transaction)                      | API-based                       |
-| [OIF](./oif-provider)                   | Active | Protocol + User                         | Event-based                     |
-| [Bungee](./bungee-provider)             | Active | User (transaction) + Protocol (permit2) | API-based                       |
-| [LiFi Intents](./lifi-intents-provider) | Active | User (transaction)                      | Custom event + API              |
+| [Across](/cross-chain/across-provider)             | Active | User (transaction)                      | API (mainnet), Events (testnet) |
+| [Relay](/cross-chain/relay-provider)               | Active | User (transaction)                      | API-based                       |
+| [OIF](/cross-chain/oif-provider)                   | Active | Protocol + User                         | Event-based                     |
+| [Bungee](/cross-chain/bungee-provider)             | Active | User (transaction) + Protocol (permit2) | API-based                       |
+| [LiFi Intents](/cross-chain/lifi-intents-provider) | Active | User (transaction)                      | Custom event + API              |
 
 ### Choosing a provider
 
@@ -115,7 +115,7 @@ The `Aggregator` fetches quotes from multiple providers in parallel and returns 
 
 The aggregator also collects errors from individual providers, so you can show partial results even when some providers fail.
 
-Optionally, the aggregator can enrich sorted quotes with ERC-20 approval steps: configure an `approvalService` and every quote returned will already have any required `approve` `TransactionStep` prepended to `order.steps`. See [Automatic ERC-20 Approvals](./advanced-usage#automatic-erc-20-approvals).
+Optionally, the aggregator can enrich sorted quotes with ERC-20 approval steps: configure an `approvalService` and every quote returned will already have any required `approve` `TransactionStep` prepended to `order.steps`. See [Automatic ERC-20 Approvals](/cross-chain/advanced-usage#automatic-erc-20-approvals).
 
 ## Order tracking
 
@@ -130,7 +130,7 @@ Tracking works through two mechanisms:
 -   **Event-based**: Parse an open event on the origin chain — a provider-specific event in every case (SpokePool `V3FundsDeposited` for Across, the OIF settler `Open` event for OIF, a custom event for LiFi Intents) — which the SDK maps into an ERC-7683/OIF-shaped `OpenedIntent`. Fill detection may be on-chain or API-based depending on the provider, so an origin-chain RPC URL is always required, but a destination-chain RPC URL is only needed when the provider uses an on-chain fill watcher (e.g. Across testnet).
 -   **API-based**: Poll a provider's status endpoint. Simpler setup, no destination-chain RPC needed.
 
-The tracking mechanism is determined by the provider. See [Order Tracking](./intent-tracking) for usage details.
+The tracking mechanism is determined by the provider. See [Order Tracking](/cross-chain/intent-tracking) for usage details.
 
 ## References
 
