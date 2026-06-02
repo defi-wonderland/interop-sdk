@@ -108,7 +108,13 @@ async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
     );
     if (response.quotes.length === 0) return orderRaceRows(createRows('idle'));
     return orderRaceRows(buildRowsFromQuotes(response.quotes, response.errors));
-  } catch {
+  } catch (error) {
+    console.error('[benchmark] initial race failed', {
+      error,
+      fromChainId: INITIAL_FROM_CHAIN_ID,
+      toChainId: INITIAL_TO_CHAIN_ID,
+      assetSymbol: INITIAL_ASSET_SYMBOL,
+    });
     noStore();
     return orderRaceRows(createRows('idle'));
   }
