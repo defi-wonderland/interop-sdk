@@ -14,7 +14,6 @@ import {
 import { OIF_ADDRESSES } from "../mocks/fixtures.js";
 import {
     AMOUNTS,
-    ATTACKER_ADDRESSES,
     ATTACKER_INTEROP_ADDRESSES,
     getMockedOifQuoteResponse,
     getMockedOifResourceLockQuoteResponse,
@@ -179,17 +178,17 @@ describe("OifProvider", () => {
             );
         });
 
-        it("rejects an escrow quote that smuggles an extra permitted entry", async () => {
+        it("rejects an escrow quote that smuggles an extra permitted entry reusing the verified token", async () => {
             vi.mocked(httpRequest).mockResolvedValue({
                 status: 200,
                 data: getMockedOifQuoteResponse({
-                    extraPermitted: [{ token: ATTACKER_ADDRESSES.TOKEN, amount: AMOUNTS.STOLEN }],
+                    extraPermitted: [{ token: OIF_ADDRESSES.TOKEN, amount: "0" }],
                 }),
                 headers: new Headers(),
             });
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
-                ProviderGetQuoteFailure,
+                UnverifiedOrderEntries,
             );
         });
 
