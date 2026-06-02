@@ -12,21 +12,13 @@ import type { Address } from "viem";
 import { getAddress } from "viem";
 
 import type { AllowanceCheck } from "../../../core/interfaces/approval.interface.js";
-
-/** Permit2 is deployed at the same address on every EVM chain. */
-const PERMIT2_ADDRESS = getAddress("0x000000000022D473030F116dDEE9F6B43aC78BA3");
+import {
+    PERMIT2_ADDRESS,
+    PERMIT2_BATCH_PRIMARY_TYPES,
+    PERMIT2_SINGLE_PRIMARY_TYPES,
+} from "../../../core/constants/eip712.js";
 
 const LOG_PREFIX = "[permit2AllowanceExtractor]";
-
-const SINGLE_PERMIT_TYPES: ReadonlySet<string> = new Set([
-    "PermitTransferFrom",
-    "PermitWitnessTransferFrom",
-]);
-
-const BATCH_PERMIT_TYPES: ReadonlySet<string> = new Set([
-    "PermitBatchTransferFrom",
-    "PermitBatchWitnessTransferFrom",
-]);
 
 type EscrowPayload = OifEscrowOrder["payload"];
 
@@ -65,8 +57,8 @@ function readPermittedEntries(payload: EscrowPayload): TokenPermission[] {
         permitted: TokenPermission | TokenPermission[];
     };
 
-    if (SINGLE_PERMIT_TYPES.has(primaryType)) return [permitted as TokenPermission];
-    if (BATCH_PERMIT_TYPES.has(primaryType)) return permitted as TokenPermission[];
+    if (PERMIT2_SINGLE_PRIMARY_TYPES.has(primaryType)) return [permitted as TokenPermission];
+    if (PERMIT2_BATCH_PRIMARY_TYPES.has(primaryType)) return permitted as TokenPermission[];
 
     console.warn(`${LOG_PREFIX} Unknown primaryType: ${primaryType}`);
     return [];

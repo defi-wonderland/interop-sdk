@@ -254,13 +254,19 @@ const provider = createCrossChainProvider("bungee", {
     slippage: "0.5", // 0.5% slippage tolerance
     refuel: true, // native gas on destination chain
     affiliateId: "your-affiliate-id",
+    enableOtherProviders: true, // also return manual routes
     enableMultipleRoutes: true, // return several route alternatives per quote (default: false)
 });
 ```
 
+### Manual Routes (Bungee)
+
+With `enableOtherProviders: true`, `getQuotes` returns Bungee's auto routes plus one `Quote` per manual route — i.e. routes served by other bridges accessible through Bungee. Each manual route is built eagerly via `GET /api/v1/bungee/build-tx` so the quote ships with an executable `TransactionStep`. If one bridge's `build-tx` fails, the auto route and the remaining manual routes are still returned. The build response and the manual route entry are exposed on `quote.metadata.bungeeBuildTx` and `quote.metadata.bungeeManualRoute`.
+
 ### Tracking Notes (Bungee)
 
 -   Bungee tracking is fully **API-based** using the `/api/v1/bungee/status` endpoint.
+-   Auto routes are tracked by `requestHash` (set as `quote.tracking.orderId`); manual routes have no `requestHash` and are tracked by the on-chain `txHash` instead.
 -   Both opened intent parsing and fill watching use API polling with a 5-second interval.
 -   No RPC URLs are required for Bungee tracking.
 

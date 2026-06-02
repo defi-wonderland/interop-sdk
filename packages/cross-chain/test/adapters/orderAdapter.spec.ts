@@ -1,6 +1,9 @@
+import type { Hex } from "viem";
 import { encodeAddress } from "@wonderland/interop-addresses";
+import { pad } from "viem";
 import { describe, expect, it } from "vitest";
 
+import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
 import { adaptOifOrder } from "../../src/protocols/oif/adapters/orderAdapter.js";
 
 function toErc7930(chainId: number, address: string): string {
@@ -10,11 +13,80 @@ function toErc7930(chainId: number, address: string): string {
     ) as string;
 }
 
-const MOCK_EIP712_TYPES = {
+const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const USDC_MAINNET = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const USDT_MAINNET = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+const USER = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
+const RECIPIENT = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8";
+const SETTLER = "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10";
+const FUTURE_DEADLINE = Math.floor(Date.now() / 1000) + 3600;
+
+const bytes32 = (addr: string): Hex => pad(addr as Hex, { size: 32 });
+
+const mockParams = (overrides: Partial<QuoteRequest> = {}): QuoteRequest => ({
+    user: USER,
+    input: { chainId: 1, assetAddress: USDC_MAINNET, amount: "1000000" },
+    output: {
+        chainId: 10,
+        assetAddress: USDT_MAINNET,
+        amount: "990000",
+        recipient: RECIPIENT,
+    },
+    ...overrides,
+});
+
+const VALID_PERMIT2_TYPES = {
     PermitBatchWitnessTransferFrom: [
         { name: "permitted", type: "TokenPermissions[]" },
         { name: "spender", type: "address" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" },
+        { name: "witness", type: "Permit2Witness" },
     ],
+    Permit2Witness: [
+        { name: "user", type: "address" },
+        { name: "expires", type: "uint32" },
+        { name: "inputOracle", type: "address" },
+        { name: "outputs", type: "MandateOutput[]" },
+    ],
+    MandateOutput: [
+        { name: "oracle", type: "bytes32" },
+        { name: "settler", type: "bytes32" },
+        { name: "chainId", type: "uint256" },
+        { name: "token", type: "bytes32" },
+        { name: "amount", type: "uint256" },
+        { name: "recipient", type: "bytes32" },
+        { name: "callbackData", type: "bytes" },
+        { name: "context", type: "bytes" },
+    ],
+    TokenPermissions: [
+        { name: "token", type: "address" },
+        { name: "amount", type: "uint256" },
+    ],
+};
+
+const VALID_PERMIT2_MESSAGE = {
+    permitted: [{ token: USDC_MAINNET, amount: "1000000" }],
+    spender: SETTLER,
+    nonce: "123",
+    deadline: FUTURE_DEADLINE,
+    witness: {
+        user: USER,
+        expires: FUTURE_DEADLINE,
+        inputOracle: SETTLER,
+        outputs: [
+            {
+                oracle: bytes32(SETTLER),
+                settler: bytes32(SETTLER),
+                chainId: 10,
+                token: bytes32(USDT_MAINNET),
+                amount: "990000",
+                recipient: bytes32(RECIPIENT),
+                callbackData: "0x",
+                context: "0x",
+            },
+        ],
+    },
 };
 
 describe("orderAdapter", () => {
@@ -24,14 +96,14 @@ describe("orderAdapter", () => {
                 type: "oif-escrow-v0" as const,
                 payload: {
                     signatureType: "eip712" as const,
-                    domain: { name: "Permit2", version: "1", chainId: 1 },
+                    domain: { name: "Permit2", chainId: 1, verifyingContract: PERMIT2 },
                     primaryType: "PermitBatchWitnessTransferFrom",
-                    types: MOCK_EIP712_TYPES,
-                    message: { spender: "0xabc", nonce: "123" },
+                    types: VALID_PERMIT2_TYPES,
+                    message: VALID_PERMIT2_MESSAGE,
                 },
             };
 
-            const result = adaptOifOrder(oifOrder);
+            const result = adaptOifOrder(oifOrder, mockParams());
 
             expect(result.steps).toHaveLength(1);
             expect(result.steps[0]!.kind).toBe("signature");
@@ -50,14 +122,19 @@ describe("orderAdapter", () => {
                 type: "oif-escrow-v0" as const,
                 payload: {
                     signatureType: "eip712" as const,
-                    domain: { chainId: 42161 },
-                    primaryType: "Test",
-                    types: {},
-                    message: {},
+                    domain: { chainId: 42161, verifyingContract: PERMIT2 },
+                    primaryType: "PermitBatchWitnessTransferFrom",
+                    types: VALID_PERMIT2_TYPES,
+                    message: VALID_PERMIT2_MESSAGE,
                 },
             };
 
-            const result = adaptOifOrder(oifOrder);
+            const result = adaptOifOrder(
+                oifOrder,
+                mockParams({
+                    input: { chainId: 42161, assetAddress: USDC_MAINNET, amount: "1000000" },
+                }),
+            );
             expect(result.steps[0]!.chainId).toBe(42161);
         });
 
@@ -66,31 +143,34 @@ describe("orderAdapter", () => {
                 type: "oif-escrow-v0" as const,
                 payload: {
                     signatureType: "eip712" as const,
-                    domain: { chainId: "137" },
-                    primaryType: "Test",
-                    types: {},
-                    message: {},
+                    domain: { chainId: "137", verifyingContract: PERMIT2 },
+                    primaryType: "PermitBatchWitnessTransferFrom",
+                    types: VALID_PERMIT2_TYPES,
+                    message: VALID_PERMIT2_MESSAGE,
                 },
             };
 
-            const result = adaptOifOrder(oifOrder);
+            const result = adaptOifOrder(
+                oifOrder,
+                mockParams({
+                    input: { chainId: 137, assetAddress: USDC_MAINNET, amount: "1000000" },
+                }),
+            );
             expect(result.steps[0]!.chainId).toBe(137);
         });
 
-        it("defaults chainId to 0 when not in domain", () => {
+        it("throws when QuoteRequest is missing", () => {
             const oifOrder = {
                 type: "oif-escrow-v0" as const,
                 payload: {
                     signatureType: "eip712" as const,
-                    domain: { name: "NoDomain" },
-                    primaryType: "Test",
-                    types: {},
-                    message: {},
+                    domain: { chainId: 1, verifyingContract: PERMIT2 },
+                    primaryType: "PermitBatchWitnessTransferFrom",
+                    types: VALID_PERMIT2_TYPES,
+                    message: VALID_PERMIT2_MESSAGE,
                 },
             };
-
-            const result = adaptOifOrder(oifOrder);
-            expect(result.steps[0]!.chainId).toBe(0);
+            expect(() => adaptOifOrder(oifOrder)).toThrowError(/QuoteRequest required/);
         });
     });
 
@@ -100,21 +180,36 @@ describe("orderAdapter", () => {
                 type: "oif-3009-v0" as const,
                 payload: {
                     signatureType: "eip712" as const,
-                    domain: { name: "USD Coin", version: "2", chainId: 1 },
-                    primaryType: "TransferWithAuthorization",
+                    domain: {
+                        name: "USD Coin",
+                        version: "2",
+                        chainId: 1,
+                        verifyingContract: USDC_MAINNET,
+                    },
+                    primaryType: "ReceiveWithAuthorization",
                     types: {
-                        TransferWithAuthorization: [
+                        ReceiveWithAuthorization: [
                             { name: "from", type: "address" },
                             { name: "to", type: "address" },
                             { name: "value", type: "uint256" },
+                            { name: "validAfter", type: "uint256" },
+                            { name: "validBefore", type: "uint256" },
+                            { name: "nonce", type: "bytes32" },
                         ],
                     },
-                    message: { from: "0xabc", to: "0xdef", value: "1000000" },
+                    message: {
+                        from: USER,
+                        to: SETTLER,
+                        value: "1000000",
+                        validAfter: 0,
+                        validBefore: FUTURE_DEADLINE,
+                        nonce: "0xabcd",
+                    },
                 },
-                metadata: { orderHash: "0x123", chainId: 1, tokenAddress: "0xA0b8" },
+                metadata: { orderHash: "0x123", chainId: 1, tokenAddress: USDC_MAINNET },
             };
 
-            const result = adaptOifOrder(oifOrder);
+            const result = adaptOifOrder(oifOrder, mockParams());
 
             expect(result.steps).toHaveLength(1);
             expect(result.steps[0]!.kind).toBe("signature");
@@ -125,7 +220,7 @@ describe("orderAdapter", () => {
                 expect(step.metadata).toEqual({
                     orderHash: "0x123",
                     chainId: 1,
-                    tokenAddress: "0xA0b8",
+                    tokenAddress: USDC_MAINNET,
                 });
             }
         });

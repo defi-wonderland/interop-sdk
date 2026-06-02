@@ -6,6 +6,7 @@ import type {
     RelayQuoteResponse,
     RelayQuoteStep,
 } from "../../../../src/protocols/relay/schemas.js";
+import { Eip712EnvelopeMismatch } from "../../../../src/core/errors/Eip712EnvelopeMismatch.exception.js";
 import { ProviderGetQuoteFailure } from "../../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import {
     adaptQuote,
@@ -17,6 +18,8 @@ import {
 const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 const RECIPIENT_ADDRESS = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
 const SPENDER_ADDRESS = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const PERMIT2_ADDRESS_FIXTURE = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+const RELAY_SOLVER_FIXTURE = "0xCCC88a9d1B4ed6b0eABA998850414b24F1C315bE";
 const TOKEN_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const ORIGIN_CHAIN_ID = 1;
 const DESTINATION_CHAIN_ID = 10;
@@ -202,7 +205,7 @@ describe("adaptQuote", () => {
         expect(quote.quoteId).toBeUndefined();
     });
 
-    it("extracts approve steps into order.checks.allowances", () => {
+    it("splits approve steps into order.checks.allowances and keeps the rest in order.steps", () => {
         const approveAmount = 1000000n;
         const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, approveAmount);
 
@@ -247,65 +250,20 @@ describe("adaptQuote", () => {
 
         const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
 
-        expect(quote.order.checks?.allowances).toHaveLength(1);
-        expect(quote.order.checks!.allowances![0]).toEqual({
-            chainId: ORIGIN_CHAIN_ID,
-            tokenAddress: TOKEN_ADDRESS,
-            owner: VALID_ADDRESS,
-            spender: SPENDER_ADDRESS,
-            required: approveAmount.toString(),
-        });
-    });
-
-    it("order.steps only contains non-approve steps", () => {
-        const approveCalldata = makeApproveCalldata(SPENDER_ADDRESS, 1000000n);
-
-        const response = makeRelayQuoteResponse({
-            steps: [
-                {
-                    id: "approve",
-                    action: "Approve token",
-                    description: "Approve USDC",
-                    kind: "transaction",
-                    items: [
-                        {
-                            status: "incomplete",
-                            data: {
-                                to: TOKEN_ADDRESS,
-                                data: approveCalldata,
-                                chainId: ORIGIN_CHAIN_ID,
-                            },
-                        },
-                    ],
-                },
-                {
-                    id: "deposit",
-                    action: "Confirm transaction",
-                    description: STEP_DESCRIPTION,
-                    kind: "transaction",
-                    requestId: REQUEST_ID,
-                    items: [
-                        {
-                            status: "incomplete",
-                            data: {
-                                to: VALID_ADDRESS,
-                                data: TX_DATA,
-                                value: INPUT_AMOUNT,
-                                chainId: ORIGIN_CHAIN_ID,
-                            },
-                        },
-                    ],
-                },
-            ],
-        });
-
-        const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
-
+        expect(quote.order.checks?.allowances).toEqual([
+            {
+                chainId: ORIGIN_CHAIN_ID,
+                tokenAddress: TOKEN_ADDRESS,
+                owner: VALID_ADDRESS,
+                spender: SPENDER_ADDRESS,
+                required: approveAmount.toString(),
+            },
+        ]);
         expect(quote.order.steps).toHaveLength(1);
-        expect(quote.order.steps[0]!.kind).toBe("transaction");
-        if (quote.order.steps[0]!.kind === "transaction") {
-            expect(quote.order.steps[0]!.transaction.to).toBe(VALID_ADDRESS);
-        }
+        expect(quote.order.steps[0]).toMatchObject({
+            kind: "transaction",
+            transaction: { to: VALID_ADDRESS },
+        });
     });
 
     it("order.checks is undefined when there are no approve steps", () => {
@@ -383,9 +341,10 @@ describe("adaptQuote", () => {
 
 describe("adaptRelaySteps", () => {
     const baseStep = makeRelayQuoteResponse().steps[0]!;
+    const params = makeQuoteRequest();
 
     it("maps incomplete transaction items to SDK steps", () => {
-        const steps = adaptRelaySteps(baseStep);
+        const steps = adaptRelaySteps(baseStep, params);
         expect(steps).toHaveLength(1);
         expect(steps[0]).toMatchObject({
             kind: "transaction",
@@ -400,7 +359,7 @@ describe("adaptRelaySteps", () => {
             { ...baseStep.items[0]!, status: "complete" as const },
             { ...baseStep.items[0]!, status: "incomplete" as const },
         ];
-        expect(adaptRelaySteps({ ...baseStep, items: withComplete })).toHaveLength(1);
+        expect(adaptRelaySteps({ ...baseStep, items: withComplete }, params)).toHaveLength(1);
     });
 
     it("includes gas params when present and omits when '0'", () => {
@@ -414,7 +373,7 @@ describe("adaptRelaySteps", () => {
                 },
             },
         ];
-        const steps = adaptRelaySteps({ ...baseStep, items: withGas });
+        const steps = adaptRelaySteps({ ...baseStep, items: withGas }, params);
         if (steps[0]!.kind === "transaction") {
             expect(steps[0]!.transaction.gas).toBe("21000");
             expect(steps[0]!.transaction.maxFeePerGas).toBe("30000000000");
@@ -423,7 +382,7 @@ describe("adaptRelaySteps", () => {
         const withZeroGas = [
             { ...baseStep.items[0]!, data: { ...baseStep.items[0]!.data, gas: "0" } },
         ];
-        const zeroSteps = adaptRelaySteps({ ...baseStep, items: withZeroGas });
+        const zeroSteps = adaptRelaySteps({ ...baseStep, items: withZeroGas }, params);
         if (zeroSteps[0]!.kind === "transaction") {
             expect(zeroSteps[0]!.transaction.gas).toBeUndefined();
         }
@@ -432,22 +391,32 @@ describe("adaptRelaySteps", () => {
 
 // ── Signature Step Tests ────────────────────────────────
 
+const FUTURE_DEADLINE = Math.floor(Date.now() / 1000) + 3600;
+
 const EIP712_DOMAIN = {
     name: "Permit2",
     chainId: ORIGIN_CHAIN_ID,
-    verifyingContract: VALID_ADDRESS,
+    verifyingContract: PERMIT2_ADDRESS_FIXTURE,
 };
 
 const EIP712_TYPES = {
-    PermitBatch: [
-        { name: "details", type: "PermitDetails[]" },
+    PermitTransferFrom: [
+        { name: "permitted", type: "TokenPermissions" },
         { name: "spender", type: "address" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" },
+    ],
+    TokenPermissions: [
+        { name: "token", type: "address" },
+        { name: "amount", type: "uint256" },
     ],
 };
 
 const EIP712_VALUE = {
-    spender: VALID_ADDRESS,
-    sigDeadline: "1700000000",
+    permitted: { token: VALID_ADDRESS, amount: INPUT_AMOUNT },
+    spender: RELAY_SOLVER_FIXTURE,
+    nonce: "1",
+    deadline: FUTURE_DEADLINE,
 };
 
 const POST_DATA = {
@@ -472,7 +441,7 @@ function makeSignatureStep(overrides?: Partial<RelayQuoteStep>): RelayQuoteStep 
                         domain: EIP712_DOMAIN,
                         types: EIP712_TYPES,
                         value: EIP712_VALUE,
-                        primaryType: "PermitBatch",
+                        primaryType: "PermitTransferFrom",
                     },
                     post: POST_DATA,
                 },
@@ -482,9 +451,95 @@ function makeSignatureStep(overrides?: Partial<RelayQuoteStep>): RelayQuoteStep 
     } as RelayQuoteStep;
 }
 
+describe("adaptQuote — envelope max-spend binding", () => {
+    const ABOVE_INPUT_AMOUNT = "2000000"; // larger than the user's signed INPUT_AMOUNT
+
+    function makeResponseWithPermit(
+        permittedAmount: string,
+        currencyInAmount: string,
+    ): RelayQuoteResponse {
+        const base = makeRelayQuoteResponse();
+        return {
+            ...base,
+            steps: [
+                makeSignatureStep({
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                sign: {
+                                    signatureKind: "eip712",
+                                    domain: EIP712_DOMAIN,
+                                    types: EIP712_TYPES,
+                                    value: {
+                                        ...EIP712_VALUE,
+                                        permitted: {
+                                            token: VALID_ADDRESS,
+                                            amount: permittedAmount,
+                                        },
+                                    },
+                                    primaryType: "PermitTransferFrom",
+                                },
+                                post: POST_DATA,
+                            },
+                        },
+                    ],
+                } as Partial<RelayQuoteStep>),
+            ],
+            details: {
+                ...base.details!,
+                currencyIn: { ...base.details!.currencyIn!, amount: currencyInAmount },
+            },
+        } as RelayQuoteResponse;
+    }
+
+    it("caps exact-input against the user's signed amount, not the solver quote", () => {
+        // Solver reports a larger input than the user signed, and the permit would spend it.
+        const response = makeResponseWithPermit(ABOVE_INPUT_AMOUNT, ABOVE_INPUT_AMOUNT);
+        expect(() => adaptQuote(makeQuoteRequest(), response, PROVIDER_ID)).toThrow(
+            Eip712EnvelopeMismatch,
+        );
+    });
+
+    it("binds exact-output against the quoted input amount", () => {
+        const response = makeResponseWithPermit(ABOVE_INPUT_AMOUNT, ABOVE_INPUT_AMOUNT);
+        const params = makeQuoteRequest({
+            swapType: "exact-output",
+            input: { chainId: ORIGIN_CHAIN_ID, assetAddress: VALID_ADDRESS },
+            output: {
+                chainId: DESTINATION_CHAIN_ID,
+                assetAddress: VALID_ADDRESS,
+                amount: OUTPUT_AMOUNT,
+            },
+        });
+        expect(() => adaptQuote(params, response, PROVIDER_ID)).not.toThrow();
+    });
+
+    it("throws on exact-output when the quote omits the input amount", () => {
+        const base = makeRelayQuoteResponse();
+        const response = {
+            ...base,
+            details: { ...base.details!, currencyIn: undefined },
+        } as RelayQuoteResponse;
+        const params = makeQuoteRequest({
+            swapType: "exact-output",
+            input: { chainId: ORIGIN_CHAIN_ID, assetAddress: VALID_ADDRESS },
+            output: {
+                chainId: DESTINATION_CHAIN_ID,
+                assetAddress: VALID_ADDRESS,
+                amount: OUTPUT_AMOUNT,
+            },
+        });
+        // Without a quoted input amount the max-spend cap would be skipped, so fail closed.
+        expect(() => adaptQuote(params, response, PROVIDER_ID)).toThrow(ProviderGetQuoteFailure);
+    });
+});
+
 describe("adaptRelaySteps — signature steps", () => {
+    const params = makeQuoteRequest();
+
     it("maps EIP-712 signature step to SDK SignatureStep", () => {
-        const steps = adaptRelaySteps(makeSignatureStep());
+        const steps = adaptRelaySteps(makeSignatureStep(), params);
         expect(steps).toHaveLength(1);
         expect(steps[0]!.kind).toBe("signature");
 
@@ -493,7 +548,7 @@ describe("adaptRelaySteps — signature steps", () => {
             expect(steps[0]!.description).toBe("Sign permit to authorize");
             expect(steps[0]!.signaturePayload.signatureType).toBe("eip712");
             expect(steps[0]!.signaturePayload.domain).toEqual(EIP712_DOMAIN);
-            expect(steps[0]!.signaturePayload.primaryType).toBe("PermitBatch");
+            expect(steps[0]!.signaturePayload.primaryType).toBe("PermitTransferFrom");
             expect(steps[0]!.signaturePayload.types).toEqual(EIP712_TYPES);
             expect(steps[0]!.signaturePayload.message).toEqual(EIP712_VALUE);
         }
@@ -511,11 +566,11 @@ describe("adaptRelaySteps — signature steps", () => {
                 },
             ],
         } as Partial<RelayQuoteStep>);
-        expect(() => adaptRelaySteps(eip191Step)).toThrow(ProviderGetQuoteFailure);
+        expect(() => adaptRelaySteps(eip191Step, params)).toThrow(ProviderGetQuoteFailure);
     });
 
     it("stores post data and step id in metadata", () => {
-        const steps = adaptRelaySteps(makeSignatureStep());
+        const steps = adaptRelaySteps(makeSignatureStep(), params);
         expect(steps[0]!.metadata).toEqual({
             relayPostData: POST_DATA,
             relayStepId: "authorize1",
@@ -533,14 +588,14 @@ describe("adaptRelaySteps — signature steps", () => {
                             domain: EIP712_DOMAIN,
                             types: EIP712_TYPES,
                             value: EIP712_VALUE,
-                            primaryType: "PermitBatch",
+                            primaryType: "PermitTransferFrom",
                         },
                         post: POST_DATA,
                     },
                 },
             ],
         } as Partial<RelayQuoteStep>);
-        expect(adaptRelaySteps(step)).toHaveLength(0);
+        expect(adaptRelaySteps(step, params)).toHaveLength(0);
     });
 });
 
@@ -581,6 +636,70 @@ describe("adaptQuote — signature only (permit, EIP-2612 token)", () => {
 
         const quote = adaptQuote(makeQuoteRequest(), response, PROVIDER_ID);
         expect(quote.tracking).toEqual({ orderId: "0xsig-req-456" });
+    });
+});
+
+describe("adaptQuote — exact-output amount cap", () => {
+    const QUOTED_INPUT_AMOUNT = "1500000";
+
+    const exactOutputRequest: QuoteRequest = {
+        user: VALID_ADDRESS,
+        input: { chainId: ORIGIN_CHAIN_ID, assetAddress: VALID_ADDRESS },
+        output: {
+            chainId: DESTINATION_CHAIN_ID,
+            assetAddress: VALID_ADDRESS,
+            amount: OUTPUT_AMOUNT,
+        },
+        swapType: "exact-output",
+    };
+
+    function responseWithEnvelopeAmount(envelopeAmount: string): RelayQuoteResponse {
+        const base = makeRelayQuoteResponse();
+        return {
+            ...base,
+            steps: [
+                makeSignatureStep({
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                sign: {
+                                    signatureKind: "eip712",
+                                    domain: EIP712_DOMAIN,
+                                    types: EIP712_TYPES,
+                                    value: {
+                                        ...EIP712_VALUE,
+                                        permitted: { token: VALID_ADDRESS, amount: envelopeAmount },
+                                    },
+                                    primaryType: "PermitTransferFrom",
+                                },
+                                post: POST_DATA,
+                            },
+                        },
+                    ],
+                } as Partial<RelayQuoteStep>),
+            ],
+            details: {
+                ...base.details!,
+                currencyIn: { ...base.details!.currencyIn!, amount: QUOTED_INPUT_AMOUNT },
+            },
+        };
+    }
+
+    it("rejects a signature envelope that inflates above the quoted input amount", () => {
+        expect(() =>
+            adaptQuote(exactOutputRequest, responseWithEnvelopeAmount("9999999999"), PROVIDER_ID),
+        ).toThrowError(/amount/);
+    });
+
+    it("accepts a signature envelope matching the quoted input amount", () => {
+        expect(() =>
+            adaptQuote(
+                exactOutputRequest,
+                responseWithEnvelopeAmount(QUOTED_INPUT_AMOUNT),
+                PROVIDER_ID,
+            ),
+        ).not.toThrow();
     });
 });
 

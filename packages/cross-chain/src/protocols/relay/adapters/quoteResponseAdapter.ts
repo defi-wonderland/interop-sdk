@@ -6,6 +6,7 @@ import type { QuoteRequest, Step } from "../../../internal.js";
 import type { RelayQuoteResponse, RelayQuoteStep, RelaySignatureStep } from "../schemas.js";
 import { toCanonicalNativeAddress } from "../../../core/utils/token.js";
 import { ProviderGetQuoteFailure } from "../../../internal.js";
+import { validateRelaySignatureEnvelope } from "../validators/signatureEnvelopeValidator.js";
 import { adaptFees } from "./quoteFeeAdapter.js";
 
 /**
@@ -75,9 +76,31 @@ export function adaptQuote(
     const fees = adaptFees(response);
     const fallbackToken = extractFallbackToken(params, response);
 
+    // On exact-output the user input amount is empty, so bind the envelope cap to the
+    // quoted input. On exact-input keep the user's signed amount; overriding it with
+    // solver data would weaken the max-spend check.
+    const validationInputAmount =
+        params.swapType === "exact-output"
+            ? (currencyIn?.amount ?? params.input.amount)
+            : params.input.amount;
+
+    // Fail closed: without an input amount the signature validators compute an
+    // undefined max-spend cap and skip the check, so an exact-output quote that omits
+    // the quoted input would bypass envelope tamper protection.
+    if (params.swapType === "exact-output" && validationInputAmount === undefined) {
+        throw new ProviderGetQuoteFailure(
+            "Relay exact-output response omits details.currencyIn.amount required to bound the signature envelope",
+        );
+    }
+
+    const paramsForValidation: QuoteRequest = {
+        ...params,
+        input: { ...params.input, amount: validationInputAmount },
+    };
+
     return {
         order: {
-            steps: nonApproveSteps.flatMap((step) => adaptRelaySteps(step)),
+            steps: nonApproveSteps.flatMap((step) => adaptRelaySteps(step, paramsForValidation)),
             ...(allowances.length > 0 && { checks: { allowances } }),
         },
         preview: {
@@ -139,9 +162,9 @@ function extractFallbackToken(
 }
 
 /** Map a single Relay step to SDK Step entries (one per incomplete item). */
-export function adaptRelaySteps(step: RelayQuoteStep): Step[] {
+export function adaptRelaySteps(step: RelayQuoteStep, params: QuoteRequest): Step[] {
     if (step.kind === "signature") {
-        return adaptSignatureStep(step);
+        return adaptSignatureStep(step, params);
     }
 
     return step.items
@@ -169,7 +192,7 @@ export function adaptRelaySteps(step: RelayQuoteStep): Step[] {
 }
 
 /** Map a Relay signature step to SDK SignatureStep entries (EIP-712 only). */
-function adaptSignatureStep(step: RelaySignatureStep): Step[] {
+function adaptSignatureStep(step: RelaySignatureStep, params: QuoteRequest): Step[] {
     return step.items.flatMap((item) => {
         if (item.status !== "incomplete") return [];
 
@@ -180,6 +203,16 @@ function adaptSignatureStep(step: RelaySignatureStep): Step[] {
                 `Unsupported signature kind "${sign.signatureKind}". Only EIP-712 signatures are currently supported.`,
             );
         }
+
+        validateRelaySignatureEnvelope(
+            {
+                domain: sign.domain,
+                primaryType: sign.primaryType,
+                types: sign.types,
+                message: sign.value,
+            },
+            params,
+        );
 
         return {
             kind: "signature" as const,

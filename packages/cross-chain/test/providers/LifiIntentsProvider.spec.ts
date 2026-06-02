@@ -61,13 +61,6 @@ describe("LifiIntentsProvider", () => {
             }).toThrow(ProviderConfigFailure);
         });
 
-        it("throws for empty config", () => {
-            expect(() => {
-                // @ts-expect-error - Testing invalid config
-                new LifiIntentsProvider({});
-            }).toThrow(ProviderConfigFailure);
-        });
-
         it("throws ProviderConfigFailure for non-ZodError thrown during config", async () => {
             const schemas = await import("../../src/protocols/lifi-intents/schemas.js");
             const spy = vi
@@ -122,6 +115,42 @@ describe("LifiIntentsProvider", () => {
                     headers: { "Content-Type": "application/json" },
                     timeout: 30_000,
                 }),
+            );
+        });
+
+        it("defaults to the production order server when no config is passed", async () => {
+            const defaultProvider = new LifiIntentsProvider();
+
+            vi.mocked(httpRequest).mockResolvedValue({
+                status: 200,
+                data: getMockedLifiQuoteResponse(),
+                headers: new Headers(),
+            });
+
+            await defaultProvider.getQuotes(mockQuoteRequest);
+
+            expect(httpRequest).toHaveBeenCalledWith(
+                "https://order.li.fi/api/v1/integrator/quote/request",
+                expect.anything(),
+            );
+        });
+
+        it("uses the provided orderServerUrl over the default", async () => {
+            const customProvider = new LifiIntentsProvider({
+                orderServerUrl: "https://order-dev.li.fi",
+            });
+
+            vi.mocked(httpRequest).mockResolvedValue({
+                status: 200,
+                data: getMockedLifiQuoteResponse(),
+                headers: new Headers(),
+            });
+
+            await customProvider.getQuotes(mockQuoteRequest);
+
+            expect(httpRequest).toHaveBeenCalledWith(
+                "https://order-dev.li.fi/api/v1/integrator/quote/request",
+                expect.anything(),
             );
         });
 
