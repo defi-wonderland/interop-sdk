@@ -12,8 +12,8 @@ export const AcrossDepositStatusSchema = z.enum([
 
 export const AcrossDepositSchema = z.object({
   id: z.number().int(),
-  relayHash: HashSchema,
-  depositId: z.string(),
+  relayHash: HashSchema.nullable(),
+  depositId: z.string().nullable(),
   originChainId: z.number().int(),
   destinationChainId: z.number().int(),
   depositor: AddressSchema,
@@ -29,10 +29,10 @@ export const AcrossDepositSchema = z.object({
   swapTokenPriceUsd: z.string().nullable(),
   swapTransactionHash: HashSchema.nullable(),
   message: HexSchema,
-  messageHash: HashSchema,
+  messageHash: HashSchema.nullable(),
   exclusiveRelayer: AddressSchema,
   exclusivityDeadline: z.string().nullable(),
-  fillDeadline: z.string(),
+  fillDeadline: z.string().nullable(),
   quoteTimestamp: z.string(),
   depositTxHash: HashSchema,
   depositTxnRef: HashSchema,

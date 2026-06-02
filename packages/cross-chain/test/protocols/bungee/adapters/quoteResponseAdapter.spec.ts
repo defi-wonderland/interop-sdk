@@ -538,6 +538,20 @@ describe("adaptManualRouteQuote", () => {
         expect(allowances![0]!.required).toBe("1000000");
     });
 
+    it("uses the built transaction chain for manual route allowance checks", () => {
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            buildManualRoute(),
+            buildBuildTxResult({
+                txData: { to: SPENDER_ADDRESS, data: "0xdeadbeef", value: "0", chainId: 137 },
+            }),
+            PROVIDER_ID,
+        );
+
+        expect(quote!.order.steps[0]!.chainId).toBe(137);
+        expect(quote!.order.checks?.allowances?.[0]?.chainId).toBe(137);
+    });
+
     it("falls back to manualRoute.approvalData when buildTx.approvalData is absent", () => {
         const route = buildManualRoute({
             approvalData: {

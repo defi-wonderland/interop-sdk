@@ -74,6 +74,7 @@ function collectSamples(items: LifiIntentsOrderItem[]): HistorySample[] {
 }
 
 function toSample(item: LifiIntentsOrderItem): HistorySample | null {
+  if (item.meta.submitTime === undefined) return null;
   const timestamp = item.meta.submitTime * 1000;
   if (!Number.isFinite(timestamp)) return null;
   return {
@@ -101,6 +102,7 @@ function normalizeStatus(status: string): HistorySampleStatus {
 }
 
 function computeFillTimeSeconds(meta: LifiIntentsOrderMeta): number | null {
+  if (meta.submitTime === undefined) return null;
   const filledMs = parseTimestampMs(meta.deliveredAt) ?? parseTimestampMs(meta.settledAt);
   if (filledMs === null) return null;
   const diff = filledMs / 1000 - meta.submitTime;

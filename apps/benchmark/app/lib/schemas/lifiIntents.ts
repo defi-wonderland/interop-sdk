@@ -9,7 +9,7 @@ export const LifiIntentsOrderDetailsSchema = z.object({ outputs: z.array(LifiInt
 export const LifiIntentsOrderMetaSchema = z
   .object({
     orderStatus: z.string(),
-    submitTime: z.number(),
+    submitTime: z.number().optional(),
     signedAt: z.string().nullable().optional(),
     deliveredAt: z.string().nullable().optional(),
     settledAt: z.string().nullable().optional(),

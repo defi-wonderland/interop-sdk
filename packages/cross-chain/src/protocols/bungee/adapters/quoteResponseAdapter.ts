@@ -65,7 +65,7 @@ export function adaptManualRouteQuote(
 
     const allowances: NonNullable<OrderChecks["allowances"]> = extractAllowances(
         buildTx.approvalData ?? manualRoute.approvalData,
-        result.originChainId,
+        step.chainId,
         result.input.amount,
     );
 

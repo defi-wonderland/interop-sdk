@@ -108,16 +108,16 @@ export const RelayCurrencySchema = z.object({
   symbol: z.string(),
   name: z.string(),
   decimals: z.number().int(),
-  metadata: RelayCurrencyMetadataSchema,
+  metadata: RelayCurrencyMetadataSchema.optional(),
 });
 
 export const RelayCurrencyAmountSchema = z.object({
   currency: RelayCurrencySchema,
   amount: z.string(),
-  amountFormatted: z.string(),
-  amountUsd: z.string(),
+  amountFormatted: z.string().optional(),
+  amountUsd: z.string().optional(),
   amountUsdCurrent: z.string().optional(),
-  minimumAmount: z.string(),
+  minimumAmount: z.string().optional(),
 });
 
 export const RelayRouteEdgeSchema = z.object({

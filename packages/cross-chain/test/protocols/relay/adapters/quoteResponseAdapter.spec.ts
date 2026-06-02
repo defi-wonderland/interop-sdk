@@ -616,6 +616,18 @@ describe("adaptQuote — exact-output amount cap", () => {
             ),
         ).not.toThrow();
     });
+
+    it("keeps the user's exact-input amount as the validation cap", () => {
+        const exactInputResponse = responseWithEnvelopeAmount("2000000");
+        exactInputResponse.details = {
+            ...exactInputResponse.details!,
+            currencyIn: { ...exactInputResponse.details!.currencyIn!, amount: "2000000" },
+        };
+
+        expect(() => adaptQuote(makeQuoteRequest(), exactInputResponse, PROVIDER_ID)).toThrowError(
+            /amount/,
+        );
+    });
 });
 
 describe("adaptQuote — approve + signature (permit, non-EIP-2612 token)", () => {

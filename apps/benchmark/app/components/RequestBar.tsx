@@ -8,7 +8,7 @@ import { Label } from './Label';
 import { useRunRace } from './race-table/useRunRace';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 import { ASSET_SYMBOLS, ASSETS, AssetSymbol } from '~/lib/assets';
-import { CHAIN_IDS, CHAINS, ChainId } from '~/lib/chains';
+import { CHAINS, ChainId } from '~/lib/chains';
 import { cn } from '~/lib/cn';
 import { useRequestBarStore, type RequestPreset } from '~/lib/requestBarStore';
 
@@ -22,12 +22,20 @@ interface RequestBarProps {
   chains: NetworkAssets[];
 }
 
-function toChainOptions(exclude?: ChainId): DropdownOption<ChainId>[] {
-  return CHAIN_IDS.filter((id) => id !== exclude).map((id) => ({
-    value: id,
-    label: CHAINS[id].displayName,
-    iconUrl: CHAINS[id].iconUrl,
-  }));
+function isSupportedChainId(chainId: number): chainId is ChainId {
+  return chainId in CHAINS;
+}
+
+function toChainOptions(chains: NetworkAssets[], exclude?: ChainId): DropdownOption<ChainId>[] {
+  return chains
+    .map((chain) => chain.chainId)
+    .filter(isSupportedChainId)
+    .filter((id) => id !== exclude)
+    .map((id) => ({
+      value: id,
+      label: CHAINS[id].displayName,
+      iconUrl: CHAINS[id].iconUrl,
+    }));
 }
 
 function toAssetOptions(): DropdownOption<AssetSymbol>[] {
@@ -50,8 +58,8 @@ export function RequestBar({ chains }: RequestBarProps) {
   const [arrowSpins, setArrowSpins] = useState(0);
   const debounceTimer = useRef<number | null>(null);
 
-  const fromOptions = useMemo(() => toChainOptions(request.toChainId), [request.toChainId]);
-  const toOptions = useMemo(() => toChainOptions(request.fromChainId), [request.fromChainId]);
+  const fromOptions = useMemo(() => toChainOptions(chains, request.toChainId), [chains, request.toChainId]);
+  const toOptions = useMemo(() => toChainOptions(chains, request.fromChainId), [chains, request.fromChainId]);
   const assetOptions = useMemo(() => toAssetOptions(), []);
 
   const clearPendingAmountRun = () => {
