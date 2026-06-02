@@ -538,6 +538,24 @@ describe("adaptManualRouteQuote", () => {
         expect(allowances![0]!.required).toBe("1000000");
     });
 
+    it("sets the allowance chain from the built tx, not the quote origin chain", () => {
+        const buildTx = buildBuildTxResult({
+            txData: { to: SPENDER_ADDRESS, data: "0xdeadbeef", value: "0", chainId: 42161 },
+        });
+
+        // buildManualResponse() reports originChainId 1; the built tx runs on 42161.
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            buildManualRoute(),
+            buildTx,
+            PROVIDER_ID,
+        );
+
+        const allowances = quote!.order.checks?.allowances;
+        expect(allowances).toHaveLength(1);
+        expect(allowances![0]!.chainId).toBe(42161);
+    });
+
     it("falls back to manualRoute.approvalData when buildTx.approvalData is absent", () => {
         const route = buildManualRoute({
             approvalData: {
