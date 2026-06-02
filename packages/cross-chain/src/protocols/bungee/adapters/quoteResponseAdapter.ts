@@ -63,9 +63,11 @@ export function adaptManualRouteQuote(
     const step = buildTransactionStep(buildTx.txData, `Submit transaction via ${bridgeName}`);
     if (!step) return null;
 
+    // Approvals must target the chain the built transaction runs on, which can differ
+    // from the quote's origin chain when quote and build-tx chain IDs diverge.
     const allowances: NonNullable<OrderChecks["allowances"]> = extractAllowances(
         buildTx.approvalData ?? manualRoute.approvalData,
-        result.originChainId,
+        buildTx.txData.chainId,
         result.input.amount,
     );
 

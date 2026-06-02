@@ -188,21 +188,31 @@ function validateEscrowWitness(
 
     const expectedRecipientAddress = getAddress(params.output.recipient ?? params.user);
 
-    const output = outputs[0] as Record<string, unknown>;
+    const output = outputs[0];
+    if (output === null || typeof output !== "object" || Array.isArray(output)) {
+        throw new Eip712EnvelopeMismatch({
+            field: "structure",
+            provider: PROVIDER_NAME,
+            primaryType: envelope.primaryType,
+            cause: "witness.outputs[0] must be an object",
+        });
+    }
 
-    const outputChainId = parseChainId(output.chainId);
+    const outputRecord = output as Record<string, unknown>;
+
+    const outputChainId = parseChainId(outputRecord.chainId);
     if (outputChainId !== params.output.chainId) {
         throw new Eip712EnvelopeMismatch({
             field: "chainId",
             provider: PROVIDER_NAME,
             primaryType: envelope.primaryType,
             expected: params.output.chainId,
-            received: outputChainId !== undefined ? outputChainId : String(output.chainId),
+            received: outputChainId !== undefined ? outputChainId : String(outputRecord.chainId),
         });
     }
 
     const expectedToken = getAddress(params.output.assetAddress);
-    const witnessToken = decodeBytes32Address(output.token, envelope.primaryType, "token");
+    const witnessToken = decodeBytes32Address(outputRecord.token, envelope.primaryType, "token");
     if (!isAddressEqual(witnessToken, expectedToken)) {
         throw new Eip712EnvelopeMismatch({
             field: "token",
@@ -214,7 +224,7 @@ function validateEscrowWitness(
     }
 
     const witnessRecipient = decodeBytes32Address(
-        output.recipient,
+        outputRecord.recipient,
         envelope.primaryType,
         "recipient",
     );
@@ -230,13 +240,13 @@ function validateEscrowWitness(
 
     if (params.output.amount !== undefined) {
         const minAmount = BigInt(params.output.amount);
-        const witnessAmount = toBigIntOrUndefined(output.amount);
+        const witnessAmount = toBigIntOrUndefined(outputRecord.amount);
         if (witnessAmount === undefined) {
             throw new Eip712EnvelopeMismatch({
                 field: "amount",
                 provider: PROVIDER_NAME,
                 primaryType: envelope.primaryType,
-                received: String(output.amount),
+                received: String(outputRecord.amount),
             });
         }
         // `params.output.amount` is the floor the user is willing to receive.

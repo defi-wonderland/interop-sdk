@@ -264,6 +264,20 @@ describe("validateOifEscrowSignatureEnvelope", () => {
         });
 
         it.each([
+            ["null", null],
+            ["string", "not-an-output"],
+        ])("rejects when witness.outputs[0] is %s", (_label, output) => {
+            expect(() =>
+                validateOifEscrowSignatureEnvelope(
+                    escrowOrder({
+                        message: escrowMessage({ witness: { ...witness(), outputs: [output] } }),
+                    }),
+                    params(),
+                ),
+            ).toThrowError(/outputs\[0\] must be an object/);
+        });
+
+        it.each([
             ["chainId", { chainId: 999 }, /chainId/],
             ["token", { token: bytes32(ATTACKER) }, /token/],
             ["recipient", { recipient: bytes32(ATTACKER) }, /recipient/],

@@ -40,9 +40,9 @@ export function createCrossChainProvider<P extends SupportedProtocols>(
     protocolName: P,
     ...args: ProtocolArgs<P>
 ): CrossChainProvider {
-    const factory = PROTOCOL_FACTORIES[protocolName];
-    if (!factory) {
+    if (!Object.prototype.hasOwnProperty.call(PROTOCOL_FACTORIES, protocolName)) {
         throw new UnsupportedProtocol(protocolName);
     }
+    const factory = PROTOCOL_FACTORIES[protocolName];
     return factory(...args);
 }

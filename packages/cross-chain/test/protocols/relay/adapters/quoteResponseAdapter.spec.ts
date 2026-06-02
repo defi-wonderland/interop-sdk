@@ -6,6 +6,7 @@ import type {
     RelayQuoteResponse,
     RelayQuoteStep,
 } from "../../../../src/protocols/relay/schemas.js";
+import { Eip712EnvelopeMismatch } from "../../../../src/core/errors/Eip712EnvelopeMismatch.exception.js";
 import { ProviderGetQuoteFailure } from "../../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import {
     adaptQuote,
@@ -449,6 +450,71 @@ function makeSignatureStep(overrides?: Partial<RelayQuoteStep>): RelayQuoteStep 
         ...overrides,
     } as RelayQuoteStep;
 }
+
+describe("adaptQuote — envelope max-spend binding", () => {
+    const ABOVE_INPUT_AMOUNT = "2000000"; // larger than the user's signed INPUT_AMOUNT
+
+    function makeResponseWithPermit(
+        permittedAmount: string,
+        currencyInAmount: string,
+    ): RelayQuoteResponse {
+        const base = makeRelayQuoteResponse();
+        return {
+            ...base,
+            steps: [
+                makeSignatureStep({
+                    items: [
+                        {
+                            status: "incomplete",
+                            data: {
+                                sign: {
+                                    signatureKind: "eip712",
+                                    domain: EIP712_DOMAIN,
+                                    types: EIP712_TYPES,
+                                    value: {
+                                        ...EIP712_VALUE,
+                                        permitted: {
+                                            token: VALID_ADDRESS,
+                                            amount: permittedAmount,
+                                        },
+                                    },
+                                    primaryType: "PermitTransferFrom",
+                                },
+                                post: POST_DATA,
+                            },
+                        },
+                    ],
+                } as Partial<RelayQuoteStep>),
+            ],
+            details: {
+                ...base.details!,
+                currencyIn: { ...base.details!.currencyIn!, amount: currencyInAmount },
+            },
+        } as RelayQuoteResponse;
+    }
+
+    it("caps exact-input against the user's signed amount, not the solver quote", () => {
+        // Solver reports a larger input than the user signed, and the permit would spend it.
+        const response = makeResponseWithPermit(ABOVE_INPUT_AMOUNT, ABOVE_INPUT_AMOUNT);
+        expect(() => adaptQuote(makeQuoteRequest(), response, PROVIDER_ID)).toThrow(
+            Eip712EnvelopeMismatch,
+        );
+    });
+
+    it("binds exact-output against the quoted input amount", () => {
+        const response = makeResponseWithPermit(ABOVE_INPUT_AMOUNT, ABOVE_INPUT_AMOUNT);
+        const params = makeQuoteRequest({
+            swapType: "exact-output",
+            input: { chainId: ORIGIN_CHAIN_ID, assetAddress: VALID_ADDRESS },
+            output: {
+                chainId: DESTINATION_CHAIN_ID,
+                assetAddress: VALID_ADDRESS,
+                amount: OUTPUT_AMOUNT,
+            },
+        });
+        expect(() => adaptQuote(params, response, PROVIDER_ID)).not.toThrow();
+    });
+});
 
 describe("adaptRelaySteps — signature steps", () => {
     const params = makeQuoteRequest();
