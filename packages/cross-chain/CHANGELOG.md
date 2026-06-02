@@ -1,5 +1,44 @@
 # @wonderland/interop-cross-chain
 
+## 0.13.0
+
+### Minor Changes
+
+-   4210551: Use a stable default `providerId` for Across
+
+    `AcrossProvider`'s default `providerId` is now the stable `"across"` (matching `relay` and `bungee`), instead of an `across_<uuid>` value generated once at module load. Because the default is stable, adding two Across providers with default config to the same aggregator now resolves to the same id and throws `DuplicateProvider`; pass an explicit `providerId` to run several Across providers.
+
+-   4210551: Throw `DuplicateProvider` on conflicting provider IDs
+
+    `createAggregator` now throws the new `DuplicateProvider` error when two providers resolve to the same `providerId`, instead of silently overwriting one of them. Providers are indexed by a `Map`, so any string (including reserved object keys like `toString` or `__proto__`) is treated as an ordinary id.
+
+-   4210551: Accept protocol name strings in `createAggregator` providers
+
+    `createAggregator({ providers })` now accepts the optional-config protocol names `"across"`, `"relay"` and `"bungee"` alongside `CrossChainProvider` instances. Names are instantiated with default config via `createCrossChainProvider`, so `providers: ["across", "relay", "bungee"]` works without wiring each provider by hand. `oif` and `lifi-intents` still require instances since their config is mandatory.
+
+-   5b22671: Add Bungee manual routes via `enableOtherProviders`
+
+    -   `BungeeProvider` now accepts `enableOtherProviders?: boolean`. When set, `getQuotes` returns Bungee's auto routes plus a Quote per manual route — those served by other bridge protocols routed through Bungee.
+    -   Each manual route is built eagerly via `GET /api/v1/bungee/build-tx` so quotes ship with an executable `TransactionStep`. Per-route build failures are isolated and do not abort the auto route or the rest of the manuals.
+    -   Tracking is now split per flow so each polls Bungee with the right identifier:
+        -   Auto routes set `tracking.orderId = requestHash` and the SDK polls `/status?requestHash=…` via `fillWatcherConfig`.
+        -   Manual routes have no Bungee-issued requestHash, so the SDK polls `/status?txHash=${openTxHash}` via the new `onChainFillWatcherConfig` — no longer assuming the auto-route identifier shape works for manual flows.
+    -   `openedIntentParserConfig.buildUrl` now queries `/status?txHash=…` (previously `?requestHash=…`) so the parameter matches the on-chain origin tx hash it receives.
+
+-   6b40a3c: Wire EIP-712 envelope validation into the Bungee signature flow so tampered envelopes are rejected with `Eip712EnvelopeMismatch` before the wallet is prompted to sign.
+-   ca3c27b: Wire the EIP-712 envelope validators into the OIF signature flow. The OIF order adapter now runs `validateOifEscrowSignatureEnvelope` or `validateOif3009SignatureEnvelope` before surfacing any EIP-712 signature step, so tampered envelopes are rejected with a typed `Eip712EnvelopeMismatch` before the wallet is prompted.
+
+    The escrow path validates against the canonical Permit2 singleton, the batched `PermitBatchWitnessTransferFrom` primary type, and cross-checks the `witness.user` and the single `witness.outputs[0]` entry (`chainId`, `token`, `recipient`, `amount`) against the user's quote request — a malicious solver can no longer keep the permit fields intact while redirecting the destination output. The EIP-3009 path validates the typed-data domain (which is the token contract itself by definition) against the user's input asset and cross-checks `from`, `to`, and `value`.
+
+-   150199a: Default the LiFi Intents `orderServerUrl` to the official endpoint (`https://order.li.fi`). `createCrossChainProvider("lifi-intents")` and `createAggregator({ providers: ["lifi-intents"] })` now work without config; pass `orderServerUrl` to override (e.g. `LIFI_INTENTS_ORDER_SERVER_DEV_URL`). Invalid URLs are still rejected.
+
+### Patch Changes
+
+-   1079638: Surface the provider id on `GetQuotesError`. The aggregator now sets `providerId` on every entry it pushes into `GetQuotesResponse.errors`, so consumers can map an error back to the provider that produced it (timeouts, schema failures, network errors). Additive and optional (`providerId?: string`); existing consumers keep working unchanged.
+-   efa877c: Wire the EIP-712 envelope validators into the Relay signature flow. The Relay quote adapter now runs `validateRelaySignatureEnvelope` before surfacing any EIP-712 signature step, so tampered envelopes are rejected with a typed `Eip712EnvelopeMismatch` before the wallet is prompted.
+
+    The validator dispatches by `primaryType` to the Permit2 or EIP-3009 path, enforces Relay-specific invariants (no native input asset, Permit2 domain without `version`, EIP-3009 domain with a non-empty `version`), and reads the recipient field from the envelope (`spender` for Permit2, `to` for EIP-3009) to assert it is a well-formed address and is not the user.
+
 ## 0.12.0
 
 ### Minor Changes
