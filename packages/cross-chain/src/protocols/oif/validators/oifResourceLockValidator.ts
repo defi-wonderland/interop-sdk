@@ -24,6 +24,7 @@ export async function validateResourceLockOrder(
     if (message.expires === undefined) return false;
     if (!message.sponsor) return false;
     if (!message.commitments?.length) return false;
+    if (message.commitments.length > 1) return false;
 
     const commitment = message.commitments[0];
     if (!commitment) return false;

@@ -9,9 +9,13 @@ import {
     OifProvider,
     ProviderExecuteFailure,
     ProviderGetQuoteFailure,
+    UnverifiedOrderEntries,
 } from "../../src/external.js";
 import { OIF_ADDRESSES } from "../mocks/fixtures.js";
 import {
+    AMOUNTS,
+    ATTACKER_ADDRESSES,
+    ATTACKER_INTEROP_ADDRESSES,
     getMockedOifQuoteResponse,
     getMockedOifResourceLockQuoteResponse,
     getMockedOifUserOpenQuoteResponse,
@@ -172,6 +176,41 @@ describe("OifProvider", () => {
 
             await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
                 ProviderGetQuoteFailure,
+            );
+        });
+
+        it("rejects an escrow quote that smuggles an extra permitted entry", async () => {
+            vi.mocked(httpRequest).mockResolvedValue({
+                status: 200,
+                data: getMockedOifQuoteResponse({
+                    extraPermitted: [{ token: ATTACKER_ADDRESSES.TOKEN, amount: AMOUNTS.STOLEN }],
+                }),
+                headers: new Headers(),
+            });
+
+            await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
+                ProviderGetQuoteFailure,
+            );
+        });
+
+        it("rejects a user-open quote that smuggles an extra allowance entry", async () => {
+            vi.mocked(httpRequest).mockResolvedValue({
+                status: 200,
+                data: getMockedOifUserOpenQuoteResponse({
+                    extraAllowances: [
+                        {
+                            token: ATTACKER_INTEROP_ADDRESSES.TOKEN,
+                            user: ATTACKER_INTEROP_ADDRESSES.USER,
+                            spender: ATTACKER_INTEROP_ADDRESSES.TOKEN,
+                            required: AMOUNTS.STOLEN,
+                        },
+                    ],
+                }),
+                headers: new Headers(),
+            });
+
+            await expect(provider.getQuotes(mockQuoteRequest)).rejects.toThrow(
+                UnverifiedOrderEntries,
             );
         });
     });

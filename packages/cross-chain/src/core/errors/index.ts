@@ -26,3 +26,4 @@ export * from "./HttpError.exception.js";
 export * from "./HttpTimeout.exception.js";
 export * from "./HttpNetworkError.exception.js";
 export * from "./Eip712EnvelopeMismatch.exception.js";
+export * from "./UnverifiedOrderEntries.exception.js";

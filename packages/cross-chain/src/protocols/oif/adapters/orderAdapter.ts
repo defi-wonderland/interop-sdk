@@ -19,6 +19,7 @@ import type {
     TransactionStep,
 } from "../../../core/schemas/order.js";
 import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
+import { UnverifiedOrderEntries } from "../../../core/errors/UnverifiedOrderEntries.exception.js";
 import { toInteropAccountId } from "../../../core/utils/interopAccountId.js";
 import {
     validateOif3009SignatureEnvelope,
@@ -91,6 +92,11 @@ function fromOifUserOpenOrder(order: {
         }>;
     };
 }): Order {
+    const allowanceCount = order.checks?.allowances?.length ?? 0;
+    if (allowanceCount > 1) {
+        throw new UnverifiedOrderEntries("oif-user-open-v0", "allowances", allowanceCount);
+    }
+
     const txData =
         order.openIntentTx.data instanceof Uint8Array
             ? bytesToHex(order.openIntentTx.data)

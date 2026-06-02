@@ -84,6 +84,18 @@ describe("validateOifPayload", () => {
 
             await expect(validateOifPayload(intent, corruptedOrder)).resolves.toBe(false);
         });
+
+        it("rejects when solver smuggles an extra permitted entry beyond inputs[0]", async () => {
+            const validResponse = getMockedOifQuoteResponse();
+            const intent = createIntentFromQuote(validResponse, "oif-escrow-v0");
+
+            const attackResponse = getMockedOifQuoteResponse({
+                extraPermitted: [{ token: ATTACKER_ADDRESSES.TOKEN, amount: AMOUNTS.STOLEN }],
+            });
+            const corruptedOrder = getOrder(attackResponse);
+
+            await expect(validateOifPayload(intent, corruptedOrder)).resolves.toBe(false);
+        });
     });
 
     // TODO (EFI-887): re-enable when resource-lock support lands.
@@ -126,6 +138,18 @@ describe("validateOifPayload", () => {
 
             const attackResponse = getMockedOifResourceLockQuoteResponse({
                 sponsor: ATTACKER_ADDRESSES.USER,
+            });
+            const corruptedOrder = getOrder(attackResponse);
+
+            await expect(validateOifPayload(intent, corruptedOrder)).resolves.toBe(false);
+        });
+
+        it("rejects when solver smuggles an extra commitment entry beyond inputs[0]", async () => {
+            const validResponse = getMockedOifResourceLockQuoteResponse();
+            const intent = createIntentFromQuote(validResponse, "oif-resource-lock-v0");
+
+            const attackResponse = getMockedOifResourceLockQuoteResponse({
+                extraCommitments: [{ token: ATTACKER_ADDRESSES.TOKEN, amount: AMOUNTS.STOLEN }],
             });
             const corruptedOrder = getOrder(attackResponse);
 
@@ -231,6 +255,25 @@ describe("validateOifPayload", () => {
 
             const attackResponse = getMockedOifUserOpenQuoteResponse({
                 allowanceRequired: AMOUNTS.STOLEN,
+            });
+            const corruptedOrder = getOrder(attackResponse);
+
+            await expect(validateOifPayload(intent, corruptedOrder)).resolves.toBe(false);
+        });
+
+        it("rejects when solver smuggles an extra allowance entry beyond inputs[0]", async () => {
+            const validResponse = getMockedOifUserOpenQuoteResponse();
+            const intent = createIntentFromQuote(validResponse, "oif-user-open-v0");
+
+            const attackResponse = getMockedOifUserOpenQuoteResponse({
+                extraAllowances: [
+                    {
+                        token: ATTACKER_INTEROP_ADDRESSES.TOKEN,
+                        user: ATTACKER_INTEROP_ADDRESSES.USER,
+                        spender: ATTACKER_INTEROP_ADDRESSES.TOKEN,
+                        required: AMOUNTS.STOLEN,
+                    },
+                ],
             });
             const corruptedOrder = getOrder(attackResponse);
 
