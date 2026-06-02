@@ -16,8 +16,9 @@ const OUTPUT_TOKEN = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const USER = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 const RECIPIENT = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8";
 const SETTLER = "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10";
+const INPUT_SETTLER = "0x1CC9260E285C2C8AC8D2E7102F3978056Ec1d0a8";
 const ATTACKER = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
-const INPUT_CHAIN = 1;
+const INPUT_CHAIN = 42161;
 const OUTPUT_CHAIN = 10;
 const INPUT_AMOUNT = "1000000";
 const OUTPUT_AMOUNT = "990000";
@@ -113,7 +114,7 @@ const eip3009Order = (
         types: {},
         message: overrides.message ?? {
             from: USER,
-            to: SETTLER,
+            to: INPUT_SETTLER,
             value: INPUT_AMOUNT,
             validAfter: 0,
             validBefore: FUTURE,
@@ -264,6 +265,20 @@ describe("validateOifEscrowSignatureEnvelope", () => {
         });
 
         it.each([
+            ["null", null],
+            ["string", "not-an-output"],
+        ])("rejects when witness.outputs[0] is %s", (_label, output) => {
+            expect(() =>
+                validateOifEscrowSignatureEnvelope(
+                    escrowOrder({
+                        message: escrowMessage({ witness: { ...witness(), outputs: [output] } }),
+                    }),
+                    params(),
+                ),
+            ).toThrowError(/outputs\[0\] must be an object/);
+        });
+
+        it.each([
             ["chainId", { chainId: 999 }, /chainId/],
             ["token", { token: bytes32(ATTACKER) }, /token/],
             ["recipient", { recipient: bytes32(ATTACKER) }, /recipient/],
@@ -344,7 +359,7 @@ describe("validateOif3009SignatureEnvelope", () => {
                 eip3009Order({
                     message: {
                         from: ATTACKER,
-                        to: SETTLER,
+                        to: INPUT_SETTLER,
                         value: INPUT_AMOUNT,
                         validAfter: 0,
                         validBefore: FUTURE,
@@ -356,13 +371,13 @@ describe("validateOif3009SignatureEnvelope", () => {
         ).toThrowError(/user/);
     });
 
-    it("rejects a `to` field that equals the user", () => {
+    it("rejects a `to` field that is not the trusted input settler", () => {
         expect(() =>
             validateOif3009SignatureEnvelope(
                 eip3009Order({
                     message: {
                         from: USER,
-                        to: USER,
+                        to: SETTLER,
                         value: INPUT_AMOUNT,
                         validAfter: 0,
                         validBefore: FUTURE,
@@ -374,13 +389,31 @@ describe("validateOif3009SignatureEnvelope", () => {
         ).toThrowError(/to/);
     });
 
+    it("rejects when the input chain has no trusted settler", () => {
+        expect(() =>
+            validateOif3009SignatureEnvelope(
+                eip3009Order({
+                    domain: {
+                        name: "USD Coin",
+                        version: "2",
+                        chainId: 1,
+                        verifyingContract: TOKEN,
+                    },
+                }),
+                params({
+                    input: { chainId: 1, assetAddress: TOKEN, amount: INPUT_AMOUNT },
+                }),
+            ),
+        ).toThrowError(/no input settler/);
+    });
+
     it("rejects a message.value that exceeds params.input.amount", () => {
         expect(() =>
             validateOif3009SignatureEnvelope(
                 eip3009Order({
                     message: {
                         from: USER,
-                        to: SETTLER,
+                        to: INPUT_SETTLER,
                         value: "999999999999",
                         validAfter: 0,
                         validBefore: FUTURE,
