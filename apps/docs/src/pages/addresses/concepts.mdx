@@ -24,7 +24,7 @@ vitalik.eth@ethereum
 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:10#1A2B3C4D
 ```
 
-The format is: `{address}@{chain}#{checksum}`
+The format is: `{address}@{chain}`, with an optional `#{checksum}` suffix.
 
 What makes it user-friendly:
 
@@ -118,14 +118,17 @@ await parseName("0x...@ethereum", { rpcUrl: "https://my-rpc.example.com" });
 
 ## Checksums
 
-Checksums protect against typos and address tampering. The checksum is computed from the binary serialization of the address and appended to the name after a `#`:
+Checksums protect against typos and address tampering. The checksum is the first 4 bytes of the keccak-256 hash of the address's ERC-7930 binary encoding — the chain type, chain reference, and address (everything except the version) — rendered as 8 uppercase hex characters and appended to the name after a `#`. Because the chain is part of the input, the same address on a different chain produces a different checksum:
 
 ```
-vitalik.eth@eip155:1#4CA88C9C
-                     ^^^^^^^^ checksum
+0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C
 ```
 
-The SDK always calculates the checksum when parsing. If the input includes a checksum, the SDK compares it against the calculated value and reports any mismatch via `result.meta.checksumMismatch`.
+The trailing `#4CA88C9C` is the checksum.
+
+Per [ERC-7828](https://eips.ethereum.org/EIPS/eip-7828), a checksum **should not be appended when the address component is an ENS name** (e.g. `vitalik.eth@base`). ENS names resolve to addresses that can change over time, so a stored checksum may stop validating even when resolution is correct, and ENS already handles its own name normalization and validation.
+
+When parsing, the SDK compares any checksum present in the input against the value it calculates and reports a mismatch via `result.meta.checksumMismatch`.
 
 ## References
 
