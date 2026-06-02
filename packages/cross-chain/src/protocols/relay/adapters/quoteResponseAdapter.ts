@@ -76,10 +76,18 @@ export function adaptQuote(
     const fees = adaptFees(response);
     const fallbackToken = extractFallbackToken(params, response);
 
-    // Use quoted input so the envelope cap also binds on `exact-output`.
+    // On exact-output the user input amount is empty, so bind the envelope cap to the
+    // quoted input. On exact-input keep the user's signed amount; overriding it with
+    // solver data would weaken the max-spend check.
     const paramsForValidation: QuoteRequest = {
         ...params,
-        input: { ...params.input, amount: currencyIn?.amount ?? params.input.amount },
+        input: {
+            ...params.input,
+            amount:
+                params.swapType === "exact-output"
+                    ? (currencyIn?.amount ?? params.input.amount)
+                    : params.input.amount,
+        },
     };
 
     return {
