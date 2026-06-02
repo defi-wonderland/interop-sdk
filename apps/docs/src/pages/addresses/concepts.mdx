@@ -118,7 +118,7 @@ await parseName("0x...@ethereum", { rpcUrl: "https://my-rpc.example.com" });
 
 ## Checksums
 
-Checksums protect against typos and address tampering. The checksum is 4 bytes computed from the binary serialization of the address and appended to the name after a `#`:
+Checksums protect against typos and address tampering. The checksum is the first 4 bytes of the keccak-256 hash of the address's ERC-7930 binary encoding — the chain type, chain reference, and address (everything except the version) — rendered as 8 uppercase hex characters and appended to the name after a `#`. Because the chain is part of the input, the same address on a different chain produces a different checksum:
 
 ```
 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045@eip155:1#4CA88C9C
