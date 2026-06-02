@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { QuoteRequest } from "../../../../src/core/schemas/quoteRequest.js";
 import { PERMIT2_ADDRESS } from "../../../../src/core/constants/eip712.js";
 import { NATIVE_ASSET_ADDRESS } from "../../../../src/core/utils/token.js";
+import { OIF_INPUT_SETTLER_ESCROW_BY_CHAIN } from "../../../../src/protocols/oif/constants.js";
 import {
     validateOif3009SignatureEnvelope,
     validateOifEscrowSignatureEnvelope,
@@ -15,9 +16,10 @@ const TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const OUTPUT_TOKEN = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const USER = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 const RECIPIENT = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8";
-const SETTLER = "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10";
+const INPUT_CHAIN = 42161;
+const SETTLER = OIF_INPUT_SETTLER_ESCROW_BY_CHAIN[INPUT_CHAIN]!;
+const OUTPUT_SETTLER = "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10";
 const ATTACKER = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
-const INPUT_CHAIN = 1;
 const OUTPUT_CHAIN = 10;
 const INPUT_AMOUNT = "1000000";
 const OUTPUT_AMOUNT = "990000";
@@ -41,11 +43,11 @@ const params = (overrides: Partial<QuoteRequest> = {}): QuoteRequest => ({
 const witness = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
     user: USER,
     expires: FUTURE,
-    inputOracle: SETTLER,
+    inputOracle: OUTPUT_SETTLER,
     outputs: [
         {
-            oracle: bytes32(SETTLER),
-            settler: bytes32(SETTLER),
+            oracle: bytes32(OUTPUT_SETTLER),
+            settler: bytes32(OUTPUT_SETTLER),
             chainId: OUTPUT_CHAIN,
             token: bytes32(OUTPUT_TOKEN),
             amount: OUTPUT_AMOUNT,
@@ -356,13 +358,13 @@ describe("validateOif3009SignatureEnvelope", () => {
         ).toThrowError(/user/);
     });
 
-    it("rejects a `to` field that equals the user", () => {
+    it("rejects a `to` field that does not match the input settler", () => {
         expect(() =>
             validateOif3009SignatureEnvelope(
                 eip3009Order({
                     message: {
                         from: USER,
-                        to: USER,
+                        to: ATTACKER,
                         value: INPUT_AMOUNT,
                         validAfter: 0,
                         validBefore: FUTURE,

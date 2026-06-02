@@ -22,13 +22,13 @@ type ProtocolArgs<P extends SupportedProtocols> = [P] extends [OptionalConfigPro
 /** Maps each protocol to its provider factory. */
 const PROTOCOL_FACTORIES: {
     [P in SupportedProtocols]: (...args: ProtocolArgs<P>) => CrossChainProvider;
-} = {
+} = Object.freeze({
     [PROTOCOLS.ACROSS]: (config) => new AcrossProvider(config ?? {}),
     [PROTOCOLS.RELAY]: (config) => new RelayProvider(config ?? {}),
     [PROTOCOLS.BUNGEE]: (config) => new BungeeProvider(config ?? {}),
     [PROTOCOLS.OIF]: (config) => new OifProvider(config),
     [PROTOCOLS.LIFI_INTENTS]: (config) => new LifiIntentsProvider(config ?? {}),
-};
+});
 
 /**
  * Creates a provider for the given protocol; config is required for `oif`
@@ -40,9 +40,9 @@ export function createCrossChainProvider<P extends SupportedProtocols>(
     protocolName: P,
     ...args: ProtocolArgs<P>
 ): CrossChainProvider {
-    const factory = PROTOCOL_FACTORIES[protocolName];
-    if (!factory) {
+    if (!Object.hasOwn(PROTOCOL_FACTORIES, protocolName)) {
         throw new UnsupportedProtocol(protocolName);
     }
+    const factory = PROTOCOL_FACTORIES[protocolName];
     return factory(...args);
 }

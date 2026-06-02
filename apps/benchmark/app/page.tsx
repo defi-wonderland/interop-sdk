@@ -83,10 +83,10 @@ export default async function Home() {
 async function loadInitialChains(): Promise<NetworkAssets[]> {
   try {
     return await withTimeout(chainService.getChains(), 5_000, 'INITIAL_CHAINS_TIMEOUT');
-  } catch {
+  } catch (error) {
     // Don't let ISR cache a degraded render: next request should retry chain discovery.
     noStore();
-    return [];
+    throw error;
   }
 }
 
@@ -106,9 +106,13 @@ async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
       INITIAL_RACE_TIMEOUT_MS,
       'INITIAL_RACE_TIMEOUT',
     );
-    if (response.quotes.length === 0) return orderRaceRows(createRows('idle'));
+    if (response.quotes.length === 0) {
+      if (response.errors.length > 0) return orderRaceRows(buildRowsFromQuotes([], response.errors));
+      return orderRaceRows(createRows('idle'));
+    }
     return orderRaceRows(buildRowsFromQuotes(response.quotes, response.errors));
   } catch {
+    noStore();
     return orderRaceRows(createRows('idle'));
   }
 }

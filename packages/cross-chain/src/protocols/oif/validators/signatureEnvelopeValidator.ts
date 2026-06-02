@@ -14,6 +14,7 @@ import {
 } from "../../../core/validators/eip712EnvelopeValidator.js";
 import { validateEip3009Message } from "../../../core/validators/eip3009MessageValidator.js";
 import { validatePermit2Message } from "../../../core/validators/permit2MessageValidator.js";
+import { OIF_INPUT_SETTLER_ESCROW_BY_CHAIN } from "../constants.js";
 
 const PROVIDER_NAME = "oif";
 const ESCROW_PRIMARY_TYPES: ReadonlySet<string> = new Set(["PermitBatchWitnessTransferFrom"]);
@@ -40,7 +41,7 @@ export function validateOifEscrowSignatureEnvelope(
     guardAgainstNativeAsset(envelope, params, "Permit2");
 
     const user = getAddress(params.user);
-    const spender = readRecipientField(envelope, "spender", user);
+    const spender = readNonUserRecipientField(envelope, "spender", user);
     validatePermit2Message(envelope, {
         provider: PROVIDER_NAME,
         spender,
@@ -69,7 +70,7 @@ export function validateOif3009SignatureEnvelope(order: Oif3009Order, params: Qu
     });
 
     const user = getAddress(params.user);
-    const to = readRecipientField(envelope, "to", user);
+    const to = readRecipientField(envelope, "to", expectedInputSettler(envelope, params));
     validateEip3009Message(envelope, {
         provider: PROVIDER_NAME,
         user,
@@ -89,10 +90,32 @@ function toEnvelope(payload: OifEscrowOrder["payload"] | Oif3009Order["payload"]
 
 /**
  * Read `spender` (Permit2) or `to` (EIP-3009) from the envelope message. We
- * only assert it isn't the user — pinning the settler to a specific address
- * would need a trusted-contract registry the SDK doesn't maintain.
+ * assert it matches the trusted protocol recipient for the mechanism.
  */
 function readRecipientField(
+    envelope: Eip712Envelope,
+    field: RecipientField,
+    expected: Address,
+): Address {
+    const recipient = readAddressField({
+        envelope,
+        path: [field],
+        field,
+        provider: PROVIDER_NAME,
+    });
+    if (!isAddressEqual(recipient, expected)) {
+        throw new Eip712EnvelopeMismatch({
+            field,
+            provider: PROVIDER_NAME,
+            primaryType: envelope.primaryType,
+            expected,
+            received: recipient,
+        });
+    }
+    return recipient;
+}
+
+function readNonUserRecipientField(
     envelope: Eip712Envelope,
     field: RecipientField,
     user: Address,
@@ -113,6 +136,17 @@ function readRecipientField(
         });
     }
     return recipient;
+}
+
+function expectedInputSettler(envelope: Eip712Envelope, params: QuoteRequest): Address {
+    const settler = OIF_INPUT_SETTLER_ESCROW_BY_CHAIN[params.input.chainId];
+    if (settler !== undefined) return getAddress(settler);
+    throw new Eip712EnvelopeMismatch({
+        field: "to",
+        provider: PROVIDER_NAME,
+        primaryType: envelope.primaryType,
+        cause: `missing trusted OIF input settler for chain ${params.input.chainId}`,
+    });
 }
 
 function guardAgainstNativeAsset(
@@ -188,21 +222,30 @@ function validateEscrowWitness(
 
     const expectedRecipientAddress = getAddress(params.output.recipient ?? params.user);
 
-    const output = outputs[0] as Record<string, unknown>;
+    const output: unknown = outputs[0];
+    if (output === null || typeof output !== "object" || Array.isArray(output)) {
+        throw new Eip712EnvelopeMismatch({
+            field: "structure",
+            provider: PROVIDER_NAME,
+            primaryType: envelope.primaryType,
+            cause: "witness.outputs[0] must be an object",
+        });
+    }
+    const outputFields = output as Record<string, unknown>;
 
-    const outputChainId = parseChainId(output.chainId);
+    const outputChainId = parseChainId(outputFields.chainId);
     if (outputChainId !== params.output.chainId) {
         throw new Eip712EnvelopeMismatch({
             field: "chainId",
             provider: PROVIDER_NAME,
             primaryType: envelope.primaryType,
             expected: params.output.chainId,
-            received: outputChainId !== undefined ? outputChainId : String(output.chainId),
+            received: outputChainId !== undefined ? outputChainId : String(outputFields.chainId),
         });
     }
 
     const expectedToken = getAddress(params.output.assetAddress);
-    const witnessToken = decodeBytes32Address(output.token, envelope.primaryType, "token");
+    const witnessToken = decodeBytes32Address(outputFields.token, envelope.primaryType, "token");
     if (!isAddressEqual(witnessToken, expectedToken)) {
         throw new Eip712EnvelopeMismatch({
             field: "token",
@@ -214,7 +257,7 @@ function validateEscrowWitness(
     }
 
     const witnessRecipient = decodeBytes32Address(
-        output.recipient,
+        outputFields.recipient,
         envelope.primaryType,
         "recipient",
     );
@@ -230,13 +273,13 @@ function validateEscrowWitness(
 
     if (params.output.amount !== undefined) {
         const minAmount = BigInt(params.output.amount);
-        const witnessAmount = toBigIntOrUndefined(output.amount);
+        const witnessAmount = toBigIntOrUndefined(outputFields.amount);
         if (witnessAmount === undefined) {
             throw new Eip712EnvelopeMismatch({
                 field: "amount",
                 provider: PROVIDER_NAME,
                 primaryType: envelope.primaryType,
-                received: String(output.amount),
+                received: String(outputFields.amount),
             });
         }
         // `params.output.amount` is the floor the user is willing to receive.

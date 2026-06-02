@@ -87,4 +87,11 @@ describe("createCrossChainProvider", () => {
             createCrossChainProvider("unsupported-protocol", {});
         }).toThrow(UnsupportedProtocol);
     });
+
+    it("does not resolve unsupported protocol names through Object.prototype", () => {
+        expect(() => {
+            // @ts-expect-error - Testing unsupported protocol
+            createCrossChainProvider("toString", {});
+        }).toThrow(UnsupportedProtocol);
+    });
 });
