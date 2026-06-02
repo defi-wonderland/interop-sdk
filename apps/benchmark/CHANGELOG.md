@@ -1,5 +1,12 @@
 # benchmark
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [9fe1343]
+  - @wonderland/interop-cross-chain@0.13.1
+
 ## 0.0.4
 
 ### Patch Changes
