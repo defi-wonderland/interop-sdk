@@ -14,7 +14,6 @@ import {
 } from "../../../core/validators/eip712EnvelopeValidator.js";
 import { validateEip3009Message } from "../../../core/validators/eip3009MessageValidator.js";
 import { validatePermit2Message } from "../../../core/validators/permit2MessageValidator.js";
-import { OIF_INPUT_SETTLER_ESCROW_BY_CHAIN } from "../constants.js";
 
 const PROVIDER_NAME = "oif";
 const ESCROW_PRIMARY_TYPES: ReadonlySet<string> = new Set(["PermitBatchWitnessTransferFrom"]);
@@ -70,41 +69,13 @@ export function validateOif3009SignatureEnvelope(order: Oif3009Order, params: Qu
     });
 
     const user = getAddress(params.user);
-    const to = readExpectedInputSettler(envelope, params, user);
+    const to = readRecipientField(envelope, "to", user);
     validateEip3009Message(envelope, {
         provider: PROVIDER_NAME,
         user,
         to,
         maxValue: params.input.amount !== undefined ? BigInt(params.input.amount) : undefined,
     });
-}
-
-function readExpectedInputSettler(
-    envelope: Eip712Envelope,
-    params: QuoteRequest,
-    user: Address,
-): Address {
-    const expectedSettler = OIF_INPUT_SETTLER_ESCROW_BY_CHAIN[params.input.chainId];
-    if (expectedSettler === undefined) {
-        throw new Eip712EnvelopeMismatch({
-            field: "to",
-            provider: PROVIDER_NAME,
-            primaryType: envelope.primaryType,
-            cause: `OIF has no input settler on chain ${params.input.chainId}`,
-        });
-    }
-
-    const to = readRecipientField(envelope, "to", user);
-    if (!isAddressEqual(to, expectedSettler)) {
-        throw new Eip712EnvelopeMismatch({
-            field: "to",
-            provider: PROVIDER_NAME,
-            primaryType: envelope.primaryType,
-            expected: expectedSettler,
-            received: to,
-        });
-    }
-    return to;
 }
 
 function toEnvelope(payload: OifEscrowOrder["payload"] | Oif3009Order["payload"]): Eip712Envelope {
