@@ -19,6 +19,8 @@ const USDT_MAINNET = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
 const USER = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8";
 const RECIPIENT = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb8";
 const SETTLER = "0x52602D7cc3D833F5d28ee6D01C7F82C9b2322e10";
+const INPUT_SETTLER = "0x1CC9260E285C2C8AC8D2E7102F3978056Ec1d0a8";
+const INPUT_CHAIN = 42161;
 const FUTURE_DEADLINE = Math.floor(Date.now() / 1000) + 3600;
 
 const bytes32 = (addr: string): Hex => pad(addr as Hex, { size: 32 });
@@ -183,7 +185,7 @@ describe("orderAdapter", () => {
                     domain: {
                         name: "USD Coin",
                         version: "2",
-                        chainId: 1,
+                        chainId: INPUT_CHAIN,
                         verifyingContract: USDC_MAINNET,
                     },
                     primaryType: "ReceiveWithAuthorization",
@@ -199,17 +201,22 @@ describe("orderAdapter", () => {
                     },
                     message: {
                         from: USER,
-                        to: SETTLER,
+                        to: INPUT_SETTLER,
                         value: "1000000",
                         validAfter: 0,
                         validBefore: FUTURE_DEADLINE,
                         nonce: "0xabcd",
                     },
                 },
-                metadata: { orderHash: "0x123", chainId: 1, tokenAddress: USDC_MAINNET },
+                metadata: { orderHash: "0x123", chainId: INPUT_CHAIN, tokenAddress: USDC_MAINNET },
             };
 
-            const result = adaptOifOrder(oifOrder, mockParams());
+            const result = adaptOifOrder(
+                oifOrder,
+                mockParams({
+                    input: { chainId: INPUT_CHAIN, assetAddress: USDC_MAINNET, amount: "1000000" },
+                }),
+            );
 
             expect(result.steps).toHaveLength(1);
             expect(result.steps[0]!.kind).toBe("signature");
@@ -219,7 +226,7 @@ describe("orderAdapter", () => {
             if (step.kind === "signature") {
                 expect(step.metadata).toEqual({
                     orderHash: "0x123",
-                    chainId: 1,
+                    chainId: INPUT_CHAIN,
                     tokenAddress: USDC_MAINNET,
                 });
             }
