@@ -79,15 +79,23 @@ export function adaptQuote(
     // On exact-output the user input amount is empty, so bind the envelope cap to the
     // quoted input. On exact-input keep the user's signed amount; overriding it with
     // solver data would weaken the max-spend check.
+    const validationInputAmount =
+        params.swapType === "exact-output"
+            ? (currencyIn?.amount ?? params.input.amount)
+            : params.input.amount;
+
+    // Fail closed: without an input amount the signature validators compute an
+    // undefined max-spend cap and skip the check, so an exact-output quote that omits
+    // the quoted input would bypass envelope tamper protection.
+    if (params.swapType === "exact-output" && validationInputAmount === undefined) {
+        throw new ProviderGetQuoteFailure(
+            "Relay exact-output response omits details.currencyIn.amount required to bound the signature envelope",
+        );
+    }
+
     const paramsForValidation: QuoteRequest = {
         ...params,
-        input: {
-            ...params.input,
-            amount:
-                params.swapType === "exact-output"
-                    ? (currencyIn?.amount ?? params.input.amount)
-                    : params.input.amount,
-        },
+        input: { ...params.input, amount: validationInputAmount },
     };
 
     return {

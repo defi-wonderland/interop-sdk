@@ -514,6 +514,25 @@ describe("adaptQuote — envelope max-spend binding", () => {
         });
         expect(() => adaptQuote(params, response, PROVIDER_ID)).not.toThrow();
     });
+
+    it("throws on exact-output when the quote omits the input amount", () => {
+        const base = makeRelayQuoteResponse();
+        const response = {
+            ...base,
+            details: { ...base.details!, currencyIn: undefined },
+        } as RelayQuoteResponse;
+        const params = makeQuoteRequest({
+            swapType: "exact-output",
+            input: { chainId: ORIGIN_CHAIN_ID, assetAddress: VALID_ADDRESS },
+            output: {
+                chainId: DESTINATION_CHAIN_ID,
+                assetAddress: VALID_ADDRESS,
+                amount: OUTPUT_AMOUNT,
+            },
+        });
+        // Without a quoted input amount the max-spend cap would be skipped, so fail closed.
+        expect(() => adaptQuote(params, response, PROVIDER_ID)).toThrow(ProviderGetQuoteFailure);
+    });
 });
 
 describe("adaptRelaySteps — signature steps", () => {
