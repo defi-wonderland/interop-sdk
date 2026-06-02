@@ -1,27 +1,31 @@
 ---
 title: Cross-Chain Transfers
-description: Fetch quotes, execute token transfers, and track orders through one provider interface for Across, Relay, OIF, Bungee, and LI.FI.
+description: An open source toolkit for cross-chain value movement — aggregate intent protocols, compare quotes, and execute payments and DeFi actions through a single integration.
 ---
 
 # Cross-Chain
 
-:::danger[Experimental release — not for production use]
+**An open source toolkit for cross-chain value movement, aggregating intent protocols via a developer-friendly interface.**
+
+Easy to use, open source and maximally configurable, the cross-chain package connects your application to multiple providers via a single integration.
+
+Simplify cross-chain payments and DeFi actions while comparing providers to find the best balance of price, latency and trust for your users.
+
+Developed by Wonderland in collaboration with the Ethereum Foundation, the `cross-chain` package builds on open standards like the Open Intents Framework and ERC-7683, while also integrating other intent protocols in an open source client-side library.
+
+## What it does
+
+-   Fetch and compare quotes from multiple providers (Across, Relay, OIF, Bungee, LiFi Intents)
+-   Execute cross-chain actions via gasless signatures or onchain transactions
+-   Generate approvals as required for easy onchain execution
+-   Track orders from initiation to completion
+
+:::warning[Experimental release — not for production use]
 
 This SDK is an early, preview release and has not been audited. It handles transaction and signature data for cross-chain value transfers, so a defect in the SDK could result in permanent, irrecoverable loss of user funds.
 
 Do not use this SDK in production or with real user value.
 :::
-
-The `cross-chain` package provides a standardized interface for cross-chain token transfers. It lets you fetch quotes from multiple bridge providers, execute transfers, and track orders through a unified API.
-
-Order shapes and the `OrderStatus` vocabulary are borrowed from [ERC-7683](https://www.erc7683.org/) and the [Open Intents Framework](https://github.com/openintentsframework). Across and OIF use ERC-7683-aligned order shapes (the SDK parses provider-specific open events and maps them into an ERC-7683/OIF-shaped intent); Relay, Bungee, and LiFi Intents have their own protocols and are normalized by the SDK into the same shape.
-
-## What it does
-
--   Fetch and compare quotes from multiple providers (Across, Relay, OIF, Bungee, LiFi Intents)
--   Execute cross-chain transfers via signature (gasless) or transaction
--   Track orders from initiation to completion
--   Aggregate quotes with configurable sorting strategies
 
 ## Where to start
 
