@@ -1,11 +1,13 @@
 ---
-title: Execute Intent
-description: End-to-end example of executing a cross-chain intent — setup, quote, approval handling, transaction submission, and order tracking.
+title: "Cross-Chain: Full Example"
+description: End-to-end example of executing a cross-chain transfer — setup, quote, approval handling, transaction submission, and order tracking.
 ---
 
-# Execute Intent
+# Cross-Chain: Full Example
 
-This guide demonstrates how to execute a cross-chain intent using the SDK. The process is broken down into clear steps, each with a brief explanation.
+This is the complete, copy-paste-runnable script for executing a cross-chain transfer end to end — provider and aggregator setup (with automatic ERC-20 approvals), quoting, execution, and the `main()` wrapper that ties it together, for both testnet and mainnet.
+
+If you want each call explained step by step — plus native-token transfers, asset discovery, and multi-provider comparison — start with [Getting Started](/cross-chain/getting-started). This page is the assembled reference you can drop into a file and run.
 
 ## 1. Setup: Import Dependencies and Configure Environment
 
@@ -202,6 +204,6 @@ main().catch(console.error);
 
 ## Next steps
 
--   [Order Tracking](/cross-chain/intent-tracking) — monitor your transaction from initiation to completion
+-   [Order Tracking](/cross-chain/order-tracking) — monitor your transaction from initiation to completion
 -   [Concepts](/cross-chain/concepts) — understand intent-based architecture and ERC-7683
 -   [API Reference](/cross-chain/api) — complete function signatures and types

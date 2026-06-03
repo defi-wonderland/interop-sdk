@@ -1,9 +1,9 @@
 ---
-title: Frontend Integration
+title: "Cross-Chain: Frontend Integration"
 description: Wire the cross-chain SDK into a React/Next.js app with wagmi v2 — a useCrossChainSwap hook covering quotes, approvals, and submission.
 ---
 
-# Frontend Integration
+# Cross-Chain: Frontend Integration
 
 The [getting-started guide](/cross-chain/getting-started) uses `privateKeyToAccount` and a plain Node.js script to keep things simple. In a real application you wire through an injected wallet — the user's browser extension or mobile app — using **wagmi v2** and a connector library such as **RainbowKit**.
 
@@ -266,7 +266,7 @@ export function useCrossChainSwap() {
                 // ── 4. Track until finalized ─────────────────────────────────────────
                 // If the order was submitted via signature, the solver submits the
                 // bridge on-chain — there is no user-side bridge tx hash to follow.
-                // Track by orderId instead (see intent-tracking.md).
+                // Track by orderId instead (see order-tracking.md).
                 // Otherwise lastTxHash is the bridge tx (approvals are prepended).
                 setStatus("tracking");
 
@@ -295,7 +295,7 @@ export function useCrossChainSwap() {
                 } else {
                     // Solver-submitted: the bridge opens without a user-side tx hash.
                     // Track via quote.tracking?.orderId using watchOrder() from a
-                    // standalone OrderTracker — see intent-tracking.md.
+                    // standalone OrderTracker — see order-tracking.md.
                     setStatus("submitted");
                 }
             } catch (err) {
@@ -314,8 +314,8 @@ export function useCrossChainSwap() {
 
 ## Next steps
 
--   [Order Tracking](/cross-chain/intent-tracking) — detailed event reference and provider-specific notes
--   [Execute Intent](/cross-chain/example) — the equivalent Node.js script using `privateKeyToAccount`
+-   [Order Tracking](/cross-chain/order-tracking) — detailed event reference and provider-specific notes
+-   [Full Example](/cross-chain/example) — the equivalent Node.js script using `privateKeyToAccount`
 -   [Advanced Usage](/cross-chain/advanced-usage) — sorting strategies, timeouts, error handling
 -   [API Reference](/cross-chain/api) — complete function signatures and types
 
