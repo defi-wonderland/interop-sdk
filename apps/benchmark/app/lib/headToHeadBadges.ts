@@ -41,15 +41,20 @@ export function computeBestAtBadges(metrics: readonly ProviderMetrics[]): Map<Pr
 function pickWinner(metrics: readonly ProviderMetrics[], rule: BadgeRule): ProviderMetrics | null {
   const candidates = metrics.filter((m) => {
     const value = rule.select(m);
-    // Only providers with positive activity AND a usable metric qualify; a
-    // provider with zero fills cannot be "cheapest" or "fastest" even if the
-    // service returned a default 0.
-    return value !== null && Number.isFinite(value) && (m.fillCount ?? 0) > 0;
+    // Only providers with positive activity AND a usable, non-negative metric
+    // qualify. Negatives are rejected here because the row formatters render
+    // them as em-dashes, so awarding a badge on a hidden value would mislead.
+    return value !== null && Number.isFinite(value) && value >= 0 && (m.fillCount ?? 0) > 0;
   });
   if (candidates.length === 0) return null;
   return candidates.reduce((best, current) => {
     const a = rule.select(best)!;
     const b = rule.select(current)!;
+    if (a === b) {
+      // Deterministic tie-break by providerId so the winner doesn't flicker
+      // between renders when upstream ordering changes.
+      return current.providerId < best.providerId ? current : best;
+    }
     return rule.direction === 'min' ? (b < a ? current : best) : b > a ? current : best;
   });
 }
