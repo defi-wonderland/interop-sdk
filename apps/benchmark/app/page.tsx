@@ -6,9 +6,12 @@ import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
+import { HeadToHead } from './components/headtohead/HeadToHead';
+import { RouteSelector } from './components/headtohead/RouteSelector';
 import { Leaderboard } from './components/leaderboard/Leaderboard';
 import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
 import { withTimeout } from './lib/helpers';
+import { MOCK_HEAD_TO_HEAD_METRICS } from './lib/mocks/headToHeadMock';
 import { MOCK_LEADERBOARD_METRICS } from './lib/mocks/leaderboardMock';
 import {
   INITIAL_AMOUNT,
@@ -72,9 +75,17 @@ export default async function Home() {
           <SectionHeader
             index='03'
             label='head-to-head · by route'
-            title='compare providers on the selected chain pair'
+            title='compare providers on a specific chain pair'
+            rightSlot={
+              <RouteSelector
+                fromChainId={INITIAL_FROM_CHAIN_ID}
+                toChainId={INITIAL_TO_CHAIN_ID}
+                assetSymbol={INITIAL_ASSET_SYMBOL}
+                assetColorClass='bg-asset-usdc'
+              />
+            }
           />
-          <SectionPlaceholder label='comparison table arrives in pr 4' />
+          <HeadToHead metrics={MOCK_HEAD_TO_HEAD_METRICS} />
         </SectionFrame>
       </main>
 
@@ -114,12 +125,4 @@ async function loadInitialRace(chains: NetworkAssets[]): Promise<RaceRow[]> {
   } catch {
     return orderRaceRows(createRows('idle'));
   }
-}
-
-function SectionPlaceholder({ label }: { label: string }) {
-  return (
-    <Label className='flex h-40 w-full items-center justify-center border border-dashed border-border-subtle bg-surface-elevated/40 font-mono text-label uppercase tracking-widest text-text-muted'>
-      {label}
-    </Label>
-  );
 }

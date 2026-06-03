@@ -1,23 +1,23 @@
 import { METRICS_ROW_CLASS } from '../metricsTable';
-import { LEADERBOARD_COLUMNS } from './constants';
+import { HEAD_TO_HEAD_COLUMNS } from './constants';
+import type { BestAtBadge } from '~/lib/headToHeadBadges';
 import type { ProviderMetrics } from '~/lib/types/historyMetrics';
 import { cn } from '~/lib/cn';
 import { PROVIDERS } from '~/lib/providers';
 
-interface LeaderboardRowProps {
+interface HeadToHeadRowProps {
   metrics: ProviderMetrics;
-  rank: number;
-  isWinner: boolean;
+  badges: readonly BestAtBadge[];
 }
 
-export function LeaderboardRow({ metrics, rank, isWinner }: LeaderboardRowProps) {
+export function HeadToHeadRow({ metrics, badges }: HeadToHeadRowProps) {
   const provider = PROVIDERS[metrics.providerId];
   const isPlaceholder = !provider.hasGlobalFeed;
-  const ctx = { rank, isWinner, isPlaceholder, provider };
+  const ctx = { provider, isPlaceholder, badges };
 
   return (
-    <tr className={cn(METRICS_ROW_CLASS, isWinner && 'bg-accent-soft', isPlaceholder && 'opacity-55')}>
-      {LEADERBOARD_COLUMNS.map((column) => (
+    <tr className={cn(METRICS_ROW_CLASS, isPlaceholder && 'opacity-55')}>
+      {HEAD_TO_HEAD_COLUMNS.map((column) => (
         <td key={column.key} className={column.tdClass}>
           {column.render(metrics, ctx)}
         </td>
