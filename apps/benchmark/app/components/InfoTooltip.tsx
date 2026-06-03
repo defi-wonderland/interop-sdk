@@ -23,7 +23,9 @@ export function InfoTooltip({ label, text }: InfoTooltipProps) {
   const id = useId();
 
   // The tooltip lives outside the button so the button's accessible name stays
-  // the label alone; it's still announced as the button's description via the id.
+  // the label alone. It's aria-hidden so screen readers skip it while browsing,
+  // yet aria-describedby still reads its text on focus: a node referenced
+  // directly by describedby contributes to the description even when hidden.
   return (
     <span className='group relative inline-flex'>
       <button type='button' aria-describedby={id} className='inline-flex cursor-default items-center gap-1'>
@@ -43,7 +45,7 @@ export function InfoTooltip({ label, text }: InfoTooltipProps) {
           <path d='M12 8h.01' />
         </svg>
       </button>
-      <span id={id} role='tooltip' className={TOOLTIP_CLASS}>
+      <span id={id} aria-hidden='true' className={TOOLTIP_CLASS}>
         {text}
       </span>
     </span>
