@@ -55,7 +55,7 @@ The SDK exposes three ways to track an order. Choose based on your use case:
 :::
 
 :::info[Mixed-step orders]
-Mixed-step orders (containing both transaction steps and signature steps) are not currently emitted by any supported provider. Consumers can safely handle either `isSignatureOnlyOrder()` or `isTransactionOnlyOrder()` without defensive mixed-order handling.
+Providers do not currently emit mixed-step orders (containing both transaction steps and signature steps) on their own. However, when an `approvalService` is wired in, the SDK can prepend approval `TransactionStep`s to signature-based orders, so consumers should still iterate `order.steps` in order and handle each step by its `kind`.
 :::
 
 ## Basic Usage
