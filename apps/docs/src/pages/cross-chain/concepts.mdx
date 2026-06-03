@@ -1,11 +1,11 @@
 ---
-title: Concepts
+title: "Cross-Chain: Concepts"
 description: The intent-based architecture behind the cross-chain package and how the SDK unifies heterogeneous bridge providers behind a common interface.
 ---
 
 import { Mermaid } from "../../components/Mermaid";
 
-# Concepts
+# Cross-Chain: Concepts
 
 This page explains the ideas behind the `cross-chain` package — the architecture and the design decisions that shape how cross-chain transfers work.
 
@@ -43,11 +43,12 @@ This separation of intent from execution means the same code works across differ
 
     Note over dev,tracker: 3. Track
     dev->>+tracker: watchOrder(txHash, chains)
-    loop Until Finalized / Failed / Refunded
-        tracker->>tracker: Check status
+    loop Until Finalized / Failed / Refunded (or SDK timeout)
+        tracker->>tracker: Parse open event (origin RPC)
+        tracker->>tracker: Check fill (destination RPC or provider API)
         tracker-->>dev: Status Update
     end
-    tracker-->>-dev: Final Status`}
+    tracker-->>-dev: Final Status (OrderStatus)`}
 
 />
 
@@ -77,8 +78,8 @@ A provider is an adapter that translates the SDK's standardized `QuoteRequest` i
 
 ### Available providers
 
-| Provider                                | Status | Execution Modes                         | Tracking                        |
-| --------------------------------------- | ------ | --------------------------------------- | ------------------------------- |
+| Provider                                           | Status | Execution Modes                         | Tracking                        |
+| -------------------------------------------------- | ------ | --------------------------------------- | ------------------------------- |
 | [Across](/cross-chain/across-provider)             | Active | User (transaction)                      | API (mainnet), Events (testnet) |
 | [Relay](/cross-chain/relay-provider)               | Active | User (transaction)                      | API-based                       |
 | [OIF](/cross-chain/oif-provider)                   | Active | Protocol + User                         | Event-based                     |
@@ -114,4 +115,4 @@ Tracking works through two mechanisms:
 -   **Event-based**: Parse an event on the origin chain to detect that the order opened. Fill detection may be on-chain or API-based depending on the provider, so an origin-chain RPC URL is always required, but a destination-chain RPC URL is only needed when the provider uses an on-chain fill watcher (e.g. Across testnet).
 -   **API-based**: Poll a provider's status endpoint. Simpler setup, no destination-chain RPC needed.
 
-The tracking mechanism is determined by the provider. See [Order Tracking](/cross-chain/intent-tracking) for usage details.
+The tracking mechanism is determined by the provider. See [Order Tracking](/cross-chain/order-tracking) for usage details.

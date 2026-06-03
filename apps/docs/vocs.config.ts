@@ -17,7 +17,10 @@ export default defineConfig({
     rootDir: ".",
     baseUrl,
     iconUrl: "/eth-diamond-rainbow.svg",
-    logoUrl: "/eth-diamond-rainbow.svg",
+    // Must be a PNG, not the .svg: the OG image renderer (@takumi-rs) can't rasterize
+    // eth-diamond-rainbow.svg (percentage-sized root wrapping a base64 PNG via <use>),
+    // so a vector logoUrl renders the OG card with no logo. See /api/og.
+    logoUrl: "/eth-diamond-rainbow.png",
     accentColor: "light-dark(#3441c0, #7f8cff)",
     socials: [
         {
@@ -36,12 +39,13 @@ export default defineConfig({
         },
     },
     sidebar: [
-        { text: "About", link: "/" },
+        { text: "Overview", link: "/" },
         { text: "Installation", link: "/installation" },
         {
             text: "Addresses",
             link: "/addresses",
             items: [
+                { text: "Overview", link: "/addresses" },
                 { text: "Getting Started", link: "/addresses/getting-started" },
                 { text: "Concepts", link: "/addresses/concepts" },
                 { text: "Example", link: "/addresses/example" },
@@ -53,18 +57,18 @@ export default defineConfig({
             text: "Cross-Chain",
             link: "/cross-chain",
             items: [
+                { text: "Overview", link: "/cross-chain" },
                 { text: "Getting Started", link: "/cross-chain/getting-started" },
                 { text: "Concepts", link: "/cross-chain/concepts" },
-                { text: "Flow", link: "/cross-chain/flow" },
                 { text: "Providers", link: "/cross-chain/providers" },
                 { text: "Across Provider", link: "/cross-chain/across-provider" },
                 { text: "Relay Provider", link: "/cross-chain/relay-provider" },
                 { text: "OIF Provider", link: "/cross-chain/oif-provider" },
                 { text: "Bungee Provider", link: "/cross-chain/bungee-provider" },
                 { text: "LiFi Intents Provider", link: "/cross-chain/lifi-intents-provider" },
-                { text: "Example", link: "/cross-chain/example" },
+                { text: "Full Example", link: "/cross-chain/example" },
                 { text: "Frontend Integration", link: "/cross-chain/frontend-integration" },
-                { text: "Intent Tracking", link: "/cross-chain/intent-tracking" },
+                { text: "Order Tracking", link: "/cross-chain/order-tracking" },
                 { text: "Advanced Usage", link: "/cross-chain/advanced-usage" },
                 { text: "API Reference", link: "/cross-chain/api" },
             ],

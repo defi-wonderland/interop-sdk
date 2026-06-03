@@ -1,9 +1,9 @@
 ---
-title: Getting Started
+title: "Cross-Chain: Getting Started"
 description: Execute a cross-chain token transfer end-to-end — create a provider, fetch a quote, send the transaction, and track the order to completion.
 ---
 
-# Getting Started
+# Cross-Chain: Getting Started
 
 :::tip[Building a frontend?]
 This guide uses `privateKeyToAccount` and a plain Node.js script to keep the flow focused on the SDK. If you're wiring the SDK into a React / Next.js app with an injected wallet, jump to [Frontend Integration](/cross-chain/frontend-integration) for the wagmi-based pattern.
@@ -122,32 +122,16 @@ Both `0x0000000000000000000000000000000000000000` (zero address) and `0xeeeeeeee
 
 ERC-20 inputs need an `approve` before the transfer step. The SDK can do this for you: wire an `approvalService` into the aggregator and every returned quote already has the necessary `approve` `TransactionStep`s prepended to `order.steps`. Iterate the steps in order and each `approve` fires before the step that needs it.
 
-See [Automatic ERC-20 Approvals](/cross-chain/advanced-usage#automatic-erc-20-approvals) for the setup, or the [Execute Intent guide](/cross-chain/example) for a full runnable example.
+See [Automatic ERC-20 Approvals](/cross-chain/advanced-usage#automatic-erc-20-approvals) for the setup, or the [Full Example](/cross-chain/example) for a complete runnable script.
 
 ## Execute the transaction
 
-Quotes contain either signature steps (gasless) or transaction steps (user pays gas). Handle both:
+An order is a list of steps. Iterate `quote.order.steps` in emission order and handle each by its `kind`: send `transaction` steps with your wallet, or sign and submit `signature` steps (gasless). A single order can hold transaction steps, signature steps, or — when an `approvalService` is wired in — both (a prepended `approve` transaction followed by a signature). On the first signature step, sign, submit, and stop: the solver takes the order from there.
 
 ```typescript
-import {
-    getSignatureSteps,
-    getTransactionSteps,
-    isSignatureOnlyOrder,
-} from "@wonderland/interop-cross-chain";
-
-if (isSignatureOnlyOrder(quote.order)) {
-    // Gasless: sign EIP-712 typed data, solver executes on your behalf
-    const step = getSignatureSteps(quote.order)[0];
-    const { signatureType, ...typedData } = step.signaturePayload;
-    const signature = await walletClient.signTypedData(typedData);
-    await provider.submitOrder(quote, signature);
-    console.log("Order submitted via signature");
-} else {
-    // User pays gas: send every transaction step in order.
-    // A quote may contain one or more transaction steps depending on the provider.
-    // Quotes from an `Aggregator` configured with `approvalService` may also have
-    // `approve` steps prepended before the transfer.
-    for (const step of getTransactionSteps(quote.order)) {
+for (const step of quote.order.steps) {
+    if (step.kind === "transaction") {
+        // User pays gas: send the transaction and wait for it to confirm.
         const hash = await walletClient.sendTransaction({
             to: step.transaction.to,
             data: step.transaction.data,
@@ -157,9 +141,16 @@ if (isSignatureOnlyOrder(quote.order)) {
 
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         if (receipt.status !== "success") {
-            throw new Error(`Step failed: ${step.description ?? "transaction"}`);
+            throw new Error(`Step failed: ${step.description ?? step.kind}`);
         }
         console.log("Confirmed: Success");
+    } else {
+        // Gasless: sign the EIP-712 payload and submit — the solver executes for you.
+        const { signatureType, ...typedData } = step.signaturePayload;
+        const signature = await walletClient.signTypedData(typedData);
+        await provider.submitOrder(quote, signature);
+        console.log("Order submitted via signature");
+        break;
     }
 }
 ```
@@ -225,9 +216,9 @@ Each provider must have a unique `providerId`; passing two that resolve to the s
 
 1. **Create provider** → `createCrossChainProvider(PROTOCOLS.ACROSS)` (or use `createAggregator` for multiple — wire an `approvalService` to enrich quotes with ERC-20 `approve` steps automatically)
 2. **Get quotes** → `provider.getQuotes(request)` or `aggregator.getQuotes(request)`
-3. **Check order type** → `isSignatureOnlyOrder(quote.order)`
-    - **Signature (gasless):** `signTypedData()` → `provider.submitOrder(quote, signature)`
-    - **Transaction (user pays gas):** iterate `getTransactionSteps(quote.order)` and send each — approval steps (when present) come first (see [example above](#execute-the-transaction) — convert string `value` to `BigInt`)
+3. **Execute** → iterate `quote.order.steps` and handle each by `kind` (see [the execute step above](#execute-the-transaction) — convert string `value` to `BigInt`):
+    - **`transaction` (user pays gas):** send with `walletClient.sendTransaction()` — any prepended `approve` steps come first
+    - **`signature` (gasless):** `signTypedData()` → `provider.submitOrder(quote, signature)`, then stop
 4. **Track** → `createOrderTracker(provider)` for single-provider or `aggregator.track({ txHash, providerId, originChainId, destinationChainId })` for aggregator
 
 ### Which function should I use?
@@ -247,7 +238,7 @@ Each provider must have a unique `providerId`; passing two that resolve to the s
 
 ## Next steps
 
--   [Order Tracking](/cross-chain/intent-tracking) — monitor your transfer from initiation to completion
+-   [Order Tracking](/cross-chain/order-tracking) — monitor your transfer from initiation to completion
 -   [Supported Providers](/cross-chain/providers) — all providers and their configuration options
 -   [Concepts](/cross-chain/concepts) — understand intent-based architecture and ERC-7683
 -   [Advanced Usage](/cross-chain/advanced-usage) — sorting strategies, timeouts, error handling
