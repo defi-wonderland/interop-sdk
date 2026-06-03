@@ -2,13 +2,10 @@ import { createPublicClient, http } from "viem";
 import * as chains from "viem/chains";
 import { normalize } from "viem/ens";
 
+import { ETHEREUM_COIN_TYPE } from "../constants/ethereumCoinType.js";
 import { ChainTypeName } from "../constants/interopAddress.js";
-import {
-    ENSLookupFailed,
-    ENSNotFound,
-    ETHEREUM_COIN_TYPE,
-    InvalidInteroperableName,
-} from "../internal.js";
+import { ENSLookupFailed, ENSNotFound, InvalidInteroperableName } from "../internal.js";
+import { getRpcUrl } from "./getRpcUrl.js";
 import { isViemChainId } from "./isValidChain.js";
 
 function isENSName(address: string): boolean {
@@ -23,10 +20,6 @@ function isENSName(address: string): boolean {
 const convertEVMChainIdToCoinType = (chainId: number): number => {
     return (0x80000000 | chainId) >>> 0;
 };
-
-function getRpcUrl(rpcUrl?: string): string | undefined {
-    return rpcUrl?.trim() || process.env.MAINNET_RPC_URL?.trim() || undefined;
-}
 
 /**
  * Resolves an ENS name to an Ethereum address
