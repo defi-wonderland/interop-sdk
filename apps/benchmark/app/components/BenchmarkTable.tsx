@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
+import { InfoTooltip } from './InfoTooltip';
 import { cn } from '~/lib/cn';
 
 export interface BenchmarkColumn {
@@ -32,9 +33,7 @@ export function BenchmarkTable<T>({
             {columns.map((column) => (
               <th key={column.key} className={cn('px-3 py-3 font-medium md:px-4', column.className)}>
                 {column.tooltip ? (
-                  <span title={column.tooltip} className='cursor-help underline decoration-dotted underline-offset-4'>
-                    {column.label}
-                  </span>
+                  <InfoTooltip id={`col-tooltip-${column.key}`} label={column.label} text={column.tooltip} />
                 ) : (
                   column.label
                 )}
