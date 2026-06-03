@@ -17,20 +17,34 @@ vi.mock("../../src/name/shortnameToChainId.js", () => ({
     shortnameToChainId: mockShortnameToChainId,
 }));
 
-const mockGetEnsAddress = vi.fn();
+const { mockCreatePublicClient, mockGetEnsAddress, mockHttp } = vi.hoisted(() => {
+    const mockGetEnsAddress = vi.fn();
+    const mockCreatePublicClient = vi.fn(() => ({
+        getEnsAddress: mockGetEnsAddress,
+    }));
+    const mockHttp = vi.fn((url?: string) => ({ url }));
+
+    return { mockCreatePublicClient, mockGetEnsAddress, mockHttp };
+});
+
 vi.mock("viem", async () => {
     const actual = await vi.importActual("viem");
     return {
         ...actual,
-        createPublicClient: (): unknown => ({
-            getEnsAddress: mockGetEnsAddress,
-        }),
+        createPublicClient: mockCreatePublicClient,
+        http: mockHttp,
     };
 });
 
 describe("parseName", () => {
     beforeEach(() => {
-        mockGetEnsAddress.mockClear();
+        mockGetEnsAddress.mockReset();
+        mockCreatePublicClient.mockClear();
+        mockCreatePublicClient.mockImplementation(() => ({
+            getEnsAddress: mockGetEnsAddress,
+        }));
+        mockHttp.mockClear();
+        mockHttp.mockImplementation((url?: string) => ({ url }));
         mockShortnameToChainId.mockClear();
     });
 
@@ -244,6 +258,27 @@ describe("parseName", () => {
         expect(result.name.address).toBe("vitalik.eth"); // Original is preserved in name field
         expect(result.meta.isENS).toBe(true);
         expect(result.meta.isChainLabel).toBe(false);
+    });
+
+    it("uses parseName rpcUrl for ENS resolution transport", async () => {
+        const rpcUrl = "https://custom-mainnet-rpc.example";
+        const transport = { url: rpcUrl };
+        const resolvedAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+        mockHttp.mockReturnValue(transport);
+        mockGetEnsAddress.mockResolvedValue(resolvedAddress);
+
+        const result = await parseName("vitalik.eth@eip155:1", { rpcUrl });
+
+        expect(mockHttp).toHaveBeenCalledWith(rpcUrl);
+        expect(mockCreatePublicClient).toHaveBeenCalledWith(
+            expect.objectContaining({
+                transport,
+            }),
+        );
+        if (isTextAddress(result.interoperableAddress)) {
+            expect(result.interoperableAddress.address).toBe(resolvedAddress);
+        }
+        expect(result.meta.isENS).toBe(true);
     });
 
     it("throws error when only chainType is provided (no address or chain reference)", async () => {
