@@ -5,6 +5,8 @@ export interface BenchmarkColumn {
   key: string;
   label: string;
   className?: string;
+  /** Plain-language explanation rendered as a hover tooltip on the header label. */
+  tooltip?: string;
 }
 
 interface BenchmarkTableProps<T> {
@@ -29,7 +31,13 @@ export function BenchmarkTable<T>({
           <tr className='border-b border-border-subtle font-mono text-caption uppercase tracking-widest text-text-muted'>
             {columns.map((column) => (
               <th key={column.key} className={cn('px-3 py-3 font-medium md:px-4', column.className)}>
-                {column.label}
+                {column.tooltip ? (
+                  <span title={column.tooltip} className='cursor-help underline decoration-dotted underline-offset-4'>
+                    {column.label}
+                  </span>
+                ) : (
+                  column.label
+                )}
               </th>
             ))}
           </tr>

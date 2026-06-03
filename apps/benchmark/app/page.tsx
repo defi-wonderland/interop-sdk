@@ -6,8 +6,10 @@ import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
+import { Leaderboard } from './components/leaderboard/Leaderboard';
 import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
 import { withTimeout } from './lib/helpers';
+import { MOCK_LEADERBOARD_METRICS } from './lib/mocks/leaderboardMock';
 import {
   INITIAL_AMOUNT,
   INITIAL_ASSET_SYMBOL,
@@ -61,8 +63,9 @@ export default async function Home() {
             index='02'
             label='provider leaderboard · 24h ambient'
             title='how providers performed across all routes'
+            rightSlot={<Label className={META_LABEL_CLASS}>showing fixture data &middot; wire-up arrives next</Label>}
           />
-          <SectionPlaceholder label='leaderboard arrives in pr 3' />
+          <Leaderboard metrics={MOCK_LEADERBOARD_METRICS} />
         </SectionFrame>
 
         <SectionFrame divider={false}>
