@@ -32,11 +32,7 @@ export function BenchmarkTable<T>({
           <tr className='border-b border-border-subtle font-mono text-caption uppercase tracking-widest text-text-muted'>
             {columns.map((column) => (
               <th key={column.key} className={cn('px-3 py-3 font-medium md:px-4', column.className)}>
-                {column.tooltip ? (
-                  <InfoTooltip id={`col-tooltip-${column.key}`} label={column.label} text={column.tooltip} />
-                ) : (
-                  column.label
-                )}
+                {column.tooltip ? <InfoTooltip label={column.label} text={column.tooltip} /> : column.label}
               </th>
             ))}
           </tr>

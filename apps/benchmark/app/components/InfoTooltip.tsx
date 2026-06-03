@@ -1,10 +1,12 @@
+'use client';
+
+import { useId } from 'react';
+
 interface InfoTooltipProps {
   /** Visible column label. */
   label: string;
   /** Plain-language explanation shown on hover or focus. */
   text: string;
-  /** Unique id linking the trigger to its tooltip for screen readers. */
-  id: string;
 }
 
 // Anchored to the right edge and dropped below the header so it stays inside the
@@ -15,7 +17,11 @@ const TOOLTIP_CLASS =
   'tracking-normal text-text-secondary opacity-0 shadow-lg transition-opacity duration-150 ' +
   'group-hover:opacity-100 group-focus-within:opacity-100';
 
-export function InfoTooltip({ label, text, id }: InfoTooltipProps) {
+export function InfoTooltip({ label, text }: InfoTooltipProps) {
+  // useId keeps the trigger/tooltip association unique even when several tables
+  // render the same column keys on one page.
+  const id = useId();
+
   // The tooltip lives outside the button so the button's accessible name stays
   // the label alone; it's still announced as the button's description via the id.
   return (
