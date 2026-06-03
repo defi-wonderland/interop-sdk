@@ -2,13 +2,10 @@ import { createPublicClient, http } from "viem";
 import * as chains from "viem/chains";
 import { normalize } from "viem/ens";
 
+import { ETHEREUM_COIN_TYPE } from "../constants/ethereumCoinType.js";
 import { ChainTypeName } from "../constants/interopAddress.js";
-import {
-    ENSLookupFailed,
-    ENSNotFound,
-    ETHEREUM_COIN_TYPE,
-    InvalidInteroperableName,
-} from "../internal.js";
+import { ENSLookupFailed, ENSNotFound, InvalidInteroperableName } from "../internal.js";
+import { getRpcUrl } from "./getRpcUrl.js";
 import { isViemChainId } from "./isValidChain.js";
 
 function isENSName(address: string): boolean {
@@ -28,15 +25,20 @@ const convertEVMChainIdToCoinType = (chainId: number): number => {
  * Resolves an ENS name to an Ethereum address
  * @param ensName - The ENS name to resolve (e.g., "vitalik.eth")
  * @param chainReference - The chain reference (chain ID as string)
+ * @param rpcUrl - Optional mainnet RPC URL to use for the ENS lookup
  * @returns The resolved Ethereum address
  * @throws {ENSNotFound} If the ENS name cannot be found
  * @throws {ENSLookupFailed} If the ENS lookup fails due to network or other errors
  */
-const resolveENSName = async (ensName: string, chainReference: string): Promise<string> => {
+const resolveENSName = async (
+    ensName: string,
+    chainReference: string,
+    rpcUrl?: string,
+): Promise<string> => {
     try {
         const client = createPublicClient({
             chain: chains.mainnet,
-            transport: http(process.env.MAINNET_RPC_URL),
+            transport: http(getRpcUrl(rpcUrl)),
         });
 
         const chainId = Number(chainReference);
@@ -89,6 +91,7 @@ export interface ResolvedAddress {
  * @param address - The address to resolve (can be a regular address or ENS name)
  * @param chainType - The chain type (e.g., "eip155")
  * @param chainReference - The chain reference (chain ID as string)
+ * @param rpcUrl - Optional mainnet RPC URL to use for ENS lookups
  * @returns The resolved address and whether it was an ENS name
  * @throws {InvalidInteroperableName} If an ENS name is provided without a chain reference
  * @throws {ENSNotFound} If ENS name cannot be found
@@ -98,6 +101,7 @@ export const resolveAddress = async (
     address: string,
     chainType: ChainTypeName,
     chainReference: string | undefined,
+    rpcUrl?: string,
 ): Promise<ResolvedAddress> => {
     const isENS = isENSName(address);
 
@@ -115,7 +119,7 @@ export const resolveAddress = async (
         // Only resolve ENS names for EIP-155 chains
         if (chainType === "eip155" && chainReference) {
             try {
-                const resolved = await resolveENSName(address, chainReference);
+                const resolved = await resolveENSName(address, chainReference, rpcUrl);
                 if (resolved) {
                     resolvedAddress = resolved;
                 }

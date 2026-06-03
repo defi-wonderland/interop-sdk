@@ -64,7 +64,7 @@ export interface ParseNameOptions {
     onchainRegistry?: string | boolean;
     /** Whether to fall back to offchain chainid.network registry. Default: true. */
     offchainRegistryFallback?: boolean;
-    /** Custom mainnet RPC URL for onchain registry lookups. */
+    /** Custom mainnet RPC URL for onchain registry and ENS lookups. */
     rpcUrl?: string;
     /**
      * @deprecated Use `onchainRegistry` instead. Maps to `onchainRegistry` when set.
@@ -116,7 +116,12 @@ export async function parseName(
     // Step 2: Resolve address (ENS resolution)
     let resolvedAddress: ResolvedAddress | undefined;
     if (parsed.address) {
-        resolvedAddress = await resolveAddress(parsed.address, resolvedChainType, resolvedChainRef);
+        resolvedAddress = await resolveAddress(
+            parsed.address,
+            resolvedChainType,
+            resolvedChainRef,
+            opts?.rpcUrl,
+        );
     }
 
     // Step 3: Build text variant from resolved chain values and resolved address

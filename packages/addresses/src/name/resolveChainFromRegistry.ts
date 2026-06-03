@@ -3,6 +3,7 @@ import * as chains from "viem/chains";
 
 import { decodeAddress } from "../address/index.js";
 import { ChainTypeName } from "../constants/interopAddress.js";
+import { getRpcUrl } from "./getRpcUrl.js";
 
 /** Default onchain ENS registry domain for chain resolution. */
 export const DEFAULT_REGISTRY_DOMAIN = "on.eth";
@@ -33,10 +34,6 @@ const resolutionCache = new Map<string, Promise<ResolvedChainFromRegistry | null
 export function clearRegistryCache(): void {
     resolverCache.clear();
     resolutionCache.clear();
-}
-
-function getRpcUrl(rpcUrl?: string): string | undefined {
-    return rpcUrl?.trim() || process.env.MAINNET_RPC_URL?.trim() || undefined;
 }
 
 async function getResolverAddress(
