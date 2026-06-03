@@ -24,6 +24,10 @@ const convertEVMChainIdToCoinType = (chainId: number): number => {
     return (0x80000000 | chainId) >>> 0;
 };
 
+function getRpcUrl(rpcUrl?: string): string | undefined {
+    return rpcUrl?.trim() || process.env.MAINNET_RPC_URL?.trim() || undefined;
+}
+
 /**
  * Resolves an ENS name to an Ethereum address
  * @param ensName - The ENS name to resolve (e.g., "vitalik.eth")
@@ -41,7 +45,7 @@ const resolveENSName = async (
     try {
         const client = createPublicClient({
             chain: chains.mainnet,
-            transport: http(rpcUrl ?? process.env.MAINNET_RPC_URL),
+            transport: http(getRpcUrl(rpcUrl)),
         });
 
         const chainId = Number(chainReference);

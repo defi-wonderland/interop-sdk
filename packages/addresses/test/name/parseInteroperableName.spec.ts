@@ -281,6 +281,37 @@ describe("parseName", () => {
         expect(result.meta.isENS).toBe(true);
     });
 
+    it("falls back to MAINNET_RPC_URL for ENS resolution when parseName rpcUrl is blank", async () => {
+        const previousMainnetRpcUrl = process.env.MAINNET_RPC_URL;
+        const envRpcUrl = "https://env-mainnet-rpc.example";
+        const transport = { url: envRpcUrl };
+        const resolvedAddress = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045";
+        process.env.MAINNET_RPC_URL = `  ${envRpcUrl}  `;
+        mockHttp.mockReturnValue(transport);
+        mockGetEnsAddress.mockResolvedValue(resolvedAddress);
+
+        try {
+            const result = await parseName("vitalik.eth@eip155:1", { rpcUrl: "   " });
+
+            expect(mockHttp).toHaveBeenCalledWith(envRpcUrl);
+            expect(mockCreatePublicClient).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    transport,
+                }),
+            );
+            if (isTextAddress(result.interoperableAddress)) {
+                expect(result.interoperableAddress.address).toBe(resolvedAddress);
+            }
+            expect(result.meta.isENS).toBe(true);
+        } finally {
+            if (previousMainnetRpcUrl === undefined) {
+                delete process.env.MAINNET_RPC_URL;
+            } else {
+                process.env.MAINNET_RPC_URL = previousMainnetRpcUrl;
+            }
+        }
+    });
+
     it("throws error when only chainType is provided (no address or chain reference)", async () => {
         const name = "@eip155";
 
