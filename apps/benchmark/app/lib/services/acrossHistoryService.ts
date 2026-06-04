@@ -16,9 +16,15 @@ const ACROSS_PROVIDER_ID = 'across';
 const ACROSS_DEPOSITS_PAGE_SIZE = 100;
 const ACROSS_DEPOSITS_DEFAULT_LIMIT = 100;
 const ACROSS_DEPOSITS_MAX_LIMIT = 100;
+const ACROSS_REQUEST_TIMEOUT_MS = 15_000;
 
 export class AcrossHistoryService implements HistoryService {
-  constructor(private readonly httpClient: HttpClient = new FetchHttpClient({ baseURL: ACROSS_BASE_URL })) {}
+  constructor(
+    private readonly httpClient: HttpClient = new FetchHttpClient({
+      baseURL: ACROSS_BASE_URL,
+      timeout: ACROSS_REQUEST_TIMEOUT_MS,
+    }),
+  ) {}
 
   async getHistory(query: HistoryQuery): Promise<HistoryResult> {
     const target = Math.min(query.limit ?? ACROSS_DEPOSITS_DEFAULT_LIMIT, ACROSS_DEPOSITS_MAX_LIMIT);

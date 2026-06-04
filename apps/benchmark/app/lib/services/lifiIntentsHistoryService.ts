@@ -17,9 +17,15 @@ const LIFI_INTENTS_PROVIDER_ID = 'lifi-intents';
 const LIFI_INTENTS_PAGE_SIZE = 50;
 const LIFI_INTENTS_DEFAULT_LIMIT = 100;
 const LIFI_INTENTS_MAX_LIMIT = 100;
+const LIFI_INTENTS_REQUEST_TIMEOUT_MS = 15_000;
 
 export class LifiIntentsHistoryService implements HistoryService {
-  constructor(private readonly httpClient: HttpClient = new FetchHttpClient({ baseURL: LIFI_INTENTS_BASE_URL })) {}
+  constructor(
+    private readonly httpClient: HttpClient = new FetchHttpClient({
+      baseURL: LIFI_INTENTS_BASE_URL,
+      timeout: LIFI_INTENTS_REQUEST_TIMEOUT_MS,
+    }),
+  ) {}
 
   async getHistory(query: HistoryQuery): Promise<HistoryResult> {
     const target = Math.min(query.limit ?? LIFI_INTENTS_DEFAULT_LIMIT, LIFI_INTENTS_MAX_LIMIT);

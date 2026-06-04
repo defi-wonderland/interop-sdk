@@ -17,9 +17,15 @@ const RELAY_PROVIDER_ID = 'relay';
 const RELAY_PAGE_SIZE = 50;
 const RELAY_DEFAULT_LIMIT = 100;
 const RELAY_MAX_LIMIT = 100;
+const RELAY_REQUEST_TIMEOUT_MS = 15_000;
 
 export class RelayHistoryService implements HistoryService {
-  constructor(private readonly httpClient: HttpClient = new FetchHttpClient({ baseURL: RELAY_BASE_URL })) {}
+  constructor(
+    private readonly httpClient: HttpClient = new FetchHttpClient({
+      baseURL: RELAY_BASE_URL,
+      timeout: RELAY_REQUEST_TIMEOUT_MS,
+    }),
+  ) {}
 
   async getHistory(query: HistoryQuery): Promise<HistoryResult> {
     const target = Math.min(query.limit ?? RELAY_DEFAULT_LIMIT, RELAY_MAX_LIMIT);
