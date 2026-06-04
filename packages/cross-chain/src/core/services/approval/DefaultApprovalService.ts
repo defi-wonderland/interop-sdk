@@ -8,15 +8,21 @@ import type {
     AllowanceReader,
     ApprovalAmountStrategy,
     ApprovalService,
+    ApprovalValidator,
 } from "../../interfaces/approval.interface.js";
 import type { TransactionStep } from "../../schemas/order.js";
 import type { ExecutableQuote } from "../../schemas/quote.js";
 import { allowanceKey, toAllowanceEntry } from "../../interfaces/approval.interface.js";
+import { defaultApprovalValidator } from "./DefaultApprovalValidator.js";
 
 /**
  * Reads on-chain ERC-20 allowances for every quote and prepends approval
  * `TransactionStep`s into `order.steps` when the current allowance is
  * insufficient.
+ *
+ * Only allowance checks that bind to the quote's own intent reach the wallet:
+ * an `approve` can never target a spender or token the quote's own steps and
+ * inputs don't already use.
  *
  * Never throws -- on any failure the affected quotes pass through unmodified.
  */
@@ -24,13 +30,14 @@ export class DefaultApprovalService implements ApprovalService {
     constructor(
         private readonly reader: AllowanceReader,
         private readonly amountStrategy: ApprovalAmountStrategy,
+        private readonly validator: ApprovalValidator = defaultApprovalValidator,
         private readonly gasLimit?: bigint,
     ) {}
 
     async enrichQuotes(quotes: ExecutableQuote[]): Promise<ExecutableQuote[]> {
         const pairs = quotes.map((quote) => ({
             quote,
-            checks: quote.order.checks?.allowances ?? [],
+            checks: this.validator.validate(quote),
         }));
         const allChecks = pairs.flatMap((p) => p.checks);
         if (allChecks.length === 0) return quotes;

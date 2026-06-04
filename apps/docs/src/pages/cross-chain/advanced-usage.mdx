@@ -165,6 +165,8 @@ The service is best-effort. Allowance reads run through `MulticallAllowanceReade
 
 Pass a `failureHandler` to observe batch failures. Defaults to `console.warn`; pass `{ handle: () => {} }` to silence, or your own implementation to route failures into telemetry.
 
+Before any read, each quote-supplied allowance check is validated against the quote's own intent: the token and owner must match a previewed input, the spender must be canonical Permit2 or the `to` of one of the quote's own steps, and the required amount cannot exceed the input. Checks that fail are dropped (never producing an `approve`) and reported through `validationFailureHandler` — same shape and default as `failureHandler`. A handler that throws is isolated and never aborts enrichment.
+
 ### Provider coverage
 
 The approval service can only enrich a quote whose provider declares its allowance requirements in `order.checks.allowances`. Coverage across shipped providers:

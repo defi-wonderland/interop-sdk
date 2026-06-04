@@ -306,13 +306,14 @@ Best-effort: on any read failure the affected quotes pass through unmodified. Qu
 
 ### CreateApprovalServiceConfig
 
-| Field              | Type                          | Required | Description                                                                                                            |
-| ------------------ | ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `rpcUrls`          | `Record<number, string>`      | No       | RPC URLs per chain ID. Used to build public clients for `allowance()` multicalls when `publicClient` is not supplied.  |
-| `publicClient`     | `PublicClient` (viem)         | No       | Pre-configured viem public client. Takes precedence over `rpcUrls`.                                                    |
-| `amountStrategy`   | `ApprovalAmountStrategy`      | No       | Strategy that decides the `amount` encoded in each `approve` call. Defaults to `ExactAmountStrategy`.                  |
-| `approvalGasLimit` | `bigint`                      | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas. |
-| `failureHandler`   | `AllowanceReadFailureHandler` | No       | Handler for full-batch allowance read failures. Defaults to `console.warn`; pass `{ handle: () => {} }` to silence.    |
+| Field                      | Type                               | Required | Description                                                                                                                                                                                                              |
+| -------------------------- | ---------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `rpcUrls`                  | `Record<number, string>`           | No       | RPC URLs per chain ID. Used to build public clients for `allowance()` multicalls when `publicClient` is not supplied.                                                                                                    |
+| `publicClient`             | `PublicClient` (viem)              | No       | Pre-configured viem public client. Takes precedence over `rpcUrls`.                                                                                                                                                      |
+| `amountStrategy`           | `ApprovalAmountStrategy`           | No       | Strategy that decides the `amount` encoded in each `approve` call. Defaults to `ExactAmountStrategy`.                                                                                                                    |
+| `approvalGasLimit`         | `bigint`                           | No       | Custom gas limit forwarded to every generated approval transaction. When omitted, the wallet or relayer estimates gas.                                                                                                   |
+| `failureHandler`           | `AllowanceReadFailureHandler`      | No       | Handler for full-batch allowance read failures. Defaults to `console.warn`; pass `{ handle: () => {} }` to silence.                                                                                                      |
+| `validationFailureHandler` | `ApprovalValidationFailureHandler` | No       | Handler for allowance checks dropped because they don't match the quote's own intent (forged spender, foreign token, amount above the quoted input). Defaults to `console.warn`; pass `{ handle: () => {} }` to silence. |
 
 ### Amount Strategies
 

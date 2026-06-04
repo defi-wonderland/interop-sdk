@@ -9,8 +9,13 @@ import type {
 } from "../../../src/core/interfaces/approval.interface.js";
 import type { ExecutableQuote } from "../../../src/core/schemas/quote.js";
 import type { PublicClientManager } from "../../../src/core/utils/publicClientManager.js";
+import { PERMIT2_ADDRESS } from "../../../src/core/constants/eip712.js";
 import { allowanceKey } from "../../../src/core/interfaces/approval.interface.js";
 import { DefaultApprovalService } from "../../../src/core/services/approval/DefaultApprovalService.js";
+import {
+    DefaultApprovalValidator,
+    defaultApprovalValidator,
+} from "../../../src/core/services/approval/DefaultApprovalValidator.js";
 import { ExactAmountStrategy } from "../../../src/core/services/approval/ExactAmountStrategy.js";
 import { InfiniteAmountStrategy } from "../../../src/core/services/approval/InfiniteAmountStrategy.js";
 import { MulticallAllowanceReader } from "../../../src/core/services/approval/MulticallAllowanceReader.js";
@@ -18,6 +23,7 @@ import { MulticallAllowanceReader } from "../../../src/core/services/approval/Mu
 const TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as Address;
 const OWNER = "0x0000000000000000000000000000000000000001" as Address;
 const SPENDER = "0x0000000000000000000000000000000000000002" as Address;
+const ATTACKER = "0x000000000000000000000000000000000000dEaD" as Address;
 const CHAIN_ID = 1;
 
 function makeQuote(
@@ -153,7 +159,12 @@ describe("DefaultApprovalService", () => {
 
     it("forwards gas limit to the approval step when configured", async () => {
         const reader = mockReader(new Map([[testKey, 0n]]));
-        const service = new DefaultApprovalService(reader, new ExactAmountStrategy(), 100_000n);
+        const service = new DefaultApprovalService(
+            reader,
+            new ExactAmountStrategy(),
+            defaultApprovalValidator,
+            100_000n,
+        );
         const quote = makeQuote({
             allowances: [
                 {
@@ -238,7 +249,42 @@ describe("DefaultApprovalService", () => {
         expect(result).toEqual([quote]);
     });
 
-    it("approves maxUint256 for preferInfinite entries regardless of strategy", async () => {
+    it("approves maxUint256 for preferInfinite entries when the spender is canonical Permit2", async () => {
+        const permit2Key = allowanceKey({
+            chainId: CHAIN_ID,
+            tokenAddress: TOKEN,
+            owner: OWNER,
+            spender: PERMIT2_ADDRESS,
+        });
+        const reader = mockReader(new Map([[permit2Key, 0n]]));
+        const service = new DefaultApprovalService(reader, new ExactAmountStrategy());
+        const quote = makeQuote({
+            allowances: [
+                {
+                    chainId: CHAIN_ID,
+                    tokenAddress: TOKEN,
+                    owner: OWNER,
+                    spender: PERMIT2_ADDRESS,
+                    required: "1000",
+                    preferInfinite: true,
+                },
+            ],
+        });
+
+        const [enriched] = await service.enrichQuotes([quote]);
+
+        const step = enriched!.order.steps[0]!;
+        if (step.kind !== "transaction") throw new Error("expected transaction step");
+        expect(step.transaction.data).toBe(
+            encodeFunctionData({
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [PERMIT2_ADDRESS, maxUint256],
+            }),
+        );
+    });
+
+    it("caps preferInfinite to the strategy amount when the spender is not Permit2", async () => {
         const reader = mockReader(new Map([[testKey, 0n]]));
         const service = new DefaultApprovalService(reader, new ExactAmountStrategy());
         const quote = makeQuote({
@@ -262,9 +308,56 @@ describe("DefaultApprovalService", () => {
             encodeFunctionData({
                 abi: erc20Abi,
                 functionName: "approve",
-                args: [SPENDER, maxUint256],
+                args: [SPENDER, 1000n],
             }),
         );
+    });
+
+    it("drops a forged allowance whose spender is neither Permit2 nor a step target", async () => {
+        const reader = mockReader(new Map());
+        const service = new DefaultApprovalService(reader, new ExactAmountStrategy());
+        const quote = makeQuote({
+            allowances: [
+                {
+                    chainId: CHAIN_ID,
+                    tokenAddress: TOKEN,
+                    owner: OWNER,
+                    spender: ATTACKER,
+                    required: "1000",
+                    preferInfinite: true,
+                },
+            ],
+        });
+
+        const [enriched] = await service.enrichQuotes([quote]);
+
+        expect(enriched!.order.steps).toHaveLength(1);
+        expect(reader.readAllowances).not.toHaveBeenCalled();
+    });
+
+    it("reports a dropped forged check to the binding failure handler", async () => {
+        const handler = { handle: vi.fn() };
+        const reader = mockReader(new Map());
+        const service = new DefaultApprovalService(
+            reader,
+            new ExactAmountStrategy(),
+            new DefaultApprovalValidator(handler),
+        );
+        const quote = makeQuote({
+            allowances: [
+                {
+                    chainId: CHAIN_ID,
+                    tokenAddress: TOKEN,
+                    owner: OWNER,
+                    spender: ATTACKER,
+                    required: "1000",
+                },
+            ],
+        });
+
+        await service.enrichQuotes([quote]);
+
+        expect(handler.handle).toHaveBeenCalledTimes(1);
     });
 
     // Guards against a chain allowlist regression: the real reader and
@@ -370,7 +463,7 @@ describe("DefaultApprovalService", () => {
                     tokenAddress: TOKEN,
                     owner: OWNER,
                     spender: SPENDER,
-                    required: "2000",
+                    required: "1000",
                 },
             ],
         });
