@@ -8,7 +8,7 @@ export interface SpenderViolation {
     trusted: string[];
 }
 
-/** Decides whether a quote's spender and transaction targets are trusted. */
+/** Validates a quote's spender and transaction targets against a consumer-owned trusted list; the SDK doesn't maintain protocol deployment addresses, so the consumer owns and maintains it. */
 export interface SpenderValidator {
     findViolation(quote: Quote): SpenderViolation | null;
 }
