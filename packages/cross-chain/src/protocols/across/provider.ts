@@ -59,6 +59,7 @@ import {
     ProviderConfigFailure,
     ProviderGetQuoteFailure,
     toCanonicalNativeAddress,
+    toNonNegativeBigInt,
     withNativePlaceholder,
 } from "../../internal.js";
 import { decodeAcrossCalldata } from "./utils.js";
@@ -288,8 +289,8 @@ export class AcrossProvider extends CrossChainProvider {
      * Validate that Across calldata matches the user's QuoteRequest.
      * Reuses the existing calldata decoder but compares against SDK types directly.
      */
-    private validateCalldata(params: QuoteRequest, data: Hex): boolean {
-        const result = decodeAcrossCalldata(data);
+    private validateCalldata(params: QuoteRequest, response: AcrossGetQuoteResponse): boolean {
+        const result = decodeAcrossCalldata(response.swapTx.data as Hex);
         if (!result.success) {
             // "unsupported" selector (e.g. complex swap) — can't validate, allow through
             // "invalid" calldata — reject
@@ -316,6 +317,13 @@ export class AcrossProvider extends CrossChainProvider {
         if (!isAddressEqual(decoded.recipient as Address, recipient as Address)) return false;
         if (decoded.destinationChainId !== BigInt(output.chainId)) return false;
 
+        const responseInputAmount = toNonNegativeBigInt(response.inputAmount);
+        const responseMinOutputAmount = toNonNegativeBigInt(response.minOutputAmount);
+        if (responseInputAmount === undefined || responseMinOutputAmount === undefined)
+            return false;
+        if (decoded.inputAmount > responseInputAmount) return false;
+        if (decoded.outputAmount < responseMinOutputAmount) return false;
+
         if (input.amount !== undefined) {
             if (decoded.inputAmount !== BigInt(input.amount)) return false;
         }
@@ -334,7 +342,7 @@ export class AcrossProvider extends CrossChainProvider {
             const acrossResponse = await this.getAcrossQuote(acrossParams);
             const quote = this.toSdkQuote(params, acrossResponse);
 
-            if (!this.validateCalldata(params, acrossResponse.swapTx.data as Hex)) {
+            if (!this.validateCalldata(params, acrossResponse)) {
                 throw new ProviderGetQuoteFailure(
                     "Across calldata validation failed",
                     "Decoded deposit calldata does not match the requested intent",

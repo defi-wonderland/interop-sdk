@@ -1,14 +1,57 @@
 import type viem from "viem";
-import { createPublicClient, PublicClient } from "viem";
+import { Address, createPublicClient, encodeFunctionData, Hex, pad, PublicClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
 import { httpRequest } from "../../src/core/utils/httpClient.js";
 import { AcrossProvider } from "../../src/external.js";
+import {
+    ACROSS_SPOKE_POOL_DEPOSIT_ABI,
+    AcrossGetQuoteResponse,
+    addressToBytes32,
+} from "../../src/internal.js";
 import { getMockedAcrossApiResponse } from "../mocks/acrossApi.js";
 import { CHAIN_IDS, TEST_ADDRESSES, TEST_AMOUNTS, TESTNET_TOKENS } from "../mocks/fixtures.js";
 
 const MOCK_API_URL = "https://mocked.accross.url/api";
+
+const MOCK_MIN_OUTPUT_AMOUNT = 980_000_000_000_000_000n;
+const ZERO_BYTES32 = pad("0x00" as Hex, { size: 32 });
+
+interface DepositCalldataOverrides {
+    depositor?: Address;
+    recipient?: Address;
+    inputToken?: Address;
+    outputToken?: Address;
+    inputAmount?: bigint;
+    outputAmount?: bigint;
+    destinationChainId?: number;
+}
+
+const encodeAcrossDeposit = (overrides: DepositCalldataOverrides = {}): Hex =>
+    encodeFunctionData({
+        abi: ACROSS_SPOKE_POOL_DEPOSIT_ABI,
+        functionName: "deposit",
+        args: [
+            addressToBytes32(overrides.depositor ?? TEST_ADDRESSES.USER),
+            addressToBytes32(overrides.recipient ?? TEST_ADDRESSES.RECEIVER),
+            addressToBytes32(overrides.inputToken ?? TESTNET_TOKENS.WETH_SEPOLIA),
+            addressToBytes32(overrides.outputToken ?? TESTNET_TOKENS.WETH_BASE_SEPOLIA),
+            overrides.inputAmount ?? TEST_AMOUNTS.ONE_ETHER,
+            overrides.outputAmount ?? MOCK_MIN_OUTPUT_AMOUNT,
+            BigInt(overrides.destinationChainId ?? CHAIN_IDS.BASE_SEPOLIA),
+            ZERO_BYTES32,
+            0,
+            0,
+            0,
+            "0x",
+        ],
+    });
+
+const responseWithCalldata = (data: Hex): AcrossGetQuoteResponse => {
+    const base = getMockedAcrossApiResponse();
+    return { ...base, swapTx: { ...base.swapTx, data } };
+};
 
 vi.mock("../../src/core/utils/httpClient.js", async (importOriginal) => {
     const actual = await importOriginal<typeof import("../../src/core/utils/httpClient.js")>();
@@ -131,6 +174,115 @@ describe("AcrossProvider", () => {
                     recipient: TEST_ADDRESSES.RECEIVER,
                 },
             });
+        });
+    });
+
+    describe("calldata amount binding", () => {
+        const exactInputRequest: QuoteRequest = {
+            user: TEST_ADDRESSES.USER,
+            input: {
+                chainId: CHAIN_IDS.SEPOLIA,
+                assetAddress: TESTNET_TOKENS.WETH_SEPOLIA,
+                amount: TEST_AMOUNTS.ONE_ETHER.toString(),
+            },
+            output: {
+                chainId: CHAIN_IDS.BASE_SEPOLIA,
+                assetAddress: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                recipient: TEST_ADDRESSES.RECEIVER,
+            },
+            swapType: "exact-input",
+        };
+
+        const exactOutputRequest: QuoteRequest = {
+            user: TEST_ADDRESSES.USER,
+            input: {
+                chainId: CHAIN_IDS.SEPOLIA,
+                assetAddress: TESTNET_TOKENS.WETH_SEPOLIA,
+            },
+            output: {
+                chainId: CHAIN_IDS.BASE_SEPOLIA,
+                assetAddress: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                amount: TEST_AMOUNTS.ONE_ETHER.toString(),
+                recipient: TEST_ADDRESSES.RECEIVER,
+            },
+            swapType: "exact-output",
+        };
+
+        const mockOnce = (data: Hex): void => {
+            vi.mocked(httpRequest).mockResolvedValueOnce({
+                status: 200,
+                data: responseWithCalldata(data),
+                headers: new Headers(),
+            });
+        };
+
+        it("accepts the quote when calldata amounts match the response sibling fields", async () => {
+            mockOnce(encodeAcrossDeposit());
+
+            const quotes = await provider.getQuotes(exactInputRequest);
+
+            expect(quotes).toHaveLength(1);
+        });
+
+        it("rejects the quote when calldata inputAmount exceeds response.inputAmount", async () => {
+            mockOnce(encodeAcrossDeposit({ inputAmount: TEST_AMOUNTS.ONE_ETHER * 2n }));
+
+            await expect(provider.getQuotes(exactInputRequest)).rejects.toThrow(
+                "Across calldata validation failed",
+            );
+        });
+
+        it("rejects the quote when calldata outputAmount is below response.minOutputAmount", async () => {
+            mockOnce(encodeAcrossDeposit({ outputAmount: MOCK_MIN_OUTPUT_AMOUNT - 1n }));
+
+            await expect(provider.getQuotes(exactInputRequest)).rejects.toThrow(
+                "Across calldata validation failed",
+            );
+        });
+
+        it("accepts the quote when calldata outputAmount exceeds response.minOutputAmount", async () => {
+            mockOnce(encodeAcrossDeposit({ outputAmount: MOCK_MIN_OUTPUT_AMOUNT + 1n }));
+
+            const quotes = await provider.getQuotes(exactInputRequest);
+
+            expect(quotes).toHaveLength(1);
+        });
+
+        it("rejects a calldata inputAmount that exceeds response.inputAmount in exact-output mode", async () => {
+            mockOnce(encodeAcrossDeposit({ inputAmount: TEST_AMOUNTS.ONE_ETHER * 2n }));
+
+            await expect(provider.getQuotes(exactOutputRequest)).rejects.toThrow(
+                "Across calldata validation failed",
+            );
+        });
+
+        it("accepts a calldata inputAmount below response.inputAmount in exact-output mode", async () => {
+            mockOnce(encodeAcrossDeposit({ inputAmount: TEST_AMOUNTS.ONE_ETHER / 2n }));
+
+            const quotes = await provider.getQuotes(exactOutputRequest);
+
+            expect(quotes).toHaveLength(1);
+        });
+
+        it("accepts a matching calldata in exact-output mode", async () => {
+            mockOnce(encodeAcrossDeposit());
+
+            const quotes = await provider.getQuotes(exactOutputRequest);
+
+            expect(quotes).toHaveLength(1);
+        });
+
+        it("rejects cleanly when a response amount is not a valid integer", async () => {
+            const base = responseWithCalldata(encodeAcrossDeposit());
+            vi.mocked(httpRequest).mockResolvedValueOnce({
+                status: 200,
+                data: { ...base, inputAmount: "1.5" },
+                headers: new Headers(),
+            });
+
+            await expect(provider.getQuotes(exactInputRequest)).rejects.toThrow(
+                "Across calldata validation failed",
+            );
         });
     });
 
