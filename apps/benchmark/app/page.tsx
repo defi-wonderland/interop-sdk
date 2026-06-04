@@ -12,7 +12,6 @@ import { Leaderboard } from './components/leaderboard/Leaderboard';
 import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
 import { withTimeout } from './lib/helpers';
 import { MOCK_HEAD_TO_HEAD_METRICS } from './lib/mocks/headToHeadMock';
-import { MOCK_LEADERBOARD_METRICS } from './lib/mocks/leaderboardMock';
 import {
   INITIAL_AMOUNT,
   INITIAL_ASSET_SYMBOL,
@@ -20,7 +19,9 @@ import {
   INITIAL_TO_CHAIN_ID,
 } from './lib/requestBarDefaults';
 import { chainService, quotesService } from './lib/services';
+import { fetchProviderMetrics } from './lib/services/providerMetrics';
 import type { RaceRow } from './components/race-table/types';
+import type { ProviderMetrics } from './lib/types/historyMetrics';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 
 export const revalidate = 3600;
@@ -28,10 +29,14 @@ export const revalidate = 3600;
 const META_LABEL_CLASS = 'font-mono text-label text-text-muted';
 const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-chain';
 const INITIAL_RACE_TIMEOUT_MS = 20_000;
+const LEADERBOARD_TIMEOUT_MS = 15_000;
 
 export default async function Home() {
   const initialChains = await loadInitialChains();
-  const initialRows = await loadInitialRace(initialChains);
+  const [initialRows, leaderboardMetrics] = await Promise.all([
+    loadInitialRace(initialChains),
+    loadLeaderboardMetrics(),
+  ]);
 
   return (
     <div className='min-h-screen cursor-default bg-background'>
@@ -66,9 +71,9 @@ export default async function Home() {
             index='02'
             label='provider leaderboard · 24h ambient'
             title='how providers performed across all routes'
-            rightSlot={<Label className={META_LABEL_CLASS}>showing fixture data &middot; wire-up arrives next</Label>}
+            rightSlot={<Label className={META_LABEL_CLASS}>pulled from each provider&rsquo;s public history api</Label>}
           />
-          <Leaderboard metrics={MOCK_LEADERBOARD_METRICS} />
+          <Leaderboard metrics={leaderboardMetrics} />
         </SectionFrame>
 
         <SectionFrame divider={false}>
@@ -99,6 +104,27 @@ async function loadInitialChains(): Promise<NetworkAssets[]> {
     return await withTimeout(chainService.getChains(), 5_000, 'INITIAL_CHAINS_TIMEOUT');
   } catch {
     // Don't let ISR cache a degraded render: next request should retry chain discovery.
+    noStore();
+    return [];
+  }
+}
+
+async function loadLeaderboardMetrics(): Promise<ProviderMetrics[]> {
+  // Leaderboard reads "ambient" activity on the canonical route. We use the
+  // initial route with no token filter so the sample reflects every asset on
+  // that pair. EFI-975 tracks aggregating across multiple top routes.
+  try {
+    return await withTimeout(
+      fetchProviderMetrics({
+        originChainId: INITIAL_FROM_CHAIN_ID,
+        destinationChainId: INITIAL_TO_CHAIN_ID,
+      }),
+      LEADERBOARD_TIMEOUT_MS,
+      'LEADERBOARD_TIMEOUT',
+    );
+  } catch {
+    // Don't let ISR cache an empty leaderboard: the next request should retry
+    // the upstream fetch instead of serving the degraded render for an hour.
     noStore();
     return [];
   }
