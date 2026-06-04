@@ -43,7 +43,6 @@ interface AggregatorConfig {
         createService(provider: CrossChainProvider): AssetDiscoveryService | null;
     };
     approvalService?: ApprovalService;
-    /** Opt-in validator that checks each quote's counterparties against a consumer-maintained allowlist. */
     spenderValidator?: SpenderValidator;
 }
 
