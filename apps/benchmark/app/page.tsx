@@ -11,7 +11,6 @@ import { RouteSelector } from './components/headtohead/RouteSelector';
 import { Leaderboard } from './components/leaderboard/Leaderboard';
 import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
 import { withTimeout } from './lib/helpers';
-import { MOCK_HEAD_TO_HEAD_METRICS } from './lib/mocks/headToHeadMock';
 import {
   INITIAL_AMOUNT,
   INITIAL_ASSET_SYMBOL,
@@ -37,6 +36,11 @@ export default async function Home() {
     loadInitialRace(initialChains),
     loadLeaderboardMetrics(),
   ]);
+
+  // Head-to-head consumes the same canonical-route metrics today. They diverge
+  // once EFI-975 wires multi-route aggregation for the leaderboard and EFI-993
+  // wires interactive route selection for head-to-head.
+  const headToHeadMetrics = leaderboardMetrics;
 
   return (
     <div className='min-h-screen cursor-default bg-background'>
@@ -83,7 +87,7 @@ export default async function Home() {
             title='compare providers on a specific chain pair'
             rightSlot={<RouteSelector />}
           />
-          <HeadToHead metrics={MOCK_HEAD_TO_HEAD_METRICS} />
+          <HeadToHead metrics={headToHeadMetrics} />
         </SectionFrame>
       </main>
 

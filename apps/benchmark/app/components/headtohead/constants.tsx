@@ -75,7 +75,7 @@ function BestAtBadgeChip({ label }: { label: BestAtBadge }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center bg-accent px-2 py-[3px]',
+        'inline-flex items-center whitespace-nowrap bg-accent px-2 py-[3px]',
         'font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-on-accent',
       )}
     >
