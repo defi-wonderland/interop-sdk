@@ -426,10 +426,20 @@ class Aggregator {
             const violation = this.spenderValidator.findViolation(quote);
             if (!violation) return null;
             const error = new UntrustedSpender({ provider: quote._providerId, ...violation });
-            return { error, errorMsg: error.message, latencyMs: quote.latencyMs };
+            return {
+                error,
+                errorMsg: error.message,
+                latencyMs: quote.latencyMs,
+                providerId: quote._providerId,
+            };
         } catch (cause) {
             const error = cause instanceof Error ? cause : new Error(String(cause));
-            return { error, errorMsg: error.message, latencyMs: quote.latencyMs };
+            return {
+                error,
+                errorMsg: error.message,
+                latencyMs: quote.latencyMs,
+                providerId: quote._providerId,
+            };
         }
     }
 }
