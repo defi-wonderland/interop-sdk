@@ -6,6 +6,7 @@ export * from "./EventBasedFillWatcher.js";
 export * from "./APIBasedFillWatcher.js";
 export * from "./OrderTracker.js";
 export * from "./intentValidationsAggregator.js";
+export * from "./AllowlistSpenderValidator.js";
 export * from "./BaseAssetDiscoveryService.js";
 export * from "./StaticAssetDiscoveryService.js";
 export * from "./CustomApiAssetDiscoveryService.js";

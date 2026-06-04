@@ -158,6 +158,7 @@ A utility for managing multiple cross-chain providers and executing operations a
 | `trackerFactory`   | `{ createTracker }`    | No       | `new OrderTrackerFactory()`   | Factory used by `aggregator.track(...)` and `aggregator.prepareTracking(...)` to build per-provider `OrderTracker` instances. The default falls back to viem's public transport per chain — supply `new OrderTrackerFactory({ rpcUrls })` for production reliability. See [Order Tracker](#order-tracker). |
 | `discoveryFactory` | `{ createService }`    | No       | `new AssetDiscoveryFactory()` | Factory used by `aggregator.discoverAssets(...)` and `aggregator.getProvidersForRoute(...)` to build per-provider `AssetDiscoveryService` instances. Providers with no discovery support are skipped. Supply a custom factory only when you want to override discovery wiring for every provider.          |
 | `approvalService`  | `ApprovalService`      | No       | —                             | Enriches sorted quotes with ERC-20 `approve` steps. See [Approval Service](#approval-service).                                                                                                                                                                                                             |
+| `spenderValidator` | `SpenderValidator`     | No       | —                             | Validates each quote's spender and transaction targets against a consumer-owned allowlist. Untrusted quotes are dropped from `getQuotes` (and reported in `errors`) and make `buildQuote` throw `UntrustedSpender`. See [Spender Validation](#spender-validation).                                         |
 
 ### Aggregator Class
 
@@ -339,6 +340,59 @@ interface ApprovalAmountStrategy {
     resolve(required: bigint): bigint;
 }
 ```
+
+## Spender Validation
+
+Opt-in validation that drops quotes whose spender or transaction target is not on a list you control. See [Advanced Usage](./advanced-usage#trusted-spender-allowlist) for the full guide.
+
+### Methods
+
+-   **createSpenderValidator**(config: CreateSpenderValidatorConfig): SpenderValidator
+
+    Builds the default allowlist validator. Throws if any address is malformed or the allowlist is empty.
+
+    ```typescript
+    import { createSpenderValidator } from "@wonderland/interop-cross-chain";
+
+    const spenderValidator = createSpenderValidator({
+        // a trusted settler/router and Permit2 (same address on every chain)
+        trustedSpenders: {
+            1: [
+                "0x1111111111111111111111111111111111111111",
+                "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+            ],
+        },
+    });
+    ```
+
+### CreateSpenderValidatorConfig
+
+    ```typescript
+    interface CreateSpenderValidatorConfig {
+        trustedSpenders: SpenderAllowlist; // Record<number, string[]> keyed by chain ID
+    }
+    ```
+
+### SpenderValidator
+
+    Pass any object implementing this interface as `spenderValidator` to validate against your own registry.
+
+    ```typescript
+    interface SpenderValidator {
+        findViolation(quote: Quote): SpenderViolation | null;
+    }
+
+    interface SpenderViolation {
+        chainId: number;
+        field: "spender" | "transactionTo" | "signatureRecipient";
+        received: string;
+        trusted: string[];
+    }
+    ```
+
+### UntrustedSpender
+
+    Error for a rejected quote: returned in the `errors` array of `getQuotes`, thrown by `buildQuote`. Carries `provider`, `chainId`, `field`, `received`, and the `trusted` list.
 
 ## Sorting Strategies
 

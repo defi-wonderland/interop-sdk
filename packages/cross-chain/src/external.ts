@@ -67,6 +67,10 @@ export {
     adaptQuoteRequest,
     adaptOifOrder,
     adaptQuote,
+    // Spender validation
+    createSpenderValidator,
+    SpenderAllowlistSchema,
+    type SpenderAllowlist,
     // SDK schema types
     type ExecutableQuote,
     type QuoteFeeEntry,

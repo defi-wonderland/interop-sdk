@@ -176,6 +176,69 @@ The approval service can only enrich a quote whose provider declares its allowan
 
 For the full API reference see [Approval Service](/cross-chain/api#approval-service).
 
+## Trusted spender allowlist
+
+By default the aggregator returns every quote a provider hands back, including the contract addresses your users end up approving or calling. Pass a `spenderValidator` to `createAggregator` to check those addresses against a list you control. It does nothing unless you set it, so existing setups behave exactly as before.
+
+`createSpenderValidator` builds the default validator from a per-chain allowlist keyed by chain ID:
+
+```typescript
+import {
+    createAggregator,
+    createCrossChainProvider,
+    createSpenderValidator,
+    PROTOCOLS,
+} from "@wonderland/interop-cross-chain";
+
+const spenderValidator = createSpenderValidator({
+    trustedSpenders: {
+        // a trusted settler/router and Permit2 (same address on every chain)
+        1: [
+            "0x1111111111111111111111111111111111111111",
+            "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+        ],
+        8453: ["0x2222222222222222222222222222222222222222"],
+    },
+});
+
+const aggregator = createAggregator({
+    providers: [createCrossChainProvider(PROTOCOLS.RELAY)],
+    spenderValidator,
+});
+```
+
+`getQuotes` drops any quote whose counterparty is not on the list and adds an `UntrustedSpender` entry to `response.errors`, so you can see what was filtered and why. `buildQuote` returns a single quote, so it throws `UntrustedSpender` instead.
+
+### What gets checked
+
+The validator reads counterparties from the quote payload, not from provider-supplied labels:
+
+-   **Allowance spenders** — every `order.checks.allowances[].spender`.
+-   **Approvals** — the decoded `approve` spender, but only when the step is tagged `category: "approval"` or a matching allowance check pins the same token and spender. An `approve`-shaped call to some other contract is checked as a plain transaction target instead, so a trusted address in the calldata can't wave through an untrusted `to`.
+-   **Transaction targets** — the `transaction.to` of every other on-chain step.
+-   **Signature counterparties** — the Permit2 `spender` and EIP-3009 `to` carried in EIP-712 signature steps. A signature whose counterparty can't be read is rejected.
+
+Addresses are compared without regard to checksum casing. The check is fail-closed: a chain missing from the allowlist rejects all of its quotes, and `createSpenderValidator` throws if the allowlist is empty.
+
+### Bringing your own registry
+
+The SDK ships no built-in address list. You maintain `trustedSpenders`, or implement the `SpenderValidator` interface yourself to validate against your own registry:
+
+```typescript
+import type { SpenderValidator } from "@wonderland/interop-cross-chain";
+
+const registryValidator: SpenderValidator = {
+    findViolation(quote) {
+        // return a SpenderViolation to reject the quote, or null to accept it
+        return null;
+    },
+};
+
+const aggregator = createAggregator({ providers, spenderValidator: registryValidator });
+```
+
+For the full API reference see [Spender Validation](./api#spender-validation).
+
 ## Order Tracking
 
 The aggregator includes built-in order tracking when configured with a `trackerFactory`. After executing a transaction, use `aggregator.track()` to monitor the cross-chain transfer:
@@ -301,6 +364,8 @@ try {
     }
 }
 ```
+
+When a [spender allowlist](#trusted-spender-allowlist) is configured, `buildQuote` also throws `UntrustedSpender`; the same error type shows up in the `errors` array of `getQuotes` rather than being thrown.
 
 ## Best Practices
 
