@@ -215,20 +215,14 @@ class Aggregator {
 
         let validatedQuotes = response.quotes;
         if (this.spenderValidator) {
-            const validator = this.spenderValidator;
             const trusted: ExecutableQuote[] = [];
             for (const quote of response.quotes) {
-                const violation = validator.findViolation(quote);
-                if (!violation) {
+                const error = this.findSpenderError(quote);
+                if (error) {
+                    response.errors.push(error);
+                } else {
                     trusted.push(quote);
-                    continue;
                 }
-                const error = new UntrustedSpender({ provider: quote._providerId, ...violation });
-                response.errors.push({
-                    error,
-                    errorMsg: error.message,
-                    latencyMs: quote.latencyMs,
-                });
             }
             validatedQuotes = trusted;
         }
@@ -424,6 +418,19 @@ class Aggregator {
         this.trackerCache.set(providerId, tracker);
 
         return tracker;
+    }
+
+    private findSpenderError(quote: ExecutableQuote): GetQuotesError | null {
+        if (!this.spenderValidator) return null;
+        try {
+            const violation = this.spenderValidator.findViolation(quote);
+            if (!violation) return null;
+            const error = new UntrustedSpender({ provider: quote._providerId, ...violation });
+            return { error, errorMsg: error.message, latencyMs: quote.latencyMs };
+        } catch (cause) {
+            const error = cause instanceof Error ? cause : new Error(String(cause));
+            return { error, errorMsg: error.message, latencyMs: quote.latencyMs };
+        }
     }
 }
 
