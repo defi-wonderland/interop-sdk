@@ -4,6 +4,7 @@ import { pad } from "viem";
 import { describe, expect, it } from "vitest";
 
 import type { QuoteRequest } from "../../src/core/schemas/quoteRequest.js";
+import { UnverifiedOrderEntries } from "../../src/external.js";
 import { adaptOifOrder } from "../../src/protocols/oif/adapters/orderAdapter.js";
 
 function toErc7930(chainId: number, address: string): string {
@@ -172,6 +173,27 @@ describe("orderAdapter", () => {
             };
             expect(() => adaptOifOrder(oifOrder)).toThrowError(/QuoteRequest required/);
         });
+
+        it("rejects an order carrying more than one permitted entry", () => {
+            const oifOrder = {
+                type: "oif-escrow-v0" as const,
+                payload: {
+                    signatureType: "eip712" as const,
+                    domain: { name: "Permit2", chainId: 1, verifyingContract: PERMIT2 },
+                    primaryType: "PermitBatchWitnessTransferFrom",
+                    types: VALID_PERMIT2_TYPES,
+                    message: {
+                        ...VALID_PERMIT2_MESSAGE,
+                        permitted: [
+                            { token: USDC_MAINNET, amount: "1000000" },
+                            { token: USDC_MAINNET, amount: "0" },
+                        ],
+                    },
+                },
+            };
+
+            expect(() => adaptOifOrder(oifOrder, mockParams())).toThrow(UnverifiedOrderEntries);
+        });
     });
 
     describe("adaptOifOrder — oif-3009-v0", () => {
@@ -245,6 +267,27 @@ describe("orderAdapter", () => {
             expect(result.steps[0]!.kind).toBe("signature");
             expect(result.lock).toEqual({ type: "compact-resource-lock" });
             expect(result.steps[0]!.chainId).toBe(8453);
+        });
+
+        it("rejects an order carrying more than one commitment", () => {
+            const oifOrder = {
+                type: "oif-resource-lock-v0" as const,
+                payload: {
+                    signatureType: "eip712" as const,
+                    domain: { name: "The Compact", version: "1", chainId: 8453 },
+                    primaryType: "BatchCompact",
+                    types: { BatchCompact: [{ name: "arbiter", type: "address" }] },
+                    message: {
+                        arbiter: "0xabc",
+                        commitments: [
+                            { token: USDC_MAINNET, amount: "1000000" },
+                            { token: USDC_MAINNET, amount: "0" },
+                        ],
+                    },
+                },
+            };
+
+            expect(() => adaptOifOrder(oifOrder)).toThrow(UnverifiedOrderEntries);
         });
     });
 

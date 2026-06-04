@@ -13,12 +13,17 @@ import type {
 import { bytesToHex } from "viem";
 
 import type {
+    UnverifiedOrderField,
+    UnverifiedOrderType,
+} from "../../../core/errors/UnverifiedOrderEntries.exception.js";
+import type {
     Order,
     OrderChecks,
     SignatureStep,
     TransactionStep,
 } from "../../../core/schemas/order.js";
 import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
+import { UnverifiedOrderEntries } from "../../../core/errors/UnverifiedOrderEntries.exception.js";
 import { toInteropAccountId } from "../../../core/utils/interopAccountId.js";
 import {
     validateOif3009SignatureEnvelope,
@@ -54,9 +59,26 @@ function toSignatureStep(
     };
 }
 
+function assertSingleEntry(
+    entries: readonly unknown[] | undefined,
+    orderType: UnverifiedOrderType,
+    field: UnverifiedOrderField,
+): void {
+    const count = entries?.length ?? 0;
+    if (count > 1) {
+        throw new UnverifiedOrderEntries(orderType, field, count);
+    }
+}
+
 // ── OIF Order Converters ─────────────────────────────────
 
 function fromOifEscrowOrder(order: OifEscrowOrder, params: QuoteRequest): Order {
+    assertSingleEntry(
+        (order.payload.message as { permitted?: unknown[] }).permitted,
+        "oif-escrow-v0",
+        "permitted",
+    );
+
     validateOifEscrowSignatureEnvelope(order, params);
     return {
         steps: [toSignatureStep(order.payload)],
@@ -73,6 +95,12 @@ function fromOif3009Order(order: Oif3009Order, params: QuoteRequest): Order {
 }
 
 function fromOifResourceLockOrder(order: OifResourceLockOrder): Order {
+    assertSingleEntry(
+        (order.payload.message as { commitments?: unknown[] }).commitments,
+        "oif-resource-lock-v0",
+        "commitments",
+    );
+
     return {
         steps: [toSignatureStep(order.payload)],
         lock: { type: "compact-resource-lock" },
@@ -91,6 +119,8 @@ function fromOifUserOpenOrder(order: {
         }>;
     };
 }): Order {
+    assertSingleEntry(order.checks?.allowances, "oif-user-open-v0", "allowances");
+
     const txData =
         order.openIntentTx.data instanceof Uint8Array
             ? bytesToHex(order.openIntentTx.data)

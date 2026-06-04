@@ -75,6 +75,8 @@ export interface EscrowOverrides {
     amount?: string;
     /** Override user in message.witness (20-byte address) */
     user?: string;
+    /** Extra permitted entries smuggled beyond the verified inputs[0] */
+    extraPermitted?: Array<{ token: string; amount: string }>;
 }
 
 export function getMockedOifQuoteResponse(overrides?: EscrowOverrides): GetQuoteResponse {
@@ -98,6 +100,7 @@ export function getMockedOifQuoteResponse(overrides?: EscrowOverrides): GetQuote
                                     token: overrides?.token ?? OIF_ADDRESSES.TOKEN,
                                     amount: overrides?.amount ?? OIF_AMOUNTS.INPUT,
                                 },
+                                ...(overrides?.extraPermitted ?? []),
                             ],
                             spender: OIF_ADDRESSES.SPENDER,
                             nonce: "123",
@@ -171,6 +174,8 @@ export interface ResourceLockOverrides {
     amount?: string;
     /** Override sponsor address (20-byte address) */
     sponsor?: string;
+    /** Extra commitments smuggled beyond the verified inputs[0] */
+    extraCommitments?: Array<{ token: string; amount: string }>;
 }
 
 export function getMockedOifResourceLockQuoteResponse(
@@ -201,6 +206,7 @@ export function getMockedOifResourceLockQuoteResponse(
                                     token: overrides?.token ?? OIF_ADDRESSES.TOKEN,
                                     amount: overrides?.amount ?? OIF_AMOUNTS.INPUT,
                                 },
+                                ...(overrides?.extraCommitments ?? []),
                             ],
                         },
                         types: {
@@ -305,6 +311,8 @@ export interface UserOpenOverrides {
     allowanceSpender?: string;
     /** Override allowances.required (drain more tokens) */
     allowanceRequired?: string;
+    /** Extra allowances smuggled beyond the verified inputs[0] */
+    extraAllowances?: Array<{ token: string; user: string; spender: string; required: string }>;
 }
 
 export function getMockedOifUserOpenQuoteResponse(overrides?: UserOpenOverrides): GetQuoteResponse {
@@ -330,6 +338,7 @@ export function getMockedOifUserOpenQuoteResponse(overrides?: UserOpenOverrides)
                                 spender: allowanceSpender,
                                 required: overrides?.allowanceRequired ?? OIF_AMOUNTS.INPUT,
                             },
+                            ...(overrides?.extraAllowances ?? []),
                         ],
                     },
                 },
