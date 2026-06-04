@@ -6,6 +6,7 @@ export interface CreateSpenderValidatorConfig {
     trustedSpenders: SpenderAllowlist;
 }
 
+/** Builds the default validator over the consumer's own trusted-address list; the SDK ships no canonical settler/router addresses. Throws on a malformed or empty allowlist. */
 export function createSpenderValidator(config: CreateSpenderValidatorConfig): SpenderValidator {
     const allowlist = SpenderAllowlistSchema.parse(config.trustedSpenders);
     if (Object.keys(allowlist).length === 0) {
