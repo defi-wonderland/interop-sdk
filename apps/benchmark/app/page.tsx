@@ -81,14 +81,7 @@ export default async function Home() {
             index='03'
             label='head-to-head · by route'
             title='compare providers on a specific chain pair'
-            rightSlot={
-              <RouteSelector
-                fromChainId={INITIAL_FROM_CHAIN_ID}
-                toChainId={INITIAL_TO_CHAIN_ID}
-                assetSymbol={INITIAL_ASSET_SYMBOL}
-                assetColorClass='bg-asset-usdc'
-              />
-            }
+            rightSlot={<RouteSelector />}
           />
           <HeadToHead metrics={MOCK_HEAD_TO_HEAD_METRICS} />
         </SectionFrame>
