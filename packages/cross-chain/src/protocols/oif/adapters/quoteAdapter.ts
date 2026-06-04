@@ -28,10 +28,10 @@ const ESCROW_ORDER_TYPE: OifEscrowOrder["type"] = "oif-escrow-v0";
  * - Adds Permit2 `checks.allowances` for `oif-escrow-v0` orders
  * - Preserves all other quote fields
  *
- * When `params` is supplied, the EIP-712 envelope is cross-checked against the
- * user-supplied quote request to detect tampering by a compromised solver.
+ * `params` (the user's quote request) is required: the EIP-712 envelope is
+ * cross-checked against it to detect tampering by a compromised solver.
  */
-export function adaptQuote(providerQuote: ProviderQuote, params?: QuoteRequest): Quote {
+export function adaptQuote(providerQuote: ProviderQuote, params: QuoteRequest): Quote {
     const order = withPermit2Allowances(
         adaptOifOrder(providerQuote.order as OifOrder, params),
         providerQuote,

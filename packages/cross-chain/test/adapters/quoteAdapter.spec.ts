@@ -207,7 +207,7 @@ describe("quoteAdapter", () => {
                 },
             };
 
-            const result = adaptQuote(quote);
+            const result = adaptQuote(quote, mockParams());
 
             expect(result.order.checks).toBeUndefined();
         });
