@@ -1,3 +1,4 @@
+import { getAddress } from "viem";
 import { describe, expect, it } from "vitest";
 
 import type { QuoteRequest } from "../../../../src/core/schemas/quoteRequest.js";
@@ -17,6 +18,7 @@ const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 const RECIPIENT_ADDRESS = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
 const SPENDER_ADDRESS = "0x3a23F943181408EAC424116Af7b7790c94Cb97a5";
 const BUNGEE_GATEWAY = "0xCDeA28EE7bd5bf7710b294d9391E1B6A318D809a";
+const ATTACKER_ADDRESS = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
 const PROVIDER_ID = "bungee";
 const ORIGIN_CHAIN_ID = 1;
 const DESTINATION_CHAIN_ID = 10;
@@ -419,7 +421,7 @@ describe("adaptQuotes", () => {
         const allowances = quote!.order.checks?.allowances;
         expect(allowances).toHaveLength(1);
         expect(allowances![0]!.required).toBe("1000000");
-        expect(allowances![0]!.spender).toBe("0x2222222222222222222222222222222222222222");
+        expect(allowances![0]!.spender).toBe(PERMIT2_ADDRESS);
     });
 
     it("sets tracking orderId from requestHash", () => {
@@ -483,6 +485,68 @@ describe("adaptQuotes", () => {
 
         expect(quotes).toHaveLength(0);
     });
+
+    it("pins the sign-route allowance spender to Permit2, ignoring solver spenderAddress", () => {
+        const response = buildBungeeQuoteResponse();
+        response.result.autoRoute = buildAutoRoute({
+            approvalData: {
+                spenderAddress: ATTACKER_ADDRESS,
+                amount: "950000",
+                tokenAddress: ATTACKER_ADDRESS,
+                userAddress: VALID_ADDRESS,
+            },
+        });
+
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
+        const allowance = quote!.order.checks!.allowances![0]!;
+
+        expect(allowance.spender).toBe(PERMIT2_ADDRESS);
+        expect(allowance.tokenAddress).toBe(getAddress(VALID_ADDRESS));
+        expect(allowance.owner).toBe(getAddress(VALID_ADDRESS));
+    });
+
+    it("binds the tx-route allowance spender to txData.to, ignoring solver spenderAddress", () => {
+        const response = buildBungeeQuoteResponse();
+        response.result.autoRoute = buildAutoRoute({
+            userOp: "tx",
+            signTypedData: null,
+            txData: { to: VALID_ADDRESS, data: "0xdeadbeef", value: "0", chainId: 1 },
+            approvalData: {
+                spenderAddress: ATTACKER_ADDRESS,
+                amount: "950000",
+                tokenAddress: ATTACKER_ADDRESS,
+                userAddress: ATTACKER_ADDRESS,
+            },
+        });
+
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, makeQuoteRequest());
+        const allowance = quote!.order.checks!.allowances![0]!;
+
+        expect(allowance.spender).toBe(getAddress(VALID_ADDRESS));
+        expect(allowance.tokenAddress).toBe(getAddress(VALID_ADDRESS));
+        expect(allowance.owner).toBe(getAddress(VALID_ADDRESS));
+    });
+
+    it("omits the allowance when the input asset is native", () => {
+        const response = buildBungeeQuoteResponse();
+        response.result.autoRoute = buildAutoRoute({
+            userOp: "tx",
+            signTypedData: null,
+            txData: { to: VALID_ADDRESS, data: "0xdeadbeef", value: "0", chainId: 1 },
+        });
+        const params = makeQuoteRequest({
+            input: {
+                chainId: ORIGIN_CHAIN_ID,
+                assetAddress: "0x0000000000000000000000000000000000000000",
+                amount: INPUT_AMOUNT,
+            },
+        });
+
+        const [quote] = adaptQuotes(response as never, PROVIDER_ID, params);
+
+        expect(quote!.order.steps[0]!.kind).toBe("transaction");
+        expect(quote!.order.checks).toBeUndefined();
+    });
 });
 
 describe("adaptManualRouteQuote", () => {
@@ -492,6 +556,7 @@ describe("adaptManualRouteQuote", () => {
             buildManualRoute(),
             buildBuildTxResult(),
             PROVIDER_ID,
+            makeQuoteRequest(),
         );
 
         expect(quote).not.toBeNull();
@@ -507,6 +572,7 @@ describe("adaptManualRouteQuote", () => {
                 txData: { data: "0xdeadbeef", value: "0", chainId: 1 }, // missing `to`
             }),
             PROVIDER_ID,
+            makeQuoteRequest(),
         );
 
         expect(quote).toBeNull();
@@ -518,6 +584,7 @@ describe("adaptManualRouteQuote", () => {
             buildManualRoute({ routeDetails: { name: "Stargate", logoURI: "" } }),
             buildBuildTxResult(),
             PROVIDER_ID,
+            makeQuoteRequest(),
         );
 
         const step = quote!.order.steps[0]!;
@@ -530,6 +597,7 @@ describe("adaptManualRouteQuote", () => {
             buildManualRoute(),
             buildBuildTxResult(),
             PROVIDER_ID,
+            makeQuoteRequest(),
         );
 
         const allowances = quote!.order.checks?.allowances;
@@ -549,6 +617,7 @@ describe("adaptManualRouteQuote", () => {
             buildManualRoute(),
             buildTx,
             PROVIDER_ID,
+            makeQuoteRequest(),
         );
 
         const allowances = quote!.order.checks?.allowances;
@@ -567,7 +636,13 @@ describe("adaptManualRouteQuote", () => {
         });
         const buildTx = buildBuildTxResult({ approvalData: undefined });
 
-        const quote = adaptManualRouteQuote(buildManualResponse(), route, buildTx, PROVIDER_ID);
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            route,
+            buildTx,
+            PROVIDER_ID,
+            makeQuoteRequest(),
+        );
 
         expect(quote!.order.checks?.allowances).toHaveLength(1);
     });
@@ -576,7 +651,13 @@ describe("adaptManualRouteQuote", () => {
         const route = buildManualRoute({ approvalData: undefined });
         const buildTx = buildBuildTxResult({ approvalData: undefined });
 
-        const quote = adaptManualRouteQuote(buildManualResponse(), route, buildTx, PROVIDER_ID);
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            route,
+            buildTx,
+            PROVIDER_ID,
+            makeQuoteRequest(),
+        );
 
         expect(quote!.order.checks).toBeUndefined();
     });
@@ -587,6 +668,7 @@ describe("adaptManualRouteQuote", () => {
             buildManualRoute(),
             buildBuildTxResult(),
             PROVIDER_ID,
+            makeQuoteRequest(),
         );
 
         expect(quote!.tracking).toBeUndefined();
@@ -598,6 +680,7 @@ describe("adaptManualRouteQuote", () => {
             buildManualRoute(),
             buildBuildTxResult(),
             PROVIDER_ID,
+            makeQuoteRequest(),
         );
 
         expect(quote!.quoteId).toBe("manual-1");
@@ -613,10 +696,36 @@ describe("adaptManualRouteQuote", () => {
             buildManualRoute(),
             buildBuildTxResult(),
             PROVIDER_ID,
+            makeQuoteRequest(),
         );
 
         expect(quote!.metadata?.bungeeManualRoute).toBeDefined();
         expect(quote!.metadata?.bungeeBuildTx).toBeDefined();
         expect(quote!.metadata?.bungeeResponse).toBeDefined();
+    });
+
+    it("binds the allowance spender to txData.to, ignoring solver spenderAddress", () => {
+        const buildTx = buildBuildTxResult({
+            txData: { to: VALID_ADDRESS, data: "0xdeadbeef", value: "0", chainId: 1 },
+            approvalData: {
+                spenderAddress: ATTACKER_ADDRESS,
+                amount: "1000000",
+                tokenAddress: ATTACKER_ADDRESS,
+                userAddress: ATTACKER_ADDRESS,
+            },
+        });
+
+        const quote = adaptManualRouteQuote(
+            buildManualResponse(),
+            buildManualRoute(),
+            buildTx,
+            PROVIDER_ID,
+            makeQuoteRequest(),
+        );
+        const allowance = quote!.order.checks!.allowances![0]!;
+
+        expect(allowance.spender).toBe(getAddress(VALID_ADDRESS));
+        expect(allowance.tokenAddress).toBe(getAddress(VALID_ADDRESS));
+        expect(allowance.owner).toBe(getAddress(VALID_ADDRESS));
     });
 });

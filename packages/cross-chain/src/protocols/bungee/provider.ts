@@ -243,7 +243,7 @@ export class BungeeProvider extends CrossChainProvider {
                 return autoQuotes;
             }
 
-            const manualQuotes = await this.buildManualRouteQuotes(response);
+            const manualQuotes = await this.buildManualRouteQuotes(response, params);
             return [...autoQuotes, ...manualQuotes];
         } catch (error) {
             if (error instanceof ProviderGetQuoteFailure) {
@@ -264,7 +264,10 @@ export class BungeeProvider extends CrossChainProvider {
      * and individual failures (one bridge failing to build) do not abort the others —
      * the caller still gets the auto routes and any manual routes that succeeded.
      */
-    private async buildManualRouteQuotes(response: BungeeQuoteResponse): Promise<Quote[]> {
+    private async buildManualRouteQuotes(
+        response: BungeeQuoteResponse,
+        params: QuoteRequest,
+    ): Promise<Quote[]> {
         const manualRoutes = response.result.manualRoutes ?? [];
         if (manualRoutes.length === 0) return [];
 
@@ -297,6 +300,7 @@ export class BungeeProvider extends CrossChainProvider {
                     result.value.route,
                     result.value.buildTx,
                     this.providerId,
+                    params,
                 ),
             )
             .filter((quote): quote is Quote => quote !== null);
