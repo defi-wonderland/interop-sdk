@@ -1,10 +1,17 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { ChainId } from '~/lib/chains';
 import type { ProviderMetrics } from '~/lib/types/historyMetrics';
 import { useHeadToHeadRouteStore } from '~/lib/headToHeadRouteStore';
 
 const DEBOUNCE_MS = 300;
+
+export interface HeadToHeadMetricsSeed {
+  metrics: ProviderMetrics[];
+  fromChainId: ChainId;
+  toChainId: ChainId;
+}
 
 export interface HeadToHeadMetricsState {
   metrics: ProviderMetrics[];
@@ -23,8 +30,12 @@ interface FetchErrorPayload {
 /**
  * Subscribes to `useHeadToHeadRouteStore` and refetches the head-to-head
  * metrics from `/api/head-to-head-metrics` whenever the from/to chains change.
- * `initialMetrics` is the SSR seed for the canonical route, used so the first
- * paint isn't a loading skeleton.
+ * `seed` carries the SSR-computed metrics and the route they correspond to,
+ * so first paint isn't a loading skeleton.
+ *
+ * On mount the fetch is skipped only when the store route matches the seed
+ * route. If the store later picks up a non-seed initial state (e.g. via
+ * persistence), we'll fetch instead of showing stale seed data.
  *
  * `assetSymbol` is intentionally NOT a dependency: the upstream history APIs
  * are not filtered by asset today (same as the leaderboard's "ambient
@@ -32,9 +43,9 @@ interface FetchErrorPayload {
  * asset to the upstream query needs token address resolution per origin chain
  * and lives in a follow-up.
  */
-export function useHeadToHeadMetrics(initialMetrics: ProviderMetrics[]): HeadToHeadMetricsState {
+export function useHeadToHeadMetrics(seed: HeadToHeadMetricsSeed): HeadToHeadMetricsState {
   const [state, setState] = useState<HeadToHeadMetricsState>({
-    metrics: initialMetrics,
+    metrics: seed.metrics,
     isLoading: false,
     error: null,
   });
@@ -42,16 +53,20 @@ export function useHeadToHeadMetrics(initialMetrics: ProviderMetrics[]): HeadToH
   const fromChainId = useHeadToHeadRouteStore((s) => s.route.fromChainId);
   const toChainId = useHeadToHeadRouteStore((s) => s.route.toChainId);
 
+  const seedRouteRef = useRef({ fromChainId: seed.fromChainId, toChainId: seed.toChainId });
+  const skipNextRef = useRef(true);
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const isFirstRender = useRef(true);
 
   useEffect(() => {
-    // The SSR seed already covers the initial route, so the first mount must
-    // not refetch.
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
+    // On the first effect run, skip the fetch only when the store route
+    // matches the seed route. Otherwise we'd display seed data for the wrong
+    // route. After this run, every dep change triggers a fetch.
+    if (skipNextRef.current) {
+      skipNextRef.current = false;
+      if (fromChainId === seedRouteRef.current.fromChainId && toChainId === seedRouteRef.current.toChainId) {
+        return;
+      }
     }
 
     if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);

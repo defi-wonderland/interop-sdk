@@ -87,7 +87,11 @@ export default async function Home() {
             title='compare providers on a specific chain pair'
             rightSlot={<RouteSelector />}
           />
-          <HeadToHeadClient initialMetrics={initialHeadToHeadMetrics} />
+          <HeadToHeadClient
+            initialMetrics={initialHeadToHeadMetrics}
+            initialFromChainId={INITIAL_FROM_CHAIN_ID}
+            initialToChainId={INITIAL_TO_CHAIN_ID}
+          />
         </SectionFrame>
       </main>
 

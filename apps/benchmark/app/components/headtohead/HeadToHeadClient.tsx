@@ -2,15 +2,22 @@
 
 import { HeadToHead } from './HeadToHead';
 import { useHeadToHeadMetrics } from './useHeadToHeadMetrics';
+import type { ChainId } from '~/lib/chains';
 import type { ProviderMetrics } from '~/lib/types/historyMetrics';
 import { cn } from '~/lib/cn';
 
 interface HeadToHeadClientProps {
   initialMetrics: ProviderMetrics[];
+  initialFromChainId: ChainId;
+  initialToChainId: ChainId;
 }
 
-export function HeadToHeadClient({ initialMetrics }: HeadToHeadClientProps) {
-  const { metrics, isLoading, error } = useHeadToHeadMetrics(initialMetrics);
+export function HeadToHeadClient({ initialMetrics, initialFromChainId, initialToChainId }: HeadToHeadClientProps) {
+  const { metrics, isLoading, error } = useHeadToHeadMetrics({
+    metrics: initialMetrics,
+    fromChainId: initialFromChainId,
+    toChainId: initialToChainId,
+  });
 
   return (
     <div>
