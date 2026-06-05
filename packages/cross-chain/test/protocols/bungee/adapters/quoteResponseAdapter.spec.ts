@@ -628,10 +628,10 @@ describe("adaptManualRouteQuote", () => {
     it("falls back to manualRoute.approvalData when buildTx.approvalData is absent", () => {
         const route = buildManualRoute({
             approvalData: {
-                spenderAddress: SPENDER_ADDRESS,
+                spenderAddress: ATTACKER_ADDRESS,
                 amount: "1000000",
-                tokenAddress: VALID_ADDRESS,
-                userAddress: VALID_ADDRESS,
+                tokenAddress: ATTACKER_ADDRESS,
+                userAddress: ATTACKER_ADDRESS,
             },
         });
         const buildTx = buildBuildTxResult({ approvalData: undefined });
@@ -643,8 +643,12 @@ describe("adaptManualRouteQuote", () => {
             PROVIDER_ID,
             makeQuoteRequest(),
         );
+        const allowance = quote!.order.checks!.allowances![0]!;
 
         expect(quote!.order.checks?.allowances).toHaveLength(1);
+        expect(allowance.spender).toBe(getAddress(SPENDER_ADDRESS));
+        expect(allowance.tokenAddress).toBe(getAddress(VALID_ADDRESS));
+        expect(allowance.owner).toBe(getAddress(VALID_ADDRESS));
     });
 
     it("omits allowances when no approval is needed", () => {
