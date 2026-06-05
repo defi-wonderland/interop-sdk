@@ -37,11 +37,12 @@ interface FetchErrorPayload {
  * route. If the store later picks up a non-seed initial state (e.g. via
  * persistence), we'll fetch instead of showing stale seed data.
  *
- * `assetSymbol` is intentionally NOT a dependency: the upstream history APIs
- * are not filtered by asset today (same as the leaderboard's "ambient
- * activity" query). The picker still updates the displayed dot color; wiring
- * asset to the upstream query needs token address resolution per origin chain
- * and lives in a follow-up.
+ * `assetSymbol` is intentionally NOT a dependency: the history services can
+ * already filter by `tokenAddress`, but resolving an asset symbol to its
+ * per-chain token address isn't built yet, so we query without a token filter
+ * (same as the leaderboard's "ambient activity" query). The picker still
+ * updates the displayed dot color; the symbol-to-address resolution lives in
+ * a follow-up.
  */
 export function useHeadToHeadMetrics(seed: HeadToHeadMetricsSeed): HeadToHeadMetricsState {
   const [state, setState] = useState<HeadToHeadMetricsState>({
