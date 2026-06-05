@@ -10,13 +10,21 @@ interface HeadToHeadClientProps {
   initialMetrics: ProviderMetrics[];
   initialFromChainId: ChainId;
   initialToChainId: ChainId;
+  /** True when SSR failed and `initialMetrics` are null-filled placeholders. */
+  seedIsFallback: boolean;
 }
 
-export function HeadToHeadClient({ initialMetrics, initialFromChainId, initialToChainId }: HeadToHeadClientProps) {
+export function HeadToHeadClient({
+  initialMetrics,
+  initialFromChainId,
+  initialToChainId,
+  seedIsFallback,
+}: HeadToHeadClientProps) {
   const { metrics, isLoading, error } = useHeadToHeadMetrics({
     metrics: initialMetrics,
     fromChainId: initialFromChainId,
     toChainId: initialToChainId,
+    isFallback: seedIsFallback,
   });
 
   return (

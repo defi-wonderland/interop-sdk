@@ -41,8 +41,10 @@ export default async function Home() {
   // and then refetches client-side on route changes. The two will diverge once
   // EFI-975 wires multi-route aggregation for the leaderboard. When the
   // leaderboard fetch failed entirely, seed null-filled rows instead so the
-  // section keeps its 4-row structure rather than rendering an empty table.
-  const initialHeadToHeadMetrics = leaderboardMetrics.length > 0 ? leaderboardMetrics : emptyProviderMetrics();
+  // section keeps its 4-row structure rather than rendering an empty table;
+  // `seedIsFallback` tells the client hook to refetch on mount in that case.
+  const headToHeadSeedIsFallback = leaderboardMetrics.length === 0;
+  const initialHeadToHeadMetrics = headToHeadSeedIsFallback ? emptyProviderMetrics() : leaderboardMetrics;
 
   return (
     <div className='min-h-screen cursor-default bg-background'>
@@ -93,6 +95,7 @@ export default async function Home() {
             initialMetrics={initialHeadToHeadMetrics}
             initialFromChainId={INITIAL_FROM_CHAIN_ID}
             initialToChainId={INITIAL_TO_CHAIN_ID}
+            seedIsFallback={headToHeadSeedIsFallback}
           />
         </SectionFrame>
       </main>

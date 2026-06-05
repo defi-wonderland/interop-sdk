@@ -11,6 +11,12 @@ export interface HeadToHeadMetricsSeed {
   metrics: ProviderMetrics[];
   fromChainId: ChainId;
   toChainId: ChainId;
+  /**
+   * True when the SSR fetch failed and `metrics` are null-filled placeholders.
+   * Disables the skip-initial-fetch optimization so the client retries
+   * instead of sitting on degraded rows.
+   */
+  isFallback: boolean;
 }
 
 export interface HeadToHeadMetricsState {
@@ -34,8 +40,9 @@ interface FetchErrorPayload {
  * so first paint isn't a loading skeleton.
  *
  * On mount the fetch is skipped only when the store route matches the seed
- * route. If the store later picks up a non-seed initial state (e.g. via
- * persistence), we'll fetch instead of showing stale seed data.
+ * route AND the seed holds real data. A fallback seed (SSR fetch failed) or a
+ * store that boots on a non-seed route (e.g. via persistence) fetches right
+ * away instead of showing stale or placeholder data.
  *
  * `assetSymbol` is intentionally NOT a dependency: the history services can
  * already filter by `tokenAddress`, but resolving an asset symbol to its
@@ -54,18 +61,27 @@ export function useHeadToHeadMetrics(seed: HeadToHeadMetricsSeed): HeadToHeadMet
   const fromChainId = useHeadToHeadRouteStore((s) => s.route.fromChainId);
   const toChainId = useHeadToHeadRouteStore((s) => s.route.toChainId);
 
-  const seedRouteRef = useRef({ fromChainId: seed.fromChainId, toChainId: seed.toChainId });
+  const seedRouteRef = useRef({
+    fromChainId: seed.fromChainId,
+    toChainId: seed.toChainId,
+    isFallback: seed.isFallback,
+  });
   const skipNextRef = useRef(true);
   const debounceRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     // On the first effect run, skip the fetch only when the store route
-    // matches the seed route. Otherwise we'd display seed data for the wrong
-    // route. After this run, every dep change triggers a fetch.
+    // matches the seed route and the seed is real data. A fallback seed must
+    // refetch or the section would sit on placeholder rows until the user
+    // changes the route. After this run, every dep change triggers a fetch.
     if (skipNextRef.current) {
       skipNextRef.current = false;
-      if (fromChainId === seedRouteRef.current.fromChainId && toChainId === seedRouteRef.current.toChainId) {
+      if (
+        !seedRouteRef.current.isFallback &&
+        fromChainId === seedRouteRef.current.fromChainId &&
+        toChainId === seedRouteRef.current.toChainId
+      ) {
         return;
       }
     }
