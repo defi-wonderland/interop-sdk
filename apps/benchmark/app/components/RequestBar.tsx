@@ -12,12 +12,6 @@ import { CHAIN_IDS, CHAINS, ChainId } from '~/lib/chains';
 import { cn } from '~/lib/cn';
 import { useRequestBarStore, type RequestPreset } from '~/lib/requestBarStore';
 
-const PRESETS: RequestPreset[] = [
-  { label: '$100', amount: '100.00' },
-  { label: '$1k', amount: '1,000.00' },
-  { label: '$10k', amount: '10,000.00' },
-];
-
 interface RequestBarProps {
   chains: NetworkAssets[];
 }
@@ -53,6 +47,7 @@ export function RequestBar({ chains }: RequestBarProps) {
   const fromOptions = useMemo(() => toChainOptions(request.toChainId), [request.toChainId]);
   const toOptions = useMemo(() => toChainOptions(request.fromChainId), [request.fromChainId]);
   const assetOptions = useMemo(() => toAssetOptions(), []);
+  const presets = ASSETS[request.assetSymbol].presets;
 
   const clearPendingAmountRun = () => {
     if (debounceTimer.current === null) return;
@@ -132,7 +127,7 @@ export function RequestBar({ chains }: RequestBarProps) {
           <div className='flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-4'>
             <AmountField amount={request.amount} onChange={handleAmountChange} />
             <div className='flex gap-1'>
-              {PRESETS.map((preset) => (
+              {presets.map((preset) => (
                 <PresetPill
                   key={preset.label}
                   label={preset.label}

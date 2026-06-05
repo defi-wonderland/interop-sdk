@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { AssetSymbol } from './assets';
+import { ASSETS, AssetSymbol, type AssetPreset } from './assets';
 import { ChainId } from './chains';
 import {
   INITIAL_AMOUNT,
@@ -25,10 +25,7 @@ export interface AmountUpdate {
   selectedPreset?: string | null;
 }
 
-export interface RequestPreset {
-  label: string;
-  amount: string;
-}
+export type RequestPreset = AssetPreset;
 
 interface RequestBarState {
   request: RequestBarRequest;
@@ -55,7 +52,23 @@ export const useRequestBarStore = create<RequestBarState>((set) => ({
   rows: [],
   setFromChainId: (fromChainId) => set((state) => ({ request: { ...state.request, fromChainId } })),
   setToChainId: (toChainId) => set((state) => ({ request: { ...state.request, toChainId } })),
-  setAssetSymbol: (assetSymbol) => set((state) => ({ request: { ...state.request, assetSymbol } })),
+  setAssetSymbol: (assetSymbol) =>
+    set((state) => {
+      const request = { ...state.request, assetSymbol };
+      // Presets are denominated in the asset, so a selected preset must be
+      // re-applied in the new denomination. Presets are index-aligned across
+      // assets; a manually typed amount is left untouched.
+      if (state.request.selectedPreset !== null) {
+        const previousIndex = ASSETS[state.request.assetSymbol].presets.findIndex(
+          (preset) => preset.label === state.request.selectedPreset,
+        );
+        const nextPresets = ASSETS[assetSymbol].presets;
+        const next = nextPresets[previousIndex] ?? nextPresets[0];
+        request.amount = next.amount;
+        request.selectedPreset = next.label;
+      }
+      return { request };
+    }),
   setAmount: ({ amount, selectedPreset }) =>
     set((state) => ({
       request: {
