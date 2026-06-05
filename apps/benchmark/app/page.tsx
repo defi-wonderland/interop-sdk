@@ -18,7 +18,7 @@ import {
   INITIAL_TO_CHAIN_ID,
 } from './lib/requestBarDefaults';
 import { chainService, quotesService } from './lib/services';
-import { emptyProviderMetrics, fetchProviderMetrics } from './lib/services/providerMetrics';
+import { allProvidersFailed, emptyProviderMetrics, fetchProviderMetrics } from './lib/services/providerMetrics';
 import type { RaceRow } from './components/race-table/types';
 import type { ProviderMetrics } from './lib/types/historyMetrics';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
@@ -40,10 +40,11 @@ export default async function Home() {
   // Head-to-head seeds with the same canonical-route metrics on first paint
   // and then refetches client-side on route changes. The two will diverge once
   // EFI-975 wires multi-route aggregation for the leaderboard. When the
-  // leaderboard fetch failed entirely, seed null-filled rows instead so the
-  // section keeps its 4-row structure rather than rendering an empty table;
-  // `seedIsFallback` tells the client hook to refetch on mount in that case.
-  const headToHeadSeedIsFallback = leaderboardMetrics.length === 0;
+  // leaderboard fetch failed entirely (thrown timeout or every provider
+  // resolving null-filled), seed null-filled rows so the section keeps its
+  // 4-row structure rather than rendering an empty table; `seedIsFallback`
+  // tells the client hook to refetch on mount in that case.
+  const headToHeadSeedIsFallback = allProvidersFailed(leaderboardMetrics);
   const initialHeadToHeadMetrics = headToHeadSeedIsFallback ? emptyProviderMetrics() : leaderboardMetrics;
 
   return (

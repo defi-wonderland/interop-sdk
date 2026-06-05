@@ -2,7 +2,7 @@ import { unstable_cache } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { CHAIN_IDS, type ChainId } from '~/lib/chains';
 import { withTimeout } from '~/lib/helpers';
-import { fetchProviderMetrics } from '~/lib/services/providerMetrics';
+import { allProvidersFailed, fetchProviderMetrics } from '~/lib/services/providerMetrics';
 
 const FETCH_TIMEOUT_MS = 15_000;
 const CACHE_TTL_SECONDS = 60;
@@ -22,9 +22,7 @@ const cachedFetch = unstable_cache(
     // fail, so a transient total outage would otherwise be cached for the
     // full TTL. Throw instead: the 502 path below is never cached and the
     // next request retries. Same intent as the `noStore()` guards in page.tsx.
-    // A row with `fillCount: 0` is real data and caches normally.
-    const allFailed = metrics.every((row) => row.fillCount === null);
-    if (allFailed) throw new Error('every provider fetch failed');
+    if (allProvidersFailed(metrics)) throw new Error('every provider fetch failed');
     return metrics;
   },
   ['head-to-head-metrics'],
