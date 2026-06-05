@@ -74,6 +74,12 @@ export function InlinePicker<T extends string | number>({
       event.preventDefault();
       const previous = current <= 0 ? options.length - 1 : current - 1;
       optionRefs.current[previous]?.focus();
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      optionRefs.current[0]?.focus();
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      optionRefs.current[options.length - 1]?.focus();
     } else if (event.key === 'Escape') {
       event.preventDefault();
       closeAndReturnFocus();
