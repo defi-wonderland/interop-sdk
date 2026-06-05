@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { Dot } from './Dot';
+import { Dot } from '../Dot';
 import { cn } from '~/lib/cn';
 
 export interface InlinePickerOption<T> {
@@ -104,7 +104,7 @@ export function InlinePicker<T extends string | number>({
         aria-label={`${ariaLabel}: ${triggerLabel}`}
         className='inline-flex cursor-pointer items-center gap-2 transition active:scale-95'
       >
-        <Dot className={triggerDotClass} />
+        <Dot size='xs' className={triggerDotClass} />
         <span>{triggerLabel}</span>
       </button>
       {open ? (
@@ -131,7 +131,7 @@ export function InlinePicker<T extends string | number>({
                     : 'text-text-secondary hover:bg-surface hover:text-text-primary',
                 )}
               >
-                <Dot className={option.dotClass} />
+                <Dot size='xs' className={option.dotClass} />
                 <span>{option.label}</span>
               </button>
             </li>
