@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import type { SameAssetMap } from "../../src/external.js";
 import { createSameAssetService } from "../../src/external.js";
-import { DefaultSameAssetService } from "../../src/internal.js";
+import { ConflictingAssetIdentity, DefaultSameAssetService } from "../../src/internal.js";
 
 const NATIVE_EEE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" as Address;
 const NATIVE_ZERO = "0x0000000000000000000000000000000000000000" as Address;
@@ -59,6 +59,26 @@ describe("DefaultSameAssetService", () => {
         });
         expect(map.resolve(mainnet.id, USDC_MAINNET)).toBe("USDC");
         expect(map.resolve(mainnet.id, ATTACKER)).toBe("DAI");
+    });
+
+    it("rejects one address claimed by two asset ids on the same chain", () => {
+        expect(
+            () =>
+                new DefaultSameAssetService({
+                    USDC: { [mainnet.id]: USDC_MAINNET },
+                    "USDC.e": { [mainnet.id]: USDC_MAINNET },
+                }),
+        ).toThrow(ConflictingAssetIdentity);
+    });
+
+    it("rejects conflicting native placeholders that collapse to one key", () => {
+        expect(
+            () =>
+                new DefaultSameAssetService({
+                    ETH: { [mainnet.id]: NATIVE_EEE },
+                    WETH: { [mainnet.id]: NATIVE_ZERO },
+                }),
+        ).toThrow(ConflictingAssetIdentity);
     });
 });
 
