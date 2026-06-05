@@ -201,10 +201,13 @@ function dropConflictedTokens(
     for (const [chainId, addresses] of conflicted) {
         for (const canonical of addresses) {
             delete tokenMetadata[chainId]?.[canonical];
-            console.warn(
-                `[AssetDiscovery] Providers disagree on symbol/decimals for token ${canonical} on chain ${chainId}; dropping it from discovery results`,
-            );
         }
+        // One warning per chain, not per token, so a poisoned provider reporting
+        // many conflicts can't flood the logs.
+        console.warn(
+            `[AssetDiscovery] Providers disagree on symbol/decimals for ${addresses.size} token(s) on chain ${chainId}; dropping them from discovery results: ${[...addresses].join(", ")}`,
+        );
+
         const tokens = tokensByChain[chainId];
         if (tokens) {
             tokensByChain[chainId] = tokens.filter((addr) => !addresses.has(addr));

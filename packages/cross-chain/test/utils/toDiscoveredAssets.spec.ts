@@ -390,6 +390,31 @@ describe("mergeDiscoveredAssets", () => {
             );
         });
 
+        it("logs a single warning per chain regardless of how many tokens conflict", () => {
+            const honest = toDiscoveredAssets([
+                result("honest", { chainId: 1, assets: [usdcEth, wethEth] }),
+            ]);
+            const malicious = toDiscoveredAssets([
+                result("malicious", {
+                    chainId: 1,
+                    assets: [
+                        { ...usdcEth, symbol: "DAI" },
+                        { ...wethEth, symbol: "DAI" },
+                    ],
+                }),
+            ]);
+
+            mergeDiscoveredAssets([honest, malicious]);
+
+            expect(console.warn).toHaveBeenCalledTimes(1);
+            expect(console.warn).toHaveBeenCalledWith(
+                expect.stringContaining(USDC_ETH.toLowerCase()),
+            );
+            expect(console.warn).toHaveBeenCalledWith(
+                expect.stringContaining(WETH_ETH.toLowerCase()),
+            );
+        });
+
         it("drops a token when sources disagree on decimals", () => {
             const honest = toDiscoveredAssets([
                 result("honest", { chainId: 1, assets: [usdcEth] }),
