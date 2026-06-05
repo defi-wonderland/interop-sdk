@@ -112,7 +112,10 @@ export function useHeadToHeadMetrics(seed: HeadToHeadMetricsSeed): HeadToHeadMet
           setState({ metrics: data.metrics, isLoading: false, error: null });
         })
         .catch((err: Error) => {
-          if (err.name === 'AbortError') return;
+          // `signal.aborted` also covers aborts that interrupt the body read
+          // of a non-OK response, which reject with a plain Error after the
+          // inner json() catch swallows the AbortError.
+          if (err.name === 'AbortError' || controller.signal.aborted) return;
           setState((prev) => ({ ...prev, isLoading: false, error: err.message }));
         });
     }, DEBOUNCE_MS);
