@@ -19,7 +19,7 @@ test('every row shows either a BEST AT badge or the no-activity footer', async (
     const row = rows.nth(i);
     const bestAtCell = row.locator('td').last();
     const cellText = (await bestAtCell.textContent()) ?? '';
-    const hasBadge = /FASTEST|CHEAPEST|MOST ACTIVE|MOST RELIABLE/.test(cellText);
+    const hasBadge = /FASTEST|CHEAPEST|MOST ACTIVE/.test(cellText);
     const hasDash = cellText.includes('—');
     expect(hasBadge || hasDash).toBe(true);
   }
