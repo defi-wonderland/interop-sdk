@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { Chevron } from '../Chevron';
 import { Dot } from '../Dot';
 import { cn } from '~/lib/cn';
 
@@ -17,6 +18,8 @@ interface InlinePickerProps<T extends string | number> {
   onChange: (value: T) => void;
   triggerDotClass: string;
   triggerLabel: string;
+  /** Extra classes for the trigger label, e.g. a fixed width to stop siblings shifting. */
+  triggerLabelClassName?: string;
 }
 
 /**
@@ -32,6 +35,7 @@ export function InlinePicker<T extends string | number>({
   onChange,
   triggerDotClass,
   triggerLabel,
+  triggerLabelClassName,
 }: InlinePickerProps<T>) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -108,10 +112,16 @@ export function InlinePicker<T extends string | number>({
         aria-haspopup='listbox'
         aria-expanded={open}
         aria-label={`${ariaLabel}: ${triggerLabel}`}
-        className='inline-flex cursor-pointer items-center gap-2 transition active:scale-95'
+        className={cn(
+          'inline-flex cursor-pointer items-center gap-2 border bg-surface px-2.5 py-1 transition active:scale-95',
+          open
+            ? 'border-accent text-text-primary'
+            : 'border-border text-text-secondary hover:border-accent hover:text-text-primary',
+        )}
       >
         <Dot size='xs' className={triggerDotClass} />
-        <span>{triggerLabel}</span>
+        <span className={triggerLabelClassName}>{triggerLabel}</span>
+        <Chevron />
       </button>
       {open ? (
         <ul

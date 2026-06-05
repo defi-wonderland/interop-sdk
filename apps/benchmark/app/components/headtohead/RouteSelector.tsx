@@ -1,9 +1,16 @@
 'use client';
 
+import { useState } from 'react';
+import { Arrow } from '../Arrow';
 import { InlinePicker, type InlinePickerOption } from './InlinePicker';
 import { ASSET_SYMBOLS, ASSETS, type AssetSymbol } from '~/lib/assets';
 import { CHAIN_IDS, CHAINS, type ChainId } from '~/lib/chains';
 import { useHeadToHeadRouteStore } from '~/lib/headToHeadRouteStore';
+
+// Widest chain displayName is 8 characters (arbitrum/ethereum/optimism). A
+// fixed label width keeps both chain chips the same size, so the swap arrow
+// between them doesn't shift when e.g. `base` moves to the front.
+const CHAIN_LABEL_CLASS = 'min-w-[8ch] text-center';
 
 export function RouteSelector() {
   const route = useHeadToHeadRouteStore((state) => state.route);
@@ -11,6 +18,12 @@ export function RouteSelector() {
   const setToChainId = useHeadToHeadRouteStore((state) => state.setToChainId);
   const setAssetSymbol = useHeadToHeadRouteStore((state) => state.setAssetSymbol);
   const swapChains = useHeadToHeadRouteStore((state) => state.swapChains);
+  const [swapSpins, setSwapSpins] = useState(0);
+
+  const handleSwap = () => {
+    swapChains();
+    setSwapSpins((count) => count + 1);
+  };
 
   const from = CHAINS[route.fromChainId];
   const to = CHAINS[route.toChainId];
@@ -56,15 +69,9 @@ export function RouteSelector() {
           onChange={setFromChainId}
           triggerDotClass={from.colorClass}
           triggerLabel={from.displayName}
+          triggerLabelClassName={CHAIN_LABEL_CLASS}
         />
-        <button
-          type='button'
-          onClick={swapChains}
-          aria-label='swap chains'
-          className='cursor-pointer text-text-muted transition hover:text-text-primary active:scale-95'
-        >
-          →
-        </button>
+        <Arrow onSwap={handleSwap} spinKey={swapSpins} ariaLabel='swap chains' />
         <InlinePicker
           ariaLabel='route to chain'
           value={route.toChainId}
@@ -72,6 +79,7 @@ export function RouteSelector() {
           onChange={setToChainId}
           triggerDotClass={to.colorClass}
           triggerLabel={to.displayName}
+          triggerLabelClassName={CHAIN_LABEL_CLASS}
         />
       </div>
     </div>
