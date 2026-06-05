@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { Chevron } from '../Chevron';
 import { Dot } from '../Dot';
 import { cn } from '~/lib/cn';
 
@@ -120,11 +121,7 @@ export function InlinePicker<T extends string | number>({
       >
         <Dot size='xs' className={triggerDotClass} />
         <span className={triggerLabelClassName}>{triggerLabel}</span>
-        {/* U+25BC instead of the shared Chevron's U+25BE: the "small" variant
-            draws a tiny glyph inside its em-square and gets lost at chip size. */}
-        <span className='text-[9px] leading-none text-text-muted' aria-hidden='true'>
-          ▼
-        </span>
+        <Chevron variant='solid' />
       </button>
       {open ? (
         <ul
