@@ -169,7 +169,11 @@ function isIdentityConflict(
 }
 
 function normalizeSymbol(symbol: string): string {
-    return symbol.trim().toUpperCase();
+    // Coerce defensively: a malicious discovery source may send a non-string
+    // symbol, and a crash here would take down discovery instead of dropping the token.
+    return String(symbol ?? "")
+        .trim()
+        .toUpperCase();
 }
 
 /** Record a (chainId, canonical address) pair as conflicted. */

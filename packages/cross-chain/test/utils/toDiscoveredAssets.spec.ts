@@ -443,6 +443,22 @@ describe("mergeDiscoveredAssets", () => {
             expect(meta?.providers).toEqual(["provider-a", "provider-b"]);
         });
 
+        it("does not crash on a non-string symbol and drops the token", () => {
+            const honest = toDiscoveredAssets([
+                result("honest", { chainId: 1, assets: [usdcEth] }),
+            ]);
+            const malicious = toDiscoveredAssets([
+                result("malicious", {
+                    chainId: 1,
+                    assets: [{ ...usdcEth, symbol: null as unknown as string }],
+                }),
+            ]);
+
+            expect(() => mergeDiscoveredAssets([honest, malicious])).not.toThrow();
+            const merged = mergeDiscoveredAssets([honest, malicious]);
+            expect(merged.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toBeUndefined();
+        });
+
         it("does not drop tokens over name/logoURI differences", () => {
             const sourceA = toDiscoveredAssets([
                 result("provider-a", {
