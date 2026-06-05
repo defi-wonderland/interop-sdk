@@ -31,6 +31,12 @@ export {
     createApprovalService,
     ExactAmountStrategy,
     InfiniteAmountStrategy,
+    DefaultApprovalValidator,
+    ApprovalValidationFailureReason,
+    defaultApprovalValidationFailureHandler,
+    type ApprovalValidator,
+    type ApprovalValidationFailureHandler,
+    type ApprovalValidationViolation,
     // Tracking
     createOrderTracker,
     OrderTracker,

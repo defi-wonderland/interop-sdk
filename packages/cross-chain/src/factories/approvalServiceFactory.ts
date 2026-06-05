@@ -4,9 +4,11 @@ import type {
     AllowanceReadFailureHandler,
     ApprovalAmountStrategy,
     ApprovalService,
+    ApprovalValidationFailureHandler,
 } from "../internal.js";
 import {
     DefaultApprovalService,
+    DefaultApprovalValidator,
     ExactAmountStrategy,
     MulticallAllowanceReader,
     PublicClientManager,
@@ -35,11 +37,19 @@ export interface CreateApprovalServiceConfig {
      * custom telemetry, or a no-op handler to silence them.
      */
     failureHandler?: AllowanceReadFailureHandler;
+    /**
+     * Handler invoked when a quote-supplied allowance check is dropped because
+     * it doesn't match the quote's own intent (forged spender, foreign token,
+     * etc.). Defaults to {@link defaultApprovalValidationFailureHandler} (logs
+     * through `console.warn`). Provide your own to route these into telemetry.
+     */
+    validationFailureHandler?: ApprovalValidationFailureHandler;
 }
 
 export function createApprovalService(config?: CreateApprovalServiceConfig): ApprovalService {
     const clientManager = new PublicClientManager(config?.publicClient, config?.rpcUrls);
     const reader = new MulticallAllowanceReader(clientManager, config?.failureHandler);
     const strategy = config?.amountStrategy ?? new ExactAmountStrategy();
-    return new DefaultApprovalService(reader, strategy, config?.approvalGasLimit);
+    const validator = new DefaultApprovalValidator(config?.validationFailureHandler);
+    return new DefaultApprovalService(reader, strategy, validator, config?.approvalGasLimit);
 }
