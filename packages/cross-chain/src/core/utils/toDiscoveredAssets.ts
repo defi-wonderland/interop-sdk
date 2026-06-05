@@ -160,7 +160,16 @@ function isIdentityConflict(
     existing: DiscoveredAssetInfo,
     incoming: { symbol: string; decimals: number },
 ): boolean {
-    return existing.symbol !== incoming.symbol || existing.decimals !== incoming.decimals;
+    // Compare symbols case- and whitespace-insensitively so honest providers that
+    // report the same token with cosmetic differences aren't flagged as conflicting.
+    return (
+        normalizeSymbol(existing.symbol) !== normalizeSymbol(incoming.symbol) ||
+        existing.decimals !== incoming.decimals
+    );
+}
+
+function normalizeSymbol(symbol: string): string {
+    return symbol.trim().toUpperCase();
 }
 
 /** Record a (chainId, canonical address) pair as conflicted. */
