@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 
+import type { SubmissionMode } from "../../core/schemas/providerConfig.js";
 import type {
     FillWatcherConfig,
     HttpClient,
@@ -8,7 +9,7 @@ import type {
     Quote,
     QuoteRequest,
 } from "../../internal.js";
-import type { SuperbridgeConfigs, SuperbridgeSubmissionMode } from "./types.js";
+import type { SuperbridgeConfigs } from "./types.js";
 import {
     CrossChainProvider,
     FetchHttpClient,
@@ -33,7 +34,7 @@ export class SuperbridgeProvider extends CrossChainProvider {
     private readonly http: HttpClient;
     private readonly baseUrl: string;
     private readonly apiHeaders: Record<string, string>;
-    private readonly submissionModes: ReadonlySet<SuperbridgeSubmissionMode>;
+    private readonly submissionModes: ReadonlySet<SubmissionMode>;
 
     constructor(config: SuperbridgeConfigs) {
         super();
@@ -42,7 +43,7 @@ export class SuperbridgeProvider extends CrossChainProvider {
             const parsed = SuperbridgeConfigSchema.parse(config);
             this.baseUrl = parsed.baseUrl ?? SUPERBRIDGE_API_URL;
             this.providerId = parsed.providerId ?? SUPERBRIDGE_PROTOCOL_NAME;
-            this.submissionModes = new Set<SuperbridgeSubmissionMode>(
+            this.submissionModes = new Set<SubmissionMode>(
                 parsed.submissionModes ?? SUPERBRIDGE_DEFAULT_SUBMISSION_MODES,
             );
 

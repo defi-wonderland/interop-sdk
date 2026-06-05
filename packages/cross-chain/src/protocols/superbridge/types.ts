@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-/** Execution modes supported by the Superbridge provider. */
-export const SuperbridgeSubmissionModeSchema = z.enum(["user-transaction", "gasless"]);
+import { SubmissionModeSchema } from "../../core/schemas/providerConfig.js";
 
 /** Schema for validating Superbridge provider configuration. */
 export const SuperbridgeConfigSchema = z.object({
@@ -12,11 +11,8 @@ export const SuperbridgeConfigSchema = z.object({
     /** Superbridge API key sent as the `x-api-key` header. Required to use the provider. */
     apiKey: z.string().min(1, "Superbridge requires an apiKey"),
     /** Execution modes (default: `["user-transaction"]`). Add `"gasless"` for signature-based submission. */
-    submissionModes: z.array(SuperbridgeSubmissionModeSchema).optional(),
+    submissionModes: z.array(SubmissionModeSchema).optional(),
 });
-
-/** Execution mode for a Superbridge quote. */
-export type SuperbridgeSubmissionMode = z.infer<typeof SuperbridgeSubmissionModeSchema>;
 
 /** Configuration options for the Superbridge provider. */
 export type SuperbridgeConfigs = z.infer<typeof SuperbridgeConfigSchema>;
