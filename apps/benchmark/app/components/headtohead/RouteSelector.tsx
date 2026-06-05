@@ -41,7 +41,7 @@ export function RouteSelector() {
       <span className='font-mono text-label uppercase tracking-wider text-text-muted'>ROUTE</span>
       <div className='flex items-center gap-2 font-mono text-mark text-text-primary'>
         <InlinePicker
-          ariaLabel='asset'
+          ariaLabel='route asset'
           value={route.assetSymbol}
           options={assetOptions}
           onChange={setAssetSymbol}
@@ -50,7 +50,7 @@ export function RouteSelector() {
         />
         <span className='text-text-muted'>·</span>
         <InlinePicker
-          ariaLabel='from chain'
+          ariaLabel='route from chain'
           value={route.fromChainId}
           options={fromChainOptions}
           onChange={setFromChainId}
@@ -66,7 +66,7 @@ export function RouteSelector() {
           →
         </button>
         <InlinePicker
-          ariaLabel='to chain'
+          ariaLabel='route to chain'
           value={route.toChainId}
           options={toChainOptions}
           onChange={setToChainId}
