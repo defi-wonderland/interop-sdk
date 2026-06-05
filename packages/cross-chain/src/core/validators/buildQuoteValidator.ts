@@ -1,3 +1,6 @@
+import type { Address } from "viem";
+
+import type { SameAssetService } from "../interfaces/sameAsset.interface.js";
 import type { BuildQuoteRequest } from "../schemas/quoteRequest.js";
 import { DifferentAssetNotAllowed } from "../errors/DifferentAssetNotAllowed.exception.js";
 import { InsufficientFee } from "../errors/InsufficientFee.exception.js";
@@ -23,6 +26,7 @@ type SameAssetMetadataByChain = Record<number, Record<string, SameAssetMetadata>
  * @param params - The build quote request to validate
  * @param tokenMetadata - Token metadata indexed by chainId then lowercase address (from asset discovery)
  * @param nowSeconds - Current unix timestamp in seconds (injectable for testing)
+ * @param sameAsset - Optional consumer-owned same-asset resolver; when set, the same-asset check runs through it
  * @throws ZeroAmount if input or output amount is zero
  * @throws InvalidDeadline if deadline is in the past or too soon
  * @throws SameChainIntentNotAllowed if input and output are on the same chain
@@ -33,6 +37,7 @@ export function validateBuildQuoteParams(
     params: BuildQuoteRequest,
     tokenMetadata: SameAssetMetadataByChain,
     nowSeconds: number = Math.floor(Date.now() / 1000),
+    sameAsset?: SameAssetService,
 ): void {
     if (params.allowDangerousParameters) return;
 
@@ -42,10 +47,11 @@ export function validateBuildQuoteParams(
 
     const relationship = resolveAssetRelationship(
         params.input.chainId,
-        params.input.assetAddress,
+        params.input.assetAddress as Address,
         params.output.chainId,
-        params.output.assetAddress,
+        params.output.assetAddress as Address,
         tokenMetadata,
+        sameAsset,
     );
 
     validateSameAssetRequired(relationship);
@@ -102,14 +108,29 @@ function validateFeeMargin(params: BuildQuoteRequest): void {
 
 // ── Asset classification ────────────────────────────────────────────
 
-/** Same-asset iff input and output share symbol, decimals, and a provider that lists both. */
+/**
+ * Same-asset relationship.
+ *
+ * When a same-asset service is provided, identity comes from it: both legs must resolve
+ * to the same asset id (fail-closed when either is unknown). Otherwise it falls back to
+ * the discovery heuristic: matching symbol, matching decimals, and a provider that lists
+ * both legs.
+ */
 function resolveAssetRelationship(
     inputChainId: number,
-    inputAddress: string,
+    inputAddress: Address,
     outputChainId: number,
-    outputAddress: string,
+    outputAddress: Address,
     tokenMetadata: SameAssetMetadataByChain,
+    sameAsset?: SameAssetService,
 ): AssetRelationship {
+    if (sameAsset) {
+        const inputId = sameAsset.resolve(inputChainId, inputAddress);
+        const outputId = sameAsset.resolve(outputChainId, outputAddress);
+        if (inputId === undefined || outputId === undefined) return "unknown";
+        return inputId === outputId ? "same" : "different";
+    }
+
     const input = tokenMetadata[inputChainId]?.[toCanonicalNativeAddress(inputAddress, "eip155")];
     const output =
         tokenMetadata[outputChainId]?.[toCanonicalNativeAddress(outputAddress, "eip155")];

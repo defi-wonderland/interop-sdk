@@ -241,6 +241,58 @@ const aggregator = createAggregator({ providers, spenderValidator: registryValid
 
 For the full API reference see [Spender Validation](./api#spender-validation).
 
+## Same-asset transfers
+
+`buildQuote` only builds same-asset transfers — the input and output must be the same asset on different chains. By default it infers this from discovery metadata: the two legs must share a symbol and decimals and be listed by a common provider. Cross-token swaps go through `getQuotes` instead, and `allowDangerousParameters: true` skips the check.
+
+That heuristic leans on third-party token metadata. If you'd rather decide asset identity yourself, pass a `sameAssetService` to `createAggregator`, built from a map you own — `assetId → chainId → address`:
+
+```typescript
+import {
+    createAggregator,
+    createCrossChainProvider,
+    createSameAssetService,
+    PROTOCOLS,
+} from "@wonderland/interop-cross-chain";
+
+const sameAssetService = createSameAssetService({
+    USDC: {
+        1: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        42161: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    },
+    ETH: {
+        1: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        10: "0x0000000000000000000000000000000000000000",
+    },
+});
+
+const aggregator = createAggregator({
+    providers: [createCrossChainProvider(PROTOCOLS.ACROSS)],
+    sameAssetService,
+});
+```
+
+When set, `buildQuote` resolves both legs through the service and only proceeds when they map to the same `assetId`. It is fail-closed: if either address is unknown, the transfer is rejected with `DifferentAssetNotAllowed`. Addresses are matched without regard to checksum casing, and the native placeholders `0x0000…0000` and `0xEeee…EEeE` collapse to a single entry.
+
+### Bringing your own resolver
+
+The SDK ships no token list and maintains none. You own the map, or implement the `SameAssetService` interface to resolve against your own registry:
+
+```typescript
+import type { SameAssetService } from "@wonderland/interop-cross-chain";
+
+const registrySameAsset: SameAssetService = {
+    resolve(chainId, address) {
+        // return a stable asset id, or undefined to reject the pairing
+        return undefined;
+    },
+};
+
+const aggregator = createAggregator({ providers, sameAssetService: registrySameAsset });
+```
+
+For the full API reference see [Same-Asset Identity](./api#same-asset-identity).
+
 ## Order Tracking
 
 The aggregator includes built-in order tracking when configured with a `trackerFactory`. After executing a transaction, use `aggregator.track()` to monitor the cross-chain transfer:

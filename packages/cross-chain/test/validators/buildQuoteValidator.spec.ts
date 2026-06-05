@@ -14,6 +14,7 @@ import {
     validateAssetSupport,
     validateBuildQuoteParams,
 } from "../../src/core/validators/buildQuoteValidator.js";
+import { createSameAssetService } from "../../src/external.js";
 
 const NOW = 1_700_000_000;
 
@@ -294,6 +295,82 @@ describe("validateBuildQuoteParams", () => {
                 allowDangerousParameters: true,
             });
             expect(() => validate(params)).not.toThrow();
+        });
+    });
+
+    describe("same-asset service (opt-in)", () => {
+        const sameAsset = createSameAssetService({
+            USDC: {
+                [mainnet.id]: USDC_MAINNET,
+                [optimism.id]: USDC_OPTIMISM,
+                [base.id]: USDC_BASE,
+                [arbitrum.id]: USDC_ARBITRUM,
+            },
+        });
+
+        it("accepts cross-chain legs that resolve to the same id with no discovery metadata", () => {
+            const params = buildParams({
+                input: { chainId: mainnet.id, assetAddress: USDC_MAINNET, amount: "1000000" },
+                output: { chainId: arbitrum.id, assetAddress: USDC_ARBITRUM, amount: "990000" },
+            });
+            expect(() => validateBuildQuoteParams(params, {}, NOW, sameAsset)).not.toThrow();
+        });
+
+        it("matches addresses case-insensitively through the service", () => {
+            const params = buildParams({
+                input: {
+                    chainId: mainnet.id,
+                    assetAddress: USDC_MAINNET.toUpperCase() as Address,
+                    amount: "1000000",
+                },
+                output: { chainId: arbitrum.id, assetAddress: USDC_ARBITRUM, amount: "990000" },
+            });
+            expect(() => validateBuildQuoteParams(params, {}, NOW, sameAsset)).not.toThrow();
+        });
+
+        it("rejects an output address the service does not list (fail-closed)", () => {
+            const params = buildParams({
+                input: { chainId: mainnet.id, assetAddress: USDC_MAINNET, amount: "1000000" },
+                output: { chainId: arbitrum.id, assetAddress: WETH_ARBITRUM, amount: "990000" },
+            });
+            expect(() => validateBuildQuoteParams(params, {}, NOW, sameAsset)).toThrow(
+                DifferentAssetNotAllowed,
+            );
+        });
+
+        it("takes precedence over a permissive discovery heuristic", () => {
+            const metadata = {
+                [mainnet.id]: {
+                    [USDC_MAINNET.toLowerCase()]: {
+                        symbol: "USDC",
+                        decimals: 6,
+                        providers: ["across"],
+                    },
+                },
+                [arbitrum.id]: {
+                    [WETH_ARBITRUM.toLowerCase()]: {
+                        symbol: "USDC",
+                        decimals: 6,
+                        providers: ["across"],
+                    },
+                },
+            };
+            const params = buildParams({
+                input: { chainId: mainnet.id, assetAddress: USDC_MAINNET, amount: "1000000" },
+                output: { chainId: arbitrum.id, assetAddress: WETH_ARBITRUM, amount: "990000" },
+            });
+            expect(() => validateBuildQuoteParams(params, metadata, NOW, sameAsset)).toThrow(
+                DifferentAssetNotAllowed,
+            );
+        });
+
+        it("is bypassed by allowDangerousParameters", () => {
+            const params = buildParams({
+                input: { chainId: mainnet.id, assetAddress: USDC_MAINNET, amount: "1000000" },
+                output: { chainId: arbitrum.id, assetAddress: WETH_ARBITRUM, amount: "990000" },
+                allowDangerousParameters: true,
+            });
+            expect(() => validateBuildQuoteParams(params, {}, NOW, sameAsset)).not.toThrow();
         });
     });
 });

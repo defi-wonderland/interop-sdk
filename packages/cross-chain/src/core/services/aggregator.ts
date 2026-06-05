@@ -2,6 +2,7 @@ import { Hex } from "viem";
 
 import type { ApprovalService } from "../interfaces/approval.interface.js";
 import type { AssetDiscoveryService } from "../interfaces/assetDiscovery.interface.js";
+import type { SameAssetService } from "../interfaces/sameAsset.interface.js";
 import type { SpenderValidator } from "../interfaces/spenderValidator.interface.js";
 import type {
     ExecutableQuote,
@@ -44,6 +45,7 @@ interface AggregatorConfig {
     };
     approvalService?: ApprovalService;
     spenderValidator?: SpenderValidator;
+    sameAssetService?: SameAssetService;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -61,6 +63,7 @@ class Aggregator {
     private readonly trackerFactory: AggregatorConfig["trackerFactory"];
     private readonly approvalService: AggregatorConfig["approvalService"];
     private readonly spenderValidator?: SpenderValidator;
+    private readonly sameAssetService?: SameAssetService;
     private readonly trackerCache: Map<string, OrderTracker> = new Map();
     private readonly discoveryCache: Map<string, AssetDiscoveryService> = new Map();
 
@@ -78,6 +81,7 @@ class Aggregator {
             discoveryFactory,
             approvalService,
             spenderValidator,
+            sameAssetService,
         } = config;
         this.providers = new Map();
         for (const provider of providers) {
@@ -92,6 +96,7 @@ class Aggregator {
         this.trackerFactory = trackerFactory;
         this.approvalService = approvalService;
         this.spenderValidator = spenderValidator;
+        this.sameAssetService = sameAssetService;
 
         if (discoveryFactory) {
             this.initDiscoveryServices(providers, discoveryFactory);
@@ -277,7 +282,12 @@ class Aggregator {
         }
 
         const discovered = await this.discoverAssets();
-        validateBuildQuoteParams(params, discovered.tokenMetadata);
+        validateBuildQuoteParams(
+            params,
+            discovered.tokenMetadata,
+            undefined,
+            this.sameAssetService,
+        );
 
         const isSupported = await this.supportsRequestedAssets(provider, params);
         validateAssetSupport(params, providerId, isSupported);
