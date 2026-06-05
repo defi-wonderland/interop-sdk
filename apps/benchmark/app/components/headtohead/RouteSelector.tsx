@@ -50,38 +50,35 @@ export function RouteSelector() {
   );
 
   return (
-    <div className='flex items-center gap-3.5 border border-border bg-surface-elevated px-4 py-2.5'>
+    <div className='flex items-center gap-2.5 font-mono text-mark text-text-primary'>
       <span className='font-mono text-label uppercase tracking-wider text-text-muted'>ROUTE</span>
-      <div className='flex items-center gap-2 font-mono text-mark text-text-primary'>
-        <InlinePicker
-          ariaLabel='route asset'
-          value={route.assetSymbol}
-          options={assetOptions}
-          onChange={setAssetSymbol}
-          triggerDotClass={asset.colorClass}
-          triggerLabel={asset.displayName}
-        />
-        <span className='text-text-muted'>·</span>
-        <InlinePicker
-          ariaLabel='route from chain'
-          value={route.fromChainId}
-          options={fromChainOptions}
-          onChange={setFromChainId}
-          triggerDotClass={from.colorClass}
-          triggerLabel={from.displayName}
-          triggerLabelClassName={CHAIN_LABEL_CLASS}
-        />
-        <Arrow onSwap={handleSwap} spinKey={swapSpins} ariaLabel='swap chains' />
-        <InlinePicker
-          ariaLabel='route to chain'
-          value={route.toChainId}
-          options={toChainOptions}
-          onChange={setToChainId}
-          triggerDotClass={to.colorClass}
-          triggerLabel={to.displayName}
-          triggerLabelClassName={CHAIN_LABEL_CLASS}
-        />
-      </div>
+      <InlinePicker
+        ariaLabel='route asset'
+        value={route.assetSymbol}
+        options={assetOptions}
+        onChange={setAssetSymbol}
+        triggerDotClass={asset.colorClass}
+        triggerLabel={asset.displayName}
+      />
+      <InlinePicker
+        ariaLabel='route from chain'
+        value={route.fromChainId}
+        options={fromChainOptions}
+        onChange={setFromChainId}
+        triggerDotClass={from.colorClass}
+        triggerLabel={from.displayName}
+        triggerLabelClassName={CHAIN_LABEL_CLASS}
+      />
+      <Arrow onSwap={handleSwap} spinKey={swapSpins} ariaLabel='swap chains' />
+      <InlinePicker
+        ariaLabel='route to chain'
+        value={route.toChainId}
+        options={toChainOptions}
+        onChange={setToChainId}
+        triggerDotClass={to.colorClass}
+        triggerLabel={to.displayName}
+        triggerLabelClassName={CHAIN_LABEL_CLASS}
+      />
     </div>
   );
 }
