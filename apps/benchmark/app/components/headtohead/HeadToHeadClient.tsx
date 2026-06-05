@@ -32,11 +32,16 @@ export function HeadToHeadClient({
       <div className={cn('transition-opacity', isLoading ? 'opacity-50' : 'opacity-100')} aria-busy={isLoading}>
         <HeadToHead metrics={metrics} />
       </div>
-      {error ? (
+      {isLoading && (
+        <div className='mt-2 font-mono text-caption text-text-muted' role='status'>
+          updating head-to-head…
+        </div>
+      )}
+      {error && (
         <div className='mt-2 border border-border bg-surface-elevated px-3 py-2 font-mono text-caption text-text-muted'>
           failed to load — {error}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
