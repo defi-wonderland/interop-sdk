@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
     AssetDiscoveryResult,
@@ -73,17 +73,6 @@ describe("toDiscoveredAssets", () => {
             expect(Object.keys(out.tokenMetadata[1]!)).toHaveLength(2);
         });
 
-        it("use first-write-wins for metadata and merge providers", () => {
-            const out = toDiscoveredAssets([
-                result("provider-1", { chainId: 1, assets: [{ ...usdcEth, symbol: "USDC-OLD" }] }),
-                result("provider-2", { chainId: 1, assets: [{ ...usdcEth, symbol: "USDC-NEW" }] }),
-            ]);
-
-            const meta = out.tokenMetadata[1]![USDC_ETH.toLowerCase()]!;
-            expect(meta.symbol).toBe("USDC-OLD");
-            expect(meta.providers).toEqual(["provider-1", "provider-2"]);
-        });
-
         it("fills missing name/logoURI from later providers", () => {
             const out = toDiscoveredAssets([
                 result("provider-1", { chainId: 1, assets: [usdcEth] }),
@@ -144,6 +133,29 @@ describe("toDiscoveredAssets", () => {
             expect(out.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.providers).toEqual([
                 "provider-1",
             ]);
+        });
+    });
+
+    describe("conflicting identity metadata", () => {
+        beforeEach(() => {
+            vi.spyOn(console, "warn").mockImplementation(() => {});
+        });
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        // Conflict handling is shared with mergeDiscoveredAssets and tested in
+        // depth there; this only covers that this entry point applies it too.
+        it("drops a token when providers disagree on symbol/decimals", () => {
+            const out = toDiscoveredAssets([
+                result("honest", { chainId: 1, assets: [usdcEth, wethEth] }),
+                result("malicious", { chainId: 1, assets: [{ ...usdcEth, symbol: "DAI" }] }),
+            ]);
+
+            expect(out.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toBeUndefined();
+            expect(out.tokensByChain[1]).not.toContain(USDC_ETH.toLowerCase());
+            expect(out.tokenMetadata[1]?.[WETH_ETH.toLowerCase()]).toBeDefined();
         });
     });
 
@@ -282,23 +294,6 @@ describe("mergeDiscoveredAssets", () => {
         ]);
     });
 
-    it("use first-write-wins for metadata fields", () => {
-        const sourceA = toDiscoveredAssets([
-            result("provider-a", { chainId: 1, assets: [{ ...usdcEth, symbol: "USDC-FIRST" }] }),
-        ]);
-        const sourceB = toDiscoveredAssets([
-            result("provider-b", {
-                chainId: 1,
-                assets: [{ ...usdcEth, symbol: "USDC-SECOND", decimals: 18 }],
-            }),
-        ]);
-
-        const merged = mergeDiscoveredAssets([sourceA, sourceB]);
-
-        expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.symbol).toBe("USDC-FIRST");
-        expect(merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!.decimals).toBe(6);
-    });
-
     it("treats empty strings as missing in cross-source merges", () => {
         const sourceA = toDiscoveredAssets([
             result("provider-a", { chainId: 1, assets: [{ ...usdcEth, name: "", logoURI: "" }] }),
@@ -366,6 +361,102 @@ describe("mergeDiscoveredAssets", () => {
         expect(merged.tokensByChain[1]).toEqual([NATIVE_EEE_LOWER]);
         expect(Object.keys(merged.tokenMetadata[1]!)).toEqual([NATIVE_EEE_LOWER]);
         expect(merged.tokenMetadata[1]![NATIVE_EEE_LOWER]!.providers).toEqual(["bungee", "across"]);
+    });
+
+    describe("conflicting identity metadata", () => {
+        beforeEach(() => {
+            vi.spyOn(console, "warn").mockImplementation(() => {});
+        });
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it("drops a token when sources disagree on symbol, and warns", () => {
+            const honest = toDiscoveredAssets([
+                result("honest", { chainId: 1, assets: [usdcEth, wethEth] }),
+            ]);
+            const malicious = toDiscoveredAssets([
+                result("malicious", { chainId: 1, assets: [{ ...usdcEth, symbol: "DAI" }] }),
+            ]);
+
+            const merged = mergeDiscoveredAssets([honest, malicious]);
+
+            expect(merged.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toBeUndefined();
+            expect(merged.tokensByChain[1]).not.toContain(USDC_ETH.toLowerCase());
+            expect(merged.tokenMetadata[1]?.[WETH_ETH.toLowerCase()]).toBeDefined();
+            expect(console.warn).toHaveBeenCalledWith(
+                expect.stringContaining(USDC_ETH.toLowerCase()),
+            );
+        });
+
+        it("drops a token when sources disagree on decimals", () => {
+            const honest = toDiscoveredAssets([
+                result("honest", { chainId: 1, assets: [usdcEth] }),
+            ]);
+            const malicious = toDiscoveredAssets([
+                result("malicious", { chainId: 1, assets: [{ ...usdcEth, decimals: 18 }] }),
+            ]);
+
+            const merged = mergeDiscoveredAssets([honest, malicious]);
+
+            expect(merged.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toBeUndefined();
+        });
+
+        it("does not drop tokens over name/logoURI differences", () => {
+            const sourceA = toDiscoveredAssets([
+                result("provider-a", {
+                    chainId: 1,
+                    assets: [{ ...usdcEth, name: "USD Coin", logoURI: "https://logo/a.png" }],
+                }),
+            ]);
+            const sourceB = toDiscoveredAssets([
+                result("provider-b", {
+                    chainId: 1,
+                    assets: [{ ...usdcEth, name: "USDC Token", logoURI: "https://logo/b.png" }],
+                }),
+            ]);
+
+            const merged = mergeDiscoveredAssets([sourceA, sourceB]);
+
+            const meta = merged.tokenMetadata[1]?.[USDC_ETH.toLowerCase()];
+            expect(meta?.symbol).toBe("USDC");
+            expect(meta?.providers).toEqual(["provider-a", "provider-b"]);
+        });
+
+        it("drops native entries when collapsed placeholders disagree on symbol", () => {
+            const sourceA = toDiscoveredAssets([
+                result("bungee", { chainId: 1, assets: [ethEee] }),
+            ]);
+            const sourceB = toDiscoveredAssets([
+                result("across", { chainId: 1, assets: [{ ...ethZero, symbol: "WETH" }] }),
+            ]);
+
+            const merged = mergeDiscoveredAssets([sourceA, sourceB]);
+
+            expect(merged.tokenMetadata[1]?.[NATIVE_EEE_LOWER]).toBeUndefined();
+            expect(merged.tokensByChain[1] ?? []).not.toContain(NATIVE_EEE_LOWER);
+        });
+
+        it("drops only the affected chain entry and removes it when left empty", () => {
+            const honest = toDiscoveredAssets([
+                result(
+                    "honest",
+                    { chainId: 1, assets: [usdcEth] },
+                    { chainId: 42161, assets: [usdcArb] },
+                ),
+            ]);
+            const malicious = toDiscoveredAssets([
+                result("malicious", { chainId: 1, assets: [{ ...usdcEth, symbol: "DAI" }] }),
+            ]);
+
+            const merged = mergeDiscoveredAssets([honest, malicious]);
+
+            expect(merged.tokensByChain[1]).toBeUndefined();
+            expect(merged.tokenMetadata[1]).toBeUndefined();
+            expect(merged.tokensByChain[42161]).toContain(USDC_ARB.toLowerCase());
+            expect(merged.tokenMetadata[42161]?.[USDC_ARB.toLowerCase()]).toBeDefined();
+        });
     });
 
     it("canonicalizes native placeholders from raw input keys", () => {
