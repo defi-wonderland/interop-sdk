@@ -26,17 +26,17 @@ const WETH_ARBITRUM = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1" as Address;
 
 const KNOWN_TOKEN_METADATA = {
     [mainnet.id]: {
-        [USDC_MAINNET.toLowerCase()]: { symbol: "USDC" },
+        [USDC_MAINNET.toLowerCase()]: { symbol: "USDC", decimals: 6, providers: ["across"] },
     },
     [optimism.id]: {
-        [USDC_OPTIMISM.toLowerCase()]: { symbol: "USDC" },
+        [USDC_OPTIMISM.toLowerCase()]: { symbol: "USDC", decimals: 6, providers: ["across"] },
     },
     [base.id]: {
-        [USDC_BASE.toLowerCase()]: { symbol: "USDC" },
+        [USDC_BASE.toLowerCase()]: { symbol: "USDC", decimals: 6, providers: ["across"] },
     },
     [arbitrum.id]: {
-        [USDC_ARBITRUM.toLowerCase()]: { symbol: "USDC" },
-        [WETH_ARBITRUM.toLowerCase()]: { symbol: "WETH" },
+        [USDC_ARBITRUM.toLowerCase()]: { symbol: "USDC", decimals: 6, providers: ["across"] },
+        [WETH_ARBITRUM.toLowerCase()]: { symbol: "WETH", decimals: 18, providers: ["across"] },
     },
 };
 
@@ -133,6 +133,71 @@ describe("validateBuildQuoteParams", () => {
                 allowDangerousParameters: true,
             });
             expect(() => validate(params, {})).not.toThrow();
+        });
+    });
+
+    describe("asset identity hardening", () => {
+        it("rejects cross-chain tokens sharing a symbol but differing in decimals", () => {
+            const metadata = {
+                [mainnet.id]: {
+                    [USDC_MAINNET.toLowerCase()]: {
+                        symbol: "USDC",
+                        decimals: 6,
+                        providers: ["across"],
+                    },
+                },
+                [optimism.id]: {
+                    [USDC_OPTIMISM.toLowerCase()]: {
+                        symbol: "USDC",
+                        decimals: 18,
+                        providers: ["across"],
+                    },
+                },
+            };
+            const params = buildParams();
+            expect(() => validate(params, metadata)).toThrow(DifferentAssetNotAllowed);
+        });
+
+        it("rejects cross-chain same symbol and decimals with no shared provider", () => {
+            const metadata = {
+                [mainnet.id]: {
+                    [USDC_MAINNET.toLowerCase()]: {
+                        symbol: "USDC",
+                        decimals: 6,
+                        providers: ["across"],
+                    },
+                },
+                [optimism.id]: {
+                    [USDC_OPTIMISM.toLowerCase()]: {
+                        symbol: "USDC",
+                        decimals: 6,
+                        providers: ["relay"],
+                    },
+                },
+            };
+            const params = buildParams();
+            expect(() => validate(params, metadata)).toThrow(DifferentAssetNotAllowed);
+        });
+
+        it("accepts cross-chain same symbol, decimals, and a shared provider", () => {
+            const metadata = {
+                [mainnet.id]: {
+                    [USDC_MAINNET.toLowerCase()]: {
+                        symbol: "USDC",
+                        decimals: 6,
+                        providers: ["across", "relay"],
+                    },
+                },
+                [optimism.id]: {
+                    [USDC_OPTIMISM.toLowerCase()]: {
+                        symbol: "USDC",
+                        decimals: 6,
+                        providers: ["across"],
+                    },
+                },
+            };
+            const params = buildParams();
+            expect(() => validate(params, metadata)).not.toThrow();
         });
     });
 

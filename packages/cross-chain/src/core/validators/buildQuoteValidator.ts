@@ -12,6 +12,9 @@ export const MIN_DEADLINE_BUFFER_SECONDS = 60;
 
 type AssetRelationship = "same" | "different" | "unknown";
 
+type SameAssetMetadata = { symbol: string; decimals: number; providers: string[] };
+type SameAssetMetadataByChain = Record<number, Record<string, SameAssetMetadata>>;
+
 /**
  * Validates build-quote parameters for common safety issues.
  *
@@ -28,7 +31,7 @@ type AssetRelationship = "same" | "different" | "unknown";
  */
 export function validateBuildQuoteParams(
     params: BuildQuoteRequest,
-    tokenMetadata: Record<number, Record<string, { symbol: string }>>,
+    tokenMetadata: SameAssetMetadataByChain,
     nowSeconds: number = Math.floor(Date.now() / 1000),
 ): void {
     if (params.allowDangerousParameters) return;
@@ -99,22 +102,24 @@ function validateFeeMargin(params: BuildQuoteRequest): void {
 
 // ── Asset classification ────────────────────────────────────────────
 
-// TODO: Replace symbol comparison with a robust token pairing system.
-/** Compares cross-chain assets by symbol. Returns "unknown" if metadata is missing for either side. */
+/** Same-asset iff input and output share symbol, decimals, and a provider that lists both. */
 function resolveAssetRelationship(
     inputChainId: number,
     inputAddress: string,
     outputChainId: number,
     outputAddress: string,
-    tokenMetadata: Record<number, Record<string, { symbol: string }>>,
+    tokenMetadata: SameAssetMetadataByChain,
 ): AssetRelationship {
-    const inputSymbol =
-        tokenMetadata[inputChainId]?.[toCanonicalNativeAddress(inputAddress, "eip155")]?.symbol;
-    const outputSymbol =
-        tokenMetadata[outputChainId]?.[toCanonicalNativeAddress(outputAddress, "eip155")]?.symbol;
+    const input = tokenMetadata[inputChainId]?.[toCanonicalNativeAddress(inputAddress, "eip155")];
+    const output =
+        tokenMetadata[outputChainId]?.[toCanonicalNativeAddress(outputAddress, "eip155")];
 
-    if (inputSymbol === undefined || outputSymbol === undefined) return "unknown";
-    return inputSymbol === outputSymbol ? "same" : "different";
+    if (input === undefined || output === undefined) return "unknown";
+
+    const sameIdentity = input.symbol === output.symbol && input.decimals === output.decimals;
+    const sharedProvider = input.providers.some((provider) => output.providers.includes(provider));
+
+    return sameIdentity && sharedProvider ? "same" : "different";
 }
 
 // ── Asset support ──────────────────────────────────────────────────
