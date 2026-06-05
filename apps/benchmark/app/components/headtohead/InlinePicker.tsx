@@ -121,7 +121,7 @@ export function InlinePicker<T extends string | number>({
       >
         <Dot size='xs' className={triggerDotClass} />
         <span className={triggerLabelClassName}>{triggerLabel}</span>
-        <Chevron variant='solid' />
+        <Chevron />
       </button>
       {open ? (
         <ul
