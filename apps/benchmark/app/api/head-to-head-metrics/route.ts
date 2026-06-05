@@ -13,11 +13,20 @@ const CACHE_TTL_SECONDS = 60;
 // handler reads `searchParams` (Next treats it as dynamic), so we cache at
 // this layer instead.
 const cachedFetch = unstable_cache(
-  (fromChainId: ChainId, toChainId: ChainId) =>
-    fetchProviderMetrics({
+  async (fromChainId: ChainId, toChainId: ChainId) => {
+    const metrics = await fetchProviderMetrics({
       originChainId: fromChainId,
       destinationChainId: toChainId,
-    }),
+    });
+    // `fetchProviderMetrics` resolves with null-filled rows when providers
+    // fail, so a transient total outage would otherwise be cached for the
+    // full TTL. Throw instead: the 502 path below is never cached and the
+    // next request retries. Same intent as the `noStore()` guards in page.tsx.
+    // A row with `fillCount: 0` is real data and caches normally.
+    const allFailed = metrics.every((row) => row.fillCount === null);
+    if (allFailed) throw new Error('every provider fetch failed');
+    return metrics;
+  },
   ['head-to-head-metrics'],
   { revalidate: CACHE_TTL_SECONDS },
 );
