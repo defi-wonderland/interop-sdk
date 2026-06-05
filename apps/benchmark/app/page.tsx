@@ -18,7 +18,7 @@ import {
   INITIAL_TO_CHAIN_ID,
 } from './lib/requestBarDefaults';
 import { chainService, quotesService } from './lib/services';
-import { fetchProviderMetrics } from './lib/services/providerMetrics';
+import { emptyProviderMetrics, fetchProviderMetrics } from './lib/services/providerMetrics';
 import type { RaceRow } from './components/race-table/types';
 import type { ProviderMetrics } from './lib/types/historyMetrics';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
@@ -39,8 +39,10 @@ export default async function Home() {
 
   // Head-to-head seeds with the same canonical-route metrics on first paint
   // and then refetches client-side on route changes. The two will diverge once
-  // EFI-975 wires multi-route aggregation for the leaderboard.
-  const initialHeadToHeadMetrics = leaderboardMetrics;
+  // EFI-975 wires multi-route aggregation for the leaderboard. When the
+  // leaderboard fetch failed entirely, seed null-filled rows instead so the
+  // section keeps its 4-row structure rather than rendering an empty table.
+  const initialHeadToHeadMetrics = leaderboardMetrics.length > 0 ? leaderboardMetrics : emptyProviderMetrics();
 
   return (
     <div className='min-h-screen cursor-default bg-background'>

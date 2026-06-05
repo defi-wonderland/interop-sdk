@@ -37,6 +37,15 @@ const PROVIDERS_WITH_FEED: ReadonlyArray<ProviderEntry> = [
 ];
 
 /**
+ * Null-filled rows for every provider, in the same order `fetchProviderMetrics`
+ * returns them. Callers use this to keep the table structure when the whole
+ * fetch fails, instead of rendering zero rows.
+ */
+export function emptyProviderMetrics(): ProviderMetrics[] {
+  return [...PROVIDERS_WITH_FEED.map(({ id }) => nullMetricsFor(id)), nullMetricsFor(ProviderId.Bungee)];
+}
+
+/**
  * Fans out a `HistoryQuery` across every provider that publishes a public
  * history feed, aggregates each response into `ProviderMetrics`, and appends
  * the Bungee placeholder. A provider that throws, rejects, or stalls past
