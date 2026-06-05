@@ -155,25 +155,18 @@ export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAs
     } as DiscoveredAssets;
 }
 
-/** Sources disagree on `symbol` or `decimals`: at least one is mislabeling the token. */
+/**
+ * Sources disagree on `symbol` or `decimals`: at least one is mislabeling the token.
+ *
+ * Symbols are compared with strict equality, matching the downstream same-asset check
+ * in `validateBuildQuoteParams`. Normalizing here (e.g. case-folding) would only desync
+ * the two comparisons, and providers report symbols from standard token lists anyway.
+ */
 function isIdentityConflict(
     existing: DiscoveredAssetInfo,
     incoming: { symbol: string; decimals: number },
 ): boolean {
-    // Compare symbols case- and whitespace-insensitively so honest providers that
-    // report the same token with cosmetic differences aren't flagged as conflicting.
-    return (
-        normalizeSymbol(existing.symbol) !== normalizeSymbol(incoming.symbol) ||
-        existing.decimals !== incoming.decimals
-    );
-}
-
-function normalizeSymbol(symbol: string): string {
-    // Coerce defensively: a malicious discovery source may send a non-string
-    // symbol, and a crash here would take down discovery instead of dropping the token.
-    return String(symbol ?? "")
-        .trim()
-        .toUpperCase();
+    return existing.symbol !== incoming.symbol || existing.decimals !== incoming.decimals;
 }
 
 /** Record a (chainId, canonical address) pair as conflicted. */

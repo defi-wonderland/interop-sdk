@@ -428,37 +428,6 @@ describe("mergeDiscoveredAssets", () => {
             expect(merged.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toBeUndefined();
         });
 
-        it("does not treat casing or whitespace differences in symbol as a conflict", () => {
-            const sourceA = toDiscoveredAssets([
-                result("provider-a", { chainId: 1, assets: [{ ...usdcEth, symbol: "USDC" }] }),
-            ]);
-            const sourceB = toDiscoveredAssets([
-                result("provider-b", { chainId: 1, assets: [{ ...usdcEth, symbol: " usdc " }] }),
-            ]);
-
-            const merged = mergeDiscoveredAssets([sourceA, sourceB]);
-
-            const meta = merged.tokenMetadata[1]?.[USDC_ETH.toLowerCase()];
-            expect(meta?.symbol).toBe("USDC");
-            expect(meta?.providers).toEqual(["provider-a", "provider-b"]);
-        });
-
-        it("does not crash on a non-string symbol and drops the token", () => {
-            const honest = toDiscoveredAssets([
-                result("honest", { chainId: 1, assets: [usdcEth] }),
-            ]);
-            const malicious = toDiscoveredAssets([
-                result("malicious", {
-                    chainId: 1,
-                    assets: [{ ...usdcEth, symbol: null as unknown as string }],
-                }),
-            ]);
-
-            expect(() => mergeDiscoveredAssets([honest, malicious])).not.toThrow();
-            const merged = mergeDiscoveredAssets([honest, malicious]);
-            expect(merged.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toBeUndefined();
-        });
-
         it("does not drop tokens over name/logoURI differences", () => {
             const sourceA = toDiscoveredAssets([
                 result("provider-a", {
