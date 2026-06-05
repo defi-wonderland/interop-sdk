@@ -48,7 +48,10 @@ export async function GET(request: Request) {
       'HEAD_TO_HEAD_API_TIMEOUT',
     );
     return NextResponse.json({ metrics });
-  } catch {
+  } catch (error) {
+    // Surface the cause server-side so timeouts, upstream 5xx, and parse
+    // failures are distinguishable in logs. The client payload stays generic.
+    console.error(`head-to-head-metrics ${fromChainId}->${toChainId} failed:`, error);
     return NextResponse.json({ error: 'upstream fetch failed' }, { status: 502 });
   }
 }
