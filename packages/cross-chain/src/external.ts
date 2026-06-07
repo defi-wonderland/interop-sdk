@@ -77,6 +77,11 @@ export {
     createSpenderValidator,
     SpenderAllowlistSchema,
     type SpenderAllowlist,
+    // Same-asset identity
+    createSameAssetService,
+    SameAssetMapSchema,
+    type SameAssetMap,
+    type SameAssetService,
     // SDK schema types
     type ExecutableQuote,
     type QuoteFeeEntry,

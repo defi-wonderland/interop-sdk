@@ -28,3 +28,4 @@ export * from "./HttpNetworkError.exception.js";
 export * from "./Eip712EnvelopeMismatch.exception.js";
 export * from "./UnverifiedOrderEntries.exception.js";
 export * from "./UntrustedSpender.exception.js";
+export * from "./ConflictingAssetIdentity.exception.js";
