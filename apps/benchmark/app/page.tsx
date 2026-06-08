@@ -105,7 +105,7 @@ async function loadInitialChains(): Promise<NetworkAssets[]> {
 async function loadLeaderboardMetrics(): Promise<ProviderMetrics[]> {
   // Leaderboard reads "ambient" activity on the canonical route. We use the
   // initial route with no token filter so the sample reflects every asset on
-  // that pair. EFI-975 tracks aggregating across multiple top routes.
+  // that pair. A future change could aggregate across multiple top routes.
   try {
     return await withTimeout(
       fetchProviderMetrics({
