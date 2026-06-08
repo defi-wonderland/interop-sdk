@@ -1,39 +1,87 @@
-import { CHAINS, type ChainId } from '~/lib/chains';
-import { cn } from '~/lib/cn';
+'use client';
 
-interface RouteSelectorProps {
-  fromChainId: ChainId;
-  toChainId: ChainId;
-  assetSymbol: string;
-  assetColorClass: string;
-}
+import { useState } from 'react';
+import { Arrow } from '../Arrow';
+import { InlinePicker, type InlinePickerOption } from './InlinePicker';
+import { ASSET_SYMBOLS, ASSETS, type AssetSymbol } from '~/lib/assets';
+import { CHAIN_IDS, CHAINS, type ChainId } from '~/lib/chains';
+import { useHeadToHeadRouteStore } from '~/lib/headToHeadRouteStore';
 
-/**
- * Static route summary pill rendered next to the section header. Matches the
- * shape of the Pencil design's `routeSel`; the caret is decorative — the
- * actual route still lives in the global request bar at the top of the page.
- */
-export function RouteSelector({ fromChainId, toChainId, assetSymbol, assetColorClass }: RouteSelectorProps) {
-  const from = CHAINS[fromChainId];
-  const to = CHAINS[toChainId];
+// Widest chain displayName is 8 characters (arbitrum/ethereum/optimism). A
+// fixed label width keeps both chain chips the same size, so the swap arrow
+// between them doesn't shift when e.g. `base` moves to the front.
+const CHAIN_LABEL_CLASS = 'min-w-[8ch] text-center';
+
+export function RouteSelector() {
+  const route = useHeadToHeadRouteStore((state) => state.route);
+  const setFromChainId = useHeadToHeadRouteStore((state) => state.setFromChainId);
+  const setToChainId = useHeadToHeadRouteStore((state) => state.setToChainId);
+  const setAssetSymbol = useHeadToHeadRouteStore((state) => state.setAssetSymbol);
+  const swapChains = useHeadToHeadRouteStore((state) => state.swapChains);
+  const [swapSpins, setSwapSpins] = useState(0);
+
+  const handleSwap = () => {
+    swapChains();
+    setSwapSpins((count) => count + 1);
+  };
+
+  const from = CHAINS[route.fromChainId];
+  const to = CHAINS[route.toChainId];
+  const asset = ASSETS[route.assetSymbol];
+
+  const assetOptions: InlinePickerOption<AssetSymbol>[] = ASSET_SYMBOLS.map((symbol) => ({
+    value: symbol,
+    label: ASSETS[symbol].displayName,
+    dotClass: ASSETS[symbol].colorClass,
+  }));
+  const fromChainOptions: InlinePickerOption<ChainId>[] = CHAIN_IDS.filter((id) => id !== route.toChainId).map(
+    (id) => ({
+      value: id,
+      label: CHAINS[id].displayName,
+      dotClass: CHAINS[id].colorClass,
+    }),
+  );
+  const toChainOptions: InlinePickerOption<ChainId>[] = CHAIN_IDS.filter((id) => id !== route.fromChainId).map(
+    (id) => ({
+      value: id,
+      label: CHAINS[id].displayName,
+      dotClass: CHAINS[id].colorClass,
+    }),
+  );
 
   return (
     <div className='flex items-center gap-3.5 border border-border bg-surface-elevated px-4 py-2.5'>
       <span className='font-mono text-label uppercase tracking-wider text-text-muted'>ROUTE</span>
       <div className='flex items-center gap-2 font-mono text-mark text-text-primary'>
-        <Dot className={assetColorClass} />
-        <span>{assetSymbol}</span>
+        <InlinePicker
+          ariaLabel='route asset'
+          value={route.assetSymbol}
+          options={assetOptions}
+          onChange={setAssetSymbol}
+          triggerDotClass={asset.colorClass}
+          triggerLabel={asset.displayName}
+        />
         <span className='text-text-muted'>·</span>
-        <Dot className={from.colorClass} />
-        <span>{from.displayName}</span>
-        <span className='text-text-muted'>→</span>
-        <Dot className={to.colorClass} />
-        <span>{to.displayName}</span>
+        <InlinePicker
+          ariaLabel='route from chain'
+          value={route.fromChainId}
+          options={fromChainOptions}
+          onChange={setFromChainId}
+          triggerDotClass={from.colorClass}
+          triggerLabel={from.displayName}
+          triggerLabelClassName={CHAIN_LABEL_CLASS}
+        />
+        <Arrow onSwap={handleSwap} spinKey={swapSpins} ariaLabel='swap chains' />
+        <InlinePicker
+          ariaLabel='route to chain'
+          value={route.toChainId}
+          options={toChainOptions}
+          onChange={setToChainId}
+          triggerDotClass={to.colorClass}
+          triggerLabel={to.displayName}
+          triggerLabelClassName={CHAIN_LABEL_CLASS}
+        />
       </div>
     </div>
   );
-}
-
-function Dot({ className }: { className: string }) {
-  return <span className={cn('inline-block size-1.5 rounded-full', className)} aria-hidden='true' />;
 }
