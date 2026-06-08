@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Arrow } from '../Arrow';
 import { InlinePicker, type InlinePickerOption } from './InlinePicker';
-import { ASSET_SYMBOLS, ASSETS, type AssetSymbol } from '~/lib/assets';
 import { CHAIN_IDS, CHAINS, type ChainId } from '~/lib/chains';
 import { useHeadToHeadRouteStore } from '~/lib/headToHeadRouteStore';
 
@@ -16,7 +15,6 @@ export function RouteSelector() {
   const route = useHeadToHeadRouteStore((state) => state.route);
   const setFromChainId = useHeadToHeadRouteStore((state) => state.setFromChainId);
   const setToChainId = useHeadToHeadRouteStore((state) => state.setToChainId);
-  const setAssetSymbol = useHeadToHeadRouteStore((state) => state.setAssetSymbol);
   const swapChains = useHeadToHeadRouteStore((state) => state.swapChains);
   const [swapSpins, setSwapSpins] = useState(0);
 
@@ -27,13 +25,7 @@ export function RouteSelector() {
 
   const from = CHAINS[route.fromChainId];
   const to = CHAINS[route.toChainId];
-  const asset = ASSETS[route.assetSymbol];
 
-  const assetOptions: InlinePickerOption<AssetSymbol>[] = ASSET_SYMBOLS.map((symbol) => ({
-    value: symbol,
-    label: ASSETS[symbol].displayName,
-    dotClass: ASSETS[symbol].colorClass,
-  }));
   const fromChainOptions: InlinePickerOption<ChainId>[] = CHAIN_IDS.filter((id) => id !== route.toChainId).map(
     (id) => ({
       value: id,
@@ -52,14 +44,6 @@ export function RouteSelector() {
   return (
     <div className='flex items-center gap-2.5 font-mono text-mark text-text-primary'>
       <span className='font-mono text-label uppercase tracking-wider text-text-muted'>ROUTE</span>
-      <InlinePicker
-        ariaLabel='route asset'
-        value={route.assetSymbol}
-        options={assetOptions}
-        onChange={setAssetSymbol}
-        triggerDotClass={asset.colorClass}
-        triggerLabel={asset.displayName}
-      />
       <InlinePicker
         ariaLabel='route from chain'
         value={route.fromChainId}
