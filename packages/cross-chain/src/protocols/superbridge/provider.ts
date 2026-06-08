@@ -20,6 +20,7 @@ import {
     SUPERBRIDGE_API_URL,
     SUPERBRIDGE_DEFAULT_SUBMISSION_MODES,
     SUPERBRIDGE_PROTOCOL_NAME,
+    SUPERBRIDGE_REQUEST_TIMEOUT_MS,
 } from "./constants.js";
 import { SuperbridgeConfigSchema } from "./types.js";
 
@@ -48,7 +49,11 @@ export class SuperbridgeProvider extends CrossChainProvider {
             );
 
             this.apiHeaders = { "x-api-key": parsed.apiKey };
-            this.http = new FetchHttpClient({ baseURL: this.baseUrl, headers: this.apiHeaders });
+            this.http = new FetchHttpClient({
+                baseURL: this.baseUrl,
+                headers: this.apiHeaders,
+                timeout: SUPERBRIDGE_REQUEST_TIMEOUT_MS,
+            });
         } catch (error) {
             if (error instanceof ZodError) {
                 throw new ProviderConfigFailure(

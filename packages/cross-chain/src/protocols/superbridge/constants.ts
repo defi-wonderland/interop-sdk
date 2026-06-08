@@ -6,3 +6,6 @@ export const SUPERBRIDGE_PROTOCOL_NAME = "superbridge";
 
 /** Execution modes used by default when none are configured. */
 export const SUPERBRIDGE_DEFAULT_SUBMISSION_MODES = ["user-transaction"] as const;
+
+/** Default per-request timeout (ms) so HTTP calls cannot hang indefinitely. */
+export const SUPERBRIDGE_REQUEST_TIMEOUT_MS = 30_000;
