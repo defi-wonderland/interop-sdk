@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { BenchmarkTable } from '../BenchmarkTable';
 import { RaceTableRow } from './RaceTableRow';
@@ -9,6 +9,14 @@ import { findBestProvider, orderRaceRows } from './raceRows';
 import type { RaceRow } from './types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 import { useRequestBarStore } from '~/lib/requestBarStore';
+
+// Re-sorts rows to match a known provider order. Used to hold the last settled
+// order steady under the loading skeletons.
+function orderByProviderIds(rows: RaceRow[], providerIds: string[]): RaceRow[] {
+  if (providerIds.length === 0) return rows;
+  const rank = new Map(providerIds.map((id, index) => [id, index]));
+  return [...rows].sort((left, right) => (rank.get(left.provider.id) ?? 0) - (rank.get(right.provider.id) ?? 0));
+}
 
 interface RaceTableProps {
   initialRows: RaceRow[];
@@ -21,7 +29,19 @@ export function RaceTable({ initialRows, initialChains }: RaceTableProps) {
   const reduceMotion = useReducedMotion();
 
   const rawRows = storeRows.length > 0 ? storeRows : initialRows;
-  const rows = useMemo(() => orderRaceRows(rawRows), [rawRows]);
+  const isLoading = rawRows.some((row) => row.status === 'querying');
+  const stableOrder = useRef<string[]>([]);
+
+  // While any row is loading, freeze the order: re-sorting querying rows snaps
+  // them to canonical order and then back to winner-first once they settle,
+  // which reads as the rows jumping around. Hold the last settled order under
+  // the skeletons; only the settled result reorders, once.
+  const rows = useMemo(() => {
+    if (isLoading) return orderByProviderIds(rawRows, stableOrder.current);
+    const ordered = orderRaceRows(rawRows);
+    stableOrder.current = ordered.map((row) => row.provider.id);
+    return ordered;
+  }, [rawRows, isLoading]);
 
   const winnerProviderId = useMemo(() => findBestProvider(rows, 'output'), [rows]);
   const firstProviderId = useMemo(() => findBestProvider(rows, 'latency'), [rows]);
