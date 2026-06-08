@@ -4,7 +4,6 @@ import { HeadToHead } from './HeadToHead';
 import { useHeadToHeadMetrics } from './useHeadToHeadMetrics';
 import type { ChainId } from '~/lib/chains';
 import type { ProviderMetrics } from '~/lib/types/historyMetrics';
-import { cn } from '~/lib/cn';
 
 interface HeadToHeadClientProps {
   initialMetrics: ProviderMetrics[];
@@ -29,14 +28,7 @@ export function HeadToHeadClient({
 
   return (
     <div>
-      <div className={cn('transition-opacity', isLoading ? 'opacity-50' : 'opacity-100')} aria-busy={isLoading}>
-        <HeadToHead metrics={metrics} />
-      </div>
-      {isLoading && (
-        <div className='mt-2 font-mono text-caption text-text-muted' role='status'>
-          updating head-to-head…
-        </div>
-      )}
+      <HeadToHead metrics={metrics} isLoading={isLoading} />
       {error && (
         <div className='mt-2 border border-border bg-surface-elevated px-3 py-2 font-mono text-caption text-text-muted'>
           failed to load — {error}

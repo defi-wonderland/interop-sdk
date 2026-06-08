@@ -6,9 +6,10 @@ import { computeBestAtBadges } from '~/lib/headToHeadBadges';
 
 interface HeadToHeadProps {
   metrics: readonly ProviderMetrics[];
+  isLoading?: boolean;
 }
 
-export function HeadToHead({ metrics }: HeadToHeadProps) {
+export function HeadToHead({ metrics, isLoading = false }: HeadToHeadProps) {
   const badges = computeBestAtBadges(metrics);
 
   return (
@@ -16,12 +17,15 @@ export function HeadToHead({ metrics }: HeadToHeadProps) {
       className='overflow-hidden border border-border bg-surface-elevated'
       role='region'
       aria-label='head-to-head comparison'
+      aria-busy={isLoading}
     >
       <BenchmarkTable
         columns={HEAD_TO_HEAD_COLUMNS}
         rows={metrics}
         getRowKey={(row) => row.providerId}
-        renderRow={(row) => <HeadToHeadRow metrics={row} badges={badges.get(row.providerId) ?? []} />}
+        renderRow={(row) => (
+          <HeadToHeadRow metrics={row} badges={badges.get(row.providerId) ?? []} isLoading={isLoading} />
+        )}
       />
     </div>
   );
