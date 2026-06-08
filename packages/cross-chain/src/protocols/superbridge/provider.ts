@@ -22,6 +22,7 @@ import {
     SUPERBRIDGE_PROTOCOL_NAME,
     SUPERBRIDGE_REQUEST_TIMEOUT_MS,
 } from "./constants.js";
+import { SuperbridgeApiService } from "./services/index.js";
 import { SuperbridgeConfigSchema } from "./types.js";
 
 /**
@@ -33,6 +34,7 @@ export class SuperbridgeProvider extends CrossChainProvider {
     readonly protocolName = SUPERBRIDGE_PROTOCOL_NAME;
     readonly providerId: string;
     private readonly http: HttpClient;
+    private readonly apiService: SuperbridgeApiService;
     private readonly baseUrl: string;
     private readonly apiHeaders: Record<string, string>;
     private readonly submissionModes: ReadonlySet<SubmissionMode>;
@@ -57,6 +59,7 @@ export class SuperbridgeProvider extends CrossChainProvider {
                 headers: this.apiHeaders,
                 timeout: SUPERBRIDGE_REQUEST_TIMEOUT_MS,
             });
+            this.apiService = new SuperbridgeApiService(this.http);
         } catch (error) {
             if (error instanceof ZodError) {
                 throw new ProviderConfigFailure(
