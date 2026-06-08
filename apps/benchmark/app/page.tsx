@@ -39,11 +39,11 @@ export default async function Home() {
 
   // Head-to-head seeds with the same canonical-route metrics on first paint
   // and then refetches client-side on route changes. The two will diverge once
-  // EFI-975 wires multi-route aggregation for the leaderboard. When the
-  // leaderboard fetch failed entirely (thrown timeout or every provider
-  // resolving null-filled), seed null-filled rows so the section keeps its
-  // 4-row structure rather than rendering an empty table; `seedIsFallback`
-  // tells the client hook to refetch on mount in that case.
+  // the leaderboard aggregates across multiple routes. When the leaderboard
+  // fetch fails entirely (thrown timeout or every provider resolving
+  // null-filled), seed null-filled rows so the section keeps its 4-row
+  // structure rather than rendering an empty table; `seedIsFallback` tells the
+  // client hook to refetch on mount in that case.
   const headToHeadSeedIsFallback = allProvidersFailed(leaderboardMetrics);
   const initialHeadToHeadMetrics = headToHeadSeedIsFallback ? emptyProviderMetrics() : leaderboardMetrics;
 
@@ -119,7 +119,7 @@ async function loadInitialChains(): Promise<NetworkAssets[]> {
 async function loadLeaderboardMetrics(): Promise<ProviderMetrics[]> {
   // Leaderboard reads "ambient" activity on the canonical route. We use the
   // initial route with no token filter so the sample reflects every asset on
-  // that pair. EFI-975 tracks aggregating across multiple top routes.
+  // that pair. A future change could aggregate across multiple top routes.
   try {
     return await withTimeout(
       fetchProviderMetrics({
