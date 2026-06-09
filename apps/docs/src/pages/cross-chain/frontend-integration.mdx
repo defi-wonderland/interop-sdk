@@ -102,6 +102,8 @@ function useCrossChainSwap() {
 
 `useWalletClient()` returns `undefined` until the wallet is connected, so guard against that before calling any SDK methods.
 
+Everything on this page runs in the browser, which is the right place for open providers — each user calls the provider APIs from their own IP. Never put a provider `apiKey` in this code, though: anything in the bundle is public. For providers that require a key, point `baseUrl` at a proxy that injects it server-side — see [Open vs key-protected providers](/cross-chain/providers#open-vs-key-protected-providers).
+
 ---
 
 ## ERC-20 approvals

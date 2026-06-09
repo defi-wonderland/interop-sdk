@@ -9,8 +9,8 @@ This document lists all cross-chain providers supported by the Interop SDK.
 
 ## Available Providers
 
-| Provider                                | Status | Description                                               |
-| --------------------------------------- | ------ | --------------------------------------------------------- |
+| Provider                                           | Status | Description                                               |
+| -------------------------------------------------- | ------ | --------------------------------------------------------- |
 | [Across Protocol](/cross-chain/across-provider)    | Active | Cross-chain token transfers using Across bridge           |
 | [Relay Protocol](/cross-chain/relay-provider)      | Active | Cross-chain token transfers using Relay bridge            |
 | [OIF](/cross-chain/oif-provider)                   | Active | Direct integration with OIF-compliant solvers             |
@@ -55,6 +55,47 @@ createCrossChainProvider("bungee", {
 | `bungee`       | (none)            | `tier`, `apiKey`, `affiliateId`, `feeBps`, `feeTakerAddress`, `submissionModes`, `slippage`, `refuel`, `enableOtherProviders`, `enableMultipleRoutes` |
 
 The optional-config protocols (`across`, `relay`, `bungee`, `lifi-intents`) can also be passed to `createAggregator` by name to get defaults — see [Compare quotes from multiple providers](/cross-chain/getting-started#compare-quotes-from-multiple-providers). Use `createCrossChainProvider` when you need custom config.
+
+## Open vs key-protected providers
+
+Providers fall into two groups, and the difference matters once your app runs in a browser:
+
+-   **Open providers** serve traffic without a key — `across`, `lifi-intents`, and `relay` / `bungee` in their default tiers. They are safe to call client-side, and that is also the setup that scales best: each user calls the provider's API from their own IP, so rate limits are spread across your users instead of concentrating on one address.
+-   **Key-protected providers** need an API key on every request — `bungee` on the Dedicated tier, or any provider whose API rejects unauthenticated calls. A key shipped in browser code is public: anyone can read it from the bundle or the network tab.
+
+To use a key-protected provider from a browser, put a small proxy in front of its API and point `baseUrl` at the proxy. The proxy injects the key server-side (typically an `x-api-key` header), and the client config omits `apiKey` entirely:
+
+```typescript
+import { createCrossChainProvider, PROTOCOLS } from "@wonderland/interop-cross-chain";
+
+// Browser: no apiKey — the proxy attaches it server-side
+const bungeeProvider = createCrossChainProvider(PROTOCOLS.BUNGEE, {
+    baseUrl: "https://bungee-proxy.example.com",
+});
+```
+
+Moving the whole SDK to your backend also keeps keys safe, but it is the wrong default once open providers are in the mix: every user's quote requests then leave from your server's IP, and the open providers' rate limits apply to that single IP. Mix the two origins instead — open providers straight from the client, key-protected ones through your proxy:
+
+```typescript
+import {
+    createAggregator,
+    createCrossChainProvider,
+    PROTOCOLS,
+} from "@wonderland/interop-cross-chain";
+
+const aggregator = createAggregator({
+    providers: [
+        // Open: called directly from the browser, each user on their own IP
+        createCrossChainProvider(PROTOCOLS.ACROSS),
+        // Key-protected: routed through your proxy, which holds the key
+        createCrossChainProvider(PROTOCOLS.BUNGEE, {
+            baseUrl: "https://bungee-proxy.example.com",
+        }),
+    ],
+});
+```
+
+In backend-only environments (scripts, bots, server-rendered pages) there is no exposure problem — pass `apiKey` directly.
 
 ## `isTestnet` semantics
 
