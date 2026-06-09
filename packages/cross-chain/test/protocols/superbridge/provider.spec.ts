@@ -196,6 +196,23 @@ describe("SuperbridgeProvider", () => {
         });
     });
 
+    describe("submitOrder()", () => {
+        it("submits a gasless signature and returns the tx hash", async () => {
+            const gaslessProvider = new SuperbridgeProvider({
+                submissionModes: ["gasless"],
+                apiKey: API_KEY,
+            });
+            mockPost.mockResolvedValueOnce(httpOk({ results: [makeGaslessRouteResult()] }));
+            const [quote] = await gaslessProvider.getQuotes(makeQuoteRequest());
+
+            mockPost.mockResolvedValueOnce(httpOk({ txHash: FILL_TX_HASH, status: "submitted" }));
+            const response = await gaslessProvider.submitOrder(quote!, "0xsignature");
+
+            expect(response.orderId).toBe(FILL_TX_HASH);
+            expect(response.status).toBe("submitted");
+        });
+    });
+
     describe("getTrackingConfig()", () => {
         it("builds activity-based tracking and index pre-tracker", () => {
             const config = provider.getTrackingConfig();
