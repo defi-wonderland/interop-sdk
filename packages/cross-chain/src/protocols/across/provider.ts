@@ -883,6 +883,6 @@ export class AcrossProvider extends CrossChainProvider {
         if (response.crossSwapType === "bridgeableToAny") return true;
         if (response.crossSwapType === "anyToAny") return true;
         if (response.crossSwapType === "bridgeableToBridgeableIndirect") return true;
-        return response.steps?.destinationSwap !== undefined;
+        return response.steps?.destinationSwap != null;
     }
 }

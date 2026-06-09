@@ -307,6 +307,40 @@ describe("AcrossProvider", () => {
             expect(quote!.fallbackToken).toBeUndefined();
         });
 
+        it("parses swap steps serialized as null and keeps fallbackToken undefined", async () => {
+            vi.mocked(httpRequest).mockResolvedValueOnce({
+                status: 200,
+                data: getMockedAcrossApiResponse({
+                    crossSwapType: "bridgeableToBridgeable",
+                    approvalTxns: null,
+                    steps: {
+                        originSwap: null,
+                        bridge: {
+                            inputAmount: "1000000000000000000",
+                            outputAmount: "999000000000000000",
+                            tokenIn: {
+                                address: TESTNET_TOKENS.WETH_SEPOLIA,
+                                chainId: CHAIN_IDS.SEPOLIA,
+                                decimals: 18,
+                                symbol: "WETH",
+                            },
+                            tokenOut: {
+                                address: TESTNET_TOKENS.WETH_BASE_SEPOLIA,
+                                chainId: CHAIN_IDS.BASE_SEPOLIA,
+                                decimals: 18,
+                                symbol: "WETH",
+                            },
+                        },
+                        destinationSwap: null,
+                    },
+                }),
+                headers: new Headers(),
+            });
+
+            const [quote] = await provider.getQuotes(quoteRequest);
+            expect(quote!.fallbackToken).toBeUndefined();
+        });
+
         it("returns the bridge output token when the route ends in a destination swap", async () => {
             vi.mocked(httpRequest).mockResolvedValueOnce({
                 status: 200,
