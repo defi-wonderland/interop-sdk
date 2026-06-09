@@ -7,7 +7,7 @@ const NATIVE = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 /**
  * Consumer-owned same-asset pairings for the demo's mainnet chains. Discovery keeps
  * these addresses through cross-provider symbol disagreements (e.g. USDT vs USDT0)
- * and lists them under the DemoToken id.
+ * instead of dropping them, and buildQuote resolves identity through them.
  */
 export const SAME_ASSET_MAP: SameAssetMap = {
   [DemoToken.ETH]: {

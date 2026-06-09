@@ -2,8 +2,6 @@
 "@wonderland/interop-cross-chain": minor
 ---
 
-Add an opt-in same-asset conflict guard to asset discovery
+Make discovery's conflict guard same-asset aware
 
-Without a `sameAssetService` configured, discovery keeps its first-write-wins merging — providers naming the same token differently (e.g. `USDT` vs `USDT0`) never makes tokens disappear. Empty symbols now count as missing data and are backfilled from other sources.
-
-When a `sameAssetService` is configured, the aggregator's merged discovery drops tokens whose sources disagree on `symbol`/`decimals` and logs a warning — except addresses the service resolves, which are kept and exposed under the consumer's asset id.
+Discovery still drops tokens whose sources disagree on `symbol`/`decimals`, fail-closed, with two refinements. Empty symbols now count as missing data and are backfilled from other sources instead of conflicting. And addresses resolved by a configured `sameAssetService` survive symbol disagreements — the consumer's map already attests their identity, so providers labeling the same token differently (e.g. `USDT` vs `USDT0`) no longer makes it disappear. Decimals disagreements always drop the token.

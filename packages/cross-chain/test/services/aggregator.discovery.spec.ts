@@ -190,7 +190,7 @@ describe("Aggregator - Asset Discovery", () => {
             ]);
         });
 
-        it("resolves cross-provider symbol conflicts through the configured same-asset service", async () => {
+        it("keeps a mapped token through cross-provider symbol conflicts via the same-asset service", async () => {
             const across = createMockProvider("across", {
                 type: "static",
                 config: {
@@ -225,11 +225,11 @@ describe("Aggregator - Asset Discovery", () => {
             const result = await executor.discoverAssets();
 
             const meta = result.tokenMetadata[8453]![USDT_BASE.toLowerCase()]!;
-            expect(meta.symbol).toBe("USDT");
+            expect(meta.symbol).toBe("USDT0");
             expect(meta.providers).toEqual(["across", "relay"]);
         });
 
-        it("keeps first-reported metadata on symbol conflicts when no same-asset service is configured", async () => {
+        it("drops tokens on cross-provider symbol conflicts when no same-asset service is configured", async () => {
             const across = createMockProvider("across", {
                 type: "static",
                 config: {
@@ -255,12 +255,13 @@ describe("Aggregator - Asset Discovery", () => {
             });
 
             const executor = createAggregator({ providers: [across, relay] });
+            vi.spyOn(console, "warn").mockImplementation(() => {});
 
             const result = await executor.discoverAssets();
 
-            const meta = result.tokenMetadata[8453]![USDT_BASE.toLowerCase()]!;
-            expect(meta.symbol).toBe("USDT0");
-            expect(meta.providers).toEqual(["across", "relay"]);
+            expect(result.tokenMetadata[8453]?.[USDT_BASE.toLowerCase()]).toBeUndefined();
+            expect(result.tokensByChain[8453]).toBeUndefined();
+            vi.restoreAllMocks();
         });
 
         it("should deduplicate same token from same provider", async () => {

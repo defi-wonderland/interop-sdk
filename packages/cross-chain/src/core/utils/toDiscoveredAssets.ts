@@ -1,7 +1,6 @@
 import type { Address } from "viem";
 
 import type { SameAssetService } from "../interfaces/sameAsset.interface.js";
-import type { AssetId } from "../schemas/sameAsset.js";
 import type {
     AssetDiscoveryResult,
     DiscoveredAssetInfo,
@@ -22,10 +21,10 @@ import { isNativeAddress, toCanonicalNativeAddress } from "./token.js";
  * reported the asset.
  *
  * Metadata merging is first-write-wins; empty symbols count as missing data
- * and are backfilled from later sources. When a `sameAsset` service is
- * provided, tokens with conflicting `symbol`/`decimals` are dropped instead
- * (see {@link dropConflictedTokens}), except addresses the service resolves,
- * which are kept and exposed under the consumer's asset id.
+ * and are backfilled from later sources. Tokens with conflicting
+ * `symbol`/`decimals` are dropped (see {@link dropConflictedTokens}), except
+ * symbol disagreements at addresses the optional `sameAsset` service
+ * resolves: the consumer's map already attests their identity, so they are kept.
  *
  * @internal Used by BaseAssetDiscoveryService - not exported publicly
  * @param results - Discovery results from one or more providers
@@ -54,15 +53,15 @@ export function toDiscoveredAssets(
                 const publicAddr = isNativeAddress(asset.address, "eip155")
                     ? canonicalAddr
                     : asset.address;
-                const assetId = sameAsset?.resolve(chainId, canonicalAddr as Address);
-
                 if (!tokensByChain[chainId].includes(canonicalAddr)) {
                     tokensByChain[chainId].push(canonicalAddr);
                 }
 
                 const existing = tokenMetadata[chainId][canonicalAddr];
                 if (existing) {
-                    if (sameAsset && isIdentityConflict(existing, asset, assetId)) {
+                    const isMappedAsset =
+                        sameAsset?.resolve(chainId, canonicalAddr as Address) !== undefined;
+                    if (isIdentityConflict(existing, asset, isMappedAsset)) {
                         markConflicted(conflicted, chainId, canonicalAddr);
                         continue;
                     }
@@ -75,7 +74,7 @@ export function toDiscoveredAssets(
                 } else {
                     tokenMetadata[chainId][canonicalAddr] = {
                         address: publicAddr,
-                        symbol: assetId ?? asset.symbol,
+                        symbol: asset.symbol,
                         decimals: asset.decimals,
                         name: asset.name,
                         logoURI: asset.logoURI,
@@ -103,10 +102,11 @@ export function toDiscoveredAssets(
  * wins for name/logoURI, union for providers).
  *
  * Metadata merging is first-write-wins; empty symbols count as missing data
- * and are backfilled from later sources. When a `sameAsset` service is
- * provided, tokens with conflicting `symbol`/`decimals` across sources are
- * dropped instead (see {@link dropConflictedTokens}), except addresses the
- * service resolves, which are kept and exposed under the consumer's asset id.
+ * and are backfilled from later sources. Tokens with conflicting
+ * `symbol`/`decimals` across sources are dropped (see
+ * {@link dropConflictedTokens}), except symbol disagreements at addresses the
+ * optional `sameAsset` service resolves: the consumer's map already attests
+ * their identity, so they are kept.
  *
  * @internal Used by Aggregator - not exported publicly
  * @param sources - Array of DiscoveredAssets to merge
@@ -137,10 +137,11 @@ export function mergeDiscoveredAssets(
             tokenMetadata[chainId] ??= {};
             for (const [addr, meta] of Object.entries(chainMeta)) {
                 const canonical = toCanonicalNativeAddress(addr, "eip155");
-                const assetId = sameAsset?.resolve(chainId, canonical as Address);
                 const existing = tokenMetadata[chainId][canonical];
                 if (existing) {
-                    if (sameAsset && isIdentityConflict(existing, meta, assetId)) {
+                    const isMappedAsset =
+                        sameAsset?.resolve(chainId, canonical as Address) !== undefined;
+                    if (isIdentityConflict(existing, meta, isMappedAsset)) {
                         markConflicted(conflicted, chainId, canonical);
                         continue;
                     }
@@ -159,7 +160,6 @@ export function mergeDiscoveredAssets(
                     tokenMetadata[chainId][canonical] = {
                         ...meta,
                         address: publicAddr,
-                        symbol: assetId ?? meta.symbol,
                         providers: [...meta.providers],
                     };
                 }
@@ -178,19 +178,18 @@ export function mergeDiscoveredAssets(
 /**
  * Sources disagree on `symbol` or `decimals`: at least one is mislabeling the token.
  *
- * Only evaluated when the consumer configures a same-asset service — without one,
- * merging stays first-write-wins. Decimals disagreements always conflict: the map
- * attests identity, not decimals. Symbol disagreements are tolerated when the
- * address resolves to a consumer asset id, or when either side is empty (missing
- * data, backfilled by the caller).
+ * Decimals disagreements always conflict: the same-asset map attests identity,
+ * not decimals. Symbol disagreements are tolerated when either side is empty
+ * (missing data, backfilled by the caller) or when the address is mapped in the
+ * consumer's same-asset service — identity then comes from the map, not the symbol.
  */
 function isIdentityConflict(
     existing: DiscoveredAssetInfo,
     incoming: { symbol: string; decimals: number },
-    assetId?: AssetId,
+    isMappedAsset: boolean,
 ): boolean {
     if (existing.decimals !== incoming.decimals) return true;
-    if (assetId !== undefined || !existing.symbol || !incoming.symbol) return false;
+    if (isMappedAsset || !existing.symbol || !incoming.symbol) return false;
     return existing.symbol !== incoming.symbol;
 }
 

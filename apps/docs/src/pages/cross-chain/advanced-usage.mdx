@@ -245,7 +245,7 @@ For the full API reference see [Spender Validation](./api#spender-validation).
 
 `buildQuote` only builds same-asset transfers — the input and output must be the same asset on different chains. By default it infers this from discovery metadata: the two legs must share a symbol and decimals and be listed by a common provider. Cross-token swaps go through `getQuotes` instead, and `allowDangerousParameters: true` skips the check.
 
-That heuristic leans on third-party token metadata and inherits the first-write-wins merge described in [Discovery conflicts](#discovery-conflicts): when providers disagree on a token's `symbol` or `decimals`, the check's outcome depends on which source answered first. If you'd rather decide asset identity yourself, pass a `sameAssetService` to `createAggregator`, built from a map you own — `assetId → chainId → address`:
+That heuristic leans on third-party token metadata, and tokens whose providers disagree on `symbol` or `decimals` are dropped from discovery entirely (see [Discovery conflicts](#discovery-conflicts)), making the check fail closed on disputed tokens. If you'd rather decide asset identity yourself, pass a `sameAssetService` to `createAggregator`, built from a map you own — `assetId → chainId → address`:
 
 ```typescript
 import {
@@ -276,9 +276,9 @@ When set, `buildQuote` resolves both legs through the service and only proceeds 
 
 ### Discovery conflicts
 
-Providers sometimes disagree about a token's metadata: one lists Base USDT as `USDT0` while another lists it as `USDT`, and some report an empty symbol. Without a `sameAssetService`, `discoverAssets` merges metadata first-write-wins and never drops a token. Empty symbols count as missing data and are filled in from whichever source has one, like `name` and `logoURI`.
+Providers sometimes disagree about a token's metadata: one lists Base USDT as `USDT0` while another lists it as `USDT`, and some report an empty symbol. Empty symbols count as missing data and are filled in from whichever source has one, like `name` and `logoURI`. Real disagreements are different — there is no way to tell which source is right, so when sources disagree on a token's `symbol` or `decimals`, the token is dropped from the result and a warning is logged.
 
-Configuring a `sameAssetService` makes the merge strict. When sources disagree on a token's `symbol` or `decimals`, the token is dropped from the result and a warning is logged, except for addresses the service resolves: those survive symbol disagreements and are listed under your asset id, so Base USDT shows up as `USDT` no matter which provider answered first. A decimals disagreement drops the token even when the address is mapped; the map vouches for identity, not decimals.
+A `sameAssetService` relaxes this for the addresses you map. The map already attests their identity (and `buildQuote` resolves it through the service, not the symbol), so a symbol disagreement at a mapped address keeps the token instead of dropping it — Base USDT stays discoverable no matter how each provider labels it, under the first symbol reported. A decimals disagreement drops the token even when the address is mapped; the map vouches for identity, not decimals.
 
 ### Bringing your own resolver
 
