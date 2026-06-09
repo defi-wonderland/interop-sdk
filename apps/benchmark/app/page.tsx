@@ -6,12 +6,11 @@ import { RequestBar } from './components/RequestBar';
 import { SectionFrame } from './components/SectionFrame';
 import { SectionHeader } from './components/SectionHeader';
 import { TopNav } from './components/TopNav';
-import { HeadToHead } from './components/headtohead/HeadToHead';
+import { HeadToHeadClient } from './components/headtohead/HeadToHeadClient';
 import { RouteSelector } from './components/headtohead/RouteSelector';
 import { Leaderboard } from './components/leaderboard/Leaderboard';
 import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
 import { withTimeout } from './lib/helpers';
-import { MOCK_HEAD_TO_HEAD_METRICS } from './lib/mocks/headToHeadMock';
 import {
   INITIAL_AMOUNT,
   INITIAL_ASSET_SYMBOL,
@@ -19,7 +18,7 @@ import {
   INITIAL_TO_CHAIN_ID,
 } from './lib/requestBarDefaults';
 import { chainService, quotesService } from './lib/services';
-import { fetchProviderMetrics } from './lib/services/providerMetrics';
+import { allProvidersFailed, emptyProviderMetrics, fetchProviderMetrics } from './lib/services/providerMetrics';
 import type { RaceRow } from './components/race-table/types';
 import type { ProviderMetrics } from './lib/types/historyMetrics';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
@@ -37,6 +36,16 @@ export default async function Home() {
     loadInitialRace(initialChains),
     loadLeaderboardMetrics(),
   ]);
+
+  // Head-to-head seeds with the same canonical-route metrics on first paint
+  // and then refetches client-side on route changes. The two will diverge once
+  // the leaderboard aggregates across multiple routes. When the leaderboard
+  // fetch fails entirely (thrown timeout or every provider resolving
+  // null-filled), seed null-filled rows so the section keeps its 4-row
+  // structure rather than rendering an empty table; `seedIsFallback` tells the
+  // client hook to refetch on mount in that case.
+  const headToHeadSeedIsFallback = allProvidersFailed(leaderboardMetrics);
+  const initialHeadToHeadMetrics = headToHeadSeedIsFallback ? emptyProviderMetrics() : leaderboardMetrics;
 
   return (
     <div className='min-h-screen cursor-default bg-background'>
@@ -83,7 +92,12 @@ export default async function Home() {
             title='compare providers on a specific chain pair'
             rightSlot={<RouteSelector />}
           />
-          <HeadToHead metrics={MOCK_HEAD_TO_HEAD_METRICS} />
+          <HeadToHeadClient
+            initialMetrics={initialHeadToHeadMetrics}
+            initialFromChainId={INITIAL_FROM_CHAIN_ID}
+            initialToChainId={INITIAL_TO_CHAIN_ID}
+            seedIsFallback={headToHeadSeedIsFallback}
+          />
         </SectionFrame>
       </main>
 
@@ -105,7 +119,7 @@ async function loadInitialChains(): Promise<NetworkAssets[]> {
 async function loadLeaderboardMetrics(): Promise<ProviderMetrics[]> {
   // Leaderboard reads "ambient" activity on the canonical route. We use the
   // initial route with no token filter so the sample reflects every asset on
-  // that pair. EFI-975 tracks aggregating across multiple top routes.
+  // that pair. A future change could aggregate across multiple top routes.
   try {
     return await withTimeout(
       fetchProviderMetrics({

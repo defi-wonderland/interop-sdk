@@ -37,6 +37,24 @@ const PROVIDERS_WITH_FEED: ReadonlyArray<ProviderEntry> = [
 ];
 
 /**
+ * True when no provider returned usable data: every row is null-filled (or
+ * the array is empty). A row with `fillCount: 0` is real data (a provider
+ * that answered with zero fills) and does not count as failed.
+ */
+export function allProvidersFailed(metrics: readonly ProviderMetrics[]): boolean {
+  return metrics.every((row) => row.fillCount === null);
+}
+
+/**
+ * Null-filled rows for every provider, in the same order `fetchProviderMetrics`
+ * returns them. Callers use this to keep the table structure when the whole
+ * fetch fails, instead of rendering zero rows.
+ */
+export function emptyProviderMetrics(): ProviderMetrics[] {
+  return [...PROVIDERS_WITH_FEED.map(({ id }) => nullMetricsFor(id)), nullMetricsFor(ProviderId.Bungee)];
+}
+
+/**
  * Fans out a `HistoryQuery` across every provider that publishes a public
  * history feed, aggregates each response into `ProviderMetrics`, and appends
  * the Bungee placeholder. A provider that throws, rejects, or stalls past
