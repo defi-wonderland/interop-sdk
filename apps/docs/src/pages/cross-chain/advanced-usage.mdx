@@ -274,6 +274,12 @@ const aggregator = createAggregator({
 
 When set, `buildQuote` resolves both legs through the service and only proceeds when they map to the same `assetId`. It is fail-closed: if either address is unknown, the transfer is rejected with `DifferentAssetNotAllowed`. Addresses are matched without regard to checksum casing, and the native placeholders `0x0000…0000` and `0xEeee…EEeE` collapse to a single entry.
 
+### Discovery conflicts
+
+Providers sometimes disagree about a token's metadata: one lists Base USDT as `USDT0` while another lists it as `USDT`, and some report an empty symbol. Without a `sameAssetService`, `discoverAssets` merges metadata first-write-wins and never drops a token. Empty symbols count as missing data and are filled in from whichever source has one, like `name` and `logoURI`.
+
+Configuring a `sameAssetService` makes the merge strict. When sources disagree on a token's `symbol` or `decimals`, the token is dropped from the result and a warning is logged, except for addresses the service resolves: those survive symbol disagreements and are listed under your asset id, so Base USDT shows up as `USDT` no matter which provider answered first. A decimals disagreement drops the token even when the address is mapped; the map vouches for identity, not decimals.
+
 ### Bringing your own resolver
 
 The SDK ships no token list and maintains none. You own the map, or implement the `SameAssetService` interface to resolve against your own registry:
