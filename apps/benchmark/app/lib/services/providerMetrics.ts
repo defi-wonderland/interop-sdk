@@ -3,11 +3,40 @@ import { aggregateProviderSamples } from '../historyAggregation';
 import { ProviderId } from '../providers';
 import { acrossHistoryService, lifiIntentsHistoryService, relayHistoryService } from '.';
 import type { HistoryService } from '../interfaces/historyService.interface';
-import type { HistoryQuery, ProviderMetrics } from '../types/historyMetrics';
+import type { HistoryQuery, HistorySample, ProviderMetrics } from '../types/historyMetrics';
 
 // Per-provider deadline so one hung upstream cannot block the rest. The page
 // keeps a slightly larger overall timeout as the outer guardrail.
 const PROVIDER_TIMEOUT_MS = 10_000;
+
+// Cap how many routes a single provider fetches at once. The leaderboard fans
+// every network route across each provider; without a cap that hits one host
+// with all of them concurrently (each paginating, with GET retries), inviting
+// rate limits. Routes are processed in waves of this size instead.
+const ROUTE_CONCURRENCY = 6;
+
+// Runs `task` over `items` with at most `limit` in flight at a time.
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  task: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const runWorker = async (): Promise<void> => {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await task(items[index]);
+    }
+  };
+  const workers = Array.from({ length: Math.min(limit, items.length) }, runWorker);
+  await Promise.all(workers);
+  return results;
+}
+
+function routeLabel(query: HistoryQuery): string {
+  return `${query.originChainId}->${query.destinationChainId}`;
+}
 
 function nullMetricsFor(providerId: ProviderId): ProviderMetrics {
   // Always return a fresh object so downstream mutation (e.g. sort, splice)
@@ -69,14 +98,33 @@ export function emptyProviderMetrics(): ProviderMetrics[] {
 export async function fetchAggregatedProviderMetrics(queries: readonly HistoryQuery[]): Promise<ProviderMetrics[]> {
   const metrics = await Promise.all(
     PROVIDERS_WITH_FEED.map(async ({ id, service }) => {
-      const settled = await Promise.allSettled(
-        queries.map((query) => withTimeout(service.getHistory(query), PROVIDER_TIMEOUT_MS, `${id}_HISTORY_TIMEOUT`)),
+      const outcomes = await mapWithConcurrency(queries, ROUTE_CONCURRENCY, (query) =>
+        withTimeout(service.getHistory(query), PROVIDER_TIMEOUT_MS, `${id} ${routeLabel(query)} HISTORY_TIMEOUT`).then(
+          (result) => ({ ok: true as const, samples: result.samples }),
+          () => ({ ok: false as const, query }),
+        ),
       );
-      const fulfilled = settled.filter((outcome) => outcome.status === 'fulfilled');
+
+      const samples: HistorySample[] = [];
+      const failedRoutes: string[] = [];
+      let okCount = 0;
+      for (const outcome of outcomes) {
+        if (outcome.ok) {
+          okCount += 1;
+          samples.push(...outcome.samples);
+        } else {
+          failedRoutes.push(routeLabel(outcome.query));
+        }
+      }
+      if (failedRoutes.length > 0) {
+        // Name the dropped routes so a partial aggregate is debuggable instead
+        // of silently based on a subset.
+        console.warn(`${id}: ${failedRoutes.length}/${queries.length} routes failed: ${failedRoutes.join(', ')}`);
+      }
       // Every route failed for this provider: surface a null row rather than a
-      // fake zero-activity one.
-      if (fulfilled.length === 0) return nullMetricsFor(id);
-      const samples = fulfilled.flatMap((outcome) => outcome.value.samples);
+      // fake zero-activity one. A provider that answered with zero fills keeps
+      // its real (zero) row.
+      if (okCount === 0) return nullMetricsFor(id);
       return aggregateProviderSamples(id, samples);
     }),
   );

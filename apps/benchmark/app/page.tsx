@@ -34,7 +34,10 @@ export const revalidate = 3600;
 const META_LABEL_CLASS = 'font-mono text-label text-text-muted';
 const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-chain';
 const INITIAL_RACE_TIMEOUT_MS = 20_000;
-const LEADERBOARD_TIMEOUT_MS = 25_000;
+// Generous because the leaderboard pools every network route in waves; ISR
+// regenerates it hourly in the background, so this bounds the regen, not a
+// user's wait.
+const LEADERBOARD_TIMEOUT_MS = 40_000;
 const HEAD_TO_HEAD_SEED_TIMEOUT_MS = 15_000;
 
 // Every directed route between the supported chains. The leaderboard pools all
