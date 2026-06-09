@@ -48,7 +48,10 @@ export class SuperbridgeProvider extends CrossChainProvider {
                 parsed.submissionModes ?? SUPERBRIDGE_DEFAULT_SUBMISSION_MODES,
             );
 
-            this.apiHeaders = { "x-api-key": parsed.apiKey };
+            this.apiHeaders = {};
+            if (parsed.apiKey) {
+                this.apiHeaders["x-api-key"] = parsed.apiKey;
+            }
             this.http = new FetchHttpClient({
                 baseURL: this.baseUrl,
                 headers: this.apiHeaders,
