@@ -1,19 +1,19 @@
-import { withTimeout } from '../helpers';
 import { aggregateProviderSamples } from '../historyAggregation';
 import { ProviderId } from '../providers';
 import { acrossHistoryService, lifiIntentsHistoryService, relayHistoryService } from '.';
 import type { HistoryService } from '../interfaces/historyService.interface';
 import type { HistoryQuery, HistorySample, ProviderMetrics } from '../types/historyMetrics';
 
-// Per-provider deadline so one hung upstream cannot block the rest. The page
-// keeps a slightly larger overall timeout as the outer guardrail.
-const PROVIDER_TIMEOUT_MS = 10_000;
+// Each history service's `FetchHttpClient` bounds every request with an
+// AbortController-backed timeout, so a hung route is cancelled at the transport
+// level, not just abandoned. That keeps the concurrency cap below honest: a
+// worker frees its slot only once the request truly settles.
 
 // Cap how many routes a single provider fetches at once. The leaderboard fans
 // every network route across each provider; without a cap that hits one host
 // with all of them concurrently (each paginating, with GET retries), inviting
 // rate limits. Routes are processed in waves of this size instead.
-const ROUTE_CONCURRENCY = 6;
+const ROUTE_CONCURRENCY = 3;
 
 // Runs `task` over `items` with at most `limit` in flight at a time.
 async function mapWithConcurrency<T, R>(
@@ -36,6 +36,10 @@ async function mapWithConcurrency<T, R>(
 
 function routeLabel(query: HistoryQuery): string {
   return `${query.originChainId}->${query.destinationChainId}`;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function nullMetricsFor(providerId: ProviderId): ProviderMetrics {
@@ -88,7 +92,7 @@ export function emptyProviderMetrics(): ProviderMetrics[] {
  * each provider's raw samples across all the queries, and aggregates once into
  * `ProviderMetrics`. Percentiles come from the combined sample pool, not an
  * average of per-query percentiles. Appends the Bungee placeholder. A query
- * that throws, rejects, or stalls past `PROVIDER_TIMEOUT_MS` is dropped; a
+ * that throws, rejects, or times out (cancelled by the client) is dropped; a
  * provider whose every query failed gets a null-filled row so the UI keeps
  * rendering the rest.
  *
@@ -99,27 +103,27 @@ export async function fetchAggregatedProviderMetrics(queries: readonly HistoryQu
   const metrics = await Promise.all(
     PROVIDERS_WITH_FEED.map(async ({ id, service }) => {
       const outcomes = await mapWithConcurrency(queries, ROUTE_CONCURRENCY, (query) =>
-        withTimeout(service.getHistory(query), PROVIDER_TIMEOUT_MS, `${id} ${routeLabel(query)} HISTORY_TIMEOUT`).then(
+        service.getHistory(query).then(
           (result) => ({ ok: true as const, samples: result.samples }),
-          () => ({ ok: false as const, query }),
+          (error: unknown) => ({ ok: false as const, query, error }),
         ),
       );
 
       const samples: HistorySample[] = [];
-      const failedRoutes: string[] = [];
+      const failures: string[] = [];
       let okCount = 0;
       for (const outcome of outcomes) {
         if (outcome.ok) {
           okCount += 1;
           samples.push(...outcome.samples);
         } else {
-          failedRoutes.push(routeLabel(outcome.query));
+          failures.push(`${routeLabel(outcome.query)} (${errorMessage(outcome.error)})`);
         }
       }
-      if (failedRoutes.length > 0) {
-        // Name the dropped routes so a partial aggregate is debuggable instead
-        // of silently based on a subset.
-        console.warn(`${id}: ${failedRoutes.length}/${queries.length} routes failed: ${failedRoutes.join(', ')}`);
+      if (failures.length > 0) {
+        // Name the dropped routes and their cause so a partial aggregate is
+        // debuggable instead of silently based on a subset.
+        console.warn(`${id}: ${failures.length}/${queries.length} routes failed: ${failures.join(', ')}`);
       }
       // Every route failed for this provider: surface a null row rather than a
       // fake zero-activity one. A provider that answered with zero fills keeps
