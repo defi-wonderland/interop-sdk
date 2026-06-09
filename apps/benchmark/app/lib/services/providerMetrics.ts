@@ -55,29 +55,39 @@ export function emptyProviderMetrics(): ProviderMetrics[] {
 }
 
 /**
- * Fans out a `HistoryQuery` across every provider that publishes a public
- * history feed, aggregates each response into `ProviderMetrics`, and appends
- * the Bungee placeholder. A provider that throws, rejects, or stalls past
- * `PROVIDER_TIMEOUT_MS` returns a null-filled row so the UI keeps rendering
- * the rest.
+ * Fans every provider's history feed across one or more `HistoryQuery`s, pools
+ * each provider's raw samples across all the queries, and aggregates once into
+ * `ProviderMetrics`. Percentiles come from the combined sample pool, not an
+ * average of per-query percentiles. Appends the Bungee placeholder. A query
+ * that throws, rejects, or stalls past `PROVIDER_TIMEOUT_MS` is dropped; a
+ * provider whose every query failed gets a null-filled row so the UI keeps
+ * rendering the rest.
  *
- * Both the leaderboard (ambient 24h) and head-to-head (per-route) consume the
- * same shape; the caller decides the query.
+ * The leaderboard passes every network route for an aggregate view;
+ * head-to-head passes a single route.
  */
-export async function fetchProviderMetrics(query: HistoryQuery): Promise<ProviderMetrics[]> {
-  const settled = await Promise.allSettled(
+export async function fetchAggregatedProviderMetrics(queries: readonly HistoryQuery[]): Promise<ProviderMetrics[]> {
+  const metrics = await Promise.all(
     PROVIDERS_WITH_FEED.map(async ({ id, service }) => {
-      const result = await withTimeout(service.getHistory(query), PROVIDER_TIMEOUT_MS, `${id}_HISTORY_TIMEOUT`);
-      return aggregateProviderSamples(id, result.samples);
+      const settled = await Promise.allSettled(
+        queries.map((query) => withTimeout(service.getHistory(query), PROVIDER_TIMEOUT_MS, `${id}_HISTORY_TIMEOUT`)),
+      );
+      const fulfilled = settled.filter((outcome) => outcome.status === 'fulfilled');
+      // Every route failed for this provider: surface a null row rather than a
+      // fake zero-activity one.
+      if (fulfilled.length === 0) return nullMetricsFor(id);
+      const samples = fulfilled.flatMap((outcome) => outcome.value.samples);
+      return aggregateProviderSamples(id, samples);
     }),
   );
 
-  const metrics: ProviderMetrics[] = settled.map((outcome, index) => {
-    const { id } = PROVIDERS_WITH_FEED[index];
-    if (outcome.status === 'fulfilled') return outcome.value;
-    return nullMetricsFor(id);
-  });
-
   metrics.push(nullMetricsFor(ProviderId.Bungee));
   return metrics;
+}
+
+/**
+ * Single-route convenience wrapper, used by head-to-head.
+ */
+export function fetchProviderMetrics(query: HistoryQuery): Promise<ProviderMetrics[]> {
+  return fetchAggregatedProviderMetrics([query]);
 }
