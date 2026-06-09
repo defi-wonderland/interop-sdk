@@ -3,6 +3,7 @@ import {
   createCrossChainProvider,
   createAggregator,
   createApprovalService,
+  createSameAssetService,
   InfiniteAmountStrategy,
   OrderTrackerFactory,
   LIFI_INTENTS_ORDER_SERVER_URL,
@@ -13,8 +14,11 @@ import {
   type SubmissionMode,
 } from '@wonderland/interop-cross-chain';
 import { MAINNET_RPC_URLS, TESTNET_RPC_URLS } from '../constants/chains';
+import { SAME_ASSET_MAP } from '../constants/sameAssets';
 
 const OIF_API_URL = 'https://oif-api.openzeppelin.com/api';
+
+const MAINNET_SAME_ASSET_SERVICE = createSameAssetService(SAME_ASSET_MAP);
 
 interface ProviderConfig {
   providerId: string;
@@ -131,6 +135,7 @@ function buildExecutor(isTestnet: boolean, submissionMode: SubmissionMode = 'use
     providers,
     trackerFactory: new OrderTrackerFactory({ rpcUrls }),
     approvalService: createApprovalService({ rpcUrls, amountStrategy }),
+    sameAssetService: isTestnet ? undefined : MAINNET_SAME_ASSET_SERVICE,
   });
 }
 

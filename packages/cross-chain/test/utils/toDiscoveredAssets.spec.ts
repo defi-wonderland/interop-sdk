@@ -1,3 +1,4 @@
+import type { Address } from "viem";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -9,11 +10,13 @@ import {
     mergeDiscoveredAssets,
     toDiscoveredAssets,
 } from "../../src/core/utils/toDiscoveredAssets.js";
+import { createSameAssetService } from "../../src/external.js";
 
 const USDC_ETH = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const WETH_ETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const USDC_ARB = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
 const WETH_ARB = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1";
+const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2";
 const NATIVE_ZERO = "0x0000000000000000000000000000000000000000";
 const NATIVE_EEE = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE";
 const NATIVE_EEE_LOWER = NATIVE_EEE.toLowerCase();
@@ -24,6 +27,10 @@ const usdcArb: AssetInfo = { address: USDC_ARB, symbol: "USDC", decimals: 6 };
 const wethArb: AssetInfo = { address: WETH_ARB, symbol: "WETH", decimals: 18 };
 const ethZero: AssetInfo = { address: NATIVE_ZERO, symbol: "ETH", decimals: 18 };
 const ethEee: AssetInfo = { address: NATIVE_EEE, symbol: "ETH", decimals: 18 };
+const usdt0Base: AssetInfo = { address: USDT_BASE, symbol: "USDT0", decimals: 6 };
+const usdtBase: AssetInfo = { address: USDT_BASE, symbol: "USDT", decimals: 6 };
+
+const usdtSameAsset = createSameAssetService({ USDT: { 8453: USDT_BASE as Address } });
 
 function result(providerId: string, ...networks: NetworkAssets[]): AssetDiscoveryResult {
     return { networks, providerId };
@@ -121,6 +128,28 @@ describe("toDiscoveredAssets", () => {
             expect(meta.logoURI).toBe("https://logo/first.png");
         });
 
+        it("treats an empty symbol as missing and backfills it from a later provider", () => {
+            const out = toDiscoveredAssets([
+                result("lifi", { chainId: 1, assets: [{ ...usdcEth, symbol: "" }] }),
+                result("across", { chainId: 1, assets: [usdcEth] }),
+            ]);
+
+            const meta = out.tokenMetadata[1]![USDC_ETH.toLowerCase()]!;
+            expect(meta.symbol).toBe("USDC");
+            expect(meta.providers).toEqual(["lifi", "across"]);
+        });
+
+        it("keeps the existing symbol when a later provider reports an empty one", () => {
+            const out = toDiscoveredAssets([
+                result("across", { chainId: 1, assets: [usdcEth] }),
+                result("lifi", { chainId: 1, assets: [{ ...usdcEth, symbol: "" }] }),
+            ]);
+
+            const meta = out.tokenMetadata[1]![USDC_ETH.toLowerCase()]!;
+            expect(meta.symbol).toBe("USDC");
+            expect(meta.providers).toEqual(["across", "lifi"]);
+        });
+
         it("not duplicate same provider in providers array", () => {
             const out = toDiscoveredAssets([
                 result(
@@ -145,17 +174,72 @@ describe("toDiscoveredAssets", () => {
             vi.restoreAllMocks();
         });
 
-        // Conflict handling is shared with mergeDiscoveredAssets and tested in
-        // depth there; this only covers that this entry point applies it too.
-        it("drops a token when providers disagree on symbol/decimals", () => {
+        it("keeps first-seen metadata on disagreement when no service is configured", () => {
             const out = toDiscoveredAssets([
-                result("honest", { chainId: 1, assets: [usdcEth, wethEth] }),
+                result("honest", { chainId: 1, assets: [usdcEth] }),
                 result("malicious", { chainId: 1, assets: [{ ...usdcEth, symbol: "DAI" }] }),
             ]);
+
+            const meta = out.tokenMetadata[1]![USDC_ETH.toLowerCase()]!;
+            expect(meta.symbol).toBe("USDC");
+            expect(meta.providers).toEqual(["honest", "malicious"]);
+            expect(console.warn).not.toHaveBeenCalled();
+        });
+
+        // Conflict handling is shared with mergeDiscoveredAssets and tested in
+        // depth there; this only covers that this entry point applies it too.
+        it("drops a token when providers disagree on symbol/decimals and a service is configured", () => {
+            const out = toDiscoveredAssets(
+                [
+                    result("honest", { chainId: 1, assets: [usdcEth, wethEth] }),
+                    result("malicious", { chainId: 1, assets: [{ ...usdcEth, symbol: "DAI" }] }),
+                ],
+                undefined,
+                usdtSameAsset,
+            );
 
             expect(out.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toBeUndefined();
             expect(out.tokensByChain[1]).not.toContain(USDC_ETH.toLowerCase());
             expect(out.tokenMetadata[1]?.[WETH_ETH.toLowerCase()]).toBeDefined();
+        });
+
+        it("keeps a mapped token when providers disagree on symbol and reports the asset id", () => {
+            const out = toDiscoveredAssets(
+                [
+                    result("across", { chainId: 8453, assets: [usdt0Base] }),
+                    result("relay", { chainId: 8453, assets: [usdtBase] }),
+                ],
+                undefined,
+                usdtSameAsset,
+            );
+
+            const meta = out.tokenMetadata[8453]![USDT_BASE.toLowerCase()]!;
+            expect(meta.symbol).toBe("USDT");
+            expect(meta.providers).toEqual(["across", "relay"]);
+            expect(console.warn).not.toHaveBeenCalled();
+        });
+
+        it("drops an unmapped token on symbol conflict even when a service is provided", () => {
+            const out = toDiscoveredAssets(
+                [
+                    result("honest", { chainId: 1, assets: [usdcEth] }),
+                    result("malicious", { chainId: 1, assets: [{ ...usdcEth, symbol: "DAI" }] }),
+                ],
+                undefined,
+                usdtSameAsset,
+            );
+
+            expect(out.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toBeUndefined();
+        });
+
+        it("reports the asset id for mapped tokens without any conflict", () => {
+            const out = toDiscoveredAssets(
+                [result("across", { chainId: 8453, assets: [usdt0Base] })],
+                undefined,
+                usdtSameAsset,
+            );
+
+            expect(out.tokenMetadata[8453]![USDT_BASE.toLowerCase()]!.symbol).toBe("USDT");
         });
     });
 
@@ -313,6 +397,19 @@ describe("mergeDiscoveredAssets", () => {
         );
     });
 
+    it("treats empty symbols as missing across sources and backfills them", () => {
+        const sourceA = toDiscoveredAssets([
+            result("lifi", { chainId: 1, assets: [{ ...usdcEth, symbol: "" }] }),
+        ]);
+        const sourceB = toDiscoveredAssets([result("across", { chainId: 1, assets: [usdcEth] })]);
+
+        const merged = mergeDiscoveredAssets([sourceA, sourceB]);
+
+        const meta = merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!;
+        expect(meta.symbol).toBe("USDC");
+        expect(meta.providers).toEqual(["lifi", "across"]);
+    });
+
     it("fills missing name/logoURI from a later source", () => {
         const sourceA = toDiscoveredAssets([
             result("provider-a", { chainId: 1, assets: [usdcEth] }),
@@ -372,6 +469,22 @@ describe("mergeDiscoveredAssets", () => {
             vi.restoreAllMocks();
         });
 
+        it("keeps first-seen metadata on disagreement when no service is configured", () => {
+            const honest = toDiscoveredAssets([
+                result("honest", { chainId: 1, assets: [usdcEth] }),
+            ]);
+            const malicious = toDiscoveredAssets([
+                result("malicious", { chainId: 1, assets: [{ ...usdcEth, symbol: "DAI" }] }),
+            ]);
+
+            const merged = mergeDiscoveredAssets([honest, malicious]);
+
+            const meta = merged.tokenMetadata[1]![USDC_ETH.toLowerCase()]!;
+            expect(meta.symbol).toBe("USDC");
+            expect(meta.providers).toEqual(["honest", "malicious"]);
+            expect(console.warn).not.toHaveBeenCalled();
+        });
+
         it("drops a token when sources disagree on symbol, and warns", () => {
             const honest = toDiscoveredAssets([
                 result("honest", { chainId: 1, assets: [usdcEth, wethEth] }),
@@ -380,7 +493,7 @@ describe("mergeDiscoveredAssets", () => {
                 result("malicious", { chainId: 1, assets: [{ ...usdcEth, symbol: "DAI" }] }),
             ]);
 
-            const merged = mergeDiscoveredAssets([honest, malicious]);
+            const merged = mergeDiscoveredAssets([honest, malicious], usdtSameAsset);
 
             expect(merged.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toBeUndefined();
             expect(merged.tokensByChain[1]).not.toContain(USDC_ETH.toLowerCase());
@@ -404,7 +517,7 @@ describe("mergeDiscoveredAssets", () => {
                 }),
             ]);
 
-            mergeDiscoveredAssets([honest, malicious]);
+            mergeDiscoveredAssets([honest, malicious], usdtSameAsset);
 
             expect(console.warn).toHaveBeenCalledTimes(1);
             expect(console.warn).toHaveBeenCalledWith(
@@ -423,7 +536,7 @@ describe("mergeDiscoveredAssets", () => {
                 result("malicious", { chainId: 1, assets: [{ ...usdcEth, decimals: 18 }] }),
             ]);
 
-            const merged = mergeDiscoveredAssets([honest, malicious]);
+            const merged = mergeDiscoveredAssets([honest, malicious], usdtSameAsset);
 
             expect(merged.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toBeUndefined();
         });
@@ -457,7 +570,7 @@ describe("mergeDiscoveredAssets", () => {
                 result("across", { chainId: 1, assets: [{ ...ethZero, symbol: "WETH" }] }),
             ]);
 
-            const merged = mergeDiscoveredAssets([sourceA, sourceB]);
+            const merged = mergeDiscoveredAssets([sourceA, sourceB], usdtSameAsset);
 
             expect(merged.tokenMetadata[1]?.[NATIVE_EEE_LOWER]).toBeUndefined();
             expect(merged.tokensByChain[1] ?? []).not.toContain(NATIVE_EEE_LOWER);
@@ -475,12 +588,83 @@ describe("mergeDiscoveredAssets", () => {
                 result("malicious", { chainId: 1, assets: [{ ...usdcEth, symbol: "DAI" }] }),
             ]);
 
-            const merged = mergeDiscoveredAssets([honest, malicious]);
+            const merged = mergeDiscoveredAssets([honest, malicious], usdtSameAsset);
 
             expect(merged.tokensByChain[1]).toBeUndefined();
             expect(merged.tokenMetadata[1]).toBeUndefined();
             expect(merged.tokensByChain[42161]).toContain(USDC_ARB.toLowerCase());
             expect(merged.tokenMetadata[42161]?.[USDC_ARB.toLowerCase()]).toBeDefined();
+        });
+    });
+
+    describe("same-asset service", () => {
+        beforeEach(() => {
+            vi.spyOn(console, "warn").mockImplementation(() => {});
+        });
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it("keeps a mapped token across sources, unions providers, and reports the asset id", () => {
+            const sourceA = toDiscoveredAssets([
+                result("across", { chainId: 8453, assets: [usdt0Base] }),
+            ]);
+            const sourceB = toDiscoveredAssets([
+                result("relay", { chainId: 8453, assets: [usdtBase] }),
+            ]);
+
+            const merged = mergeDiscoveredAssets([sourceA, sourceB], usdtSameAsset);
+
+            const meta = merged.tokenMetadata[8453]![USDT_BASE.toLowerCase()]!;
+            expect(meta.symbol).toBe("USDT");
+            expect(meta.providers).toEqual(["across", "relay"]);
+            expect(merged.tokensByChain[8453]).toContain(USDT_BASE.toLowerCase());
+            expect(console.warn).not.toHaveBeenCalled();
+        });
+
+        it("drops a mapped token when sources disagree on decimals", () => {
+            const sourceA = toDiscoveredAssets([
+                result("across", { chainId: 8453, assets: [usdtBase] }),
+            ]);
+            const sourceB = toDiscoveredAssets([
+                result("relay", { chainId: 8453, assets: [{ ...usdtBase, decimals: 18 }] }),
+            ]);
+
+            const merged = mergeDiscoveredAssets([sourceA, sourceB], usdtSameAsset);
+
+            expect(merged.tokenMetadata[8453]?.[USDT_BASE.toLowerCase()]).toBeUndefined();
+        });
+
+        it("drops an unmapped token on symbol conflict even when a service is provided", () => {
+            const sourceA = toDiscoveredAssets([
+                result("honest", { chainId: 1, assets: [usdcEth] }),
+            ]);
+            const sourceB = toDiscoveredAssets([
+                result("malicious", { chainId: 1, assets: [{ ...usdcEth, symbol: "DAI" }] }),
+            ]);
+
+            const merged = mergeDiscoveredAssets([sourceA, sourceB], usdtSameAsset);
+
+            expect(merged.tokenMetadata[1]?.[USDC_ETH.toLowerCase()]).toBeUndefined();
+        });
+
+        it("rescues native entries when the sentinel address is mapped", () => {
+            const ethSameAsset = createSameAssetService({
+                ETH: { 1: NATIVE_EEE as Address },
+            });
+            const sourceA = toDiscoveredAssets([
+                result("bungee", { chainId: 1, assets: [ethEee] }),
+            ]);
+            const sourceB = toDiscoveredAssets([
+                result("across", { chainId: 1, assets: [{ ...ethZero, symbol: "WETH" }] }),
+            ]);
+
+            const merged = mergeDiscoveredAssets([sourceA, sourceB], ethSameAsset);
+
+            const meta = merged.tokenMetadata[1]![NATIVE_EEE_LOWER]!;
+            expect(meta.symbol).toBe("ETH");
+            expect(meta.providers).toEqual(["bungee", "across"]);
         });
     });
 

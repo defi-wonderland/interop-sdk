@@ -1,11 +1,14 @@
+import type { Address } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createSameAssetService } from "../../src/external.js";
 import { createAggregator, CrossChainProvider } from "../../src/internal.js";
 
 // Plain 0x test addresses
 const USDC_ETH = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const WETH_ETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const USDC_ARB = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2";
 const NATIVE_ZERO = "0x0000000000000000000000000000000000000000";
 const NATIVE_EEE = "0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE";
 const NATIVE_EEE_LOWER = NATIVE_EEE.toLowerCase();
@@ -185,6 +188,79 @@ describe("Aggregator - Asset Discovery", () => {
                 "bungee",
                 "across",
             ]);
+        });
+
+        it("resolves cross-provider symbol conflicts through the configured same-asset service", async () => {
+            const across = createMockProvider("across", {
+                type: "static",
+                config: {
+                    networks: [
+                        {
+                            chainId: 8453,
+                            assets: [{ address: USDT_BASE, symbol: "USDT0", decimals: 6 }],
+                        },
+                    ],
+                },
+            });
+
+            const relay = createMockProvider("relay", {
+                type: "static",
+                config: {
+                    networks: [
+                        {
+                            chainId: 8453,
+                            assets: [{ address: USDT_BASE, symbol: "USDT", decimals: 6 }],
+                        },
+                    ],
+                },
+            });
+
+            const executor = createAggregator({
+                providers: [across, relay],
+                sameAssetService: createSameAssetService({
+                    USDT: { 8453: USDT_BASE as Address },
+                }),
+            });
+
+            const result = await executor.discoverAssets();
+
+            const meta = result.tokenMetadata[8453]![USDT_BASE.toLowerCase()]!;
+            expect(meta.symbol).toBe("USDT");
+            expect(meta.providers).toEqual(["across", "relay"]);
+        });
+
+        it("keeps first-reported metadata on symbol conflicts when no same-asset service is configured", async () => {
+            const across = createMockProvider("across", {
+                type: "static",
+                config: {
+                    networks: [
+                        {
+                            chainId: 8453,
+                            assets: [{ address: USDT_BASE, symbol: "USDT0", decimals: 6 }],
+                        },
+                    ],
+                },
+            });
+
+            const relay = createMockProvider("relay", {
+                type: "static",
+                config: {
+                    networks: [
+                        {
+                            chainId: 8453,
+                            assets: [{ address: USDT_BASE, symbol: "USDT", decimals: 6 }],
+                        },
+                    ],
+                },
+            });
+
+            const executor = createAggregator({ providers: [across, relay] });
+
+            const result = await executor.discoverAssets();
+
+            const meta = result.tokenMetadata[8453]![USDT_BASE.toLowerCase()]!;
+            expect(meta.symbol).toBe("USDT0");
+            expect(meta.providers).toEqual(["across", "relay"]);
         });
 
         it("should deduplicate same token from same provider", async () => {

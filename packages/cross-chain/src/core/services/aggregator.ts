@@ -384,7 +384,7 @@ class Aggregator {
             return { tokensByChain: {}, tokenMetadata: {} } as DiscoveredAssets;
         }
 
-        return mergeDiscoveredAssets(results);
+        return mergeDiscoveredAssets(results, this.sameAssetService);
     }
 
     /**
