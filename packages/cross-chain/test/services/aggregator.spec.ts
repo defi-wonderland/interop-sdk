@@ -211,6 +211,15 @@ describe("Aggregator", () => {
             expect(providers.get("mockProviderA")).toBe(mockProviderA);
         });
 
+        it("accepts a SuperbridgeProvider instance (config-required, like oif)", () => {
+            const superbridge = createCrossChainProvider("superbridge", { apiKey: "sb-test-key" });
+            const aggregator = createAggregator({ providers: [superbridge] });
+            const { providers } = aggregator as unknown as {
+                providers: Map<string, CrossChainProvider>;
+            };
+            expect(providers.get("superbridge")).toBe(superbridge);
+        });
+
         it("throws when a string and an instance resolve to the same providerId", () => {
             expect(() =>
                 createAggregator({

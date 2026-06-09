@@ -4,6 +4,7 @@ import type {
     LifiIntentsProviderConfig,
     OifProviderConfig,
     RelayConfigs,
+    SuperbridgeConfigs,
 } from "../internal.js";
 
 export const PROTOCOLS = {
@@ -12,6 +13,7 @@ export const PROTOCOLS = {
     LIFI_INTENTS: "lifi-intents",
     RELAY: "relay",
     BUNGEE: "bungee",
+    SUPERBRIDGE: "superbridge",
 } as const;
 
 export type SupportedProtocols = (typeof PROTOCOLS)[keyof typeof PROTOCOLS];
@@ -23,6 +25,7 @@ export type SupportedProtocolsConfigs<P extends SupportedProtocols> = {
     [PROTOCOLS.BUNGEE]: BungeeConfigs;
     [PROTOCOLS.OIF]: OifProviderConfig;
     [PROTOCOLS.LIFI_INTENTS]: LifiIntentsProviderConfig;
+    [PROTOCOLS.SUPERBRIDGE]: SuperbridgeConfigs;
 }[P];
 
 /** Protocols whose config is optional. */

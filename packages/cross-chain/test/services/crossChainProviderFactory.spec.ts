@@ -8,6 +8,7 @@ import {
     LifiIntentsProvider,
     OifProvider,
     RelayProvider,
+    SuperbridgeProvider,
     UnsupportedProtocol,
 } from "../../src/internal.js";
 
@@ -79,6 +80,13 @@ describe("createCrossChainProvider", () => {
         });
 
         expect(provider).toBeInstanceOf(LifiIntentsProvider);
+    });
+
+    it("creates a SuperbridgeProvider with required config", () => {
+        const provider = createCrossChainProvider("superbridge", { apiKey: "sb-test-key" });
+
+        expect(provider).toBeInstanceOf(SuperbridgeProvider);
+        expect(provider.getProviderId()).toBe("superbridge");
     });
 
     it("throws an UnsupportedProtocol error for unsupported protocols", () => {

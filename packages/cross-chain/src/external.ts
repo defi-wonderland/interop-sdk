@@ -23,6 +23,8 @@ export {
     BungeeProvider,
     BungeeApiTier,
     type BungeeConfigs,
+    SuperbridgeProvider,
+    type SuperbridgeConfigs,
     createCrossChainProvider,
     // Aggregator
     Aggregator,
