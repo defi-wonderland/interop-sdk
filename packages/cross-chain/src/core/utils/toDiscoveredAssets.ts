@@ -20,11 +20,10 @@ import { isNativeAddress, toCanonicalNativeAddress } from "./token.js";
  * Each metadata entry includes a `providers` array listing which provider IDs
  * reported the asset.
  *
- * Metadata merging is first-write-wins; empty symbols count as missing data
- * and are backfilled from later sources. Tokens with conflicting
- * `symbol`/`decimals` are dropped (see {@link dropConflictedTokens}), except
- * symbol disagreements at addresses the optional `sameAsset` service
- * resolves: the consumer's map already attests their identity, so they are kept.
+ * Metadata merging is first-write-wins; empty symbols are backfilled from
+ * later sources. Tokens with conflicting `symbol`/`decimals` are dropped
+ * (see {@link dropConflictedTokens}), unless the `sameAsset` service
+ * resolves the address.
  *
  * @internal Used by BaseAssetDiscoveryService - not exported publicly
  * @param results - Discovery results from one or more providers
@@ -101,12 +100,10 @@ export function toDiscoveredAssets(
  * to the canonical EIP-7528 form); merges `providers` arrays (first non-empty
  * wins for name/logoURI, union for providers).
  *
- * Metadata merging is first-write-wins; empty symbols count as missing data
- * and are backfilled from later sources. Tokens with conflicting
- * `symbol`/`decimals` across sources are dropped (see
- * {@link dropConflictedTokens}), except symbol disagreements at addresses the
- * optional `sameAsset` service resolves: the consumer's map already attests
- * their identity, so they are kept.
+ * Metadata merging is first-write-wins; empty symbols are backfilled from
+ * later sources. Tokens with conflicting `symbol`/`decimals` across sources
+ * are dropped (see {@link dropConflictedTokens}), unless the `sameAsset`
+ * service resolves the address.
  *
  * @internal Used by Aggregator - not exported publicly
  * @param sources - Array of DiscoveredAssets to merge
@@ -175,14 +172,7 @@ export function mergeDiscoveredAssets(
     } as DiscoveredAssets;
 }
 
-/**
- * Sources disagree on `symbol` or `decimals`: at least one is mislabeling the token.
- *
- * Decimals disagreements always conflict: the same-asset map attests identity,
- * not decimals. Symbol disagreements are tolerated when either side is empty
- * (missing data, backfilled by the caller) or when the address is mapped in the
- * consumer's same-asset service — identity then comes from the map, not the symbol.
- */
+/** Sources disagree on `symbol` or `decimals`: at least one is mislabeling the token. */
 function isIdentityConflict(
     existing: DiscoveredAssetInfo,
     incoming: { symbol: string; decimals: number },

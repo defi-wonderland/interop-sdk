@@ -4,11 +4,7 @@ import type { SameAssetMap } from '@wonderland/interop-cross-chain';
 
 const NATIVE = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
-/**
- * Consumer-owned same-asset pairings for the demo's mainnet chains. Discovery keeps
- * these addresses through cross-provider symbol disagreements (e.g. USDT vs USDT0)
- * instead of dropping them, and buildQuote resolves identity through them.
- */
+/** Consumer-owned same-asset pairings for the demo's mainnet chains. */
 export const SAME_ASSET_MAP: SameAssetMap = {
   [DemoToken.ETH]: {
     [base.id]: NATIVE,

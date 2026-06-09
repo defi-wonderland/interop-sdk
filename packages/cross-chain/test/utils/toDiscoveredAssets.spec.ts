@@ -174,8 +174,7 @@ describe("toDiscoveredAssets", () => {
             vi.restoreAllMocks();
         });
 
-        // Conflict handling is shared with mergeDiscoveredAssets and tested in
-        // depth there; this only covers that this entry point applies it too.
+        // Conflict handling is tested in depth on mergeDiscoveredAssets.
         it("drops a token when providers disagree on symbol", () => {
             const out = toDiscoveredAssets([
                 result("honest", { chainId: 1, assets: [usdcEth, wethEth] }),

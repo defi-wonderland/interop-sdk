@@ -6,8 +6,8 @@ import { DefaultSameAssetService, SameAssetMapSchema } from "../internal.js";
  *
  * The map (`assetId -> chainId -> address`) is validated and indexed once. Pass the
  * result as `sameAssetService` to {@link createAggregator}; buildQuote then treats two
- * addresses as the same asset only when they resolve to the same id, and discovered
- * assets at the mapped addresses survive cross-provider symbol disagreements.
+ * addresses as the same asset only when they resolve to the same id, and mapped
+ * addresses survive discovery's symbol disagreements.
  *
  * Disclaimer: the SDK ships no asset list and maintains none. These pairings are owned
  * and kept up to date by the consumer.
