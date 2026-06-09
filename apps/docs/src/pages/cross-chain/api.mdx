@@ -265,7 +265,7 @@ A class that manages multiple cross-chain providers and coordinates their operat
     // discovered.tokenMetadata — token metadata nested by chain ID then lowercase address
     ```
 
-    Metadata from different providers is merged first-write-wins, and empty symbols are filled in from other sources. With a `sameAssetService` configured, tokens whose providers disagree on `symbol` or `decimals` are dropped with a warning instead — except addresses the service resolves, which are kept and listed under your asset id. See [Discovery conflicts](./advanced-usage#discovery-conflicts).
+    Metadata from different providers is merged first-write-wins, and empty symbols are filled in from other sources. With a `sameAssetService` configured, tokens whose providers disagree on `symbol` or `decimals` are dropped with a warning instead — except addresses the service resolves, which survive `symbol` disagreements and are listed under your asset id; a `decimals` disagreement still drops them. See [Discovery conflicts](./advanced-usage#discovery-conflicts).
 
 -   **getProvidersForRoute**(query: RouteQuery): Promise\<string[]\>
 

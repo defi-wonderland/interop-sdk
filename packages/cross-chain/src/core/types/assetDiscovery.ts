@@ -77,6 +77,10 @@ export interface AssetDiscoveryResult {
  * Extends AssetInfo with a `providers` array that lists which provider IDs
  * reported this asset. Useful for knowing which bridges/solvers can handle
  * a particular token.
+ *
+ * When a same-asset service is configured, `symbol` carries the consumer's
+ * asset id for addresses the service resolves, instead of the
+ * provider-reported symbol.
  */
 export interface DiscoveredAssetInfo extends AssetInfo {
     /** Provider IDs that reported this asset */

@@ -245,7 +245,7 @@ For the full API reference see [Spender Validation](./api#spender-validation).
 
 `buildQuote` only builds same-asset transfers — the input and output must be the same asset on different chains. By default it infers this from discovery metadata: the two legs must share a symbol and decimals and be listed by a common provider. Cross-token swaps go through `getQuotes` instead, and `allowDangerousParameters: true` skips the check.
 
-That heuristic leans on third-party token metadata. If you'd rather decide asset identity yourself, pass a `sameAssetService` to `createAggregator`, built from a map you own — `assetId → chainId → address`:
+That heuristic leans on third-party token metadata and inherits the first-write-wins merge described in [Discovery conflicts](#discovery-conflicts): when providers disagree on a token's `symbol` or `decimals`, the check's outcome depends on which source answered first. If you'd rather decide asset identity yourself, pass a `sameAssetService` to `createAggregator`, built from a map you own — `assetId → chainId → address`:
 
 ```typescript
 import {
