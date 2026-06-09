@@ -4,13 +4,13 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
-test('asset picker opens a listbox and updates the trigger', async ({ page }) => {
-  const trigger = page.getByRole('button', { name: /^route asset:/i });
+test('from chain picker opens a listbox and updates the trigger', async ({ page }) => {
+  const trigger = page.getByRole('button', { name: /^route from chain:/i });
   await trigger.click();
-  const listbox = page.getByRole('listbox', { name: 'route asset' });
+  const listbox = page.getByRole('listbox', { name: 'route from chain' });
   await expect(listbox).toBeVisible();
-  await listbox.getByRole('option', { name: 'WETH' }).click();
-  await expect(trigger).toHaveAccessibleName(/route asset: WETH/i);
+  await listbox.getByRole('option', { name: 'ethereum' }).click();
+  await expect(trigger).toHaveAccessibleName(/route from chain: ethereum/i);
 });
 
 test('swap chains arrow flips from and to', async ({ page }) => {
