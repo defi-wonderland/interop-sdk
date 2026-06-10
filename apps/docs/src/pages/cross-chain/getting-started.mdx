@@ -155,24 +155,6 @@ for (const step of quote.order.steps) {
 }
 ```
 
-## Which chains and tokens are supported?
-
-Rather than hard-coding a supported-tokens list, ask the aggregator at runtime. `discoverAssets()` queries every configured provider in parallel and returns a pre-processed map keyed by numeric chain ID:
-
-```typescript
-const discovered = await aggregator.discoverAssets({ chainIds: [1, 8453] });
-
-// Token addresses available on each chain
-console.log(discovered.tokensByChain[1]); // Ethereum
-console.log(discovered.tokensByChain[8453]); // Base
-
-// Token metadata (nested by chain ID then lowercase address)
-const usdc = discovered.tokenMetadata[1]?.["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"];
-console.log(usdc?.symbol, usdc?.decimals); // "USDC", 6
-```
-
-Omit `chainIds` to discover across every chain each provider supports. For a single-provider variant and the full `DiscoveredAssets` shape, see the [API Reference](/cross-chain/api#aggregator).
-
 ## Compare quotes from multiple providers
 
 Use the `Aggregator` to fetch and sort quotes from multiple providers at once. For protocols whose config is optional (`across`, `relay`, `bungee`, `lifi-intents`) you can pass the protocol name directly and the aggregator creates the provider with defaults:
@@ -209,6 +191,24 @@ const aggregator = createAggregator({
 ```
 
 Each provider must have a unique `providerId`; passing two that resolve to the same id throws `DuplicateProvider`.
+
+## Which chains and tokens are supported?
+
+Rather than hard-coding a supported-tokens list, ask the aggregator at runtime. `discoverAssets()` queries every configured provider in parallel and returns a pre-processed map keyed by numeric chain ID:
+
+```typescript
+const discovered = await aggregator.discoverAssets({ chainIds: [1, 8453] });
+
+// Token addresses available on each chain
+console.log(discovered.tokensByChain[1]); // Ethereum
+console.log(discovered.tokensByChain[8453]); // Base
+
+// Token metadata (nested by chain ID then lowercase address)
+const usdc = discovered.tokenMetadata[1]?.["0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"];
+console.log(usdc?.symbol, usdc?.decimals); // "USDC", 6
+```
+
+Omit `chainIds` to discover across every chain each provider supports. For a single-provider variant and the full `DiscoveredAssets` shape, see the [API Reference](/cross-chain/api#aggregator).
 
 ## Quick reference
 

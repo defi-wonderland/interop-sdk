@@ -150,16 +150,18 @@ A utility for managing multiple cross-chain providers and executing operations a
 
 ### AggregatorConfig
 
-| Field              | Type                   | Required | Default                       | Description                                                                                                                                                                                                                                                                                                    |
-| ------------------ | ---------------------- | -------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `providers`        | `CrossChainProvider[]` | Yes      | —                             | Providers to aggregate over.                                                                                                                                                                                                                                                                                   |
-| `sortingStrategy`  | `SortingStrategy`      | No       | `BestOutputStrategy`          | Sorts the merged quote list. See [Sorting Strategies](#sorting-strategies).                                                                                                                                                                                                                                    |
-| `timeoutMs`        | `number`               | No       | `15_000`                      | Per-provider quote-fetch timeout. Each `provider.getQuotes(...)` call races a `setTimeout`; providers that don't respond in time surface a `ProviderTimeout` in `response.errors` rather than stalling `getQuotes`. Others continue normally.                                                                  |
-| `trackerFactory`   | `{ createTracker }`    | No       | `new OrderTrackerFactory()`   | Factory used by `aggregator.track(...)` and `aggregator.prepareTracking(...)` to build per-provider `OrderTracker` instances. The default falls back to viem's public transport per chain — supply `new OrderTrackerFactory({ rpcUrls })` for production reliability. See [Order Tracker](#order-tracker).     |
-| `discoveryFactory` | `{ createService }`    | No       | `new AssetDiscoveryFactory()` | Factory used by `aggregator.discoverAssets(...)` and `aggregator.getProvidersForRoute(...)` to build per-provider `AssetDiscoveryService` instances. Providers with no discovery support are skipped. Supply a custom factory only when you want to override discovery wiring for every provider.              |
-| `approvalService`  | `ApprovalService`      | No       | —                             | Enriches sorted quotes with ERC-20 `approve` steps. See [Approval Service](#approval-service).                                                                                                                                                                                                                 |
-| `spenderValidator` | `SpenderValidator`     | No       | —                             | Validates each quote's spender and transaction targets against a consumer-owned allowlist. Untrusted quotes are dropped from `getQuotes` (and reported in `errors`) and make `buildQuote` throw `UntrustedSpender`. See [Spender Validation](#spender-validation).                                             |
-| `sameAssetService` | `SameAssetService`     | No       | —                             | Resolves whether `buildQuote`'s input and output are the same asset, from a consumer-owned `assetId → chainId → address` map. When set, it replaces the default symbol/decimals/shared-provider heuristic; unknown pairings throw `DifferentAssetNotAllowed`. See [Same-Asset Identity](#same-asset-identity). |
+The factory accepts `CreateAggregatorConfig`, which extends the runtime `AggregatorConfig` only in that `providers` also accepts the protocol-name strings (`"across"`, `"relay"`, `"bungee"`, `"lifi-intents"`) the factory resolves to provider instances on your behalf.
+
+| Field              | Type                                                | Required | Default                       | Description                                                                                                                                                                                                                                                                                                    |
+| ------------------ | --------------------------------------------------- | -------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `providers`        | `(CrossChainProvider \| OptionalConfigProtocols)[]` | Yes      | —                             | Provider instances or protocol-name strings (`"across"`, `"relay"`, `"bungee"`, `"lifi-intents"`) that the factory creates with defaults. The two forms can be mixed.                                                                                                                                          |
+| `sortingStrategy`  | `SortingStrategy`                                   | No       | `BestOutputStrategy`          | Sorts the merged quote list. See [Sorting Strategies](#sorting-strategies).                                                                                                                                                                                                                                    |
+| `timeoutMs`        | `number`                                            | No       | `15_000`                      | Per-provider quote-fetch timeout. Each `provider.getQuotes(...)` call races a `setTimeout`; providers that don't respond in time surface a `ProviderTimeout` in `response.errors` rather than stalling `getQuotes`. Others continue normally.                                                                  |
+| `trackerFactory`   | `{ createTracker }`                                 | No       | `new OrderTrackerFactory()`   | Factory used by `aggregator.track(...)` and `aggregator.prepareTracking(...)` to build per-provider `OrderTracker` instances. The default falls back to viem's public transport per chain — supply `new OrderTrackerFactory({ rpcUrls })` for production reliability. See [Order Tracker](#order-tracker).     |
+| `discoveryFactory` | `{ createService }`                                 | No       | `new AssetDiscoveryFactory()` | Factory used by `aggregator.discoverAssets(...)` and `aggregator.getProvidersForRoute(...)` to build per-provider `AssetDiscoveryService` instances. Providers with no discovery support are skipped. Supply a custom factory only when you want to override discovery wiring for every provider.              |
+| `approvalService`  | `ApprovalService`                                   | No       | —                             | Enriches sorted quotes with ERC-20 `approve` steps. See [Approval Service](#approval-service).                                                                                                                                                                                                                 |
+| `spenderValidator` | `SpenderValidator`                                  | No       | —                             | Validates each quote's spender and transaction targets against a consumer-owned allowlist. Untrusted quotes are dropped from `getQuotes` (and reported in `errors`) and make `buildQuote` throw `UntrustedSpender`. See [Spender Validation](#spender-validation).                                             |
+| `sameAssetService` | `SameAssetService`                                  | No       | —                             | Resolves whether `buildQuote`'s input and output are the same asset, from a consumer-owned `assetId → chainId → address` map. When set, it replaces the default symbol/decimals/shared-provider heuristic; unknown pairings throw `DifferentAssetNotAllowed`. See [Same-Asset Identity](#same-asset-identity). |
 
 ### Aggregator Class
 
@@ -513,6 +515,36 @@ A class that tracks cross-chain orders through their lifecycle.
     console.log(status.status); // OrderStatus
     ```
 
+-   **on**(event: OrderStatus | OrderTrackerEvent, listener): this
+
+    Subscribes to status updates and tracker lifecycle events. Listeners attached _before_ `startTracking()` are guaranteed to see the first update — register them eagerly. Each `OrderStatus` value (`Pending`, `Finalized`, `Failed`, `Refunded`, …) is its own event, and the two non-status events (`OrderTrackerEvent.Timeout`, `OrderTrackerEvent.Error`) cover SDK-side timeouts and unexpected errors. Mirrors Node's `EventEmitter.on` and returns the tracker for chaining; pair with `off()` / `once()` from the same emitter API.
+
+    ```typescript
+    import { OrderStatus, OrderTrackerEvent } from "@wonderland/interop-cross-chain";
+
+    tracker.on(OrderStatus.Pending, (update) => console.log("Pending:", update.message));
+    tracker.on(OrderStatus.Finalized, (update) => console.log("Done!", update.fillTxHash));
+    tracker.on(OrderTrackerEvent.Timeout, (payload) => console.warn(payload.message));
+    tracker.on(OrderTrackerEvent.Error, (error) => console.error(error));
+    ```
+
+-   **startTracking**(params: WatchOrderParams): Promise\<OrderTrackingInfo\>
+
+    Event-based counterpart to `watchOrder`. Resolves with the order's final tracking info once a terminal status is reached and emits updates through the listeners attached with `on()`. Only the `txHash` flow is supported; for escrow-only orders, drive the `watchOrder()` async generator directly. To attach listeners before the transaction is broadcast, get the tracker from `aggregator.prepareTracking(providerId)`.
+
+    ```typescript
+    const tracker = aggregator.prepareTracking(quote.provider);
+    tracker.on(OrderStatus.Finalized, (update) => console.log("Done!", update.fillTxHash));
+
+    // ...send the user transaction, then:
+    const finalStatus = await tracker.startTracking({
+        txHash,
+        originChainId: 11155111,
+        destinationChainId: 84532,
+        timeout: 10 * 60 * 1000,
+    });
+    ```
+
 ## Types
 
 ### QuoteRequest
@@ -535,6 +567,21 @@ interface QuoteRequest {
     swapType?: "exact-input" | "exact-output"; // default: "exact-input"
 }
 ```
+
+The two `amount` fields are individually optional, but `swapType` determines which one is required: `"exact-input"` requires `input.amount` and `"exact-output"` requires `output.amount`. Requests that omit the matching amount are rejected by `QuoteRequestSchema` before reaching any provider.
+
+### RouteQuery
+
+```typescript
+interface RouteQuery {
+    originChainId: number; // numeric chain id (e.g. 1, 42161)
+    originAsset: string; // plain 0x token address on the origin chain
+    destinationChainId: number;
+    destinationAsset: string; // plain 0x token address on the destination chain
+}
+```
+
+Passed to [`Aggregator.getProvidersForRoute`](#aggregator-class). Validated by `RouteQuerySchema`: malformed input (wrong shape, missing fields, non-hex address) throws a `ZodError`. An empty result array means "no configured provider supports this route", not "your input was wrong".
 
 ### BuildQuoteRequest
 
@@ -566,31 +613,33 @@ interface BuildQuoteRequest {
 interface Quote {
     order: Order;
     preview: {
-        inputs: {
-            chainId: number;
-            accountAddress: string;
-            assetAddress: string;
-            amount: string;
-            amountUsd?: string;
-        }[];
-        outputs: {
-            chainId: number;
-            accountAddress: string;
-            assetAddress: string;
-            amount: string;
-            amountUsd?: string;
-        }[];
+        inputs: QuotePreviewEntry[];
+        outputs: QuotePreviewEntry[]; // outputs may set `minAmount` when the provider exposes a slippage floor
     };
     provider: string;
-    validUntil?: number; // quote validity (unix timestamp)
-    eta?: number; // estimated time to completion (seconds)
+    validUntil?: number; // best-effort quote-validity unix timestamp; populated only when the upstream provider returns one (currently OIF and LiFi Intents)
+    eta?: number; // estimated time to completion, in seconds
     quoteId?: string;
     failureHandling?: string;
     partialFill?: boolean;
+    fallbackToken?: QuotePreviewEntry; // asset delivered when the destination swap fails (e.g. an Across or Relay refund token)
     fees?: QuoteFees;
     tracking?: QuoteTracking;
     metadata?: Record<string, unknown>;
     latencyMs?: number; // Provider response time in ms, measured by the aggregator
+}
+```
+
+### QuotePreviewEntry
+
+```typescript
+interface QuotePreviewEntry {
+    chainId: number;
+    accountAddress: string;
+    assetAddress: string;
+    amount: string;
+    minAmount?: string; // outputs only — slippage floor when the provider exposes one
+    amountUsd?: string;
 }
 ```
 
@@ -620,11 +669,13 @@ interface QuoteTracking {
 
 ```typescript
 interface QuoteFees {
-    bridgeFee?: QuoteFeeEntry; // Bridge/relayer fee
-    bridgeFeePct?: string; // Fee as percentage (wei-encoded, 1e18 = 100%)
+    bridgeFee?: QuoteFeeEntry; // Bridge/relayer fee in input-token units
+    bridgeFeePct?: string; // Fee as a fraction, wei-scaled (1e18 = 100%). Decode as Number(value) / 1e18 — e.g. "122032826830417" ≈ 0.0122%.
     originGas?: QuoteFeeEntry; // Origin chain gas cost
 }
 ```
+
+Each `QuoteFees` field is populated only when the upstream provider exposes the corresponding data; consumers should treat every field as optional and fall back to `quote.preview` for the user-facing input/output amounts.
 
 ### Order
 
@@ -633,6 +684,61 @@ interface Order {
     steps: (SignatureStep | TransactionStep)[];
     lock?: LockMechanism;
     checks?: OrderChecks;
+    metadata?: Record<string, unknown>;
+}
+```
+
+### TransactionStep
+
+```typescript
+interface TransactionStep {
+    kind: "transaction";
+    category?: "approval"; // set by the approval service on prepended approve steps
+    chainId: number;
+    description?: string;
+    transaction: {
+        to: string;
+        data: string;
+        value?: string;
+        gas?: string;
+        maxFeePerGas?: string;
+        maxPriorityFeePerGas?: string;
+    };
+}
+```
+
+`category` is currently set only for the ERC-20 `approve` steps that the [Approval Service](#approval-service) prepends to `order.steps`. Use the helpers below to identify them programmatically — labeling wallet prompts as "Approve USDC" vs "Bridge" is the canonical use case.
+
+```typescript
+import {
+    getApprovalSteps,
+    getTransactionSteps,
+    isApprovalStep,
+} from "@wonderland/interop-cross-chain";
+
+for (const step of quote.order.steps) {
+    const label = isApprovalStep(step) ? "Approve" : "Bridge";
+    // ...send the transaction with `label` in the wallet prompt
+}
+
+const approvals = getApprovalSteps(quote.order); // TransactionStep[] with category === "approval"
+const txSteps = getTransactionSteps(quote.order); // every TransactionStep, approvals included
+```
+
+### SignatureStep
+
+```typescript
+interface SignatureStep {
+    kind: "signature";
+    chainId: number;
+    description?: string;
+    signaturePayload: {
+        signatureType: "eip712";
+        domain: Record<string, unknown>;
+        primaryType: string;
+        types: Record<string, { name: string; type: string }[]>;
+        message: Record<string, unknown>;
+    };
     metadata?: Record<string, unknown>;
 }
 ```
@@ -664,9 +770,18 @@ interface ExecutableQuote extends Quote {
 ```typescript
 interface GetQuotesResponse {
     quotes: ExecutableQuote[];
-    errors: { errorMsg: string; error: Error; latencyMs?: number }[];
+    errors: GetQuotesError[];
+}
+
+interface GetQuotesError {
+    error: Error;
+    errorMsg: string;
+    latencyMs?: number;
+    providerId?: string; // populated when the failing/skipped provider is known
 }
 ```
+
+A provider whose discovery cache reports the requested input or output asset as unsupported is reported here as an `UnsupportedAsset` error with `latencyMs: 0` — surfacing the skip rather than silently dropping the provider. Use `error instanceof UnsupportedAsset` to filter out "route just isn't supported" from real failures.
 
 ### TokenTransfer
 
@@ -820,13 +935,32 @@ Payload validation:
 | `oif-3009-v0`          | from, value, token address, expiration    |
 | `oif-user-open-v0`     | allowances (token, user, spender, amount) |
 
+### Bungee
+
+| Field                  | Type            | Required | Description                                                                                                                     |
+| ---------------------- | --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `tier`                 | `BungeeApiTier` | No       | API tier: `"sandbox"` (default), `"dedicated"`, or `"frontend"`                                                                 |
+| `baseUrl`              | string          | No       | Custom API base URL. Overrides the URL derived from `tier`                                                                      |
+| `providerId`           | string          | No       | Custom provider identifier (default: `"bungee"`)                                                                                |
+| `apiKey`               | string          | No       | API key for the dedicated tier (sent via `x-api-key`)                                                                           |
+| `affiliateId`          | string          | No       | Affiliate id for tracking (sent via `affiliate`)                                                                                |
+| `feeBps`               | string          | No       | Convenience fee in basis points (e.g. `"50"` for 0.5%). Requires `feeTakerAddress`                                              |
+| `feeTakerAddress`      | string          | No       | Address that receives the convenience fee                                                                                       |
+| `submissionModes`      | string[]        | No       | `"user-transaction"` (onchain) and/or `"gasless"` (permit2). Default: `["user-transaction"]`                                    |
+| `slippage`             | string          | No       | Default slippage tolerance (e.g. `"0.5"` for 0.5%)                                                                              |
+| `refuel`               | boolean         | No       | Top up native gas on the destination chain                                                                                      |
+| `enableOtherProviders` | boolean         | No       | Include manual routes served by other bridges alongside Bungee's own auto route                                                 |
+| `enableMultipleRoutes` | boolean         | No       | Ask the provider for several route alternatives per quote (e.g. one for max output, another for fastest fill). Default: `false` |
+
+See the [Bungee Provider page](/cross-chain/bungee-provider) for tier endpoints, the gasless permit2 flow, and the manual-routes shape.
+
 ### LiFi Intents
 
-| Field            | Type                         | Required | Description                                                    |
-| ---------------- | ---------------------------- | -------- | -------------------------------------------------------------- |
-| `orderServerUrl` | string                       | Yes      | LI.FI order server URL (e.g. `https://order.li.fi`)            |
-| `providerId`     | string                       | No       | Custom provider identifier (default: `"lifi-intents"`)         |
-| `headers`        | Record&lt;string, string&gt; | No       | Custom HTTP headers sent with all requests to the order server |
+| Field            | Type                         | Required | Description                                                                                 |
+| ---------------- | ---------------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| `orderServerUrl` | string                       | No       | LI.FI order server URL. Defaults to `LIFI_INTENTS_ORDER_SERVER_URL` (`https://order.li.fi`) |
+| `providerId`     | string                       | No       | Custom provider identifier (default: `"lifi-intents"`)                                      |
+| `headers`        | Record&lt;string, string&gt; | No       | Custom HTTP headers sent with all requests to the order server                              |
 
 Constraints:
 

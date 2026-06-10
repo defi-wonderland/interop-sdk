@@ -21,9 +21,11 @@ import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception
 import { DuplicateProvider } from "../errors/DuplicateProvider.exception.js";
 import { ProviderNotFound } from "../errors/ProviderNotFound.exception.js";
 import { ProviderTimeout } from "../errors/ProviderTimeout.exception.js";
+import { UnsupportedAsset } from "../errors/UnsupportedAsset.exception.js";
 import { UntrustedSpender } from "../errors/UntrustedSpender.exception.js";
 import { CrossChainProvider } from "../interfaces/crossChainProvider.interface.js";
 import { SortingStrategy } from "../interfaces/sortingStrategy.interface.js";
+import { RouteQuerySchema } from "../schemas/assetDiscovery.js";
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
 import { mergeDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
 import { toCanonicalNativeAddress } from "../utils/token.js";
@@ -117,8 +119,11 @@ class Aggregator {
 
     /**
      * Check whether a provider supports all assets in the quote request.
-     * Returns false if any input or output asset is not supported, avoiding unnecessary HTTP calls.
-     * Uses the pre-warmed discovery cache so this is typically instant.
+     * Returns `false` when any input or output asset is unsupported, letting callers
+     * either skip the provider (build path) or surface the skip as a `GetQuotesError`
+     * via `buildSkippedProviderError` (aggregate path). Uses the pre-warmed discovery
+     * cache so this is typically instant. Discovery failures default to `true` so a
+     * flaky discovery layer does not silently hide live providers.
      */
     private async supportsRequestedAssets(
         provider: CrossChainProvider,
@@ -155,6 +160,21 @@ class Aggregator {
         }
     }
 
+    /**
+     * Build a `GetQuotesError` entry for a provider that asset discovery skipped, so the
+     * caller can tell "no quote because the route is unsupported" apart from "the provider
+     * disappeared".
+     */
+    private buildSkippedProviderError(providerId: string, params: QuoteRequest): GetQuotesError {
+        const error = new UnsupportedAsset(providerId, params.input, params.output);
+        return {
+            error,
+            errorMsg: error.message,
+            latencyMs: 0,
+            providerId,
+        };
+    }
+
     private splitQuotesAndErrors(quotes: (ExecutableQuote | GetQuotesError)[]): GetQuotesResponse {
         return {
             quotes: quotes.filter((quote) => "order" in quote) as ExecutableQuote[],
@@ -172,7 +192,7 @@ class Aggregator {
             [...this.providers.values()].map(async (provider) => {
                 const isSupported = await this.supportsRequestedAssets(provider, params);
                 if (!isSupported) {
-                    return [];
+                    return this.buildSkippedProviderError(provider.getProviderId(), params);
                 }
 
                 const startedAt = performance.now();
@@ -389,17 +409,22 @@ class Aggregator {
 
     /**
      * Find which providers support a given origin/destination route.
+     *
+     * @throws ZodError when `query` is missing required fields or contains a malformed
+     *   chain id / asset address, so callers can distinguish "bad input" from
+     *   "route unsupported" (which returns `[]`).
      */
     async getProvidersForRoute(query: RouteQuery): Promise<string[]> {
+        const validated = RouteQuerySchema.parse(query);
         const assets = await this.discoverAssets();
 
         const originMeta =
-            assets.tokenMetadata[query.originChainId]?.[
-                toCanonicalNativeAddress(query.originAsset, "eip155")
+            assets.tokenMetadata[validated.originChainId]?.[
+                toCanonicalNativeAddress(validated.originAsset, "eip155")
             ];
         const destMeta =
-            assets.tokenMetadata[query.destinationChainId]?.[
-                toCanonicalNativeAddress(query.destinationAsset, "eip155")
+            assets.tokenMetadata[validated.destinationChainId]?.[
+                toCanonicalNativeAddress(validated.destinationAsset, "eip155")
             ];
 
         if (!originMeta || !destMeta) {

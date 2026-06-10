@@ -82,6 +82,9 @@ export {
     SameAssetMapSchema,
     type SameAssetMap,
     type SameAssetService,
+    // Route query validation
+    RouteQuerySchema,
+    type RouteQuery,
     // SDK schema types
     type ExecutableQuote,
     type QuoteFeeEntry,

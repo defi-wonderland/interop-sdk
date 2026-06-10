@@ -9,7 +9,9 @@
 
 import { z } from "zod";
 
+import type { RouteQuery } from "../types/assetDiscovery.js";
 import { HexAddressSchema } from "./address.js";
+import { chainIdSchema } from "./common.js";
 
 /**
  * Schema for asset metadata
@@ -89,6 +91,26 @@ export const getAssetsResponseSchema = z
  */
 export const assetDiscoveryOptionsSchema = z.object({
     chainIds: z.array(z.number().int().positive()).optional(),
+});
+
+/**
+ * Schema for `Aggregator.getProvidersForRoute` queries.
+ *
+ * Catches malformed input (wrong shape, missing fields, non-hex addresses) up front
+ * rather than letting it silently fall through to "route unsupported".
+ *
+ * The `z.ZodType<RouteQuery>` annotation pins the schema to the `RouteQuery`
+ * interface, so the two cannot drift without a compile error.
+ */
+export const RouteQuerySchema: z.ZodType<RouteQuery> = z.object({
+    originChainId: chainIdSchema,
+    originAsset: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid origin asset address (expected 20-byte hex)"),
+    destinationChainId: chainIdSchema,
+    destinationAsset: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid destination asset address (expected 20-byte hex)"),
 });
 
 // Type exports from schemas
