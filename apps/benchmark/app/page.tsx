@@ -135,14 +135,14 @@ async function loadLeaderboardMetrics(): Promise<ProviderMetrics[]> {
   // request is already bounded by the service's client timeout, so the aggregate
   // returns partial results (per-provider null on total failure) instead of an
   // all-or-nothing wrapper that would drop the providers that did finish.
-  try {
-    return await fetchAggregatedProviderMetrics(NETWORK_ROUTES);
-  } catch {
-    // Don't let ISR cache an empty leaderboard: the next request should retry
-    // the upstream fetch instead of serving the degraded render for an hour.
+  const metrics = await fetchAggregatedProviderMetrics(NETWORK_ROUTES);
+  if (allProvidersFailed(metrics)) {
+    // The aggregate resolves null rows instead of throwing when every provider
+    // fails, so a try/catch never fires here. Opt this render out of ISR so a
+    // total upstream failure isn't cached for an hour — the next request retries.
     noStore();
-    return [];
   }
+  return metrics;
 }
 
 async function loadHeadToHeadSeed(): Promise<ProviderMetrics[]> {
