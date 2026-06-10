@@ -1,4 +1,3 @@
-import { withTimeout } from '../helpers';
 import { aggregateProviderSamples } from '../historyAggregation';
 import { ProviderId } from '../providers';
 import { acrossHistoryService, lifiIntentsHistoryService, relayHistoryService } from '.';
@@ -12,9 +11,10 @@ import type { HistoryQuery, HistorySample, ProviderMetrics } from '../types/hist
 // just abandoned.
 const ROUTE_CONCURRENCY = 3;
 
-// Per-provider budget for the whole route fan-out. Bounds regeneration when an
-// upstream is slow, without an all-or-nothing wrapper: a provider that blows it
-// yields a null row while the others keep their results.
+// Shared wall-clock budget for the whole fan-out. Bounds regeneration when an
+// upstream is slow: a provider that crosses it stops launching new route waves
+// and yields whatever it gathered (partial), instead of blocking the others or
+// firing more requests in the background.
 const PROVIDER_BUDGET_MS = 45_000;
 
 function errorMessage(error: unknown): string {
@@ -66,18 +66,32 @@ export function emptyProviderMetrics(): ProviderMetrics[] {
   return [...PROVIDERS_WITH_FEED.map(({ id }) => nullMetricsFor(id)), nullMetricsFor(ProviderId.Bungee)];
 }
 
-// Pools one provider's raw samples across its routes (in waves) and aggregates
-// once. A failed route is dropped; no successful route yields a null row.
-async function aggregateProviderRoutes(
+/**
+ * Pools one provider's raw samples across its routes (fetched in waves of
+ * `ROUTE_CONCURRENCY`) and aggregates once. A failed route is dropped; a route
+ * that answers with zero fills still counts, so a genuine empty answer keeps
+ * its row instead of collapsing to null.
+ *
+ * `deadline` is a shared wall-clock cutoff (epoch ms): once it passes, no new
+ * wave launches. The in-flight wave is already bounded by each request's client
+ * timeout, so crossing the budget yields a partial aggregate rather than
+ * stranding work or issuing more requests.
+ */
+export async function aggregateProviderRoutes(
   id: ProviderId,
   service: HistoryService,
   queries: readonly HistoryQuery[],
+  deadline: number,
 ): Promise<ProviderMetrics> {
   const samples: HistorySample[] = [];
   const failures: string[] = [];
   let okCount = 0;
 
   for (let i = 0; i < queries.length; i += ROUTE_CONCURRENCY) {
+    if (Date.now() >= deadline) {
+      failures.push(`budget exhausted after ${i}/${queries.length} routes`);
+      break;
+    }
     const wave = queries.slice(i, i + ROUTE_CONCURRENCY);
     const settled = await Promise.allSettled(wave.map((query) => service.getHistory(query)));
     settled.forEach((result, index) => {
@@ -93,7 +107,7 @@ async function aggregateProviderRoutes(
 
   if (failures.length > 0) {
     // Name the dropped routes and their cause so a partial aggregate is debuggable.
-    console.warn(`${id}: ${failures.length}/${queries.length} routes failed: ${failures.join(', ')}`);
+    console.warn(`${id}: ${failures.length}/${queries.length} routes degraded: ${failures.join(', ')}`);
   }
   // No route succeeded: null row, not a fake zero (a real zero-fill answer keeps its row).
   if (okCount === 0) return nullMetricsFor(id);
@@ -102,16 +116,17 @@ async function aggregateProviderRoutes(
 
 /**
  * Pools each provider's raw samples across all the given routes and aggregates
- * once, so percentiles come from the combined pool. Each provider runs within
- * its own `PROVIDER_BUDGET_MS`; one that fails or blows the budget yields a null
- * row while the others keep their results. Appends the Bungee placeholder.
+ * once, so percentiles come from the combined pool. All providers share one
+ * `PROVIDER_BUDGET_MS` wall-clock budget; a provider that crosses it stops
+ * launching new route waves and yields a partial (or null) row while the others
+ * keep their results. Appends the Bungee placeholder.
  */
 export async function fetchAggregatedProviderMetrics(queries: readonly HistoryQuery[]): Promise<ProviderMetrics[]> {
+  // Compute the cutoff once so every provider gets the same wall-clock window.
+  const deadline = Date.now() + PROVIDER_BUDGET_MS;
   const metrics = await Promise.all(
     PROVIDERS_WITH_FEED.map(({ id, service }) =>
-      withTimeout(aggregateProviderRoutes(id, service, queries), PROVIDER_BUDGET_MS, `${id}_LEADERBOARD_BUDGET`).catch(
-        () => nullMetricsFor(id),
-      ),
+      aggregateProviderRoutes(id, service, queries, deadline).catch(() => nullMetricsFor(id)),
     ),
   );
 
