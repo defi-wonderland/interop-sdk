@@ -81,7 +81,7 @@ Every field below is optional on `Quote`. A provider only fills a field when its
 | `fallbackToken`                  | ✅     | ✅    | —      | —            | —   |
 | `preview.outputs[].minAmount`    | ✅     | ✅    | ✅     | —            | —   |
 | `preview.*.amountUsd`            | —      | ✅    | ✅     | —            | —   |
-| `tracking.orderId`               | —      | ✅    | ✅     | ✅           | ✅  |
+| `tracking.orderId`               | —      | ✅    | ✅     | —            | —   |
 
 UIs that compare providers side-by-side should treat every cell marked `—` as "missing upstream" — display a placeholder rather than filtering providers out. The aggregator's sorting strategies (`BestOutputStrategy`, `LowerEtaStrategy`) read `preview.outputs[0].amount` and `eta` directly, so they tolerate the missing-field case on their own.
 

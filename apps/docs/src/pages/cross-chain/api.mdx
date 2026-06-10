@@ -622,7 +622,7 @@ interface Quote {
     quoteId?: string;
     failureHandling?: string;
     partialFill?: boolean;
-    fallbackToken?: QuotePreviewEntry; // asset delivered when the destination swap fails (e.g. a Bungee refund token)
+    fallbackToken?: QuotePreviewEntry; // asset delivered when the destination swap fails (e.g. an Across or Relay refund token)
     fees?: QuoteFees;
     tracking?: QuoteTracking;
     metadata?: Record<string, unknown>;
