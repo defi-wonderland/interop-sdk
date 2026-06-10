@@ -85,6 +85,15 @@ Every field below is optional on `Quote`. A provider only fills a field when its
 
 UIs that compare providers side-by-side should treat every cell marked `—` as "missing upstream" — display a placeholder rather than filtering providers out. The aggregator's sorting strategies (`BestOutputStrategy`, `LowerEtaStrategy`) read `preview.outputs[0].amount` and `eta` directly, so they tolerate the missing-field case on their own.
 
+### Address conventions
+
+Provider responses pass through upstream address formatting verbatim, so quote payloads from different providers may not be byte-equal even when they refer to the same asset:
+
+-   **Casing:** Across returns checksummed addresses; Relay and LiFi Intents return lowercase. Compare with `address.toLowerCase()` before equality-checking across providers.
+-   **Native sentinels:** Across and Relay use the zero address (`0x0000…0000`) for native gas tokens, while Bungee and OIF use the EIP-7528 form (`0xeeee…eeee`). Normalize with `toCanonicalNativeAddress(address, "eip155")` (or `isNativeAddress(address)`) when matching against a configured native placeholder.
+
+`Aggregator.discoverAssets()` already normalizes both — its `tokenMetadata` is keyed by lowercase address with native placeholders collapsed onto `NATIVE_ASSET_ADDRESS` — so consumers that drive routing from discovery output don't need to do this themselves.
+
 ## Order Tracking Requirements
 
 Different providers use different tracking mechanisms. Some need RPC URLs, others are fully API-based:
