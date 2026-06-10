@@ -1,13 +1,25 @@
-import { withTimeout } from '../helpers';
 import { aggregateProviderSamples } from '../historyAggregation';
 import { ProviderId } from '../providers';
 import { acrossHistoryService, lifiIntentsHistoryService, relayHistoryService } from '.';
 import type { HistoryService } from '../interfaces/historyService.interface';
-import type { HistoryQuery, ProviderMetrics } from '../types/historyMetrics';
+import type { HistoryQuery, HistorySample, ProviderMetrics } from '../types/historyMetrics';
 
-// Per-provider deadline so one hung upstream cannot block the rest. The page
-// keeps a slightly larger overall timeout as the outer guardrail.
-const PROVIDER_TIMEOUT_MS = 10_000;
+// Fetch each provider's routes in waves of this size, not all at once: the
+// leaderboard fans every network route across each provider, and one host
+// rate-limits under the full burst. Each request carries its own
+// AbortController timeout (FetchHttpClient), so a hung route is cancelled, not
+// just abandoned.
+const ROUTE_CONCURRENCY = 3;
+
+// Shared wall-clock budget for the whole fan-out. Bounds regeneration when an
+// upstream is slow: a provider that crosses it stops launching new route waves
+// and yields whatever it gathered (partial), instead of blocking the others or
+// firing more requests in the background.
+const PROVIDER_BUDGET_MS = 45_000;
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 function nullMetricsFor(providerId: ProviderId): ProviderMetrics {
   // Always return a fresh object so downstream mutation (e.g. sort, splice)
@@ -55,29 +67,74 @@ export function emptyProviderMetrics(): ProviderMetrics[] {
 }
 
 /**
- * Fans out a `HistoryQuery` across every provider that publishes a public
- * history feed, aggregates each response into `ProviderMetrics`, and appends
- * the Bungee placeholder. A provider that throws, rejects, or stalls past
- * `PROVIDER_TIMEOUT_MS` returns a null-filled row so the UI keeps rendering
- * the rest.
+ * Pools one provider's raw samples across its routes (fetched in waves of
+ * `ROUTE_CONCURRENCY`) and aggregates once. A failed route is dropped; a route
+ * that answers with zero fills still counts, so a genuine empty answer keeps
+ * its row instead of collapsing to null.
  *
- * Both the leaderboard (ambient 24h) and head-to-head (per-route) consume the
- * same shape; the caller decides the query.
+ * `deadline` is a shared wall-clock cutoff (epoch ms): once it passes, no new
+ * wave launches. The in-flight wave is already bounded by each request's client
+ * timeout, so crossing the budget yields a partial aggregate rather than
+ * stranding work or issuing more requests.
  */
-export async function fetchProviderMetrics(query: HistoryQuery): Promise<ProviderMetrics[]> {
-  const settled = await Promise.allSettled(
-    PROVIDERS_WITH_FEED.map(async ({ id, service }) => {
-      const result = await withTimeout(service.getHistory(query), PROVIDER_TIMEOUT_MS, `${id}_HISTORY_TIMEOUT`);
-      return aggregateProviderSamples(id, result.samples);
-    }),
-  );
+export async function aggregateProviderRoutes(
+  id: ProviderId,
+  service: HistoryService,
+  queries: readonly HistoryQuery[],
+  deadline: number,
+): Promise<ProviderMetrics> {
+  const samples: HistorySample[] = [];
+  const failures: string[] = [];
+  let okCount = 0;
 
-  const metrics: ProviderMetrics[] = settled.map((outcome, index) => {
-    const { id } = PROVIDERS_WITH_FEED[index];
-    if (outcome.status === 'fulfilled') return outcome.value;
-    return nullMetricsFor(id);
-  });
+  for (let i = 0; i < queries.length; i += ROUTE_CONCURRENCY) {
+    if (Date.now() >= deadline) {
+      failures.push(`budget exhausted after ${i}/${queries.length} routes`);
+      break;
+    }
+    const wave = queries.slice(i, i + ROUTE_CONCURRENCY);
+    const settled = await Promise.allSettled(wave.map((query) => service.getHistory(query)));
+    settled.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        okCount += 1;
+        samples.push(...result.value.samples);
+      } else {
+        const { originChainId, destinationChainId } = wave[index];
+        failures.push(`${originChainId}->${destinationChainId} (${errorMessage(result.reason)})`);
+      }
+    });
+  }
+
+  if (failures.length > 0) {
+    // Name the dropped routes and their cause so a partial aggregate is debuggable.
+    console.warn(`${id}: ${failures.length}/${queries.length} routes degraded: ${failures.join(', ')}`);
+  }
+  // No route succeeded: null row, not a fake zero (a real zero-fill answer keeps its row).
+  if (okCount === 0) return nullMetricsFor(id);
+  return aggregateProviderSamples(id, samples);
+}
+
+/**
+ * Pools each provider's raw samples across all the given routes and aggregates
+ * once, so percentiles come from the combined pool. All providers share one
+ * `PROVIDER_BUDGET_MS` wall-clock budget; a provider that crosses it stops
+ * launching new route waves and yields a partial (or null) row while the others
+ * keep their results. Appends the Bungee placeholder.
+ */
+export async function fetchAggregatedProviderMetrics(queries: readonly HistoryQuery[]): Promise<ProviderMetrics[]> {
+  // Compute the cutoff once so every provider gets the same wall-clock window.
+  const deadline = Date.now() + PROVIDER_BUDGET_MS;
+  const metrics = await Promise.all(
+    PROVIDERS_WITH_FEED.map(({ id, service }) =>
+      aggregateProviderRoutes(id, service, queries, deadline).catch(() => nullMetricsFor(id)),
+    ),
+  );
 
   metrics.push(nullMetricsFor(ProviderId.Bungee));
   return metrics;
+}
+
+/** Single-route convenience wrapper, used by head-to-head. */
+export function fetchProviderMetrics(query: HistoryQuery): Promise<ProviderMetrics[]> {
+  return fetchAggregatedProviderMetrics([query]);
 }

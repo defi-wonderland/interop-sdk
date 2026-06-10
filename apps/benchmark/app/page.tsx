@@ -10,6 +10,7 @@ import { HeadToHeadClient } from './components/headtohead/HeadToHeadClient';
 import { RouteSelector } from './components/headtohead/RouteSelector';
 import { Leaderboard } from './components/leaderboard/Leaderboard';
 import { buildQuoteRequest, buildRowsFromQuotes, createRows, orderRaceRows } from './components/race-table/raceRows';
+import { CHAIN_IDS } from './lib/chains';
 import { withTimeout } from './lib/helpers';
 import {
   INITIAL_AMOUNT,
@@ -18,9 +19,14 @@ import {
   INITIAL_TO_CHAIN_ID,
 } from './lib/requestBarDefaults';
 import { chainService, quotesService } from './lib/services';
-import { allProvidersFailed, emptyProviderMetrics, fetchProviderMetrics } from './lib/services/providerMetrics';
+import {
+  allProvidersFailed,
+  emptyProviderMetrics,
+  fetchAggregatedProviderMetrics,
+  fetchProviderMetrics,
+} from './lib/services/providerMetrics';
 import type { RaceRow } from './components/race-table/types';
-import type { ProviderMetrics } from './lib/types/historyMetrics';
+import type { HistoryQuery, ProviderMetrics } from './lib/types/historyMetrics';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 
 export const revalidate = 3600;
@@ -28,24 +34,30 @@ export const revalidate = 3600;
 const META_LABEL_CLASS = 'font-mono text-label text-text-muted';
 const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-chain';
 const INITIAL_RACE_TIMEOUT_MS = 20_000;
-const LEADERBOARD_TIMEOUT_MS = 15_000;
+const HEAD_TO_HEAD_SEED_TIMEOUT_MS = 15_000;
+
+// Every directed route between the supported chains. The leaderboard pools all
+// of them for a network-wide view; head-to-head stays on a single route.
+const NETWORK_ROUTES: HistoryQuery[] = CHAIN_IDS.flatMap((originChainId) =>
+  CHAIN_IDS.filter((destinationChainId) => destinationChainId !== originChainId).map((destinationChainId) => ({
+    originChainId,
+    destinationChainId,
+  })),
+);
 
 export default async function Home() {
   const initialChains = await loadInitialChains();
-  const [initialRows, leaderboardMetrics] = await Promise.all([
+  const [initialRows, leaderboardMetrics, headToHeadSeed] = await Promise.all([
     loadInitialRace(initialChains),
     loadLeaderboardMetrics(),
+    loadHeadToHeadSeed(),
   ]);
 
-  // Head-to-head seeds with the same canonical-route metrics on first paint
-  // and then refetches client-side on route changes. The two will diverge once
-  // the leaderboard aggregates across multiple routes. When the leaderboard
-  // fetch fails entirely (thrown timeout or every provider resolving
-  // null-filled), seed null-filled rows so the section keeps its 4-row
-  // structure rather than rendering an empty table; `seedIsFallback` tells the
-  // client hook to refetch on mount in that case.
-  const headToHeadSeedIsFallback = allProvidersFailed(leaderboardMetrics);
-  const initialHeadToHeadMetrics = headToHeadSeedIsFallback ? emptyProviderMetrics() : leaderboardMetrics;
+  // First paint uses the canonical-route seed. If that fetch failed entirely,
+  // seed null rows (keeps the 4-row structure) and flag it so the client hook
+  // refetches on mount instead of trusting the placeholder.
+  const headToHeadSeedIsFallback = allProvidersFailed(headToHeadSeed);
+  const initialHeadToHeadMetrics = headToHeadSeedIsFallback ? emptyProviderMetrics() : headToHeadSeed;
 
   return (
     <div className='min-h-screen cursor-default bg-background'>
@@ -117,21 +129,44 @@ async function loadInitialChains(): Promise<NetworkAssets[]> {
 }
 
 async function loadLeaderboardMetrics(): Promise<ProviderMetrics[]> {
-  // Leaderboard reads "ambient" activity on the canonical route. We use the
-  // initial route with no token filter so the sample reflects every asset on
-  // that pair. A future change could aggregate across multiple top routes.
+  // Leaderboard pools provider activity across every network route (no token
+  // filter, so the sample reflects every asset), for a network-wide view that
+  // is distinct from the per-route head-to-head section. No outer deadline: each
+  // request is already bounded by the service's client timeout, so the aggregate
+  // returns partial results (per-provider null on total failure) instead of an
+  // all-or-nothing wrapper that would drop the providers that did finish.
+  const metrics = await fetchAggregatedProviderMetrics(NETWORK_ROUTES);
+  if (allProvidersFailed(metrics)) {
+    // The aggregate resolves null rows instead of throwing when every provider
+    // fails, so a try/catch never fires here. Opt this render out of ISR so a
+    // total upstream failure isn't cached for an hour — the next request retries.
+    noStore();
+  }
+  return metrics;
+}
+
+async function loadHeadToHeadSeed(): Promise<ProviderMetrics[]> {
+  // First paint of the head-to-head section: the canonical route only, so it
+  // matches the route the client hook starts on and can skip the mount fetch.
   try {
-    return await withTimeout(
+    const seed = await withTimeout(
       fetchProviderMetrics({
         originChainId: INITIAL_FROM_CHAIN_ID,
         destinationChainId: INITIAL_TO_CHAIN_ID,
       }),
-      LEADERBOARD_TIMEOUT_MS,
-      'LEADERBOARD_TIMEOUT',
+      HEAD_TO_HEAD_SEED_TIMEOUT_MS,
+      'HEAD_TO_HEAD_SEED_TIMEOUT',
     );
+    if (allProvidersFailed(seed)) {
+      // The fetch resolves null rows instead of throwing when every provider
+      // fails, so the catch below never sees it. Same treatment as the
+      // leaderboard: don't cache a degraded seed for an hour.
+      noStore();
+    }
+    return seed;
   } catch {
-    // Don't let ISR cache an empty leaderboard: the next request should retry
-    // the upstream fetch instead of serving the degraded render for an hour.
+    // Don't let ISR cache a degraded seed: next request retries instead of
+    // serving null rows for an hour.
     noStore();
     return [];
   }
