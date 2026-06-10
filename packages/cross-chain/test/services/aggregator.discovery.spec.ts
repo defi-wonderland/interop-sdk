@@ -247,6 +247,17 @@ describe("Aggregator - Asset Discovery", () => {
                     destinationAsset: USDC_ARB,
                 }),
             ).rejects.toThrow();
+
+            // Chain ids above Number.MAX_SAFE_INTEGER lose precision as numeric
+            // object keys, so they must be rejected rather than miss the lookup.
+            await expect(
+                executor.getProvidersForRoute({
+                    originChainId: 2 ** 53,
+                    originAsset: USDC_ETH,
+                    destinationChainId: 42161,
+                    destinationAsset: USDC_ARB,
+                }),
+            ).rejects.toThrow();
         });
 
         it("should return providers supporting both origin and destination assets", async () => {

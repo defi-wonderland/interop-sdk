@@ -11,6 +11,7 @@ import { z } from "zod";
 
 import type { RouteQuery } from "../types/assetDiscovery.js";
 import { HexAddressSchema } from "./address.js";
+import { chainIdSchema } from "./common.js";
 
 /**
  * Schema for asset metadata
@@ -102,11 +103,11 @@ export const assetDiscoveryOptionsSchema = z.object({
  * interface, so the two cannot drift without a compile error.
  */
 export const RouteQuerySchema: z.ZodType<RouteQuery> = z.object({
-    originChainId: z.number().int().positive(),
+    originChainId: chainIdSchema,
     originAsset: z
         .string()
         .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid origin asset address (expected 20-byte hex)"),
-    destinationChainId: z.number().int().positive(),
+    destinationChainId: chainIdSchema,
     destinationAsset: z
         .string()
         .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid destination asset address (expected 20-byte hex)"),
