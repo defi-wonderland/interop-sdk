@@ -1,4 +1,4 @@
 ---
 ---
 
-Revert the unreleased discovery conflict guard (#382) and same-asset map validation (#380). Both pending changesets are removed; no release impact.
+Revert the unreleased discovery conflict guard (#382): discovery merge is first-write-wins again, no conflict drop. Its pending changeset is removed; no release impact.
