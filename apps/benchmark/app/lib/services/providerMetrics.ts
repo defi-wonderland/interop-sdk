@@ -27,6 +27,7 @@ function nullMetricsFor(providerId: ProviderId): ProviderMetrics {
   return {
     providerId,
     fillCount: null,
+    sampleWindowSeconds: null,
     successRate: null,
     p50FillSeconds: null,
     p99FillSeconds: null,
