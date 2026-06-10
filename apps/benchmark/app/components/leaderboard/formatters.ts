@@ -9,15 +9,19 @@ export function formatFillCount(value: number | null): string {
   return Math.trunc(value).toLocaleString('en-US');
 }
 
-// Compact span the sample covers: `45m`, `8h`, `2.7d`. Days keep one decimal
-// under 10d (2.7d reads better than 3d) and round above it (33d, not 33.1d).
+// Compact span the sample covers: `0s`, `45s`, `8h`, `2.7d`. Round into each
+// unit before the threshold check so a near-boundary value rolls over (3599s →
+// `1h`, not `60m`) instead of rendering an out-of-range count. Days keep one
+// decimal under 10d (2.7d reads better than 3d) and round above it (33d).
 export function formatSampleWindow(value: number | null): string {
   if (!isUsableNumber(value) || value < 0) return PLACEHOLDER;
-  const minutes = value / 60;
-  if (minutes < 60) return `${Math.max(1, Math.round(minutes))}m`;
-  const hours = minutes / 60;
-  if (hours < 24) return `${Math.round(hours)}h`;
-  const days = hours / 24;
+  const seconds = Math.round(value);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.round(value / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(value / 3600);
+  if (hours < 24) return `${hours}h`;
+  const days = value / 86_400;
   return days < 10 ? `${days.toFixed(1)}d` : `${Math.round(days)}d`;
 }
 
