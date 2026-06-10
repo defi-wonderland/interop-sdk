@@ -9,7 +9,12 @@ export const RACE_TABLE_COLUMNS: readonly BenchmarkColumn[] = [
   { key: 'rank', label: 'rank', className: 'w-10 md:w-12' },
   { key: 'provider', label: 'provider', className: 'md:w-60' },
   { key: 'latency', label: 'latency', className: 'hidden md:table-cell' },
-  { key: 'output', label: 'output', className: 'text-right md:w-[200px]' },
+  {
+    key: 'output',
+    label: 'output',
+    className: 'text-right md:w-[200px]',
+    tooltip: 'The winner is the provider that returns the most output.',
+  },
   { key: 'eta', label: 'eta', className: 'hidden md:table-cell md:w-[100px] text-right' },
   { key: 'status', label: 'status', className: 'hidden md:table-cell md:w-[160px] text-right' },
 ];
