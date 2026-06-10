@@ -15,11 +15,13 @@ describe('formatSampleWindow', () => {
   it('rolls a near-boundary value into the next unit instead of an out-of-range count', () => {
     expect(formatSampleWindow(3599)).toBe('1h'); // not 60m
     expect(formatSampleWindow(86_399)).toBe('1.0d'); // not 24h
+    expect(formatSampleWindow(9.97 * 86_400)).toBe('10d'); // not 10.0d
   });
 
   it('formats whole units', () => {
     expect(formatSampleWindow(8 * 3600)).toBe('8h');
     expect(formatSampleWindow(2.7 * 86_400)).toBe('2.7d');
+    expect(formatSampleWindow(9.94 * 86_400)).toBe('9.9d'); // one decimal under 10d
     expect(formatSampleWindow(33 * 86_400)).toBe('33d'); // no decimal past 10d
   });
 });

@@ -22,7 +22,10 @@ export function formatSampleWindow(value: number | null): string {
   const hours = Math.round(value / 3600);
   if (hours < 24) return `${hours}h`;
   const days = value / 86_400;
-  return days < 10 ? `${days.toFixed(1)}d` : `${Math.round(days)}d`;
+  // Round to the displayed precision before the `< 10` check: 9.97d must read
+  // `10d`, not `10.0d` (raw 9.97 passes `< 10` but `toFixed(1)` renders 10.0).
+  const tenthDays = Math.round(days * 10) / 10;
+  return tenthDays < 10 ? `${tenthDays.toFixed(1)}d` : `${Math.round(days)}d`;
 }
 
 export function formatSuccessRate(value: number | null): string {
