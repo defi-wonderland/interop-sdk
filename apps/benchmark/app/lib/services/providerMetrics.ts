@@ -1,3 +1,4 @@
+import { withTimeout } from '../helpers';
 import { aggregateProviderSamples } from '../historyAggregation';
 import { ProviderId } from '../providers';
 import { acrossHistoryService, lifiIntentsHistoryService, relayHistoryService } from '.';
@@ -10,6 +11,11 @@ import type { HistoryQuery, HistorySample, ProviderMetrics } from '../types/hist
 // AbortController timeout (FetchHttpClient), so a hung route is cancelled, not
 // just abandoned.
 const ROUTE_CONCURRENCY = 3;
+
+// Per-provider budget for the whole route fan-out. Bounds regeneration when an
+// upstream is slow, without an all-or-nothing wrapper: a provider that blows it
+// yields a null row while the others keep their results.
+const PROVIDER_BUDGET_MS = 45_000;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -60,41 +66,53 @@ export function emptyProviderMetrics(): ProviderMetrics[] {
   return [...PROVIDERS_WITH_FEED.map(({ id }) => nullMetricsFor(id)), nullMetricsFor(ProviderId.Bungee)];
 }
 
+// Pools one provider's raw samples across its routes (in waves) and aggregates
+// once. A failed route is dropped; no successful route yields a null row.
+async function aggregateProviderRoutes(
+  id: ProviderId,
+  service: HistoryService,
+  queries: readonly HistoryQuery[],
+): Promise<ProviderMetrics> {
+  const samples: HistorySample[] = [];
+  const failures: string[] = [];
+  let okCount = 0;
+
+  for (let i = 0; i < queries.length; i += ROUTE_CONCURRENCY) {
+    const wave = queries.slice(i, i + ROUTE_CONCURRENCY);
+    const settled = await Promise.allSettled(wave.map((query) => service.getHistory(query)));
+    settled.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        okCount += 1;
+        samples.push(...result.value.samples);
+      } else {
+        const { originChainId, destinationChainId } = wave[index];
+        failures.push(`${originChainId}->${destinationChainId} (${errorMessage(result.reason)})`);
+      }
+    });
+  }
+
+  if (failures.length > 0) {
+    // Name the dropped routes and their cause so a partial aggregate is debuggable.
+    console.warn(`${id}: ${failures.length}/${queries.length} routes failed: ${failures.join(', ')}`);
+  }
+  // No route succeeded: null row, not a fake zero (a real zero-fill answer keeps its row).
+  if (okCount === 0) return nullMetricsFor(id);
+  return aggregateProviderSamples(id, samples);
+}
+
 /**
  * Pools each provider's raw samples across all the given routes and aggregates
- * once, so percentiles come from the combined pool. Routes fetch in waves
- * (`ROUTE_CONCURRENCY`); a failed route is dropped, a provider with no
- * successful route gets a null row. Appends the Bungee placeholder.
+ * once, so percentiles come from the combined pool. Each provider runs within
+ * its own `PROVIDER_BUDGET_MS`; one that fails or blows the budget yields a null
+ * row while the others keep their results. Appends the Bungee placeholder.
  */
 export async function fetchAggregatedProviderMetrics(queries: readonly HistoryQuery[]): Promise<ProviderMetrics[]> {
   const metrics = await Promise.all(
-    PROVIDERS_WITH_FEED.map(async ({ id, service }) => {
-      const samples: HistorySample[] = [];
-      const failures: string[] = [];
-      let okCount = 0;
-
-      for (let i = 0; i < queries.length; i += ROUTE_CONCURRENCY) {
-        const wave = queries.slice(i, i + ROUTE_CONCURRENCY);
-        const settled = await Promise.allSettled(wave.map((query) => service.getHistory(query)));
-        settled.forEach((result, index) => {
-          if (result.status === 'fulfilled') {
-            okCount += 1;
-            samples.push(...result.value.samples);
-          } else {
-            const { originChainId, destinationChainId } = wave[index];
-            failures.push(`${originChainId}->${destinationChainId} (${errorMessage(result.reason)})`);
-          }
-        });
-      }
-
-      if (failures.length > 0) {
-        // Name the dropped routes and their cause so a partial aggregate is debuggable.
-        console.warn(`${id}: ${failures.length}/${queries.length} routes failed: ${failures.join(', ')}`);
-      }
-      // No route succeeded: null row, not a fake zero (a real zero-fill answer keeps its row).
-      if (okCount === 0) return nullMetricsFor(id);
-      return aggregateProviderSamples(id, samples);
-    }),
+    PROVIDERS_WITH_FEED.map(({ id, service }) =>
+      withTimeout(aggregateProviderRoutes(id, service, queries), PROVIDER_BUDGET_MS, `${id}_LEADERBOARD_BUDGET`).catch(
+        () => nullMetricsFor(id),
+      ),
+    ),
   );
 
   metrics.push(nullMetricsFor(ProviderId.Bungee));
