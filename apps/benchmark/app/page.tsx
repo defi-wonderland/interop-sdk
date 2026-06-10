@@ -34,10 +34,6 @@ export const revalidate = 3600;
 const META_LABEL_CLASS = 'font-mono text-label text-text-muted';
 const PACKAGE_URL = 'https://www.npmjs.com/package/@wonderland/interop-cross-chain';
 const INITIAL_RACE_TIMEOUT_MS = 20_000;
-// Generous because the leaderboard pools every network route in waves; ISR
-// regenerates it hourly in the background, so this bounds the regen, not a
-// user's wait.
-const LEADERBOARD_TIMEOUT_MS = 40_000;
 const HEAD_TO_HEAD_SEED_TIMEOUT_MS = 15_000;
 
 // Every directed route between the supported chains. The leaderboard pools all
@@ -135,13 +131,12 @@ async function loadInitialChains(): Promise<NetworkAssets[]> {
 async function loadLeaderboardMetrics(): Promise<ProviderMetrics[]> {
   // Leaderboard pools provider activity across every network route (no token
   // filter, so the sample reflects every asset), for a network-wide view that
-  // is distinct from the per-route head-to-head section.
+  // is distinct from the per-route head-to-head section. No outer deadline: each
+  // request is already bounded by the service's client timeout, so the aggregate
+  // returns partial results (per-provider null on total failure) instead of an
+  // all-or-nothing wrapper that would drop the providers that did finish.
   try {
-    return await withTimeout(
-      fetchAggregatedProviderMetrics(NETWORK_ROUTES),
-      LEADERBOARD_TIMEOUT_MS,
-      'LEADERBOARD_TIMEOUT',
-    );
+    return await fetchAggregatedProviderMetrics(NETWORK_ROUTES);
   } catch {
     // Don't let ISR cache an empty leaderboard: the next request should retry
     // the upstream fetch instead of serving the degraded render for an hour.
