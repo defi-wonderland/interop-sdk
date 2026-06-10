@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createAggregator, CrossChainProvider } from "../../src/internal.js";
+import { createAggregator, CrossChainProvider, UnsupportedAsset } from "../../src/internal.js";
 
 // Plain 0x test addresses
 const USDC_ETH = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
@@ -215,6 +215,40 @@ describe("Aggregator - Asset Discovery", () => {
     });
 
     describe("getProvidersForRoute", () => {
+        it("throws on malformed RouteQuery input rather than silently returning []", async () => {
+            const provider = createMockProvider("across", {
+                type: "static",
+                config: {
+                    networks: [
+                        {
+                            chainId: 1,
+                            assets: [{ address: USDC_ETH, symbol: "USDC", decimals: 6 }],
+                        },
+                    ],
+                },
+            });
+
+            const executor = createAggregator({ providers: [provider] });
+
+            // QuoteRequest-shaped input (wrong) — should throw instead of returning [].
+            await expect(
+                executor.getProvidersForRoute({
+                    input: { chainId: 1, assetAddress: USDC_ETH },
+                    output: { chainId: 42161, assetAddress: USDC_ARB },
+                } as unknown as Parameters<typeof executor.getProvidersForRoute>[0]),
+            ).rejects.toThrow();
+
+            // Non-hex origin address should throw too.
+            await expect(
+                executor.getProvidersForRoute({
+                    originChainId: 1,
+                    originAsset: "not-an-address",
+                    destinationChainId: 42161,
+                    destinationAsset: USDC_ARB,
+                }),
+            ).rejects.toThrow();
+        });
+
         it("should return providers supporting both origin and destination assets", async () => {
             const provider = createMockProvider("across", {
                 type: "static",
@@ -392,6 +426,59 @@ describe("Aggregator - Asset Discovery", () => {
 
             expect(viaZero).toEqual(expect.arrayContaining(["bungee", "across"]));
             expect(viaEee).toEqual(expect.arrayContaining(["bungee", "across"]));
+        });
+
+        it("surfaces providers skipped by discovery as UnsupportedAsset errors in getQuotes", async () => {
+            const supporting = createMockProvider("across", {
+                type: "static",
+                config: {
+                    networks: [
+                        {
+                            chainId: 1,
+                            assets: [{ address: USDC_ETH, symbol: "USDC", decimals: 6 }],
+                        },
+                        {
+                            chainId: 42161,
+                            assets: [{ address: USDC_ARB, symbol: "USDC", decimals: 6 }],
+                        },
+                    ],
+                },
+            });
+            (supporting.getQuotes as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+            const skipping = createMockProvider("relay", {
+                type: "static",
+                config: {
+                    networks: [
+                        {
+                            chainId: 1,
+                            assets: [{ address: WETH_ETH, symbol: "WETH", decimals: 18 }],
+                        },
+                    ],
+                },
+            });
+            const skippingGetQuotes = skipping.getQuotes as ReturnType<typeof vi.fn>;
+            skippingGetQuotes.mockResolvedValue([]);
+
+            const executor = createAggregator({ providers: [supporting, skipping] });
+
+            const response = await executor.getQuotes({
+                user: "0x0000000000000000000000000000000000000001",
+                input: { chainId: 1, assetAddress: USDC_ETH, amount: "1000000" },
+                output: {
+                    chainId: 42161,
+                    assetAddress: USDC_ARB,
+                    recipient: "0x0000000000000000000000000000000000000001",
+                },
+                swapType: "exact-input",
+            });
+
+            expect(skippingGetQuotes).not.toHaveBeenCalled();
+            expect(response.errors).toHaveLength(1);
+            const [skipped] = response.errors;
+            expect(skipped?.providerId).toBe("relay");
+            expect(skipped?.latencyMs).toBe(0);
+            expect(skipped?.error).toBeInstanceOf(UnsupportedAsset);
         });
 
         it("should return multiple providers when both support the route", async () => {

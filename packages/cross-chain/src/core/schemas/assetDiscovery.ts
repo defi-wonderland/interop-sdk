@@ -91,6 +91,23 @@ export const assetDiscoveryOptionsSchema = z.object({
     chainIds: z.array(z.number().int().positive()).optional(),
 });
 
+/**
+ * Schema for `Aggregator.getProvidersForRoute` queries.
+ *
+ * Catches malformed input (wrong shape, missing fields, non-hex addresses) up front
+ * rather than letting it silently fall through to "route unsupported".
+ */
+export const RouteQuerySchema = z.object({
+    originChainId: z.number().int().positive(),
+    originAsset: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid origin asset address (expected 20-byte hex)"),
+    destinationChainId: z.number().int().positive(),
+    destinationAsset: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid destination asset address (expected 20-byte hex)"),
+});
+
 // Type exports from schemas
 export type AssetInfoSchema = z.infer<typeof assetInfoSchema>;
 export type NetworkAssetsSchema = z.infer<typeof networkAssetsSchema>;
