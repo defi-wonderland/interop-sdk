@@ -119,11 +119,11 @@ class Aggregator {
 
     /**
      * Check whether a provider supports all assets in the quote request.
-     * Returns `{ supported: false }` when any input or output asset is unsupported,
-     * letting callers either skip the provider (build path) or surface the skip as a
-     * `GetQuotesError` (aggregate path). Uses the pre-warmed discovery cache so this is
-     * typically instant. Discovery failures default to `{ supported: true }` so a flaky
-     * discovery layer does not silently hide live providers.
+     * Returns `false` when any input or output asset is unsupported, letting callers
+     * either skip the provider (build path) or surface the skip as a `GetQuotesError`
+     * via `buildSkippedProviderError` (aggregate path). Uses the pre-warmed discovery
+     * cache so this is typically instant. Discovery failures default to `true` so a
+     * flaky discovery layer does not silently hide live providers.
      */
     private async supportsRequestedAssets(
         provider: CrossChainProvider,
