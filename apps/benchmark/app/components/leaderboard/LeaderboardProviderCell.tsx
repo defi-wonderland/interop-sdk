@@ -36,6 +36,8 @@ function buildSublabel(provider: ProviderMeta, fillCount: number | null, windowS
   // Has a feed but returned nothing usable (failed or empty window): no sublabel.
   if (fillCount === null) return null;
   const fills = `${formatFillCount(fillCount)} fills`;
-  const window = formatSampleWindow(windowSeconds);
-  return window === '—' ? fills : `${fills} · ${window}`;
+  // Decide on the raw value, not the formatted string, so the cell isn't coupled
+  // to the formatter's placeholder. A single-fill sample has no span to show.
+  if (windowSeconds === null) return fills;
+  return `${fills} · ${formatSampleWindow(windowSeconds)}`;
 }
