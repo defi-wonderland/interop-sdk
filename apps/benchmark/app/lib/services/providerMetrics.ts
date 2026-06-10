@@ -4,39 +4,12 @@ import { acrossHistoryService, lifiIntentsHistoryService, relayHistoryService } 
 import type { HistoryService } from '../interfaces/historyService.interface';
 import type { HistoryQuery, HistorySample, ProviderMetrics } from '../types/historyMetrics';
 
-// Each history service's `FetchHttpClient` bounds every request with an
-// AbortController-backed timeout, so a hung route is cancelled at the transport
-// level, not just abandoned. That keeps the concurrency cap below honest: a
-// worker frees its slot only once the request truly settles.
-
-// Cap how many routes a single provider fetches at once. The leaderboard fans
-// every network route across each provider; without a cap that hits one host
-// with all of them concurrently (each paginating, with GET retries), inviting
-// rate limits. Routes are processed in waves of this size instead.
+// Fetch each provider's routes in waves of this size, not all at once: the
+// leaderboard fans every network route across each provider, and one host
+// rate-limits under the full burst. Each request carries its own
+// AbortController timeout (FetchHttpClient), so a hung route is cancelled, not
+// just abandoned.
 const ROUTE_CONCURRENCY = 3;
-
-// Runs `task` over `items` with at most `limit` in flight at a time.
-async function mapWithConcurrency<T, R>(
-  items: readonly T[],
-  limit: number,
-  task: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let cursor = 0;
-  const runWorker = async (): Promise<void> => {
-    while (cursor < items.length) {
-      const index = cursor++;
-      results[index] = await task(items[index]);
-    }
-  };
-  const workers = Array.from({ length: Math.min(limit, items.length) }, runWorker);
-  await Promise.all(workers);
-  return results;
-}
-
-function routeLabel(query: HistoryQuery): string {
-  return `${query.originChainId}->${query.destinationChainId}`;
-}
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -88,46 +61,37 @@ export function emptyProviderMetrics(): ProviderMetrics[] {
 }
 
 /**
- * Fans every provider's history feed across one or more `HistoryQuery`s, pools
- * each provider's raw samples across all the queries, and aggregates once into
- * `ProviderMetrics`. Percentiles come from the combined sample pool, not an
- * average of per-query percentiles. Appends the Bungee placeholder. A query
- * that throws, rejects, or times out (cancelled by the client) is dropped; a
- * provider whose every query failed gets a null-filled row so the UI keeps
- * rendering the rest.
- *
- * The leaderboard passes every network route for an aggregate view;
- * head-to-head passes a single route.
+ * Pools each provider's raw samples across all the given routes and aggregates
+ * once, so percentiles come from the combined pool. Routes fetch in waves
+ * (`ROUTE_CONCURRENCY`); a failed route is dropped, a provider with no
+ * successful route gets a null row. Appends the Bungee placeholder.
  */
 export async function fetchAggregatedProviderMetrics(queries: readonly HistoryQuery[]): Promise<ProviderMetrics[]> {
   const metrics = await Promise.all(
     PROVIDERS_WITH_FEED.map(async ({ id, service }) => {
-      const outcomes = await mapWithConcurrency(queries, ROUTE_CONCURRENCY, (query) =>
-        service.getHistory(query).then(
-          (result) => ({ ok: true as const, samples: result.samples }),
-          (error: unknown) => ({ ok: false as const, query, error }),
-        ),
-      );
-
       const samples: HistorySample[] = [];
       const failures: string[] = [];
       let okCount = 0;
-      for (const outcome of outcomes) {
-        if (outcome.ok) {
-          okCount += 1;
-          samples.push(...outcome.samples);
-        } else {
-          failures.push(`${routeLabel(outcome.query)} (${errorMessage(outcome.error)})`);
-        }
+
+      for (let i = 0; i < queries.length; i += ROUTE_CONCURRENCY) {
+        const wave = queries.slice(i, i + ROUTE_CONCURRENCY);
+        const settled = await Promise.allSettled(wave.map((query) => service.getHistory(query)));
+        settled.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            okCount += 1;
+            samples.push(...result.value.samples);
+          } else {
+            const { originChainId, destinationChainId } = wave[index];
+            failures.push(`${originChainId}->${destinationChainId} (${errorMessage(result.reason)})`);
+          }
+        });
       }
+
       if (failures.length > 0) {
-        // Name the dropped routes and their cause so a partial aggregate is
-        // debuggable instead of silently based on a subset.
+        // Name the dropped routes and their cause so a partial aggregate is debuggable.
         console.warn(`${id}: ${failures.length}/${queries.length} routes failed: ${failures.join(', ')}`);
       }
-      // Every route failed for this provider: surface a null row rather than a
-      // fake zero-activity one. A provider that answered with zero fills keeps
-      // its real (zero) row.
+      // No route succeeded: null row, not a fake zero (a real zero-fill answer keeps its row).
       if (okCount === 0) return nullMetricsFor(id);
       return aggregateProviderSamples(id, samples);
     }),
@@ -137,9 +101,7 @@ export async function fetchAggregatedProviderMetrics(queries: readonly HistoryQu
   return metrics;
 }
 
-/**
- * Single-route convenience wrapper, used by head-to-head.
- */
+/** Single-route convenience wrapper, used by head-to-head. */
 export function fetchProviderMetrics(query: HistoryQuery): Promise<ProviderMetrics[]> {
   return fetchAggregatedProviderMetrics([query]);
 }

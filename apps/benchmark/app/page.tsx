@@ -57,11 +57,9 @@ export default async function Home() {
     loadHeadToHeadSeed(),
   ]);
 
-  // Head-to-head seeds with the canonical-route metrics on first paint and then
-  // refetches client-side on route changes. When the seed fetch fails entirely
-  // (thrown timeout or every provider resolving null-filled), seed null-filled
-  // rows so the section keeps its 4-row structure rather than rendering an
-  // empty table; `seedIsFallback` tells the client hook to refetch on mount.
+  // First paint uses the canonical-route seed. If that fetch failed entirely,
+  // seed null rows (keeps the 4-row structure) and flag it so the client hook
+  // refetches on mount instead of trusting the placeholder.
   const headToHeadSeedIsFallback = allProvidersFailed(headToHeadSeed);
   const initialHeadToHeadMetrics = headToHeadSeedIsFallback ? emptyProviderMetrics() : headToHeadSeed;
 
