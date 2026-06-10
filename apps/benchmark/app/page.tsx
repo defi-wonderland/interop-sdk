@@ -149,7 +149,7 @@ async function loadHeadToHeadSeed(): Promise<ProviderMetrics[]> {
   // First paint of the head-to-head section: the canonical route only, so it
   // matches the route the client hook starts on and can skip the mount fetch.
   try {
-    return await withTimeout(
+    const seed = await withTimeout(
       fetchProviderMetrics({
         originChainId: INITIAL_FROM_CHAIN_ID,
         destinationChainId: INITIAL_TO_CHAIN_ID,
@@ -157,6 +157,13 @@ async function loadHeadToHeadSeed(): Promise<ProviderMetrics[]> {
       HEAD_TO_HEAD_SEED_TIMEOUT_MS,
       'HEAD_TO_HEAD_SEED_TIMEOUT',
     );
+    if (allProvidersFailed(seed)) {
+      // The fetch resolves null rows instead of throwing when every provider
+      // fails, so the catch below never sees it. Same treatment as the
+      // leaderboard: don't cache a degraded seed for an hour.
+      noStore();
+    }
+    return seed;
   } catch {
     // Don't let ISR cache a degraded seed: next request retries instead of
     // serving null rows for an hour.
