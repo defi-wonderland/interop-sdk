@@ -36,6 +36,18 @@ function result(id: ProviderId, samples: HistorySample[]): HistoryResult {
   return { providerId: id, samples };
 }
 
+// A single success fill at a given timestamp (ms), for sample-window assertions.
+function at(timestamp: number): HistorySample {
+  return {
+    providerId: ProviderId.Across,
+    timestamp,
+    status: 'success',
+    amountUsd: 100,
+    feeUsd: 2,
+    fillTimeSeconds: 12,
+  };
+}
+
 type RouteHandler = (query: HistoryQuery, callIndex: number) => HistoryResult;
 
 function fakeService(handler: RouteHandler): { service: HistoryService; calls: HistoryQuery[] } {
@@ -107,6 +119,27 @@ describe('aggregateProviderRoutes', () => {
 
     expect(metrics.fillCount).toBe(0); // the provider answered, just with nothing
     expect(metrics.successRate).toBeNull(); // no resolved samples to rate
+    expect(metrics.sampleWindowSeconds).toBeNull(); // no fills, no span
+  });
+
+  it('reports the sample window as the span from oldest to newest fill across routes', async () => {
+    const { service } = fakeService((_q, i) =>
+      result(ACROSS, i === 0 ? [at(0), at(3_600_000)] : [at(7_200_000), at(10_800_000)]),
+    );
+
+    const metrics = await aggregateProviderRoutes(ACROSS, service, routes(2), NEVER);
+
+    expect(metrics.fillCount).toBe(4);
+    expect(metrics.sampleWindowSeconds).toBe(10_800); // 0 → 3h, pooled across both routes
+  });
+
+  it('has no window when the pool holds a single fill', async () => {
+    const { service } = fakeService((_q, i) => result(ACROSS, i === 0 ? [at(0)] : []));
+
+    const metrics = await aggregateProviderRoutes(ACROSS, service, routes(2), NEVER);
+
+    expect(metrics.fillCount).toBe(1);
+    expect(metrics.sampleWindowSeconds).toBeNull();
   });
 
   it('launches no waves when the budget is already spent', async () => {

@@ -1,6 +1,6 @@
 import { METRICS_CELL_NUM, METRICS_CELL_NUM_HIDDEN, METRICS_CELL_STACK, type MetricsColumn } from '../metricsTable';
-import { ProviderCell } from './ProviderCell';
-import { formatAvgFee, formatFillCount, formatFillSeconds, formatSuccessRate } from './formatters';
+import { LeaderboardProviderCell } from './LeaderboardProviderCell';
+import { formatAvgFee, formatFillSeconds, formatSuccessRate } from './formatters';
 import type { ProviderMeta } from '~/lib/providers';
 import { cn } from '~/lib/cn';
 
@@ -25,14 +25,13 @@ export const LEADERBOARD_COLUMNS: readonly LeaderboardColumn[] = [
     key: 'provider',
     label: 'PROVIDER',
     tdClass: METRICS_CELL_STACK,
-    render: (_metrics, ctx) => <ProviderCell provider={ctx.provider} />,
-  },
-  {
-    key: 'fills',
-    label: 'FILLS 24H',
-    className: 'hidden text-right md:table-cell md:w-32',
-    tdClass: `${METRICS_CELL_NUM_HIDDEN} text-text-primary`,
-    render: (metrics) => formatFillCount(metrics.fillCount),
+    render: (metrics, ctx) => (
+      <LeaderboardProviderCell
+        provider={ctx.provider}
+        fillCount={metrics.fillCount}
+        windowSeconds={metrics.sampleWindowSeconds}
+      />
+    ),
   },
   {
     key: 'success',

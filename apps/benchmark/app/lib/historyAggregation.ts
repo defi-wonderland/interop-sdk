@@ -36,12 +36,22 @@ export function aggregateProviderSamples(providerId: ProviderId, samples: readon
   return {
     providerId,
     fillCount,
+    sampleWindowSeconds: sampleWindowSeconds(owned),
     successRate,
     p50FillSeconds: percentile(fillTimes, 50),
     p99FillSeconds: percentile(fillTimes, 99),
     avgFeeUsd: fees.length === 0 ? null : fees.reduce((a, b) => a + b, 0) / fees.length,
     volumeUsd: volumes.length === 0 ? null : volumes.reduce((a, b) => a + b, 0),
   };
+}
+
+// Seconds from the oldest to the newest sampled fill. Needs at least two
+// timestamps to form a span; a single fill (or none) has no window, so report
+// null instead of a misleading 0.
+function sampleWindowSeconds(samples: readonly HistorySample[]): number | null {
+  const timestamps = samples.map((s) => s.timestamp).filter((t) => Number.isFinite(t));
+  if (timestamps.length < 2) return null;
+  return (Math.max(...timestamps) - Math.min(...timestamps)) / 1000;
 }
 
 export function sortLeaderboardBySuccess(metrics: readonly ProviderMetrics[]): ProviderMetrics[] {

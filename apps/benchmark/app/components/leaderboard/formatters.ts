@@ -9,6 +9,25 @@ export function formatFillCount(value: number | null): string {
   return Math.trunc(value).toLocaleString('en-US');
 }
 
+// Compact span the sample covers: `0s`, `45s`, `8h`, `2.7d`. Round into each
+// unit before the threshold check so a near-boundary value rolls over (3599s →
+// `1h`, not `60m`) instead of rendering an out-of-range count. Days keep one
+// decimal under 10d (2.7d reads better than 3d) and round above it (33d).
+export function formatSampleWindow(value: number | null): string {
+  if (!isUsableNumber(value) || value < 0) return PLACEHOLDER;
+  const seconds = Math.round(value);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.round(value / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(value / 3600);
+  if (hours < 24) return `${hours}h`;
+  const days = value / 86_400;
+  // Round to the displayed precision before the `< 10` check: 9.97d must read
+  // `10d`, not `10.0d` (raw 9.97 passes `< 10` but `toFixed(1)` renders 10.0).
+  const tenthDays = Math.round(days * 10) / 10;
+  return tenthDays < 10 ? `${tenthDays.toFixed(1)}d` : `${Math.round(days)}d`;
+}
+
 export function formatSuccessRate(value: number | null): string {
   if (!isUsableNumber(value)) return PLACEHOLDER;
   // Clamp to [0, 100]: upstream rounding occasionally produces 1.0001 etc.
