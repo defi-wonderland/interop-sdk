@@ -17,10 +17,6 @@ import { isNativeAddress, toCanonicalNativeAddress } from "./token.js";
  * Each metadata entry includes a `providers` array listing which provider IDs
  * reported the asset.
  *
- * Tokens with conflicting `symbol`/`decimals` are dropped (see
- * {@link dropConflictedTokens}); this also covers standalone consumers of
- * `getSupportedAssets()` that never go through {@link mergeDiscoveredAssets}.
- *
  * @internal Used by BaseAssetDiscoveryService - not exported publicly
  * @param results - Discovery results from one or more providers
  * @param filterChainIds - Optional numeric chain IDs to include (others are skipped)
@@ -31,7 +27,6 @@ export function toDiscoveredAssets(
 ): DiscoveredAssets {
     const tokensByChain: Record<number, string[]> = {};
     const tokenMetadata: Record<number, Record<string, DiscoveredAssetInfo>> = {};
-    const conflicted = new Map<number, Set<string>>();
 
     for (const result of results) {
         for (const network of result.networks) {
@@ -53,10 +48,6 @@ export function toDiscoveredAssets(
 
                 const existing = tokenMetadata[chainId][canonicalAddr];
                 if (existing) {
-                    if (isIdentityConflict(existing, asset)) {
-                        markConflicted(conflicted, chainId, canonicalAddr);
-                        continue;
-                    }
                     if (!existing.providers.includes(result.providerId)) {
                         existing.providers.push(result.providerId);
                     }
@@ -76,8 +67,6 @@ export function toDiscoveredAssets(
         }
     }
 
-    dropConflictedTokens(tokensByChain, tokenMetadata, conflicted);
-
     return {
         tokensByChain,
         tokenMetadata,
@@ -89,11 +78,8 @@ export function toDiscoveredAssets(
  *
  * Used by Aggregator to combine results from multiple providers.
  * Deduplicates tokens by canonical address (native placeholders collapse
- * to the canonical EIP-7528 form); merges `providers` arrays (first non-empty
- * wins for name/logoURI, union for providers).
- *
- * Tokens with conflicting `symbol`/`decimals` across sources are dropped
- * (see {@link dropConflictedTokens}).
+ * to the canonical EIP-7528 form); merges `providers` arrays (first-write-wins
+ * for symbol/decimals, first non-empty wins for name/logoURI, union for providers).
  *
  * @internal Used by Aggregator - not exported publicly
  * @param sources - Array of DiscoveredAssets to merge
@@ -101,7 +87,6 @@ export function toDiscoveredAssets(
 export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAssets {
     const tokensByChain: Record<number, string[]> = {};
     const tokenMetadata: Record<number, Record<string, DiscoveredAssetInfo>> = {};
-    const conflicted = new Map<number, Set<string>>();
 
     for (const source of sources) {
         for (const [chainKeyStr, tokens] of Object.entries(source.tokensByChain)) {
@@ -122,10 +107,6 @@ export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAs
                 const canonical = toCanonicalNativeAddress(addr, "eip155");
                 const existing = tokenMetadata[chainId][canonical];
                 if (existing) {
-                    if (isIdentityConflict(existing, meta)) {
-                        markConflicted(conflicted, chainId, canonical);
-                        continue;
-                    }
                     for (const pid of meta.providers) {
                         if (!existing.providers.includes(pid)) {
                             existing.providers.push(pid);
@@ -147,76 +128,8 @@ export function mergeDiscoveredAssets(sources: DiscoveredAssets[]): DiscoveredAs
         }
     }
 
-    dropConflictedTokens(tokensByChain, tokenMetadata, conflicted);
-
     return {
         tokensByChain,
         tokenMetadata,
     } as DiscoveredAssets;
-}
-
-/**
- * Sources disagree on `symbol` or `decimals`: at least one is mislabeling the token.
- *
- * Symbols are compared with strict equality, matching the downstream same-asset check
- * in `validateBuildQuoteParams`. Normalizing here (e.g. case-folding) would only desync
- * the two comparisons, and providers report symbols from standard token lists anyway.
- */
-function isIdentityConflict(
-    existing: DiscoveredAssetInfo,
-    incoming: { symbol: string; decimals: number },
-): boolean {
-    return existing.symbol !== incoming.symbol || existing.decimals !== incoming.decimals;
-}
-
-/** Record a (chainId, canonical address) pair as conflicted. */
-function markConflicted(
-    conflicted: Map<number, Set<string>>,
-    chainId: number,
-    canonical: string,
-): void {
-    let addresses = conflicted.get(chainId);
-    if (!addresses) {
-        addresses = new Set();
-        conflicted.set(chainId, addresses);
-    }
-    addresses.add(canonical);
-}
-
-/**
- * Remove conflicted tokens from both lookup structures.
- *
- * There is no way to tell which source is lying, so conflicted entries are
- * dropped entirely (fail-closed): downstream treats missing metadata as
- * unknown and rejects, instead of trusting a poisoned symbol.
- */
-function dropConflictedTokens(
-    tokensByChain: Record<number, string[]>,
-    tokenMetadata: Record<number, Record<string, DiscoveredAssetInfo>>,
-    conflicted: Map<number, Set<string>>,
-): void {
-    for (const [chainId, addresses] of conflicted) {
-        for (const canonical of addresses) {
-            delete tokenMetadata[chainId]?.[canonical];
-        }
-        // One warning per chain, not per token, so a poisoned provider reporting
-        // many conflicts can't flood the logs.
-        console.warn(
-            `[AssetDiscovery] Providers disagree on symbol/decimals for ${addresses.size} token(s) on chain ${chainId}; dropping them from discovery results: ${[...addresses].join(", ")}`,
-        );
-
-        const tokens = tokensByChain[chainId];
-        if (tokens) {
-            tokensByChain[chainId] = tokens.filter((addr) => !addresses.has(addr));
-        }
-
-        // Don't leave empty chain entries behind.
-        if (tokensByChain[chainId]?.length === 0) {
-            delete tokensByChain[chainId];
-        }
-        const chainMeta = tokenMetadata[chainId];
-        if (chainMeta && Object.keys(chainMeta).length === 0) {
-            delete tokenMetadata[chainId];
-        }
-    }
 }

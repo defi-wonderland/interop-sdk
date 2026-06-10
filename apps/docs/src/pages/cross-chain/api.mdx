@@ -150,16 +150,15 @@ A utility for managing multiple cross-chain providers and executing operations a
 
 ### AggregatorConfig
 
-| Field              | Type                   | Required | Default                       | Description                                                                                                                                                                                                                                                                                                    |
-| ------------------ | ---------------------- | -------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `providers`        | `CrossChainProvider[]` | Yes      | —                             | Providers to aggregate over.                                                                                                                                                                                                                                                                                   |
-| `sortingStrategy`  | `SortingStrategy`      | No       | `BestOutputStrategy`          | Sorts the merged quote list. See [Sorting Strategies](#sorting-strategies).                                                                                                                                                                                                                                    |
-| `timeoutMs`        | `number`               | No       | `15_000`                      | Per-provider quote-fetch timeout. Each `provider.getQuotes(...)` call races a `setTimeout`; providers that don't respond in time surface a `ProviderTimeout` in `response.errors` rather than stalling `getQuotes`. Others continue normally.                                                                  |
-| `trackerFactory`   | `{ createTracker }`    | No       | `new OrderTrackerFactory()`   | Factory used by `aggregator.track(...)` and `aggregator.prepareTracking(...)` to build per-provider `OrderTracker` instances. The default falls back to viem's public transport per chain — supply `new OrderTrackerFactory({ rpcUrls })` for production reliability. See [Order Tracker](#order-tracker).     |
-| `discoveryFactory` | `{ createService }`    | No       | `new AssetDiscoveryFactory()` | Factory used by `aggregator.discoverAssets(...)` and `aggregator.getProvidersForRoute(...)` to build per-provider `AssetDiscoveryService` instances. Providers with no discovery support are skipped. Supply a custom factory only when you want to override discovery wiring for every provider.              |
-| `approvalService`  | `ApprovalService`      | No       | —                             | Enriches sorted quotes with ERC-20 `approve` steps. See [Approval Service](#approval-service).                                                                                                                                                                                                                 |
-| `spenderValidator` | `SpenderValidator`     | No       | —                             | Validates each quote's spender and transaction targets against a consumer-owned allowlist. Untrusted quotes are dropped from `getQuotes` (and reported in `errors`) and make `buildQuote` throw `UntrustedSpender`. See [Spender Validation](#spender-validation).                                             |
-| `sameAssetService` | `SameAssetService`     | No       | —                             | Resolves whether `buildQuote`'s input and output are the same asset, from a consumer-owned `assetId → chainId → address` map. When set, it replaces the default symbol/decimals/shared-provider heuristic; unknown pairings throw `DifferentAssetNotAllowed`. See [Same-Asset Identity](#same-asset-identity). |
+| Field              | Type                   | Required | Default                       | Description                                                                                                                                                                                                                                                                                                |
+| ------------------ | ---------------------- | -------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `providers`        | `CrossChainProvider[]` | Yes      | —                             | Providers to aggregate over.                                                                                                                                                                                                                                                                               |
+| `sortingStrategy`  | `SortingStrategy`      | No       | `BestOutputStrategy`          | Sorts the merged quote list. See [Sorting Strategies](#sorting-strategies).                                                                                                                                                                                                                                |
+| `timeoutMs`        | `number`               | No       | `15_000`                      | Per-provider quote-fetch timeout. Each `provider.getQuotes(...)` call races a `setTimeout`; providers that don't respond in time surface a `ProviderTimeout` in `response.errors` rather than stalling `getQuotes`. Others continue normally.                                                              |
+| `trackerFactory`   | `{ createTracker }`    | No       | `new OrderTrackerFactory()`   | Factory used by `aggregator.track(...)` and `aggregator.prepareTracking(...)` to build per-provider `OrderTracker` instances. The default falls back to viem's public transport per chain — supply `new OrderTrackerFactory({ rpcUrls })` for production reliability. See [Order Tracker](#order-tracker). |
+| `discoveryFactory` | `{ createService }`    | No       | `new AssetDiscoveryFactory()` | Factory used by `aggregator.discoverAssets(...)` and `aggregator.getProvidersForRoute(...)` to build per-provider `AssetDiscoveryService` instances. Providers with no discovery support are skipped. Supply a custom factory only when you want to override discovery wiring for every provider.          |
+| `approvalService`  | `ApprovalService`      | No       | —                             | Enriches sorted quotes with ERC-20 `approve` steps. See [Approval Service](#approval-service).                                                                                                                                                                                                             |
+| `spenderValidator` | `SpenderValidator`     | No       | —                             | Validates each quote's spender and transaction targets against a consumer-owned allowlist. Untrusted quotes are dropped from `getQuotes` (and reported in `errors`) and make `buildQuote` throw `UntrustedSpender`. See [Spender Validation](#spender-validation).                                         |
 
 ### Aggregator Class
 
@@ -395,48 +394,6 @@ Opt-in validation that drops quotes whose spender or transaction target is not o
 ### UntrustedSpender
 
     Error for a rejected quote: returned in the `errors` array of `getQuotes`, thrown by `buildQuote`. Carries `provider`, `chainId`, `field`, `received`, and the `trusted` list.
-
-## Same-Asset Identity
-
-Opt-in resolver that decides whether `buildQuote`'s input and output are the same asset, from a map you control. See [Advanced Usage](./advanced-usage#same-asset-transfers) for the full guide.
-
-### Methods
-
--   **createSameAssetService**(assets: SameAssetMap): SameAssetService
-
-    Builds the default map-backed resolver. Throws if any address is malformed or the map is empty.
-
-    ```typescript
-    import { createSameAssetService } from "@wonderland/interop-cross-chain";
-
-    const sameAssetService = createSameAssetService({
-        USDC: {
-            1: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-            42161: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-        },
-    });
-    ```
-
-### SameAssetMap
-
-    ```typescript
-    // assetId -> chainId -> token address
-    type SameAssetMap = Record<string, Record<number, Address>>;
-    ```
-
-### SameAssetService
-
-    Pass any object implementing this interface as `sameAssetService` to resolve against your own registry. Two addresses are the same asset when they resolve to the same id; return `undefined` to reject the pairing.
-
-    ```typescript
-    interface SameAssetService {
-        resolve(chainId: number, address: Address): string | undefined;
-    }
-    ```
-
-### DifferentAssetNotAllowed
-
-    Error thrown by `buildQuote` when the input and output are not the same asset — resolved to different ids, or unknown to the service.
 
 ## Sorting Strategies
 

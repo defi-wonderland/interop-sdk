@@ -7,4 +7,3 @@ export * from "./quoteRequest.js";
 export * from "./providerConfig.js";
 export * from "./quote.js";
 export * from "./spenderAllowlist.js";
-export * from "./sameAsset.js";

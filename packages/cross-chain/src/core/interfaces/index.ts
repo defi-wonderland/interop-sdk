@@ -8,7 +8,6 @@ export * from "./quotes.interface.js";
 export * from "./sortingStrategy.interface.js";
 export * from "./intentValidator.interface.js";
 export * from "./spenderValidator.interface.js";
-export * from "./sameAsset.interface.js";
 export * from "./assetDiscovery.interface.js";
 export * from "./preTracker.interface.js";
 export * from "./httpClient.interface.js";
