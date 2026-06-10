@@ -9,6 +9,18 @@ export function formatFillCount(value: number | null): string {
   return Math.trunc(value).toLocaleString('en-US');
 }
 
+// Compact span the sample covers: `45m`, `8h`, `2.7d`. Days keep one decimal
+// under 10d (2.7d reads better than 3d) and round above it (33d, not 33.1d).
+export function formatSampleWindow(value: number | null): string {
+  if (!isUsableNumber(value) || value < 0) return PLACEHOLDER;
+  const minutes = value / 60;
+  if (minutes < 60) return `${Math.max(1, Math.round(minutes))}m`;
+  const hours = minutes / 60;
+  if (hours < 24) return `${Math.round(hours)}h`;
+  const days = hours / 24;
+  return days < 10 ? `${days.toFixed(1)}d` : `${Math.round(days)}d`;
+}
+
 export function formatSuccessRate(value: number | null): string {
   if (!isUsableNumber(value)) return PLACEHOLDER;
   // Clamp to [0, 100]: upstream rounding occasionally produces 1.0001 etc.

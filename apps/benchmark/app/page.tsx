@@ -90,7 +90,7 @@ export default async function Home() {
         <SectionFrame variant='tinted'>
           <SectionHeader
             index='02'
-            label='provider leaderboard · 24h ambient'
+            label='provider leaderboard'
             title='how providers performed across all routes'
             rightSlot={<Label className={META_LABEL_CLASS}>pulled from each provider&rsquo;s public history api</Label>}
           />
