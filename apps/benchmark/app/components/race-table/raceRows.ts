@@ -47,7 +47,7 @@ export function orderRaceRows(rows: RaceRow[]): RaceRow[] {
     if (right.status === 'errored' && left.status !== 'errored') return -1;
 
     if (left.status === 'settled' && right.status === 'settled') {
-      return parseOptionalNumber(right.quote?.outputAmountUsd) - parseOptionalNumber(left.quote?.outputAmountUsd);
+      return compareByOutputDesc(left, right);
     }
 
     return providerIndex(left.provider.id) - providerIndex(right.provider.id);
@@ -94,7 +94,7 @@ export function findBestProvider(rows: RaceRow[], metric: 'output' | 'latency'):
   const settled = rows.filter((row) => row.status === 'settled' && row.quote);
   const sorted = [...settled].sort((left, right) => {
     if (metric === 'output') {
-      return parseOptionalNumber(right.quote?.outputAmountUsd) - parseOptionalNumber(left.quote?.outputAmountUsd);
+      return compareByOutputDesc(left, right);
     }
 
     return valueOrInfinity(left.quote?.latencyMs) - valueOrInfinity(right.quote?.latencyMs);
@@ -107,6 +107,27 @@ export function parseOptionalNumber(value: string | number | undefined): number 
   if (value === undefined) return 0;
   const parsed = typeof value === 'number' ? value : Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+// Output amounts are integer base units of the destination asset. The race
+// always quotes the same output asset (USDC->USDC), so they compare directly,
+// and BigInt keeps it exact for 18-decimal tokens. A missing amount sorts last.
+// Ranking by the token received (not its USD value) is both the right measure
+// and robust: providers that omit a USD price still compete on equal footing.
+function outputBaseUnits(quote: ProviderQuoteResult | undefined): bigint {
+  if (quote?.outputAmount === undefined) return 0n;
+  try {
+    return BigInt(quote.outputAmount);
+  } catch {
+    return 0n;
+  }
+}
+
+// Descending by output received: the provider that returns the most wins.
+function compareByOutputDesc(left: RaceRow, right: RaceRow): number {
+  const a = outputBaseUnits(left.quote);
+  const b = outputBaseUnits(right.quote);
+  return a < b ? 1 : a > b ? -1 : 0;
 }
 
 const DECIMAL_AMOUNT_RE = /^\d+(\.\d+)?$/;
