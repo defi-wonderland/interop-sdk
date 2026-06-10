@@ -9,8 +9,8 @@ This document lists all cross-chain providers supported by the Interop SDK.
 
 ## Available Providers
 
-| Provider                                | Status | Description                                               |
-| --------------------------------------- | ------ | --------------------------------------------------------- |
+| Provider                                           | Status | Description                                               |
+| -------------------------------------------------- | ------ | --------------------------------------------------------- |
 | [Across Protocol](/cross-chain/across-provider)    | Active | Cross-chain token transfers using Across bridge           |
 | [Relay Protocol](/cross-chain/relay-provider)      | Active | Cross-chain token transfers using Relay bridge            |
 | [OIF](/cross-chain/oif-provider)                   | Active | Direct integration with OIF-compliant solvers             |
@@ -66,6 +66,24 @@ Only `across` and `relay` accept `isTestnet`. What it changes:
 | `relay`  | `api.relay.link` → `api.testnets.relay.link`  | Mainnet routes → testnet routes                            | API-based in both modes — no RPC URLs needed.                                  | API → static testnet list |
 
 `oif`, `bungee`, and `lifi-intents` don't take an `isTestnet` flag. For those providers, switch networks by pointing `url` / `orderServerUrl` / `baseUrl` at a testnet endpoint.
+
+## Optional `Quote` Fields Populated per Provider
+
+Every field below is optional on `Quote`. A provider only fills a field when its upstream API returns the underlying data, so the matrix reflects upstream behavior — not SDK gaps. Read [Quote](/cross-chain/api#quote) for the field shapes.
+
+| Field                            | Across | Relay | Bungee | LiFi Intents | OIF |
+| -------------------------------- | ------ | ----- | ------ | ------------ | --- |
+| `eta` (seconds)                  | ✅     | ✅    | ✅     | —            | ✅  |
+| `validUntil` (unix timestamp)    | —      | —     | —      | ✅           | ✅  |
+| `fees.bridgeFee`                 | ✅     | ✅    | ✅     | —            | —   |
+| `fees.bridgeFeePct` (1e18 scale) | ✅     | —     | —      | —            | —   |
+| `fees.originGas`                 | ✅     | ✅    | ✅     | —            | —   |
+| `fallbackToken`                  | ✅     | ✅    | —      | —            | —   |
+| `preview.outputs[].minAmount`    | ✅     | ✅    | ✅     | —            | —   |
+| `preview.*.amountUsd`            | —      | ✅    | ✅     | —            | —   |
+| `tracking.orderId`               | —      | ✅    | ✅     | ✅           | ✅  |
+
+UIs that compare providers side-by-side should treat every cell marked `—` as "missing upstream" — display a placeholder rather than filtering providers out. The aggregator's sorting strategies (`BestOutputStrategy`, `LowerEtaStrategy`) read `preview.outputs[0].amount` and `eta` directly, so they tolerate the missing-field case on their own.
 
 ## Order Tracking Requirements
 
