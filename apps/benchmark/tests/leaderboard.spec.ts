@@ -22,7 +22,7 @@ test('top row shows a real success rate value, not an em-dash', async ({ page })
 test('renders the bungee placeholder row with no global feed', async ({ page }) => {
   const table = page.getByRole('region', { name: 'provider leaderboard' });
   const bungeeRow = table.locator('tbody tr').filter({ hasText: 'bungee' });
-  await expect(bungeeRow).toContainText('no global feed');
+  await expect(bungeeRow).toContainText('NO GLOBAL FEED');
   // Every numeric column (cells 2 through 6: fills, success, p50, p99, fee)
   // must render the em-dash. Asserting `toContainText('—')` alone would pass
   // if any single cell had it, missing a regression that fills another column.
