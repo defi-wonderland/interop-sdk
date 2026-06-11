@@ -1,5 +1,11 @@
 # @wonderland/interop-addresses
 
+## 0.8.1
+
+### Patch Changes
+
+-   3b9c4d4: Use `parseName({ rpcUrl })` for ENS resolution instead of ignoring it and falling back to `MAINNET_RPC_URL`.
+
 ## 0.8.0
 
 ### Minor Changes
