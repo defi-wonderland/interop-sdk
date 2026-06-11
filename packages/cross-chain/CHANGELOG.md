@@ -1,5 +1,63 @@
 # @wonderland/interop-cross-chain
 
+## 0.14.0
+
+### Minor Changes
+
+-   6e446a7: Validate quote-supplied allowance checks against the quote's own intent before approving
+
+    The approval service built `approve(spender, amount)` from the `owner`, `spender`, and `tokenAddress` carried in a quote, so a forged quote could make the connected wallet approve an arbitrary spender on an arbitrary token — and `preferInfinite` raised the granted amount to `maxUint256`. A new `ApprovalValidator` now keeps only the checks that match the quote: the token and owner must match a previewed input, the spender must be canonical Permit2 or the `to` of one of the quote's own transaction steps, and the required amount cannot exceed the input (`preferInfinite` is honoured only for Permit2). Dropped checks are reported through the validation failure handler and never produce an approval step.
+
+-   aa5d790: Add an opt-in consumer-provided same-asset check to buildQuote.
+
+    `buildQuote` only builds same-asset transfers, and confirms the input and output really are the same asset before building. By default it infers this from discovery metadata: the two legs must agree on symbol and decimals and be listed by a common provider, instead of matching on symbol alone. Cross-token swaps continue through `getQuotes`, and `allowDangerousParameters` still bypasses the check.
+
+    That heuristic relies on third-party token metadata. Consumers who want an authoritative, offline source of truth can now inject one. `createSameAssetService({ assetId -> chainId -> address })` builds a `SameAssetService` from a consumer-owned map, passed to `createAggregator` as `sameAssetService`. When set, the same-asset check resolves both legs through it: the transfer is allowed only when both resolve to the same asset id, and is fail-closed (rejected with `DifferentAssetNotAllowed`) when either address is unknown. Addresses are normalized before comparison — case-insensitive, with native placeholders collapsed.
+
+    The SDK ships no token list and maintains none. The pairings are the consumer's to provide and keep up to date, or implement the `SameAssetService` interface to resolve against your own registry.
+
+-   9fb958e: Bind Bungee approval checks to the quote request and route
+
+    Bungee allowance checks were built from the solver's `approvalData`, copying `spenderAddress`, `tokenAddress` and `userAddress` straight into `order.checks.allowances`, which the SDK later turns into `approve()` transactions. A tampered response could set the spender to any address and have the user approve an attacker contract. The allowance spender is now taken from the route (canonical Permit2 for sign routes, the transaction target for tx and manual routes), and the token and owner come from the quote request instead of `approvalData`. Native input assets no longer produce an allowance. `adaptManualRouteQuote` now requires the `QuoteRequest`.
+
+-   9cc4a9c: Add an opt-in consumer-provided spender validation.
+
+    The `Aggregator` takes an optional `spenderValidator: SpenderValidator` (same injection style as `approvalService`). When set, `getQuotes` drops quotes whose counterparty is not trusted and surfaces them as `UntrustedSpender` entries in the `errors` array; `buildQuote` throws `UntrustedSpender`. Without a validator, behavior is unchanged.
+
+    Counterparties are derived from the payload rather than provider-supplied hints: the transaction `to`, the decoded ERC-20 `approve` spender when the step is a corroborated approval (tagged `category: "approval"` or pinned by a matching allowance check), the Permit2 `spender` and EIP-3009 `to` carried in signature steps, and any `checks.allowances[].spender`. Approve-shaped calldata to an untrusted `to` is still checked as a transaction target, and signature steps whose counterparty cannot be determined are rejected (fail-closed).
+
+    `createSpenderValidator({ trustedSpenders })` builds the default `AllowlistSpenderValidator` from a per-chain allowlist (`SpenderAllowlist`, validated by `SpenderAllowlistSchema`). Addresses are normalized before comparison and the check is fail-closed on chains absent from the list; an empty allowlist is rejected. The SDK ships no curated registry; the consumer maintains the list, or implements `SpenderValidator` to validate against their own contract registry.
+
+-   7f24ad4: Require `QuoteRequest` when adapting OIF quotes
+
+    `adaptQuote` now takes `params: QuoteRequest` as a required argument (it was optional). The EIP-712 envelope of escrow/3009 orders is cross-checked against the user's quote request to detect tampering by a compromised solver, so omitting `params` from the public API was a footgun. Callers are now forced at compile time to supply the user's intent, making the tamper-check impossible to skip. `OifProvider.getQuotes` already passes `params`, so runtime behaviour is unchanged.
+
+-   464fad0: Reject OIF orders that carry unverified extra entries
+
+    OIF order validation only checks `inputs[0]`, so any extra entry in an order's `permitted`, `commitments`, or `allowances` array went through unverified — a solver could use that to slip in transfers the SDK never cross-checked against the user's intent. Escrow, resource-lock, and user-open orders with more than one such entry are now rejected, and `oif-user-open-v0` throws the new `UnverifiedOrderEntries` error in that case.
+
+-   67c5a50: Surface providers skipped by asset discovery in `getQuotes` errors
+
+    `Aggregator.getQuotes` previously dropped a provider entirely when the discovery cache marked the requested input or output asset as unsupported — the provider appeared in neither `quotes` nor `errors`, making it indistinguishable from a flaky aggregation. Skipped providers now appear in `errors` with an `UnsupportedAsset` exception, `latencyMs: 0`, and the provider id, so UIs can label the reason instead of silently hiding the provider.
+
+-   67c5a50: Validate `RouteQuery` input in `Aggregator.getProvidersForRoute`
+
+    `getProvidersForRoute` previously returned `[]` for any malformed query — wrong shape, missing fields, non-hex addresses — which was indistinguishable from "no provider supports this route". Input now goes through a zod schema (`RouteQuerySchema`) so callers get a `ZodError` for bad input and an empty array only when the route really is unsupported. Quote requests have always been validated; route queries now match.
+
+    `RouteQuerySchema` and the `RouteQuery` type are exported from the package entrypoint so consumers can validate input themselves before calling.
+
+    Behavior change for callers that previously relied on the silent `[]` fallback: bad input now throws synchronously inside the awaited promise. Wrap calls in `try/catch` (or pre-validate with `RouteQuerySchema.safeParse`) to discriminate input errors from "no supported provider".
+
+### Patch Changes
+
+-   ae2addb: Bind Across calldata amounts to the quote response fields
+
+    `AcrossProvider.validateCalldata` now checks the decoded `swapTx.data` `inputAmount` and `outputAmount` against the response's `inputAmount` and `minOutputAmount`, not only against the request. This ties the amounts previewed to the user to the amounts encoded in the deposit calldata, and it covers `exact-output` quotes where the request has no `input.amount` and the calldata `inputAmount` was previously left unchecked.
+
+-   bf8358f: Accept explicit `null` in Across `/swap/approval` responses for `steps.originSwap`, `steps.destinationSwap` and `approvalTxns`. The Across API now serializes absent steps as `null` instead of omitting them, which broke quote parsing for every route.
+-   Updated dependencies [3b9c4d4]
+    -   @wonderland/interop-addresses@0.8.1
+
 ## 0.13.2
 
 ### Patch Changes

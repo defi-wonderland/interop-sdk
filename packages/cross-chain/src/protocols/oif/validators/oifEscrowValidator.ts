@@ -18,6 +18,7 @@ export async function validateEscrowOrder(
 
     const message = payload.message as EscrowMessage;
     if (!message.permitted?.length) return false;
+    if (message.permitted.length > 1) return false;
 
     // TODO: Support multiple inputs (OIF standard supports multi-token intents via permitted[])
     const input = userIntent.intent.inputs[0];

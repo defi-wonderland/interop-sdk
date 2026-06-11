@@ -12,6 +12,7 @@ export async function validateUserOpenOrder(
 
     const allowances = order.checks.allowances;
     if (!allowances.length) return false;
+    if (allowances.length > 1) return false;
 
     const allowance = allowances[0];
     if (!allowance) return false;

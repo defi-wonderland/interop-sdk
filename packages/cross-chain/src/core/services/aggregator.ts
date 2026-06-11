@@ -2,6 +2,8 @@ import { Hex } from "viem";
 
 import type { ApprovalService } from "../interfaces/approval.interface.js";
 import type { AssetDiscoveryService } from "../interfaces/assetDiscovery.interface.js";
+import type { SameAssetService } from "../interfaces/sameAsset.interface.js";
+import type { SpenderValidator } from "../interfaces/spenderValidator.interface.js";
 import type {
     ExecutableQuote,
     GetQuotesError,
@@ -19,8 +21,11 @@ import { AssetDiscoveryFailure } from "../errors/AssetDiscoveryFailure.exception
 import { DuplicateProvider } from "../errors/DuplicateProvider.exception.js";
 import { ProviderNotFound } from "../errors/ProviderNotFound.exception.js";
 import { ProviderTimeout } from "../errors/ProviderTimeout.exception.js";
+import { UnsupportedAsset } from "../errors/UnsupportedAsset.exception.js";
+import { UntrustedSpender } from "../errors/UntrustedSpender.exception.js";
 import { CrossChainProvider } from "../interfaces/crossChainProvider.interface.js";
 import { SortingStrategy } from "../interfaces/sortingStrategy.interface.js";
+import { RouteQuerySchema } from "../schemas/assetDiscovery.js";
 import { BestOutputStrategy } from "../sorting_strategies/bestOutput.strategy.js";
 import { mergeDiscoveredAssets } from "../utils/toDiscoveredAssets.js";
 import { toCanonicalNativeAddress } from "../utils/token.js";
@@ -41,6 +46,8 @@ interface AggregatorConfig {
         createService(provider: CrossChainProvider): AssetDiscoveryService | null;
     };
     approvalService?: ApprovalService;
+    spenderValidator?: SpenderValidator;
+    sameAssetService?: SameAssetService;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -57,6 +64,8 @@ class Aggregator {
     private readonly timeoutMs: number;
     private readonly trackerFactory: AggregatorConfig["trackerFactory"];
     private readonly approvalService: AggregatorConfig["approvalService"];
+    private readonly spenderValidator?: SpenderValidator;
+    private readonly sameAssetService?: SameAssetService;
     private readonly trackerCache: Map<string, OrderTracker> = new Map();
     private readonly discoveryCache: Map<string, AssetDiscoveryService> = new Map();
 
@@ -73,6 +82,8 @@ class Aggregator {
             trackerFactory,
             discoveryFactory,
             approvalService,
+            spenderValidator,
+            sameAssetService,
         } = config;
         this.providers = new Map();
         for (const provider of providers) {
@@ -86,6 +97,8 @@ class Aggregator {
         this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
         this.trackerFactory = trackerFactory;
         this.approvalService = approvalService;
+        this.spenderValidator = spenderValidator;
+        this.sameAssetService = sameAssetService;
 
         if (discoveryFactory) {
             this.initDiscoveryServices(providers, discoveryFactory);
@@ -106,8 +119,11 @@ class Aggregator {
 
     /**
      * Check whether a provider supports all assets in the quote request.
-     * Returns false if any input or output asset is not supported, avoiding unnecessary HTTP calls.
-     * Uses the pre-warmed discovery cache so this is typically instant.
+     * Returns `false` when any input or output asset is unsupported, letting callers
+     * either skip the provider (build path) or surface the skip as a `GetQuotesError`
+     * via `buildSkippedProviderError` (aggregate path). Uses the pre-warmed discovery
+     * cache so this is typically instant. Discovery failures default to `true` so a
+     * flaky discovery layer does not silently hide live providers.
      */
     private async supportsRequestedAssets(
         provider: CrossChainProvider,
@@ -144,6 +160,21 @@ class Aggregator {
         }
     }
 
+    /**
+     * Build a `GetQuotesError` entry for a provider that asset discovery skipped, so the
+     * caller can tell "no quote because the route is unsupported" apart from "the provider
+     * disappeared".
+     */
+    private buildSkippedProviderError(providerId: string, params: QuoteRequest): GetQuotesError {
+        const error = new UnsupportedAsset(providerId, params.input, params.output);
+        return {
+            error,
+            errorMsg: error.message,
+            latencyMs: 0,
+            providerId,
+        };
+    }
+
     private splitQuotesAndErrors(quotes: (ExecutableQuote | GetQuotesError)[]): GetQuotesResponse {
         return {
             quotes: quotes.filter((quote) => "order" in quote) as ExecutableQuote[],
@@ -161,7 +192,7 @@ class Aggregator {
             [...this.providers.values()].map(async (provider) => {
                 const isSupported = await this.supportsRequestedAssets(provider, params);
                 if (!isSupported) {
-                    return [];
+                    return this.buildSkippedProviderError(provider.getProviderId(), params);
                 }
 
                 const startedAt = performance.now();
@@ -206,7 +237,22 @@ class Aggregator {
         ).then((results) => results.flat());
 
         const response = this.splitQuotesAndErrors(resultQuotes);
-        let sortedQuotes = this.sortingStrategy.sort(response.quotes);
+
+        let validatedQuotes = response.quotes;
+        if (this.spenderValidator) {
+            const trusted: ExecutableQuote[] = [];
+            for (const quote of response.quotes) {
+                const error = this.findSpenderError(quote);
+                if (error) {
+                    response.errors.push(error);
+                } else {
+                    trusted.push(quote);
+                }
+            }
+            validatedQuotes = trusted;
+        }
+
+        let sortedQuotes = this.sortingStrategy.sort(validatedQuotes);
 
         if (this.approvalService) {
             try {
@@ -256,13 +302,25 @@ class Aggregator {
         }
 
         const discovered = await this.discoverAssets();
-        validateBuildQuoteParams(params, discovered.tokenMetadata);
+        validateBuildQuoteParams(
+            params,
+            discovered.tokenMetadata,
+            undefined,
+            this.sameAssetService,
+        );
 
         const isSupported = await this.supportsRequestedAssets(provider, params);
         validateAssetSupport(params, providerId, isSupported);
 
         const quote = await provider.buildQuote(params);
         let executable: ExecutableQuote = { ...quote, _providerId: providerId };
+
+        if (this.spenderValidator) {
+            const violation = this.spenderValidator.findViolation(executable);
+            if (violation) {
+                throw new UntrustedSpender({ provider: providerId, ...violation });
+            }
+        }
 
         if (this.approvalService) {
             try {
@@ -351,17 +409,22 @@ class Aggregator {
 
     /**
      * Find which providers support a given origin/destination route.
+     *
+     * @throws ZodError when `query` is missing required fields or contains a malformed
+     *   chain id / asset address, so callers can distinguish "bad input" from
+     *   "route unsupported" (which returns `[]`).
      */
     async getProvidersForRoute(query: RouteQuery): Promise<string[]> {
+        const validated = RouteQuerySchema.parse(query);
         const assets = await this.discoverAssets();
 
         const originMeta =
-            assets.tokenMetadata[query.originChainId]?.[
-                toCanonicalNativeAddress(query.originAsset, "eip155")
+            assets.tokenMetadata[validated.originChainId]?.[
+                toCanonicalNativeAddress(validated.originAsset, "eip155")
             ];
         const destMeta =
-            assets.tokenMetadata[query.destinationChainId]?.[
-                toCanonicalNativeAddress(query.destinationAsset, "eip155")
+            assets.tokenMetadata[validated.destinationChainId]?.[
+                toCanonicalNativeAddress(validated.destinationAsset, "eip155")
             ];
 
         if (!originMeta || !destMeta) {
@@ -390,6 +453,29 @@ class Aggregator {
         this.trackerCache.set(providerId, tracker);
 
         return tracker;
+    }
+
+    private findSpenderError(quote: ExecutableQuote): GetQuotesError | null {
+        if (!this.spenderValidator) return null;
+        try {
+            const violation = this.spenderValidator.findViolation(quote);
+            if (!violation) return null;
+            const error = new UntrustedSpender({ provider: quote._providerId, ...violation });
+            return {
+                error,
+                errorMsg: error.message,
+                latencyMs: quote.latencyMs,
+                providerId: quote._providerId,
+            };
+        } catch (cause) {
+            const error = cause instanceof Error ? cause : new Error(String(cause));
+            return {
+                error,
+                errorMsg: error.message,
+                latencyMs: quote.latencyMs,
+                providerId: quote._providerId,
+            };
+        }
     }
 }
 

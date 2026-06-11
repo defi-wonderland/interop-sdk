@@ -67,6 +67,38 @@ export interface ApprovalService {
     enrichQuotes(quotes: ExecutableQuote[]): Promise<ExecutableQuote[]>;
 }
 
+// ── Allowance validation ─────────────────────────────────
+
+/** Why a quote-supplied allowance check was rejected before becoming an `approve`. */
+export enum ApprovalValidationFailureReason {
+    NativeAsset = "native-asset",
+    ChainMismatch = "chain-mismatch",
+    TokenMismatch = "token-mismatch",
+    OwnerMismatch = "owner-mismatch",
+    UntrustedSpender = "untrusted-spender",
+    AmountExceedsInput = "amount-exceeds-input",
+}
+
+/** A rejected allowance check together with the reason it failed validation. */
+export interface ApprovalValidationViolation {
+    check: AllowanceCheck;
+    reason: ApprovalValidationFailureReason;
+}
+
+/** Receives allowance checks dropped because they don't match the quote's own intent. */
+export interface ApprovalValidationFailureHandler {
+    handle(violation: ApprovalValidationViolation): void;
+}
+
+/**
+ * Returns only the allowance checks that match a quote's own intent, so an
+ * `approve` can never target a spender or token the quote's own steps and inputs
+ * don't already use.
+ */
+export interface ApprovalValidator {
+    validate(quote: ExecutableQuote): AllowanceCheck[];
+}
+
 // ── Utilities ────────────────────────────────────────────
 
 /** Builds a composite key that uniquely identifies an allowance slot. */

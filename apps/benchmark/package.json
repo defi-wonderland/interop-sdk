@@ -1,6 +1,6 @@
 {
   "name": "benchmark",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "private": true,
   "description": "Cross-chain quotes benchmark site using @wonderland/interop-cross-chain",
   "license": "MIT",
@@ -15,6 +15,8 @@
     "lint": "eslint app",
     "lint:fix": "eslint app --fix",
     "start": "next start",
+    "test": "vitest run --config vitest.config.ts --passWithNoTests",
+    "test:cov": "vitest run --config vitest.config.ts --coverage",
     "test:e2e": "playwright test"
   },
   "lint-staged": {

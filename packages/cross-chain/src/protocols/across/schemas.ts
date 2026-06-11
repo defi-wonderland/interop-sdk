@@ -121,9 +121,9 @@ export const AcrossDestinationSwapStepSchema = z.object({
 });
 
 export const AcrossStepsSchema = z.object({
-    originSwap: AcrossOriginSwapStepSchema.optional(),
-    bridge: AcrossBridgeStepSchema.optional(),
-    destinationSwap: AcrossDestinationSwapStepSchema.optional(),
+    originSwap: AcrossOriginSwapStepSchema.nullish(),
+    bridge: AcrossBridgeStepSchema.nullish(),
+    destinationSwap: AcrossDestinationSwapStepSchema.nullish(),
 });
 
 export const AcrossBridgeFeeWithBreakdownSchema = FeeSchema.extend({
@@ -181,7 +181,7 @@ export const AcrossGetQuoteResponseSchema = z.object({
     id: z.string(),
     crossSwapType: AcrossCrossSwapTypeSchema.optional(),
     amountType: z.string().optional(),
-    approvalTxns: z.array(AcrossApprovalTxSchema).optional(),
+    approvalTxns: z.array(AcrossApprovalTxSchema).nullish(),
     checks: AcrossChecksSchema.optional(),
     steps: AcrossStepsSchema.optional(),
     inputToken: TokenSchema,

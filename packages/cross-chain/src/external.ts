@@ -31,6 +31,12 @@ export {
     createApprovalService,
     ExactAmountStrategy,
     InfiniteAmountStrategy,
+    DefaultApprovalValidator,
+    ApprovalValidationFailureReason,
+    defaultApprovalValidationFailureHandler,
+    type ApprovalValidator,
+    type ApprovalValidationFailureHandler,
+    type ApprovalValidationViolation,
     // Tracking
     createOrderTracker,
     OrderTracker,
@@ -67,6 +73,18 @@ export {
     adaptQuoteRequest,
     adaptOifOrder,
     adaptQuote,
+    // Spender validation
+    createSpenderValidator,
+    SpenderAllowlistSchema,
+    type SpenderAllowlist,
+    // Same-asset identity
+    createSameAssetService,
+    SameAssetMapSchema,
+    type SameAssetMap,
+    type SameAssetService,
+    // Route query validation
+    RouteQuerySchema,
+    type RouteQuery,
     // SDK schema types
     type ExecutableQuote,
     type QuoteFeeEntry,

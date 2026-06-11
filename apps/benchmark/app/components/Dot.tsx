@@ -2,10 +2,11 @@ import { cn } from '~/lib/cn';
 
 interface DotProps {
   className: string;
-  size?: 'sm' | 'md';
+  size?: 'xs' | 'sm' | 'md';
 }
 
 const SIZE_CLASS: Record<NonNullable<DotProps['size']>, string> = {
+  xs: 'size-1.5',
   sm: 'size-2',
   md: 'size-2.5',
 };

@@ -1,3 +1,6 @@
+import type { Address } from "viem";
+import { getAddress } from "viem";
+
 import type { OrderChecks } from "../../../core/schemas/order.js";
 import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
 import type { Quote, Step } from "../../../internal.js";
@@ -10,6 +13,8 @@ import type {
     BungeeQuoteResult,
     BungeeTxData,
 } from "../schemas.js";
+import { PERMIT2_ADDRESS } from "../../../core/constants/eip712.js";
+import { isNativeAddress } from "../../../core/utils/token.js";
 import { BungeeTxDataSchema } from "../schemas.js";
 import { validateBungeeSignatureEnvelope } from "../validators/signatureEnvelopeValidator.js";
 import { adaptFees } from "./quoteFeeAdapter.js";
@@ -50,6 +55,7 @@ export function adaptQuotes(
  * @param manualRoute - The manual route entry from `result.manualRoutes`.
  * @param buildTx - The build-tx result for this route's `quoteId`.
  * @param providerId - The provider identifier to stamp on the quote.
+ * @param params - The original SDK quote request, used to bind approvals to user intent.
  * @returns An SDK Quote with a TransactionStep, or `null` if the txData is invalid.
  */
 export function adaptManualRouteQuote(
@@ -57,6 +63,7 @@ export function adaptManualRouteQuote(
     manualRoute: BungeeManualRoute,
     buildTx: BungeeBuildTxResult,
     providerId: string,
+    params: QuoteRequest,
 ): Quote | null {
     const result = response.result;
     const bridgeName = manualRoute.routeDetails?.name ?? "bridge";
@@ -69,6 +76,8 @@ export function adaptManualRouteQuote(
         buildTx.approvalData ?? manualRoute.approvalData,
         buildTx.txData.chainId,
         result.input.amount,
+        params,
+        buildTx.txData.to ? getAddress(buildTx.txData.to) : undefined,
     );
 
     const fees = adaptFees(manualRoute);
@@ -146,6 +155,8 @@ function adaptAutoRouteQuote(
         autoRoute.approvalData,
         params.input.chainId,
         result.input.amount,
+        params,
+        resolveAllowanceSpender(autoRoute),
     );
 
     return {
@@ -257,26 +268,35 @@ function buildTransactionStep(txData: BungeeTxData, description: string): Step |
 
 // ── Allowance helpers ──────────────────────────────────
 
+// Verified approve spender: canonical Permit2 for sign routes, the tx target for tx routes.
+function resolveAllowanceSpender(autoRoute: BungeeAutoRoute): Address | undefined {
+    if (autoRoute.userOp === "sign") return PERMIT2_ADDRESS;
+    if (autoRoute.userOp === "tx" && autoRoute.txData?.to) return getAddress(autoRoute.txData.to);
+    return undefined;
+}
+
 /**
- * Extract allowance checks from Bungee approval data.
- *
- * Uses `inputAmount` instead of `approvalData.amount` — Bungee returns a post-fee
- * approval amount that causes TRANSFER_FROM_FAILED errors on-chain.
+ * Build the allowance from verified intent and the route's spender, never from the
+ * solver-supplied `approvalData` fields (which only signal that an approval is needed).
+ * Uses `inputAmount` because Bungee's post-fee `approvalData.amount` reverts with
+ * TRANSFER_FROM_FAILED on-chain.
  */
 function extractAllowances(
     approvalData: BungeeApprovalData | null | undefined,
     chainId: number,
     inputAmount: string,
+    params: QuoteRequest,
+    spender: Address | undefined,
 ): NonNullable<OrderChecks["allowances"]> {
-    if (!approvalData) return [];
+    if (!approvalData || spender === undefined) return [];
+    if (isNativeAddress(params.input.assetAddress, "eip155")) return [];
 
-    const { spenderAddress, tokenAddress, userAddress } = approvalData;
     return [
         {
             chainId,
-            tokenAddress,
-            owner: userAddress,
-            spender: spenderAddress,
+            tokenAddress: getAddress(params.input.assetAddress),
+            owner: getAddress(params.user),
+            spender,
             required: inputAmount,
         },
     ];

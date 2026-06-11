@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { BenchmarkTable } from '../BenchmarkTable';
 import { RaceTableRow } from './RaceTableRow';
@@ -9,6 +9,19 @@ import { findBestProvider, orderRaceRows } from './raceRows';
 import type { RaceRow } from './types';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 import { useRequestBarStore } from '~/lib/requestBarStore';
+
+// Re-sorts rows to match a known provider order. Used to hold the last settled
+// order steady under the loading skeletons. A provider missing from the known
+// order sorts after the known ones (rather than jumping to the top) so a
+// changed provider set doesn't reshuffle the frozen rows.
+function orderByProviderIds(rows: RaceRow[], providerIds: string[]): RaceRow[] {
+  if (providerIds.length === 0) return rows;
+  const rank = new Map(providerIds.map((id, index) => [id, index]));
+  const fallback = providerIds.length;
+  return [...rows].sort(
+    (left, right) => (rank.get(left.provider.id) ?? fallback) - (rank.get(right.provider.id) ?? fallback),
+  );
+}
 
 interface RaceTableProps {
   initialRows: RaceRow[];
@@ -21,7 +34,23 @@ export function RaceTable({ initialRows, initialChains }: RaceTableProps) {
   const reduceMotion = useReducedMotion();
 
   const rawRows = storeRows.length > 0 ? storeRows : initialRows;
-  const rows = useMemo(() => orderRaceRows(rawRows), [rawRows]);
+  const isLoading = rawRows.some((row) => row.status === 'querying');
+  const stableOrder = useRef<string[]>([]);
+
+  // While any row is loading, freeze the order: re-sorting querying rows snaps
+  // them to canonical order and then back to winner-first once they settle,
+  // which reads as the rows jumping around. Hold the last settled order under
+  // the skeletons; only the settled result reorders, once.
+  const rows = useMemo(
+    () => (isLoading ? orderByProviderIds(rawRows, stableOrder.current) : orderRaceRows(rawRows)),
+    [rawRows, isLoading],
+  );
+
+  // Remember the settled order after commit (not during render) so the next
+  // loading phase can hold it steady without a render-phase side effect.
+  useEffect(() => {
+    if (!isLoading) stableOrder.current = rows.map((row) => row.provider.id);
+  }, [isLoading, rows]);
 
   const winnerProviderId = useMemo(() => findBestProvider(rows, 'output'), [rows]);
   const firstProviderId = useMemo(() => findBestProvider(rows, 'latency'), [rows]);
