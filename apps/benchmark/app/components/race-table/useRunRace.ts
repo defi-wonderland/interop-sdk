@@ -14,7 +14,11 @@ export function useRunRace(chains: NetworkAssets[]) {
   const setRows = useRequestBarStore((state) => state.setRows);
   const latestRunId = useRef(0);
 
-  return useCallback(async () => {
+  const cancelRace = useCallback(() => {
+    latestRunId.current += 1;
+  }, []);
+
+  const runRace = useCallback(async () => {
     if (chains.length === 0) {
       setRows(orderRaceRows(createRows('errored', 'CHAIN DISCOVERY FAILED')));
       return;
@@ -36,6 +40,8 @@ export function useRunRace(chains: NetworkAssets[]) {
       setRows(orderRaceRows(createRows('errored', message)));
     }
   }, [chains, setRows]);
+
+  return { runRace, cancelRace };
 }
 
 function toQueryingRows(previous: RaceRow[]): RaceRow[] {

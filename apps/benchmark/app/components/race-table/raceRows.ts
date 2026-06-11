@@ -3,6 +3,7 @@ import { RACE_PROVIDER_IDS } from './constants';
 import type { AssetLookup, RaceRow, RowStatus } from './types';
 import type { NetworkAssets, QuoteRequest } from '@wonderland/interop-cross-chain';
 import type { ProviderQuoteError, ProviderQuoteResult } from '~/lib/types';
+import { isWellFormedAmount } from '~/lib/amountInput';
 import { AssetSymbol } from '~/lib/assets';
 import { ChainId } from '~/lib/chains';
 import { PROVIDERS, ProviderId } from '~/lib/providers';
@@ -130,35 +131,10 @@ function compareByOutputDesc(left: RaceRow, right: RaceRow): number {
   return a < b ? 1 : a > b ? -1 : 0;
 }
 
-const DECIMAL_AMOUNT_RE = /^\d+(\.\d+)?$/;
-
 function parseAmount(value: string, decimals: number): string {
   const trimmed = value.trim();
-  if (!trimmed) throw new Error('Enter a valid amount');
-
-  if (trimmed.includes(',') && !hasValidThousandSeparators(trimmed)) {
-    throw new Error('Enter a valid amount');
-  }
-
-  const normalized = trimmed.replace(/,/g, '');
-  if (!DECIMAL_AMOUNT_RE.test(normalized)) {
-    throw new Error('Enter a valid amount');
-  }
-
-  return parseUnits(normalized, decimals).toString();
-}
-
-function hasValidThousandSeparators(value: string): boolean {
-  const [integerPart, ...rest] = value.split('.');
-  if (rest.length > 1) return false;
-  if (rest[0]?.includes(',')) return false;
-  if (!integerPart || integerPart.includes(',,')) return false;
-
-  const digitsOnly = integerPart.replace(/,/g, '');
-  if (!/^\d+$/.test(digitsOnly)) return false;
-
-  const reformatted = digitsOnly.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return reformatted === integerPart;
+  if (!isWellFormedAmount(trimmed)) throw new Error('Enter a valid amount');
+  return parseUnits(trimmed.replace(/,/g, ''), decimals).toString();
 }
 
 function normalizeProviderId(providerId: string): ProviderId | undefined {

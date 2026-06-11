@@ -5,8 +5,10 @@ import { Arrow } from './Arrow';
 import { Divider } from './Divider';
 import { Dropdown, type DropdownOption } from './Dropdown';
 import { Label } from './Label';
+import { createRows, orderRaceRows } from './race-table/raceRows';
 import { useRunRace } from './race-table/useRunRace';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
+import { amountInputError, isWellFormedAmount, sanitizeAmountInput } from '~/lib/amountInput';
 import { ASSET_SYMBOLS, ASSETS, AssetSymbol } from '~/lib/assets';
 import { CHAIN_IDS, CHAINS, ChainId } from '~/lib/chains';
 import { cn } from '~/lib/cn';
@@ -40,7 +42,8 @@ export function RequestBar({ chains }: RequestBarProps) {
   const setAmount = useRequestBarStore((state) => state.setAmount);
   const setPreset = useRequestBarStore((state) => state.setPreset);
   const swapChains = useRequestBarStore((state) => state.swapChains);
-  const runRace = useRunRace(chains);
+  const setRows = useRequestBarStore((state) => state.setRows);
+  const { runRace, cancelRace } = useRunRace(chains);
   const [arrowSpins, setArrowSpins] = useState(0);
   const debounceTimer = useRef<number | null>(null);
 
@@ -84,12 +87,20 @@ export function RequestBar({ chains }: RequestBarProps) {
   };
 
   const handleAmountChange = (value: string) => {
-    setAmount({ amount: value, selectedPreset: null });
+    const sanitized = sanitizeAmountInput(value);
+    setAmount({ amount: sanitized, selectedPreset: null });
     clearPendingAmountRun();
-    debounceTimer.current = window.setTimeout(() => {
-      debounceTimer.current = null;
-      void runRace();
-    }, 200);
+    if (isWellFormedAmount(sanitized)) {
+      debounceTimer.current = window.setTimeout(() => {
+        debounceTimer.current = null;
+        void runRace();
+      }, 200);
+      return;
+    }
+    const error = amountInputError(sanitized);
+    if (error === null) return;
+    cancelRace();
+    setRows(orderRaceRows(createRows('errored', error)));
   };
 
   const handlePresetClick = (presetIndex: number) => {
@@ -125,7 +136,11 @@ export function RequestBar({ chains }: RequestBarProps) {
           <Divider />
 
           <div className='flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-4'>
-            <AmountField amount={request.amount} onChange={handleAmountChange} />
+            <AmountField
+              amount={request.amount}
+              error={amountInputError(request.amount)}
+              onChange={handleAmountChange}
+            />
             <div className='flex gap-1'>
               {presets.map((preset, index) => (
                 <PresetPill
@@ -148,10 +163,11 @@ export function RequestBar({ chains }: RequestBarProps) {
 
 interface AmountFieldProps {
   amount: string;
+  error: string | null;
   onChange: (value: string) => void;
 }
 
-function AmountField({ amount, onChange }: AmountFieldProps) {
+function AmountField({ amount, error, onChange }: AmountFieldProps) {
   return (
     <label className='flex flex-1 cursor-text flex-col gap-1.5'>
       <Label className='font-mono text-caption uppercase tracking-widest text-text-muted'>AMOUNT</Label>
@@ -159,9 +175,17 @@ function AmountField({ amount, onChange }: AmountFieldProps) {
         type='text'
         inputMode='decimal'
         value={amount}
+        placeholder='0.00'
+        aria-invalid={error !== null}
+        aria-describedby={error === null ? undefined : 'amount-error'}
         onChange={(event) => onChange(event.target.value)}
-        className='w-full bg-transparent font-sans text-lg font-medium tracking-tight text-text-primary outline-none md:text-xl'
+        className='w-full bg-transparent font-sans text-lg font-medium tracking-tight text-text-primary outline-none placeholder:text-text-muted md:text-xl'
       />
+      {error !== null && (
+        <span id='amount-error' role='alert' className='font-mono text-caption text-error'>
+          {error}
+        </span>
+      )}
     </label>
   );
 }
