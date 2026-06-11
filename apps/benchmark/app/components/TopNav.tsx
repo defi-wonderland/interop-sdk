@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ThemeToggle } from './ThemeToggle';
 
 export function TopNav() {
   return (
@@ -17,6 +18,7 @@ export function TopNav() {
             <span>bench</span>
           </Link>
         </h1>
+        <ThemeToggle />
       </div>
     </header>
   );

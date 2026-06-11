@@ -33,6 +33,84 @@
   --asset-eth: #4859a8;
 }
 
+/*
+ * Dark palette. Same token names as :root so every component flips for free.
+ * Class strategy (html.dark) is what the toggle controls; the prefers-color-scheme
+ * block below only sets the first-paint default and is overridden by the class.
+ *
+ * Tuning notes: backgrounds are a deep slate-blue rather than pure black to keep
+ * the brand's blue cast. The accent is lightened (#5b8fc7) so it reads on dark
+ * surfaces, and on-accent flips to near-black so text stays legible on the lighter
+ * accent. Provider/chain/asset hues are brightened a notch for the same reason.
+ */
+.dark {
+  --background: #0e1420;
+  --surface: #151c2b;
+  --surface-elevated: #1b2433;
+  --border: #313c4f;
+  --border-subtle: #232d3d;
+
+  --text-primary: #e7ecf3;
+  --text-secondary: #aab4c5;
+  --text-muted: #8a93a5;
+
+  --accent: #79a8da;
+  --accent-soft: #23344a;
+  --on-accent: #0b1018;
+
+  --error: #e06a6a;
+  --success: #5cae6e;
+
+  --provider-across: #e07050;
+  --provider-relay: #9d7ad6;
+  --provider-lifi: #3fa294;
+  --provider-bungee: #d65a93;
+
+  --chain-base: #5a93ff;
+  --chain-arbitrum: #4aa9e6;
+  --chain-optimism: #ec6a6a;
+
+  --asset-usdc: #4f9be0;
+  --asset-usdt: #3bb189;
+  --asset-dai: #d6a44a;
+  --asset-eth: #7385d0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #0e1420;
+    --surface: #151c2b;
+    --surface-elevated: #1b2433;
+    --border: #313c4f;
+    --border-subtle: #232d3d;
+
+    --text-primary: #e7ecf3;
+    --text-secondary: #aab4c5;
+    --text-muted: #8a93a5;
+
+    --accent: #79a8da;
+    --accent-soft: #23344a;
+    --on-accent: #0b1018;
+
+    --error: #e06a6a;
+    --success: #5cae6e;
+
+    --provider-across: #e07050;
+    --provider-relay: #9d7ad6;
+    --provider-lifi: #3fa294;
+    --provider-bungee: #d65a93;
+
+    --chain-base: #5a93ff;
+    --chain-arbitrum: #4aa9e6;
+    --chain-optimism: #ec6a6a;
+
+    --asset-usdc: #4f9be0;
+    --asset-usdt: #3bb189;
+    --asset-dai: #d6a44a;
+    --asset-eth: #7385d0;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
@@ -75,10 +153,35 @@
   --container-page: 1440px;
 }
 
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--text-primary);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Soften the flip between themes. Scoped to color properties so layout/animation
+   timing is untouched. Respects reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  body,
+  .dark body {
+    transition:
+      background-color 200ms ease,
+      color 200ms ease;
+  }
 }
 
 :focus-visible {
