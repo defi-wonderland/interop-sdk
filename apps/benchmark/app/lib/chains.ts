@@ -15,25 +15,25 @@ export interface ChainMeta {
 export const CHAINS: Record<ChainId, ChainMeta> = {
   [ChainId.Ethereum]: {
     id: ChainId.Ethereum,
-    displayName: 'ethereum',
+    displayName: 'Ethereum',
     colorClass: 'bg-text-muted',
     iconUrl: '/icons/chains/ethereum.svg',
   },
   [ChainId.Optimism]: {
     id: ChainId.Optimism,
-    displayName: 'optimism',
+    displayName: 'Optimism',
     colorClass: 'bg-chain-optimism',
     iconUrl: '/icons/chains/optimism.svg',
   },
   [ChainId.Base]: {
     id: ChainId.Base,
-    displayName: 'base',
+    displayName: 'Base',
     colorClass: 'bg-chain-base',
     iconUrl: '/icons/chains/base.svg',
   },
   [ChainId.Arbitrum]: {
     id: ChainId.Arbitrum,
-    displayName: 'arbitrum',
+    displayName: 'Arbitrum',
     colorClass: 'bg-chain-arbitrum',
     iconUrl: '/icons/chains/arbitrum.svg',
   },
