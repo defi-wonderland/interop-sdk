@@ -69,7 +69,7 @@ export default async function Home() {
           <SectionHeader
             index='01'
             label='live quote race'
-            title='ask every provider the same question'
+            title='Ask every provider the same question'
             rightSlot={
               <Label className={META_LABEL_CLASS}>
                 powered by{' '}
@@ -91,7 +91,7 @@ export default async function Home() {
           <SectionHeader
             index='02'
             label='provider leaderboard'
-            title='how providers performed across all routes'
+            title='How providers performed across all routes'
             rightSlot={<Label className={META_LABEL_CLASS}>pulled from each provider&rsquo;s public history api</Label>}
           />
           <Leaderboard metrics={leaderboardMetrics} />
@@ -101,7 +101,7 @@ export default async function Home() {
           <SectionHeader
             index='03'
             label='head-to-head · by route'
-            title='compare providers on a specific chain pair'
+            title='Compare providers on a specific chain pair'
             rightSlot={<RouteSelector />}
           />
           <HeadToHeadClient
