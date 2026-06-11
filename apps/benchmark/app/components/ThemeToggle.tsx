@@ -61,7 +61,9 @@ export function ThemeToggle() {
   }, []);
 
   if (!mounted) {
-    return <button type='button' aria-label='toggle theme' className={BUTTON_CLASS} />;
+    // Non-interactive placeholder that just reserves the toggle's box until
+    // mount; a real button here would look clickable but drop early clicks.
+    return <span className='inline-flex size-8 rounded-[2px] border border-border-subtle' aria-hidden='true' />;
   }
 
   const isDark = resolvedTheme === 'dark';
