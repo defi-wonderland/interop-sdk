@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { Providers } from './providers';
 import './globals.css';
 
 const geistSans = Geist({
@@ -23,28 +24,14 @@ export const metadata: Metadata = {
   },
 };
 
-// Runs before paint so the right theme class is on <html> before first render,
-// avoiding a flash of the wrong theme. Reads the saved choice, falls back to the
-// OS preference. Kept inline + tiny on purpose; mirrored by useTheme on the client.
-const THEME_INIT_SCRIPT = `
-(function () {
-  try {
-    var saved = localStorage.getItem('theme');
-    var theme = saved === 'light' || saved === 'dark'
-      ? saved
-      : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    document.documentElement.classList.add(theme);
-  } catch (e) {}
-})();
-`;
-
+// next-themes sets the theme class on <html> before paint, so the server markup
+// has no class to match — suppressHydrationWarning silences that one diff.
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang='en' suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-      </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

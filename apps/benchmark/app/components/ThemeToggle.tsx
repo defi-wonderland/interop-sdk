@@ -1,6 +1,7 @@
 'use client';
 
-import { Theme, useTheme } from '~/lib/useTheme';
+import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
 
 const BUTTON_CLASS =
   'inline-flex size-8 cursor-pointer items-center justify-center rounded-[2px] border border-border-subtle ' +
@@ -50,16 +51,29 @@ function MoonIcon() {
 }
 
 export function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
-  const isDark = theme === Theme.Dark;
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // resolvedTheme is only known on the client, so render a stable placeholder
+  // until mount to avoid a hydration mismatch.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <button type='button' aria-label='toggle theme' className={BUTTON_CLASS} />;
+  }
+
+  const isDark = resolvedTheme === 'dark';
+  const label = isDark ? 'switch to light theme' : 'switch to dark theme';
 
   return (
     <button
       type='button'
-      onClick={toggleTheme}
-      aria-label={isDark ? 'switch to light theme' : 'switch to dark theme'}
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      aria-label={label}
       aria-pressed={isDark}
-      title={isDark ? 'switch to light theme' : 'switch to dark theme'}
+      title={label}
       className={BUTTON_CLASS}
     >
       {isDark ? <MoonIcon /> : <SunIcon />}

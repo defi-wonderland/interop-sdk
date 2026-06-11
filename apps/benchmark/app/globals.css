@@ -76,41 +76,6 @@
   --asset-eth: #7385d0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --background: #0e1420;
-    --surface: #151c2b;
-    --surface-elevated: #1b2433;
-    --border: #313c4f;
-    --border-subtle: #232d3d;
-
-    --text-primary: #e7ecf3;
-    --text-secondary: #aab4c5;
-    --text-muted: #8a93a5;
-
-    --accent: #79a8da;
-    --accent-soft: #23344a;
-    --on-accent: #0b1018;
-
-    --error: #e06a6a;
-    --success: #5cae6e;
-
-    --provider-across: #e07050;
-    --provider-relay: #9d7ad6;
-    --provider-lifi: #3fa294;
-    --provider-bungee: #d65a93;
-
-    --chain-base: #5a93ff;
-    --chain-arbitrum: #4aa9e6;
-    --chain-optimism: #ec6a6a;
-
-    --asset-usdc: #4f9be0;
-    --asset-usdt: #3bb189;
-    --asset-dai: #d6a44a;
-    --asset-eth: #7385d0;
-  }
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
@@ -159,12 +124,6 @@
 
 .dark {
   color-scheme: dark;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    color-scheme: dark;
-  }
 }
 
 body {
