@@ -116,46 +116,44 @@ export function RequestBar({ chains }: RequestBarProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} aria-label='cross-chain quote request' className='border-b border-border bg-surface'>
-      <div className='mx-auto max-w-page px-5 py-3 md:px-12 md:py-4 lg:px-24'>
-        <div className='flex flex-col gap-3 md:flex-row md:items-center md:gap-6'>
-          <div className='flex items-center gap-3 md:gap-5'>
-            <Dropdown label='FROM' value={request.fromChainId} options={fromOptions} onChange={handleFromChainChange} />
-            <Arrow onSwap={handleSwap} spinKey={arrowSpins} />
-            <Dropdown label='TO' value={request.toChainId} options={toOptions} onChange={handleToChainChange} />
-          </div>
-
-          <Divider />
-          <Dropdown
-            label='ASSET'
-            value={request.assetSymbol}
-            options={assetOptions}
-            onChange={handleAssetChange}
-            minWidthClass='md:min-w-[6.25rem]'
-          />
-          <Divider />
-
-          <div className='flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-4'>
-            <AmountField
-              amount={request.amount}
-              error={amountInputError(request.amount)}
-              onChange={handleAmountChange}
-            />
-            <div className='flex gap-1'>
-              {presets.map((preset, index) => (
-                <PresetPill
-                  key={preset.label}
-                  label={preset.label}
-                  selected={index === request.selectedPreset}
-                  onClick={() => handlePresetClick(index)}
-                  fillContainer
-                />
-              ))}
-            </div>
-          </div>
-
-          <ReRunButton />
+    <form
+      onSubmit={handleSubmit}
+      aria-label='cross-chain quote request'
+      className='border border-border bg-surface px-5 py-3 md:px-6 md:py-4'
+    >
+      <div className='flex flex-col gap-3 md:flex-row md:items-center md:gap-6'>
+        <div className='flex items-center gap-3 md:gap-5'>
+          <Dropdown label='FROM' value={request.fromChainId} options={fromOptions} onChange={handleFromChainChange} />
+          <Arrow onSwap={handleSwap} spinKey={arrowSpins} />
+          <Dropdown label='TO' value={request.toChainId} options={toOptions} onChange={handleToChainChange} />
         </div>
+
+        <Divider />
+        <Dropdown
+          label='ASSET'
+          value={request.assetSymbol}
+          options={assetOptions}
+          onChange={handleAssetChange}
+          minWidthClass='md:min-w-[6.25rem]'
+        />
+        <Divider />
+
+        <div className='flex flex-1 flex-col gap-3 md:flex-row md:items-center md:gap-4'>
+          <AmountField amount={request.amount} error={amountInputError(request.amount)} onChange={handleAmountChange} />
+          <div className='flex gap-1'>
+            {presets.map((preset, index) => (
+              <PresetPill
+                key={preset.label}
+                label={preset.label}
+                selected={index === request.selectedPreset}
+                onClick={() => handlePresetClick(index)}
+                fillContainer
+              />
+            ))}
+          </div>
+        </div>
+
+        <ReRunButton />
       </div>
     </form>
   );
