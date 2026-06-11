@@ -42,7 +42,7 @@ export const PROVIDERS: Record<ProviderId, ProviderMeta> = {
     colorClass: 'bg-provider-bungee',
     iconUrl: '/icons/providers/bungee.webp',
     hasGlobalFeed: false,
-    noFeedReason: 'no global feed',
+    noFeedReason: 'NO GLOBAL FEED',
   },
 };
 

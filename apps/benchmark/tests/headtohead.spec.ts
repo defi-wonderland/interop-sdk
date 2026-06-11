@@ -28,7 +28,7 @@ test('every row shows either a BEST AT badge or the no-activity footer', async (
 test('bungee row shows em-dashes and no global feed', async ({ page }) => {
   const table = page.getByRole('region', { name: 'head-to-head comparison' });
   const bungeeRow = table.locator('tbody tr').filter({ hasText: 'bungee' });
-  await expect(bungeeRow).toContainText('no global feed');
+  await expect(bungeeRow).toContainText('NO GLOBAL FEED');
   // BEST AT cell should render the em-dash (no badges for placeholder).
   const bestAtCell = bungeeRow.locator('td').last();
   await expect(bestAtCell).toContainText('—');

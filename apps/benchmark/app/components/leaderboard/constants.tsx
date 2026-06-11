@@ -16,7 +16,7 @@ export type LeaderboardColumn = MetricsColumn<LeaderboardRowContext>;
 export const LEADERBOARD_COLUMNS: readonly LeaderboardColumn[] = [
   {
     key: 'rank',
-    label: '#',
+    label: 'RANK',
     className: 'w-10 md:w-12',
     tdClass: METRICS_CELL_STACK,
     render: (_metrics, ctx) => <RankCell {...ctx} />,
