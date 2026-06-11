@@ -43,7 +43,7 @@ export function RequestBar({ chains }: RequestBarProps) {
   const setPreset = useRequestBarStore((state) => state.setPreset);
   const swapChains = useRequestBarStore((state) => state.swapChains);
   const setRows = useRequestBarStore((state) => state.setRows);
-  const runRace = useRunRace(chains);
+  const { runRace, cancelRace } = useRunRace(chains);
   const [arrowSpins, setArrowSpins] = useState(0);
   const debounceTimer = useRef<number | null>(null);
 
@@ -98,7 +98,9 @@ export function RequestBar({ chains }: RequestBarProps) {
       return;
     }
     const error = amountInputError(sanitized);
-    if (error !== null) setRows(orderRaceRows(createRows('errored', error)));
+    if (error === null) return;
+    cancelRace();
+    setRows(orderRaceRows(createRows('errored', error)));
   };
 
   const handlePresetClick = (presetIndex: number) => {
