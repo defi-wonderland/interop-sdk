@@ -5,6 +5,7 @@ import { Arrow } from './Arrow';
 import { Divider } from './Divider';
 import { Dropdown, type DropdownOption } from './Dropdown';
 import { Label } from './Label';
+import { createRows, orderRaceRows } from './race-table/raceRows';
 import { useRunRace } from './race-table/useRunRace';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
 import { amountInputError, isWellFormedAmount, sanitizeAmountInput } from '~/lib/amountInput';
@@ -41,6 +42,7 @@ export function RequestBar({ chains }: RequestBarProps) {
   const setAmount = useRequestBarStore((state) => state.setAmount);
   const setPreset = useRequestBarStore((state) => state.setPreset);
   const swapChains = useRequestBarStore((state) => state.swapChains);
+  const setRows = useRequestBarStore((state) => state.setRows);
   const runRace = useRunRace(chains);
   const [arrowSpins, setArrowSpins] = useState(0);
   const debounceTimer = useRef<number | null>(null);
@@ -88,11 +90,15 @@ export function RequestBar({ chains }: RequestBarProps) {
     const sanitized = sanitizeAmountInput(value);
     setAmount({ amount: sanitized, selectedPreset: null });
     clearPendingAmountRun();
-    if (!isWellFormedAmount(sanitized)) return;
-    debounceTimer.current = window.setTimeout(() => {
-      debounceTimer.current = null;
-      void runRace();
-    }, 200);
+    if (isWellFormedAmount(sanitized)) {
+      debounceTimer.current = window.setTimeout(() => {
+        debounceTimer.current = null;
+        void runRace();
+      }, 200);
+      return;
+    }
+    const error = amountInputError(sanitized);
+    if (error !== null) setRows(orderRaceRows(createRows('errored', error)));
   };
 
   const handlePresetClick = (presetIndex: number) => {

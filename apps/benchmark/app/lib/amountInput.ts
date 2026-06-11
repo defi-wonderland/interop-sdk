@@ -11,9 +11,9 @@ export function isWellFormedAmount(value: string): boolean {
 }
 
 export function amountInputError(value: string): string | null {
-  if (!value || isWellFormedAmount(value)) return null;
+  if (isWellFormedAmount(value)) return null;
   // A trailing separator is an amount still being typed, not a malformed one.
-  if (isWellFormedAmount(value.replace(/[.,]$/, ''))) return null;
+  if (value && isWellFormedAmount(value.replace(/[.,]$/, ''))) return null;
   return 'Enter a valid amount';
 }
 
