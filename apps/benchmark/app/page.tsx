@@ -63,8 +63,6 @@ export default async function Home() {
     <div className='min-h-screen cursor-default bg-background'>
       <TopNav />
       <main>
-        <RequestBar chains={initialChains} />
-
         <SectionFrame>
           <SectionHeader
             index='01'
@@ -84,6 +82,7 @@ export default async function Home() {
               </Label>
             }
           />
+          <RequestBar chains={initialChains} />
           <RaceTable initialRows={initialRows} initialChains={initialChains} />
         </SectionFrame>
 
