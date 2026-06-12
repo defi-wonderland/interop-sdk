@@ -69,7 +69,8 @@ function filterEligibleOrders(
   items: LifiIntentsOrderItem[],
   tokenAddress: Address | undefined,
 ): LifiIntentsOrderItem[] {
-  return filterByToken(items, tokenAddress).filter((item) => item.quote != null);
+  const quoted = items.filter((item) => item.quote != null);
+  return filterByToken(quoted, tokenAddress);
 }
 
 // The Order Server doesn't accept a token filter and `order.inputs` is encoded as LiFi token ids

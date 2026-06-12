@@ -24,7 +24,7 @@ export const LifiIntentsOrderMetaSchema = z
 export const LifiIntentsOrderItemSchema = z
   .object({
     order: LifiIntentsOrderDetailsSchema,
-    quote: z.unknown().nullable().optional(),
+    quote: z.record(z.string(), z.unknown()).nullable().optional(),
     meta: LifiIntentsOrderMetaSchema,
   })
   .passthrough();
