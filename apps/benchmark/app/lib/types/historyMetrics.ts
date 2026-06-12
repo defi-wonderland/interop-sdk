@@ -34,6 +34,8 @@ export interface ProviderMetrics {
   successRate: number | null;
   p50FillSeconds: number | null;
   p99FillSeconds: number | null;
-  avgFeeUsd: number | null;
+  // Typical fee as a percentage of intent size: the median of per-sample
+  // feeUsd/amountUsd. Size-normalized so it's comparable across providers.
+  feePercent: number | null;
   volumeUsd: number | null;
 }
