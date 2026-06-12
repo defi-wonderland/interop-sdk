@@ -30,7 +30,7 @@ export class RelayHistoryService implements HistoryService {
   async getHistory(query: HistoryQuery): Promise<HistoryResult> {
     const target = Math.min(query.limit ?? RELAY_DEFAULT_LIMIT, RELAY_MAX_LIMIT);
     const requests = await this.fetchRequests(query, target);
-    const filtered = filterByToken(requests, query.tokenAddress);
+    const filtered = filterEligibleRequests(requests, query.tokenAddress);
     const samples = collectSamples(filtered).slice(0, target);
     return { providerId: RELAY_PROVIDER_ID, samples };
   }
@@ -45,7 +45,7 @@ export class RelayHistoryService implements HistoryService {
       // Count samples that survive both the token filter and the sample
       // construction step; otherwise dropped requests (subsidized, missing
       // timestamps) leave us under-filling the requested limit.
-      usableCount += collectSamples(filterByToken(page.requests, query.tokenAddress)).length;
+      usableCount += collectSamples(filterEligibleRequests(page.requests, query.tokenAddress)).length;
       // Short page or missing continuation both indicate end of data — stop
       // before issuing a redundant request.
       if (!page.continuation || page.requests.length < RELAY_PAGE_SIZE) break;
@@ -65,6 +65,16 @@ export class RelayHistoryService implements HistoryService {
     });
     return RelayHistoryResponseSchema.parse(data);
   }
+}
+
+// Requests no solver quoted (failReason NO_QUOTES) never enter the quote -> submit flow the SDK
+// integrates, so they're excluded from the sample — same rule as unquoted orders in the LiFi service.
+function filterEligibleRequests(
+  requests: RelayHistoryRequest[],
+  tokenAddress: Address | undefined,
+): RelayHistoryRequest[] {
+  const quoted = requests.filter((request) => request.data.failReason !== 'NO_QUOTES');
+  return filterByToken(quoted, tokenAddress);
 }
 
 function filterByToken(requests: RelayHistoryRequest[], tokenAddress: Address | undefined): RelayHistoryRequest[] {

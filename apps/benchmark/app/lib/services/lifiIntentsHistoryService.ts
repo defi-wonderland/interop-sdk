@@ -30,7 +30,7 @@ export class LifiIntentsHistoryService implements HistoryService {
   async getHistory(query: HistoryQuery): Promise<HistoryResult> {
     const target = Math.min(query.limit ?? LIFI_INTENTS_DEFAULT_LIMIT, LIFI_INTENTS_MAX_LIMIT);
     const items = await this.fetchOrders(query, target);
-    const filtered = filterByToken(items, query.tokenAddress);
+    const filtered = filterEligibleOrders(items, query.tokenAddress);
     const samples = collectSamples(filtered).slice(0, target);
     return { providerId: LIFI_INTENTS_PROVIDER_ID, samples };
   }
@@ -43,7 +43,7 @@ export class LifiIntentsHistoryService implements HistoryService {
       const page = await this.fetchPage(query, offset);
       if (page.data.length === 0) break;
       collected.push(...page.data);
-      filteredCount += filterByToken(page.data, query.tokenAddress).length;
+      filteredCount += filterEligibleOrders(page.data, query.tokenAddress).length;
       offset += page.data.length;
       if (page.data.length < LIFI_INTENTS_PAGE_SIZE) break;
     }
@@ -61,6 +61,16 @@ export class LifiIntentsHistoryService implements HistoryService {
     });
     return LifiIntentsOrdersResponseSchema.parse(data);
   }
+}
+
+// Orders submitted without a solver quote don't go through the quote -> submit flow the SDK
+// integrates, and they fail at ~30% (vs ~0.5% for quoted ones), so they're excluded from the sample.
+function filterEligibleOrders(
+  items: LifiIntentsOrderItem[],
+  tokenAddress: Address | undefined,
+): LifiIntentsOrderItem[] {
+  const quoted = items.filter((item) => item.quote != null);
+  return filterByToken(quoted, tokenAddress);
 }
 
 // The Order Server doesn't accept a token filter and `order.inputs` is encoded as LiFi token ids
