@@ -9,6 +9,7 @@ on:
 jobs:
     check-changeset:
         name: Require changeset for package changes
+        if: ${{ !startsWith(github.head_ref, 'changeset-release/') }}
         runs-on: ubuntu-latest
         steps:
             - name: Check out github repository
