@@ -7,6 +7,7 @@ import { allProvidersFailed, fetchProviderMetrics } from '~/lib/services/provide
 import { buildTokenDecimals } from '~/lib/tokenDecimals';
 
 const FETCH_TIMEOUT_MS = 15_000;
+const CHAINS_TIMEOUT_MS = 5_000;
 const CACHE_TTL_SECONDS = 60;
 
 // Per (origin, destination) cached function. `unstable_cache` keys on the args
@@ -17,9 +18,16 @@ const CACHE_TTL_SECONDS = 60;
 const cachedFetch = unstable_cache(
   async (fromChainId: ChainId, toChainId: ChainId) => {
     // Across converts inputAmount to USD with the token's decimals, so thread a
-    // decimals map built from the chains data. If discovery throws, let it
-    // propagate to the route's 502 path instead of caching a degraded result.
-    const tokenDecimals = buildTokenDecimals(await chainService.getChains());
+    // decimals map built from the chains data. Decimals only enhance Across USD;
+    // if discovery is slow or fails, degrade to no decimals (Across amountUsd
+    // stays null) rather than failing the whole metrics request.
+    let tokenDecimals: Record<string, number> = {};
+    try {
+      const chains = await withTimeout(chainService.getChains(), CHAINS_TIMEOUT_MS, 'H2H_CHAINS_TIMEOUT');
+      tokenDecimals = buildTokenDecimals(chains);
+    } catch {
+      // keep the empty map
+    }
     const metrics = await fetchProviderMetrics({
       originChainId: fromChainId,
       destinationChainId: toChainId,
