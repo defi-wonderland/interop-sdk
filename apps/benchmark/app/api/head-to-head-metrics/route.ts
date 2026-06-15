@@ -2,7 +2,9 @@ import { unstable_cache } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { CHAIN_IDS, type ChainId } from '~/lib/chains';
 import { withTimeout } from '~/lib/helpers';
+import { chainService } from '~/lib/services';
 import { allProvidersFailed, fetchProviderMetrics } from '~/lib/services/providerMetrics';
+import { buildTokenDecimals } from '~/lib/tokenDecimals';
 
 const FETCH_TIMEOUT_MS = 15_000;
 const CACHE_TTL_SECONDS = 60;
@@ -14,9 +16,14 @@ const CACHE_TTL_SECONDS = 60;
 // this layer instead.
 const cachedFetch = unstable_cache(
   async (fromChainId: ChainId, toChainId: ChainId) => {
+    // Across converts inputAmount to USD with the token's decimals, so thread a
+    // decimals map built from the chains data. If discovery throws, let it
+    // propagate to the route's 502 path instead of caching a degraded result.
+    const tokenDecimals = buildTokenDecimals(await chainService.getChains());
     const metrics = await fetchProviderMetrics({
       originChainId: fromChainId,
       destinationChainId: toChainId,
+      tokenDecimals,
     });
     // `fetchProviderMetrics` resolves with null-filled rows when providers
     // fail, so a transient total outage would otherwise be cached for the
