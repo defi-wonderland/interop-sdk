@@ -24,22 +24,15 @@ const getTokenDecimals = unstable_cache(
   { revalidate: CACHE_TTL_SECONDS },
 );
 
-// Per (origin, destination) cached function. `unstable_cache` keys on the args
-// so identical pairs share the cached response across the fleet for one
-// minute. A route-handler-level `export const revalidate` is ignored when the
-// handler reads `searchParams` (Next treats it as dynamic), so we cache at
-// this layer instead.
+// Per (origin, destination, decimals) cached function. `unstable_cache` keys on
+// the args so identical pairs share the cached response across the fleet for one
+// minute. `tokenDecimals` is part of the key on purpose: a degraded ({}) and a
+// full map cache as separate entries, so a transient decimals failure can't pin
+// degraded Across USD onto the pair's good entry. A route-handler-level
+// `export const revalidate` is ignored when the handler reads `searchParams`
+// (Next treats it as dynamic), so we cache at this layer instead.
 const cachedFetch = unstable_cache(
-  async (fromChainId: ChainId, toChainId: ChainId) => {
-    // Decimals only enhance Across USD amounts, so a discovery failure degrades
-    // this one request to no decimals (Across amountUsd stays null) instead of
-    // failing it. The throw is not cached, so the next request retries.
-    let tokenDecimals: Record<string, number> = {};
-    try {
-      tokenDecimals = await getTokenDecimals();
-    } catch (error) {
-      console.warn('head-to-head-metrics: token decimals unavailable, Across USD degraded:', error);
-    }
+  async (fromChainId: ChainId, toChainId: ChainId, tokenDecimals: Record<string, number>) => {
     const metrics = await fetchProviderMetrics({
       originChainId: fromChainId,
       destinationChainId: toChainId,
@@ -75,9 +68,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'origin and destination must differ' }, { status: 400 });
   }
 
+  // Decimals only enhance Across USD amounts, so a discovery failure degrades to
+  // no decimals (Across amountUsd stays null) instead of failing the request.
+  // Resolved outside cachedFetch so the (possibly empty) map is part of its cache
+  // key, keeping degraded and full results in separate entries.
+  let tokenDecimals: Record<string, number> = {};
+  try {
+    tokenDecimals = await getTokenDecimals();
+  } catch (error) {
+    console.warn('head-to-head-metrics: token decimals unavailable, Across USD degraded:', error);
+  }
+
   try {
     const metrics = await withTimeout(
-      cachedFetch(fromChainId, toChainId),
+      cachedFetch(fromChainId, toChainId, tokenDecimals),
       FETCH_TIMEOUT_MS,
       'HEAD_TO_HEAD_API_TIMEOUT',
     );
