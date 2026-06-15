@@ -10,6 +10,25 @@ const FETCH_TIMEOUT_MS = 15_000;
 const CHAINS_TIMEOUT_MS = 5_000;
 const CACHE_TTL_SECONDS = 60;
 
+// Token decimals are the same for every route pair and rarely change, so cache
+// them once (shared across pairs) instead of refetching inside each pair's
+// cache. Decimals only enhance Across USD amounts; if discovery is slow or
+// fails, log it and degrade to no decimals (Across amountUsd stays null) rather
+// than failing the metrics request.
+const getTokenDecimals = unstable_cache(
+  async (): Promise<Record<string, number>> => {
+    try {
+      const chains = await withTimeout(chainService.getChains(), CHAINS_TIMEOUT_MS, 'H2H_CHAINS_TIMEOUT');
+      return buildTokenDecimals(chains);
+    } catch (error) {
+      console.warn('head-to-head-metrics: token decimals unavailable, Across USD degraded:', error);
+      return {};
+    }
+  },
+  ['head-to-head-token-decimals'],
+  { revalidate: CACHE_TTL_SECONDS },
+);
+
 // Per (origin, destination) cached function. `unstable_cache` keys on the args
 // so identical pairs share the cached response across the fleet for one
 // minute. A route-handler-level `export const revalidate` is ignored when the
@@ -17,17 +36,7 @@ const CACHE_TTL_SECONDS = 60;
 // this layer instead.
 const cachedFetch = unstable_cache(
   async (fromChainId: ChainId, toChainId: ChainId) => {
-    // Across converts inputAmount to USD with the token's decimals, so thread a
-    // decimals map built from the chains data. Decimals only enhance Across USD;
-    // if discovery is slow or fails, degrade to no decimals (Across amountUsd
-    // stays null) rather than failing the whole metrics request.
-    let tokenDecimals: Record<string, number> = {};
-    try {
-      const chains = await withTimeout(chainService.getChains(), CHAINS_TIMEOUT_MS, 'H2H_CHAINS_TIMEOUT');
-      tokenDecimals = buildTokenDecimals(chains);
-    } catch {
-      // keep the empty map
-    }
+    const tokenDecimals = await getTokenDecimals();
     const metrics = await fetchProviderMetrics({
       originChainId: fromChainId,
       destinationChainId: toChainId,
