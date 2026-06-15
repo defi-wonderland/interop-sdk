@@ -12,18 +12,13 @@ const CACHE_TTL_SECONDS = 60;
 
 // Token decimals are the same for every route pair and rarely change, so cache
 // them once (shared across pairs) instead of refetching inside each pair's
-// cache. Decimals only enhance Across USD amounts; if discovery is slow or
-// fails, log it and degrade to no decimals (Across amountUsd stays null) rather
-// than failing the metrics request.
+// cache. Only successful results are cached: this throws on failure so a
+// transient discovery error isn't cached as an empty map for the whole TTL
+// (which would globally degrade Across USD). The caller handles the throw.
 const getTokenDecimals = unstable_cache(
   async (): Promise<Record<string, number>> => {
-    try {
-      const chains = await withTimeout(chainService.getChains(), CHAINS_TIMEOUT_MS, 'H2H_CHAINS_TIMEOUT');
-      return buildTokenDecimals(chains);
-    } catch (error) {
-      console.warn('head-to-head-metrics: token decimals unavailable, Across USD degraded:', error);
-      return {};
-    }
+    const chains = await withTimeout(chainService.getChains(), CHAINS_TIMEOUT_MS, 'H2H_CHAINS_TIMEOUT');
+    return buildTokenDecimals(chains);
   },
   ['head-to-head-token-decimals'],
   { revalidate: CACHE_TTL_SECONDS },
@@ -36,7 +31,15 @@ const getTokenDecimals = unstable_cache(
 // this layer instead.
 const cachedFetch = unstable_cache(
   async (fromChainId: ChainId, toChainId: ChainId) => {
-    const tokenDecimals = await getTokenDecimals();
+    // Decimals only enhance Across USD amounts, so a discovery failure degrades
+    // this one request to no decimals (Across amountUsd stays null) instead of
+    // failing it. The throw is not cached, so the next request retries.
+    let tokenDecimals: Record<string, number> = {};
+    try {
+      tokenDecimals = await getTokenDecimals();
+    } catch (error) {
+      console.warn('head-to-head-metrics: token decimals unavailable, Across USD degraded:', error);
+    }
     const metrics = await fetchProviderMetrics({
       originChainId: fromChainId,
       destinationChainId: toChainId,
