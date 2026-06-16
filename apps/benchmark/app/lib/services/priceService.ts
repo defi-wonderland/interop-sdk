@@ -3,7 +3,10 @@ import type { HttpClient } from '@wonderland/interop-cross-chain';
 
 const DEFILLAMA_BASE_URL = 'https://coins.llama.fi';
 const DEFILLAMA_PRICES_PATH = 'prices/current';
-const DEFILLAMA_REQUEST_TIMEOUT_MS = 10_000;
+// Pricing runs after order pagination inside the head-to-head route's 15s
+// budget, so keep this tight: DeFiLlama normally answers in well under a second,
+// and a stuck request degrades to "—" rather than eating the route deadline.
+const DEFILLAMA_REQUEST_TIMEOUT_MS = 6_000;
 // DeFiLlama keys are chain-name prefixed, not chainId. Only the chains the
 // benchmark queries are mapped; anything else is skipped (priced as missing).
 const LLAMA_CHAIN_BY_ID: Record<number, string> = {
@@ -60,14 +63,13 @@ export class DefiLlamaPriceService implements PriceService {
     const requestable = dedupeRequestableCoins(coins);
     if (requestable.length === 0) return result;
 
-    // On any failure (timeout, network, parse) degrade to an empty map so the
-    // caller falls back to "—" rather than throwing the whole feed away.
-    try {
-      const chunks = chunk(requestable, MAX_COINS_PER_REQUEST);
-      const responses = await Promise.all(chunks.map((batch) => this.fetchChunk(batch)));
-      for (const response of responses) mergeResponse(response, result);
-    } catch {
-      return new Map();
+    // Keep partial successes: a failed chunk (timeout, network, parse) drops only
+    // its own coins, not the ones other chunks already priced. Unpriced coins
+    // fall back to "—" downstream. allSettled never rejects, so no try/catch.
+    const chunks = chunk(requestable, MAX_COINS_PER_REQUEST);
+    const settled = await Promise.allSettled(chunks.map((batch) => this.fetchChunk(batch)));
+    for (const outcome of settled) {
+      if (outcome.status === 'fulfilled') mergeResponse(outcome.value, result);
     }
     return result;
   }
