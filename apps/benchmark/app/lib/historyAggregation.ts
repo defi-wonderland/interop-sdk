@@ -30,7 +30,13 @@ export function aggregateProviderSamples(providerId: ProviderId, samples: readon
   const successRate = resolved.length === 0 ? null : filled / resolved.length;
 
   const fillTimes = owned.map((s) => s.fillTimeSeconds).filter((v): v is number => v !== null);
-  const fees = owned.map((s) => s.feeUsd).filter((v): v is number => v !== null);
+  // Size-normalized fee: per-sample fee as a % of the intent amount. Skip samples
+  // missing either side, and drop negatives (Across swap-surplus can report a
+  // negative feeUsd, which is not a fee). Median rather than mean so outliers and
+  // any remaining noise don't drag the typical value around.
+  const feePercents = owned
+    .filter((s) => s.feeUsd !== null && s.amountUsd !== null && s.amountUsd > 0 && s.feeUsd >= 0)
+    .map((s) => ((s.feeUsd as number) / (s.amountUsd as number)) * 100);
   const volumes = owned.map((s) => s.amountUsd).filter((v): v is number => v !== null);
 
   return {
@@ -40,7 +46,7 @@ export function aggregateProviderSamples(providerId: ProviderId, samples: readon
     successRate,
     p50FillSeconds: percentile(fillTimes, 50),
     p99FillSeconds: percentile(fillTimes, 99),
-    avgFeeUsd: fees.length === 0 ? null : fees.reduce((a, b) => a + b, 0) / fees.length,
+    feePercent: percentile(feePercents, 50),
     volumeUsd: volumes.length === 0 ? null : volumes.reduce((a, b) => a + b, 0),
   };
 }

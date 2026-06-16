@@ -53,7 +53,11 @@ export function formatFillSeconds(value: number | null): string {
   return remainderSeconds === 0 ? `${minutes}m` : `${minutes}m ${remainderSeconds}s`;
 }
 
-export function formatAvgFee(value: number | null): string {
+// Fee as a percentage of the amount moved: `0.04%`. Anything that rounds to
+// `0.00%` is a real, non-zero fee that's just below the displayed precision, so
+// show `<0.01%` rather than implying it's free.
+export function formatFeePercent(value: number | null): string {
   if (!isUsableNumber(value) || value < 0) return PLACEHOLDER;
-  return `$${value.toFixed(2)}`;
+  if (value > 0 && value < 0.005) return '<0.01%';
+  return `${value.toFixed(2)}%`;
 }

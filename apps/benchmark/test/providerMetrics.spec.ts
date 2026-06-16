@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { aggregateProviderSamples } from '~/lib/historyAggregation';
 import { ProviderId } from '~/lib/providers';
 import {
   aggregateProviderRoutes,
@@ -72,6 +73,52 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe('aggregateProviderSamples feePercent', () => {
+  function sample(over: Partial<HistorySample>): HistorySample {
+    return {
+      providerId: ACROSS,
+      timestamp: 0,
+      status: 'success',
+      amountUsd: 100,
+      feeUsd: 2,
+      fillTimeSeconds: 12,
+      ...over,
+    };
+  }
+
+  it('takes the median of per-sample fee percents', () => {
+    // 1%, 2%, 6% → median 2%
+    const samples = [
+      sample({ feeUsd: 1, amountUsd: 100 }),
+      sample({ feeUsd: 2, amountUsd: 100 }),
+      sample({ feeUsd: 6, amountUsd: 100 }),
+    ];
+
+    expect(aggregateProviderSamples(ACROSS, samples).feePercent).toBe(2);
+  });
+
+  it('drops negative-fee samples (Across swap-surplus) from the median', () => {
+    // The -5 sample would pull a mean negative; dropped, the median is 2%.
+    const samples = [
+      sample({ feeUsd: -5, amountUsd: 100 }),
+      sample({ feeUsd: 1, amountUsd: 100 }),
+      sample({ feeUsd: 3, amountUsd: 100 }),
+    ];
+
+    expect(aggregateProviderSamples(ACROSS, samples).feePercent).toBe(2);
+  });
+
+  it('is null when no sample has both a fee and a size', () => {
+    const samples = [
+      sample({ feeUsd: null, amountUsd: 100 }),
+      sample({ feeUsd: 2, amountUsd: null }),
+      sample({ feeUsd: 2, amountUsd: 0 }),
+    ];
+
+    expect(aggregateProviderSamples(ACROSS, samples).feePercent).toBeNull();
+  });
+});
+
 describe('aggregateProviderRoutes', () => {
   it('pools samples across every route and aggregates the combined pool once', async () => {
     // Routes return 1, 2, 3 fills: a per-route aggregate would never see 6.
@@ -84,7 +131,7 @@ describe('aggregateProviderRoutes', () => {
     expect(metrics.successRate).toBe(1);
     expect(metrics.p50FillSeconds).toBe(12);
     expect(metrics.p99FillSeconds).toBe(12);
-    expect(metrics.avgFeeUsd).toBe(2);
+    expect(metrics.feePercent).toBe(2); // feeUsd 2 / amountUsd 100 = 2%
     expect(metrics.volumeUsd).toBe(600);
   });
 

@@ -13,7 +13,7 @@ interface BadgeRule {
 
 const RULES: readonly BadgeRule[] = [
   { badge: 'FASTEST', select: (m) => m.p50FillSeconds, direction: 'min' },
-  { badge: 'CHEAPEST', select: (m) => m.avgFeeUsd, direction: 'min' },
+  { badge: 'CHEAPEST', select: (m) => m.feePercent, direction: 'min' },
   { badge: 'MOST ACTIVE', select: (m) => m.fillCount, direction: 'max' },
 ];
 

@@ -1,6 +1,6 @@
 import { METRICS_CELL_NUM, METRICS_CELL_NUM_HIDDEN, METRICS_CELL_STACK, type MetricsColumn } from '../metricsTable';
 import { LeaderboardProviderCell } from './LeaderboardProviderCell';
-import { formatAvgFee, formatFillSeconds, formatSuccessRate } from './formatters';
+import { formatFeePercent, formatFillSeconds, formatSuccessRate } from './formatters';
 import type { ProviderMeta } from '~/lib/providers';
 import { cn } from '~/lib/cn';
 
@@ -58,10 +58,11 @@ export const LEADERBOARD_COLUMNS: readonly LeaderboardColumn[] = [
   },
   {
     key: 'fee',
-    label: 'AVG FEE',
+    label: 'FEE %',
     className: 'text-right md:w-28',
     tdClass: `${METRICS_CELL_NUM} text-text-primary`,
-    render: (metrics) => formatAvgFee(metrics.avgFeeUsd),
+    tooltip: 'Typical fee as a % of the amount moved.',
+    render: (metrics) => formatFeePercent(metrics.feePercent),
   },
 ];
 

@@ -1,5 +1,5 @@
 import { ProviderCell } from '../leaderboard/ProviderCell';
-import { formatAvgFee, formatFillCount, formatFillSeconds, formatSuccessRate } from '../leaderboard/formatters';
+import { formatFeePercent, formatFillCount, formatFillSeconds, formatSuccessRate } from '../leaderboard/formatters';
 import { METRICS_CELL_NUM, METRICS_CELL_NUM_HIDDEN, METRICS_CELL_STACK, type MetricsColumn } from '../metricsTable';
 import type { BestAtBadge } from '~/lib/headToHeadBadges';
 import type { ProviderMeta } from '~/lib/providers';
@@ -44,10 +44,11 @@ export const HEAD_TO_HEAD_COLUMNS: readonly HeadToHeadColumn[] = [
   },
   {
     key: 'fee',
-    label: 'AVG FEE',
+    label: 'FEE %',
     className: 'text-right md:w-24',
     tdClass: `${METRICS_CELL_NUM} text-text-primary`,
-    render: (metrics) => formatAvgFee(metrics.avgFeeUsd),
+    tooltip: 'Typical fee as a % of the amount moved.',
+    render: (metrics) => formatFeePercent(metrics.feePercent),
   },
   {
     key: 'bestAt',

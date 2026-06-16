@@ -266,6 +266,9 @@ const RelayHistoryFeesUsdSchema = RelayFeesUsdSchema.passthrough();
 export const RelayHistoryRequestDataSchema = z
   .object({
     subsidizedRequest: z.boolean().optional(),
+    // Kept as a free-form string instead of RelayFailReasonSchema: live data carries
+    // values missing from that enum (e.g. DEPOSIT_CONFIRMATION_TIMEOUT) and new ones may appear.
+    failReason: z.string().optional(),
     inTxs: z.array(RelayHistoryTxSchema).optional(),
     outTxs: z.array(RelayHistoryTxSchema).optional(),
     metadata: RelayHistoryMetadataSchema.optional(),
