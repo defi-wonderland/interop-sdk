@@ -23,10 +23,11 @@ const PROVIDERS = [
   { name: 'Bungee', color: '#9e2a65' },
 ];
 
-// This route is statically prerendered at build time, where the working
-// directory is the benchmark package root. (next/og's documented module-relative
-// `fetch(new URL(..., import.meta.url))` font pattern isn't supported by
-// Turbopack yet — it throws "not implemented" during the build.)
+// Fonts are read from disk relative to the working directory, which is the
+// benchmark package root because this route is statically prerendered during
+// `next build`. We'd prefer next/og's module-relative pattern
+// (`fetch(new URL('./...', import.meta.url))`), but Turbopack doesn't support it
+// yet (it throws "not implemented" at build time), so readFile is the option.
 function loadFont(file: string): Promise<Buffer> {
   return readFile(join(process.cwd(), 'app/assets/fonts', file));
 }
