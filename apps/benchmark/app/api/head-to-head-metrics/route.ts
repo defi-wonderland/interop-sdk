@@ -7,32 +7,19 @@ import { allProvidersFailed, fetchProviderMetrics } from '~/lib/services/provide
 import { buildTokenDecimals } from '~/lib/tokenDecimals';
 
 const FETCH_TIMEOUT_MS = 15_000;
-const CHAINS_TIMEOUT_MS = 5_000;
 const CACHE_TTL_SECONDS = 60;
 
-// Token decimals are the same for every route pair and rarely change, so cache
-// them once (shared across pairs) instead of refetching inside each pair's
-// cache. Only successful results are cached: this throws on failure so a
-// transient discovery error isn't cached as an empty map for the whole TTL
-// (which would globally degrade Across USD). The caller handles the throw.
-const getTokenDecimals = unstable_cache(
-  async (): Promise<Record<string, number>> => {
-    const chains = await withTimeout(chainService.getChains(), CHAINS_TIMEOUT_MS, 'H2H_CHAINS_TIMEOUT');
-    return buildTokenDecimals(chains);
-  },
-  ['head-to-head-token-decimals'],
-  { revalidate: CACHE_TTL_SECONDS },
-);
-
-// Per (origin, destination, decimals) cached function. `unstable_cache` keys on
-// the args so identical pairs share the cached response across the fleet for one
-// minute. `tokenDecimals` is part of the key on purpose: a degraded ({}) and a
-// full map cache as separate entries, so a transient decimals failure can't pin
-// degraded Across USD onto the pair's good entry. A route-handler-level
-// `export const revalidate` is ignored when the handler reads `searchParams`
-// (Next treats it as dynamic), so we cache at this layer instead.
+// Per (origin, destination) cached function. `unstable_cache` keys on the args
+// so identical pairs share the cached response across the fleet for one minute.
+// A route-handler-level `export const revalidate` is ignored when the handler
+// reads `searchParams` (Next treats it as dynamic), so we cache at this layer.
 const cachedFetch = unstable_cache(
-  async (fromChainId: ChainId, toChainId: ChainId, tokenDecimals: Record<string, number>) => {
+  async (fromChainId: ChainId, toChainId: ChainId) => {
+    // Across needs token decimals to convert inputAmount into USD. They come
+    // from chains discovery, the same source the rest of the app relies on; if
+    // it fails the request throws and retries (not cached), like the
+    // all-providers-failed guard below.
+    const tokenDecimals = buildTokenDecimals(await chainService.getChains());
     const metrics = await fetchProviderMetrics({
       originChainId: fromChainId,
       destinationChainId: toChainId,
@@ -68,20 +55,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'origin and destination must differ' }, { status: 400 });
   }
 
-  // Decimals only enhance Across USD amounts, so a discovery failure degrades to
-  // no decimals (Across amountUsd stays null) instead of failing the request.
-  // Resolved outside cachedFetch so the (possibly empty) map is part of its cache
-  // key, keeping degraded and full results in separate entries.
-  let tokenDecimals: Record<string, number> = {};
-  try {
-    tokenDecimals = await getTokenDecimals();
-  } catch (error) {
-    console.warn('head-to-head-metrics: token decimals unavailable, Across USD degraded:', error);
-  }
-
   try {
     const metrics = await withTimeout(
-      cachedFetch(fromChainId, toChainId, tokenDecimals),
+      cachedFetch(fromChainId, toChainId),
       FETCH_TIMEOUT_MS,
       'HEAD_TO_HEAD_API_TIMEOUT',
     );
