@@ -55,6 +55,10 @@ export class DefiLlamaPriceService implements PriceService {
     private readonly httpClient: HttpClient = new FetchHttpClient({
       baseURL: DEFILLAMA_BASE_URL,
       timeout: DEFILLAMA_REQUEST_TIMEOUT_MS,
+      // Best-effort pricing: don't retry. The default client retries 429/5xx with
+      // backoff, which would multiply the timeout and risk the route's 15s budget.
+      // A failed price just degrades the affected tokens to "—".
+      retries: 0,
     }),
   ) {}
 
@@ -68,8 +72,16 @@ export class DefiLlamaPriceService implements PriceService {
     // fall back to "—" downstream. allSettled never rejects, so no try/catch.
     const chunks = chunk(requestable, MAX_COINS_PER_REQUEST);
     const settled = await Promise.allSettled(chunks.map((batch) => this.fetchChunk(batch)));
+    let failed = 0;
     for (const outcome of settled) {
       if (outcome.status === 'fulfilled') mergeResponse(outcome.value, result);
+      else failed += 1;
+    }
+    // Surface a degraded fetch so a silent drop to "—" is debuggable.
+    if (failed > 0) {
+      console.warn(
+        `DeFiLlama pricing: ${failed}/${chunks.length} request(s) failed; affected tokens fall back to no USD`,
+      );
     }
     return result;
   }
