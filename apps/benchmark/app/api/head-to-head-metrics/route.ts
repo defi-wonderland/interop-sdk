@@ -2,21 +2,28 @@ import { unstable_cache } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { CHAIN_IDS, type ChainId } from '~/lib/chains';
 import { withTimeout } from '~/lib/helpers';
+import { chainService } from '~/lib/services';
 import { allProvidersFailed, fetchProviderMetrics } from '~/lib/services/providerMetrics';
+import { buildTokenDecimals } from '~/lib/tokenDecimals';
 
 const FETCH_TIMEOUT_MS = 15_000;
 const CACHE_TTL_SECONDS = 60;
 
 // Per (origin, destination) cached function. `unstable_cache` keys on the args
-// so identical pairs share the cached response across the fleet for one
-// minute. A route-handler-level `export const revalidate` is ignored when the
-// handler reads `searchParams` (Next treats it as dynamic), so we cache at
-// this layer instead.
+// so identical pairs share the cached response across the fleet for one minute.
+// A route-handler-level `export const revalidate` is ignored when the handler
+// reads `searchParams` (Next treats it as dynamic), so we cache at this layer.
 const cachedFetch = unstable_cache(
   async (fromChainId: ChainId, toChainId: ChainId) => {
+    // Across needs token decimals to convert inputAmount into USD. They come
+    // from chains discovery, the same source the rest of the app relies on; if
+    // it fails the request throws and retries (not cached), like the
+    // all-providers-failed guard below.
+    const tokenDecimals = buildTokenDecimals(await chainService.getChains());
     const metrics = await fetchProviderMetrics({
       originChainId: fromChainId,
       destinationChainId: toChainId,
+      tokenDecimals,
     });
     // `fetchProviderMetrics` resolves with null-filled rows when providers
     // fail, so a transient total outage would otherwise be cached for the

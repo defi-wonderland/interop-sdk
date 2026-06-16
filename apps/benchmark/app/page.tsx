@@ -25,6 +25,7 @@ import {
   fetchAggregatedProviderMetrics,
   fetchProviderMetrics,
 } from './lib/services/providerMetrics';
+import { buildTokenDecimals } from './lib/tokenDecimals';
 import type { RaceRow } from './components/race-table/types';
 import type { HistoryQuery, ProviderMetrics } from './lib/types/historyMetrics';
 import type { NetworkAssets } from '@wonderland/interop-cross-chain';
@@ -49,8 +50,8 @@ export default async function Home() {
   const initialChains = await loadInitialChains();
   const [initialRows, leaderboardMetrics, headToHeadSeed] = await Promise.all([
     loadInitialRace(initialChains),
-    loadLeaderboardMetrics(),
-    loadHeadToHeadSeed(),
+    loadLeaderboardMetrics(initialChains),
+    loadHeadToHeadSeed(initialChains),
   ]);
 
   // First paint uses the canonical-route seed. If that fetch failed entirely,
@@ -127,14 +128,16 @@ async function loadInitialChains(): Promise<NetworkAssets[]> {
   }
 }
 
-async function loadLeaderboardMetrics(): Promise<ProviderMetrics[]> {
+async function loadLeaderboardMetrics(chains: NetworkAssets[]): Promise<ProviderMetrics[]> {
   // Leaderboard pools provider activity across every network route (no token
   // filter, so the sample reflects every asset), for a network-wide view that
   // is distinct from the per-route head-to-head section. No outer deadline: each
   // request is already bounded by the service's client timeout, so the aggregate
   // returns partial results (per-provider null on total failure) instead of an
   // all-or-nothing wrapper that would drop the providers that did finish.
-  const metrics = await fetchAggregatedProviderMetrics(NETWORK_ROUTES);
+  // Thread the decimals map so Across can convert inputAmount to USD.
+  const tokenDecimals = buildTokenDecimals(chains);
+  const metrics = await fetchAggregatedProviderMetrics(NETWORK_ROUTES.map((route) => ({ ...route, tokenDecimals })));
   if (allProvidersFailed(metrics)) {
     // The aggregate resolves null rows instead of throwing when every provider
     // fails, so a try/catch never fires here. Opt this render out of ISR so a
@@ -144,14 +147,16 @@ async function loadLeaderboardMetrics(): Promise<ProviderMetrics[]> {
   return metrics;
 }
 
-async function loadHeadToHeadSeed(): Promise<ProviderMetrics[]> {
+async function loadHeadToHeadSeed(chains: NetworkAssets[]): Promise<ProviderMetrics[]> {
   // First paint of the head-to-head section: the canonical route only, so it
   // matches the route the client hook starts on and can skip the mount fetch.
+  const tokenDecimals = buildTokenDecimals(chains);
   try {
     const seed = await withTimeout(
       fetchProviderMetrics({
         originChainId: INITIAL_FROM_CHAIN_ID,
         destinationChainId: INITIAL_TO_CHAIN_ID,
+        tokenDecimals,
       }),
       HEAD_TO_HEAD_SEED_TIMEOUT_MS,
       'HEAD_TO_HEAD_SEED_TIMEOUT',
