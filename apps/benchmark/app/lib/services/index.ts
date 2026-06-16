@@ -11,6 +11,7 @@ import type { QuotesService } from '../interfaces/quotesService.interface';
 
 export * from './acrossHistoryService';
 export * from './lifiIntentsHistoryService';
+export * from './priceService';
 export * from './relayHistoryService';
 export * from './sdkChainService';
 export * from './sdkQuoteService';
