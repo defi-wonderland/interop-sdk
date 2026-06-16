@@ -6,7 +6,12 @@ import type {
     SuperbridgeSubmitGaslessRequest,
     SuperbridgeSubmitGaslessResponse,
 } from "../schemas.js";
-import { HttpError, ProviderExecuteFailure, ProviderGetQuoteFailure } from "../../../internal.js";
+import {
+    HttpError,
+    ProviderExecuteFailure,
+    ProviderGetQuoteFailure,
+    ProviderGetStatusFailure,
+} from "../../../internal.js";
 import {
     SuperbridgeActivityResponseSchema,
     SuperbridgeRoutesRequestSchema,
@@ -36,10 +41,10 @@ export class SuperbridgeApiService {
     /** GET /v1/activity — fetch the activity (status, steps) for a transaction. */
     async getActivity(txHash: string): Promise<SuperbridgeActivityResponse> {
         try {
-            const response = await this.http.get(`/v1/activity?txHash=${txHash}`);
+            const response = await this.http.get("/v1/activity", { params: { txHash } });
             return SuperbridgeActivityResponseSchema.parse(response.data);
         } catch (error) {
-            this.throwProviderError(error, ProviderExecuteFailure, "Superbridge activity");
+            this.throwProviderError(error, ProviderGetStatusFailure, "Superbridge status");
         }
     }
 

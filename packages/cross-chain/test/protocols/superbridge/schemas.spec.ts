@@ -63,7 +63,7 @@ describe("SuperbridgeRoutesResponseSchema", () => {
                         duration: 120,
                     },
                 },
-                { result: { code: "AMOUNT_TOO_LARGE" } },
+                { result: { type: "AmountTooLarge", maximum: "1000000" } },
             ],
         } satisfies z.input<typeof SuperbridgeRoutesResponseSchema>;
 
@@ -71,6 +71,7 @@ describe("SuperbridgeRoutesResponseSchema", () => {
 
         expect(parsed.results).toHaveLength(2);
         expect(parsed.results[0]!.meta?.id).toBe("op-deposit-cdm");
+        expect(parsed.results[1]!.result).toMatchObject({ type: "AmountTooLarge" });
     });
 });
 

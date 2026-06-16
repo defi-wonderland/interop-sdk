@@ -125,9 +125,19 @@ export const SuperbridgeRouteMetaSchema = z
     })
     .passthrough();
 
+/** A non-quote route result variant (`Disabled`, `AmountTooLarge`, `GenericError`, …) carrying a `type` discriminator. */
+export const SuperbridgeRouteErrorSchema = z
+    .object({
+        type: z.string(),
+        error: z.string().optional(),
+        maximum: z.string().optional(),
+        minimum: z.string().optional(),
+    })
+    .passthrough();
+
 /** One route result: either a quote (with `initiatingTransaction`) or an error variant. */
 export const SuperbridgeRouteResultSchema = z.object({
-    result: z.unknown(),
+    result: z.union([SuperbridgeRouteQuoteSchema, SuperbridgeRouteErrorSchema]),
     meta: SuperbridgeRouteMetaSchema.optional(),
 });
 
@@ -270,6 +280,7 @@ export type SuperbridgeRoutesRequest = z.infer<typeof SuperbridgeRoutesRequestSc
 export type SuperbridgeRouteStep = z.infer<typeof SuperbridgeRouteStepSchema>;
 export type SuperbridgeRouteQuote = z.infer<typeof SuperbridgeRouteQuoteSchema>;
 export type SuperbridgeRouteMeta = z.infer<typeof SuperbridgeRouteMetaSchema>;
+export type SuperbridgeRouteError = z.infer<typeof SuperbridgeRouteErrorSchema>;
 export type SuperbridgeRouteResult = z.infer<typeof SuperbridgeRouteResultSchema>;
 export type SuperbridgeRoutesResponse = z.infer<typeof SuperbridgeRoutesResponseSchema>;
 export type SuperbridgeActivityStep = z.infer<typeof SuperbridgeActivityStepSchema>;

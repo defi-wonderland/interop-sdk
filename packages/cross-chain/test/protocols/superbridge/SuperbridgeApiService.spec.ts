@@ -5,8 +5,8 @@ import type {
     HttpResponse,
 } from "../../../src/core/interfaces/httpClient.interface.js";
 import { HttpError } from "../../../src/core/errors/HttpError.exception.js";
-import { ProviderExecuteFailure } from "../../../src/core/errors/ProviderExecuteFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
+import { ProviderGetStatusFailure } from "../../../src/core/errors/ProviderGetStatusFailure.exception.js";
 import { SuperbridgeApiService } from "../../../src/protocols/superbridge/services/SuperbridgeApiService.js";
 
 const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
@@ -71,13 +71,13 @@ describe("SuperbridgeApiService", () => {
             const result = await service.getActivity("0xabc");
 
             expect(result).toHaveLength(1);
-            expect(mockGet).toHaveBeenCalledWith("/v1/activity?txHash=0xabc");
+            expect(mockGet).toHaveBeenCalledWith("/v1/activity", { params: { txHash: "0xabc" } });
         });
 
-        it("wraps errors with ProviderExecuteFailure", async () => {
+        it("wraps errors with ProviderGetStatusFailure", async () => {
             mockGet.mockRejectedValue(new HttpError("bad", "https://x", 500, { message: "boom" }));
 
-            await expect(service.getActivity("0xabc")).rejects.toThrow(ProviderExecuteFailure);
+            await expect(service.getActivity("0xabc")).rejects.toThrow(ProviderGetStatusFailure);
         });
     });
 
