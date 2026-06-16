@@ -72,15 +72,15 @@ export class DefiLlamaPriceService implements PriceService {
     // fall back to "—" downstream. allSettled never rejects, so no try/catch.
     const chunks = chunk(requestable, MAX_COINS_PER_REQUEST);
     const settled = await Promise.allSettled(chunks.map((batch) => this.fetchChunk(batch)));
-    let failed = 0;
+    const failures: string[] = [];
     for (const outcome of settled) {
       if (outcome.status === 'fulfilled') mergeResponse(outcome.value, result);
-      else failed += 1;
+      else failures.push(outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason));
     }
-    // Surface a degraded fetch so a silent drop to "—" is debuggable.
-    if (failed > 0) {
+    // Surface a degraded fetch with its cause so a silent drop to "—" is debuggable.
+    if (failures.length > 0) {
       console.warn(
-        `DeFiLlama pricing: ${failed}/${chunks.length} request(s) failed; affected tokens fall back to no USD`,
+        `DeFiLlama pricing: ${failures.length}/${chunks.length} request(s) failed (${failures.join('; ')}); affected tokens fall back to no USD`,
       );
     }
     return result;
