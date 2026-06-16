@@ -123,8 +123,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang='en'>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <script type='application/ld+json' dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
-        <script type='application/ld+json' dangerouslySetInnerHTML={{ __html: JSON.stringify(webApplicationJsonLd) }} />
+        <script type='application/ld+json'>{JSON.stringify(websiteJsonLd)}</script>
+        <script type='application/ld+json'>{JSON.stringify(webApplicationJsonLd)}</script>
         {children}
       </body>
     </html>

@@ -23,9 +23,11 @@ const PROVIDERS = [
   { name: 'Bungee', color: '#9e2a65' },
 ];
 
+// This route is statically prerendered at build time, where the working
+// directory is the benchmark package root. (next/og's documented module-relative
+// `fetch(new URL(..., import.meta.url))` font pattern isn't supported by
+// Turbopack yet — it throws "not implemented" during the build.)
 function loadFont(file: string): Promise<Buffer> {
-  // Resolved at build time (the OG image is statically generated): cwd is the
-  // benchmark package root when Next builds it.
   return readFile(join(process.cwd(), 'app/assets/fonts', file));
 }
 
