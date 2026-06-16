@@ -1,0 +1,18 @@
+import { z } from "zod";
+
+import { SubmissionModeSchema } from "../../core/schemas/providerConfig.js";
+
+/** Schema for validating Superbridge provider configuration. */
+export const SuperbridgeConfigSchema = z.object({
+    /** Custom API base URL. Overrides the default Superbridge endpoint. */
+    baseUrl: z.url().optional(),
+    /** Unique provider identifier. Defaults to `"superbridge"`. */
+    providerId: z.string().optional(),
+    /** Superbridge API key sent as `x-api-key`. Required for direct API use; omit it only behind a proxy (`baseUrl`) that injects it server-side. */
+    apiKey: z.string().min(1).optional(),
+    /** Execution modes (default: `["user-transaction"]`). Add `"gasless"` for signature-based submission. */
+    submissionModes: z.array(SubmissionModeSchema).optional(),
+});
+
+/** Configuration options for the Superbridge provider. */
+export type SuperbridgeConfigs = z.infer<typeof SuperbridgeConfigSchema>;
