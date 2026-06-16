@@ -208,4 +208,15 @@ describe("SuperbridgeProvider", () => {
             ).toEqual({ txHash: FILL_TX_HASH, chainId: "1" });
         });
     });
+
+    describe("getDiscoveryConfig()", () => {
+        it("returns a custom-api discovery config", () => {
+            const config = provider.getDiscoveryConfig();
+
+            expect(config.type).toBe("custom-api");
+            if (config.type === "custom-api") {
+                expect(config.config.assetsEndpoint).toContain("/v1/tokens");
+            }
+        });
+    });
 });
