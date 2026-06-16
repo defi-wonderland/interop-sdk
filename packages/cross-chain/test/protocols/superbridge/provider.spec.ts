@@ -14,6 +14,7 @@ const DESTINATION_CHAIN_ID = 8453;
 const INPUT_AMOUNT = "10000000000000000";
 const OUTPUT_AMOUNT = "9990000000000000";
 const TX_DATA = "0xdeadbeef";
+const FILL_TX_HASH = "0xabc1230000000000000000000000000000000000000000000000000000000000";
 const PROTOCOL_NAME = "superbridge";
 const API_KEY = "sb-test-key";
 
@@ -192,6 +193,19 @@ describe("SuperbridgeProvider", () => {
             await expect(provider.getQuotes(makeQuoteRequest())).rejects.toBeInstanceOf(
                 ProviderGetQuoteFailure,
             );
+        });
+    });
+
+    describe("getTrackingConfig()", () => {
+        it("builds activity-based tracking and index pre-tracker", () => {
+            const config = provider.getTrackingConfig();
+
+            expect(config.openedIntentParserConfig.type).toBe("api");
+            expect(config.preTrackerConfig.type).toBe("api");
+            expect(config.preTrackerConfig.buildUrl()).toContain("/v1/index_transaction");
+            expect(
+                config.preTrackerConfig.buildBody({ txHash: FILL_TX_HASH, originChainId: 1 }),
+            ).toEqual({ txHash: FILL_TX_HASH, chainId: "1" });
         });
     });
 });
