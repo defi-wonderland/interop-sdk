@@ -108,6 +108,26 @@ describe("extractFillEvent", () => {
         expect(out.fillTxHash).toBeUndefined();
     });
 
+    it("falls back to the last completed tx when steps omit a chain id", () => {
+        const response = activity([
+            {
+                type: "transaction",
+                transactionStatus: "done",
+                confirmation: { transactionHash: ORIGIN_TX },
+            },
+            {
+                type: "transaction",
+                transactionStatus: "done",
+                confirmation: { transactionHash: FILL_TX },
+            },
+        ]);
+
+        const out = extractFillEvent(response, params());
+
+        expect(out.status).toBe(OrderStatus.Finalized);
+        expect(out.event?.fillTxHash).toBe(FILL_TX);
+    });
+
     it("selects the destination-chain tx as the fill, not a later origin-chain tx", () => {
         const response = activity([
             {

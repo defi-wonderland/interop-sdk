@@ -94,15 +94,18 @@ function anyStepStarted(bridge: SuperbridgeActivity): boolean {
 
 function findFillTxHash(bridge: SuperbridgeActivity): Hex | undefined {
     const destinationChainId = bridge.toChainId;
-    let last: string | undefined;
+    let lastOnDestination: string | undefined;
+    let lastCompleted: string | undefined;
     for (const step of bridge.steps) {
         if (step.type !== "transaction") continue;
         if (step.transactionStatus !== "done" && step.transactionStatus !== "auto") continue;
-        if (destinationChainId !== undefined && step.chainId !== destinationChainId) {
-            continue;
-        }
         const hash = step.confirmation?.transactionHash;
-        if (typeof hash === "string") last = hash;
+        if (typeof hash !== "string") continue;
+        lastCompleted = hash;
+        if (destinationChainId === undefined || step.chainId === destinationChainId) {
+            lastOnDestination = hash;
+        }
     }
-    return last !== undefined && isHex(last) ? last : undefined;
+    const fillTxHash = lastOnDestination ?? lastCompleted;
+    return fillTxHash !== undefined && isHex(fillTxHash) ? fillTxHash : undefined;
 }
