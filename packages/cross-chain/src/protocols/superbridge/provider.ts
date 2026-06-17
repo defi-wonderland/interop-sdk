@@ -15,7 +15,9 @@ import {
     FetchHttpClient,
     ProviderConfigFailure,
     ProviderExecuteNotImplemented,
+    ProviderGetQuoteFailure,
 } from "../../internal.js";
+import { adaptQuoteRequest, adaptQuoteResponse } from "./adapters/index.js";
 import {
     SUPERBRIDGE_API_URL,
     SUPERBRIDGE_DEFAULT_SUBMISSION_MODES,
@@ -76,9 +78,25 @@ export class SuperbridgeProvider extends CrossChainProvider {
         }
     }
 
-    /** @inheritdoc */
-    async getQuotes(_params: QuoteRequest): Promise<Quote[]> {
-        throw new ProviderExecuteNotImplemented(this.getProviderId());
+    /**
+     * @inheritdoc
+     *
+     * Fetches bridging routes from `/v1/routes` and maps each successful route
+     * whose initiating transaction matches an enabled submission mode.
+     */
+    async getQuotes(params: QuoteRequest): Promise<Quote[]> {
+        try {
+            const request = adaptQuoteRequest(params);
+            const response = await this.apiService.getRoutes(request);
+            return adaptQuoteResponse(response, this.providerId, params, this.submissionModes);
+        } catch (error) {
+            if (error instanceof ProviderGetQuoteFailure) throw error;
+            throw new ProviderGetQuoteFailure(
+                error instanceof Error ? error.message : "Failed to get Superbridge quotes",
+                undefined,
+                error instanceof Error ? error.stack : undefined,
+            );
+        }
     }
 
     /** @inheritdoc */
