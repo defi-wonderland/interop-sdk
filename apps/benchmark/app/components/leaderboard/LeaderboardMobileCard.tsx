@@ -51,10 +51,27 @@ export function LeaderboardMobileCard({ metrics, rank, isWinner }: LeaderboardMo
       {sublabel ? <span className='font-mono text-[10px] tracking-[0.02em] text-text-muted'>{sublabel}</span> : null}
       <div className='flex items-start justify-between gap-2'>
         <StatCell label='SUCCESS' value={formatSuccessRate(metrics.successRate)} />
-        <StatCell label='P50' value={formatFillSeconds(metrics.p50FillSeconds)} />
-        <StatCell label='P99' value={formatFillSeconds(metrics.p99FillSeconds)} />
-        <StatCell label='SIZE' value={formatSize(metrics.medianSizeUsd)} />
-        <StatCell label='FEE' value={formatFeePercent(metrics.feePercent)} align='end' />
+        <StatCell
+          label='P50'
+          value={formatFillSeconds(metrics.p50FillSeconds)}
+          tooltip='Median fill time. Half of fills finish faster than this, half slower.'
+        />
+        <StatCell
+          label='P99'
+          value={formatFillSeconds(metrics.p99FillSeconds)}
+          tooltip='Worst-case fill time. Only 1 in 100 fills is slower than this.'
+        />
+        <StatCell
+          label='SIZE'
+          value={formatSize(metrics.medianSizeUsd)}
+          tooltip='Median intent size in USD: the typical amount moved per fill.'
+        />
+        <StatCell
+          label='FEE'
+          value={formatFeePercent(metrics.feePercent)}
+          align='end'
+          tooltip='Typical fee as a % of the amount moved.'
+        />
       </div>
     </article>
   );
