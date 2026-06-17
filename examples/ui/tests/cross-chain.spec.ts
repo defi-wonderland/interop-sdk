@@ -96,6 +96,33 @@ test.describe('Cross-chain intents', () => {
       .click();
 
     await expect(page.getByRole('button', { name: 'Execute' })).toBeVisible();
+    await expect(page
+      .locator('button')
+      .filter({ hasText: /Relay/ }))
+      .toBeVisible();
+    await expect(page
+      .locator('button')
+      .filter({ hasText: /LI.FI/ }))
+      .toBeVisible();
+  });
+
+  test('executes a cross-chain intent (no mocks)', async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.locator('#input-chain-select').selectOption({ label: 'Sepolia' });
+    await page.locator('#output-chain-select').selectOption({ label: 'Base Sepolia' });
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByTestId('output-token-select').click();
+    await page.getByTestId('output-token-select-listbox').getByText('USDC').click();
+    await page.getByRole('textbox', { name: 'Amount' }).fill('0.03');
+    await page.getByRole('button', { name: 'Get Quotes' }).last().click();
+    await page
+      .locator('button')
+      .filter({ hasText: /Relay/ })
+      .click();
+    await page.getByRole('button', { name: 'Execute' }).click();
+
+    await expect(page.getByText('Order Filled Successfully!')).toBeVisible({ timeout: 180_000 });
   });
 
   test('shows fee percentage for same-token with output < input', async ({ page }) => {
@@ -206,5 +233,67 @@ test.describe('Negative test', () => {
     await page.getByRole('button', { name: 'Execute' }).click();
 
     await expect(page.getByText('Transaction rejected')).toBeVisible();
+  });
+});
+
+test.describe('Demo limits', () => {
+  test('shows warning banner on the cross-chain page', async ({ page }) => {
+    await expect(page.getByText('This is a demo app for testing and experimentation')).toBeVisible();
+  });
+
+  test('disables submit when USDC amount exceeds 100', async ({ page }) => {
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByRole('textbox', { name: 'Amount' }).fill('101');
+
+    const submitBtn = page.getByTestId('submit-button');
+    await expect(submitBtn).toBeDisabled();
+    await expect(submitBtn).toHaveText('Amount too large for demo');
+  });
+
+  test('allows submit when USDC amount is exactly 100', async ({ page }) => {
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByRole('textbox', { name: 'Amount' }).fill('100');
+
+    await expect(page.getByTestId('submit-button')).toBeEnabled();
+  });
+
+  test('disables submit in build quote mode too', async ({ page }) => {
+    await page.getByRole('button', { name: 'Build Quote' }).click();
+    await page.getByTestId('input-token-select').click();
+    await page.getByTestId('input-token-select-listbox').getByText('USDC').click();
+    await page.getByLabel('You send').fill('200');
+
+    await expect(page.getByTestId('submit-button')).toBeDisabled();
+  });
+});
+
+test.describe('Mint mockUSDC', () => {
+  test('mints and updates balance in UI', async ({ page }) => {
+    await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15_000 });
+
+    await page.locator('#output-chain-select').selectOption({ label: 'OP Sepolia' });
+    await page.locator('#input-chain-select').selectOption({ label: 'Base Sepolia' });
+
+    await page.getByTestId('input-token-select').click();
+    const listbox = page.getByTestId('input-token-select-listbox');
+    await listbox.getByText('USDC').last().click();
+
+    const maxButton = page.getByTestId('max-balance-button');
+    await expect(maxButton).toBeVisible({ timeout: 10_000 });
+    const maxText = (await maxButton.textContent()) ?? '';
+
+    // Balance before minting
+    const balanceBefore = parseFloat(maxText.replace('Max: ', ''));
+
+    const mintButton = page.getByTestId('mint-button');
+    await mintButton.click();
+    await expect(mintButton).toHaveText('Minting...', { timeout: 10_000 });
+    await expect(mintButton).toHaveText('Mint 100 USDC', { timeout: 30_000 });
+
+    // Balance after minting
+    const expectedBalance = balanceBefore + 100;
+    await expect(maxButton).toHaveText(`Max: ${expectedBalance}`, { timeout: 10_000 });
   });
 });
