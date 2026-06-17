@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { NoFeedChip } from '../mobile/NoFeedChip';
 import { ProviderChip } from '../mobile/ProviderChip';
 import { StatCell } from '../mobile/StatCell';
@@ -22,7 +23,7 @@ interface LeaderboardMobileCardProps {
 // Mobile leaderboard card: provider header with rank on the right, a sample-size
 // subline, then a stat strip. A no-feed provider (Bungee) is dimmed and swaps
 // the rank for a NO FEED chip with em-dash stats.
-export function LeaderboardMobileCard({ metrics, rank, isWinner }: LeaderboardMobileCardProps): React.ReactNode {
+export function LeaderboardMobileCard({ metrics, rank, isWinner }: LeaderboardMobileCardProps): ReactNode {
   const provider = PROVIDERS[metrics.providerId];
   const isPlaceholder = !provider.hasGlobalFeed;
   const sublabel = buildSublabel(isPlaceholder, metrics);

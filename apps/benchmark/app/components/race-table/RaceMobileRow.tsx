@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '../Skeleton';
 import { ProviderChip } from '../mobile/ProviderChip';
@@ -31,7 +32,7 @@ export function RaceMobileRow({
   isFirst,
   assetSymbol,
   reduceMotion,
-}: RaceMobileRowProps): React.ReactNode {
+}: RaceMobileRowProps): ReactNode {
   const isQuerying = row.status === 'querying';
   const isErrored = row.status === 'errored';
   const isSettled = row.status === 'settled';

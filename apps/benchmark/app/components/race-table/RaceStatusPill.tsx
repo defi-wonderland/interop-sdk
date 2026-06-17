@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pill } from '../Pill';
 import type { RowStatus } from './types';
 
@@ -18,8 +19,8 @@ export function RaceStatusPill({
   isFirst,
   errorMessage,
   reduceMotion,
-}: RaceStatusPillProps): React.ReactNode {
-  let pills: React.ReactNode = null;
+}: RaceStatusPillProps): ReactNode {
+  let pills: ReactNode = null;
 
   if (status === 'errored') {
     pills = (
