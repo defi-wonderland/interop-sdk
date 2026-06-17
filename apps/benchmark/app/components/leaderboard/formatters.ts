@@ -9,6 +9,21 @@ export function formatFillCount(value: number | null): string {
   return Math.trunc(value).toLocaleString('en-US');
 }
 
+// Compact USD intent size: `<$1`, `$20`, `$1.2k`, `$3.4m`. Whole dollars under
+// 1k (sizes that small don't need cents); k/m suffix above with one decimal.
+export function formatSize(value: number | null): string {
+  if (!isUsableNumber(value) || value < 0) return PLACEHOLDER;
+  if (value < 1) return '<$1';
+  if (value < 1_000) return `$${Math.round(value)}`;
+  if (value < 1_000_000) return `$${trimDecimal(value / 1_000)}k`;
+  return `$${trimDecimal(value / 1_000_000)}m`;
+}
+
+// One decimal, but drop a trailing `.0` so `$1.0k` reads `$1k`.
+function trimDecimal(value: number): string {
+  return (Math.round(value * 10) / 10).toString();
+}
+
 // Compact span the sample covers: `0s`, `45s`, `8h`, `2.7d`. Round into each
 // unit before the threshold check so a near-boundary value rolls over (3599s →
 // `1h`, not `60m`) instead of rendering an out-of-range count. Days keep one
