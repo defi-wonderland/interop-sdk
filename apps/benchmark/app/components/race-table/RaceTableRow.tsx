@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Icon } from '../Icon';
-import { Pill } from '../Pill';
 import { Skeleton } from '../Skeleton';
+import { RaceStatusPill } from './RaceStatusPill';
 import { parseOptionalNumber } from './raceRows';
-import type { RaceRow, RowStatus } from './types';
+import type { RaceRow } from './types';
 import { AssetSymbol } from '~/lib/assets';
 import { cn } from '~/lib/cn';
 import { formatEta, formatLatency, formatTokenAmount, formatUsd } from '~/lib/formatters';
@@ -37,7 +37,6 @@ export function RaceTableRow({
   const isSettled = row.status === 'settled';
   const outputUsd = parseOptionalNumber(row.quote?.outputAmountUsd);
   const outputToken = row.quote?.outputAmount ? formatTokenAmount(row.quote.outputAmount, outputDecimals) : '—';
-  const mobileSubtitle = buildMobileSubtitle(row);
 
   return (
     <motion.tr
@@ -58,12 +57,12 @@ export function RaceTableRow({
       }
       transition={{ duration: 0.2 }}
       className={cn(
-        'h-20 border-b border-border-subtle align-middle transition-colors last:border-b-0 md:h-[72px]',
+        'h-[72px] border-b border-border-subtle align-middle transition-colors last:border-b-0',
         isWinner && 'bg-accent-soft',
         isErrored && 'text-text-muted',
       )}
     >
-      <td className='w-10 px-3 py-3 md:w-12 md:px-4 md:py-4'>
+      <td className='w-12 px-4 py-4'>
         <div className='flex items-center gap-2 font-mono text-label'>
           {isWinner ? (
             <span className={cn('inline-block size-1.5 rounded-full', row.provider.colorClass)} aria-hidden='true' />
@@ -71,20 +70,15 @@ export function RaceTableRow({
           <span className={cn('tabular-nums', isWinner ? 'text-accent' : 'text-text-secondary')}>{rank ?? '—'}</span>
         </div>
       </td>
-      <td className='px-3 py-3 md:px-4 md:py-4'>
-        <div className='flex items-center gap-2.5 md:gap-3'>
+      <td className='px-4 py-4'>
+        <div className='flex items-center gap-3'>
           <Icon src={row.provider.iconUrl} alt='' size='md' />
-          <div className='flex flex-col gap-0.5'>
-            <span className='font-sans text-mark font-medium tracking-[-0.0125em] text-text-primary md:text-base'>
-              {row.provider.displayName}
-            </span>
-            {mobileSubtitle ? (
-              <span className='font-mono text-caption text-text-muted md:hidden'>{mobileSubtitle}</span>
-            ) : null}
-          </div>
+          <span className='font-sans text-base font-medium tracking-[-0.0125em] text-text-primary'>
+            {row.provider.displayName}
+          </span>
         </div>
       </td>
-      <td className='hidden px-4 py-4 md:table-cell'>
+      <td className='px-4 py-4'>
         {isQuerying ? (
           <Skeleton reduceMotion={reduceMotion} />
         ) : isSettled && row.quote?.latencyMs !== undefined ? (
@@ -102,57 +96,32 @@ export function RaceTableRow({
           <span className='font-mono text-label text-text-muted'>—</span>
         )}
       </td>
-      <td className='px-3 py-3 md:px-4 md:py-4'>
+      <td className='px-4 py-4'>
         {isQuerying ? (
           <div className='flex justify-end'>
             <Skeleton wide reduceMotion={reduceMotion} />
           </div>
         ) : isSettled ? (
           <div className='flex flex-col items-end gap-1'>
-            <div className='hidden items-baseline gap-1.5 md:flex'>
+            <div className='flex items-baseline gap-1.5'>
               <span className='font-mono text-mark font-medium text-text-primary tabular-nums'>{outputToken}</span>
               <span className='font-mono text-caption text-text-muted'>{assetSymbol}</span>
             </div>
             {outputUsd > 0 ? (
-              <span className='font-mono text-mark font-medium text-text-primary tabular-nums md:text-caption md:font-normal md:text-text-muted'>
+              <span className='font-mono text-caption text-text-muted tabular-nums'>
                 <AnimatedUsd
                   value={outputUsd}
                   fallback={formatUsd(row.quote?.outputAmountUsd)}
                   reduceMotion={reduceMotion}
                 />
               </span>
-            ) : (
-              <div className='flex items-baseline gap-1.5 md:hidden'>
-                <span className='font-mono text-mark font-medium text-text-primary tabular-nums'>{outputToken}</span>
-                <span className='font-mono text-caption text-text-muted'>{assetSymbol}</span>
-              </div>
-            )}
-            <div className='md:hidden'>
-              <StatusPill
-                status={row.status}
-                isWinner={isWinner}
-                isFirst={isFirst}
-                errorMessage={row.errorMessage}
-                reduceMotion={reduceMotion}
-              />
-            </div>
+            ) : null}
           </div>
         ) : (
-          <div className='flex flex-col items-end gap-1'>
-            <span className='font-mono text-label text-text-muted'>—</span>
-            <div className='md:hidden'>
-              <StatusPill
-                status={row.status}
-                isWinner={isWinner}
-                isFirst={isFirst}
-                errorMessage={row.errorMessage}
-                reduceMotion={reduceMotion}
-              />
-            </div>
-          </div>
+          <span className='flex justify-end font-mono text-label text-text-muted'>—</span>
         )}
       </td>
-      <td className='hidden px-4 py-4 text-right md:table-cell'>
+      <td className='px-4 py-4 text-right'>
         {isQuerying ? (
           <Skeleton reduceMotion={reduceMotion} />
         ) : isSettled ? (
@@ -163,8 +132,8 @@ export function RaceTableRow({
           <span className='font-mono text-label text-text-muted'>—</span>
         )}
       </td>
-      <td className='hidden px-4 py-4 md:table-cell'>
-        <StatusPill
+      <td className='px-4 py-4'>
+        <RaceStatusPill
           status={row.status}
           isWinner={isWinner}
           isFirst={isFirst}
@@ -174,13 +143,6 @@ export function RaceTableRow({
       </td>
     </motion.tr>
   );
-}
-
-function buildMobileSubtitle(row: RaceRow): string | null {
-  if (row.status !== 'settled' || !row.quote) return null;
-  const latency = row.quote.latencyMs !== undefined ? formatLatency(row.quote.latencyMs) : null;
-  const eta = row.quote.eta !== undefined ? formatEta(Math.round(row.quote.eta)) : null;
-  return [latency, eta].filter(Boolean).join(' · ') || null;
 }
 
 function LatencyBar({
@@ -198,46 +160,6 @@ function LatencyBar({
       <div className={cn('h-full', colorClass)} style={{ width: `${widthPercent}%` }} />
     </div>
   );
-}
-
-interface StatusPillProps {
-  status: RowStatus;
-  isWinner: boolean;
-  isFirst: boolean;
-  errorMessage?: string;
-  reduceMotion: boolean;
-}
-
-function StatusPill({ status, isWinner, isFirst, errorMessage, reduceMotion }: StatusPillProps) {
-  let pills: React.ReactNode = null;
-
-  if (status === 'errored') {
-    pills = (
-      <Pill tone='error' title={errorMessage}>
-        no route
-      </Pill>
-    );
-  } else if (status === 'querying') {
-    pills = (
-      <Pill tone='muted' className={reduceMotion ? undefined : 'animate-pulse'}>
-        querying
-      </Pill>
-    );
-  } else if (status === 'settled' && (isWinner || isFirst)) {
-    pills = (
-      <>
-        {isWinner ? (
-          <Pill tone='accent' icon='★'>
-            winner
-          </Pill>
-        ) : null}
-        {isFirst ? <Pill tone='outline'>first</Pill> : null}
-      </>
-    );
-  }
-
-  if (!pills) return null;
-  return <div className='flex flex-wrap items-center justify-end gap-1.5'>{pills}</div>;
 }
 
 function AnimatedLatency({ value, reduceMotion }: { value?: number; reduceMotion: boolean }) {

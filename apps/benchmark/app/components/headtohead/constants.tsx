@@ -1,9 +1,9 @@
 import { ProviderCell } from '../leaderboard/ProviderCell';
 import { formatFeePercent, formatFillCount, formatFillSeconds, formatSuccessRate } from '../leaderboard/formatters';
 import { METRICS_CELL_NUM, METRICS_CELL_NUM_HIDDEN, METRICS_CELL_STACK, type MetricsColumn } from '../metricsTable';
+import { BestAtBadgeChip } from './BestAtBadgeChip';
 import type { BestAtBadge } from '~/lib/headToHeadBadges';
 import type { ProviderMeta } from '~/lib/providers';
-import { cn } from '~/lib/cn';
 
 export interface HeadToHeadRowContext {
   provider: ProviderMeta;
@@ -69,18 +69,5 @@ function BestAtCell({ badges }: { badges: readonly BestAtBadge[] }) {
         <BestAtBadgeChip key={badge} label={badge} />
       ))}
     </div>
-  );
-}
-
-function BestAtBadgeChip({ label }: { label: BestAtBadge }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center whitespace-nowrap bg-accent px-2 py-[3px]',
-        'font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-on-accent',
-      )}
-    >
-      {label}
-    </span>
   );
 }
