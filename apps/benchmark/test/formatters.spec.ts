@@ -52,6 +52,10 @@ describe('formatSize', () => {
     expect(formatSize(1_000_000)).toBe('$1m');
     expect(formatSize(3_400_000)).toBe('$3.4m');
   });
+
+  it('promotes to m at the 1M boundary instead of rendering 1000k', () => {
+    expect(formatSize(999_960)).toBe('$1m'); // not $1000k
+  });
 });
 
 describe('formatSuccessRate', () => {

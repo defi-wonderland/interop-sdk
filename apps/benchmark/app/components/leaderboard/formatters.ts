@@ -11,17 +11,21 @@ export function formatFillCount(value: number | null): string {
 
 // Compact USD intent size: `<$1`, `$20`, `$1.2k`, `$3.4m`. Whole dollars under
 // 1k (sizes that small don't need cents); k/m suffix above with one decimal.
+// Each unit is rounded before the threshold check so a value just under the next
+// boundary promotes (999,960 -> `$1m`) instead of rendering `$1000k`.
 export function formatSize(value: number | null): string {
   if (!isUsableNumber(value) || value < 0) return PLACEHOLDER;
   if (value < 1) return '<$1';
-  if (value < 1_000) return `$${Math.round(value)}`;
-  if (value < 1_000_000) return `$${trimDecimal(value / 1_000)}k`;
-  return `$${trimDecimal(value / 1_000_000)}m`;
+  if (Math.round(value) < 1_000) return `$${Math.round(value)}`;
+  const k = roundTenth(value / 1_000);
+  if (k < 1_000) return `$${k}k`;
+  return `$${roundTenth(value / 1_000_000)}m`;
 }
 
-// One decimal, but drop a trailing `.0` so `$1.0k` reads `$1k`.
-function trimDecimal(value: number): string {
-  return (Math.round(value * 10) / 10).toString();
+// Round to one decimal; the numeric result drops a trailing `.0` on its own
+// (so `1` renders `$1k`, `1.2` renders `$1.2k`).
+function roundTenth(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 // Compact span the sample covers: `0s`, `45s`, `8h`, `2.7d`. Round into each
