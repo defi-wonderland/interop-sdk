@@ -1,11 +1,14 @@
+import type { Hex } from "viem";
 import { ZodError } from "zod";
 
 import type { SubmissionMode } from "../../core/schemas/providerConfig.js";
 import type {
     FillWatcherConfig,
+    GetFillParams,
     HttpClient,
     OpenedIntentParserConfig,
     PreTrackerConfig,
+    PreTrackerParams,
     Quote,
     QuoteRequest,
 } from "../../internal.js";
@@ -14,10 +17,14 @@ import {
     CrossChainProvider,
     FetchHttpClient,
     ProviderConfigFailure,
-    ProviderExecuteNotImplemented,
     ProviderGetQuoteFailure,
 } from "../../internal.js";
-import { adaptQuoteRequest, adaptQuoteResponse } from "./adapters/index.js";
+import {
+    adaptOpenedIntentResponse,
+    adaptQuoteRequest,
+    adaptQuoteResponse,
+    extractFillEvent,
+} from "./adapters/index.js";
 import {
     SUPERBRIDGE_API_URL,
     SUPERBRIDGE_DEFAULT_SUBMISSION_MODES,
@@ -99,12 +106,54 @@ export class SuperbridgeProvider extends CrossChainProvider {
         }
     }
 
-    /** @inheritdoc */
+    /**
+     * @inheritdoc
+     * Returns API-based tracking config using the Superbridge `/v1/activity` endpoint,
+     * with `/v1/index_transaction` as the pre-tracker.
+     */
     getTrackingConfig(): {
         openedIntentParserConfig: OpenedIntentParserConfig;
         fillWatcherConfig: FillWatcherConfig;
-        preTrackerConfig?: PreTrackerConfig;
+        preTrackerConfig: PreTrackerConfig;
     } {
-        throw new ProviderExecuteNotImplemented(this.getProviderId());
+        const headers = this.apiHeaders;
+
+        return {
+            openedIntentParserConfig: {
+                type: "api",
+                config: {
+                    protocolName: SUPERBRIDGE_PROTOCOL_NAME,
+                    headers,
+                    buildUrl: (txHash: Hex): string =>
+                        `${this.baseUrl}/v1/activity?txHash=${txHash}`,
+                    extractOpenedIntent: adaptOpenedIntentResponse,
+                },
+            },
+            fillWatcherConfig: {
+                type: "api-based",
+                baseUrl: this.baseUrl,
+                headers,
+                pollingInterval: 5000,
+                retry: {
+                    maxAttempts: 3,
+                    initialDelay: 2000,
+                    maxDelay: 15000,
+                    backoffMultiplier: 2,
+                },
+                buildEndpoint: (params: GetFillParams): string =>
+                    `/v1/activity?txHash=${params.openTxHash ?? params.orderId}`,
+                extractFillEvent,
+            },
+            preTrackerConfig: {
+                type: "api",
+                protocolName: SUPERBRIDGE_PROTOCOL_NAME,
+                buildUrl: (): string => `${this.baseUrl}/v1/index_transaction`,
+                buildBody: (params: PreTrackerParams): Record<string, unknown> => ({
+                    txHash: params.txHash,
+                    chainId: String(params.originChainId),
+                }),
+                headers,
+            },
+        };
     }
 }
