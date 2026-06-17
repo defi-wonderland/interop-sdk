@@ -62,7 +62,7 @@ export function LeaderboardMobileCard({ metrics, rank, isWinner }: LeaderboardMo
           tooltip='Worst-case fill time. Only 1 in 100 fills is slower than this.'
         />
         <StatCell
-          label='SIZE'
+          label='MED SIZE'
           value={formatSize(metrics.medianSizeUsd)}
           tooltip='Median intent size in USD: the typical amount moved per fill.'
         />
