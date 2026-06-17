@@ -58,8 +58,8 @@ export const LEADERBOARD_COLUMNS: readonly LeaderboardColumn[] = [
   },
   {
     key: 'size',
-    label: 'SIZE',
-    className: 'hidden text-right md:table-cell md:w-28',
+    label: 'MEDIAN SIZE',
+    className: 'hidden text-right md:table-cell md:w-32',
     tdClass: `${METRICS_CELL_NUM_HIDDEN} text-text-secondary`,
     tooltip: 'Median intent size in USD: the typical amount moved per fill.',
     render: (metrics) => formatSize(metrics.medianSizeUsd),
