@@ -35,7 +35,7 @@ export function HeadToHeadMobileCard({ metrics, badges, isLoading = false }: Hea
         <ProviderChip provider={provider} />
         {isPlaceholder ? (
           <NoFeedChip />
-        ) : badges.length > 0 ? (
+        ) : !skeletonize && badges.length > 0 ? (
           <div className='flex flex-wrap items-center justify-end gap-1.5'>
             {badges.map((badge) => (
               <BestAtBadgeChip key={badge} label={badge} />
@@ -46,8 +46,19 @@ export function HeadToHeadMobileCard({ metrics, badges, isLoading = false }: Hea
       <div className='flex items-start justify-between gap-2'>
         <Stat label='FILLS' value={formatFillCount(metrics.fillCount)} skeletonize={skeletonize} />
         <Stat label='SUCCESS' value={formatSuccessRate(metrics.successRate)} skeletonize={skeletonize} />
-        <Stat label='P50' value={formatFillSeconds(metrics.p50FillSeconds)} skeletonize={skeletonize} />
-        <Stat label='FEE' value={formatFeePercent(metrics.feePercent)} skeletonize={skeletonize} align='end' />
+        <Stat
+          label='P50'
+          value={formatFillSeconds(metrics.p50FillSeconds)}
+          skeletonize={skeletonize}
+          tooltip='Median fill time. Half of fills finish faster than this, half slower.'
+        />
+        <Stat
+          label='FEE'
+          value={formatFeePercent(metrics.feePercent)}
+          skeletonize={skeletonize}
+          align='end'
+          tooltip='Typical fee as a % of the amount moved.'
+        />
       </div>
     </article>
   );
@@ -58,11 +69,13 @@ function Stat({
   value,
   skeletonize,
   align = 'start',
+  tooltip,
 }: {
   label: string;
   value: string;
   skeletonize: boolean;
   align?: 'start' | 'end';
+  tooltip?: string;
 }) {
   if (skeletonize) {
     return (
@@ -72,5 +85,5 @@ function Stat({
       </div>
     );
   }
-  return <StatCell label={label} value={value} align={align} />;
+  return <StatCell label={label} value={value} align={align} tooltip={tooltip} />;
 }
