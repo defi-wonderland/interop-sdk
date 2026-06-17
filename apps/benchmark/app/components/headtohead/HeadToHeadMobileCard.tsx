@@ -19,7 +19,11 @@ interface HeadToHeadMobileCardProps {
 // then a FILLS / SUCCESS / P50 / FEE stat strip. A no-feed provider (Bungee) is
 // dimmed and shows a NO FEED chip. While a refetch is in flight the stat values
 // turn into skeletons, mirroring the desktop row.
-export function HeadToHeadMobileCard({ metrics, badges, isLoading = false }: HeadToHeadMobileCardProps) {
+export function HeadToHeadMobileCard({
+  metrics,
+  badges,
+  isLoading = false,
+}: HeadToHeadMobileCardProps): React.ReactNode {
   const provider = PROVIDERS[metrics.providerId];
   const isPlaceholder = !provider.hasGlobalFeed;
   const skeletonize = isLoading && !isPlaceholder;

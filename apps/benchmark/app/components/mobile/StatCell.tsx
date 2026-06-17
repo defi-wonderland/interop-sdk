@@ -21,7 +21,14 @@ const LABEL_BASE = 'font-mono text-[9px] uppercase leading-none tracking-[0.04em
 // Shared mobile stat: a mono uppercase micro-label stacked over its value.
 // Dropped into a justify-between row to form the stat strip on the leaderboard
 // and head-to-head cards.
-export function StatCell({ label, value, mono = true, align = 'start', tooltip, className }: StatCellProps) {
+export function StatCell({
+  label,
+  value,
+  mono = true,
+  align = 'start',
+  tooltip,
+  className,
+}: StatCellProps): React.ReactNode {
   return (
     <div className={cn('flex flex-col gap-[3px]', align === 'end' && 'items-end', className)}>
       {tooltip ? (

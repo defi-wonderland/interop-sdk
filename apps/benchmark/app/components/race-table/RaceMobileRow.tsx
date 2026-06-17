@@ -31,7 +31,7 @@ export function RaceMobileRow({
   isFirst,
   assetSymbol,
   reduceMotion,
-}: RaceMobileRowProps) {
+}: RaceMobileRowProps): React.ReactNode {
   const isQuerying = row.status === 'querying';
   const isErrored = row.status === 'errored';
   const isSettled = row.status === 'settled';
