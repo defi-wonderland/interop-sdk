@@ -1,9 +1,9 @@
 import type { Hex } from "viem";
 import { isHex } from "viem";
 
-import type { FillEvent, GetFillParams, OrderFailureReason } from "../../../internal.js";
+import type { FillEvent, GetFillParams } from "../../../internal.js";
 import type { SuperbridgeActivity, SuperbridgeActivityStep } from "../schemas.js";
-import { OrderStatus } from "../../../internal.js";
+import { OrderFailureReason, OrderStatus } from "../../../internal.js";
 import { SuperbridgeActivityResponseSchema } from "../schemas.js";
 
 /**
@@ -27,6 +27,11 @@ export function extractFillEvent(
     const bridge = findBridge(parsed.data, params.openTxHash);
     if (!bridge) {
         return { event: null, status: OrderStatus.Pending };
+    }
+
+    const failure = detectTerminalFailure(bridge, params);
+    if (failure) {
+        return { event: null, status: OrderStatus.Failed, failureReason: failure };
     }
 
     const fillTxHash = findFillTxHash(bridge);
@@ -68,6 +73,39 @@ export function findBridge(
         if (matched) return matched;
     }
     return activities[0];
+}
+
+function detectTerminalFailure(
+    bridge: SuperbridgeActivity,
+    params: GetFillParams,
+): OrderFailureReason | undefined {
+    for (const step of bridge.steps) {
+        if (step.type === "transaction") {
+            const confirmationStatus = step.confirmation?.status;
+            if (confirmationStatus === "reverted") {
+                return isOriginStep(step, params)
+                    ? OrderFailureReason.OriginTxReverted
+                    : OrderFailureReason.Unknown;
+            }
+            if (confirmationStatus === "dropped" || step.transactionStatus === "invalidated") {
+                return OrderFailureReason.Unknown;
+            }
+        } else if (step.type === "wait" && step.waitStatus === "invalidated") {
+            return OrderFailureReason.Unknown;
+        }
+    }
+    return undefined;
+}
+
+function isOriginStep(
+    step: Extract<SuperbridgeActivityStep, { type: "transaction" }>,
+    params: GetFillParams,
+): boolean {
+    const hash = step.confirmation?.transactionHash;
+    if (hash && params.openTxHash && hash.toLowerCase() === params.openTxHash.toLowerCase()) {
+        return true;
+    }
+    return step.chainId !== undefined && step.chainId === String(params.originChainId);
 }
 
 function isStepDone(step: SuperbridgeActivityStep): boolean {

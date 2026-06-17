@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { GetFillParams } from "../../../../src/core/types/orderTracking.js";
-import { OrderStatus } from "../../../../src/core/types/orderTracking.js";
+import { OrderFailureReason, OrderStatus } from "../../../../src/core/types/orderTracking.js";
 import {
     extractFillEvent,
     findBridge,
@@ -148,6 +148,96 @@ describe("extractFillEvent", () => {
 
         expect(out.status).toBe(OrderStatus.Finalized);
         expect(out.event?.fillTxHash).toBe(FILL_TX);
+    });
+
+    it("marks the order Failed when the origin tx reverted", () => {
+        const response = activity([
+            {
+                type: "transaction",
+                chainId: "1",
+                transactionStatus: "done",
+                confirmation: { transactionHash: ORIGIN_TX, status: "reverted" },
+            },
+            { type: "transaction", chainId: "8453", transactionStatus: "not-ready" },
+        ]);
+
+        const out = extractFillEvent(response, params());
+
+        expect(out.status).toBe(OrderStatus.Failed);
+        expect(out.failureReason).toBe(OrderFailureReason.OriginTxReverted);
+        expect(out.event).toBeNull();
+    });
+
+    it("marks the order Failed when a confirmation was dropped", () => {
+        const response = activity([
+            {
+                type: "transaction",
+                chainId: "1",
+                transactionStatus: "done",
+                confirmation: { transactionHash: ORIGIN_TX, status: "dropped" },
+            },
+            { type: "transaction", chainId: "8453", transactionStatus: "not-ready" },
+        ]);
+
+        const out = extractFillEvent(response, params());
+
+        expect(out.status).toBe(OrderStatus.Failed);
+        expect(out.failureReason).toBe(OrderFailureReason.Unknown);
+        expect(out.event).toBeNull();
+    });
+
+    it("marks the order Failed when a transaction step is invalidated", () => {
+        const response = activity([
+            {
+                type: "transaction",
+                chainId: "1",
+                transactionStatus: "done",
+                confirmation: { transactionHash: ORIGIN_TX },
+            },
+            { type: "transaction", chainId: "8453", transactionStatus: "invalidated" },
+        ]);
+
+        const out = extractFillEvent(response, params());
+
+        expect(out.status).toBe(OrderStatus.Failed);
+        expect(out.failureReason).toBe(OrderFailureReason.Unknown);
+        expect(out.event).toBeNull();
+    });
+
+    it("marks the order Failed when an upgrade event invalidates a wait step", () => {
+        const response = activity([
+            {
+                type: "transaction",
+                chainId: "1",
+                transactionStatus: "done",
+                confirmation: { transactionHash: ORIGIN_TX },
+            },
+            { type: "upgrade-event" },
+            { type: "wait", waitStatus: "invalidated", waitType: "op-challenge-period" },
+        ]);
+
+        const out = extractFillEvent(response, params());
+
+        expect(out.status).toBe(OrderStatus.Failed);
+        expect(out.failureReason).toBe(OrderFailureReason.Unknown);
+        expect(out.event).toBeNull();
+    });
+
+    it("does not report Finalized when the only completed step reverted", () => {
+        const response = activity([
+            {
+                type: "transaction",
+                chainId: "8453",
+                transactionStatus: "done",
+                confirmation: { transactionHash: FILL_TX, status: "reverted" },
+            },
+        ]);
+
+        const out = extractFillEvent(response, params());
+
+        expect(out.status).toBe(OrderStatus.Failed);
+        expect(out.failureReason).toBe(OrderFailureReason.Unknown);
+        expect(out.event).toBeNull();
     });
 });
 
