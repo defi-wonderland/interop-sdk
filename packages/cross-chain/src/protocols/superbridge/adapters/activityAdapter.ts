@@ -58,13 +58,14 @@ export function findBridge(
 ): SuperbridgeActivity | undefined {
     if (originTxHash) {
         const target = originTxHash.toLowerCase();
-        return activities.find((activity) =>
+        const matched = activities.find((activity) =>
             activity.steps.some(
                 (step) =>
                     step.type === "transaction" &&
                     step.confirmation?.transactionHash?.toLowerCase() === target,
             ),
         );
+        if (matched) return matched;
     }
     return activities[0];
 }
@@ -97,11 +98,7 @@ function findFillTxHash(bridge: SuperbridgeActivity): Hex | undefined {
     for (const step of bridge.steps) {
         if (step.type !== "transaction") continue;
         if (step.transactionStatus !== "done" && step.transactionStatus !== "auto") continue;
-        if (
-            destinationChainId !== undefined &&
-            step.chainId !== undefined &&
-            step.chainId !== destinationChainId
-        ) {
+        if (destinationChainId !== undefined && step.chainId !== destinationChainId) {
             continue;
         }
         const hash = step.confirmation?.transactionHash;

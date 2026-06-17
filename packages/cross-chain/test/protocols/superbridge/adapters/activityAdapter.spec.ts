@@ -146,7 +146,7 @@ describe("findBridge", () => {
         expect(findBridge(parsed, ORIGIN_TX)?.id).toBe("bridge-1");
     });
 
-    it("returns undefined when an origin tx hash is given but no step matches", () => {
+    it("falls back to the first activity when no step matches the origin tx hash", () => {
         const parsed = SuperbridgeActivityResponseSchema.parse(
             activity([
                 {
@@ -157,6 +157,6 @@ describe("findBridge", () => {
             ]),
         );
 
-        expect(findBridge(parsed, ORIGIN_TX)).toBeUndefined();
+        expect(findBridge(parsed, ORIGIN_TX)?.id).toBe("bridge-1");
     });
 });
