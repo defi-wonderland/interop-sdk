@@ -32,4 +32,44 @@ describe("adaptOpenedIntentResponse", () => {
     it("throws when no activity matches", () => {
         expect(() => adaptOpenedIntentResponse([], ORIGIN_TX)).toThrow(OpenedIntentNotFoundError);
     });
+
+    it("throws when the destination chain is missing", () => {
+        const response = [
+            {
+                id: "bridge-1",
+                fromChainId: "1",
+                steps: [
+                    {
+                        type: "transaction",
+                        transactionStatus: "done",
+                        confirmation: { transactionHash: ORIGIN_TX },
+                    },
+                ],
+            },
+        ];
+
+        expect(() => adaptOpenedIntentResponse(response, ORIGIN_TX)).toThrow(
+            OpenedIntentNotFoundError,
+        );
+    });
+
+    it("throws when the origin chain is missing", () => {
+        const response = [
+            {
+                id: "bridge-1",
+                toChainId: "8453",
+                steps: [
+                    {
+                        type: "transaction",
+                        transactionStatus: "done",
+                        confirmation: { transactionHash: ORIGIN_TX },
+                    },
+                ],
+            },
+        ];
+
+        expect(() => adaptOpenedIntentResponse(response, ORIGIN_TX)).toThrow(
+            OpenedIntentNotFoundError,
+        );
+    });
 });

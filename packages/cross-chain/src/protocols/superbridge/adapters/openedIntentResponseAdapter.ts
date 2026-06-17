@@ -26,21 +26,32 @@ export function adaptOpenedIntentResponse(response: unknown, txHash: Hex): Opene
         throw new OpenedIntentNotFoundError(txHash, SUPERBRIDGE_PROTOCOL_NAME);
     }
 
-    const destinationChainId = bridge.toChainId ? Number(bridge.toChainId) : undefined;
+    const originChainId = parseChainId(bridge.fromChainId);
+    const destinationChainId = parseChainId(bridge.toChainId);
+    if (originChainId === undefined || destinationChainId === undefined) {
+        throw new OpenedIntentNotFoundError(txHash, SUPERBRIDGE_PROTOCOL_NAME);
+    }
 
     return {
         user: zeroAddress,
-        originChainId: bridge.fromChainId ? Number(bridge.fromChainId) : 0,
+        originChainId,
         openDeadline: 0,
         fillDeadline: 0xffffffff,
         orderId: txHash,
         maxSpent: [],
         minReceived: [],
-        fillInstructions: destinationChainId
-            ? [{ destinationChainId, destinationSettler: zeroAddress, originData: "0x" }]
-            : [],
+        fillInstructions: [
+            { destinationChainId, destinationSettler: zeroAddress, originData: "0x" },
+        ],
         txHash,
         blockNumber: 0n,
         originContract: zeroAddress,
     };
+}
+
+/** Parse a Superbridge chain id string into a positive integer, or undefined when invalid. */
+function parseChainId(value: string | undefined): number | undefined {
+    if (!value) return undefined;
+    const chainId = Number(value);
+    return Number.isInteger(chainId) && chainId > 0 ? chainId : undefined;
 }

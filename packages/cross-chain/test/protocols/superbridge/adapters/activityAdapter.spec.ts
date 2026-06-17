@@ -84,6 +84,51 @@ describe("extractFillEvent", () => {
         expect(out.status).toBe(OrderStatus.Pending);
         expect(out.event).toBeNull();
     });
+
+    it("does not expose a fill tx hash before finalization", () => {
+        const response = activity([
+            {
+                type: "transaction",
+                chainId: "1",
+                transactionStatus: "done",
+                confirmation: { transactionHash: ORIGIN_TX },
+            },
+            {
+                type: "transaction",
+                chainId: "8453",
+                transactionStatus: "done",
+                confirmation: { transactionHash: FILL_TX },
+            },
+            { type: "wait", waitStatus: "in-progress" },
+        ]);
+
+        const out = extractFillEvent(response, params());
+
+        expect(out.status).toBe(OrderStatus.Executing);
+        expect(out.fillTxHash).toBeUndefined();
+    });
+
+    it("selects the destination-chain tx as the fill, not a later origin-chain tx", () => {
+        const response = activity([
+            {
+                type: "transaction",
+                chainId: "8453",
+                transactionStatus: "done",
+                confirmation: { transactionHash: FILL_TX },
+            },
+            {
+                type: "transaction",
+                chainId: "1",
+                transactionStatus: "done",
+                confirmation: { transactionHash: ORIGIN_TX },
+            },
+        ]);
+
+        const out = extractFillEvent(response, params());
+
+        expect(out.status).toBe(OrderStatus.Finalized);
+        expect(out.event?.fillTxHash).toBe(FILL_TX);
+    });
 });
 
 describe("findBridge", () => {
@@ -99,5 +144,19 @@ describe("findBridge", () => {
         );
 
         expect(findBridge(parsed, ORIGIN_TX)?.id).toBe("bridge-1");
+    });
+
+    it("returns undefined when an origin tx hash is given but no step matches", () => {
+        const parsed = SuperbridgeActivityResponseSchema.parse(
+            activity([
+                {
+                    type: "transaction",
+                    transactionStatus: "done",
+                    confirmation: { transactionHash: FILL_TX },
+                },
+            ]),
+        );
+
+        expect(findBridge(parsed, ORIGIN_TX)).toBeUndefined();
     });
 });

@@ -48,7 +48,6 @@ export function extractFillEvent(
     return {
         event: null,
         status: anyStepStarted(bridge) ? OrderStatus.Executing : OrderStatus.Pending,
-        fillTxHash,
     };
 }
 
@@ -59,14 +58,13 @@ export function findBridge(
 ): SuperbridgeActivity | undefined {
     if (originTxHash) {
         const target = originTxHash.toLowerCase();
-        const matched = activities.find((activity) =>
+        return activities.find((activity) =>
             activity.steps.some(
                 (step) =>
                     step.type === "transaction" &&
                     step.confirmation?.transactionHash?.toLowerCase() === target,
             ),
         );
-        if (matched) return matched;
     }
     return activities[0];
 }
@@ -94,10 +92,18 @@ function anyStepStarted(bridge: SuperbridgeActivity): boolean {
 }
 
 function findFillTxHash(bridge: SuperbridgeActivity): Hex | undefined {
+    const destinationChainId = bridge.toChainId;
     let last: string | undefined;
     for (const step of bridge.steps) {
         if (step.type !== "transaction") continue;
         if (step.transactionStatus !== "done" && step.transactionStatus !== "auto") continue;
+        if (
+            destinationChainId !== undefined &&
+            step.chainId !== undefined &&
+            step.chainId !== destinationChainId
+        ) {
+            continue;
+        }
         const hash = step.confirmation?.transactionHash;
         if (typeof hash === "string") last = hash;
     }
