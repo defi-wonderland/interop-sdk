@@ -7,7 +7,7 @@ import type { Chain } from 'viem/chains';
 const e2eTestProvider = createE2EProvider({
   chains: ALL_CHAINS,
   rpcUrls,
-  account: (process.env.NEXT_PUBLIC_E2E_PRIVATE_KEY as `0x${string}`) || '',
+  account: (process.env.NEXT_PUBLIC_E2E_PRIVATE_KEY as `0x${string}`) || undefined,
 });
 
 // Expose provider to window for E2E test control
