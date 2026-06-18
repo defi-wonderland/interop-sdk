@@ -3,9 +3,6 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.e2e' });
 
-const anvilUrl = process.env.NEXT_PUBLIC_ANVIL_URL ?? 'http://127.0.0.1:8545';
-const anvilPort = Number(new URL(anvilUrl).port) || 8545;
-
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -29,13 +26,6 @@ export default defineConfig({
   ],
 
   webServer: [
-    {
-      command: 'node ./scripts/start-anvil-fork.mjs',
-      port: anvilPort,
-      env: { ANVIL_PORT: String(anvilPort) },
-      reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
-    },
     {
       command: 'pnpm build && pnpm start',
       url: 'http://localhost:3000',

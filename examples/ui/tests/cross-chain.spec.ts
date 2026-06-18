@@ -271,14 +271,11 @@ test.describe('Demo limits', () => {
 
 test.describe('Mint mockUSDC', () => {
   test('mints and updates balance in UI', async ({ page }) => {
-    await expect(page.getByRole('textbox', { name: 'Amount' })).toBeVisible({ timeout: 15_000 });
-
     await page.locator('#output-chain-select').selectOption({ label: 'OP Sepolia' });
     await page.locator('#input-chain-select').selectOption({ label: 'Base Sepolia' });
-
     await page.getByTestId('input-token-select').click();
     const listbox = page.getByTestId('input-token-select-listbox');
-    await listbox.getByText('USDC').last().click();
+    await listbox.getByText('mockUSDC', { exact: true }).click();
 
     const maxButton = page.getByTestId('max-balance-button');
     await expect(maxButton).toBeVisible({ timeout: 10_000 });
