@@ -12,15 +12,15 @@ import { ProviderExecuteFailure } from "../../../internal.js";
 export function adaptSubmitGaslessResponse(
     response: SuperbridgeSubmitGaslessResponse,
 ): SubmitOrderResponse {
-    const candidate = response.txHash ?? response.id;
-    if (!candidate || !isHex(candidate)) {
+    const txHash = response.txHash;
+    if (!txHash || !isHex(txHash)) {
         throw new ProviderExecuteFailure(
             "Superbridge gasless submission returned no transaction hash",
         );
     }
 
     return {
-        orderId: candidate,
+        orderId: txHash,
         status: response.status,
         message: response.message,
     };

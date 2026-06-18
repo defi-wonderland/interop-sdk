@@ -19,4 +19,8 @@ describe("adaptSubmitGaslessResponse", () => {
             ProviderExecuteFailure,
         );
     });
+
+    it("does not fall back to a hex id when the transaction hash is absent", () => {
+        expect(() => adaptSubmitGaslessResponse({ id: FILL_TX })).toThrow(ProviderExecuteFailure);
+    });
 });

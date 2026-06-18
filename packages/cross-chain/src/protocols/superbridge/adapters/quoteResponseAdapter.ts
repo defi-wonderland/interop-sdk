@@ -12,6 +12,7 @@ import type {
     SuperbridgeRouteStep,
     SuperbridgeTokenApproval,
 } from "../schemas.js";
+import { ProviderGetQuoteFailure } from "../../../internal.js";
 import { SuperbridgeRouteQuoteSchema, SuperbridgeTypedDataSchema } from "../schemas.js";
 
 const MODE_BY_TX_TYPE = {
@@ -24,6 +25,8 @@ const MODE_BY_TX_TYPE = {
  *
  * Keeps only successful quotes (those with an `initiatingTransaction`) whose
  * initiating transaction type matches an enabled submission mode.
+ *
+ * @throws {ProviderGetQuoteFailure} When every route requires a submission mode that is not enabled.
  */
 export function adaptQuoteResponse(
     response: SuperbridgeRoutesResponse,
@@ -32,12 +35,25 @@ export function adaptQuoteResponse(
     modes: ReadonlySet<SubmissionMode>,
 ): Quote[] {
     const quotes: Quote[] = [];
+    const unavailableModes = new Set<SubmissionMode>();
     for (const result of response.results) {
         const parsed = SuperbridgeRouteQuoteSchema.safeParse(result.result);
         if (!parsed.success) continue;
-        const quote = adaptRouteQuote(parsed.data, result.meta, providerId, params, modes);
+        const mode = MODE_BY_TX_TYPE[parsed.data.initiatingTransaction.type];
+        if (!modes.has(mode)) {
+            unavailableModes.add(mode);
+            continue;
+        }
+        const quote = adaptRouteQuote(parsed.data, result.meta, providerId, params);
         if (quote) quotes.push(quote);
     }
+
+    if (quotes.length === 0 && unavailableModes.size > 0) {
+        throw new ProviderGetQuoteFailure(
+            `No Superbridge routes match the enabled submission modes. Available routes require: ${[...unavailableModes].join(", ")}`,
+        );
+    }
+
     return quotes;
 }
 
@@ -46,10 +62,7 @@ function adaptRouteQuote(
     meta: SuperbridgeRouteMeta | undefined,
     providerId: string,
     params: QuoteRequest,
-    modes: ReadonlySet<SubmissionMode>,
 ): Quote | null {
-    if (!modes.has(MODE_BY_TX_TYPE[route.initiatingTransaction.type])) return null;
-
     const routeId = meta?.id;
     const mainStep = buildMainStep(route, routeId);
     if (!mainStep) return null;
@@ -97,6 +110,7 @@ function buildSignatureStep(
 ): SignatureStep | null {
     const parsed = SuperbridgeTypedDataSchema.safeParse(safeJsonParse(tx.typedData));
     if (!parsed.success) return null;
+    if (!routeId) return null;
 
     return {
         kind: "signature",
