@@ -33,3 +33,6 @@ export const SUPERBRIDGE_CANONICAL_ROUTE_IDS = [
     "LxlyWithdrawal",
     "LxlyCross",
 ] as const;
+
+/** Page size requested from the paginated `/v1/tokens` discovery endpoint (API caps it). */
+export const SUPERBRIDGE_TOKENS_PAGE_LIMIT = 100;

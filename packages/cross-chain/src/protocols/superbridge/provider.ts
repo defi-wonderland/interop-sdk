@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import type { SubmissionMode } from "../../core/schemas/providerConfig.js";
 import type {
+    AssetDiscoveryConfig,
     FillWatcherConfig,
     GetFillParams,
     HttpClient,
@@ -24,12 +25,14 @@ import {
     adaptQuoteRequest,
     adaptQuoteResponse,
     extractFillEvent,
+    parseSuperbridgeTokens,
 } from "./adapters/index.js";
 import {
     SUPERBRIDGE_API_URL,
     SUPERBRIDGE_DEFAULT_SUBMISSION_MODES,
     SUPERBRIDGE_PROTOCOL_NAME,
     SUPERBRIDGE_REQUEST_TIMEOUT_MS,
+    SUPERBRIDGE_TOKENS_PAGE_LIMIT,
 } from "./constants.js";
 import { SuperbridgeApiService } from "./services/index.js";
 import { SuperbridgeConfigSchema } from "./types.js";
@@ -153,6 +156,21 @@ export class SuperbridgeProvider extends CrossChainProvider {
                     chainId: String(params.originChainId),
                 }),
                 headers,
+            },
+        };
+    }
+
+    /**
+     * @inheritdoc
+     * Returns API-based discovery config using the Superbridge `/v1/tokens` endpoint.
+     */
+    override getDiscoveryConfig(): AssetDiscoveryConfig {
+        return {
+            type: "custom-api",
+            config: {
+                assetsEndpoint: `${this.baseUrl}/v1/tokens?limit=${SUPERBRIDGE_TOKENS_PAGE_LIMIT}`,
+                parseResponse: parseSuperbridgeTokens,
+                headers: this.apiHeaders,
             },
         };
     }
