@@ -26,7 +26,7 @@ export function StatCell({ label, value, mono = true, align = 'start', tooltip, 
   return (
     <div className={cn('flex flex-col gap-[3px]', align === 'end' && 'items-end', className)}>
       {tooltip ? (
-        <InfoTooltip label={label} text={tooltip} side={align === 'end' ? 'right' : 'left'} className={LABEL_BASE} />
+        <InfoTooltip label={label} text={tooltip} className={LABEL_BASE} />
       ) : (
         <span className={LABEL_BASE}>{label}</span>
       )}
