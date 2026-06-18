@@ -2,7 +2,28 @@ import { z } from 'zod';
 
 export const LifiIntentsOrderOutputSchema = z.object({ token: z.string() }).passthrough();
 
-export const LifiIntentsOrderDetailsSchema = z.object({ outputs: z.array(LifiIntentsOrderOutputSchema) }).passthrough();
+// `inputs` is `[[lifiTokenId, amount], ...]`; the token id is a decimal string
+// encoding of the EVM address, the amount is raw base units. Extra tuple
+// elements are tolerated via `.rest`.
+export const LifiIntentsOrderInputSchema = z.tuple([z.string(), z.string()]).rest(z.unknown());
+
+export const LifiIntentsOrderDetailsSchema = z
+  .object({
+    outputs: z.array(LifiIntentsOrderOutputSchema),
+    inputs: z.array(LifiIntentsOrderInputSchema).optional(),
+  })
+  .passthrough();
+
+// order.li.fi returns raw token amounts only — `inputAmount`/`outputAmount` are
+// base-unit strings. We price them with DeFiLlama to derive USD fee/volume.
+export const LifiIntentsQuoteSchema = z
+  .object({
+    inputAmount: z.string().optional(),
+    outputAmount: z.string().optional(),
+  })
+  .passthrough()
+  .nullable()
+  .optional();
 
 // `orderStatus` is left as a free-form string: the Order Server may add new states
 // (e.g. Signed, Delivered, Verified). normalizeStatus handles unknown values explicitly.
@@ -24,7 +45,7 @@ export const LifiIntentsOrderMetaSchema = z
 export const LifiIntentsOrderItemSchema = z
   .object({
     order: LifiIntentsOrderDetailsSchema,
-    quote: z.record(z.string(), z.unknown()).nullable().optional(),
+    quote: LifiIntentsQuoteSchema,
     meta: LifiIntentsOrderMetaSchema,
   })
   .passthrough();

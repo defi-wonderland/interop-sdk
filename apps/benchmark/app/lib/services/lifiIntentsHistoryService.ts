@@ -1,4 +1,4 @@
-import { isAddressEqual, type Address } from 'viem';
+import { formatUnits, isAddressEqual, padHex, toHex, type Address } from 'viem';
 import { bytes32ToAddress } from '../helpers';
 import { FetchHttpClient } from '../http';
 import {
@@ -7,6 +7,7 @@ import {
   type LifiIntentsOrderMeta,
   type LifiIntentsOrdersResponse,
 } from '../schemas/lifiIntents';
+import { DefiLlamaPriceService, priceKey, type PriceCoin, type PriceInfo, type PriceService } from './priceService';
 import type { HistoryService } from '../interfaces/historyService.interface';
 import type { HistoryQuery, HistoryResult, HistorySample, HistorySampleStatus } from '../types/historyMetrics';
 import type { HttpClient } from '@wonderland/interop-cross-chain';
@@ -25,13 +26,17 @@ export class LifiIntentsHistoryService implements HistoryService {
       baseURL: LIFI_INTENTS_BASE_URL,
       timeout: LIFI_INTENTS_REQUEST_TIMEOUT_MS,
     }),
+    private readonly priceService: PriceService = new DefiLlamaPriceService(),
   ) {}
 
   async getHistory(query: HistoryQuery): Promise<HistoryResult> {
     const target = Math.min(query.limit ?? LIFI_INTENTS_DEFAULT_LIMIT, LIFI_INTENTS_MAX_LIMIT);
     const items = await this.fetchOrders(query, target);
-    const filtered = filterEligibleOrders(items, query.tokenAddress);
-    const samples = collectSamples(filtered).slice(0, target);
+    const filtered = filterEligibleOrders(items, query.tokenAddress).slice(0, target);
+    // Resolve every token price once per call, not per order: the hot per-sample
+    // path only reads the resulting map.
+    const prices = await this.priceService.getUsdPrices(collectPriceCoins(filtered, query));
+    const samples = collectSamples(filtered, query, prices);
     return { providerId: LIFI_INTENTS_PROVIDER_ID, samples };
   }
 
@@ -85,21 +90,102 @@ function filterByToken(items: LifiIntentsOrderItem[], tokenAddress: Address | un
   );
 }
 
-function collectSamples(items: LifiIntentsOrderItem[]): HistorySample[] {
-  return items.map(toSample).filter((sample): sample is HistorySample => sample !== null);
+// LiFi encodes the input token as a decimal-string token id (the EVM address as
+// a uint). Reuse bytes32ToAddress after padding the hex back to 32 bytes.
+function decodeInputToken(item: LifiIntentsOrderItem): Address | null {
+  const id = item.order.inputs?.[0]?.[0];
+  if (typeof id !== 'string') return null;
+  try {
+    return bytes32ToAddress(padHex(toHex(BigInt(id)), { size: 32 }));
+  } catch {
+    return null;
+  }
 }
 
-function toSample(item: LifiIntentsOrderItem): HistorySample | null {
+function decodeOutputToken(item: LifiIntentsOrderItem): Address | null {
+  const token = item.order.outputs[0]?.token;
+  return typeof token === 'string' ? bytes32ToAddress(token) : null;
+}
+
+function collectPriceCoins(items: LifiIntentsOrderItem[], query: HistoryQuery): PriceCoin[] {
+  const coins: PriceCoin[] = [];
+  for (const item of items) {
+    const input = decodeInputToken(item);
+    if (input) coins.push({ chainId: query.originChainId, address: input });
+    const output = decodeOutputToken(item);
+    if (output) coins.push({ chainId: query.destinationChainId, address: output });
+  }
+  return coins;
+}
+
+function collectSamples(
+  items: LifiIntentsOrderItem[],
+  query: HistoryQuery,
+  prices: Map<string, PriceInfo>,
+): HistorySample[] {
+  return items
+    .map((item) => toSample(item, query, prices))
+    .filter((sample): sample is HistorySample => sample !== null);
+}
+
+function toSample(
+  item: LifiIntentsOrderItem,
+  query: HistoryQuery,
+  prices: Map<string, PriceInfo>,
+): HistorySample | null {
   const timestamp = item.meta.submitTime * 1000;
   if (!Number.isFinite(timestamp)) return null;
+  const { amountUsd, feeUsd } = computeUsd(item, query, prices);
   return {
     providerId: LIFI_INTENTS_PROVIDER_ID,
     timestamp,
     status: normalizeStatus(item.meta.orderStatus),
-    amountUsd: null,
-    feeUsd: null,
+    amountUsd,
+    feeUsd,
     fillTimeSeconds: computeFillTimeSeconds(item.meta),
   };
+}
+
+interface UsdAmounts {
+  amountUsd: number | null;
+  feeUsd: number | null;
+}
+
+const NO_USD: UsdAmounts = { amountUsd: null, feeUsd: null };
+
+// Effective fee is the input/output spread priced in USD. inUsd is the intent
+// size (amountUsd); feeUsd = inUsd - outUsd when both sides resolve to finite
+// numbers and the spread is non-negative. Anything missing falls back to nulls.
+function computeUsd(item: LifiIntentsOrderItem, query: HistoryQuery, prices: Map<string, PriceInfo>): UsdAmounts {
+  const inputToken = decodeInputToken(item);
+  const outputToken = decodeOutputToken(item);
+  if (!inputToken || !outputToken) return NO_USD;
+
+  const priceIn = prices.get(priceKey(query.originChainId, inputToken));
+  const priceOut = prices.get(priceKey(query.destinationChainId, outputToken));
+
+  const inUsd = toUsd(item.quote?.inputAmount, priceIn);
+  if (inUsd === null) return NO_USD;
+
+  const outUsd = toUsd(item.quote?.outputAmount, priceOut);
+  const feeUsd = outUsd === null ? null : finiteNonNegative(inUsd - outUsd);
+  return { amountUsd: inUsd, feeUsd };
+}
+
+function toUsd(rawAmount: string | undefined, price: PriceInfo | undefined): number | null {
+  if (rawAmount === undefined || price === undefined) return null;
+  let units: number;
+  try {
+    units = Number(formatUnits(BigInt(rawAmount), price.decimals));
+  } catch {
+    return null;
+  }
+  const usd = units * price.priceUsd;
+  return Number.isFinite(usd) ? usd : null;
+}
+
+function finiteNonNegative(value: number): number | null {
+  return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 function normalizeStatus(status: string): HistorySampleStatus {
