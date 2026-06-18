@@ -6,6 +6,7 @@ import type {
     SuperbridgeRouteResult,
     SuperbridgeRoutesResponse,
 } from "../../../../src/protocols/superbridge/schemas.js";
+import { ProviderGetQuoteFailure } from "../../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { adaptQuoteResponse } from "../../../../src/protocols/superbridge/adapters/quoteResponseAdapter.js";
 
 const USER = "0x1234567890abcdef1234567890abcdef12345678";
@@ -130,15 +131,22 @@ describe("adaptQuoteResponse", () => {
         expect(quotes).toHaveLength(0);
     });
 
-    it("skips gasless routes when only user-transaction mode is enabled", () => {
+    it("throws when every route requires a submission mode that is not enabled", () => {
+        expect(() =>
+            adaptQuoteResponse(response([gaslessResult()]), PROVIDER_ID, request(), userTxModes),
+        ).toThrow(ProviderGetQuoteFailure);
+    });
+
+    it("returns matching quotes and ignores routes for other submission modes", () => {
         const quotes = adaptQuoteResponse(
-            response([gaslessResult()]),
+            response([evmResult(), gaslessResult()]),
             PROVIDER_ID,
             request(),
             userTxModes,
         );
 
-        expect(quotes).toHaveLength(0);
+        expect(quotes).toHaveLength(1);
+        expect(quotes[0]!.order.steps[0]!.kind).toBe("transaction");
     });
 
     it("maps a gasless route to a signature quote when enabled", () => {
@@ -151,6 +159,31 @@ describe("adaptQuoteResponse", () => {
 
         expect(quotes).toHaveLength(1);
         expect(quotes[0]!.order.steps[0]!.kind).toBe("signature");
+    });
+
+    it("skips a gasless route that carries invalid typed data", () => {
+        const result: SuperbridgeRouteResult = {
+            meta: { id: "route-gasless" },
+            result: {
+                initiatingTransaction: {
+                    type: "evm-gasless",
+                    chainId: "1",
+                    typedData: "not-valid-json",
+                },
+            },
+        };
+
+        const quotes = adaptQuoteResponse(response([result]), PROVIDER_ID, request(), gaslessModes);
+
+        expect(quotes).toHaveLength(0);
+    });
+
+    it("skips a gasless route that is missing the route id", () => {
+        const result: SuperbridgeRouteResult = { result: gaslessResult().result };
+
+        const quotes = adaptQuoteResponse(response([result]), PROVIDER_ID, request(), gaslessModes);
+
+        expect(quotes).toHaveLength(0);
     });
 
     it("prepends revoke and approval steps in order", () => {

@@ -85,9 +85,8 @@ function makeGaslessRouteResult(): unknown {
         message: { amount: INPUT_AMOUNT },
     });
     return {
+        meta: { id: "route-gasless", provider: { name: "across-v3" } },
         result: {
-            id: "route-gasless",
-            provider: { name: "across-v3" },
             initiatingTransaction: {
                 type: "evm-gasless",
                 chainId: String(ORIGIN_CHAIN_ID),
@@ -149,12 +148,12 @@ describe("SuperbridgeProvider", () => {
             expect(quotes[0]!.fees?.bridgeFee?.amount).toBe("5000");
         });
 
-        it("filters out gasless routes when only user-transaction mode is enabled", async () => {
+        it("throws when every route requires a submission mode that is not enabled", async () => {
             mockPost.mockResolvedValue(httpOk({ results: [makeGaslessRouteResult()] }));
 
-            const quotes = await provider.getQuotes(makeQuoteRequest());
-
-            expect(quotes).toHaveLength(0);
+            await expect(provider.getQuotes(makeQuoteRequest())).rejects.toBeInstanceOf(
+                ProviderGetQuoteFailure,
+            );
         });
 
         it("returns a signature quote when gasless mode is enabled", async () => {
@@ -193,6 +192,23 @@ describe("SuperbridgeProvider", () => {
             await expect(provider.getQuotes(makeQuoteRequest())).rejects.toBeInstanceOf(
                 ProviderGetQuoteFailure,
             );
+        });
+    });
+
+    describe("submitOrder()", () => {
+        it("submits a gasless signature and returns the tx hash", async () => {
+            const gaslessProvider = new SuperbridgeProvider({
+                submissionModes: ["gasless"],
+                apiKey: API_KEY,
+            });
+            mockPost.mockResolvedValueOnce(httpOk({ results: [makeGaslessRouteResult()] }));
+            const [quote] = await gaslessProvider.getQuotes(makeQuoteRequest());
+
+            mockPost.mockResolvedValueOnce(httpOk({ txHash: FILL_TX_HASH, status: "submitted" }));
+            const response = await gaslessProvider.submitOrder(quote!, "0xsignature");
+
+            expect(response.orderId).toBe(FILL_TX_HASH);
+            expect(response.status).toBe("submitted");
         });
     });
 

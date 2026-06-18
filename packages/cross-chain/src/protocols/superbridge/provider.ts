@@ -12,6 +12,7 @@ import type {
     PreTrackerParams,
     Quote,
     QuoteRequest,
+    SubmitOrderResponse,
 } from "../../internal.js";
 import type { SuperbridgeConfigs } from "./types.js";
 import {
@@ -24,6 +25,8 @@ import {
     adaptOpenedIntentResponse,
     adaptQuoteRequest,
     adaptQuoteResponse,
+    adaptSubmitGaslessRequest,
+    adaptSubmitGaslessResponse,
     extractFillEvent,
     parseSuperbridgeTokens,
 } from "./adapters/index.js";
@@ -107,6 +110,18 @@ export class SuperbridgeProvider extends CrossChainProvider {
                 error instanceof Error ? error.stack : undefined,
             );
         }
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * Submits a signed gasless authorization to `/v1/submit_gasless`.
+     * Reads the typed data from the signature step metadata set during quote adaptation.
+     */
+    override async submitOrder(quote: Quote, signature: Hex): Promise<SubmitOrderResponse> {
+        const request = adaptSubmitGaslessRequest(quote, signature);
+        const response = await this.apiService.submitGasless(request);
+        return adaptSubmitGaslessResponse(response);
     }
 
     /**
