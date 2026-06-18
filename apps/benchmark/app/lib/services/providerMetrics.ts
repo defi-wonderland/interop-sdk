@@ -32,6 +32,7 @@ function nullMetricsFor(providerId: ProviderId): ProviderMetrics {
     p50FillSeconds: null,
     p99FillSeconds: null,
     feePercent: null,
+    medianSizeUsd: null,
     volumeUsd: null,
   };
 }

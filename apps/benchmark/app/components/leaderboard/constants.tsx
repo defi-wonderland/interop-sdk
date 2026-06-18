@@ -1,6 +1,6 @@
 import { METRICS_CELL_NUM, METRICS_CELL_NUM_HIDDEN, METRICS_CELL_STACK, type MetricsColumn } from '../metricsTable';
 import { LeaderboardProviderCell } from './LeaderboardProviderCell';
-import { formatFeePercent, formatFillSeconds, formatSuccessRate } from './formatters';
+import { formatFeePercent, formatFillSeconds, formatSize, formatSuccessRate } from './formatters';
 import type { ProviderMeta } from '~/lib/providers';
 import { cn } from '~/lib/cn';
 
@@ -55,6 +55,14 @@ export const LEADERBOARD_COLUMNS: readonly LeaderboardColumn[] = [
     tdClass: `${METRICS_CELL_NUM_HIDDEN} text-text-secondary`,
     tooltip: 'Worst-case fill time. Only 1 in 100 fills is slower than this.',
     render: (metrics) => formatFillSeconds(metrics.p99FillSeconds),
+  },
+  {
+    key: 'size',
+    label: 'MEDIAN SIZE',
+    className: 'hidden text-right md:table-cell md:w-32',
+    tdClass: `${METRICS_CELL_NUM_HIDDEN} text-text-secondary`,
+    tooltip: 'Median intent size in USD: the typical amount moved per fill.',
+    render: (metrics) => formatSize(metrics.medianSizeUsd),
   },
   {
     key: 'fee',

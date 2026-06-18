@@ -37,5 +37,8 @@ export interface ProviderMetrics {
   // Typical fee as a percentage of intent size: the median of per-sample
   // feeUsd/amountUsd. Size-normalized so it's comparable across providers.
   feePercent: number | null;
+  // Median intent size in USD: the typical amount moved per fill. Median, not
+  // mean, so a single whale intent doesn't skew it.
+  medianSizeUsd: number | null;
   volumeUsd: number | null;
 }

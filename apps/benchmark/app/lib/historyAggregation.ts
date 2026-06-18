@@ -47,6 +47,7 @@ export function aggregateProviderSamples(providerId: ProviderId, samples: readon
     p50FillSeconds: percentile(fillTimes, 50),
     p99FillSeconds: percentile(fillTimes, 99),
     feePercent: percentile(feePercents, 50),
+    medianSizeUsd: percentile(volumes, 50),
     volumeUsd: volumes.length === 0 ? null : volumes.reduce((a, b) => a + b, 0),
   };
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { BenchmarkTable } from '../BenchmarkTable';
+import { RaceMobileRow } from './RaceMobileRow';
 import { RaceTableRow } from './RaceTableRow';
 import { RACE_TABLE_COLUMNS } from './constants';
 import { findBestProvider, orderRaceRows } from './raceRows';
@@ -66,23 +67,39 @@ export function RaceTable({ initialRows, initialChains }: RaceTableProps) {
 
   return (
     <section aria-label='live quote race results' className='overflow-hidden border border-border bg-surface'>
-      <BenchmarkTable
-        columns={RACE_TABLE_COLUMNS}
-        rows={rows}
-        getRowKey={(row) => row.provider.id}
-        renderRow={(row, index) => (
-          <RaceTableRow
+      <div className='hidden md:block'>
+        <BenchmarkTable
+          columns={RACE_TABLE_COLUMNS}
+          rows={rows}
+          getRowKey={(row) => row.provider.id}
+          renderRow={(row, index) => (
+            <RaceTableRow
+              row={row}
+              rank={row.status === 'settled' ? index + 1 : null}
+              outputDecimals={outputDecimals}
+              isWinner={row.provider.id === winnerProviderId}
+              isFirst={row.provider.id === firstProviderId}
+              maxLatencyMs={maxLatencyMs}
+              assetSymbol={request.assetSymbol}
+              reduceMotion={Boolean(reduceMotion)}
+            />
+          )}
+        />
+      </div>
+      <div className='md:hidden'>
+        {rows.map((row, index) => (
+          <RaceMobileRow
+            key={row.provider.id}
             row={row}
             rank={row.status === 'settled' ? index + 1 : null}
             outputDecimals={outputDecimals}
             isWinner={row.provider.id === winnerProviderId}
             isFirst={row.provider.id === firstProviderId}
-            maxLatencyMs={maxLatencyMs}
             assetSymbol={request.assetSymbol}
             reduceMotion={Boolean(reduceMotion)}
           />
-        )}
-      />
+        ))}
+      </div>
     </section>
   );
 }

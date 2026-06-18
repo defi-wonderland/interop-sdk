@@ -119,6 +119,39 @@ describe('aggregateProviderSamples feePercent', () => {
   });
 });
 
+describe('aggregateProviderSamples medianSizeUsd', () => {
+  function sample(over: Partial<HistorySample>): HistorySample {
+    return {
+      providerId: ACROSS,
+      timestamp: 0,
+      status: 'success',
+      amountUsd: 100,
+      feeUsd: 2,
+      fillTimeSeconds: 12,
+      ...over,
+    };
+  }
+
+  it('takes the median of the per-sample intent sizes', () => {
+    // 10, 20, 990 → median 20, not the whale-skewed mean of ~340.
+    const samples = [sample({ amountUsd: 10 }), sample({ amountUsd: 20 }), sample({ amountUsd: 990 })];
+
+    expect(aggregateProviderSamples(ACROSS, samples).medianSizeUsd).toBe(20);
+  });
+
+  it('ignores samples without a size', () => {
+    const samples = [sample({ amountUsd: null }), sample({ amountUsd: 40 }), sample({ amountUsd: 60 })];
+
+    expect(aggregateProviderSamples(ACROSS, samples).medianSizeUsd).toBe(50);
+  });
+
+  it('is null when no sample has a size', () => {
+    const samples = [sample({ amountUsd: null }), sample({ amountUsd: null })];
+
+    expect(aggregateProviderSamples(ACROSS, samples).medianSizeUsd).toBeNull();
+  });
+});
+
 describe('aggregateProviderRoutes', () => {
   it('pools samples across every route and aggregates the combined pool once', async () => {
     // Routes return 1, 2, 3 fills: a per-route aggregate would never see 6.
