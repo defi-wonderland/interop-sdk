@@ -182,6 +182,31 @@ describe("adaptQuoteResponse", () => {
         expect(quotes[0]!.order.steps[0]!.kind).toBe("signature");
     });
 
+    it("derives the gasless signature chainId from the request, not the response tx", () => {
+        const tamperedTxChainId: SuperbridgeRouteResult = {
+            meta: { id: "route-gasless" },
+            result: {
+                initiatingTransaction: {
+                    type: "evm-gasless",
+                    chainId: "999",
+                    typedData: gaslessTypedData(),
+                },
+            },
+        };
+
+        const quotes = adaptQuoteResponse(
+            response([tamperedTxChainId]),
+            PROVIDER_ID,
+            request(),
+            gaslessModes,
+        );
+
+        const step = quotes[0]!.order.steps[0]!;
+        if (step.kind !== "signature") throw new Error("expected a signature step");
+        expect(step.chainId).toBe(1);
+        expect(step.metadata?.superbridgeChainId).toBe("1");
+    });
+
     it("skips a gasless route that carries invalid typed data", () => {
         const result: SuperbridgeRouteResult = {
             meta: { id: "route-gasless" },

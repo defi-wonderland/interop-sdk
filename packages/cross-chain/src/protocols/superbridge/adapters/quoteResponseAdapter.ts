@@ -129,7 +129,7 @@ function buildSignatureStep(
 
     return {
         kind: "signature",
-        chainId: Number(tx.chainId),
+        chainId: params.input.chainId,
         description: "Sign gasless authorization for Superbridge",
         signaturePayload: {
             signatureType: "eip712",
@@ -140,7 +140,7 @@ function buildSignatureStep(
         },
         metadata: {
             superbridgeTypedData: tx.typedData,
-            superbridgeChainId: tx.chainId,
+            superbridgeChainId: String(params.input.chainId),
             superbridgeRouteId: routeId,
         },
     };
