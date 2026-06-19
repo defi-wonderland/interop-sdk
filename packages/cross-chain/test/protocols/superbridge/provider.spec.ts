@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { HttpClient } from "../../../src/core/interfaces/httpClient.interface.js";
 import type { QuoteRequest } from "../../../src/core/schemas/quoteRequest.js";
+import { PERMIT2_ADDRESS } from "../../../src/core/constants/eip712.js";
 import { ProviderConfigFailure } from "../../../src/core/errors/ProviderConfigFailure.exception.js";
 import { ProviderGetQuoteFailure } from "../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { FetchHttpClient } from "../../../src/core/utils/httpClient.js";
@@ -9,6 +10,9 @@ import { SuperbridgeProvider } from "../../../src/protocols/superbridge/provider
 
 const VALID_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 const NATIVE = "0x0000000000000000000000000000000000000000";
+const ERC20_TOKEN = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const GASLESS_SPENDER = "0x1111111111111111111111111111111111111111";
+const FUTURE_DEADLINE = Math.floor(Date.now() / 1000) + 3600;
 const ORIGIN_CHAIN_ID = 1;
 const DESTINATION_CHAIN_ID = 8453;
 const INPUT_AMOUNT = "10000000000000000";
@@ -79,10 +83,22 @@ function makeEvmRouteResult(): unknown {
 
 function makeGaslessRouteResult(): unknown {
     const typedData = JSON.stringify({
-        domain: { chainId: ORIGIN_CHAIN_ID, name: "Superbridge" },
-        types: { Order: [{ name: "amount", type: "uint256" }] },
-        primaryType: "Order",
-        message: { amount: INPUT_AMOUNT },
+        domain: { name: "Permit2", chainId: ORIGIN_CHAIN_ID, verifyingContract: PERMIT2_ADDRESS },
+        types: {
+            PermitTransferFrom: [
+                { name: "permitted", type: "TokenPermissions" },
+                { name: "spender", type: "address" },
+                { name: "nonce", type: "uint256" },
+                { name: "deadline", type: "uint256" },
+            ],
+        },
+        primaryType: "PermitTransferFrom",
+        message: {
+            permitted: { token: ERC20_TOKEN, amount: INPUT_AMOUNT },
+            spender: GASLESS_SPENDER,
+            nonce: "1",
+            deadline: FUTURE_DEADLINE,
+        },
     });
     return {
         meta: { id: "route-gasless", provider: { name: "across-v3" } },
@@ -163,7 +179,15 @@ describe("SuperbridgeProvider", () => {
             });
             mockPost.mockResolvedValue(httpOk({ results: [makeGaslessRouteResult()] }));
 
-            const quotes = await gaslessProvider.getQuotes(makeQuoteRequest());
+            const quotes = await gaslessProvider.getQuotes(
+                makeQuoteRequest({
+                    input: {
+                        chainId: ORIGIN_CHAIN_ID,
+                        assetAddress: ERC20_TOKEN,
+                        amount: INPUT_AMOUNT,
+                    },
+                }),
+            );
 
             expect(quotes).toHaveLength(1);
             expect(quotes[0]!.order.steps[0]!.kind).toBe("signature");
@@ -202,7 +226,15 @@ describe("SuperbridgeProvider", () => {
                 apiKey: API_KEY,
             });
             mockPost.mockResolvedValueOnce(httpOk({ results: [makeGaslessRouteResult()] }));
-            const [quote] = await gaslessProvider.getQuotes(makeQuoteRequest());
+            const [quote] = await gaslessProvider.getQuotes(
+                makeQuoteRequest({
+                    input: {
+                        chainId: ORIGIN_CHAIN_ID,
+                        assetAddress: ERC20_TOKEN,
+                        amount: INPUT_AMOUNT,
+                    },
+                }),
+            );
 
             mockPost.mockResolvedValueOnce(httpOk({ txHash: FILL_TX_HASH, status: "submitted" }));
             const response = await gaslessProvider.submitOrder(quote!, "0xsignature");

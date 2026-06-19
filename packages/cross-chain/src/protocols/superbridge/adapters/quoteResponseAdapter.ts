@@ -2,6 +2,7 @@ import type { SignatureStep, Step, TransactionStep } from "../../../core/schemas
 import type { SubmissionMode } from "../../../core/schemas/providerConfig.js";
 import type { Quote, QuoteFeeEntry, QuoteFees } from "../../../core/schemas/quote.js";
 import type { QuoteRequest } from "../../../core/schemas/quoteRequest.js";
+import type { Eip712Domain, Eip712Envelope } from "../../../core/types/eip712.js";
 import type {
     SuperbridgeEvmGaslessTransaction,
     SuperbridgeFeeGroup,
@@ -14,6 +15,7 @@ import type {
 } from "../schemas.js";
 import { ProviderGetQuoteFailure } from "../../../internal.js";
 import { SuperbridgeRouteQuoteSchema, SuperbridgeTypedDataSchema } from "../schemas.js";
+import { validateSuperbridgeSignatureEnvelope } from "../validators/index.js";
 
 const MODE_BY_TX_TYPE = {
     evm: "user-transaction",
@@ -64,7 +66,7 @@ function adaptRouteQuote(
     params: QuoteRequest,
 ): Quote | null {
     const routeId = meta?.id;
-    const mainStep = buildMainStep(route, routeId);
+    const mainStep = buildMainStep(route, routeId, params);
     if (!mainStep) return null;
 
     return {
@@ -91,7 +93,11 @@ function sumWaitSeconds(steps: SuperbridgeRouteStep[] | undefined): number | und
     return totalMs > 0 ? Math.round(totalMs / 1000) : undefined;
 }
 
-function buildMainStep(route: SuperbridgeRouteQuote, routeId: string | undefined): Step | null {
+function buildMainStep(
+    route: SuperbridgeRouteQuote,
+    routeId: string | undefined,
+    params: QuoteRequest,
+): Step | null {
     const tx = route.initiatingTransaction;
     if (tx.type === "evm") {
         return {
@@ -101,16 +107,25 @@ function buildMainStep(route: SuperbridgeRouteQuote, routeId: string | undefined
             transaction: { to: tx.to, data: tx.data, value: tx.value },
         };
     }
-    return buildSignatureStep(tx, routeId);
+    return buildSignatureStep(tx, routeId, params);
 }
 
 function buildSignatureStep(
     tx: SuperbridgeEvmGaslessTransaction,
     routeId: string | undefined,
+    params: QuoteRequest,
 ): SignatureStep | null {
     const parsed = SuperbridgeTypedDataSchema.safeParse(safeJsonParse(tx.typedData));
     if (!parsed.success) return null;
     if (!routeId) return null;
+
+    const envelope: Eip712Envelope = {
+        domain: parsed.data.domain as Eip712Domain,
+        primaryType: parsed.data.primaryType,
+        types: parsed.data.types,
+        message: parsed.data.message,
+    };
+    validateSuperbridgeSignatureEnvelope(envelope, params);
 
     return {
         kind: "signature",
