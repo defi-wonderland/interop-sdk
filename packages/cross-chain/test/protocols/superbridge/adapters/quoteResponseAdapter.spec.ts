@@ -6,12 +6,16 @@ import type {
     SuperbridgeRouteResult,
     SuperbridgeRoutesResponse,
 } from "../../../../src/protocols/superbridge/schemas.js";
+import { PERMIT2_ADDRESS } from "../../../../src/core/constants/eip712.js";
+import { Eip712EnvelopeMismatch } from "../../../../src/core/errors/Eip712EnvelopeMismatch.exception.js";
 import { ProviderGetQuoteFailure } from "../../../../src/core/errors/ProviderGetQuoteFailure.exception.js";
 import { adaptQuoteResponse } from "../../../../src/protocols/superbridge/adapters/quoteResponseAdapter.js";
 
 const USER = "0x1234567890abcdef1234567890abcdef12345678";
 const TO = "0x1111111111111111111111111111111111111111";
 const RECEIVE_TOKEN = "0x2222222222222222222222222222222222222222";
+const SPENDER = "0x3333333333333333333333333333333333333333";
+const FUTURE_DEADLINE = Math.floor(Date.now() / 1000) + 3600;
 const PROVIDER_ID = "superbridge";
 
 function request(): QuoteRequest {
@@ -46,19 +50,36 @@ function evmResult(): SuperbridgeRouteResult {
     };
 }
 
-function gaslessResult(): SuperbridgeRouteResult {
+function gaslessTypedData(messageOverrides?: Record<string, unknown>): string {
+    return JSON.stringify({
+        domain: { name: "Permit2", chainId: 1, verifyingContract: PERMIT2_ADDRESS },
+        types: {
+            PermitTransferFrom: [
+                { name: "permitted", type: "TokenPermissions" },
+                { name: "spender", type: "address" },
+                { name: "nonce", type: "uint256" },
+                { name: "deadline", type: "uint256" },
+            ],
+        },
+        primaryType: "PermitTransferFrom",
+        message: {
+            permitted: { token: TO, amount: "1000" },
+            spender: SPENDER,
+            nonce: "1",
+            deadline: FUTURE_DEADLINE,
+            ...messageOverrides,
+        },
+    });
+}
+
+function gaslessResult(messageOverrides?: Record<string, unknown>): SuperbridgeRouteResult {
     return {
         meta: { id: "route-gasless" },
         result: {
             initiatingTransaction: {
                 type: "evm-gasless",
                 chainId: "1",
-                typedData: JSON.stringify({
-                    domain: { chainId: 1 },
-                    types: { Order: [{ name: "a", type: "uint256" }] },
-                    primaryType: "Order",
-                    message: { a: "1" },
-                }),
+                typedData: gaslessTypedData(messageOverrides),
             },
         },
     };
@@ -161,6 +182,31 @@ describe("adaptQuoteResponse", () => {
         expect(quotes[0]!.order.steps[0]!.kind).toBe("signature");
     });
 
+    it("derives the gasless signature chainId from the request, not the response tx", () => {
+        const tamperedTxChainId: SuperbridgeRouteResult = {
+            meta: { id: "route-gasless" },
+            result: {
+                initiatingTransaction: {
+                    type: "evm-gasless",
+                    chainId: "999",
+                    typedData: gaslessTypedData(),
+                },
+            },
+        };
+
+        const quotes = adaptQuoteResponse(
+            response([tamperedTxChainId]),
+            PROVIDER_ID,
+            request(),
+            gaslessModes,
+        );
+
+        const step = quotes[0]!.order.steps[0]!;
+        if (step.kind !== "signature") throw new Error("expected a signature step");
+        expect(step.chainId).toBe(1);
+        expect(step.metadata?.superbridgeChainId).toBe("1");
+    });
+
     it("skips a gasless route that carries invalid typed data", () => {
         const result: SuperbridgeRouteResult = {
             meta: { id: "route-gasless" },
@@ -184,6 +230,28 @@ describe("adaptQuoteResponse", () => {
         const quotes = adaptQuoteResponse(response([result]), PROVIDER_ID, request(), gaslessModes);
 
         expect(quotes).toHaveLength(0);
+    });
+
+    it("throws when a gasless envelope inflates the permit amount", () => {
+        expect(() =>
+            adaptQuoteResponse(
+                response([gaslessResult({ permitted: { token: TO, amount: "9999" } })]),
+                PROVIDER_ID,
+                request(),
+                gaslessModes,
+            ),
+        ).toThrow(Eip712EnvelopeMismatch);
+    });
+
+    it("throws when a gasless envelope sets the spender to the user", () => {
+        expect(() =>
+            adaptQuoteResponse(
+                response([gaslessResult({ spender: USER })]),
+                PROVIDER_ID,
+                request(),
+                gaslessModes,
+            ),
+        ).toThrow(Eip712EnvelopeMismatch);
     });
 
     it("prepends revoke and approval steps in order", () => {
