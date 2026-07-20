@@ -37,6 +37,11 @@
         "package.json": "sort-package-json",
         "examples/**": []
     },
+    "pnpm": {
+        "overrides": {
+            "brace-expansion@>=5.0.0 <5.0.6": "5.0.7"
+        }
+    },
     "devDependencies": {
         "@changesets/cli": "2.29.8",
         "@commitlint/config-conventional": "20.2.0",
