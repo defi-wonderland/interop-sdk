@@ -10,7 +10,7 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
-        "mermaid": "11.12.1",
+        "mermaid": "11.16.1",
         "react": "19.2.6",
         "react-dom": "19.2.6",
         "vocs": "2.0.4",
